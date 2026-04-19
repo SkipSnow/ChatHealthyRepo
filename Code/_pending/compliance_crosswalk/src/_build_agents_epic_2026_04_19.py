@@ -1,6 +1,6 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # One-shot apply: builds the new EPIC-010 "Agents" with two agents
-# (SkipsAssistant, NIST800-53ComplianceAgent) per Boss directive
+# (SkipsAssistant, NIST800-53ComplianceAgent) per human directive
 # 2026-04-19. Also files BUG-DEFER-005 tracking the SkipsAssistant
 # codification as a new deferred unit.
 
@@ -27,7 +27,7 @@ def make_req(req_id, type_, priority, requirement, story_id):
         "approval": "approved",
         "type": type_,
         "story_id": story_id,
-        "source": "Boss directive 2026-04-19 - BuildAnEpic Agents",
+        "source": "human directive 2026-04-19 - BuildAnEpic Agents",
         "date": TODAY,
     }
 
@@ -87,9 +87,9 @@ def main():
                                     "explicitly overrides specific ones (v4-042); "
                                     "(4) push back when Bosss idea is flawed (with "
                                     "evidence) before acting; (5) ring the bell "
-                                    "before any pause that needs Boss input "
+                                    "before any pause that needs human input "
                                     "(v4-008); (6) measure load size before asking "
-                                    "Boss to test boot/hook/CLAUDE.md changes.",
+                                    "human to test boot/hook/CLAUDE.md changes.",
                                     "SKIP-ASSIST-001"),
                                 make_req(
                                     "SKIP-ASSIST-001-REQ-T001",

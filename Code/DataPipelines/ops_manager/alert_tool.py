@@ -40,7 +40,7 @@ class AlertTool(BaseTool):
 
     @property
     def description(self) -> str:
-        return "Send notifications to Boss or Dev Manager. Enforces cooldown windows."
+        return "Send notifications to human or Dev Manager. Enforces cooldown windows."
 
     @property
     def parameters(self) -> dict:
@@ -54,7 +54,7 @@ class AlertTool(BaseTool):
                 "title": {"type": "string"},
                 "message": {"type": "string"},
                 "subject_id": {"type": "string", "description": "job_id or cluster_name for cooldown tracking"},
-                "recipient": {"type": "string", "enum": ["boss", "dev"], "default": "boss"},
+                "recipient": {"type": "string", "enum": ["human", "dev"], "default": "human"},
             },
             "required": ["event_type", "title", "message"],
         }
@@ -64,7 +64,7 @@ class AlertTool(BaseTool):
         title = params["title"]
         message = params["message"]
         subject_id = params.get("subject_id", "")
-        recipient = params.get("recipient", "boss")
+        recipient = params.get("recipient", "human")
 
         # Cooldown check
         cooldown_key = f"{event_type}:{subject_id}"

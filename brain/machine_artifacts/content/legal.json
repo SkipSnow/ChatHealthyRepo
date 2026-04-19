@@ -42,11 +42,11 @@
       ],
       "review_process": [
         "GPT drafts",
-        "Boss + GPT align",
+        "human + GPT align",
         "Ex-wife redlines",
-        "Boss reviews",
+        "human reviews",
         "GPT integrates",
-        "Boss approves",
+        "human approves",
         "Skip signs (individual)",
         "Skip signs (company)"
       ],
@@ -79,7 +79,7 @@
       "version": "DRAFT v11",
       "date": "2026-03-29",
       "status": "Approved for licensed legal review",
-      "approved_by": "Boss",
+      "approved_by": "human",
       "reviewer": "Paralegal (external)",
       "gpt_iterations": 11,
       "file": "brain/ip_license_agreement_draft_v11.pdf",

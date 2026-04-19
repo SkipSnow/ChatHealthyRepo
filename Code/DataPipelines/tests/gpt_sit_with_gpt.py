@@ -224,7 +224,7 @@ def _build_initial_prompt(requirements: list) -> str:
         "- R15: Token in secure config, never in prompt (ops process)",
         "- R16: Max iterations per assignment (orchestration layer)",
         "- R17: System prompt structure (prompt design)",
-        "- R18: Boss not in routine loops (governance)",
+        "- R18: Human not in routine loops (governance)",
         "- R20: Time budget per assignment (orchestration layer)",
         "- R21: System prompt is structured JSON (prompt design)",
         "- R22: max_think_seconds in system prompt (prompt design)",

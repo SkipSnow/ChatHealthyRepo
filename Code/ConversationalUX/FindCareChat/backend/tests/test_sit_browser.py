@@ -30,7 +30,7 @@ def browser_context_args():
 
 
 def _screenshot(page: Page, name: str):
-    """Save screenshot for Boss review."""
+    """Save screenshot for human review."""
     path = os.path.join(SCREENSHOT_DIR, f"{name}.png")
     page.screenshot(path=path, full_page=True)
     return path
@@ -249,7 +249,7 @@ class TestSITMobile:
         assert result["next_link"], "Next page link must render on Galaxy"
 
     def test_iphone14_screenshot_review(self, playwright):
-        """Capture iPhone layout for Boss review — page load, results, summary."""
+        """Capture iPhone layout for human review — page load, results, summary."""
         self._run_mobile_test("iPhone 14 Pro", "find me shrinks in VA")
         # Screenshots saved for manual review
         assert os.path.exists(os.path.join(SCREENSHOT_DIR, "mobile_iPhone_14_Pro_01_loaded.png"))
@@ -257,7 +257,7 @@ class TestSITMobile:
         assert os.path.exists(os.path.join(SCREENSHOT_DIR, "mobile_iPhone_14_Pro_03_summary.png"))
 
     def test_galaxy_s24_screenshot_review(self, playwright):
-        """Capture Galaxy layout for Boss review — page load, results, summary."""
+        """Capture Galaxy layout for human review — page load, results, summary."""
         self._run_mobile_test("Galaxy S24", "find me shrinks in VA")
         assert os.path.exists(os.path.join(SCREENSHOT_DIR, "mobile_Galaxy_S24_01_loaded.png"))
         assert os.path.exists(os.path.join(SCREENSHOT_DIR, "mobile_Galaxy_S24_02_results.png"))

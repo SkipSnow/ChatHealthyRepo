@@ -116,7 +116,7 @@ add_table(
     ["Field", "Type", "Purpose"],
     [
         ["expected_min_minutes", "int", "Job faster than this = WARNING, Dev Manager verifies output"],
-        ["expected_max_minutes", "int", "Job longer than this = OVERDUE, Notify Boss"],
+        ["expected_max_minutes", "int", "Job longer than this = OVERDUE, Notify human"],
     ],
 )
 
@@ -126,7 +126,7 @@ add_table(
     [
         ["actual < min", "WARNING: suspiciously fast", "Notify Dev Manager \u2014 verify output"],
         ["min <= actual <= max", "Normal", "No action"],
-        ["actual > max", "OVERDUE", "Notify Boss (cooldown: 60 min/job)"],
+        ["actual > max", "OVERDUE", "Notify human (cooldown: 60 min/job)"],
     ],
 )
 
@@ -143,24 +143,24 @@ add_table(
 # ── ERROR FLOW ──
 h2("Error Flow \u2014 Diagnose Loop with Tool Calls")
 para("1. Error Event")
-para("2. NOTIFY Boss (email: error detected, investigating)")
+para("2. NOTIFY human (email: error detected, investigating)")
 para("3. GPT-4.1-mini: DIAGNOSE (call tools, classify: infra or ETL code?) \u2014 max N iterations (configurable)")
 para("4. Diamond: Infrastructure? ETL code? Can\u2019t determine?")
 
 h3("Left Branch \u2014 Infrastructure (Ops Manager)")
 para(
     "GPT-4.1-mini picks repair \u2192 Execute repair tool \u2192 Read logs + verify \u2192 "
-    "Fixed? Yes: NOTIFY Boss, END. No: retry < M? Yes: loop back. No: ESCALATE Boss, END."
+    "Fixed? Yes: NOTIFY human, END. No: retry < M? Yes: loop back. No: ESCALATE human, END."
 )
 
 h3("Right Branch \u2014 ETL Code (Dev Manager)")
 para(
     "Evidence Package received \u2192 Investigate ETL code \u2192 Fix + Run Tests \u2192 "
-    "Pass? Yes: NOTIFY Boss, END. No: retry < M? Yes: loop back. No: ESCALATE Boss, END."
+    "Pass? Yes: NOTIFY human, END. No: retry < M? Yes: loop back. No: ESCALATE human, END."
 )
 
 h3("Bottom \u2014 Can\u2019t Determine")
-para("ESCALATE Boss (can\u2019t classify after N tries) \u2192 END")
+para("ESCALATE human (can\u2019t classify after N tries) \u2192 END")
 para("N = diagnose iterations (configurable). M = repair/fix attempts (configurable, independent per path).")
 
 # ── RULE-BASED PRECHECK ──
@@ -214,12 +214,12 @@ para("Notify \u2260 Escalate. Notify is information. Escalate is \u201cI need yo
 add_table(
     ["Event", "Recipient", "Type", "Content"],
     [
-        ["Error detected", "Boss (configurable)", "Notify", "What happened, what we\u2019re doing"],
-        ["Self-repaired", "Boss", "Notify", "What broke, what fixed it"],
+        ["Error detected", "human (configurable)", "Notify", "What happened, what we\u2019re doing"],
+        ["Self-repaired", "human", "Notify", "What broke, what fixed it"],
         ["Sent to Dev Manager", "Dev Manager", "Action", "Error details, please resolve"],
-        ["Dev resolved", "Boss", "Notify", "Dev fixed it, here\u2019s what they did"],
-        ["Nobody can fix", "Boss", "Escalate", "We need your help"],
-        ["Job overdue", "Boss", "Notify", "Job X running longer than expected"],
+        ["Dev resolved", "human", "Notify", "Dev fixed it, here\u2019s what they did"],
+        ["Nobody can fix", "human", "Escalate", "We need your help"],
+        ["Job overdue", "human", "Notify", "Job X running longer than expected"],
     ],
 )
 
@@ -239,7 +239,7 @@ h3("Configurable Recipients")
 add_table(
     ["Role", "Current", "Future"],
     [
-        ["Boss", "skip.snow@gmail.com", "Same until COO hired"],
+        ["human", "skip.snow@gmail.com", "Same until COO hired"],
         ["Ops escalation", "skip.snow@gmail.com", "COO when hired"],
         ["Dev escalation", "Claude (via Brain)", "Dev lead when hired"],
     ],
@@ -250,9 +250,9 @@ h2("Timer \u2014 Infrastructure Only (every 5 min)")
 add_table(
     ["Check", "Action"],
     [
-        ["Reservation overdue?", "Notify Boss (cooldown: 60 min per job)"],
+        ["Reservation overdue?", "Notify human (cooldown: 60 min per job)"],
         ["Cluster running, zero reservations?", "Pause cluster"],
-        ["Cluster stuck (non-IDLE > 30 min)?", "Notify Boss (cooldown: 30 min per cluster)"],
+        ["Cluster stuck (non-IDLE > 30 min)?", "Notify human (cooldown: 30 min per cluster)"],
         ["NO task execution. NO pipeline imports. NO data access.", ""],
     ],
 )
@@ -336,9 +336,9 @@ h3("Infrastructure Failure Path")
 add_table(
     ["#", "Scenario", "How to Trigger", "Expected Behavior"],
     [
-        ["UAT-I1", "Database killed mid-job", "Pause Atlas cluster manually", "Rule-based \u2192 INFRA. Repair loop. Notifies Boss."],
+        ["UAT-I1", "Database killed mid-job", "Pause Atlas cluster manually", "Rule-based \u2192 INFRA. Repair loop. Notifies human."],
         ["UAT-I2", "Connection timeout", "Rotate Atlas credentials", "Auth error \u2192 INFRA. Reconnect. If unchanged \u2192 early escalation."],
-        ["UAT-I3", "Cluster stuck non-IDLE", "Resize then start job", "Timer detects stuck > 30 min. Notifies Boss."],
+        ["UAT-I3", "Cluster stuck non-IDLE", "Resize then start job", "Timer detects stuck > 30 min. Notifies human."],
         ["UAT-I4", "Orphan cluster", "Kill Azure Function mid-job", "Timer: zero reservations \u2192 pause cluster."],
         ["UAT-I5", "Repair exhaustion", "Pause + block Atlas API", "M attempts fail, evidence unchanged \u2192 escalate."],
     ],
@@ -351,7 +351,7 @@ add_table(
         ["UAT-L1", "Collection missing", "Drop target collection", "KeyError \u2192 PIPELINE. Evidence to Dev Manager."],
         ["UAT-L2", "Collection empty", "Clear source documents", "Zero records \u2192 PIPELINE. Evidence to Dev Manager."],
         ["UAT-L3", "Schema mismatch", "Add required field, skip source update", "ValidationError \u2192 PIPELINE. Evidence to Dev."],
-        ["UAT-L4", "Recursive loop", "Inject infinite retry", "Exceeds max \u2192 OVERDUE. Notifies Boss."],
+        ["UAT-L4", "Recursive loop", "Inject infinite retry", "Exceeds max \u2192 OVERDUE. Notifies human."],
         ["UAT-L5", "Job too fast", "Run against empty dataset", "Duration < min \u2192 WARNING. Dev verifies output."],
     ],
 )

@@ -4,7 +4,7 @@
 **Date:** April 15, 2026  
 **Authors:** Skip Snow (CTO/CEO), Claude Opus 4.6  
 **Pattern:** Assembly Factory with Neighbor-Aware Sub-Factory Composition  
-**Status:** Design — Boss review required  
+**Status:** Design — human review required  
 **Copyright:** ChatHealthy.ai LLC.
 
 ---
@@ -456,7 +456,7 @@ This matrix shows what each sub-factory knows about its neighbors. The rule: eac
 
 One diagram showing the relationship between all five packages with NO internal objects expressed. Shows dependency arrows and force flows between packages.
 
-(To be rendered after Boss approves the capability declarations in Section 4.)
+(To be rendered after human approves the capability declarations in Section 4.)
 
 ### 6.1 Package: PromptAssemblyFactory
 
@@ -478,13 +478,13 @@ Internal class diagram plus narrative explaining conversational responses and ab
 
 Internal class diagram plus narrative explaining clinical trials search, provider detail lookup, and quality scoring.
 
-(Each diagram followed by narrative explaining the internal design and flows. To be rendered after Boss approves the capability declarations.)
+(Each diagram followed by narrative explaining the internal design and flows. To be rendered after human approves the capability declarations.)
 
 ---
 
 ## 7. UML Sequence Diagrams
 
-(Not reviewed until package diagrams from Section 6 are complete — per Boss directive.)
+(Not reviewed until package diagrams from Section 6 are complete — per human directive.)
 
 ### 7.1 Provider Search — Happy Path
 ### 7.2 Conversational Question — Narrative Response
@@ -524,4 +524,4 @@ Internal class diagram plus narrative explaining clinical trials search, provide
 
 ## 10. Backlog
 
-(Pending — features, stories, requirements with B/T separation per engineering rule v4-035. Will be created after Boss approves the architecture.)
+(Pending — features, stories, requirements with B/T separation per engineering rule v4-035. Will be created after human approves the architecture.)

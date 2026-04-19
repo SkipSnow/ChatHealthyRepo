@@ -243,7 +243,7 @@
     <tr><td>first_seen_at</td><td>Brain log</td><td>When this error first appeared (new regression vs known flaky)</td></tr>
     <tr><td>occurrence_count</td><td>Brain log</td><td>How many times this error has occurred</td></tr>
   </table>
-  <p>The Dev Manager receives this package and nothing else. It uses the evidence to find the relevant code, diagnose the bug, and either fix it or escalate to Boss. The <code>recent_events</code> field uses a stable JSON schema and is capped at 10 entries to prevent log explosion.</p>
+  <p>The Dev Manager receives this package and nothing else. It uses the evidence to find the relevant code, diagnose the bug, and either fix it or escalate to human. The <code>recent_events</code> field uses a stable JSON schema and is capped at 10 entries to prevent log explosion.</p>
 
   <!-- ═══ AGENT ARCHITECTURE ═══ -->
   <h2>Agent Architecture</h2>
@@ -309,7 +309,7 @@
   <table>
     <tr><th>Field</th><th>Type</th><th>Purpose</th></tr>
     <tr><td>expected_min_minutes</td><td>int</td><td>Job finishing faster than this triggers a WARNING → Dev Manager verifies output</td></tr>
-    <tr><td>expected_max_minutes</td><td>int</td><td>Job running longer than this triggers OVERDUE → Notify Boss</td></tr>
+    <tr><td>expected_max_minutes</td><td>int</td><td>Job running longer than this triggers OVERDUE → Notify human</td></tr>
   </table>
 
   <h3>Duration Check Logic (timer, every 5 min)</h3>
@@ -317,7 +317,7 @@
     <tr><th>Condition</th><th>Classification</th><th>Action</th></tr>
     <tr><td>actual_duration &lt; expected_min_minutes</td><td>WARNING: suspiciously fast</td><td>Notify Dev Manager — verify output is correct, not just empty</td></tr>
     <tr><td>expected_min_minutes &le; actual_duration &le; expected_max_minutes</td><td>Normal</td><td>No action</td></tr>
-    <tr><td>actual_duration &gt; expected_max_minutes</td><td>OVERDUE</td><td>Notify Boss (cooldown: 60 min per job)</td></tr>
+    <tr><td>actual_duration &gt; expected_max_minutes</td><td>OVERDUE</td><td>Notify human (cooldown: 60 min per job)</td></tr>
   </table>
 
   <h3>Concurrent Reservations</h3>
@@ -355,9 +355,9 @@
     <text x="450" y="36" text-anchor="middle" fill="white" font-weight="600">Error Event</text>
     <line x1="450" y1="54" x2="450" y2="80" stroke="#4a5568" marker-end="url(#arrowhead)"/>
 
-    <!-- ROW 2: NOTIFY BOSS -->
+    <!-- ROW 2: NOTIFY HUMAN -->
     <rect x="330" y="80" width="240" height="50" rx="6" fill="#fef3c7" stroke="#f0a500" stroke-width="2"/>
-    <text x="450" y="100" text-anchor="middle" font-weight="600">NOTIFY Boss</text>
+    <text x="450" y="100" text-anchor="middle" font-weight="600">NOTIFY human</text>
     <text x="450" y="118" text-anchor="middle" font-size="11" fill="#92400e">Email: error detected, investigating</text>
     <line x1="450" y1="130" x2="450" y2="160" stroke="#4a5568" marker-end="url(#arrowhead)"/>
 
@@ -440,7 +440,7 @@
     <line x1="145" y1="590" x2="55" y2="590" stroke="#4a5568" marker-end="url(#arrowhead)"/>
     <text x="100" y="582" font-size="10" fill="#16a34a">yes</text>
     <rect x="-15" y="570" width="130" height="44" rx="6" fill="#fef3c7" stroke="#f0a500"/>
-    <text x="50" y="590" text-anchor="middle" font-size="11" font-weight="500">NOTIFY Boss</text>
+    <text x="50" y="590" text-anchor="middle" font-size="11" font-weight="500">NOTIFY human</text>
     <text x="50" y="604" text-anchor="middle" font-size="10" fill="#92400e">self-repaired</text>
     <line x1="50" y1="614" x2="50" y2="645" stroke="#4a5568" marker-end="url(#arrowhead)"/>
     <rect x="5" y="645" width="90" height="30" rx="6" fill="#f0fdf4" stroke="#16a34a"/>
@@ -462,7 +462,7 @@
     <line x1="200" y1="695" x2="200" y2="720" stroke="#4a5568" marker-end="url(#arrowhead)"/>
 
     <rect x="120" y="720" width="160" height="50" rx="6" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
-    <text x="200" y="742" text-anchor="middle" font-weight="600" fill="#ef4444">ESCALATE Boss</text>
+    <text x="200" y="742" text-anchor="middle" font-weight="600" fill="#ef4444">ESCALATE human</text>
     <text x="200" y="758" text-anchor="middle" font-size="10" fill="#ef4444">M repairs failed</text>
     <line x1="200" y1="770" x2="200" y2="800" stroke="#4a5568" marker-end="url(#arrowhead)"/>
     <rect x="155" y="800" width="90" height="30" rx="6" fill="#f0fdf4" stroke="#16a34a"/>
@@ -503,7 +503,7 @@
     <line x1="755" y1="590" x2="840" y2="590" stroke="#4a5568" marker-end="url(#arrowhead)"/>
     <text x="798" y="582" font-size="10" fill="#16a34a">yes</text>
     <rect x="775" y="570" width="130" height="44" rx="6" fill="#fef3c7" stroke="#f0a500"/>
-    <text x="840" y="590" text-anchor="middle" font-size="11" font-weight="500">NOTIFY Boss</text>
+    <text x="840" y="590" text-anchor="middle" font-size="11" font-weight="500">NOTIFY human</text>
     <text x="840" y="604" text-anchor="middle" font-size="10" fill="#92400e">ETL code fixed</text>
     <line x1="840" y1="614" x2="840" y2="645" stroke="#4a5568" marker-end="url(#arrowhead)"/>
     <rect x="795" y="645" width="90" height="30" rx="6" fill="#f0fdf4" stroke="#16a34a"/>
@@ -525,7 +525,7 @@
     <line x1="695" y1="695" x2="695" y2="720" stroke="#4a5568" marker-end="url(#arrowhead)"/>
 
     <rect x="615" y="720" width="160" height="50" rx="6" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
-    <text x="695" y="742" text-anchor="middle" font-weight="600" fill="#ef4444">ESCALATE Boss</text>
+    <text x="695" y="742" text-anchor="middle" font-weight="600" fill="#ef4444">ESCALATE human</text>
     <text x="695" y="758" text-anchor="middle" font-size="10" fill="#ef4444">M fixes failed</text>
     <line x1="695" y1="770" x2="695" y2="800" stroke="#4a5568" marker-end="url(#arrowhead)"/>
     <rect x="650" y="800" width="90" height="30" rx="6" fill="#f0fdf4" stroke="#16a34a"/>
@@ -535,7 +535,7 @@
     <!-- BOTTOM: CAN'T DETERMINE                     -->
     <!-- ════════════════════════════════════════════ -->
     <rect x="360" y="880" width="180" height="50" rx="6" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
-    <text x="450" y="902" text-anchor="middle" font-weight="600" fill="#ef4444">ESCALATE Boss</text>
+    <text x="450" y="902" text-anchor="middle" font-weight="600" fill="#ef4444">ESCALATE human</text>
     <text x="450" y="918" text-anchor="middle" font-size="10" fill="#ef4444">can't classify after N tries</text>
     <line x1="450" y1="930" x2="450" y2="960" stroke="#4a5568" marker-end="url(#arrowhead)"/>
     <rect x="405" y="960" width="90" height="30" rx="6" fill="#f0fdf4" stroke="#16a34a"/>
@@ -573,9 +573,9 @@
   <p>After gathering evidence, GPT-4.1-mini classifies:</p>
   <table>
     <tr><th>Verdict</th><th>Evidence Required</th><th>Next Step</th></tr>
-    <tr><td><strong>Infrastructure</strong></td><td>Cluster down, connection failed, timeout</td><td>Self-repair → if fails → Escalate Boss</td></tr>
+    <tr><td><strong>Infrastructure</strong></td><td>Cluster down, connection failed, timeout</td><td>Self-repair → if fails → Escalate human</td></tr>
     <tr><td><strong>Pipeline Logic</strong></td><td>Schema mismatch, data format error, business rule violation</td><td>Send to Dev Manager with evidence</td></tr>
-    <tr><td><strong>Can't Determine</strong></td><td>Max iterations reached</td><td>Escalate Boss directly</td></tr>
+    <tr><td><strong>Can't Determine</strong></td><td>Max iterations reached</td><td>Escalate human directly</td></tr>
   </table>
 
   <!-- ═══ RULE-BASED PRECHECK ═══ -->
@@ -622,12 +622,12 @@
 
   <table>
     <tr><th>Event</th><th>Recipient</th><th>Type</th><th>Content</th></tr>
-    <tr><td>Error detected</td><td>Boss (configurable)</td><td>Notify</td><td>What happened, what we're doing</td></tr>
-    <tr><td>Self-repaired</td><td>Boss</td><td>Notify</td><td>What broke, what fixed it</td></tr>
+    <tr><td>Error detected</td><td>Human (configurable)</td><td>Notify</td><td>What happened, what we're doing</td></tr>
+    <tr><td>Self-repaired</td><td>Human</td><td>Notify</td><td>What broke, what fixed it</td></tr>
     <tr><td>Sent to Dev Manager</td><td>Dev Manager</td><td>Action</td><td>Error details, please resolve</td></tr>
-    <tr><td>Dev resolved</td><td>Boss</td><td>Notify</td><td>Dev fixed it, here's what they did</td></tr>
-    <tr><td>Nobody can fix</td><td>Boss</td><td><strong>Escalate</strong></td><td>We need your help</td></tr>
-    <tr><td>Job overdue</td><td>Boss</td><td>Notify</td><td>Job X running longer than expected</td></tr>
+    <tr><td>Dev resolved</td><td>Human</td><td>Notify</td><td>Dev fixed it, here's what they did</td></tr>
+    <tr><td>Nobody can fix</td><td>Human</td><td><strong>Escalate</strong></td><td>We need your help</td></tr>
+    <tr><td>Job overdue</td><td>Human</td><td>Notify</td><td>Job X running longer than expected</td></tr>
   </table>
 
   <h3>Notification Cooldowns</h3>
@@ -644,7 +644,7 @@
   <h3>Configurable Recipients</h3>
   <table>
     <tr><th>Role</th><th>Current</th><th>Future</th></tr>
-    <tr><td>Boss (notifications + escalations)</td><td>skip.snow@gmail.com</td><td>Same until COO hired</td></tr>
+    <tr><td>Human (notifications + escalations)</td><td>skip.snow@gmail.com</td><td>Same until COO hired</td></tr>
     <tr><td>Ops escalation</td><td>skip.snow@gmail.com</td><td>COO when hired</td></tr>
     <tr><td>Dev escalation</td><td>Claude (via Brain)</td><td>Dev lead when hired</td></tr>
   </table>
@@ -653,9 +653,9 @@
   <h2>Timer — Infrastructure Only (every 5 min)</h2>
   <table>
     <tr><th>Check</th><th>Action</th></tr>
-    <tr><td>Reservation overdue?</td><td>Notify Boss (cooldown: 60 min per job)</td></tr>
+    <tr><td>Reservation overdue?</td><td>Notify human (cooldown: 60 min per job)</td></tr>
     <tr><td>Cluster running, zero reservations?</td><td>Pause cluster</td></tr>
-    <tr><td>Cluster stuck (non-IDLE > 30 min)?</td><td>Notify Boss (cooldown: 30 min per cluster)</td></tr>
+    <tr><td>Cluster stuck (non-IDLE > 30 min)?</td><td>Notify human (cooldown: 30 min per cluster)</td></tr>
     <tr><td colspan="2" style="color:var(--warn);font-weight:600;">NO task execution. NO pipeline imports. NO data access.</td></tr>
   </table>
 
@@ -776,7 +776,7 @@
 
   <!-- ═══ UAT TEST SCENARIOS ═══ -->
   <h2>UAT Test Scenarios — Failure Path Validation</h2>
-  <p>These scenarios are executed during UAT against real systems. The Ops Manager should handle all of these transparently — Boss gets notified, the right path fires, no human intervention needed unless escalated.</p>
+  <p>These scenarios are executed during UAT against real systems. The Ops Manager should handle all of these transparently — human gets notified, the right path fires, no human intervention needed unless escalated.</p>
 
   <h3>Infrastructure Failure Path (Ops Manager owns)</h3>
   <table>
@@ -785,31 +785,31 @@
       <td>UAT-I1</td>
       <td>Database killed mid-job</td>
       <td>Pause the Atlas cluster manually while a pipeline job is running</td>
-      <td>Rule-based precheck classifies as INFRASTRUCTURE. Repair loop attempts restart_cluster. Verifies via read_logs + status. Notifies Boss on detection and resolution. Audit trail logged.</td>
+      <td>Rule-based precheck classifies as INFRASTRUCTURE. Repair loop attempts restart_cluster. Verifies via read_logs + status. Notifies human on detection and resolution. Audit trail logged.</td>
     </tr>
     <tr>
       <td>UAT-I2</td>
       <td>Connection timeout</td>
       <td>Rotate Atlas credentials (invalidate ATLAS_PRIVATE_KEY) during a running job</td>
-      <td>ServerSelectionTimeoutError or AuthenticationFailed → rule-based INFRASTRUCTURE. Repair loop attempts reconnect. If credentials invalid, evidence unchanged → early escalation to Boss (evidence-must-change guardrail).</td>
+      <td>ServerSelectionTimeoutError or AuthenticationFailed → rule-based INFRASTRUCTURE. Repair loop attempts reconnect. If credentials invalid, evidence unchanged → early escalation to human (evidence-must-change guardrail).</td>
     </tr>
     <tr>
       <td>UAT-I3</td>
       <td>Cluster stuck in non-IDLE state</td>
       <td>Trigger a resize operation then immediately start a job before resize completes</td>
-      <td>Timer detects cluster stuck (non-IDLE > 30 min). Notifies Boss with cooldown (30 min per cluster). No task execution.</td>
+      <td>Timer detects cluster stuck (non-IDLE > 30 min). Notifies human with cooldown (30 min per cluster). No task execution.</td>
     </tr>
     <tr>
       <td>UAT-I4</td>
       <td>Orphan cluster — running with zero reservations</td>
       <td>Kill the Azure Function mid-job (before release() runs in finally block)</td>
-      <td>Timer detects cluster running with zero reservations. Pauses cluster. Notifies Boss.</td>
+      <td>Timer detects cluster running with zero reservations. Pauses cluster. Notifies human.</td>
     </tr>
     <tr>
       <td>UAT-I5</td>
       <td>Repair exhaustion — M attempts fail</td>
       <td>Pause cluster + block Atlas API (e.g., firewall rule) so restart_cluster fails repeatedly</td>
-      <td>Repair loop runs M times. Evidence unchanged after each attempt → escalates to Boss before M. Audit trail shows all attempts + early exit reason.</td>
+      <td>Repair loop runs M times. Evidence unchanged after each attempt → escalates to human before M. Audit trail shows all attempts + early exit reason.</td>
     </tr>
   </table>
 
@@ -838,7 +838,7 @@
       <td>UAT-L4</td>
       <td>Recursive loop / infinite retry</td>
       <td>Inject a deliberate recursive call or infinite retry loop in a pipeline step</td>
-      <td>Job exceeds expected_duration → timer flags as overdue. Notifies Boss (cooldown: 60 min per job). If job eventually errors out, triage classifies based on error type.</td>
+      <td>Job exceeds expected_duration → timer flags as overdue. Notifies human (cooldown: 60 min per job). If job eventually errors out, triage classifies based on error type.</td>
     </tr>
     <tr>
       <td>UAT-L5</td>
@@ -855,7 +855,7 @@
       <td>UAT-A1</td>
       <td>Error that rules can't classify</td>
       <td>Throw a custom exception type not in the rule-based precheck list</td>
-      <td>Rules → inconclusive → GPT-4.1-mini triage invoked. LLM classifies with reasoning. Routes to correct path (infra or Dev). If LLM can't determine after N iterations → escalate Boss.</td>
+      <td>Rules → inconclusive → GPT-4.1-mini triage invoked. LLM classifies with reasoning. Routes to correct path (infra or Dev). If LLM can't determine after N iterations → escalate human.</td>
     </tr>
     <tr>
       <td>UAT-A2</td>
@@ -867,7 +867,7 @@
       <td>UAT-A3</td>
       <td>Notification flood</td>
       <td>Trigger 10+ errors in rapid succession (e.g., batch of failing jobs)</td>
-      <td>Cooldown windows prevent spam. Error detected: immediate (each unique error). Job overdue: 60 min per job. Cluster stuck: 30 min per cluster. Boss not buried.</td>
+      <td>Cooldown windows prevent spam. Error detected: immediate (each unique error). Job overdue: 60 min per job. Cluster stuck: 30 min per cluster. Human not buried.</td>
     </tr>
     <tr>
       <td>UAT-A4</td>

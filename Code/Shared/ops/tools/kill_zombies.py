@@ -50,7 +50,7 @@ def kill_pid(pid):
 
 
 def kill_by_name(name):
-    """Kill all processes matching a name. RISK-003: Boss-authorized exception."""
+    """Kill all processes matching a name. RISK-003: Human-authorized exception."""
     killed = 0
     try:
         if sys.platform == "win32":
@@ -75,7 +75,7 @@ def kill_by_name(name):
 
 
 def main():
-    # --kill-name flag: kill by process name (RISK-003: Boss-authorized)
+    # --kill-name flag: kill by process name (RISK-003: Human-authorized)
     if len(sys.argv) >= 3 and sys.argv[1] == "--kill-name":
         name = sys.argv[2]
         killed = kill_by_name(name)

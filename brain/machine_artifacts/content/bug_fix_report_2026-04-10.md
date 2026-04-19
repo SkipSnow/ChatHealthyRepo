@@ -30,7 +30,7 @@
 | Severity | Bug | Status |
 |---|---|---|
 | show_stopper | BUG-GOV-005 | Requirements without pytests — scanner built |
-| show_stopper | BUG-UX-011 | Apply Filter — implementing Boss rewrite of requirement |
+| show_stopper | BUG-UX-011 | Apply Filter — implementing human rewrite of requirement |
 | critical | BUG-SEC-005 | 426 body on every server |
 | critical | BUG-UX-014 | Evaluate button cold/hot — just implemented, needs Playwright test |
 | critical | BUG-UX-015 | Filter labels truncated — fix applied |
@@ -57,7 +57,7 @@
 | medium | BUG-CLASSIFY-001 | Empty — what's the issue? |
 | medium | BUG-PERF-001 | Empty — what's the issue? |
 | medium | BUG-001 | Empty — what's the issue? |
-| medium | BUG-GOV-002 | Boss constraint check |
+| medium | BUG-GOV-002 | human constraint check |
 | low | BUG-UX-005 | Low priority |
 
 ---

@@ -126,7 +126,7 @@
                 "deleted",
                 "restored"
               ],
-              "description": "commented = Stage 1, deleted = Stage 2, restored = Boss decided to keep"
+              "description": "commented = Stage 1, deleted = Stage 2, restored = human decided to keep"
             },
             "rule": {
               "type": "string",
@@ -383,7 +383,7 @@
     },
     "unrealized_ideas": {
       "path": "brain/machine_artifacts/content/unrealized_ideas.json",
-      "purpose": "Ideas from Boss not yet in the backlog. Tracked here first, promoted when prioritized.",
+      "purpose": "Ideas from human not yet in the backlog. Tracked here first, promoted when prioritized.",
       "produces_artifact": false,
       "schema_status": "orphan",
       "record_schemas": {

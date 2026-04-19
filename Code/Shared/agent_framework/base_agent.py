@@ -27,7 +27,7 @@ class BaseAgent(ABC):
     def __init__(self, name: str, push_fn=None):
         self.name = name
         self.tools = ToolRegistry(agent_name=name)
-        self._push = push_fn  # Pushover alert to Boss
+        self._push = push_fn  # Pushover alert to human
         self.register_tools()
 
     @abstractmethod
@@ -45,13 +45,13 @@ class BaseAgent(ABC):
         ...
 
     def escalate_to_boss(self, title: str, message: str):
-        """Alert Boss via Pushover."""
+        """Alert human via Pushover."""
         _log.warning("[%s] ESCALATE: %s — %s", self.name, title, message)
         if self._push:
             self._push(title, message)
 
     def escalate_to_dev(self, title: str, message: str):
-        """Escalate to Dev Manager (Claude). For now, same as Boss alert."""
+        """Escalate to Dev Manager (Claude). For now, same as human alert."""
         _log.warning("[%s] DEV ESCALATE: %s — %s", self.name, title, message)
         if self._push:
             self._push(f"[Dev] {title}", message)

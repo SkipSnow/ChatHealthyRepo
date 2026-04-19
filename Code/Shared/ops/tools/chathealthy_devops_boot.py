@@ -80,14 +80,14 @@ def _propensity_response(label: str, json_stem: str = "", reason: str = "") -> d
 
 class governance_worker_base(BaseModel if BaseModel is not object else object):
     """Base class for all pydantic governance worker objects.
-    Every worker inherits Boss constraint check and risk acceptance validation.
-    BUG-GOV-002: Boss prompt instructions take precedence over all other rules."""
+    Every worker inherits human constraint check and risk acceptance validation.
+    BUG-GOV-002: Human prompt instructions take precedence over all other rules."""
 
     risk_acceptance_id: str = None
     ch_matrix_id: str = ""
 
     def check_boss_constraint(self, transcript_path: str = "") -> dict:
-        """Check if Boss has an active constraint against state changes.
+        """Check if human has an active constraint against state changes.
         Returns {"constrained": True/False, "constraint": "..."}"""
         return chathealthy_devops_boot._boss_has_active_constraint(transcript_path)
 
@@ -96,14 +96,14 @@ class governance_worker_base(BaseModel if BaseModel is not object else object):
         return self.risk_acceptance_id is not None and self.risk_acceptance_id != ""
 
     def pre_run_checks(self, transcript_path: str = "") -> dict:
-        """Run before any governance process. Returns escalate if Boss constrained
+        """Run before any governance process. Returns escalate if human constrained
         or if action requires risk acceptance that doesn't exist."""
         boss_check = self.check_boss_constraint(transcript_path)
         if boss_check.get("constrained"):
             return {
                 "comply": False,
                 "action": "escalate",
-                "reason": f"BUG-GOV-002: Boss constraint active — '{boss_check['constraint']}'",
+                "reason": f"BUG-GOV-002: Human constraint active — '{boss_check['constraint']}'",
             }
         return {"comply": True}
 
@@ -137,7 +137,7 @@ class bug_governance_constraints(governance_worker_base):
 
     def run_governance_process(self, transcript_path: str = "") -> dict:
         """Execute the governance process for this bug instance.
-        Calls base class pre_run_checks first — Boss constraint and risk acceptance."""
+        Calls base class pre_run_checks first — human constraint and risk acceptance."""
 
         pre = self.pre_run_checks(transcript_path)
         if not pre.get("comply", True):
@@ -154,7 +154,7 @@ class bug_governance_constraints(governance_worker_base):
         if not self.check_risk_acceptance() and (self.is_show_stopper() or self.is_release_blocker()):
             result["comply"] = False
             result["action"] = "escalate"
-            result["reason"] = f"{self.bugid}: {self.severity or 'SHOW STOPPER'} — no risk acceptance. Escalate to Boss."
+            result["reason"] = f"{self.bugid}: {self.severity or 'SHOW STOPPER'} — no risk acceptance. Escalate to human."
             return result
 
         if self.check_risk_acceptance():
@@ -395,7 +395,7 @@ class engineering_rules_worker(governance_worker_base):
             f"Tool: {tool_name}\n"
             f"Input: {detail}\n\n"
             f"STEP 1 — CHECK RISK ACCEPTANCES FIRST:\n"
-            f"Boss has pre-authorized these actions. If the tool call is covered by ANY of them, "
+            f"human has pre-authorized these actions. If the tool call is covered by ANY of them, "
             f"set risk_accepted=true and risk_id to the matching RISK ID, and you are DONE — do not evaluate further.\n"
         )
         if risk_text:
@@ -411,7 +411,7 @@ class engineering_rules_worker(governance_worker_base):
         )
         return self._call_gpt(self._SYSTEM_PROMPT, user_prompt, self._STATE_CHANGE_SCHEMA)
 
-    # Governance infrastructure + Boss-authorized patterns — always pass
+    # Governance infrastructure + human-authorized patterns — always pass
     _GOVERNANCE_PATTERNS = [
         r"chathealthy_devops_boot\.py",
         r"conversation_log_hook\.py",
@@ -534,8 +534,8 @@ class engineering_rules_worker(governance_worker_base):
             return {"comply": True, "allow": True}
 
         # Eval B: everything else — does it change external state?
-        # FIRST: Check risk acceptances deterministically — Boss approvals are final.
-        # GPT does not get to override Boss.
+        # FIRST: Check risk acceptances deterministically — human approvals are final.
+        # GPT does not get to override human.
         try:
             ra_path = os.path.join(str(BRAIN_DIR), "risk_acceptance.json")
             with open(ra_path, encoding="utf-8") as f:
@@ -544,7 +544,7 @@ class engineering_rules_worker(governance_worker_base):
             detail = tool_input.get("command", tool_input.get("file_path", "")).lower()
             for e in active:
                 scope = (e.get("scope", "") or e.get("description", "")).lower()
-                # If any word in the scope matches the command, Boss approved it
+                # If any word in the scope matches the command, human approved it
                 scope_words = [w for w in scope.split() if len(w) > 3]
                 if scope_words and all(w in detail for w in scope_words):
                     _log.info("Action allowed by risk acceptance %s: %s", e["id"], e.get("title", ""))
@@ -924,11 +924,11 @@ class chathealthy_devops_boot:
         """Print hook execution visibly."""
         print(f"🔒 GUARD | {method}() | source={source} | destination={destination}", file=sys.stderr)
 
-    # ── BUG-GOV-002: Boss prompt constraint check ──────────────────────────
+    # ── BUG-GOV-002: Human prompt constraint check ──────────────────────────
 
     @staticmethod
     def _boss_has_active_constraint(transcript_path: str, window_hours: int = 3) -> dict:
-        """Check if Boss issued a constraint against state changes in the last N hours.
+        """Check if human issued a constraint against state changes in the last N hours.
         Returns {"constrained": True/False, "constraint": "..."} """
         if not transcript_path or not os.path.exists(transcript_path):
             return {"constrained": False}
@@ -1180,8 +1180,8 @@ class chathealthy_devops_boot:
         lines.append("")
         lines.append("  Select operating mode:")
         lines.append("  1 = Unattended (Claude works independently, orphan bugs are deferred)")
-        lines.append("  2 = Normal (Claude works with Boss, decisions require approval)")
-        lines.append("  3 = Idiot (Boss reviews every action, Claude explains everything)")
+        lines.append("  2 = Normal (Claude works with human, decisions require approval)")
+        lines.append("  3 = Idiot (human reviews every action, Claude explains everything)")
         lines.append("")
         lines.append("Do NOT proceed until the user replies with 1, 2, or 3.")
         lines.append("")

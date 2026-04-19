@@ -40,7 +40,8 @@ import json
 import logging
 import os
 import re
-from typing import Any, TypedDict, Optional, Annotated
+from typing import Any, Optional, Annotated
+from typing_extensions import TypedDict  # langgraph schema introspection requires this on Py<3.12
 
 from langgraph.graph import StateGraph, START, END
 

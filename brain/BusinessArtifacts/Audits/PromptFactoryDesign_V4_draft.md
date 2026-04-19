@@ -4,7 +4,7 @@
 **Date:** April 15, 2026  
 **Authors:** Skip Snow (CTO/CEO), Claude Opus 4.6  
 **Pattern:** Assembly Factory with Neighbor-Aware Sub-Factory Composition  
-**Status:** Design — Boss review required  
+**Status:** Design — human review required  
 **Copyright:** ChatHealthy.ai LLC.
 
 ---
@@ -358,13 +358,13 @@ This matrix shows what each sub-factory knows about its neighbors — not intern
 
 *Each followed by narrative explaining the internal design and flows.*
 
-*(To be rendered after Boss approves the capability declarations above.)*
+*(To be rendered after human approves the capability declarations above.)*
 
 ---
 
 ## 7. UML Sequence Diagrams
 
-*(Not reviewed until package diagrams are complete — per Boss directive.)*
+*(Not reviewed until package diagrams are complete — per human directive.)*
 
 ---
 
@@ -382,4 +382,4 @@ This matrix shows what each sub-factory knows about its neighbors — not intern
 
 ## 10. Backlog
 
-*(Pending — features, stories, requirements with B/T separation per v4-035. Will be created after Boss approves the architecture.)*
+*(Pending — features, stories, requirements with B/T separation per v4-035. Will be created after human approves the architecture.)*

@@ -162,7 +162,7 @@ SCHEMA_EXEMPT_PATTERNS = [
     r"node_modules",
     r"__pycache__",
     r"\.iteration_cache/",               # Gitignored iteration cache
-    r"brain/BusinessArtifacts/Audits/",  # Business audit documents (exempt per Boss)
+    r"brain/BusinessArtifacts/Audits/",  # Business audit documents (exempt per human)
 ]
 
 

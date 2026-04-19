@@ -17,7 +17,7 @@
       "rule": "Claude's actions, and all runtime actions Claude makes inside this project, MUST obey all rules.",
       "type": "standard",
       "date": "2026-04-18",
-      "source": "Boss",
+      "source": "human",
       "enforcement": []
     },
     {
@@ -63,7 +63,7 @@
     {
       "id": "v4-004",
       "title": "Operating modes",
-      "rule": "Claude operates in one of three modes set explicitly by Skip Snow at session start. Default is Normal.\n\nMode 1 -- Unattended: Complete the task autonomously. Do not embed credentials or secrets unless explicitly instructed. MAY terminate obviously hung jobs (lastUpdatedTime stale >2x expected duration, no status change, no fan-out). Log reason and instance_id before killing. Note in next commit.\n\nMode 2 -- Normal: Standard Claude Code behavior. Use best judgment. Never break a rule. Never kill a running job without explicit confirmation.\n\nMode 3 -- Idiot Mode: If one unit of work, proceed. If multiple units, stop and list them, wait for confirmation. Units are determined by meaning and intent, not punctuation. Execute, then report: \"The work is done. Here is the status:\" followed by specifics. Then ask: \"What would you like me to do next?\"\n\nAll modes -- commit prefixes: [Normal Mode], [Unattended Mode], or [Idiot Mode]. Unattended mode is sticky until Skip Snow says otherwise.\n\nBreaking a rule (all modes): Stop. State: \"This would violate: [rule name]. Do you grant one-time authority?\" Boss responds with any unambiguous authorization \u00e2\u20ac\u201d the canonical form \"I accept this risk because [reason]\" is always valid, AND any clear directive (\"I authorize you to X\", \"go ahead\", \"do it\", \"fix it\", \"debug this\") is equally valid. Claude MUST log the accepted risk to risk_acceptance.json.\n\nBLANKET RISK ACCEPTANCE \u00e2\u20ac\u201d CASCADES TO CHILDREN: Once Boss has accepted a risk for a task (e.g., \"debug this problem\", \"do the refactoring\", \"read that file\", \"edit the rules\"), the acceptance covers every child action that is clearly under its scope for the duration of that task. Claude MUST NOT re-ask for authorization for sub-steps obviously inside the blanket \u00e2\u20ac\u201d doing so is itself a v4-004 violation and wastes Boss's time. If scope is genuinely ambiguous, Claude asks ONCE to clarify scope, not to re-authorize. Language-lawyering the authorization form (demanding Boss repeat magic words, asking \"shall I proceed?\" for steps obviously inside the accepted task) is prohibited. See v4-028 for the parallel principle on directive-based authorization.",
+      "rule": "Claude operates in one of three modes set explicitly by Skip Snow at session start. Default is Normal.\n\nMode 1 -- Unattended: Complete the task autonomously. Do not embed credentials or secrets unless explicitly instructed. MAY terminate obviously hung jobs (lastUpdatedTime stale >2x expected duration, no status change, no fan-out). Log reason and instance_id before killing. Note in next commit.\n\nMode 2 -- Normal: Standard Claude Code behavior. Use best judgment. Never break a rule. Never kill a running job without explicit confirmation.\n\nMode 3 -- Idiot Mode: If one unit of work, proceed. If multiple units, stop and list them, wait for confirmation. Units are determined by meaning and intent, not punctuation. Execute, then report: \"The work is done. Here is the status:\" followed by specifics. Then ask: \"What would you like me to do next?\"\n\nAll modes -- commit prefixes: [Normal Mode], [Unattended Mode], or [Idiot Mode]. Unattended mode is sticky until Skip Snow says otherwise.\n\nBreaking a rule (all modes): Stop. State: \"This would violate: [rule name]. Do you grant one-time authority?\" human responds with any unambiguous authorization \u00e2\u20ac\u201d the canonical form \"I accept this risk because [reason]\" is always valid, AND any clear directive (\"I authorize you to X\", \"go ahead\", \"do it\", \"fix it\", \"debug this\") is equally valid. Claude MUST log the accepted risk to risk_acceptance.json.\n\nBLANKET RISK ACCEPTANCE \u00e2\u20ac\u201d CASCADES TO CHILDREN: Once human has accepted a risk for a task (e.g., \"debug this problem\", \"do the refactoring\", \"read that file\", \"edit the rules\"), the acceptance covers every child action that is clearly under its scope for the duration of that task. Claude MUST NOT re-ask for authorization for sub-steps obviously inside the blanket \u00e2\u20ac\u201d doing so is itself a v4-004 violation and wastes human's time. If scope is genuinely ambiguous, Claude asks ONCE to clarify scope, not to re-authorize. Language-lawyering the authorization form (demanding human repeat magic words, asking \"shall I proceed?\" for steps obviously inside the accepted task) is prohibited. See v4-028 for the parallel principle on directive-based authorization.",
       "type": "standard",
       "date": "",
       "source": ""
@@ -161,7 +161,7 @@
     {
       "id": "v4-013",
       "title": "Explicit authorization during refactoring",
-      "rule": "Explicit authorization is REQUIRED before starting a refactoring session. Once Boss authorizes the refactoring task, the authorization is BLANKET for that task per v4-004 blanket-risk principle \u00e2\u20ac\u201d all standard file writes, moves, deletes, and renames clearly inside the task's scope are covered. Claude MUST NOT re-ask for each individual file operation. \"Can you...?\" from Boss is a question (not authorization to start); \"go\", \"do it\", \"yes\" or equivalent starts the blanket. Applies to writes, moves, deletes, and renames \u00e2\u20ac\u201d reads and analysis never require authorization.",
+      "rule": "Explicit authorization is REQUIRED before starting a refactoring session. Once human authorizes the refactoring task, the authorization is BLANKET for that task per v4-004 blanket-risk principle \u00e2\u20ac\u201d all standard file writes, moves, deletes, and renames clearly inside the task's scope are covered. Claude MUST NOT re-ask for each individual file operation. \"Can you...?\" from human is a question (not authorization to start); \"go\", \"do it\", \"yes\" or equivalent starts the blanket. Applies to writes, moves, deletes, and renames \u00e2\u20ac\u201d reads and analysis never require authorization.",
       "type": "standard",
       "date": "",
       "source": ""
@@ -232,8 +232,8 @@
     },
     {
       "id": "v4-022",
-      "title": "Alpha code freeze \u00e2\u20ac\u201d no architecture work without Boss override",
-      "rule": "From 2026-04-07 until alpha launch (2026-05-01), no one \u00e2\u20ac\u201d not Claude, not Boss \u00e2\u20ac\u201d may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work. Every session MUST produce working product code \u00e2\u20ac\u201d scoring engine, measures, data loading, or end-to-end wiring. If Boss requests architecture work, Claude MUST object and require Boss to justify the work as 'MUST-have for alpha.' Claude MUST then present Boss's justification to GPT (Enterprise Architect) for approval. Only if GPT agrees it is MUST-have does the work proceed. Boss cannot override alone \u00e2\u20ac\u201d GPT MUST concur. This rule exists because the scoring engine is the alpha differentiator and it does not exist yet. Claude Code is good enough for alpha.",
+      "title": "Alpha code freeze \u00e2\u20ac\u201d no architecture work without human override",
+      "rule": "From 2026-04-07 until alpha launch (2026-05-01), no one \u00e2\u20ac\u201d not Claude, not human \u00e2\u20ac\u201d may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work. Every session MUST produce working product code \u00e2\u20ac\u201d scoring engine, measures, data loading, or end-to-end wiring. If human requests architecture work, Claude MUST object and require human to justify the work as 'MUST-have for alpha.' Claude MUST then present human's justification to GPT (Enterprise Architect) for approval. Only if GPT agrees it is MUST-have does the work proceed. Human cannot override alone \u00e2\u20ac\u201d GPT MUST concur. This rule exists because the scoring engine is the alpha differentiator and it does not exist yet. Claude Code is good enough for alpha.",
       "type": "standard",
       "date": "",
       "source": "",
@@ -270,16 +270,16 @@
     },
     {
       "id": "v4-026",
-      "title": "Governance matrix changes require Boss risk acceptance",
-      "rule": "Claude MUST NOT change any record in the governance matrix (governance_matrix.json) without explicit risk acceptance from Skip Snow. Skip MUST accept and explain the change. Authorization follows v4-004: the verbatim 'I accept this risk because [reason]' is always valid, and any clear Boss directive to change the matrix (explicit or as a child of an accepted blanket task) is equally valid. This rule is universally enforced \u00e2\u20ac\u201d no environment exception, no mode exception, no urgency exception. The governance matrix is the control plane. Unauthorized changes to the control plane are a system-level violation.",
+      "title": "Governance matrix changes require human risk acceptance",
+      "rule": "Claude MUST NOT change any record in the governance matrix (governance_matrix.json) without explicit risk acceptance from Skip Snow. Skip MUST accept and explain the change. Authorization follows v4-004: the verbatim 'I accept this risk because [reason]' is always valid, and any clear human directive to change the matrix (explicit or as a child of an accepted blanket task) is equally valid. This rule is universally enforced \u00e2\u20ac\u201d no environment exception, no mode exception, no urgency exception. The governance matrix is the control plane. Unauthorized changes to the control plane are a system-level violation.",
       "type": "standard",
       "date": "",
       "source": ""
     },
     {
       "id": "v4-027",
-      "title": "Controlled vocabulary changes require Boss authorization",
-      "rule": "Claude MUST NOT add, remove, or modify any value in any controlled vocabulary (controlled_vocabularies.json) without explicit authorization from Skip Snow. Skip MUST authorize the specific change. Authorization follows v4-004: any clear Boss directive suffices, and a blanket risk acceptance covers CV changes that are clearly child actions of the accepted task. Controlled vocabularies define the permitted values across the system \u00e2\u20ac\u201d unauthorized changes propagate silently and can corrupt governance, data quality, and compliance. This rule is universally enforced.",
+      "title": "Controlled vocabulary changes require human authorization",
+      "rule": "Claude MUST NOT add, remove, or modify any value in any controlled vocabulary (controlled_vocabularies.json) without explicit authorization from Skip Snow. Skip MUST authorize the specific change. Authorization follows v4-004: any clear human directive suffices, and a blanket risk acceptance covers CV changes that are clearly child actions of the accepted task. Controlled vocabularies define the permitted values across the system \u00e2\u20ac\u201d unauthorized changes propagate silently and can corrupt governance, data quality, and compliance. This rule is universally enforced.",
       "type": "standard",
       "date": "",
       "source": ""
@@ -287,7 +287,7 @@
     {
       "id": "v4-028",
       "title": "",
-      "rule": "When the user reports a bug or requests a feature, Claude MUST BEFORE CODING silently perform two pre-flight steps: (1) Search existing bugs and backlog for duplicates or contradictions, (2) If a duplicate or contradiction is found, surface it so Boss and Claude resolve it before coding. These steps are silent pre-flight \u00e2\u20ac\u201d they do NOT consist of asking Boss for permission to do the work he already directed. AUTHORIZATION IS NOT OPTIONAL AND IS NOT RE-REQUESTED: Any clear directive from Boss \u00e2\u20ac\u201d 'fix it', 'do it', 'implement it', 'rewrite it', 'change it', 'file the bug and fix it', or any equivalent plain-English instruction \u00e2\u20ac\u201d IS the authorization. Boss has already granted consent the moment he typed the directive. Claude MUST NOT ask 'want me to...', 'shall I...', 'should I proceed...', 'authorize this...', or any other permission-seeking phrasing for work Boss has already directed. Asking Boss to re-authorize what he has already directed is a v4-028 violation. Once a directive has been given, Claude's job is to file the bug if needed, search for duplicates silently, and execute \u00e2\u20ac\u201d reporting back only when done or when Claude hit a genuine semantic ambiguity that changes the outcome. The ONLY time Claude renegotiates is when executing would change the SEMANTICS of Boss's stated text \u00e2\u20ac\u201d adding a constraint Boss did not include, dropping one he did, or reframing the outcome. When renegotiating, Claude flags the specific semantic delta in one sentence ('you said X; I propose writing Y because Z') and proceeds on Boss's answer \u00e2\u20ac\u201d Claude does not request approval of a full rewrite. If Boss has to tell Claude 'I already authorized this' even once in a session, Claude has misread the rule and must recalibrate immediately; repeated violations in one session are a governance failure Boss must not have to police.",
+      "rule": "When the user reports a bug or requests a feature, Claude MUST BEFORE CODING silently perform two pre-flight steps: (1) Search existing bugs and backlog for duplicates or contradictions, (2) If a duplicate or contradiction is found, surface it so human and Claude resolve it before coding. These steps are silent pre-flight \u00e2\u20ac\u201d they do NOT consist of asking human for permission to do the work he already directed. AUTHORIZATION IS NOT OPTIONAL AND IS NOT RE-REQUESTED: Any clear directive from human \u00e2\u20ac\u201d 'fix it', 'do it', 'implement it', 'rewrite it', 'change it', 'file the bug and fix it', or any equivalent plain-English instruction \u00e2\u20ac\u201d IS the authorization. Human has already granted consent the moment he typed the directive. Claude MUST NOT ask 'want me to...', 'shall I...', 'should I proceed...', 'authorize this...', or any other permission-seeking phrasing for work human has already directed. Asking human to re-authorize what he has already directed is a v4-028 violation. Once a directive has been given, Claude's job is to file the bug if needed, search for duplicates silently, and execute \u00e2\u20ac\u201d reporting back only when done or when Claude hit a genuine semantic ambiguity that changes the outcome. The ONLY time Claude renegotiates is when executing would change the SEMANTICS of human's stated text \u00e2\u20ac\u201d adding a constraint human did not include, dropping one he did, or reframing the outcome. When renegotiating, Claude flags the specific semantic delta in one sentence ('you said X; I propose writing Y because Z') and proceeds on human's answer \u00e2\u20ac\u201d Claude does not request approval of a full rewrite. If human has to tell Claude 'I already authorized this' even once in a session, Claude has misread the rule and must recalibrate immediately; repeated violations in one session are a governance failure human must not have to police.",
       "type": "standard",
       "date": "",
       "source": "Skip Snow directive 2026-04-10, amended 2026-04-18 (two amendments same day \u00e2\u20ac\u201d sharpened after re-authorization incident)",
@@ -305,7 +305,7 @@
     {
       "id": "v4-030",
       "title": "Epic naming and taxonomy",
-      "rule": "Epics are named for the business component they realize, not the technology they use. An epic answers 'what does the user or business get?' \u00e2\u20ac\u201d not 'what technology do we build?' Examples of correct epic names: FindCare, Evaluate Care, Talk About Care, Safety. Examples of incorrect epic names: Pipeline Management, UX Management, DevOps, Testing.\n\nTechnical concerns (security, infrastructure, testing, deployment) are cross-cutting shared services. Their stories belong under the business epic they serve. Technical patterns and constraints are captured as development rules (DR-*) or governance policies (GOV-*), not as epics.\n\nWhen a technical story serves exactly one business epic, it belongs in that epic. When it serves multiple business epics, it belongs in the primary consumer's epic with dependency links from the others. There is no 'Maintenance' epic \u00e2\u20ac\u201d maintenance stories are bugs or enhancements in the business epic that owns the affected component.\n\nEpic creation: only Boss can authorize the creation of a new epic. Claude MAY propose an epic but MUST NOT create one without explicit Boss approval. Once Boss approves, Claude assigns the epic_id following the format EPIC-NNN (three-digit sequential, next available number) and the human-readable name. Both MUST be unique \u00e2\u20ac\u201d Claude MUST verify both uniqueness constraints (id and name) before writing.\n\nEpic type: every epic MUST be classified as 'operational' (user-facing product capability) or 'functional' (business function that supports operations). Type is mandatory per the agile_backlog schema.\n\nEnforcement: any new epic MUST be a business component. Claude MUST NOT create technical epics. Existing technical epics MUST be redistributed to their business owners.",
+      "rule": "Epics are named for the business component they realize, not the technology they use. An epic answers 'what does the user or business get?' \u00e2\u20ac\u201d not 'what technology do we build?' Examples of correct epic names: FindCare, Evaluate Care, Talk About Care, Safety. Examples of incorrect epic names: Pipeline Management, UX Management, DevOps, Testing.\n\nTechnical concerns (security, infrastructure, testing, deployment) are cross-cutting shared services. Their stories belong under the business epic they serve. Technical patterns and constraints are captured as development rules (DR-*) or governance policies (GOV-*), not as epics.\n\nWhen a technical story serves exactly one business epic, it belongs in that epic. When it serves multiple business epics, it belongs in the primary consumer's epic with dependency links from the others. There is no 'Maintenance' epic \u00e2\u20ac\u201d maintenance stories are bugs or enhancements in the business epic that owns the affected component.\n\nEpic creation: only human can authorize the creation of a new epic. Claude MAY propose an epic but MUST NOT create one without explicit human approval. Once human approves, Claude assigns the epic_id following the format EPIC-NNN (three-digit sequential, next available number) and the human-readable name. Both MUST be unique \u00e2\u20ac\u201d Claude MUST verify both uniqueness constraints (id and name) before writing.\n\nEpic type: every epic MUST be classified as 'operational' (user-facing product capability) or 'functional' (business function that supports operations). Type is mandatory per the agile_backlog schema.\n\nEnforcement: any new epic MUST be a business component. Claude MUST NOT create technical epics. Existing technical epics MUST be redistributed to their business owners.",
       "type": "standard",
       "date": "",
       "source": "Skip Snow directive 2026-04-11"
@@ -348,7 +348,7 @@
       "title": "State is not a valid partition boundary for data operations.",
       "rule": "State is not a valid partition boundary for data operations. Record count or _id range is the correct boundary.",
       "type": "incident-driven",
-      "incident": "Chunked CopyToFrontEnd by state. CA has 500K records, WY has 5K. Chunks were wildly uneven. Boss had to explain why this was wrong.",
+      "incident": "Chunked CopyToFrontEnd by state. CA has 500K records, WY has 5K. Chunks were wildly uneven. Human had to explain why this was wrong.",
       "date": "2026-04-02",
       "source": "",
       "enforcement": {
@@ -409,14 +409,14 @@
       "title": "When running locally, the parent page iframe must default to",
       "rule": "When running locally, the parent page iframe must default to localhost automatically. No query params, no workarounds.",
       "type": "incident-driven",
-      "incident": "Required ?local param to test locally. Boss had to point out the iframe was going to HuggingFace. Should detect localhost and switch automatically.",
+      "incident": "Required ?local param to test locally. Human had to point out the iframe was going to HuggingFace. Should detect localhost and switch automatically.",
       "date": "2026-04-02",
       "source": ""
     },
     {
       "id": "DR-012",
       "title": "Never remove a requirement from the implementation to save p",
-      "rule": "Never remove a requirement from the implementation to save performance. If a requirement is expensive, find a cheaper way to implement it. Only Boss can waive requirements.",
+      "rule": "Never remove a requirement from the implementation to save performance. If a requirement is expensive, find a cheaper way to implement it. Only human can waive requirements.",
       "type": "incident-driven",
       "incident": "Removed server-side page_start calculation because it was slow (extra count_documents query). This broke the pagination display \u00e2\u20ac\u201d every page showed Records 1-25. Should have moved the tracking to the frontend instead of dropping the requirement.",
       "date": "2026-04-02",
@@ -436,7 +436,7 @@
       "title": "Vector search indexes must be verified on every environment ",
       "rule": "Vector search indexes must be verified on every environment promotion (dev\u00e2\u2020\u2019qa, qa\u00e2\u2020\u2019prod). Required indexes on frontend cluster: provider_vector_index on providers, specialty_vector_index on SpecialtyMetaData. Promotion must fail if indexes are missing.",
       "type": "incident-driven",
-      "incident": "Indexes were missing on dev and prod frontend clusters. Specialty filter returned empty results. Boss had to find the problem and manually pause the pipeline cluster.",
+      "incident": "Indexes were missing on dev and prod frontend clusters. Specialty filter returned empty results. Human had to find the problem and manually pause the pipeline cluster.",
       "date": "2026-04-03",
       "source": ""
     },
@@ -548,33 +548,33 @@
     {
       "id": "v4-035",
       "rule": "Every story MUST separate its requirements into Business requirements (B-prefix) and Technical requirements (T-prefix). Business requirements describe WHAT the system must do from the user or business perspective. They MUST NOT reference specific technologies, frameworks, file formats, APIs, or implementation patterns. Technical requirements describe HOW the system realizes the business requirements. They reference specific technologies, architectures, and implementation decisions. When the technical architecture changes, only T-requirements are rewritten. B-requirements are the contract with the business and MUST remain stable across implementation changes.",
-      "source": "Boss directive \u00e2\u20ac\u201d conversation log rationalization 2026-04-15"
+      "source": "human directive \u00e2\u20ac\u201d conversation log rationalization 2026-04-15"
     },
     {
       "id": "v4-036",
-      "title": "No scanner bypass without Boss risk acceptance",
-      "rule": "Claude MUST NEVER use --no-verify or any other mechanism to bypass the pre-commit or pre-push scanner without explicit risk acceptance from Boss. If the scanner blocks a commit, Claude MUST fix the violation or escalate to Boss. Authorization follows v4-004: any clear Boss directive (including a blanket risk acceptance whose scope covers a scanner bypass for the specific accepted task) suffices; a risk acceptance record MUST be created regardless of the authorization form.",
+      "title": "No scanner bypass without human risk acceptance",
+      "rule": "Claude MUST NEVER use --no-verify or any other mechanism to bypass the pre-commit or pre-push scanner without explicit risk acceptance from human. If the scanner blocks a commit, Claude MUST fix the violation or escalate to human. Authorization follows v4-004: any clear human directive (including a blanket risk acceptance whose scope covers a scanner bypass for the specific accepted task) suffices; a risk acceptance record MUST be created regardless of the authorization form.",
       "type": "standard",
       "date": "2026-04-16",
-      "source": "Boss",
+      "source": "human",
       "enforcement": []
     },
     {
       "id": "v4-037",
       "title": "Claude's memory is ungoverned and not a user concern",
-      "rule": "Claude's memory \u00e2\u20ac\u201d the .md files Claude writes and reads under its personal memory directory \u00e2\u20ac\u201d is ungoverned. Boss does not govern it, does not review it, and it is not a user concern. Claude MAY use memory freely as working notes, self-calibration, and context about the user for its own use. Memory MUST NOT be a source of governance or mandate: no rule, policy, requirement, or enforceable behavior lives in memory. If Claude writes a memory entry that reads like a mandate (\"Claude MUST...\", \"Do NOT...\"), that entry is misplaced and belongs in the brain, not memory. CLAUDE.md is the single exception \u00e2\u20ac\u201d it is committed to git, governed, and carries authority.",
+      "rule": "Claude's memory \u00e2\u20ac\u201d the .md files Claude writes and reads under its personal memory directory \u00e2\u20ac\u201d is ungoverned. Human does not govern it, does not review it, and it is not a user concern. Claude MAY use memory freely as working notes, self-calibration, and context about the user for its own use. Memory MUST NOT be a source of governance or mandate: no rule, policy, requirement, or enforceable behavior lives in memory. If Claude writes a memory entry that reads like a mandate (\"Claude MUST...\", \"Do NOT...\"), that entry is misplaced and belongs in the brain, not memory. CLAUDE.md is the single exception \u00e2\u20ac\u201d it is committed to git, governed, and carries authority.",
       "type": "standard",
       "date": "2026-04-18",
-      "source": "Boss",
+      "source": "human",
       "enforcement": []
     },
     {
       "id": "v4-038",
       "title": "Brain JSON files are governance artifacts \u00e2\u20ac\u201d Claude Code MUST obey every mandate at all times",
-      "rule": "The JSON files under brain/machine_artifacts/content/ are governance artifacts. Every fact, rule, requirement, policy, and constraint in those files is authoritative. Claude Code MUST obey every mandate from those files at all times \u00e2\u20ac\u201d no exceptions for mode, urgency, convenience, or conflict with Claude's memory. When a mandate in brain JSON conflicts with anything in Claude's memory or working assumptions, the brain wins. When two mandates in the brain appear to conflict, Claude MUST escalate to Boss rather than choosing one unilaterally. The brain is the single source of governance; memory is not a peer of the brain.",
+      "rule": "The JSON files under brain/machine_artifacts/content/ are governance artifacts. Every fact, rule, requirement, policy, and constraint in those files is authoritative. Claude Code MUST obey every mandate from those files at all times \u00e2\u20ac\u201d no exceptions for mode, urgency, convenience, or conflict with Claude's memory. When a mandate in brain JSON conflicts with anything in Claude's memory or working assumptions, the brain wins. When two mandates in the brain appear to conflict, Claude MUST escalate to human rather than choosing one unilaterally. The brain is the single source of governance; memory is not a peer of the brain.",
       "type": "standard",
       "date": "2026-04-18",
-      "source": "Boss",
+      "source": "human",
       "enforcement": []
     },
     {
@@ -583,16 +583,16 @@
       "rule": "ChatHealthy.ai brain content \u00e2\u20ac\u201d any fact, rule, requirement, policy, schema, index, derived view, or cache of brain data \u00e2\u20ac\u201d SHALL NOT be stored in Markdown (.md) files. Brain content lives in JSON under brain/machine_artifacts/content/. Derived views, caches, and indexes that carry brain content are also brain content and MUST be JSON. Markdown files in this repo are reserved for: (a) CLAUDE.md and .claude/CLAUDE.md (harness instructions, not brain data), (b) CLAUDE.local.md (personal notes, not brain data), (c) README.md and other human-facing non-brain documentation. Violation: any .md file in brain/ or any .md file containing structured brain content is a v4-040 violation. Derived indexes that sit alongside a JSON source of truth MUST be JSON. The one exception is MEMORY.md and auto-memory topic files under ~/.claude/projects/<project>/memory/ \u00e2\u20ac\u201d those are Claude's working memory, explicitly ungoverned per v4-037, and are not brain content.",
       "type": "standard",
       "date": "2026-04-18",
-      "source": "Boss directive 2026-04-18 \u00e2\u20ac\u201d 'your md files SHALL NOT CONTAIN chatHealthy.ai's brain content'",
+      "source": "human directive 2026-04-18 \u00e2\u20ac\u201d 'your md files SHALL NOT CONTAIN chatHealthy.ai's brain content'",
       "enforcement": []
     },
     {
       "id": "v4-039",
       "title": "Blanket risk acceptance cascades to child actions",
-      "rule": "When Boss accepts a risk for a task \u00e2\u20ac\u201d whether via the canonical v4-004 phrase \"I accept this risk because [reason]\" or via any clear directive (\"I authorize you to X\", \"debug this\", \"do the refactoring\", \"edit the rules\", \"fix it\", \"go ahead\") \u00e2\u20ac\u201d the acceptance is BLANKET for the scope of that task and CASCADES to every child action clearly under its scope for the duration of that task.\n\nClaude MUST:\n  (a) treat the first acceptance as covering all sub-steps obviously inside the accepted task;\n  (b) execute sub-steps without re-asking for authorization;\n  (c) log the parent risk acceptance to risk_acceptance.json once (not one record per sub-step);\n  (d) if scope is genuinely ambiguous, ask ONCE to clarify scope \u00e2\u20ac\u201d not to re-authorize;\n  (e) when closing the task, note in the work record which child actions were taken under the blanket.\n\nClaude MUST NOT:\n  (i) demand Boss repeat the canonical phrase after he has already authorized unambiguously;\n  (ii) ask \"shall I proceed?\", \"want me to...\", or \"do you authorize X?\" for sub-steps obviously inside the accepted task;\n  (iii) language-lawyer the authorization form \u00e2\u20ac\u201d the substance of acceptance controls, not the ceremony;\n  (iv) file per-sub-step risk_acceptance.json records when one parent record suffices.\n\nThis rule binds the other risk-acceptance rules: v4-004 (operating modes), v4-006 (deploy authority), v4-011 (principal engineer discipline), v4-013 (refactoring authorization), v4-017 (pre-execution discipline), v4-026 (governance matrix), v4-027 (controlled vocabulary), v4-036 (scanner bypass). Where any of those rules prescribe an authorization form, v4-039 controls the cascading behavior once a parent authorization has been granted.\n\nViolation of v4-039 is itself a v4-004 rule-break (unnecessary re-asking wastes Boss's time and breaks the blanket-acceptance contract).",
+      "rule": "When human accepts a risk for a task \u00e2\u20ac\u201d whether via the canonical v4-004 phrase \"I accept this risk because [reason]\" or via any clear directive (\"I authorize you to X\", \"debug this\", \"do the refactoring\", \"edit the rules\", \"fix it\", \"go ahead\") \u00e2\u20ac\u201d the acceptance is BLANKET for the scope of that task and CASCADES to every child action clearly under its scope for the duration of that task.\n\nClaude MUST:\n  (a) treat the first acceptance as covering all sub-steps obviously inside the accepted task;\n  (b) execute sub-steps without re-asking for authorization;\n  (c) log the parent risk acceptance to risk_acceptance.json once (not one record per sub-step);\n  (d) if scope is genuinely ambiguous, ask ONCE to clarify scope \u00e2\u20ac\u201d not to re-authorize;\n  (e) when closing the task, note in the work record which child actions were taken under the blanket.\n\nClaude MUST NOT:\n  (i) demand human repeat the canonical phrase after he has already authorized unambiguously;\n  (ii) ask \"shall I proceed?\", \"want me to...\", or \"do you authorize X?\" for sub-steps obviously inside the accepted task;\n  (iii) language-lawyer the authorization form \u00e2\u20ac\u201d the substance of acceptance controls, not the ceremony;\n  (iv) file per-sub-step risk_acceptance.json records when one parent record suffices.\n\nThis rule binds the other risk-acceptance rules: v4-004 (operating modes), v4-006 (deploy authority), v4-011 (principal engineer discipline), v4-013 (refactoring authorization), v4-017 (pre-execution discipline), v4-026 (governance matrix), v4-027 (controlled vocabulary), v4-036 (scanner bypass). Where any of those rules prescribe an authorization form, v4-039 controls the cascading behavior once a parent authorization has been granted.\n\nViolation of v4-039 is itself a v4-004 rule-break (unnecessary re-asking wastes human's time and breaks the blanket-acceptance contract).",
       "type": "standard",
       "date": "2026-04-18",
-      "source": "Boss directive 2026-04-18 12:22 PM \u00e2\u20ac\u201d Boss: 'If you don't have an explicit requirement that risk acceptances cascade to the children of the risk acceptance craft that requirement.'",
+      "source": "human directive 2026-04-18 12:22 PM \u00e2\u20ac\u201d human: 'If you don't have an explicit requirement that risk acceptances cascade to the children of the risk acceptance craft that requirement.'",
       "enforcement": []
     },
     {
@@ -601,17 +601,37 @@
       "rule": "Every unit of work that is deferred MUST be tracked end-to-end. (1) The unit MUST have at least one requirement in agile_backlog.json with status=deferred. (2) For each such requirement, an auto-tracking bug MUST exist in bugs.json with resolution_status=deferred and severity_by_environment={dev: low, qa: critical, prod: show_stopper}. (3) The unit's input artifacts, output artifacts, src, and a README MUST live in a self-contained directory under Code/_pending/<unit_name>/. (4) The tracking bug closes only when the requirement is fulfilled AND the work is moved out of Code/_pending/.",
       "type": "standard",
       "date": "2026-04-19",
-      "source": "Boss directive 2026-04-19 \u2014 deferred work as first-class concept",
+      "source": "human directive 2026-04-19 \u2014 deferred work as first-class concept",
       "enforcement": []
     },
     {
       "id": "v4-042",
       "title": "Assignment scope is higher authority than ordinary engineering rule",
-      "rule": "A Boss-issued ASSIGNMENT (a stated unit of work, with intent to complete it) carries a higher scope of authority than any ordinary engineering rule. When applying engineering rules during execution, Claude MUST treat an active assignment as overriding any rule whose enforcement would block completion of the assignment, EXCEPT for: GOV-007 (production sign-off), v4-006 (deploy authority \u2014 QA/prod sign-off), and any rule explicitly marked as universally enforced (e.g., v4-026 governance matrix changes still require Boss risk acceptance even mid-assignment). Assignment scope MUST be logged in risk_acceptance.json once at the start of the assignment, not per child action (per v4-039 cascade).",
+      "rule": "A human-issued ASSIGNMENT (a stated unit of work, with intent to complete it) carries a higher scope of authority than any ordinary engineering rule. When applying engineering rules during execution, Claude MUST treat an active assignment as overriding any rule whose enforcement would block completion of the assignment, EXCEPT for: GOV-007 (production sign-off), v4-006 (deploy authority \u2014 QA/prod sign-off), and any rule explicitly marked as universally enforced (e.g., v4-026 governance matrix changes still require human risk acceptance even mid-assignment). Assignment scope MUST be logged in risk_acceptance.json once at the start of the assignment, not per child action (per v4-039 cascade).",
       "type": "standard",
       "date": "2026-04-19",
-      "source": "Boss directive 2026-04-19 \u2014 assignment > ordinary rule",
+      "source": "human directive 2026-04-19 \u2014 assignment > ordinary rule",
       "enforcement": []
+    },
+    {
+      "id": "v4-043",
+      "title": "All business-logic entry points route through a graph orchestrator",
+      "rule": "Every business-logic entry point in the codebase MUST invoke through a graph orchestrator (today: LangGraph StateGraph) rather than directly calling business services from the endpoint handler. Business-logic entry points include: FastAPI/Flask/etc. route handlers, scheduled triggers, CLI command handlers, message/queue consumers, and any other operationally-invoked surface. Pure utility libraries (data structures, serialization, string formatting, math) are exempt. The rationale is single-source-of-truth orchestration: shared concerns (safety, auth, audit, classify) live as graph nodes invoked once per request, so a change to any shared concern propagates to every entry point automatically. Parallel paths that call the same shared service directly from a non-graph handler (e.g., the current /classify endpoint that bypasses _chat_graph and calls safety_service.is_emergency() directly) are violations of this rule. Pre-commit scanner MUST detect: any FastAPI/Flask route handler function body that does not include a graph.invoke() (or equivalent StateGraph entry) call as its primary action \u2014 the handler is permitted to do request parsing, response shaping, and exception translation, but the business work itself MUST flow through the graph.",
+      "type": "standard",
+      "date": "2026-04-19",
+      "source": "human directive 2026-04-19 - graph-orchestration as architecture rule, enforced at check-in",
+      "enforcement": [
+        {
+          "type": "graph_entry_check",
+          "_executor_status": "NOT YET IMPLEMENTED \u2014 see BUG-ARCH-GRAPH-002",
+          "scan_dirs": [
+            "Code/ConversationalUX/FindCareChat/backend",
+            "Code/evaluate_care",
+            "Code/shared_services"
+          ],
+          "_note": "Detects FastAPI/Flask route handlers (functions decorated with @app.post/@app.get/@router.post/etc.) whose body does not contain a call matching <state_graph>.invoke(...). Permitted exceptions: handlers explicitly marked with a # graph-exempt comment AND a paired risk_acceptance entry."
+        }
+      ]
     }
   ]
 }

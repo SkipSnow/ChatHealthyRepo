@@ -135,7 +135,7 @@ export default function ChatWindow() {
               } as Message)
             }
             setMessages(prev => [...prev, ...newMessages])
-            // Boss design: filtered results show pagination controls immediately
+            // human design: filtered results show pagination controls immediately
             if (data.has_more) {
               gui.showPagination(
                 data.total_count, 1, data.count,

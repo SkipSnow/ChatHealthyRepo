@@ -432,7 +432,7 @@ def exchange_otp_route(req: func.HttpRequest) -> func.HttpResponse:
 def cluster_lifecycle_timer(myTimer: func.TimerRequest) -> None:
     """Ops-only timer. No task execution. No pipeline imports.
 
-    Checks overdue reservations (alerts Boss).
+    Checks overdue reservations (alerts human).
     Shuts down idle clusters (zero reservations).
     Checks for stuck clusters.
     Uses OpsManagerAgent for full triage + audit trail.

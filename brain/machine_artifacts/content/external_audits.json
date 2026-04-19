@@ -167,7 +167,7 @@
           "category": "security",
           "severity": "moderate_gap",
           "title": "Credential-handling requirement is inconsistent between TR10 and clarified scope",
-          "detail": "TR10 states credentials are redacted, but Boss clarified security is handled in a separate epic. Leaving TR10 in the spec while treating credential handling as out-of-scope will confuse future reviewers.",
+          "detail": "TR10 states credentials are redacted, but human clarified security is handled in a separate epic. Leaving TR10 in the spec while treating credential handling as out-of-scope will confuse future reviewers.",
           "recommendation": "Either remove TR10 and reference the security epic, or keep TR10 with a cross-reference that credential redaction is enforced via shared middleware owned by the security epic.",
           "action_required": true,
           "priority": "phase_2",
@@ -247,7 +247,7 @@
         },
         {
           "q": "Are concurrent writes a concern?",
-          "a": "No. Boss talks to Claude and GPT sequentially; concurrency is an implementation detail."
+          "a": "No. Human talks to Claude and GPT sequentially; concurrency is an implementation detail."
         },
         {
           "q": "How should binaries be handled?",
@@ -295,7 +295,7 @@
       "version": "1.0",
       "date": "2026-03-30",
       "auditor": "Perplexity Computer (External Auditor)",
-      "owner": "Boss (Skip Snow)",
+      "owner": "human (Skip Snow)",
       "scope": "Full platform review: public site, architecture, chat app design, provider data pipeline design, roadmap, privacy policy, terms of use, live chat testing, Brain design spec (GPT Read-Only Query Service v6.1)",
       "documents_reviewed": [
         {
@@ -339,7 +339,7 @@
           "ch_matrix_id": "3c9c44f5-7a57-4ae2-95dc-7d4da5dbea31"
         }
       ],
-      "executive_summary": "ChatHealthy.ai demonstrates unusually coherent architecture and production-grade data engineering for a pre-alpha solo founder project. The three-app separation (Cloudflare static / HuggingFace chat / Azure pipelines) is clean and independently scalable. The Brain governance system (Claude engineer + GPT architect + Boss tiebreaker) is a novel and effective SDLC for an AI-native company with no human developers. The primary risks are strategic (IP exposure, state coverage, regulatory positioning) rather than architectural. The platform is ready to proceed to Alpha with the caveats documented below.",
+      "executive_summary": "ChatHealthy.ai demonstrates unusually coherent architecture and production-grade data engineering for a pre-alpha solo founder project. The three-app separation (Cloudflare static / HuggingFace chat / Azure pipelines) is clean and independently scalable. The Brain governance system (Claude engineer + GPT architect + human tiebreaker) is a novel and effective SDLC for an AI-native company with no human developers. The primary risks are strategic (IP exposure, state coverage, regulatory positioning) rather than architectural. The platform is ready to proceed to Alpha with the caveats documented below.",
       "findings": [
         {
           "id": "F-01",
@@ -492,7 +492,7 @@
           "category": "governance",
           "severity": "strength",
           "title": "Brain governance system is an effective SDLC for AI-native company",
-          "detail": "The Claude-GPT-Boss triangle functions as a complete development organization. The adversarial review process on the GPT Reader design spec produced a disciplined, zero-open-disputes result.",
+          "detail": "The Claude-GPT-human triangle functions as a complete development organization. The adversarial review process on the GPT Reader design spec produced a disciplined, zero-open-disputes result.",
           "action_required": false,
           "ch_matrix_id": "5a0b0940-e90c-468b-8a05-150fb0502f81"
         },
@@ -502,7 +502,7 @@
           "severity": "high",
           "title": "Brain lock has no deadlock recovery",
           "detail": "R32 Brain lock prevents concurrent modification but has no TTL, no deadlock recovery if Claude crashes mid-write.",
-          "recommendation": "Add TTL (10 minutes) and Boss-override release. Address before GPT Reader production.",
+          "recommendation": "Add TTL (10 minutes) and human-override release. Address before GPT Reader production.",
           "action_required": true,
           "priority": "before_gpt_reader_production",
           "ch_matrix_id": "da0be294-eee9-4ce7-a80c-7a24cb09462a"

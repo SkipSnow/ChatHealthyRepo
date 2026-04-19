@@ -1,6 +1,6 @@
 # Extraneous Code Report — 2026-04-11
 
-Code I want to kill. Boss review required before deletion.
+Code I want to kill. Human review required before deletion.
 
 ---
 
@@ -210,9 +210,9 @@ Framework-invoked functions (FastAPI routes, Azure triggers, governance hooks) a
 | Category | Count | Action |
 |---|---|---|
 | Dead files (already deleted) | 49 | Done |
-| Dead functions — probably dead | 7 | Delete after Boss review |
+| Dead functions — probably dead | 7 | Delete after human review |
 | Dead functions — probably keep | 28 | Create requirements, keep |
-| Dead functions — needs decision | 17 | Boss decides |
+| Dead functions — needs decision | 17 | human decides |
 | **Total functions to review** | **52** | |
 
 ---

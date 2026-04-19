@@ -113,7 +113,7 @@ def main():
         ["compliance_crosswalk_agent.py - single class file (FileType enum + ComplianceCrosswalkAgent)",
          "tests/test_compliance_crosswalk_agent.py - 23 tests, LLM mocked",
          "_build_deferral_doc.py - one-shot writer for the deferral .docx",
-         "_apply_brain_edits_2026_04_19.py - one-shot writer that applied the four brain edits Boss approved 2026-04-19",
+         "_apply_brain_edits_2026_04_19.py - one-shot writer that applied the four brain edits human approved 2026-04-19",
          "_build_pending_readmes.py - this README generator"],
         "Run from this src/: python compliance_crosswalk_agent.py status - confirms "
         "SecurityAuditControls.json is reachable. Then python compliance_crosswalk_agent.py "
@@ -189,7 +189,7 @@ def main():
         "the severity_by_environment map. It also auto-files new BUG-DEFER-* bugs "
         "when a new requirement is marked status=deferred. Optionally wire into "
         "the pre-push hook so severity escalation is checked at deploy time.",
-        extra_notes="Boss directive 2026-04-19 (refinement to v4-042): each "
+        extra_notes="human directive 2026-04-19 (refinement to v4-042): each "
                     "engineering rule should carry per-rule enforcement config "
                     "declaring whether (and which) human assignments override "
                     "it. The BugManagerAgent and v4-042 refinement should land "
@@ -215,7 +215,7 @@ def main():
          "deferred_work_pattern/ - pattern codified in v4-041, BugManagerAgent not built"],
         "Per v4-041: a deferred unit closes only when its requirement is "
         "fulfilled AND its tracking bug is closed AND the src/ files are moved "
-        "out of Code/_pending/. Per v4-042: a Boss assignment overrides ordinary "
+        "out of Code/_pending/. Per v4-042: a human assignment overrides ordinary "
         "engineering rules during execution of that assignment (with named "
         "exceptions for prod sign-off and governance matrix changes)."
     )

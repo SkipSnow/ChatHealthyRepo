@@ -270,7 +270,7 @@ class TestQuery(unittest.TestCase):
         )
         self.assertEqual(status, 503)
         self.assertEqual(resp["error"], "cluster_unavailable")
-        self.assertIn("Boss", resp["message"])
+        self.assertIn("human", resp["message"])
 
 
 class TestConstants(unittest.TestCase):

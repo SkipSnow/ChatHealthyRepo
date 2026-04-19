@@ -8,7 +8,7 @@ Implements the Claude ↔ GPT autonomous review loop defined in the
 ChatHealthy Operational Model Specification (framework_02, 2026-03-25).
 
 Flow:
-  0. Boss writes assignment to brain/assignment_queue.json (write_assignment)
+  0. Human writes assignment to brain/assignment_queue.json (write_assignment)
   1. Claude picks up assignment (pick_up_assignment) → reads from assignment_queue.json
   2. Claude completes implementation work
   3. Claude calls write_review_pack() → writes to brain/review_queue.json
@@ -20,18 +20,18 @@ Flow:
 Gate Rules (from spec):
   Low       → auto-proceed
   Moderate  → proceed with warning logged
-  High      → escalate to Boss
-  Critical  → block + escalate to Boss
-  Suicidal  → block + Boss required in-session
+  High      → escalate to human
+  Critical  → block + escalate to human
+  Suicidal  → block + human required in-session
 
 Files (repo root /brain/):
-  assignment_queue.json  — Boss writes assignments here
+  assignment_queue.json  — human writes assignments here
   review_queue.json      — Claude writes Review Packs here
   assurance_results.json — GPT writes Assurance Output here
   execution_state.json   — live loop state
   uat_library.json       — all UAT scenarios (become regression on pass)
 
-ADR: ADR-0007 (Machine Brain), MB-0001 (Boss Governance), MB-0010 (Release Manifest)
+ADR: ADR-0007 (Machine Brain), MB-0001 (human Governance), MB-0010 (Release Manifest)
 """
 
 import json
@@ -176,7 +176,7 @@ def _machine_brain_context(summary: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Step 0 — Boss writes assignment
+# Step 0 — human writes assignment
 # ---------------------------------------------------------------------------
 
 def list_assignments(status: Optional[str] = None) -> list[dict]:
@@ -192,7 +192,7 @@ def list_assignments(status: Optional[str] = None) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Agent → Boss: deliver result or request feedback
+# Agent → human: deliver result or request feedback
 # ---------------------------------------------------------------------------
 
 
@@ -236,14 +236,14 @@ def read_assurance_results(review_id: str) -> Optional[dict]:
                 _set_state(review_id, "blocked", reason)
                 print(f"[BrainLoop] BLOCKED: {reason}", flush=True)
                 if gate == "block_boss_required":
-                    print(f"[BrainLoop] Boss sign-off required before proceeding.", flush=True)
+                    print(f"[BrainLoop] human sign-off required before proceeding.", flush=True)
             elif gate == "proceed_with_warning":
                 _set_state(review_id, "testing")
                 print(f"[BrainLoop] WARNING: Moderate risk — proceeding with caution.", flush=True)
             elif gate == "escalate":
                 reason = f"High risk escalation for review {review_id}"
                 _set_state(review_id, "escalated", reason)
-                print(f"[BrainLoop] ESCALATED to Boss: {reason}", flush=True)
+                print(f"[BrainLoop] ESCALATED to human: {reason}", flush=True)
             else:
                 _set_state(review_id, "testing")
 

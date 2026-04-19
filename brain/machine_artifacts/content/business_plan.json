@@ -659,7 +659,7 @@
             "innovation": "All signals are public. LLMs exist. The method of combining them for consumer healthcare navigation is novel.",
             "next_steps": [
               "GPT patent search",
-              "Provisional patent draft in Talk About Care beta session (Boss + Claude + GPT + patent lawyer)",
+              "Provisional patent draft in Talk About Care beta session (human + Claude + GPT + patent lawyer)",
               "Patent attorney files and negotiates"
             ],
             "first_use_case_for_discuss_care": "Drafting the provisional patent IS the beta test of the product."
@@ -1026,7 +1026,7 @@
             "artifacts": "Business artifacts — QA PDFs, IP agreements, investor docs"
           },
           "roles": {
-            "boss": "Directs, attends, holds all gate authority",
+            "human": "Directs, attends, holds all gate authority",
             "gpt": "Enterprise Architect — plans, reviews, gates (gpt-5.3-chat-latest)",
             "claude": "Engineer — executes code, tests, deploys, drives workflows (claude-opus-4-6)"
           },
@@ -1353,7 +1353,7 @@
       "_record_id": "valuation_pre_money",
       "title": "Pre-Money Valuation and Advisor Equity",
       "date": "2026-04-02",
-      "source": "Boss + GPT collaboration",
+      "source": "human + GPT collaboration",
       "valuation": {
         "pre_money": 10000000,
         "currency": "USD",

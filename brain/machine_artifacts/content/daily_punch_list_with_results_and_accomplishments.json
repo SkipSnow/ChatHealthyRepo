@@ -122,8 +122,8 @@
         "BUG-GOV-001: Claude Code governance hooks crash Cursor plugin — dialog box appears, entire plugin dies, requires logout/login via command palette. No known reproduction steps. Feature: Brain governance (EPIC-10). Fix: add try/finally with stack trace logging to all four lifecycle methods."
       ],
       "sign_offs": [
-        "UAT-UX-001: Timer + Stop button (Boss approved)",
-        "UAT-FILTER-001: Filter functionality (Boss approved, UX not approved)"
+        "UAT-UX-001: Timer + Stop button (human approved)",
+        "UAT-FILTER-001: Filter functionality (human approved, UX not approved)"
       ]
     }
   ],

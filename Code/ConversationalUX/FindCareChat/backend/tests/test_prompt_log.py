@@ -112,13 +112,13 @@ class TestBR1:
         }), encoding="utf-8")
 
         with patch.object(hook, "PROMPT_LOG_PATH", log_path):
-            hook.append_utterance("Claude", "assistant", "Hi Boss")
+            hook.append_utterance("Claude", "assistant", "Hi human")
 
         data = json.loads(log_path.read_text(encoding="utf-8"))
         assert len(data["utterances"]) == 1
         assert data["utterances"][0]["actor"] == "Claude"
         assert data["utterances"][0]["role"] == "assistant"
-        assert data["utterances"][0]["content"] == "Hi Boss"
+        assert data["utterances"][0]["content"] == "Hi human"
 
     def test_entry_has_required_fields(self, tmp_path):
         """Each utterance written by the hook has all required fields."""

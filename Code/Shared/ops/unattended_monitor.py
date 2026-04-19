@@ -201,7 +201,7 @@ def execute_once():
             log_data = _read_json(LOG_FILE) or {"log": []}
             retries = sum(1 for e in log_data["log"] if e.get("action") == "resubmitted")
             if retries >= 3:
-                log.error("3 retries exhausted. Stopping for Boss review.")
+                log.error("3 retries exhausted. Stopping for human review.")
                 assignment["status"] = "stuck_for_boss"
                 _write_json(ASSIGNMENT, assignment)
                 _append_log({"time": _now(), "action": "stuck_after_3_retries"})

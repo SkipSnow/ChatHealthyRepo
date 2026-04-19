@@ -180,7 +180,7 @@ def _query(client: MongoClient, config: dict) -> tuple:
         exc_name = type(exc).__name__
         if "ServerSelection" in exc_name or "Timeout" in exc_name:
             return 503, {"error": "cluster_unavailable",
-                         "message": f"Database cluster is not responding. It may be paused. Boss must authorize starting it.",
+                         "message": f"Database cluster is not responding. It may be paused. Human must authorize starting it.",
                          "detail": str(exc)}
         return 404, {"error": f"Query error: {exc}"}
 

@@ -127,10 +127,10 @@ results = semantic_search("App 2 App 3 integration pattern")
 Every record has a `risk` field: Low | Moderate | High | Critical | Suicidal.
 
 - **Suicidal**: this decision could kill the company if violated. Do not proceed
-  without Boss approval. Do not rationalize exceptions. Escalate.
+  without human approval. Do not rationalize exceptions. Escalate.
 - **High**: significant consequences. Require explicit acknowledgment before
   proceeding differently than documented.
-- **Moderate**: review constraints carefully. Flag deviations to Boss or GPT.
+- **Moderate**: review constraints carefully. Flag deviations to human or GPT.
 - **Low**: informational. Proceed, comply with constraints.
 
 ### Read constraints as hard rules
@@ -146,7 +146,7 @@ Example from ADR-0001:
 ```
 
 If your implementation would violate a constraint, stop. Raise it with
-Boss or GPT before proceeding. Do not implement around a constraint silently.
+Human or GPT before proceeding. Do not implement around a constraint silently.
 
 ### Read narrative for context
 
@@ -232,11 +232,11 @@ store_decision(
 When Machine Brain and your own reasoning conflict, the hierarchy is:
 
 ```
-Boss (Skip) decision  >  Machine Brain record  >  Claude's reasoning
+Human (Skip) decision  >  Machine Brain record  >  Claude's reasoning
 ```
 
 If you believe a Machine Brain record is wrong or outdated, raise it — do not
-silently override it. Flag the conflict to Boss or GPT.
+silently override it. Flag the conflict to human or GPT.
 
 GPT authors the architecture. Claude implements it. Machine Brain is the shared
 memory between them. It is not Claude's memory alone — it belongs to all three.
@@ -261,7 +261,7 @@ At the start of any session involving non-trivial implementation:
 |---|---|---|
 | MB-0099 | Full Bootstrap Narrative | Start every session here |
 | MB-0000 | North Star Vision | Any product/feature decision |
-| MB-0001 | Boss Governance | Authority, escalation path |
+| MB-0001 | human Governance | Authority, escalation path |
 | MB-0002 | Risk Model | Risk levels and what they mean |
 | ADR-0001 | Three-App Architecture | Any cross-boundary work |
 | ADR-0004 | ENV_PREFIX Routing | Any database or blob access |

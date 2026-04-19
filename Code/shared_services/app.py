@@ -104,6 +104,7 @@ def _mongo():
         _log.warning("shared_services /health: MongoClient init failed: %s", e)
         return None
 
+# graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/health")
 def health():
     # DEVOPS-DEPLOY-001-REQ-016: read build/version/framework from
@@ -125,6 +126,7 @@ def health():
             "build": _build, "version": _version_str, "framework": _framework_str}
 
 # ── Splash + Control Transfer (mirrors EvaluateCare pattern) ──
+# graph-exempt: static page render — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/splash")
 def splash():
     _log.info("CONTROL TRANSFER: SharedServices has taken ownership of the page")
@@ -133,6 +135,7 @@ def splash():
             '<div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">is still unimplemented.</div>'
             '</div>'}
 
+# graph-exempt: proxy/redirect — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/transfer/to-findcare")
 def transfer_to_findcare():
     """SharedServices releases page ownership back to FindCare."""
@@ -146,6 +149,7 @@ from typing import Optional as _Optional
 class VerifyTokenRequest(_BaseModel):
     session_token: _Optional[dict] = None
 
+# graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/verify-token")
 def verify_token(body: VerifyTokenRequest):
     """Verify a session token from FindCare. Proves mutual authentication."""
@@ -172,6 +176,7 @@ def verify_token(body: VerifyTokenRequest):
     }
 
 # ── SecretManager (local mode) ─────────────────────────────
+# graph-exempt: Key Vault security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/secrets/{key}")
 def get_secret(key: str):
     """Stub — returns environment variable value.

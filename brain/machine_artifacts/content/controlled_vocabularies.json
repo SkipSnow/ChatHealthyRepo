@@ -507,7 +507,7 @@
         },
         {
           "value": "system_warning",
-          "definition": "System-level warning. Logged system-wide. Boss alerted. All sessions see it. Proceed with caution. The constraint is at risk across the system.",
+          "definition": "System-level warning. Logged system-wide. Human alerted. All sessions see it. Proceed with caution. The constraint is at risk across the system.",
           "ch_matrix_id": "03bf5b52-7990-47ec-aef3-9e393a61eeaf"
         },
         {
@@ -661,12 +661,12 @@
         },
         {
           "value": "uat_testing",
-          "definition": "IST passed. User acceptance testing underway with Boss.",
+          "definition": "IST passed. User acceptance testing underway with human.",
           "ch_matrix_id": "b2000001-0000-4000-c000-000000000009"
         },
         {
           "value": "uat_pending",
-          "definition": "Fix ready for UAT but Boss has not yet started testing.",
+          "definition": "Fix ready for UAT but human has not yet started testing.",
           "ch_matrix_id": "b2000001-0000-4000-c000-000000000010"
         },
         {
@@ -731,7 +731,7 @@
         },
         {
           "value": "prod",
-          "definition": "Production environment. Boss sign-off required for promotion.",
+          "definition": "Production environment. Human sign-off required for promotion.",
           "ch_matrix_id": "c1000001-0000-4000-d000-000000000004"
         }
       ],
@@ -760,23 +760,23 @@
     {
       "vocabulary_id": "CV-011",
       "name": "backlog_approval_status",
-      "definition": "Constrained approval status for epics, features, stories, and requirements. Only Boss can set to approved. Claude and GPT may only propose.",
+      "definition": "Constrained approval status for epics, features, stories, and requirements. Only human can set to approved. Claude and GPT may only propose.",
       "risk_level": "low",
       "reason": "Required to prevent Claude/GPT from self-approving requirements.",
       "members": [
         {
           "value": "approved",
-          "definition": "Boss has reviewed and approved this item.",
+          "definition": "human has reviewed and approved this item.",
           "ch_matrix_id": "f2cd6777-ce7d-417a-aec7-9dfc150e0067"
         },
         {
           "value": "proposed",
-          "definition": "Claude or GPT proposed this item. Awaiting Boss review.",
+          "definition": "Claude or GPT proposed this item. Awaiting human review.",
           "ch_matrix_id": "fb3288b2-8910-47a0-829b-3bd1598c5c99"
         },
         {
           "value": "rejected",
-          "definition": "Boss has reviewed and rejected this item.",
+          "definition": "human has reviewed and rejected this item.",
           "ch_matrix_id": "1b3f1a00-1897-423c-9ce2-7e4c9001757d"
         }
       ],

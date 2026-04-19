@@ -314,7 +314,7 @@ if [ "$FAIL" -eq 0 ]; then
         echo ""
         echo "=========================================="
         echo "  SMOKE TEST PASSED"
-        echo "  Ready for Boss UAT at http://localhost"
+        echo "  Ready for human UAT at http://localhost"
         echo "=========================================="
     else
         echo ""

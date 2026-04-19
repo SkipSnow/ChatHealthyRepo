@@ -36,7 +36,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
 
-# .env not sourced: git and gh use their own auth on Boss's machine; curl hits public endpoints.
+# .env not sourced: git and gh use their own auth on Human's machine; curl hits public endpoints.
 # If we later need env-driven values (HF_TOKEN for direct HF API calls, etc.), load them
 # selectively via python rather than sourcing the whole file (the file contains comment-like
 # lines that break `source`).
@@ -364,7 +364,7 @@ else
 
     if [ -n "$failed_runs" ]; then
         log "FAIL: one or more workflows failed:$failed_runs"
-        # Surface the diagnostic for each failing run so Boss doesn't have to hunt.
+        # Surface the diagnostic for each failing run so Human doesn't have to hunt.
         for entry in $failed_runs; do
             short="${entry%%:*}"
             rest="${entry#*:}"
@@ -447,7 +447,7 @@ fi
 if [ "$SKIP_SMOKE" -eq 0 ]; then
     STATE[phase_current]="smoke"
 
-    # Ring the bell + banner — Boss can start manual testing in parallel
+    # Ring the bell + banner — Human can start manual testing in parallel
     powershell -c "[console]::beep(800,500)" 2>/dev/null || true
     STATE[manual_test_ready_ts]=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     log ""
@@ -462,7 +462,7 @@ if [ "$SKIP_SMOKE" -eq 0 ]; then
     log "Running Playwright smoke test vs dev..."
     # Warn if local servers are up — mTLS smoke steps 15/27 hit localhost
     # sockets by design and produce false positives against dev if local is
-    # still serving. Script only warns; does not kill (Boss-owned decision).
+    # still serving. Script only warns; does not kill (Human-owned decision).
     if curl -sk -o /dev/null -m 3 "https://localhost:8001/health" 2>/dev/null; then
         log "WARN: local EvaluateCare (:8001) is responding. Smoke steps 15/27"
         log "      hardcode localhost and will report PASS against local, not dev."

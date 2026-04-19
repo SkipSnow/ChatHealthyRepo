@@ -10,7 +10,7 @@ and the source code blocks that implement them.
 Output: brain/machine_artifacts/content/SecurityAuditControls.json
 Review: brain/BusinessArtifacts/governance/compliance_crosswalk_review.docx
 
-Public interface (per Boss directive 2026-04-19):
+Public interface (per human directive 2026-04-19):
     agent = ComplianceCrosswalkAgent()
     agent.run()                                       # full pipeline
     agent.ComplianceCrossWalk(FileType.ALL)           # build catalog + classify
@@ -60,7 +60,7 @@ DEFAULT_MODEL = "claude-sonnet-4-6"
 MAX_FILE_BYTES = 200_000
 
 
-# ── FileType enum (Boss-specified public surface) ────────────────
+# ── FileType enum (human-specified public surface) ────────────────
 
 
 class FileType(str, Enum):

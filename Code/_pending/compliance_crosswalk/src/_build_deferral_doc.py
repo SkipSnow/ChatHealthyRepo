@@ -4,7 +4,7 @@
 One-shot writer for the compliance/engineering-rules DEFERRAL document.
 
 Repackages the work built in the past 24 hours, formally specifies the two
-deferred work products as proposed B+T requirement pairs awaiting Boss
+deferred work products as proposed B+T requirement pairs awaiting human
 approval, and reaffirms the alpha focus per v4-022. Output is a .docx
 under brain/BusinessArtifacts/governance/.
 """
@@ -57,11 +57,11 @@ def main():
        italic=True)
 
     # ── 1. Decision ──────────────────────────────────────────────
-    doc.add_heading("1. Boss decision (2026-04-19)", level=1)
+    doc.add_heading("1. Human decision (2026-04-19)", level=1)
     _p(doc, "Both work products described below are FORMALLY SPECIFIED as "
             "proposed requirements but DEFERRED until after alpha (per "
             "v4-022 alpha-freeze focus). No further build work proceeds on "
-            "either until Boss approves the requirements and lifts the "
+            "either until human approves the requirements and lifts the "
             "freeze for them. Focus returns to application code (FindCare "
             "scoring engine, measures, end-to-end wiring).")
 
@@ -81,7 +81,7 @@ def main():
         ("This deferral document",
          "brain/BusinessArtifacts/governance/compliance_crosswalk_deferral_and_proposed_requirements.docx"),
     ])
-    _p(doc, "Public agent surface (per Boss directive 2026-04-19):")
+    _p(doc, "Public agent surface (per human directive 2026-04-19):")
     _bullet(doc, "ComplianceCrosswalkAgent.__init__(scan_dirs, model, api_key, ...)")
     _bullet(doc, "ComplianceCrosswalkAgent.run(file_types=FileType.ALL) "
                  "→ full pipeline; returns Path to .docx review")
@@ -119,12 +119,12 @@ def main():
         ("rule.ch_matrix_id", "Already eliminated (2026-04-18)"),
     ])
 
-    doc.add_heading("3.2 Proposed B+T requirement pair (for Boss approval)", level=2)
+    doc.add_heading("3.2 Proposed B+T requirement pair (for human approval)", level=2)
     _kv_table(doc, [
         ("req_id", "BRAIN-ENGINEERING-RULES-REQ-B001"),
         ("type", "business"),
         ("priority", "must-have"),
-        ("status", "proposed (awaiting Boss approval)"),
+        ("status", "proposed (awaiting human approval)"),
         ("requirement",
          "engineering_rules.json MUST express each rule as (a) a short "
          "human-readable name, (b) a non-binding description, and (c) one or "
@@ -137,7 +137,7 @@ def main():
         ("req_id", "BRAIN-ENGINEERING-RULES-REQ-T001"),
         ("type", "technical"),
         ("priority", "must-have"),
-        ("status", "proposed (awaiting Boss approval)"),
+        ("status", "proposed (awaiting human approval)"),
         ("parent_req_id", "BRAIN-ENGINEERING-RULES-REQ-B001 + the existing "
                           "BRAIN-ENGINEERING-RULES-REQ-001"),
         ("requirement",
@@ -175,13 +175,13 @@ def main():
     _p(doc, "Closes the loop: external compliance frameworks ↔ internal "
             "engineering rules ↔ source code, all in one master crosswalk.")
 
-    doc.add_heading("4.1 Proposed B+T requirement pair (for Boss approval)",
+    doc.add_heading("4.1 Proposed B+T requirement pair (for human approval)",
                     level=2)
     _kv_table(doc, [
         ("req_id", "ARCH-COMPLIANCE-CROSSWALK-002-REQ-B001"),
         ("type", "business"),
         ("priority", "should-have"),
-        ("status", "proposed (deferred — awaiting Boss approval and post-alpha)"),
+        ("status", "proposed (deferred — awaiting human approval and post-alpha)"),
         ("requirement",
          "The system MUST be able to demonstrate, for any source file or any "
          "external compliance control (NIST 800-53, HITRUST CSF), the "
@@ -192,7 +192,7 @@ def main():
         ("req_id", "ARCH-COMPLIANCE-CROSSWALK-002-REQ-T001"),
         ("type", "technical"),
         ("priority", "should-have"),
-        ("status", "proposed (deferred — awaiting Boss approval and post-alpha)"),
+        ("status", "proposed (deferred — awaiting human approval and post-alpha)"),
         ("requirement",
          "ComplianceCrosswalkAgent gains a third framework: engineering_rules. "
          "Pass 1 ingests engineering_rules.json (post-redesign, so the unit of "
@@ -215,16 +215,16 @@ def main():
     doc.add_heading("5. Alpha focus reaffirmation (v4-022)", level=1)
     _p(doc, "Both work products above are governance / brain-housekeeping "
             "work. Per v4-022 (alpha freeze 2026-04-07 → 2026-05-01), "
-            "neither proceeds without Boss approval AND GPT (Enterprise "
+            "neither proceeds without human approval AND GPT (Enterprise "
             "Architect) concurrence. The compliance crosswalk agent and "
             "SecurityAuditControls.json that already exist were built "
-            "overnight under Boss's risk-acceptance for the engineering-"
+            "overnight under human's risk-acceptance for the engineering-"
             "rules curation work; they remain as-is (not committed pending "
             "the requirement approval per v4-023).")
     _p(doc, "Effective immediately, focus returns to alpha-critical work — "
             "the application: scoring engine, measures, data loading, "
             "end-to-end wiring. No further work on either deferred product "
-            "until Boss explicitly lifts the deferral.", bold=True)
+            "until human explicitly lifts the deferral.", bold=True)
 
     # ── 6. Status of unsubmitted artifacts ───────────────────────
     doc.add_heading("6. Pending git status (nothing committed overnight)", level=1)

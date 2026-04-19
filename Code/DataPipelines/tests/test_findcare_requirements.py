@@ -161,7 +161,7 @@ def test_can_prescribe_available_for_evaluate_care():
 # Rationalization review — not a testable requirement
 
 @pytest.mark.skip(reason="BRAIN-CONVERSATION-LOG-REQ-012 is a process requirement "
-                         "(rationalization review by Boss and Claude), not testable via pytest")
+                         "(rationalization review by human and Claude), not testable via pytest")
 def test_conversation_log_rationalization():
     """BRAIN-CONVERSATION-LOG-REQ-012: conversation_log.json needs rationalization review."""
     pass

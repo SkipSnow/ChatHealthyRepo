@@ -281,7 +281,7 @@
       "finding_ref": 1,
       "title": "FindCareApp /chat Bypass",
       "action": "re-implement",
-      "detail": "File a single comprehensive story that documents the full scope of what FindCareApp bypasses. Then implement a hybrid path in FindCareApp: for provider searches keep /classify+/search; for conversational queries such as follow-up, About ChatHealthy, clinical trials, and context carry-forward route through /chat with a lightweight response render. Alternatively, mount ChatWindow alongside FindCareApp as a chat panel. This is a product architecture decision that must involve Boss before coding begins.",
+      "detail": "File a single comprehensive story that documents the full scope of what FindCareApp bypasses. Then implement a hybrid path in FindCareApp: for provider searches keep /classify+/search; for conversational queries such as follow-up, About ChatHealthy, clinical trials, and context carry-forward route through /chat with a lightweight response render. Alternatively, mount ChatWindow alongside FindCareApp as a chat panel. This is a product architecture decision that must involve human before coding begins.",
       "effort": "L",
       "dependencies": [
         "Finding 2 (context carry-forward)",
@@ -309,7 +309,7 @@
       "effort": "M",
       "dependencies": [
         "Legal review of UMLS license",
-        "Boss sign-off on attribution wording"
+        "human sign-off on attribution wording"
       ],
       "suggested_priority": "high — legal compliance pre-launch blocker"
     },
@@ -390,7 +390,7 @@
       "effort": "S",
       "dependencies": [
         "MongoDB access for brain loop (if restoring)",
-        "Boss decision on brain automation roadmap"
+        "human decision on brain automation roadmap"
       ],
       "suggested_priority": "low — internal tooling, no user impact"
     },
@@ -409,7 +409,7 @@
       "finding_ref": 12,
       "title": "Google Maps Provider Location Map",
       "action": "re-implement",
-      "detail": "Implement ASN-MAP001 when Boss accepts the acceptance criteria. Google Maps API key infrastructure already exists. Implement as a map panel in FindCareApp alongside provider cards. Low priority until core architectural gaps are resolved.",
+      "detail": "Implement ASN-MAP001 when human accepts the acceptance criteria. Google Maps API key infrastructure already exists. Implement as a map panel in FindCareApp alongside provider cards. Low priority until core architectural gaps are resolved.",
       "effort": "M",
       "dependencies": [
         "FindCareApp architecture stabilization (Finding 1)"

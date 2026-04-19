@@ -462,7 +462,7 @@
           <tr>
             <td><span class="gov-id">GOV-007</span></td>
             <td>Deploy Authorization</td>
-            <td>Dev deploys freely. Production requires explicit Boss sign-off. Staging authorized by GPT (Architect). QA-to-prod authorized by Boss only. No workarounds.</td>
+            <td>Dev deploys freely. Production requires explicit human sign-off. Staging authorized by GPT (Architect). QA-to-prod authorized by human only. No workarounds.</td>
             <td><span class="gov-permanent">Permanent</span></td>
           </tr>
           <tr>
@@ -492,7 +492,7 @@
           <tr>
             <td><span class="gov-id">GOV-012</span></td>
             <td>Environment Isolation</td>
-            <td>Data moves only within its environment chain: dev &rarr; staging &rarr; prod. No cross-environment copies. No backward migration. Only Boss can authorize deviation.</td>
+            <td>Data moves only within its environment chain: dev &rarr; staging &rarr; prod. No cross-environment copies. No backward migration. Only human can authorize deviation.</td>
             <td><span class="gov-permanent">Permanent</span></td>
           </tr>
         </table>
@@ -1066,7 +1066,7 @@
       <div class="table-wrap">
         <table>
           <tr><th>Role</th><th>Agent</th><th>Authority</th></tr>
-          <tr><td><strong>Boss</strong></td><td>Skip Snow (Founder/CEO)</td><td>Final authority on all gates. Directs all work. Owns UAT sign-off.</td></tr>
+          <tr><td><strong>Human</strong></td><td>Skip Snow (Founder/CEO)</td><td>Final authority on all gates. Directs all work. Owns UAT sign-off.</td></tr>
           <tr><td><strong>Architect</strong></td><td>GPT (gpt-5.3)</td><td>Plans, reviews, gates staging deploys. Every prompt includes governance policies.</td></tr>
           <tr><td><strong>Engineer</strong></td><td>Claude (claude-opus-4-6)</td><td>Executes code, tests, deploys. Enforces governance before acting.</td></tr>
         </table>

@@ -43,7 +43,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "description": "Top-level business component. Contains features. Creation requires Boss authority.",
+            "description": "Top-level business component. Contains features. Creation requires human authority.",
             "required": [
               "epic_id",
               "name",
@@ -107,7 +107,7 @@
                   "proposed",
                   "rejected"
                 ],
-                "description": "Boss approval status. Constrained by CV-011."
+                "description": "human approval status. Constrained by CV-011."
               },
               "features": {
                 "type": "object",
