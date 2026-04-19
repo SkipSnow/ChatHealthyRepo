@@ -39,7 +39,8 @@
           "mitigation",
           "description",
           "version",
-          "framework"
+          "framework",
+          "claude_stipulation"
         ],
         "additionalProperties": false,
         "properties": {
@@ -70,6 +71,10 @@
           },
           "framework": {
             "type": "string"
+          },
+          "claude_stipulation": {
+            "type": "string",
+            "description": "ChatHealthy.LLC Chief Engineer's justification or objection."
           }
         }
       }
