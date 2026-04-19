@@ -25,7 +25,7 @@ import sys
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 BRAIN_DIR = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content")
 
-SKIP_FILES = {"conversation_log.json",
+SKIP_FILES = {"conversation_log.json", "pipeline_v3_compliance_log.json",
               "pipeline_v3_iteration_log.json", "pipeline_v4_design_iterations.json",
               "pre_deploy_rule_check.py"}
 
@@ -163,17 +163,9 @@ def enforce_bugs_schema(rule_id, enforcement):
         if cv_id:
             cv_lookup[cv_id] = [m.get("value") for m in cv.get("members", []) if m.get("value")]
 
-    # New shape: collections.bugs.bug is an array of field-definition dicts
-    # keyed by "name".
-    bug_defs = schema.get("collections", {}).get("bugs", {}).get("bug", [])
-    bug_fields = {}
-    if isinstance(bug_defs, list):
-        for entry in bug_defs:
-            if isinstance(entry, dict) and "name" in entry:
-                bug_fields[entry["name"]] = entry
-
-    for bug in bugs.get("bug", []):
-        bid = bug.get("bugid", "?")
+    bug_fields = schema.get("collections", {}).get("bugs", {}).get("record_schema", {}).get("fields", {})
+    for bug in bugs.get("bugs", []):
+        bid = bug.get("id", "?")
         for fname, fdef in bug_fields.items():
             # Required field check
             if fdef.get("required") and fname not in bug and fdef.get("default") is None:
