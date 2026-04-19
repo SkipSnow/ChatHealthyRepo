@@ -203,7 +203,7 @@
                                 "description": "A unit of deliverable work within a feature. Contains requirements.",
                                 "required": [
                                   "story_id",
-                                  "title",
+                                  "name",
                                   "description",
                                   "size",
                                   "status",
@@ -215,8 +215,11 @@
                                   "story_id": {
                                     "type": "string"
                                   },
-                                  "title": {
-                                    "type": "string"
+                                  "name": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200,
+                                    "description": "Human-readable label (single label across all hierarchy levels per ARCH-SCAN-JSON-REQ-003)."
                                   },
                                   "description": {
                                     "type": "string"
@@ -272,6 +275,7 @@
                                           "description": "A boolean-testable assertion. Contains pytest children.",
                                           "required": [
                                             "req_id",
+                                            "name",
                                             "requirement",
                                             "priority",
                                             "status",
@@ -282,6 +286,12 @@
                                           "properties": {
                                             "req_id": {
                                               "type": "string"
+                                            },
+                                            "name": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 200,
+                                              "description": "Human-readable label (single label across all hierarchy levels per ARCH-SCAN-JSON-REQ-003)."
                                             },
                                             "requirement": {
                                               "type": "string"
