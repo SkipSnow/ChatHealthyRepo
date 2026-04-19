@@ -12,6 +12,16 @@
   },
   "rules": [
     {
+      "id": "v4-000",
+      "title": "Rules bind every action",
+      "rule": "Claude's actions, and all runtime actions Claude makes inside this project, MUST obey all rules.",
+      "type": "standard",
+      "date": "2026-04-18",
+      "source": "Boss",
+      "ch_matrix_id": "",
+      "enforcement": []
+    },
+    {
       "id": "v4-001",
       "title": "Pipeline discipline",
       "rule": "A. Path filter: The deploy-pipelines.yml workflow only triggers on pushes that include changes to Code/DataPipelines/**. Workflow-file-only changes will NOT trigger a deploy. Always include a meaningful Code/DataPipelines/ file change in the same commit as any workflow fix. Never change the Azure deploy command (az functionapp deployment source config-zip) without verifying it is actually broken.\n\nB. No commit during running job: Never commit or deploy Code/DataPipelines/** while an Azure pipeline job is running -- a mid-run deploy could restart the Function App and kill the job. This restriction applies ONLY to DataPipelines. Website/ (Cloudflare static pages) can be committed and deployed freely regardless of pipeline state.\n\nC. Pipeline execution model: All pipeline workloads execute on cloud infrastructure (Azure Functions), never on developer machines. Local machines are for development and testing only — not batch processing, not overnight runs, not data migration. The pipeline framework (PipelineWorkerBase, DataFetcherBase, orchestrators) is the execution surface. If a workload cannot run through the framework, fix the framework — do not bypass it with ad-hoc scripts on local machines.\n\nD. Data acquisition: All source file downloads go through DataFetcherBase with ETag/SHA-256 verification and Azure Blob Storage caching. Files are downloaded once and reused until the source publishes a new version. Never download a source file directly with raw HTTP in pipeline code. Never load an entire source file into memory — stream and process in chunks. Fan-out to parallel workers when processing multiple states or partitions.\n\nE. Pipeline stages are sequential, sub-steps MAY parallelize: Stage 1 (Assemble) downloads all source files in parallel. Stage 2 (Process) loads, parses, classifies — fan-out per state or partition. Stage 3 (Enrich) applies crosswalks, normalization, cost measures. Stage 4 (Embed) generates vector embeddings on the pipeline cluster only (DR-022). Stage 5 (Ship) copies all collections to the frontend cluster with parity verification. Each stage completes before the next begins. No interleaving of stages.",
@@ -57,7 +67,7 @@
     {
       "id": "v4-004",
       "title": "Operating modes",
-      "rule": "Claude operates in one of three modes set explicitly by Skip Snow at session start. Default is Normal.\n\nMode 1 -- Unattended: Complete the task autonomously. Do not embed credentials or secrets unless explicitly instructed. MAY terminate obviously hung jobs (lastUpdatedTime stale >2x expected duration, no status change, no fan-out). Log reason and instance_id before killing. Note in next commit.\n\nMode 2 -- Normal: Standard Claude Code behavior. Use best judgment. Never break a rule. Never kill a running job without explicit confirmation.\n\nMode 3 -- Idiot Mode: If one unit of work, proceed. If multiple units, stop and list them, wait for confirmation. Units are determined by meaning and intent, not punctuation. Execute, then report: \"The work is done. Here is the status:\" followed by specifics. Then ask: \"What would you like me to do next?\"\n\nAll modes -- commit prefixes: [Normal Mode], [Unattended Mode], or [Idiot Mode]. Unattended mode is sticky until Skip Snow says otherwise.\n\nBreaking a rule (all modes): Stop. State: \"This would violate: [rule name]. Do you grant one-time authority?\" Skip Snow MUST respond: \"I accept this risk because [reason].\" Log to risk acceptance JSON. No other form authorizes the action.",
+      "rule": "Claude operates in one of three modes set explicitly by Skip Snow at session start. Default is Normal.\n\nMode 1 -- Unattended: Complete the task autonomously. Do not embed credentials or secrets unless explicitly instructed. MAY terminate obviously hung jobs (lastUpdatedTime stale >2x expected duration, no status change, no fan-out). Log reason and instance_id before killing. Note in next commit.\n\nMode 2 -- Normal: Standard Claude Code behavior. Use best judgment. Never break a rule. Never kill a running job without explicit confirmation.\n\nMode 3 -- Idiot Mode: If one unit of work, proceed. If multiple units, stop and list them, wait for confirmation. Units are determined by meaning and intent, not punctuation. Execute, then report: \"The work is done. Here is the status:\" followed by specifics. Then ask: \"What would you like me to do next?\"\n\nAll modes -- commit prefixes: [Normal Mode], [Unattended Mode], or [Idiot Mode]. Unattended mode is sticky until Skip Snow says otherwise.\n\nBreaking a rule (all modes): Stop. State: \"This would violate: [rule name]. Do you grant one-time authority?\" Boss responds with any unambiguous authorization — the canonical form \"I accept this risk because [reason]\" is always valid, AND any clear directive (\"I authorize you to X\", \"go ahead\", \"do it\", \"fix it\", \"debug this\") is equally valid. Claude MUST log the accepted risk to risk_acceptance.json.\n\nBLANKET RISK ACCEPTANCE — CASCADES TO CHILDREN: Once Boss has accepted a risk for a task (e.g., \"debug this problem\", \"do the refactoring\", \"read that file\", \"edit the rules\"), the acceptance covers every child action that is clearly under its scope for the duration of that task. Claude MUST NOT re-ask for authorization for sub-steps obviously inside the blanket — doing so is itself a v4-004 violation and wastes Boss's time. If scope is genuinely ambiguous, Claude asks ONCE to clarify scope, not to re-authorize. Language-lawyering the authorization form (demanding Boss repeat magic words, asking \"shall I proceed?\" for steps obviously inside the accepted task) is prohibited. See v4-028 for the parallel principle on directive-based authorization.",
       "type": "standard",
       "date": "",
       "source": "",
@@ -164,7 +174,7 @@
     {
       "id": "v4-013",
       "title": "Explicit authorization during refactoring",
-      "rule": "During refactoring sessions, explicit authorization is REQUIRED before any file write, move, or delete. Present the proposed action and wait for \"go\", \"do it\", \"yes\", or equivalent. \"Can you...?\" is a question, not authorization. Applies to writes, moves, deletes, and renames -- not reads or analysis.",
+      "rule": "Explicit authorization is REQUIRED before starting a refactoring session. Once Boss authorizes the refactoring task, the authorization is BLANKET for that task per v4-004 blanket-risk principle — all standard file writes, moves, deletes, and renames clearly inside the task's scope are covered. Claude MUST NOT re-ask for each individual file operation. \"Can you...?\" from Boss is a question (not authorization to start); \"go\", \"do it\", \"yes\" or equivalent starts the blanket. Applies to writes, moves, deletes, and renames — reads and analysis never require authorization.",
       "type": "standard",
       "date": "",
       "source": "",
@@ -200,7 +210,7 @@
     {
       "id": "v4-017",
       "title": "Pre-execution discipline",
-      "rule": "Before executing ANY infrastructure command (MongoDB operation, Atlas API, az CLI, cluster resume/pause, index create/drop, deploy, data copy/promote):\n\n1. Read engineering_rules.json and governance.json.\n2. Check the proposed action against every rule and policy.\n3. If any rule would be violated, STOP and report to Skip Snow.\n4. If authorization is needed (GOV-007, DR-002, DR-005), ASK before acting.\n5. Name the exact cluster, database, and collection before any DB operation. Get confirmation.\n6. Check devops.json naming conventions before creating any database or environment.\n7. Use the pipeline software -- never hack around it. If it cannot do the job, fix the software.\n\nInventory gate: When processing any instruction containing \"all\", \"every\", or referencing infrastructure, enumerate the complete set from the codebase before executing. Grep the entire codebase for all consumers of the resource type. Build a complete checklist. Execute against the checklist. Never act on a partial match. (DR-018)\n\nDependency gate: Never write code that depends on infrastructure (index, collection, env var, API endpoint) without also writing the code that creates or verifies it -- same commit. When writing any $vectorSearch, collection reference, or env var read, verify creation code exists. If not, write it. (DR-017)\n\nAt session start and after any interruption, re-read governance.json and devops.json before writing code. This is a pre-execution gate with no exceptions unless Skip Snow grants memorialized authorization.",
+      "rule": "Before executing ANY infrastructure command (MongoDB operation, Atlas API, az CLI, cluster resume/pause, index create/drop, deploy, data copy/promote):\n\n1. Read engineering_rules.json and governance.json.\n2. Check the proposed action against every rule and policy.\n3. If any rule would be violated, STOP and report to Skip Snow.\n4. If authorization is needed (GOV-007, DR-002, DR-005), ASK before acting — UNLESS a prior blanket risk acceptance (v4-004) already covers the action as a child of an accepted task.\n5. Name the exact cluster, database, and collection before any DB operation. Get confirmation — unless the specific target is already named in the accepted blanket.\n6. Check devops.json naming conventions before creating any database or environment.\n7. Use the pipeline software -- never hack around it. If it cannot do the job, fix the software.\n\nInventory gate: When processing any instruction containing \"all\", \"every\", or referencing infrastructure, enumerate the complete set from the codebase before executing. Grep the entire codebase for all consumers of the resource type. Build a complete checklist. Execute against the checklist. Never act on a partial match. (DR-018)\n\nDependency gate: Never write code that depends on infrastructure (index, collection, env var, API endpoint) without also writing the code that creates or verifies it -- same commit. When writing any $vectorSearch, collection reference, or env var read, verify creation code exists. If not, write it. (DR-017)\n\nAt session start and after any interruption, re-read governance.json and devops.json before writing code. This is a pre-execution gate with no exceptions unless Skip Snow grants memorialized authorization.",
       "type": "standard",
       "date": "",
       "source": "",
@@ -287,7 +297,7 @@
     {
       "id": "v4-026",
       "title": "Governance matrix changes require Boss risk acceptance",
-      "rule": "Claude MUST NOT change any record in the governance matrix (governance_matrix.json) without explicit risk acceptance from Skip Snow. Skip MUST accept and explain the change. This rule is universally enforced — no environment exception, no mode exception, no urgency exception. The governance matrix is the control plane. Unauthorized changes to the control plane are a system-level violation.",
+      "rule": "Claude MUST NOT change any record in the governance matrix (governance_matrix.json) without explicit risk acceptance from Skip Snow. Skip MUST accept and explain the change. Authorization follows v4-004: the verbatim 'I accept this risk because [reason]' is always valid, and any clear Boss directive to change the matrix (explicit or as a child of an accepted blanket task) is equally valid. This rule is universally enforced — no environment exception, no mode exception, no urgency exception. The governance matrix is the control plane. Unauthorized changes to the control plane are a system-level violation.",
       "type": "standard",
       "date": "",
       "source": "",
@@ -296,7 +306,7 @@
     {
       "id": "v4-027",
       "title": "Controlled vocabulary changes require Boss authorization",
-      "rule": "Claude MUST NOT add, remove, or modify any value in any controlled vocabulary (controlled_vocabularies.json) without explicit authorization from Skip Snow. Skip MUST authorize the specific change. Controlled vocabularies define the permitted values across the system — unauthorized changes propagate silently and can corrupt governance, data quality, and compliance. This rule is universally enforced.",
+      "rule": "Claude MUST NOT add, remove, or modify any value in any controlled vocabulary (controlled_vocabularies.json) without explicit authorization from Skip Snow. Skip MUST authorize the specific change. Authorization follows v4-004: any clear Boss directive suffices, and a blanket risk acceptance covers CV changes that are clearly child actions of the accepted task. Controlled vocabularies define the permitted values across the system — unauthorized changes propagate silently and can corrupt governance, data quality, and compliance. This rule is universally enforced.",
       "type": "standard",
       "date": "",
       "source": "",
@@ -305,10 +315,10 @@
     {
       "id": "v4-028",
       "title": "",
-      "rule": "When the user reports a bug or requests a feature, Claude MUST BEFORE CODING: (1) Search existing bugs and backlog for duplicates or contradictions, (2) If duplicate found, show it to the user and confirm whether to update the existing record or create new, (3) If contradiction found, work with the user to resolve it — dedup, edit, or deprecate before proceeding, (4) Only after the requirement/bug is clean and non-contradictory MAY Claude begin coding.",
+      "rule": "When the user reports a bug or requests a feature, Claude MUST BEFORE CODING silently perform two pre-flight steps: (1) Search existing bugs and backlog for duplicates or contradictions, (2) If a duplicate or contradiction is found, surface it so Boss and Claude resolve it before coding. These steps are silent pre-flight — they do NOT consist of asking Boss for permission to do the work he already directed. AUTHORIZATION IS NOT OPTIONAL AND IS NOT RE-REQUESTED: Any clear directive from Boss — 'fix it', 'do it', 'implement it', 'rewrite it', 'change it', 'file the bug and fix it', or any equivalent plain-English instruction — IS the authorization. Boss has already granted consent the moment he typed the directive. Claude MUST NOT ask 'want me to...', 'shall I...', 'should I proceed...', 'authorize this...', or any other permission-seeking phrasing for work Boss has already directed. Asking Boss to re-authorize what he has already directed is a v4-028 violation. Once a directive has been given, Claude's job is to file the bug if needed, search for duplicates silently, and execute — reporting back only when done or when Claude hit a genuine semantic ambiguity that changes the outcome. The ONLY time Claude renegotiates is when executing would change the SEMANTICS of Boss's stated text — adding a constraint Boss did not include, dropping one he did, or reframing the outcome. When renegotiating, Claude flags the specific semantic delta in one sentence ('you said X; I propose writing Y because Z') and proceeds on Boss's answer — Claude does not request approval of a full rewrite. If Boss has to tell Claude 'I already authorized this' even once in a session, Claude has misread the rule and must recalibrate immediately; repeated violations in one session are a governance failure Boss must not have to police.",
       "type": "standard",
       "date": "",
-      "source": "Skip Snow directive 2026-04-10",
+      "source": "Skip Snow directive 2026-04-10, amended 2026-04-18 (two amendments same day — sharpened after re-authorization incident)",
       "ch_matrix_id": "",
       "enforcement": "UserPromptSubmit governance check"
     },
@@ -596,11 +606,51 @@
     {
       "id": "v4-036",
       "title": "No scanner bypass without Boss risk acceptance",
-      "rule": "Claude MUST NEVER use --no-verify or any other mechanism to bypass the pre-commit or pre-push scanner without explicit risk acceptance from Boss. If the scanner blocks a commit, Claude MUST fix the violation or escalate to Boss. Boss must explicitly authorize any bypass and a risk acceptance record must be created.",
+      "rule": "Claude MUST NEVER use --no-verify or any other mechanism to bypass the pre-commit or pre-push scanner without explicit risk acceptance from Boss. If the scanner blocks a commit, Claude MUST fix the violation or escalate to Boss. Authorization follows v4-004: any clear Boss directive (including a blanket risk acceptance whose scope covers a scanner bypass for the specific accepted task) suffices; a risk acceptance record MUST be created regardless of the authorization form.",
       "type": "standard",
       "date": "2026-04-16",
       "source": "Boss",
       "ch_matrix_id": "",
+      "enforcement": []
+    },
+    {
+      "id": "v4-037",
+      "title": "Claude's memory is ungoverned and not a user concern",
+      "rule": "Claude's memory — the .md files Claude writes and reads under its personal memory directory — is ungoverned. Boss does not govern it, does not review it, and it is not a user concern. Claude MAY use memory freely as working notes, self-calibration, and context about the user for its own use. Memory MUST NOT be a source of governance or mandate: no rule, policy, requirement, or enforceable behavior lives in memory. If Claude writes a memory entry that reads like a mandate (\"Claude MUST...\", \"Do NOT...\"), that entry is misplaced and belongs in the brain, not memory. CLAUDE.md is the single exception — it is committed to git, governed, and carries authority.",
+      "type": "standard",
+      "date": "2026-04-18",
+      "source": "Boss",
+      "ch_matrix_id": "",
+      "enforcement": []
+    },
+    {
+      "id": "v4-038",
+      "title": "Brain JSON files are governance artifacts — Claude Code MUST obey every mandate at all times",
+      "rule": "The JSON files under brain/machine_artifacts/content/ are governance artifacts. Every fact, rule, requirement, policy, and constraint in those files is authoritative. Claude Code MUST obey every mandate from those files at all times — no exceptions for mode, urgency, convenience, or conflict with Claude's memory. When a mandate in brain JSON conflicts with anything in Claude's memory or working assumptions, the brain wins. When two mandates in the brain appear to conflict, Claude MUST escalate to Boss rather than choosing one unilaterally. The brain is the single source of governance; memory is not a peer of the brain.",
+      "type": "standard",
+      "date": "2026-04-18",
+      "source": "Boss",
+      "ch_matrix_id": "",
+      "enforcement": []
+    },
+    {
+      "id": "v4-040",
+      "title": "Brain content SHALL NOT be stored in Markdown files",
+      "rule": "ChatHealthy.ai brain content — any fact, rule, requirement, policy, schema, index, derived view, or cache of brain data — SHALL NOT be stored in Markdown (.md) files. Brain content lives in JSON under brain/machine_artifacts/content/. Derived views, caches, and indexes that carry brain content are also brain content and MUST be JSON. Markdown files in this repo are reserved for: (a) CLAUDE.md and .claude/CLAUDE.md (harness instructions, not brain data), (b) CLAUDE.local.md (personal notes, not brain data), (c) README.md and other human-facing non-brain documentation. Violation: any .md file in brain/ or any .md file containing structured brain content is a v4-040 violation. Derived indexes that sit alongside a JSON source of truth MUST be JSON. The one exception is MEMORY.md and auto-memory topic files under ~/.claude/projects/<project>/memory/ — those are Claude's working memory, explicitly ungoverned per v4-037, and are not brain content.",
+      "type": "standard",
+      "date": "2026-04-18",
+      "source": "Boss directive 2026-04-18 — 'your md files SHALL NOT CONTAIN chatHealthy.ai's brain content'",
+      "ch_matrix_id": "c9a4e7f2-8b3d-4a91-b6e5-1f9d0c2a7b45",
+      "enforcement": []
+    },
+    {
+      "id": "v4-039",
+      "title": "Blanket risk acceptance cascades to child actions",
+      "rule": "When Boss accepts a risk for a task — whether via the canonical v4-004 phrase \"I accept this risk because [reason]\" or via any clear directive (\"I authorize you to X\", \"debug this\", \"do the refactoring\", \"edit the rules\", \"fix it\", \"go ahead\") — the acceptance is BLANKET for the scope of that task and CASCADES to every child action clearly under its scope for the duration of that task.\n\nClaude MUST:\n  (a) treat the first acceptance as covering all sub-steps obviously inside the accepted task;\n  (b) execute sub-steps without re-asking for authorization;\n  (c) log the parent risk acceptance to risk_acceptance.json once (not one record per sub-step);\n  (d) if scope is genuinely ambiguous, ask ONCE to clarify scope — not to re-authorize;\n  (e) when closing the task, note in the work record which child actions were taken under the blanket.\n\nClaude MUST NOT:\n  (i) demand Boss repeat the canonical phrase after he has already authorized unambiguously;\n  (ii) ask \"shall I proceed?\", \"want me to...\", or \"do you authorize X?\" for sub-steps obviously inside the accepted task;\n  (iii) language-lawyer the authorization form — the substance of acceptance controls, not the ceremony;\n  (iv) file per-sub-step risk_acceptance.json records when one parent record suffices.\n\nThis rule binds the other risk-acceptance rules: v4-004 (operating modes), v4-006 (deploy authority), v4-011 (principal engineer discipline), v4-013 (refactoring authorization), v4-017 (pre-execution discipline), v4-026 (governance matrix), v4-027 (controlled vocabulary), v4-036 (scanner bypass). Where any of those rules prescribe an authorization form, v4-039 controls the cascading behavior once a parent authorization has been granted.\n\nViolation of v4-039 is itself a v4-004 rule-break (unnecessary re-asking wastes Boss's time and breaks the blanket-acceptance contract).",
+      "type": "standard",
+      "date": "2026-04-18",
+      "source": "Boss directive 2026-04-18 12:22 PM — Boss: 'If you don't have an explicit requirement that risk acceptances cascade to the children of the risk acceptance craft that requirement.'",
+      "ch_matrix_id": "b12f4e8a-7d3c-4f91-a2b5-0e8c9d4a6f32",
       "enforcement": []
     }
   ],
