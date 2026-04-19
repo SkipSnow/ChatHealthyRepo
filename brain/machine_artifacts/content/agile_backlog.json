@@ -53934,7 +53934,8 @@
                           "priority": "must-have",
                           "status": "done",
                           "realized_by": [
-                            "Python 3.11"
+                            "Python 3.11",
+                            "Code/Shared/ops/tools/riskWaiver_gate.py"
                           ],
                           "orphan": false,
                           "pytests": {
@@ -56600,7 +56601,9 @@
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [
-                            "Python 3.11"
+                            "Python 3.11",
+                            "Website/schemas/dev/ChatHealthyBugsSchema.json",
+                            "Website/schemas/qa/ChatHealthyBugsSchema.json"
                           ],
                           "orphan": true,
                           "pytests": {
@@ -57985,152 +57988,6 @@
                     "approval": "proposed"
                   },
                   {
-                    "story_id": "BRAIN-PIPELINE-V3-ITERATIO",
-                    "size": "S",
-                    "status": "in_progress",
-                    "code_controlled": true,
-                    "code_references": [
-                      {
-                        "file": "Code/DataPipelines/tests/test_pipeline_rename_compliance.py",
-                        "relationship": "uses"
-                      },
-                      {
-                        "file": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
-                        "relationship": "controls"
-                      },
-                      {
-                        "file": "Code/Shared/ops/tools/pre_deploy_rule_check.py",
-                        "relationship": "controls"
-                      },
-                      {
-                        "file": "Code/Shared/ops/tools/scan_http.py",
-                        "relationship": "uses"
-                      }
-                    ],
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "BRAIN-PIPELINE-V3-ITERATIO-REQ-001",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "realized_by": [
-                            "Python 3.11"
-                          ],
-                          "orphan": true,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "ORPHAN",
-                                "pytest_type": "ORPHAN",
-                                "orphan": true
-                              }
-                            ]
-                          },
-                          "approval": "proposed"
-                        },
-                        {
-                          "req_id": "BRAIN-PIPELINE-V3-ITERATIO-REQ-002",
-                          "story_id": "BRAIN-PIPELINE-V3-ITERATIO",
-                          "source": "Boss",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "resolution_status": "new",
-                          "ch_matrix_id": "ef9821a1-a09f-4f5b-8a38-a5fde99130a2",
-                          "realized_by": [
-                            "Boss review",
-                            "Claude analysis"
-                          ],
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "ORPHAN",
-                                "pytest_type": "ORPHAN",
-                                "orphan": true
-                              }
-                            ]
-                          },
-                          "approval": "proposed"
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed"
-                  },
-                  {
-                    "story_id": "BRAIN-PIPELINE-V4-DESIGN-I",
-                    "size": "S",
-                    "status": "in_progress",
-                    "code_controlled": true,
-                    "code_references": [
-                      {
-                        "file": "Code/DataPipelines/tests/test_pipeline_rename_compliance.py",
-                        "relationship": "uses"
-                      },
-                      {
-                        "file": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
-                        "relationship": "controls"
-                      },
-                      {
-                        "file": "Code/Shared/ops/tools/pre_deploy_rule_check.py",
-                        "relationship": "controls"
-                      },
-                      {
-                        "file": "Code/Shared/ops/tools/scan_http.py",
-                        "relationship": "uses"
-                      }
-                    ],
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "BRAIN-PIPELINE-V4-DESIGN-I-REQ-001",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "realized_by": [
-                            "Python 3.11"
-                          ],
-                          "orphan": true,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "ORPHAN",
-                                "pytest_type": "ORPHAN",
-                                "orphan": true
-                              }
-                            ]
-                          },
-                          "approval": "proposed"
-                        },
-                        {
-                          "req_id": "BRAIN-PIPELINE-V4-DESIGN-I-REQ-002",
-                          "story_id": "BRAIN-PIPELINE-V4-DESIGN-I",
-                          "source": "Boss",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "resolution_status": "new",
-                          "ch_matrix_id": "939cdf84-0b3f-4142-a714-40c058214e51",
-                          "realized_by": [
-                            "Boss review",
-                            "Claude analysis"
-                          ],
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "ORPHAN",
-                                "pytest_type": "ORPHAN",
-                                "orphan": true
-                              }
-                            ]
-                          },
-                          "approval": "proposed"
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed"
-                  },
-                  {
                     "story_id": "BRAIN-PROJECT-MANIFEST",
                     "title": "project_manifest.json — Brain artifact",
                     "description": "Brain artifact: project_manifest",
@@ -58406,7 +58263,9 @@
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [
-                            "Python 3.11"
+                            "Python 3.11",
+                            "Website/schemas/dev/ChatHealthyRiskAcceptanceSchema.json",
+                            "Website/schemas/qa/ChatHealthyRiskAcceptanceSchema.json"
                           ],
                           "orphan": true,
                           "pytests": {
