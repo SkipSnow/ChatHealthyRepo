@@ -2080,7 +2080,7 @@
                         {
                           "req_id": "EVAL-REQ-CT-002",
                           "story_id": "EVAL-CT-SCORE-001",
-                          "requirement": "The system must define a Pydantic model for normalized measure scores with each score constrained to a 0.0–1.0 range.",
+                          "requirement": "The system must define a Pydantic model for normalized measure scores with each score constrained to a 0.0\u20131.0 range.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -2255,7 +2255,7 @@
                         {
                           "req_id": "EVAL-REQ-CT-009",
                           "story_id": "EVAL-CT-SCORE-001",
-                          "requirement": "The system must reject normalized scores outside the 0.0–1.0 range with a validation error.",
+                          "requirement": "The system must reject normalized scores outside the 0.0\u20131.0 range with a validation error.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -6189,7 +6189,7 @@
                         {
                           "req_id": "EVAL-REQ-006",
                           "story_id": "EVAL-P-M1-S2",
-                          "requirement": "The system must evaluate whether each certification aligns with the provider’s primary specialty taxonomy.",
+                          "requirement": "The system must evaluate whether each certification aligns with the provider\u2019s primary specialty taxonomy.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -8961,7 +8961,7 @@
               "epic_id": "EPIC-001",
               "layer": "backend",
               "capability": "Providers",
-              "description": "Scores how closely provider specialties (NUCC codes) align with user’s requested condition.",
+              "description": "Scores how closely provider specialties (NUCC codes) align with user\u2019s requested condition.",
               "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py (NUCC-based specialty classification and matching)",
               "priority": "HIGH",
               "status": "not_started",
@@ -13035,7 +13035,7 @@
               "epic_id": "EPIC-001",
               "layer": "backend",
               "capability": "Clinical Trials",
-              "description": "Scores trials based on phase (I–IV), prioritizing later-stage trials for credibility.",
+              "description": "Scores trials based on phase (I\u2013IV), prioritizing later-stage trials for credibility.",
               "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/clinical_trials_service.py (ClinicalTrials.gov API includes phase field)",
               "priority": "HIGH",
               "status": "not_started",
@@ -14391,7 +14391,7 @@
                         {
                           "req_id": "EVAL-REQ-CT-M2-S1-002",
                           "story_id": "EVAL-CT-M2-S1",
-                          "requirement": "The system must map each normalized recruitment status to a numeric score on a consistent scale (e.g., 0.0–1.0).",
+                          "requirement": "The system must map each normalized recruitment status to a numeric score on a consistent scale (e.g., 0.0\u20131.0).",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -15748,7 +15748,7 @@
               "epic_id": "EPIC-001",
               "layer": "backend",
               "capability": "Clinical Trials",
-              "description": "Measures how closely trial conditions match the user’s query or diagnosis.",
+              "description": "Measures how closely trial conditions match the user\u2019s query or diagnosis.",
               "evidence": "Code/ConversationalUX/FindCareChat/backend/application/tool_models/clinical_trials_models.py (structured inputs for condition queries)",
               "priority": "HIGH",
               "status": "not_started",
@@ -16864,7 +16864,7 @@
                         {
                           "req_id": "EVAL-CT-M3-S3-REQ-007",
                           "story_id": "EVAL-CT-M3-S3",
-                          "requirement": "The system must ensure the explanation references the user’s input condition terms or their normalized equivalents.",
+                          "requirement": "The system must ensure the explanation references the user\u2019s input condition terms or their normalized equivalents.",
                           "source": "feature",
                           "priority": "should-have",
                           "status": "in_progress",
@@ -17501,12 +17501,12 @@
             },
             {
               "feature_id": "EVAL-WEIGHTS",
-              "name": "User-Adjustable Quality Weights — Mixing Board",
+              "name": "User-Adjustable Quality Weights \u2014 Mixing Board",
               "epic_id": "EPIC-001",
               "layer": "both",
               "capability": "Shared",
-              "description": "Allows users to adjust importance of individual measures (cost, frequency, distance, experience) and recompute scores dynamically via slider controls in guiControlFrame. The 'mixing board' — multiple faders the user adjusts to express their priorities. System sets smart defaults based on inferred condition severity from drug + dosage. User overrides. Scoring engine recomputes in real-time. This is the alpha differentiator and the release path to prod.",
-              "evidence": "Cost measures (generic_ratio_band, on_label_band, frequency_band) are being built in PIPE-DQ-004. Indication-first data structure supports per-condition scoring. End-to-end path: data pipeline → scoring engine → mixing board UI → prod.",
+              "description": "Allows users to adjust importance of individual measures (cost, frequency, distance, experience) and recompute scores dynamically via slider controls in guiControlFrame. The 'mixing board' \u2014 multiple faders the user adjusts to express their priorities. System sets smart defaults based on inferred condition severity from drug + dosage. User overrides. Scoring engine recomputes in real-time. This is the alpha differentiator and the release path to prod.",
+              "evidence": "Cost measures (generic_ratio_band, on_label_band, frequency_band) are being built in PIPE-DQ-004. Indication-first data structure supports per-condition scoring. End-to-end path: data pipeline \u2192 scoring engine \u2192 mixing board UI \u2192 prod.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Claude",
@@ -18323,7 +18323,7 @@
                         {
                           "req_id": "EVAL-WEIGHTS-REQ-012",
                           "story_id": "EVAL-WEIGHTS-S2",
-                          "requirement": "The system must ensure score outputs remain within defined bounds (e.g., 0–100 or 0–1) after applying weights.",
+                          "requirement": "The system must ensure score outputs remain within defined bounds (e.g., 0\u2013100 or 0\u20131) after applying weights.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -20105,7 +20105,7 @@
                         {
                           "req_id": "EVAL-REQ-002",
                           "story_id": "EVAL-P5-S2",
-                          "requirement": "The system must normalize all rating values to a common scale (0–100) regardless of original source scale.",
+                          "requirement": "The system must normalize all rating values to a common scale (0\u2013100) regardless of original source scale.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "not_started",
@@ -20130,7 +20130,7 @@
                         {
                           "req_id": "EVAL-REQ-003",
                           "story_id": "EVAL-P5-S2",
-                          "requirement": "The system must correctly convert ratings from at least 1–5 and 1–10 scales into the normalized scale.",
+                          "requirement": "The system must correctly convert ratings from at least 1\u20135 and 1\u201310 scales into the normalized scale.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "not_started",
@@ -22589,7 +22589,7 @@
                         {
                           "req_id": "EVAL-REQ-CTM4-005",
                           "story_id": "EVAL-CT-M4-S3",
-                          "requirement": "The system must normalize the historical credibility score to a 0–1 range before combining with base sponsor type score.",
+                          "requirement": "The system must normalize the historical credibility score to a 0\u20131 range before combining with base sponsor type score.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "not_started",
@@ -22764,7 +22764,7 @@
                         {
                           "req_id": "EVAL-REQ-CTM4-012",
                           "story_id": "EVAL-CT-M4-S3",
-                          "requirement": "The system must ensure the final combined sponsor credibility score remains within the 0–1 range after incorporating historical signals.",
+                          "requirement": "The system must ensure the final combined sponsor credibility score remains within the 0\u20131 range after incorporating historical signals.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "not_started",
@@ -23980,7 +23980,7 @@
                   {
                     "story_id": "EVAL-CT-M5-S2",
                     "title": "Implement proximity scoring logic",
-                    "description": "Implement scoring algorithm that converts Google Routes distance and duration into a normalized proximity score (e.g., 0–1), handling multiple trial locations per study and selecting best-case proximity. Include fallback behavior when routing data is missing.",
+                    "description": "Implement scoring algorithm that converts Google Routes distance and duration into a normalized proximity score (e.g., 0\u20131), handling multiple trial locations per study and selecting best-case proximity. Include fallback behavior when routing data is missing.",
                     "parent_feature": "EVAL-CT-MEASURE-5",
                     "sprint": 2,
                     "dependencies": [],
@@ -24315,7 +24315,7 @@
                         {
                           "req_id": "EVAL-REQ-CT-M5-S3-001",
                           "story_id": "EVAL-CT-M5-S3",
-                          "requirement": "The system must include a proximity_score field (0–1 normalized float) for each clinical trial result returned by evaluate_care_facade.",
+                          "requirement": "The system must include a proximity_score field (0\u20131 normalized float) for each clinical trial result returned by evaluate_care_facade.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -26674,7 +26674,7 @@
                   {
                     "story_id": "EVAL-NORM-SCHEMA-001",
                     "title": "Define normalization schema and contracts",
-                    "description": "Create a Pydantic schema defining normalization inputs and outputs, including measure type (binary, categorical, continuous), raw value format, normalization method, and standardized output scale (e.g., 0–1). Include validation rules and extensibility for future measure types.",
+                    "description": "Create a Pydantic schema defining normalization inputs and outputs, including measure type (binary, categorical, continuous), raw value format, normalization method, and standardized output scale (e.g., 0\u20131). Include validation rules and extensibility for future measure types.",
                     "parent_feature": "EVAL-NORMALIZATION",
                     "sprint": 1,
                     "dependencies": [],
@@ -27158,7 +27158,7 @@
                         {
                           "req_id": "EVAL-NORM-REQ-005",
                           "story_id": "EVAL-NORM-LOGIC-001",
-                          "requirement": "The system must output normalized values on a standardized 0 to 1 scale unless אחרת specified in configuration.",
+                          "requirement": "The system must output normalized values on a standardized 0 to 1 scale unless \u05d0\u05d7\u05e8\u05ea specified in configuration.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "not_started",
@@ -27900,7 +27900,7 @@
                         {
                           "req_id": "EVAL-NORM-TEST-REQ-003",
                           "story_id": "EVAL-NORM-TEST-001",
-                          "requirement": "The system must include unit tests validating continuous normalization produces values within the defined scale (e.g., 0–1).",
+                          "requirement": "The system must include unit tests validating continuous normalization produces values within the defined scale (e.g., 0\u20131).",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "not_started",
@@ -31944,7 +31944,7 @@
                     "sprint": 2,
                     "dependencies": [],
                     "size": "S",
-                    "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py — existing evaluation responses require extension to include additional scoring metadata. ASSUMPTION: No existing confidence schema present; GAP: schema definition needed.",
+                    "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py \u2014 existing evaluation responses require extension to include additional scoring metadata. ASSUMPTION: No existing confidence schema present; GAP: schema definition needed.",
                     "status": "in_progress",
                     "accepted_by": "Claude",
                     "requirements": {
@@ -32313,7 +32313,7 @@
                     "sprint": 2,
                     "dependencies": [],
                     "size": "L",
-                    "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/ — domain services exist for evaluation but no confidence computation present. ASSUMPTION: Confidence must be derived alongside quality scoring; GAP: algorithm definition and implementation.",
+                    "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/evaluate_care_quality/ \u2014 domain services exist for evaluation but no confidence computation present. ASSUMPTION: Confidence must be derived alongside quality scoring; GAP: algorithm definition and implementation.",
                     "status": "in_progress",
                     "accepted_by": "Claude",
                     "requirements": {
@@ -32346,7 +32346,7 @@
                         {
                           "req_id": "EVAL-CONF-REQ-002",
                           "story_id": "EVAL-CONF-ST-002",
-                          "requirement": "The system must normalize the completeness score to a 0–1 scale.",
+                          "requirement": "The system must normalize the completeness score to a 0\u20131 scale.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -32396,7 +32396,7 @@
                         {
                           "req_id": "EVAL-CONF-REQ-004",
                           "story_id": "EVAL-CONF-ST-002",
-                          "requirement": "The system must normalize the recency score to a 0–1 scale where more recent data yields higher values.",
+                          "requirement": "The system must normalize the recency score to a 0\u20131 scale where more recent data yields higher values.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -32446,7 +32446,7 @@
                         {
                           "req_id": "EVAL-CONF-REQ-006",
                           "story_id": "EVAL-CONF-ST-002",
-                          "requirement": "The system must normalize the agreement score to a 0–1 scale where lower variance yields higher agreement.",
+                          "requirement": "The system must normalize the agreement score to a 0\u20131 scale where lower variance yields higher agreement.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -32496,7 +32496,7 @@
                         {
                           "req_id": "EVAL-CONF-REQ-008",
                           "story_id": "EVAL-CONF-ST-002",
-                          "requirement": "The system must ensure the final confidence score is normalized to a 0–1 scale.",
+                          "requirement": "The system must ensure the final confidence score is normalized to a 0\u20131 scale.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -32710,7 +32710,7 @@
                       "EVAL-CONF-ST-002"
                     ],
                     "size": "M",
-                    "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py — central orchestration point for evaluation outputs. ASSUMPTION: API response currently lacks confidence field; GAP: response contract update.",
+                    "evidence": "Code/ConversationalUX/FindCareChat/backend/application/facades/evaluate_care_facade.py \u2014 central orchestration point for evaluation outputs. ASSUMPTION: API response currently lacks confidence field; GAP: response contract update.",
                     "status": "in_progress",
                     "accepted_by": "Claude",
                     "requirements": {
@@ -32743,7 +32743,7 @@
                         {
                           "req_id": "EVAL-CONF-REQ-002",
                           "story_id": "EVAL-CONF-ST-003",
-                          "requirement": "The system must structure the 'confidence' object مطابق the schema defined in EVAL-CONF-ST-001, including completeness, recency, agreement, and overall fields.",
+                          "requirement": "The system must structure the 'confidence' object \u0645\u0637\u0627\u0628\u0642 the schema defined in EVAL-CONF-ST-001, including completeness, recency, agreement, and overall fields.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -33081,7 +33081,7 @@
                       "EVAL-CONF-ST-003"
                     ],
                     "size": "S",
-                    "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx — handles rendering of response metadata. ASSUMPTION: No current UI element for confidence; GAP: display logic required.",
+                    "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx \u2014 handles rendering of response metadata. ASSUMPTION: No current UI element for confidence; GAP: display logic required.",
                     "status": "in_progress",
                     "accepted_by": "Claude",
                     "requirements": {
@@ -33114,7 +33114,7 @@
                         {
                           "req_id": "EVAL-CONF-REQ-002",
                           "story_id": "EVAL-CONF-ST-004",
-                          "requirement": "The system must display the confidence score as a percentage value (0–100%) in the message metadata area.",
+                          "requirement": "The system must display the confidence score as a percentage value (0\u2013100%) in the message metadata area.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -33164,7 +33164,7 @@
                         {
                           "req_id": "EVAL-CONF-REQ-004",
                           "story_id": "EVAL-CONF-ST-004",
-                          "requirement": "The system must map numeric confidence ranges to qualitative labels consistently (e.g., 0–39 Low, 40–69 Medium, 70–100 High).",
+                          "requirement": "The system must map numeric confidence ranges to qualitative labels consistently (e.g., 0\u201339 Low, 40\u201369 Medium, 70\u2013100 High).",
                           "source": "feature",
                           "priority": "should-have",
                           "status": "in_progress",
@@ -33453,7 +33453,7 @@
                       "EVAL-CONF-ST-003"
                     ],
                     "size": "M",
-                    "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ — existing test framework supports unit and integration testing. ASSUMPTION: No existing tests for confidence scoring; GAP: new test coverage required.",
+                    "evidence": "Code/ConversationalUX/FindCareChat/backend/tests/ \u2014 existing test framework supports unit and integration testing. ASSUMPTION: No existing tests for confidence scoring; GAP: new test coverage required.",
                     "status": "in_progress",
                     "accepted_by": "Claude",
                     "requirements": {
@@ -35381,7 +35381,7 @@
                   {
                     "story_id": "EVAL-CT-M7-S1",
                     "title": "Define eligibility strictness schema and scoring contract",
-                    "description": "Create data model and scoring contract for clinical trial eligibility strictness, including fields for inclusion/exclusion criteria counts, severity weighting, and normalized strictness score (0–1). Update clinical_trials_models.py to validate and carry this structure.",
+                    "description": "Create data model and scoring contract for clinical trial eligibility strictness, including fields for inclusion/exclusion criteria counts, severity weighting, and normalized strictness score (0\u20131). Update clinical_trials_models.py to validate and carry this structure.",
                     "parent_feature": "EVAL-CT-MEASURE-7",
                     "sprint": 2,
                     "dependencies": [],
@@ -36605,7 +36605,7 @@
                         {
                           "req_id": "EVAL-REQ-CTM7-404",
                           "story_id": "EVAL-CT-M7-S4",
-                          "requirement": "The system must include unit tests that validate strictness score normalization to a 0–1 range.",
+                          "requirement": "The system must include unit tests that validate strictness score normalization to a 0\u20131 range.",
                           "source": "feature",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -37015,7 +37015,7 @@
                     "sprint": 3,
                     "dependencies": [],
                     "size": "M",
-                    "evidence": "Code/Shared/machine_brain.py (existing Mongo + vector infra suggests pattern for persistence and lookup); GAP: no existing schema for score caching—must be defined.",
+                    "evidence": "Code/Shared/machine_brain.py (existing Mongo + vector infra suggests pattern for persistence and lookup); GAP: no existing schema for score caching\u2014must be defined.",
                     "status": "in_progress",
                     "accepted_by": "Claude",
                     "requirements": {
@@ -39073,7 +39073,7 @@
             },
             {
               "feature_id": "EVAL-RESEARCH",
-              "name": "Research Agent — Subspecialty Discovery",
+              "name": "Research Agent \u2014 Subspecialty Discovery",
               "epic_id": "EPIC-001",
               "layer": "pipeline",
               "capability": "EvaluateCare",
@@ -39089,7 +39089,7 @@
                 "story": [
                   {
                     "story_id": "EVAL-RES-001",
-                    "title": "Surgery subspecialty discovery agent — Delaware verification",
+                    "title": "Surgery subspecialty discovery agent \u2014 Delaware verification",
                     "description": "Build a research agent that discovers all surgery subspecialties available in the data. Starting from NUCC surgery taxonomy codes, cross-reference with ABMS board structure, CMS Medicare procedure codes (HCPCS/CPT), and Part D prescriber patterns. Map each subspecialty to its authoritative data source and assess programmatic accessibility (API, scrapable directory, partnership required). Verify results against Delaware provider data.",
                     "parent_feature": "EVAL-RESEARCH",
                     "sprint": 5,
@@ -39177,7 +39177,7 @@
                         {
                           "req_id": "EVAL-RES-001-REQ-004",
                           "story_id": "EVAL-RES-001",
-                          "requirement": "The agent must verify its findings against Delaware provider data in dev_PublicHealthData.providers — confirm that providers with surgery taxonomy codes exist and that the subspecialty mapping is accurate for at least 10 Delaware surgeons.",
+                          "requirement": "The agent must verify its findings against Delaware provider data in dev_PublicHealthData.providers \u2014 confirm that providers with surgery taxonomy codes exist and that the subspecialty mapping is accurate for at least 10 Delaware surgeons.",
                           "source": "Boss directive",
                           "priority": "must-have",
                           "status": "not_started",
@@ -39271,7 +39271,7 @@
               "epic_id": "EPIC-001",
               "layer": "backend",
               "capability": "EvaluateCare",
-              "description": "EvaluateCare scoring engine. Separate HF Space. Port 8001 local, 7860 on HF. Calls FindCare facade over mTLS. Premium tier — higher value, separate scaling and pricing.",
+              "description": "EvaluateCare scoring engine. Separate HF Space. Port 8001 local, 7860 on HF. Calls FindCare facade over mTLS. Premium tier \u2014 higher value, separate scaling and pricing.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
@@ -39324,7 +39324,7 @@
             },
             {
               "feature_id": "UMLS-COMPLIANCE",
-              "name": "UMLS License Compliance — Pre-Alpha",
+              "name": "UMLS License Compliance \u2014 Pre-Alpha",
               "epic_id": "EPIC-001",
               "priority": "HIGH",
               "status": "in_progress",
@@ -39636,7 +39636,7 @@
                 "NLM UMLS API",
                 "MongoDB Atlas"
               ],
-              "description": "UMLS License Compliance — Pre-Alpha",
+              "description": "UMLS License Compliance \u2014 Pre-Alpha",
               "orphan": false,
               "approval": "proposed"
             }
@@ -40092,7 +40092,7 @@
                   },
                   {
                     "story_id": "SEC-HTTPS-001",
-                    "title": "HTTPS everywhere — reject HTTP on all services",
+                    "title": "HTTPS everywhere \u2014 reject HTTP on all services",
                     "size": "M",
                     "status": "in_progress",
                     "requirements": {
@@ -40139,7 +40139,7 @@
                         },
                         {
                           "req_id": "SEC-HTTPS-001-REQ-003",
-                          "requirement": "Every client REST call must check for HTTP 426 (Upgrade Required) or 403 (Forbidden) — if received, fail immediately with a clear security error. Do not retry, do not silently continue. This specific code means HTTP was used when HTTPS was required.",
+                          "requirement": "Every client REST call must check for HTTP 426 (Upgrade Required) or 403 (Forbidden) \u2014 if received, fail immediately with a clear security error. Do not retry, do not silently continue. This specific code means HTTP was used when HTTPS was required.",
                           "priority": "must-have",
                           "status": "done",
                           "realized_by": [
@@ -40287,7 +40287,7 @@
                         },
                         {
                           "req_id": "SEC-HTTPS-001-REQ-014",
-                          "requirement": "On startup every server MUST exercise each security primitive it uses (session-token generation, signature signing and verification, credential redaction, mTLS handshake, key decryption, authentication check). If any exercise fails the process MUST exit with a non-zero code. A server MUST NOT serve any request after a failed startup exercise. Exit codes: 78 (configuration failure — missing library, missing cert, missing env var, malformed primitive output), 77 (permission denied on cert or key file), 70 (unexpected internal error). Stderr MUST name the primitive that failed.",
+                          "requirement": "On startup every server MUST exercise each security primitive it uses (session-token generation, signature signing and verification, credential redaction, mTLS handshake, key decryption, authentication check). If any exercise fails the process MUST exit with a non-zero code. A server MUST NOT serve any request after a failed startup exercise. Exit codes: 78 (configuration failure \u2014 missing library, missing cert, missing env var, malformed primitive output), 77 (permission denied on cert or key file), 70 (unexpected internal error). Stderr MUST name the primitive that failed.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -40341,7 +40341,7 @@
                         },
                         {
                           "req_id": "SEC-HTTPS-001-REQ-017",
-                          "requirement": "Every session token generated by a ChatHealthy service MUST include an `origin` field whose value is the name of the originating service (FindCare, EvaluateCare, or SharedServices). The token's signature MUST be produced with that service's own private key. Any service receiving a token MUST verify the signature using the named origin's public certificate and MUST reject the token if the origin field does not match the signing key. The session token display — both the left panel at creation and the right panel after a cross-service handoff — MUST render the origin value as a labeled field so a human can visually confirm which service signed the token.",
+                          "requirement": "Every session token generated by a ChatHealthy service MUST include an `origin` field whose value is the name of the originating service (FindCare, EvaluateCare, or SharedServices). The token's signature MUST be produced with that service's own private key. Any service receiving a token MUST verify the signature using the named origin's public certificate and MUST reject the token if the origin field does not match the signing key. The session token display \u2014 both the left panel at creation and the right panel after a cross-service handoff \u2014 MUST render the origin value as a labeled field so a human can visually confirm which service signed the token.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -40359,7 +40359,7 @@
                         }
                       ]
                     },
-                    "description": "HTTPS everywhere — reject HTTP on all services",
+                    "description": "HTTPS everywhere \u2014 reject HTTP on all services",
                     "orphan": false,
                     "approval": "proposed"
                   }
@@ -40378,11 +40378,11 @@
               "epic_id": "EPIC-002",
               "layer": "infrastructure",
               "capability": "Security",
-              "description": "Provision Azure Key Vault in ChatHealthySecurity resource group. Store all production secrets. No bearer tokens — auth via x509 cert or Managed Identity only.",
+              "description": "Provision Azure Key Vault in ChatHealthySecurity resource group. Store all production secrets. No bearer tokens \u2014 auth via x509 cert or Managed Identity only.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
-              "diagram_ref": "local_architecture_component.puml — Azure — ChatHealthySecurity package",
+              "diagram_ref": "local_architecture_component.puml \u2014 Azure \u2014 ChatHealthySecurity package",
               "stories": {
                 "story": [
                   {
@@ -40717,7 +40717,7 @@
             },
             {
               "feature_id": "SEC-CERTAUTH-REMOTE",
-              "name": "x509 Certificate Authentication — Remote (dev/qa/prod)",
+              "name": "x509 Certificate Authentication \u2014 Remote (dev/qa/prod)",
               "epic_id": "EPIC-002",
               "layer": "infrastructure",
               "capability": "Security",
@@ -40725,7 +40725,7 @@
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
-              "diagram_ref": "local_architecture_component.puml — HuggingFace package → Azure Key Vault (red x509 lines)",
+              "diagram_ref": "local_architecture_component.puml \u2014 HuggingFace package \u2192 Azure Key Vault (red x509 lines)",
               "stories": {
                 "story": [
                   {
@@ -41126,7 +41126,7 @@
             },
             {
               "feature_id": "SEC-CERTAUTH-LOCAL",
-              "name": "x509 Certificate Authentication — Local (Skip's PC)",
+              "name": "x509 Certificate Authentication \u2014 Local (Skip's PC)",
               "epic_id": "EPIC-002",
               "layer": "infrastructure",
               "capability": "Security",
@@ -41134,7 +41134,7 @@
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
-              "diagram_ref": "local_architecture_component.puml — SecretManager in Shared Services → Azure Key Vault (red x509 line)",
+              "diagram_ref": "local_architecture_component.puml \u2014 SecretManager in Shared Services \u2192 Azure Key Vault (red x509 line)",
               "stories": {
                 "story": [
                   {
@@ -41375,15 +41375,15 @@
             },
             {
               "feature_id": "SEC-MANAGED-ID",
-              "name": "Managed Identity — Azure Functions",
+              "name": "Managed Identity \u2014 Azure Functions",
               "epic_id": "EPIC-002",
               "layer": "infrastructure",
               "capability": "Security",
-              "description": "Azure Functions authenticate to Key Vault via Managed Identity. Zero credentials — Azure handles auth internally. Most secure option for Azure-hosted resources.",
+              "description": "Azure Functions authenticate to Key Vault via Managed Identity. Zero credentials \u2014 Azure handles auth internally. Most secure option for Azure-hosted resources.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
-              "diagram_ref": "local_architecture_component.puml — Azure Functions → Azure Key Vault (green Managed Identity line)",
+              "diagram_ref": "local_architecture_component.puml \u2014 Azure Functions \u2192 Azure Key Vault (green Managed Identity line)",
               "stories": {
                 "story": [
                   {
@@ -41524,7 +41524,7 @@
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
-              "diagram_ref": "local_architecture_component.puml — SecretManager in Shared Services package",
+              "diagram_ref": "local_architecture_component.puml \u2014 SecretManager in Shared Services package",
               "audit_ref": "BL-0.1.4-002 (Perplexity backlog)",
               "stories": {
                 "story": [
@@ -41843,7 +41843,7 @@
                         },
                         {
                           "req_id": "SEC-SM-004-REQ-002",
-                          "requirement": "ENV_PREFIX routing (dev/qa/prod) still works — SecretManager returns the correct connection string for the active environment",
+                          "requirement": "ENV_PREFIX routing (dev/qa/prod) still works \u2014 SecretManager returns the correct connection string for the active environment",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "373b2e28-c992-4c34-bb94-c717c9584c99",
@@ -41882,7 +41882,7 @@
             },
             {
               "feature_id": "SEC-NETWORK",
-              "name": "Azure Network Security — Subnet, Firewall, Private Endpoints",
+              "name": "Azure Network Security \u2014 Subnet, Firewall, Private Endpoints",
               "epic_id": "EPIC-002",
               "layer": "infrastructure",
               "capability": "Security",
@@ -41890,7 +41890,7 @@
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
-              "diagram_ref": "local_architecture_component.puml — Azure environments",
+              "diagram_ref": "local_architecture_component.puml \u2014 Azure environments",
               "stories": {
                 "story": [
                   {
@@ -42133,7 +42133,7 @@
                   },
                   {
                     "story_id": "SEC-NET-003",
-                    "title": "Private endpoint — MongoDB Atlas",
+                    "title": "Private endpoint \u2014 MongoDB Atlas",
                     "size": "M",
                     "status": "not_started",
                     "requirements": {
@@ -42210,13 +42210,13 @@
                       ]
                     },
                     "ch_matrix_id": "34a8d6e4-3858-498c-b688-22079a719184",
-                    "description": "Private endpoint — MongoDB Atlas",
+                    "description": "Private endpoint \u2014 MongoDB Atlas",
                     "orphan": false,
                     "approval": "proposed"
                   },
                   {
                     "story_id": "SEC-NET-004",
-                    "title": "Private endpoint — Azure Key Vault",
+                    "title": "Private endpoint \u2014 Azure Key Vault",
                     "size": "S",
                     "status": "not_started",
                     "requirements": {
@@ -42266,13 +42266,13 @@
                       ]
                     },
                     "ch_matrix_id": "c15a5d7a-1043-4b0a-bede-979d4fd3f7df",
-                    "description": "Private endpoint — Azure Key Vault",
+                    "description": "Private endpoint \u2014 Azure Key Vault",
                     "orphan": false,
                     "approval": "proposed"
                   },
                   {
                     "story_id": "SEC-NET-005",
-                    "title": "Private connectivity — HuggingFace Spaces",
+                    "title": "Private connectivity \u2014 HuggingFace Spaces",
                     "size": "L",
                     "status": "not_started",
                     "requirements": {
@@ -42321,7 +42321,7 @@
                         },
                         {
                           "req_id": "SEC-NET-005-REQ-003",
-                          "requirement": "Service-to-service traffic between HuggingFace Spaces (FindCare ↔ EvaluateCare ↔ Shared Services) uses mTLS regardless of network path",
+                          "requirement": "Service-to-service traffic between HuggingFace Spaces (FindCare \u2194 EvaluateCare \u2194 Shared Services) uses mTLS regardless of network path",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "51c4a4ac-e240-49c7-a13b-a164c0617e39",
@@ -42343,7 +42343,7 @@
                       ]
                     },
                     "ch_matrix_id": "9508bcaa-61d5-43f3-b437-ace8bdd1a221",
-                    "description": "Private connectivity — HuggingFace Spaces",
+                    "description": "Private connectivity \u2014 HuggingFace Spaces",
                     "orphan": false,
                     "approval": "proposed"
                   }
@@ -42366,7 +42366,7 @@
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
-              "diagram_ref": "local_architecture_component.puml — red mTLS lines between services",
+              "diagram_ref": "local_architecture_component.puml \u2014 red mTLS lines between services",
               "stories": {
                 "story": [
                   {
@@ -42639,7 +42639,7 @@
               "epic_id": "EPIC-002",
               "layer": "frontend",
               "capability": "Website",
-              "description": "chathealthy.ai — public landing page, chat, roadmap, products. Cloudflare Pages. No authentication.",
+              "description": "chathealthy.ai \u2014 public landing page, chat, roadmap, products. Cloudflare Pages. No authentication.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
@@ -42659,7 +42659,7 @@
               "epic_id": "EPIC-002",
               "layer": "frontend",
               "capability": "Admin",
-              "description": "admin.chathealthy.ai — architecture, QA reports, business docs. Cloudflare Pages behind Cloudflare Access authentication. Separate Cloudflare project, separate subdomain.",
+              "description": "admin.chathealthy.ai \u2014 architecture, QA reports, business docs. Cloudflare Pages behind Cloudflare Access authentication. Separate Cloudflare project, separate subdomain.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
@@ -42679,7 +42679,7 @@
               "epic_id": "EPIC-002",
               "layer": "infrastructure",
               "capability": "Security",
-              "description": "OAuth 2.0 with PKCE for end-user authentication. Three social identity providers: Google, Facebook, Apple. Layered protocol: authorization code flow with PKCE, ID token validation, session management. Users sign in with existing accounts — no password to manage. Required for EvaluateCare premium tier and Talk About Care sessions.",
+              "description": "OAuth 2.0 with PKCE for end-user authentication. Three social identity providers: Google, Facebook, Apple. Layered protocol: authorization code flow with PKCE, ID token validation, session management. Users sign in with existing accounts \u2014 no password to manage. Required for EvaluateCare premium tier and Talk About Care sessions.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
@@ -42975,12 +42975,270 @@
               ],
               "orphan": false,
               "approval": "proposed"
+            },
+            {
+              "feature_id": "SEC-COMPLIANCE-COMMITMENTS",
+              "name": "Compliance attestation surface",
+              "status": "in_progress",
+              "description": "Closes the trace from compliance-implementation work back to ChatHealthy.ai stated security commitments in governance.json/security_standards and security.json/compliance_mapping. Healthcare enterprise buyers require HITRUST + NIST/SOC2 posture; this feature is the surface that proves we maintain it continuously.",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "SEC-COMPLIANCE-COMMITMENTS-001",
+                    "name": "Continuous audit-readiness against committed frameworks",
+                    "status": "in_progress",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001",
+                          "requirement": "ChatHealthy.ai MUST maintain audit-readiness against HITRUST CSF v11 and NIST SP 800-171 Rev 2 (with NIST SP 800-53 Rev 5 as the implementation surface that supersets 800-171), per the commitments named in governance.json/security_standards and security.json/compliance_mapping. The audit surface MUST be machine-readable, persisted in the brain, and continuously regenerable from current code.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "type": "business",
+                          "story_id": "SEC-COMPLIANCE-COMMITMENTS-001",
+                          "source": "Boss directive 2026-04-19 - restructure epics, close trace gap",
+                          "date": "2026-04-19"
+                        },
+                        {
+                          "req_id": "SEC-COMPLIANCE-COMMITMENTS-REQ-T001",
+                          "requirement": "An auditable control mapping (today: brain/machine_artifacts/content/SecurityAuditControls.json) MUST exist as a single artifact persisted in the brain, regenerable from current code via NIST800-53ComplianceAgent (today located in Code/_pending/compliance_crosswalk/ pending promotion). The mapping MUST cover every applicable NIST 800-53 control and HITRUST CSF v11 control and bind each to backlog requirements + source code blocks that implement it.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "type": "technical",
+                          "story_id": "SEC-COMPLIANCE-COMMITMENTS-001",
+                          "source": "Boss directive 2026-04-19 - restructure epics, close trace gap",
+                          "date": "2026-04-19",
+                          "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
+                        }
+                      ]
+                    },
+                    "title": "Continuous audit-readiness against committed frameworks",
+                    "description": "Continuous audit-readiness against committed frameworks",
+                    "size": "M",
+                    "orphan": false,
+                    "approval": "approved"
+                  }
+                ]
+              },
+              "orphan": false,
+              "approval": "approved"
+            },
+            {
+              "feature_id": "SEC-DEFERRED-WORK",
+              "name": "Deferred security work (visible until completed)",
+              "status": "in_progress",
+              "description": "Security work that is unfunded for the current sprint MUST remain visible, traceable, and severity-tracked until completed. No silent drop. Per v4-041 (deferred work tracking pattern), each story here has paired tracking bug(s) in bugs.json with severity_by_environment that escalates as the gap approaches production.",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "ARCH-COMPLIANCE-CROSSWALK-001",
+                    "name": "Build the compliance crosswalk agent (NIST 800-53 + HITRUST CSF v11)",
+                    "status": "in_progress",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "ARCH-COMPLIANCE-CROSSWALK-001-REQ-B001",
+                          "requirement": "The system MUST be auditable against NIST SP 800-53 Rev 5 and HITRUST CSF v11 by maintaining a control crosswalk that binds every applicable control to backlog requirements and source code that implement it. The crosswalk MUST be machine-readable and persisted in the brain.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "type": "business",
+                          "story_id": "ARCH-COMPLIANCE-CROSSWALK-001",
+                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "date": "2026-04-19",
+                          "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
+                        },
+                        {
+                          "req_id": "ARCH-COMPLIANCE-CROSSWALK-001-REQ-T001",
+                          "requirement": "An agent (compliance_crosswalk_agent.py \u2014 under Code/_pending/compliance_crosswalk/src/, single class file, public surface __init__/run/ComplianceCrossWalk(FileType)/ComplianceCrosswalkReport) maintains brain/machine_artifacts/content/SecurityAuditControls.json. Pass 1 ingests NIST OSCAL + seeds HITRUST from security.json. Pass 2 uses Anthropic SDK (Sonnet 4.6, prompt caching) to map source files to controls. Pytest suite mocks the LLM. Output validates against the relaxed schema.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "type": "technical",
+                          "story_id": "ARCH-COMPLIANCE-CROSSWALK-001",
+                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "date": "2026-04-19",
+                          "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
+                        }
+                      ]
+                    },
+                    "parent_feature": "SEC-DEFERRED-WORK",
+                    "title": "Build the compliance crosswalk agent (NIST 800-53 + HITRUST CSF v11)",
+                    "description": "Build the compliance crosswalk agent (NIST 800-53 + HITRUST CSF v11)",
+                    "size": "M",
+                    "orphan": false,
+                    "approval": "approved"
+                  },
+                  {
+                    "story_id": "ARCH-COMPLIANCE-CROSSWALK-002",
+                    "name": "Crosswalk agent: third framework \u2014 engineering rules",
+                    "status": "not_started",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "ARCH-COMPLIANCE-CROSSWALK-002-REQ-B001",
+                          "requirement": "The system MUST surface, for any source file or any external compliance control, the internal engineering rules that govern it \u2014 in the same crosswalk.",
+                          "priority": "should-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "type": "business",
+                          "story_id": "ARCH-COMPLIANCE-CROSSWALK-002",
+                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "date": "2026-04-19",
+                          "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
+                        },
+                        {
+                          "req_id": "ARCH-COMPLIANCE-CROSSWALK-002-REQ-T001",
+                          "requirement": "Compliance crosswalk agent gains a third framework: engineering_rules. Pass 1 ingests engineering_rules.json (post-redesign) using rule_statements[] as the unit. Pass 2 extends the classifier so each implementation entry can reference both external control IDs and engineering rule IDs. Hard dependency on BRAIN-ENGINEERING-RULES-REQ-T001.",
+                          "priority": "should-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "type": "technical",
+                          "story_id": "ARCH-COMPLIANCE-CROSSWALK-002",
+                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "date": "2026-04-19",
+                          "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
+                        }
+                      ]
+                    },
+                    "parent_feature": "SEC-DEFERRED-WORK",
+                    "title": "Crosswalk agent: third framework \u2014 engineering rules",
+                    "description": "Crosswalk agent: third framework \u2014 engineering rules",
+                    "size": "M",
+                    "orphan": false,
+                    "approval": "approved"
+                  },
+                  {
+                    "story_id": "NIST-COMPLIANCE-AGENT-001",
+                    "name": "Compliance crosswalk agent realization",
+                    "status": "in_progress",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "NIST-COMPLIANCE-AGENT-001-REQ-B001",
+                          "requirement": "NIST800-53ComplianceAgent MUST surface, for any external compliance control (NIST SP 800-53 Rev 5 + HITRUST CSF v11), the backlog requirements and source code that implement it. The crosswalk MUST be machine-readable, audit-presentable, and persisted in the brain. Realizes ARCH-COMPLIANCE-CROSSWALK-001-REQ-B001 at the agent abstraction.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "type": "business",
+                          "story_id": "NIST-COMPLIANCE-AGENT-001",
+                          "source": "Boss directive 2026-04-19 - BuildAnEpic Agents",
+                          "date": "2026-04-19",
+                          "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
+                        },
+                        {
+                          "req_id": "NIST-COMPLIANCE-AGENT-001-REQ-T001",
+                          "requirement": "Realized by Code/_pending/compliance_crosswalk/src/compliance_crosswalk_agent.py - single class file with public surface __init__ / run / ComplianceCrossWalk(FileType) / ComplianceCrosswalkReport. Pass 1 (deterministic) ingests NIST OSCAL JSON catalog and seeds HITRUST from brain/security.json. Pass 2 uses Anthropic SDK (Sonnet 4.6 default, prompt caching) to map source files to controls. Output: brain/machine_artifacts/content/SecurityAuditControls.json. Pytest suite mocks the LLM (23 tests). See ARCH-COMPLIANCE-CROSSWALK-001-REQ-T001 for the underlying technical realization.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "type": "technical",
+                          "story_id": "NIST-COMPLIANCE-AGENT-001",
+                          "source": "Boss directive 2026-04-19 - BuildAnEpic Agents",
+                          "date": "2026-04-19",
+                          "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
+                        }
+                      ]
+                    },
+                    "parent_feature": "SEC-DEFERRED-WORK",
+                    "title": "Compliance crosswalk agent realization",
+                    "description": "Compliance crosswalk agent realization",
+                    "size": "M",
+                    "orphan": false,
+                    "approval": "approved"
+                  }
+                ]
+              },
+              "orphan": false,
+              "approval": "approved"
             }
           ]
         },
         "ch_matrix_id": "760cb933-be8a-4ff9-af5d-ac5897056182",
         "type": "functional",
-        "description": "Security infrastructure protecting all ChatHealthy services — authentication, encryption, network isolation, and compliance.",
+        "description": "Security infrastructure protecting all ChatHealthy services \u2014 authentication, encryption, network isolation, and compliance.",
         "orphan": false,
         "approval": "proposed"
       },
@@ -42988,7 +43246,7 @@
         "epic_id": "EPIC-004",
         "name": "Safety",
         "capacity": "",
-        "goal": "Protect users in crisis — emergency detection, IP lockout, admin unlock, audit trail",
+        "goal": "Protect users in crisis \u2014 emergency detection, IP lockout, admin unlock, audit trail",
         "definition_of_done": "Safety system fully tested with boolean requirements, all edge cases covered",
         "status": "in_progress",
         "features": {
@@ -43066,7 +43324,7 @@
                   {
                     "story_id": "SAFETY-LOCKOUT-002",
                     "title": "Remove keyword false positives from safety dual-trigger",
-                    "description": "The 57-word keyword substring match produces false positives on provider search queries containing emergency terms (e.g. 'find me a doctor for chest pain'). The AI classifier (gpt-4.1-mini) with its three-gate prompt is precise. Remove keywords as a primary trigger — let the model carry detection. Keywords remain as fallback ONLY when the AI classifier API fails.",
+                    "description": "The 57-word keyword substring match produces false positives on provider search queries containing emergency terms (e.g. 'find me a doctor for chest pain'). The AI classifier (gpt-4.1-mini) with its three-gate prompt is precise. Remove keywords as a primary trigger \u2014 let the model carry detection. Keywords remain as fallback ONLY when the AI classifier API fails.",
                     "parent_feature": "SAFETY-LOCKOUT",
                     "size": "S",
                     "status": "in_progress",
@@ -43623,7 +43881,7 @@
                       "requirement": [
                         {
                           "req_id": "DEVOPS-QA-001-REQ-002",
-                          "requirement": "Report scoped by epic — shows only features for the specified release",
+                          "requirement": "Report scoped by epic \u2014 shows only features for the specified release",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "622f816a-9f9f-4bb8-8ae3-932c474f87b1",
@@ -43644,7 +43902,7 @@
                         },
                         {
                           "req_id": "DEVOPS-QA-001-REQ-003",
-                          "requirement": "Report accessible in dev and QA only — not visible in prod",
+                          "requirement": "Report accessible in dev and QA only \u2014 not visible in prod",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "9e01bf39-9ff8-441a-a25b-f8c25207d857",
@@ -43770,7 +44028,7 @@
                         },
                         {
                           "req_id": "DEVOPS-QA-004-REQ-002",
-                          "requirement": "Retry for up to 10 minutes (60 attempts × 10s) before showing error",
+                          "requirement": "Retry for up to 10 minutes (60 attempts \u00d7 10s) before showing error",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "2572229b-e987-4785-b8b4-a066d1dd3d4e",
@@ -43798,7 +44056,7 @@
                   },
                   {
                     "story_id": "DEVOPS-QA-005",
-                    "title": "Interactive QA report — edit and submit from browser",
+                    "title": "Interactive QA report \u2014 edit and submit from browser",
                     "size": "M",
                     "status": "not_started",
                     "requirements": {
@@ -43847,7 +44105,7 @@
                         },
                         {
                           "req_id": "DEVOPS-QA-005-REQ-003",
-                          "requirement": "Only Boss can submit — no authentication bypass",
+                          "requirement": "Only Boss can submit \u2014 no authentication bypass",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "0c5b73ba-c05e-430e-b3b6-786fc2b50f82",
@@ -43869,7 +44127,7 @@
                       ]
                     },
                     "ch_matrix_id": "048eab4b-ce33-4c22-9b36-1a42f7690b8f",
-                    "description": "Interactive QA report — edit and submit from browser",
+                    "description": "Interactive QA report \u2014 edit and submit from browser",
                     "orphan": false,
                     "approval": "proposed"
                   },
@@ -44916,7 +45174,7 @@
                   {
                     "story_id": "DQ-COMPLIANCE-RPT-001",
                     "title": "Pipeline Compliance Report",
-                    "description": "A report on the quality of the Pipeline backlog hierarchy — orphan counts at every level (Epic, Feature, Story, Requirement, Pytest, Bug) so the CTO and Claude can systematically address gaps.",
+                    "description": "A report on the quality of the Pipeline backlog hierarchy \u2014 orphan counts at every level (Epic, Feature, Story, Requirement, Pytest, Bug) so the CTO and Claude can systematically address gaps.",
                     "size": "M",
                     "status": "done",
                     "orphan": false,
@@ -45117,7 +45375,7 @@
         },
         "ch_matrix_id": "3561e18f-baf3-427b-ae0e-bf71db886bc7",
         "type": "operational",
-        "description": "Testing infrastructure — Playwright SIT tests, regression suites, and quality assurance tooling.",
+        "description": "Testing infrastructure \u2014 Playwright SIT tests, regression suites, and quality assurance tooling.",
         "orphan": false,
         "approval": "proposed"
       },
@@ -45254,7 +45512,7 @@
                         },
                         {
                           "req_id": "FC-SEARCH-001-REQ-006",
-                          "requirement": "Provider search is a database query against a list of specialty codes — never an AI call. The AI's only role is to translate the user's natural language into an ordered list of specialty codes, ranked from most likely to be picked to least likely. The database receives the ordered list and returns providers. GOV-011: AI translates, system answers.",
+                          "requirement": "Provider search is a database query against a list of specialty codes \u2014 never an AI call. The AI's only role is to translate the user's natural language into an ordered list of specialty codes, ranked from most likely to be picked to least likely. The database receives the ordered list and returns providers. GOV-011: AI translates, system answers.",
                           "priority": "must-have",
                           "status": "done",
                           "realized_by": [
@@ -45834,7 +46092,7 @@
                         },
                         {
                           "req_id": "FC-FILT-001-REQ-003",
-                          "requirement": "Results are ranked 1-to-n by cosine similarity. The query vector is built by embedding the last 5 user prompts concatenated. Each result gets a unique integer rank. All matching results are returned — numCandidates must be large enough to capture the full result set.",
+                          "requirement": "Results are ranked 1-to-n by cosine similarity. The query vector is built by embedding the last 5 user prompts concatenated. Each result gets a unique integer rank. All matching results are returned \u2014 numCandidates must be large enough to capture the full result set.",
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [
@@ -46050,7 +46308,7 @@
                         },
                         {
                           "req_id": "FC-FILT-001-REQ-013",
-                          "requirement": "The filter-panel header — which FINDCARE-UX-002 defines as cell 1 (18% of the left panel, green styling) — MUST contain, from left to right: (1) 'Filter by specialty' label, (2) All Possible count, (3) Prescribers count, (4) Your Choices count, (5) Uncheck All / Check All toggle button, (6) Prescribers checkbox (right-aligned), (7) Homeopathic checkbox (right-aligned, below Prescribers). All seven elements MUST fit inside cell 1 with reactive percentage widths and no truncation. The Uncheck All / Check All toggle button MUST NOT appear in any cell of the left panel other than cell 1 as defined by FINDCARE-UX-002.",
+                          "requirement": "The filter-panel header \u2014 which FINDCARE-UX-002 defines as cell 1 (18% of the left panel, green styling) \u2014 MUST contain, from left to right: (1) 'Filter by specialty' label, (2) All Possible count, (3) Prescribers count, (4) Your Choices count, (5) Uncheck All / Check All toggle button, (6) Prescribers checkbox (right-aligned), (7) Homeopathic checkbox (right-aligned, below Prescribers). All seven elements MUST fit inside cell 1 with reactive percentage widths and no truncation. The Uncheck All / Check All toggle button MUST NOT appear in any cell of the left panel other than cell 1 as defined by FINDCARE-UX-002.",
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [
@@ -46194,7 +46452,7 @@
                         },
                         {
                           "req_id": "FC-EVAL-001-REQ-002",
-                          "requirement": "When no providers are selected, the button displays in a cold/dimmed visual state — visually distinct from the active state.",
+                          "requirement": "When no providers are selected, the button displays in a cold/dimmed visual state \u2014 visually distinct from the active state.",
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [
@@ -46297,7 +46555,7 @@
             },
             {
               "feature_id": "FC-RESULT-MSG",
-              "name": "Search Result Presentation — System-Built Summary",
+              "name": "Search Result Presentation \u2014 System-Built Summary",
               "epic_id": "EPIC-006",
               "layer": "full-stack",
               "capability": "FindCare",
@@ -46312,7 +46570,7 @@
                   {
                     "story_id": "FC-MSG-001",
                     "title": "Build summary_message from structured search result data",
-                    "description": "The backend must construct a summary_message string from the structured tool result fields (specialty_searched, total_count, count, specialization_options, state, city, county). This message is system-built per GOV-011 — the LLM does not write it. Template: \"There are N more '{term}' in '{state}'. We have included M types of providers. Shall I show you [more '{term}'] or would you like to [filter '{term}' by provider type]? You can also search by {zipcode, county, or city — omit the one they already used}.\"",
+                    "description": "The backend must construct a summary_message string from the structured tool result fields (specialty_searched, total_count, count, specialization_options, state, city, county). This message is system-built per GOV-011 \u2014 the LLM does not write it. Template: \"There are N more '{term}' in '{state}'. We have included M types of providers. Shall I show you [more '{term}'] or would you like to [filter '{term}' by provider type]? You can also search by {zipcode, county, or city \u2014 omit the one they already used}.\"",
                     "parent_feature": "FC-RESULT-MSG",
                     "sprint": 1,
                     "dependencies": [],
@@ -46755,7 +47013,7 @@
             },
             {
               "feature_id": "MAINT-IDX-TUNE",
-              "name": "Index Tuning — Frontend and Pipeline Clusters",
+              "name": "Index Tuning \u2014 Frontend and Pipeline Clusters",
               "epic_id": "EPIC-006",
               "layer": "infrastructure",
               "capability": "DataOps",
@@ -47349,7 +47607,7 @@
                         {
                           "req_id": "PIPE-LC-004-REQ-001",
                           "story_id": "PIPE-LC-004",
-                          "requirement": "findcare_pipeline_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in any enrichment pass → reservation count == 0 after orchestrator exits.",
+                          "requirement": "findcare_pipeline_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in any enrichment pass \u2192 reservation count == 0 after orchestrator exits.",
                           "source": "Bug: cluster left running after FindCarePipeline failure",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -47392,7 +47650,7 @@
                         {
                           "req_id": "PIPE-LC-005-REQ-001",
                           "story_id": "PIPE-LC-005",
-                          "requirement": "provider_load_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in load step → reservation count == 0 after orchestrator exits.",
+                          "requirement": "provider_load_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in load step \u2192 reservation count == 0 after orchestrator exits.",
                           "source": "Bug: cluster left running after LoadProviderData failure",
                           "priority": "must-have",
                           "status": "not_started",
@@ -47435,7 +47693,7 @@
                         {
                           "req_id": "PIPE-LC-006-REQ-001",
                           "story_id": "PIPE-LC-006",
-                          "requirement": "copy_to_frontend_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in partition step → reservation count == 0 after orchestrator exits.",
+                          "requirement": "copy_to_frontend_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in partition step \u2192 reservation count == 0 after orchestrator exits.",
                           "source": "Bug: cluster left running after CopyToFrontEnd failure",
                           "priority": "must-have",
                           "status": "done",
@@ -47484,7 +47742,7 @@
                         {
                           "req_id": "PIPE-LC-007-REQ-001",
                           "story_id": "PIPE-LC-007",
-                          "requirement": "migrate_environment_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in migrate step → reservation count == 0 after orchestrator exits.",
+                          "requirement": "migrate_environment_orchestrator must wrap all steps between register_reservation_activity and release_reservation_activity in try/finally. The finally block must always call release_reservation_activity. Boolean test: inject exception in migrate step \u2192 reservation count == 0 after orchestrator exits.",
                           "source": "Bug: cluster left running after MigrateEnvironment failure",
                           "priority": "must-have",
                           "status": "not_started",
@@ -47527,7 +47785,7 @@
                         {
                           "req_id": "PIPE-LC-008-REQ-001",
                           "story_id": "PIPE-LC-008",
-                          "requirement": "snapshot_collection_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep snapshot_collection_orchestrator for 'reservation' → zero matches.",
+                          "requirement": "snapshot_collection_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep snapshot_collection_orchestrator for 'reservation' \u2192 zero matches.",
                           "source": "Duty segregation: only cluster-reserving pipelines manage reservations",
                           "priority": "must-have",
                           "status": "not_started",
@@ -47570,7 +47828,7 @@
                         {
                           "req_id": "PIPE-LC-009-REQ-001",
                           "story_id": "PIPE-LC-009",
-                          "requirement": "county_enrichment_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_orchestrator_fn for 'reservation' → zero matches.",
+                          "requirement": "county_enrichment_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_orchestrator_fn for 'reservation' \u2192 zero matches.",
                           "source": "Duty segregation: parent orchestrator owns reservation",
                           "priority": "must-have",
                           "status": "not_started",
@@ -47613,7 +47871,7 @@
                         {
                           "req_id": "PIPE-LC-010-REQ-001",
                           "story_id": "PIPE-LC-010",
-                          "requirement": "county_enrichment_pass1_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass1_orchestrator_fn for 'reservation' → zero matches.",
+                          "requirement": "county_enrichment_pass1_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass1_orchestrator_fn for 'reservation' \u2192 zero matches.",
                           "source": "Duty segregation: parent orchestrator owns reservation",
                           "priority": "must-have",
                           "status": "not_started",
@@ -47656,7 +47914,7 @@
                         {
                           "req_id": "PIPE-LC-011-REQ-001",
                           "story_id": "PIPE-LC-011",
-                          "requirement": "county_enrichment_pass2_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass2_orchestrator_fn for 'reservation' → zero matches.",
+                          "requirement": "county_enrichment_pass2_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass2_orchestrator_fn for 'reservation' \u2192 zero matches.",
                           "source": "Duty segregation: parent orchestrator owns reservation",
                           "priority": "must-have",
                           "status": "not_started",
@@ -47699,7 +47957,7 @@
                         {
                           "req_id": "PIPE-LC-012-REQ-001",
                           "story_id": "PIPE-LC-012",
-                          "requirement": "county_enrichment_pass3_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass3_orchestrator_fn for 'reservation' → zero matches.",
+                          "requirement": "county_enrichment_pass3_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass3_orchestrator_fn for 'reservation' \u2192 zero matches.",
                           "source": "Duty segregation: parent orchestrator owns reservation",
                           "priority": "must-have",
                           "status": "not_started",
@@ -47742,7 +48000,7 @@
                         {
                           "req_id": "PIPE-LC-013-REQ-001",
                           "story_id": "PIPE-LC-013",
-                          "requirement": "county_enrichment_pass4_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass4_orchestrator_fn for 'reservation' → zero matches.",
+                          "requirement": "county_enrichment_pass4_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass4_orchestrator_fn for 'reservation' \u2192 zero matches.",
                           "source": "Duty segregation: parent orchestrator owns reservation",
                           "priority": "must-have",
                           "status": "not_started",
@@ -47785,7 +48043,7 @@
                         {
                           "req_id": "PIPE-LC-014-REQ-001",
                           "story_id": "PIPE-LC-014",
-                          "requirement": "county_enrichment_pass6_nppes_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass6_nppes_orchestrator_fn for 'reservation' → zero matches.",
+                          "requirement": "county_enrichment_pass6_nppes_orchestrator must NOT call register_reservation_activity or release_reservation_activity. Boolean test: grep county_enrichment_pass6_nppes_orchestrator_fn for 'reservation' \u2192 zero matches.",
                           "source": "Duty segregation: parent orchestrator owns reservation",
                           "priority": "must-have",
                           "status": "not_started",
@@ -47816,7 +48074,7 @@
                   {
                     "story_id": "PIPE-LC-015",
                     "title": "ClusterLifecycleManager.release must auto-pause when zero reservations remain",
-                    "description": "When the last reservation is released, ClusterLifecycleManager.release() must send a pause request to Atlas. This is the single place that decides when to pause — no orchestrator should pause directly.",
+                    "description": "When the last reservation is released, ClusterLifecycleManager.release() must send a pause request to Atlas. This is the single place that decides when to pause \u2014 no orchestrator should pause directly.",
                     "parent_feature": "PIPE-LIFECYCLE",
                     "sprint": 6,
                     "dependencies": [],
@@ -47828,7 +48086,7 @@
                         {
                           "req_id": "PIPE-LC-015-REQ-001",
                           "story_id": "PIPE-LC-015",
-                          "requirement": "When release() removes the last reservation for a cluster, it must call _send_pause(cluster_name). Boolean test: release last reservation → Atlas API receives PATCH {paused: true}.",
+                          "requirement": "When release() removes the last reservation for a cluster, it must call _send_pause(cluster_name). Boolean test: release last reservation \u2192 Atlas API receives PATCH {paused: true}.",
                           "source": "Boss directive: zero reservations = cluster must pause",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -47853,7 +48111,7 @@
                         {
                           "req_id": "PIPE-LC-015-REQ-002",
                           "story_id": "PIPE-LC-015",
-                          "requirement": "No orchestrator may call _send_pause or pause_cluster directly. Only ClusterLifecycleManager.release() and force_release_all() may pause. Boolean test: grep all orchestrator functions for 'pause' → zero matches.",
+                          "requirement": "No orchestrator may call _send_pause or pause_cluster directly. Only ClusterLifecycleManager.release() and force_release_all() may pause. Boolean test: grep all orchestrator functions for 'pause' \u2192 zero matches.",
                           "source": "Duty segregation: ops manager owns pause, not pipelines",
                           "priority": "must-have",
                           "status": "not_started",
@@ -47984,7 +48242,7 @@
                         {
                           "req_id": "PIPE-LC-016-REQ-002",
                           "story_id": "PIPE-LC-016",
-                          "requirement": "Every orchestrator that reserves a cluster must poll for IDLE via check_cluster_state_activity after calling register_reservation_activity. The orchestrator owns poll timing via create_timer, not the manager. Boolean test: grep each reserving orchestrator for check_cluster_state_activity → at least one match.",
+                          "requirement": "Every orchestrator that reserves a cluster must poll for IDLE via check_cluster_state_activity after calling register_reservation_activity. The orchestrator owns poll timing via create_timer, not the manager. Boolean test: grep each reserving orchestrator for check_cluster_state_activity \u2192 at least one match.",
                           "source": "Duty segregation: ops manager wakes, orchestrator polls",
                           "priority": "must-have",
                           "status": "not_started",
@@ -48024,11 +48282,11 @@
             },
             {
               "feature_id": "PIPE-DATA-MODEL",
-              "name": "Provider Data Model — In-Place Enrichment",
+              "name": "Provider Data Model \u2014 In-Place Enrichment",
               "epic_id": "EPIC-006",
               "layer": "pipeline",
               "capability": "DataOps",
-              "description": "BUG-PIPE-004: Provider and enrichment data must be one record. Enrichment updates fields on the provider record in-place. No separate enrichment collection. Per MongoDB best practices — avoid cross-collection joins.",
+              "description": "BUG-PIPE-004: Provider and enrichment data must be one record. Enrichment updates fields on the provider record in-place. No separate enrichment collection. Per MongoDB best practices \u2014 avoid cross-collection joins.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
@@ -48101,8 +48359,8 @@
                 "story": [
                   {
                     "story_id": "PIPE-INC-001",
-                    "title": "ENH-PIPE-001: Incremental update — full record replacement",
-                    "description": "When incremental=true, for each record in the NPI file: replace the entire provider document content and set county to null (force re-enrichment). Do not attempt partial field updates — full replacement is more performant.",
+                    "title": "ENH-PIPE-001: Incremental update \u2014 full record replacement",
+                    "description": "When incremental=true, for each record in the NPI file: replace the entire provider document content and set county to null (force re-enrichment). Do not attempt partial field updates \u2014 full replacement is more performant.",
                     "parent_feature": "PIPE-INCREMENTAL",
                     "sprint": 5,
                     "dependencies": [
@@ -48196,7 +48454,7 @@
                   },
                   {
                     "story_id": "PIPE-INC-002",
-                    "title": "ENH-PIPE-002: Incremental deactivation — flag out_of_scope",
+                    "title": "ENH-PIPE-002: Incremental deactivation \u2014 flag out_of_scope",
                     "description": "When the incremental NPI file marks a record as deactivated, flag it out_of_scope with reason deactivated. Do not delete. Log for audit.",
                     "parent_feature": "PIPE-INCREMENTAL",
                     "sprint": 5,
@@ -48367,7 +48625,7 @@
                   },
                   {
                     "story_id": "PIPE-BP-002",
-                    "title": "Fatal error alerting — continuous bell on Boss's machine",
+                    "title": "Fatal error alerting \u2014 continuous bell on Boss's machine",
                     "description": "Errors that are fatal must warn Skip Snow by ringing a bell continuously every 5 seconds on Skip's computer. Requires a persistent local service on Boss's machine that receives alert webhooks.",
                     "status": "not_started",
                     "requirements": {
@@ -48705,7 +48963,7 @@
             },
             {
               "feature_id": "PIPE-DATA-QUALITY",
-              "name": "Provider Data Quality — Bad Data and Out of Scope Flags",
+              "name": "Provider Data Quality \u2014 Bad Data and Out of Scope Flags",
               "epic_id": "EPIC-006",
               "layer": "pipeline",
               "capability": "DataOps",
@@ -48718,7 +48976,7 @@
                   {
                     "story_id": "PIPE-DQ-001",
                     "title": "Bad data flag with controlled reasons",
-                    "description": "Add bad_data field to provider record: {flagged: bool, reason: controlled_value}. Controlled reasons: no_address (no address at all), bad_address (has address but wrong — zip/state mismatch repair failed). Replace county.source='out_of_scope' with reason='no_address' or 'zip_state_mismatch' with bad_data flag.",
+                    "description": "Add bad_data field to provider record: {flagged: bool, reason: controlled_value}. Controlled reasons: no_address (no address at all), bad_address (has address but wrong \u2014 zip/state mismatch repair failed). Replace county.source='out_of_scope' with reason='no_address' or 'zip_state_mismatch' with bad_data flag.",
                     "parent_feature": "PIPE-DATA-QUALITY",
                     "sprint": 5,
                     "dependencies": [],
@@ -49431,7 +49689,7 @@
                         },
                         {
                           "req_id": "PIPE-DQ-004-REQ-015",
-                          "requirement": "Provider record must have can_prescribe.on_label_band (string, 5% bands, 20 bands) representing the percentage of the provider's prescribing that matches FDA on-label indications based on taxonomy-to-ICD-10 alignment. National benchmark — computed across all providers, not per-provider.",
+                          "requirement": "Provider record must have can_prescribe.on_label_band (string, 5% bands, 20 bands) representing the percentage of the provider's prescribing that matches FDA on-label indications based on taxonomy-to-ICD-10 alignment. National benchmark \u2014 computed across all providers, not per-provider.",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "f6b5c2b7-160d-4a99-b6e8-8b67ffb5f3d3",
@@ -49647,7 +49905,7 @@
                         },
                         {
                           "req_id": "FINDCARE-UX-003",
-                          "requirement": "Prescribers only checkbox in filter header, right-aligned, default checked. When checked, specialty list shows only prescriber taxonomy codes. When unchecked, shows all specialties. Toggle is client-side — no server round-trip. Full list cached on client.",
+                          "requirement": "Prescribers only checkbox in filter header, right-aligned, default checked. When checked, specialty list shows only prescriber taxonomy codes. When unchecked, shows all specialties. Toggle is client-side \u2014 no server round-trip. Full list cached on client.",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "4fcf4105-1300-4b74-a873-3789efe77ed3",
@@ -49775,7 +50033,7 @@
                         },
                         {
                           "req_id": "FINDCARE-UX-008",
-                          "requirement": "Post-alpha: Design and build a custom React FilterToggle component for the provider type controls (prescribers, homeopathic, all). Current checkboxes/radio buttons are placeholder UX. The custom control should be a proprietary React component with pill/chip styling, multi-select support, and animation. Not alpha — beta UX polish.",
+                          "requirement": "Post-alpha: Design and build a custom React FilterToggle component for the provider type controls (prescribers, homeopathic, all). Current checkboxes/radio buttons are placeholder UX. The custom control should be a proprietary React component with pill/chip styling, multi-select support, and animation. Not alpha \u2014 beta UX polish.",
                           "priority": "nice-to-have",
                           "status": "not_started",
                           "ch_matrix_id": "d3fd8770-eea6-4618-a0db-c85e30f59923",
@@ -49807,7 +50065,7 @@
                         },
                         {
                           "req_id": "BRAIN-PROMPTS-001",
-                          "requirement": "Refactor prompts.json schema to support system_prompt_ref field on user prompts, creating a 1:many relationship between system prompts and user prompts. Per GOV-009 — identity (system) is separate from assignment (user). Brain architecture work — beta must-have.",
+                          "requirement": "Refactor prompts.json schema to support system_prompt_ref field on user prompts, creating a 1:many relationship between system prompts and user prompts. Per GOV-009 \u2014 identity (system) is separate from assignment (user). Brain architecture work \u2014 beta must-have.",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "71833cc8-1a1a-42c3-9811-874542654885",
@@ -50073,7 +50331,7 @@
                         },
                         {
                           "req_id": "FINDCARE-MODEL-001",
-                          "requirement": "Two-model strategy for specialty resolution: commodity model (GPT-4.1-mini) for non-homeopathic classification/ranking, reasoning model (Claude Sonnet 4.6) for homeopathic contextual medical relevance. Model selection is driven by scope — homeopathic context triggers the reasoning model. Each model has its own prompt optimized for its cognitive demand.",
+                          "requirement": "Two-model strategy for specialty resolution: commodity model (GPT-4.1-mini) for non-homeopathic classification/ranking, reasoning model (Claude Sonnet 4.6) for homeopathic contextual medical relevance. Model selection is driven by scope \u2014 homeopathic context triggers the reasoning model. Each model has its own prompt optimized for its cognitive demand.",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "570ef19c-1a80-442b-94c0-fb3d12e22672",
@@ -50095,7 +50353,7 @@
                         },
                         {
                           "req_id": "FINDCARE-FILTER-001",
-                          "requirement": "Filter panel header displays three labeled numbers: (1) Universe — total providers in the search result, (2) Types — total specialty types available given current switch state, (3) Selected — how many specialty types the user has checked. All three update when switches or checkboxes change.",
+                          "requirement": "Filter panel header displays three labeled numbers: (1) Universe \u2014 total providers in the search result, (2) Types \u2014 total specialty types available given current switch state, (3) Selected \u2014 how many specialty types the user has checked. All three update when switches or checkboxes change.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "ch_matrix_id": "a51089e3-6f7c-4ea8-8636-e4e94510ad23",
@@ -50209,7 +50467,7 @@
                         },
                         {
                           "req_id": "FINDCARE-FILTER-005",
-                          "requirement": "FINDCARE-UX-004 is superseded — homeopathic checkbox is now ENABLED, not disabled. It triggers the reasoning model (FINDCARE-MODEL-001) and expands the specialty universe.",
+                          "requirement": "FINDCARE-UX-004 is superseded \u2014 homeopathic checkbox is now ENABLED, not disabled. It triggers the reasoning model (FINDCARE-MODEL-001) and expands the specialty universe.",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "a55775cc-a3b7-4e27-9c90-28a49ca8ef8b",
@@ -51006,7 +51264,7 @@
                         {
                           "req_id": "FC-PIPE-COPY-001-REQ-003",
                           "story_id": "FC-PIPE-COPY-001",
-                          "requirement": "CopyToFrontEnd scripts must be 100% hard-coded per environment (dev, qa, prod) — separate scripts for each environment. No parameterized environment switching. The only secret fetched at runtime is the MongoDB connection string from Azure Key Vault (or .env locally). All collection names, cluster targets, index definitions, and pipeline steps must be explicit in each script. This eliminates the risk of accidentally copying dev data to prod or vice versa through a misconfigured parameter.",
+                          "requirement": "CopyToFrontEnd scripts must be 100% hard-coded per environment (dev, qa, prod) \u2014 separate scripts for each environment. No parameterized environment switching. The only secret fetched at runtime is the MongoDB connection string from Azure Key Vault (or .env locally). All collection names, cluster targets, index definitions, and pipeline steps must be explicit in each script. This eliminates the risk of accidentally copying dev data to prod or vice versa through a misconfigured parameter.",
                           "source": "Boss",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -51402,11 +51660,11 @@
             },
             {
               "feature_id": "FC-MOBILE",
-              "name": "Mobile Phone Support — Galaxy and iPhone 14+",
+              "name": "Mobile Phone Support \u2014 Galaxy and iPhone 14+",
               "epic_id": "EPIC-006",
               "layer": "frontend",
               "capability": "UX",
-              "description": "Full mobile support for Samsung Galaxy and iPhone 14 forward. Hamburger navigation on all pages, responsive layouts, touch-friendly controls. ChatHealthy.ai must be fully usable on a phone — not a degraded experience.",
+              "description": "Full mobile support for Samsung Galaxy and iPhone 14 forward. Hamburger navigation on all pages, responsive layouts, touch-friendly controls. ChatHealthy.ai must be fully usable on a phone \u2014 not a degraded experience.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
@@ -51814,7 +52072,7 @@
             },
             {
               "feature_id": "FC-NATIVE-APPS",
-              "name": "Native Mobile Apps — Apple App Store and Google Play",
+              "name": "Native Mobile Apps \u2014 Apple App Store and Google Play",
               "epic_id": "EPIC-006",
               "layer": "frontend",
               "capability": "UX",
@@ -51946,7 +52204,7 @@
                         },
                         {
                           "req_id": "UX-FRAME-001-REQ-005",
-                          "requirement": "No pixel values in any frame dimension — all percentages",
+                          "requirement": "No pixel values in any frame dimension \u2014 all percentages",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "63952800-1d36-43a3-9f9d-00d9b3cca528",
@@ -52106,16 +52364,16 @@
               "epic_id": "EPIC-006",
               "layer": "frontend",
               "capability": "UX",
-              "description": "Parent page ↔ React iframe communication via postMessage. React sends gui:render, gui:clear, gui:eval-render. Parent sends gui:event back. No page reloads.",
+              "description": "Parent page \u2194 React iframe communication via postMessage. React sends gui:render, gui:clear, gui:eval-render. Parent sends gui:event back. No page reloads.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
-              "design_ref": "design.json _record_id: gui_frame_layout → gui_manager.communication",
+              "design_ref": "design.json _record_id: gui_frame_layout \u2192 gui_manager.communication",
               "stories": {
                 "story": [
                   {
                     "story_id": "UX-MSG-001",
-                    "title": "React → Parent postMessage rendering",
+                    "title": "React \u2192 Parent postMessage rendering",
                     "size": "M",
                     "status": "not_started",
                     "requirements": {
@@ -52213,13 +52471,13 @@
                       ]
                     },
                     "ch_matrix_id": "50e777a0-e50e-4c01-90c9-a3c8377ebe05",
-                    "description": "React → Parent postMessage rendering",
+                    "description": "React \u2192 Parent postMessage rendering",
                     "orphan": false,
                     "approval": "proposed"
                   },
                   {
                     "story_id": "UX-MSG-002",
-                    "title": "Parent → React event relay",
+                    "title": "Parent \u2192 React event relay",
                     "size": "S",
                     "status": "not_started",
                     "requirements": {
@@ -52269,7 +52527,7 @@
                       ]
                     },
                     "ch_matrix_id": "472ce368-2a0f-4450-a698-e0c172fe1214",
-                    "description": "Parent → React event relay",
+                    "description": "Parent \u2192 React event relay",
                     "orphan": false,
                     "approval": "proposed"
                   }
@@ -52438,15 +52696,15 @@
             },
             {
               "feature_id": "UX-CONTROL-SURFACE",
-              "name": "Control Frame — Pagination and Filter Controls",
+              "name": "Control Frame \u2014 Pagination and Filter Controls",
               "epic_id": "EPIC-006",
               "layer": "frontend",
               "capability": "UX",
-              "description": "7% control frame canvas that renders pagination and filter controls on demand. 3D raised button style. Deterministic paging via /search — no LLM round-trip after first page.",
+              "description": "7% control frame canvas that renders pagination and filter controls on demand. 3D raised button style. Deterministic paging via /search \u2014 no LLM round-trip after first page.",
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
-              "design_ref": "design.json _record_id: gui_frame_layout → gui_manager.controls.pagination",
+              "design_ref": "design.json _record_id: gui_frame_layout \u2192 gui_manager.controls.pagination",
               "stories": {
                 "story": [
                   {
@@ -52550,7 +52808,7 @@
                         },
                         {
                           "req_id": "UX-CTRL-001-REQ-005",
-                          "requirement": "All pagination after first page is deterministic via /search with after_npi — no LLM round-trip",
+                          "requirement": "All pagination after first page is deterministic via /search with after_npi \u2014 no LLM round-trip",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "5b4cd8e1-47e5-459a-9b26-30b7b47456a0",
@@ -52573,7 +52831,7 @@
                         },
                         {
                           "req_id": "UX-CTRL-001-REQ-006",
-                          "requirement": "User sends new chat message — controls disappear and pagination state is cleared",
+                          "requirement": "User sends new chat message \u2014 controls disappear and pagination state is cleared",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "4f23de3b-1fd5-4912-b36e-5412809c4335",
@@ -52848,7 +53106,7 @@
             },
             {
               "feature_id": "UX-LEAF-PAGES",
-              "name": "Leaf Page Management — Right Panel",
+              "name": "Leaf Page Management \u2014 Right Panel",
               "epic_id": "EPIC-006",
               "layer": "frontend",
               "capability": "UX",
@@ -52856,7 +53114,7 @@
               "priority": "HIGH",
               "status": "not_started",
               "accepted_by": "Boss",
-              "design_ref": "design.json _record_id: gui_frame_layout → backlog GUI-LEAF",
+              "design_ref": "design.json _record_id: gui_frame_layout \u2192 backlog GUI-LEAF",
               "stories": {
                 "story": [
                   {
@@ -53029,7 +53287,7 @@
                         },
                         {
                           "req_id": "UX-GEN-001-REQ-003",
-                          "requirement": "Generated index.html is functionally identical to current hand-maintained index.html — all existing behavior preserved",
+                          "requirement": "Generated index.html is functionally identical to current hand-maintained index.html \u2014 all existing behavior preserved",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "eda666a2-84dd-48ba-b285-17ce06cf043f",
@@ -53890,7 +54148,7 @@
         "name": "Architecture",
         "type": "operational",
         "status": "not_started",
-        "description": "Architecture governance — ensures technical architecture is documented, validated, and enforced. Architecture decisions must be traceable, architecture documents must be current, and architecture violations must be detected and resolved.",
+        "description": "Architecture governance \u2014 ensures technical architecture is documented, validated, and enforced. Architecture decisions must be traceable, architecture documents must be current, and architecture violations must be detected and resolved.",
         "features": {
           "feature": [
             {
@@ -53923,7 +54181,7 @@
                   {
                     "story_id": "SEC-GUARD-RISK-001",
                     "title": "Guard checks risk acceptances before GPT evaluation",
-                    "description": "The PreToolUse guard loads risk_acceptance.json, passes all active entries to GPT-4.1-mini with the command being evaluated. GPT checks risks FIRST — if covered, action passes immediately without further evaluation. Structured JSON schema enforces typed output.",
+                    "description": "The PreToolUse guard loads risk_acceptance.json, passes all active entries to GPT-4.1-mini with the command being evaluated. GPT checks risks FIRST \u2014 if covered, action passes immediately without further evaluation. Structured JSON schema enforces typed output.",
                     "size": "M",
                     "status": "done",
                     "requirements": {
@@ -54021,7 +54279,7 @@
                       "requirement": [
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-003",
-                          "requirement": "The boot class MUST be a single Python file with __main__ and a chathealthy_devops_boot class. main() dispatches to the class by mode (prompt, tool_call, prompt_result, session_end). There is no boot mode — boot is triggered by the prompt handler on first call. Every mode handler MUST be wrapped in try/except/finally. The finally block MUST always call sys.exit() to return control to Cursor/Claude Code. All modes MUST fail open on exception.",
+                          "requirement": "The boot class MUST be a single Python file with __main__ and a chathealthy_devops_boot class. main() dispatches to the class by mode (prompt, tool_call, prompt_result, session_end). There is no boot mode \u2014 boot is triggered by the prompt handler on first call. Every mode handler MUST be wrapped in try/except/finally. The finally block MUST always call sys.exit() to return control to Cursor/Claude Code. All modes MUST fail open on exception.",
                           "priority": "must-have",
                           "status": "done",
                           "realized_by": [
@@ -54105,7 +54363,7 @@
                         },
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-007",
-                          "requirement": "Each Claude Code session MUST complete a deterministic, non-circumventable boot sequence before any other work. The sequence is: (1) load the governance brain and run compliance checks; (2) at the end of boot, ask the user exactly two questions in order and block all other assistant output until both are answered — Q1: mode selection per REQ-010; Q2: orphan triage per REQ-011. The sequence MUST NOT be skippable, paraphrasable, summarizable, or deferrable by Claude Code. Implementation MAY use any hook topology (SessionStart, UserPromptSubmit, Stop-hook validator, blocking-reply pattern) so long as the user-observable behavior holds: every new session begins with those two questions presented verbatim, in order, with no other assistant output preceding them.",
+                          "requirement": "Each Claude Code session MUST complete a deterministic, non-circumventable boot sequence before any other work. The sequence is: (1) load the governance brain and run compliance checks; (2) at the end of boot, ask the user exactly two questions in order and block all other assistant output until both are answered \u2014 Q1: mode selection per REQ-010; Q2: orphan triage per REQ-011. The sequence MUST NOT be skippable, paraphrasable, summarizable, or deferrable by Claude Code. Implementation MAY use any hook topology (SessionStart, UserPromptSubmit, Stop-hook validator, blocking-reply pattern) so long as the user-observable behavior holds: every new session begins with those two questions presented verbatim, in order, with no other assistant output preceding them.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "realized_by": [
@@ -54189,7 +54447,7 @@
                         },
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-011",
-                          "requirement": "Orphan triage is the second of the two boot questions. After the user answers REQ-010, Claude Code MUST ask a single yes/no question: 'Triage orphan bugs?' If the user answers no, boot completes and normal work begins. If the user answers yes, Claude Code MUST present the orphan bug table and the user chooses how many to triage this boot — one, several, or all. Triaging an orphan means assigning it a req_id or closing it. There is no per-orphan defer option and no obligation to triage every orphan; the single yes/no gate governs whether the list is shown at all, and within 'yes' the user drives how many get worked.",
+                          "requirement": "Orphan triage is the second of the two boot questions. After the user answers REQ-010, Claude Code MUST ask a single yes/no question: 'Triage orphan bugs?' If the user answers no, boot completes and normal work begins. If the user answers yes, Claude Code MUST present the orphan bug table and the user chooses how many to triage this boot \u2014 one, several, or all. Triaging an orphan means assigning it a req_id or closing it. There is no per-orphan defer option and no obligation to triage every orphan; the single yes/no gate governs whether the list is shown at all, and within 'yes' the user drives how many get worked.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "realized_by": [
@@ -54210,7 +54468,7 @@
                         },
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-012",
-                          "requirement": "Three context-resident artifacts MUST be loaded into the Claude Code session context at every session start, and MUST be re-injected after any context compaction: (1) brain/machine_artifacts/content/bugs.json — active bug register, loaded in full; (2) brain/machine_artifacts/content/engineering_rules.json — engineering rules, loaded in full; (3) test_output/backlog_stories.json — story-level pruned view of agile_backlog.json covering Epic → Feature → Story only. The story view carries story metadata (story_id, title, description, parent_feature, sprint, size, status, accepted_by, orphan, approval) plus an integer requirement_count per story. It does NOT carry requirement bodies, pytest pointers, realized_by arrays, or any node below story. The full agile_backlog.json (~521K tokens) is NOT context-resident; specific requirement bodies, pytest ids, and realized_by data MUST be fetched from the canonical brain/machine_artifacts/content/agile_backlog.json via Read when Claude needs them. Canonical brain content lives on disk under brain/machine_artifacts/content/ and is never stored anywhere else. The story view is a derived artifact — gitignored, regenerated at session start from the canonical source — it does not replace the source. A pytest MUST verify: (a) @-imports for the three context-resident artifacts are present in the root CLAUDE.md; (b) every current file under Code/DataPipelines/ matching the listed extensions (minus excluded dirs) has a corresponding @-import; (c) every @-imported file exists and is non-empty; (d) no @-imported path is stale. A git pre-commit hook MUST regenerate the DataPipelines @-import block when any file under Code/DataPipelines/ is added, moved, or deleted; if the block is stale, pre-commit MUST fail. Purpose: these artifacts are the ones Claude is most prone to shortcut-reasoning about — grepping instead of reading, guessing instead of checking, proposing duplicates because the original was never loaded. Making the backlog's high-level shape (9 epics / 83 features / 301 stories) context-resident removes the option to grep-and-punt for structure. Requirement bodies remain on-demand because loading the full backlog at ~521K tokens would consume more than half the 1M context window for content that is rarely needed in full. History: agile_backlog.json was attempted in context-residency 2026-04-18 and was replaced with the story-level view the same day. BRAIN-RUNTIME-REQ-005 (the flat pipe-delimited req_index.txt view) is deprecated in favor of this story-tree view. API source: Claude Code memory docs at https://code.claude.com/docs/en/memory.md — '@path/to/import' syntax, 'Imported files are expanded and loaded into context at launch', 'CLAUDE.md files are loaded in full regardless of length', 'Project-root CLAUDE.md survives compaction: after /compact, Claude re-reads it from disk and re-injects it into the session.' Hook-based injection is NOT a viable substitute because per https://code.claude.com/docs/en/hooks.md SessionStart and UserPromptSubmit hooks cap additionalContext at 10,000 characters with overflow saved to file + preview — too small for these artifacts.",
+                          "requirement": "Three context-resident artifacts MUST be loaded into the Claude Code session context at every session start, and MUST be re-injected after any context compaction: (1) brain/machine_artifacts/content/bugs.json \u2014 active bug register, loaded in full; (2) brain/machine_artifacts/content/engineering_rules.json \u2014 engineering rules, loaded in full; (3) test_output/backlog_stories.json \u2014 story-level pruned view of agile_backlog.json covering Epic \u2192 Feature \u2192 Story only. The story view carries story metadata (story_id, title, description, parent_feature, sprint, size, status, accepted_by, orphan, approval) plus an integer requirement_count per story. It does NOT carry requirement bodies, pytest pointers, realized_by arrays, or any node below story. The full agile_backlog.json (~521K tokens) is NOT context-resident; specific requirement bodies, pytest ids, and realized_by data MUST be fetched from the canonical brain/machine_artifacts/content/agile_backlog.json via Read when Claude needs them. Canonical brain content lives on disk under brain/machine_artifacts/content/ and is never stored anywhere else. The story view is a derived artifact \u2014 gitignored, regenerated at session start from the canonical source \u2014 it does not replace the source. A pytest MUST verify: (a) @-imports for the three context-resident artifacts are present in the root CLAUDE.md; (b) every current file under Code/DataPipelines/ matching the listed extensions (minus excluded dirs) has a corresponding @-import; (c) every @-imported file exists and is non-empty; (d) no @-imported path is stale. A git pre-commit hook MUST regenerate the DataPipelines @-import block when any file under Code/DataPipelines/ is added, moved, or deleted; if the block is stale, pre-commit MUST fail. Purpose: these artifacts are the ones Claude is most prone to shortcut-reasoning about \u2014 grepping instead of reading, guessing instead of checking, proposing duplicates because the original was never loaded. Making the backlog's high-level shape (9 epics / 83 features / 301 stories) context-resident removes the option to grep-and-punt for structure. Requirement bodies remain on-demand because loading the full backlog at ~521K tokens would consume more than half the 1M context window for content that is rarely needed in full. History: agile_backlog.json was attempted in context-residency 2026-04-18 and was replaced with the story-level view the same day. BRAIN-RUNTIME-REQ-005 (the flat pipe-delimited req_index.txt view) is deprecated in favor of this story-tree view. API source: Claude Code memory docs at https://code.claude.com/docs/en/memory.md \u2014 '@path/to/import' syntax, 'Imported files are expanded and loaded into context at launch', 'CLAUDE.md files are loaded in full regardless of length', 'Project-root CLAUDE.md survives compaction: after /compact, Claude re-reads it from disk and re-injects it into the session.' Hook-based injection is NOT a viable substitute because per https://code.claude.com/docs/en/hooks.md SessionStart and UserPromptSubmit hooks cap additionalContext at 10,000 characters with overflow saved to file + preview \u2014 too small for these artifacts.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "realized_by": [
@@ -54280,7 +54538,7 @@
                         },
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-015",
-                          "requirement": "Per-artifact load confirmation. After each session boot, the diagnostic MUST emit one confirmation line per context-resident artifact as defined in REQ-012. Each line MUST cite the full project-relative path of the artifact. Silent success is not permitted. The diagnostic signal may come from the InstructionsLoaded hook log, a direct content canary, or both; the reporting format is one line per artifact regardless of source. This requirement MUST NOT name specific artifacts — REQ-012 is the single source of truth for the artifact list; any change to scope belongs there, not here.",
+                          "requirement": "Per-artifact load confirmation. After each session boot, the diagnostic MUST emit one confirmation line per context-resident artifact as defined in REQ-012. Each line MUST cite the full project-relative path of the artifact. Silent success is not permitted. The diagnostic signal may come from the InstructionsLoaded hook log, a direct content canary, or both; the reporting format is one line per artifact regardless of source. This requirement MUST NOT name specific artifacts \u2014 REQ-012 is the single source of truth for the artifact list; any change to scope belongs there, not here.",
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [],
@@ -54300,7 +54558,7 @@
                         },
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-016",
-                          "requirement": "Load-failure short message. If any context-resident brain artifact fails load verification at session boot (per REQ-012 and REQ-017), the diagnostic MUST output a single short failure line (one line, under 200 characters) that names the failing artifact and classifies the failure as exactly one of four reasons — no more, no less: invalid_json | hash_unreadable | not_loaded | hash_mismatch. A long explanation is a violation of this requirement — follow-up detail belongs in a separate report, not the verdict line.",
+                          "requirement": "Load-failure short message. If any context-resident brain artifact fails load verification at session boot (per REQ-012 and REQ-017), the diagnostic MUST output a single short failure line (one line, under 200 characters) that names the failing artifact and classifies the failure as exactly one of four reasons \u2014 no more, no less: invalid_json | hash_unreadable | not_loaded | hash_mismatch. A long explanation is a violation of this requirement \u2014 follow-up detail belongs in a separate report, not the verdict line.",
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [],
@@ -54320,7 +54578,7 @@
                         },
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-017",
-                          "requirement": "Load verification procedure. For each context-resident artifact as defined in REQ-012, the diagnostic MUST execute exactly four steps in order, short-circuiting on the first failure: (1) validate the file as JSON — on failure emit 'invalid_json'; (2) compute sha256 of the file on disk and retain it — on I/O or hash failure emit 'hash_unreadable'; (3) confirm the harness loaded the file into context (InstructionsLoaded event fired for that file_path) — on absence emit 'not_loaded'; (4) recompute sha256 at the InstructionsLoaded event and compare to the hash from step 2 — on inequality emit 'hash_mismatch'. If all four steps pass, emit one 'LOADED' line per REQ-015. These four failure reasons are exhaustive: the diagnostic MUST NOT introduce a fifth category (e.g. timeout, truncation, attention_drift, unknown). Any observed failure that does not map to one of the four reasons is a gap in the procedure, not a new reason. This requirement MUST NOT name specific artifacts — REQ-012 is the single source of truth for the artifact list.",
+                          "requirement": "Load verification procedure. For each context-resident artifact as defined in REQ-012, the diagnostic MUST execute exactly four steps in order, short-circuiting on the first failure: (1) validate the file as JSON \u2014 on failure emit 'invalid_json'; (2) compute sha256 of the file on disk and retain it \u2014 on I/O or hash failure emit 'hash_unreadable'; (3) confirm the harness loaded the file into context (InstructionsLoaded event fired for that file_path) \u2014 on absence emit 'not_loaded'; (4) recompute sha256 at the InstructionsLoaded event and compare to the hash from step 2 \u2014 on inequality emit 'hash_mismatch'. If all four steps pass, emit one 'LOADED' line per REQ-015. These four failure reasons are exhaustive: the diagnostic MUST NOT introduce a fifth category (e.g. timeout, truncation, attention_drift, unknown). Any observed failure that does not map to one of the four reasons is a gap in the procedure, not a new reason. This requirement MUST NOT name specific artifacts \u2014 REQ-012 is the single source of truth for the artifact list.",
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [],
@@ -54346,7 +54604,13 @@
                           "realized_by": [],
                           "orphan": false,
                           "pytests": {
-                            "pytest": []
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-pytest-needed-see-BUG-MISSING-PYTEST-001",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
                           },
                           "approval": "approved"
                         }
@@ -54357,8 +54621,8 @@
                   },
                   {
                     "story_id": "BRAIN-RUNTIME",
-                    "title": "Brain at runtime — where brain content lives on disk and in context",
-                    "description": "Runtime requirements for the brain — specifically WHERE ChatHealthy.AI brain content is persisted on disk and WHERE it must be at runtime (i.e. loaded into Claude's active context). Brain content lives under brain/machine_artifacts/content/. Files outside that tree, including Claude Code's and Cursor's harness-managed Markdown files (CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md, .claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/), are NOT brain storage regardless of their content type. At runtime, brain content MUST be accessible to Claude without a disk Read (context-resident, per ARCH-DEVOPS-BOOT-001-REQ-012). The mechanism is harness-level @-imports from a project-root file (CLAUDE.md) that point at the brain JSONs and derived JSON views of brain JSONs.",
+                    "title": "Brain at runtime \u2014 where brain content lives on disk and in context",
+                    "description": "Runtime requirements for the brain \u2014 specifically WHERE ChatHealthy.AI brain content is persisted on disk and WHERE it must be at runtime (i.e. loaded into Claude's active context). Brain content lives under brain/machine_artifacts/content/. Files outside that tree, including Claude Code's and Cursor's harness-managed Markdown files (CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md, .claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/), are NOT brain storage regardless of their content type. At runtime, brain content MUST be accessible to Claude without a disk Read (context-resident, per ARCH-DEVOPS-BOOT-001-REQ-012). The mechanism is harness-level @-imports from a project-root file (CLAUDE.md) that point at the brain JSONs and derived JSON views of brain JSONs.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
@@ -54366,7 +54630,7 @@
                         {
                           "req_id": "BRAIN-RUNTIME-REQ-001",
                           "story_id": "BRAIN-RUNTIME",
-                          "requirement": "ChatHealthy.AI brain content MUST be persisted on disk under brain/machine_artifacts/content/ and nowhere else. Claude Code's and Cursor's harness-managed Markdown files — CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md, .claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/ — are NOT brain storage. Those MD files are reserved for harness instructions (CLAUDE.md family) or Claude's ungoverned working memory (MEMORY.md, per v4-037) and MUST NOT carry brain content. @-imports from CLAUDE.md that point at brain JSON files are the required mechanism to make brain content runtime-resident — they do not move the content into the MD file; the content stays on disk in JSON under brain/machine_artifacts/content/. Governing rule: v4-040.",
+                          "requirement": "ChatHealthy.AI brain content MUST be persisted on disk under brain/machine_artifacts/content/ and nowhere else. Claude Code's and Cursor's harness-managed Markdown files \u2014 CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md, .claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/ \u2014 are NOT brain storage. Those MD files are reserved for harness instructions (CLAUDE.md family) or Claude's ungoverned working memory (MEMORY.md, per v4-037) and MUST NOT carry brain content. @-imports from CLAUDE.md that point at brain JSON files are the required mechanism to make brain content runtime-resident \u2014 they do not move the content into the MD file; the content stays on disk in JSON under brain/machine_artifacts/content/. Governing rule: v4-040.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "realized_by": [
@@ -54421,7 +54685,7 @@
                         {
                           "req_id": "BRAIN-RUNTIME-REQ-003",
                           "story_id": "BRAIN-RUNTIME",
-                          "requirement": "Before creating any requirement, story, feature, or epic in brain/machine_artifacts/content/agile_backlog.json, Claude MUST search the backlog for a semantically duplicate or closely-related existing entry and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the entry is novel, Claude MUST insert it under a logical parent — requirement under story, story under feature, feature under epic. When no logical parent exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to Boss and wait for a decision before inserting; in Unattended Mode Claude MUST insert the entry with orphan = true under the nearest ancestor, flag it for Boss's async review, and proceed with its work.",
+                          "requirement": "Before creating any requirement, story, feature, or epic in brain/machine_artifacts/content/agile_backlog.json, Claude MUST search the backlog for a semantically duplicate or closely-related existing entry and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the entry is novel, Claude MUST insert it under a logical parent \u2014 requirement under story, story under feature, feature under epic. When no logical parent exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to Boss and wait for a decision before inserting; in Unattended Mode Claude MUST insert the entry with orphan = true under the nearest ancestor, flag it for Boss's async review, and proceed with its work.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "realized_by": [
@@ -54506,7 +54770,7 @@
             },
             {
               "feature_id": "ARCH-DEVOPS",
-              "name": "DevOps — Build, Deploy, and Environment Management",
+              "name": "DevOps \u2014 Build, Deploy, and Environment Management",
               "status": "in_progress",
               "description": "A software engineering discipline that unifies development and operations through automation, continuous delivery, and shared responsibility to accelerate the delivery of reliable software systems.",
               "realized_by": [
@@ -54920,7 +55184,7 @@
                   },
                   {
                     "story_id": "DEVOPS-DEPLOY-LOCAL",
-                    "title": "Deploy to localhost — Local UAT environment",
+                    "title": "Deploy to localhost \u2014 Local UAT environment",
                     "description": "One deploy script that wipes, builds, and starts the local UAT environment. Frontend on HTTPS port 443 with HTTP-to-HTTPS redirect on port 80. Backend calls dev.chathealthy.ai. Script runs verification tests before handing to Boss for UAT.",
                     "size": "M",
                     "status": "in_progress",
@@ -55172,7 +55436,7 @@
                   },
                   {
                     "story_id": "DEVOPS-BANNER-001",
-                    "title": "Environment Banner — Build, Version, Framework, and Environment Controls",
+                    "title": "Environment Banner \u2014 Build, Version, Framework, and Environment Controls",
                     "description": "An environment banner displays at the top of every page in non-production environments. It shows the environment label (LOCAL/DEV/QA), product version, framework version, and build number fetched from the backend health endpoint. In dev/local environments it also contains controls for testing cross-component integration (Shared Services). The display has to be human readable where each value has a label and it must display in one line not span multiple lines. There must be sufficient space between each name value pair so that the banner is easily readable for a human being.",
                     "size": "S",
                     "status": "in_progress",
@@ -55287,7 +55551,7 @@
                   },
                   {
                     "story_id": "DEVOPS-DEPLOY-DEV",
-                    "title": "Deploy to dev — HuggingFace Space dev environment",
+                    "title": "Deploy to dev \u2014 HuggingFace Space dev environment",
                     "description": "Deploy script for the dev environment. Pushes to HuggingFace Space via GitHub Actions. Includes pre-deploy rule check, build bump, frontend build, and post-deploy verification.",
                     "size": "M",
                     "status": "in_progress",
@@ -55368,7 +55632,7 @@
                   },
                   {
                     "story_id": "DEVOPS-DEPLOY-QA",
-                    "title": "Deploy to QA — HuggingFace Space QA environment",
+                    "title": "Deploy to QA \u2014 HuggingFace Space QA environment",
                     "description": "Deploy script for the QA environment. Promotes from dev to QA. Includes pre-deploy rule check, build bump, and post-deploy verification.",
                     "size": "M",
                     "status": "not_started",
@@ -55449,7 +55713,7 @@
                   },
                   {
                     "story_id": "DEVOPS-DEPLOY-PROD",
-                    "title": "Deploy to prod — HuggingFace Space production environment",
+                    "title": "Deploy to prod \u2014 HuggingFace Space production environment",
                     "description": "Deploy script for the production environment. Promotes from QA to prod. Includes pre-deploy rule check, build bump, Boss authorization, and post-deploy verification.",
                     "size": "M",
                     "status": "not_started",
@@ -55565,7 +55829,7 @@
             },
             {
               "feature_id": "ARCH-AUDIT",
-              "name": "Audit — Technical, Business, Regulatory and Corporate Governance",
+              "name": "Audit \u2014 Technical, Business, Regulatory and Corporate Governance",
               "status": "in_progress",
               "description": "This feature encompasses all the audits that must be done to maintain technical and business history, integrity and regulatory and corporate governance.",
               "realized_by": [
@@ -55575,8 +55839,8 @@
                 "story": [
                   {
                     "story_id": "AUDIT-CODEHIST-001",
-                    "title": "Codebase History Audit — Deterministic Agent",
-                    "description": "A deterministic Python orchestrator dispatches disposable AI workers to analyze git history, brain artifacts, and current code to identify lost capabilities, undocumented changes, and gaps between intent and implementation. The orchestrator is 100% deterministic — all state is on disk, all decisions are file-existence checks. AI is used only inside workers for code analysis. Audits MUST NOT create state changes — they only maintain their own notes and documents, and produce findings and recommendations. The orchestrator loops until all jobs are complete or a human sets the stop command in the control file.",
+                    "title": "Codebase History Audit \u2014 Deterministic Agent",
+                    "description": "A deterministic Python orchestrator dispatches disposable AI workers to analyze git history, brain artifacts, and current code to identify lost capabilities, undocumented changes, and gaps between intent and implementation. The orchestrator is 100% deterministic \u2014 all state is on disk, all decisions are file-existence checks. AI is used only inside workers for code analysis. Audits MUST NOT create state changes \u2014 they only maintain their own notes and documents, and produce findings and recommendations. The orchestrator loops until all jobs are complete or a human sets the stop command in the control file.",
                     "size": "L",
                     "status": "in_progress",
                     "requirements": {
@@ -56180,11 +56444,11 @@
                   },
                   {
                     "story_id": "PIPE-TR-003",
-                    "title": "Dead code scanner — two-pass symbol analysis",
+                    "title": "Dead code scanner \u2014 two-pass symbol analysis",
                     "parent_feature": "PIPE-TRACE",
                     "size": "M",
                     "status": "not_started",
-                    "description": "Two-pass scanner: Pass 1 streams every source file, builds a map of all definitions (classes, methods, functions) and all references (calls, imports, attribute access). Pass 2 reconciles — anything defined but never referenced is dead and must be deleted. Two modes: check-in (staged files only, fast) and full regression (entire codebase).",
+                    "description": "Two-pass scanner: Pass 1 streams every source file, builds a map of all definitions (classes, methods, functions) and all references (calls, imports, attribute access). Pass 2 reconciles \u2014 anything defined but never referenced is dead and must be deleted. Two modes: check-in (staged files only, fast) and full regression (entire codebase).",
                     "requirements": {
                       "requirement": [
                         {
@@ -56281,11 +56545,11 @@
             },
             {
               "feature_id": "SDT-BRAIN",
-              "name": "The Brain — Agentic Infrastructure",
+              "name": "The Brain \u2014 Agentic Infrastructure",
               "epic_id": "EPIC-006",
               "layer": "devops",
               "capability": "Brain",
-              "description": "The Brain as a deployed component. Agentic infrastructure for running the company — assignments, governance, audit, grooming, monitoring. MongoDB-backed, API accessible.",
+              "description": "The Brain as a deployed component. Agentic infrastructure for running the company \u2014 assignments, governance, audit, grooming, monitoring. MongoDB-backed, API accessible.",
               "priority": "MEDIUM",
               "status": "not_started",
               "accepted_by": "Boss",
@@ -56303,7 +56567,7 @@
               "feature_id": "ARCH-BRAIN",
               "name": "Implement Brain",
               "status": "in_progress",
-              "description": "Implementation of the brain infrastructure — the system of record for governance, requirements, rules, design decisions, and all machine-readable artifacts that govern the system.",
+              "description": "Implementation of the brain infrastructure \u2014 the system of record for governance, requirements, rules, design decisions, and all machine-readable artifacts that govern the system.",
               "realized_by": [
                 "Python 3.11"
               ],
@@ -56311,7 +56575,7 @@
                 "story": [
                   {
                     "story_id": "BRAIN-AGILE-BACKLOG",
-                    "title": "agile_backlog.json — Brain artifact",
+                    "title": "agile_backlog.json \u2014 Brain artifact",
                     "description": "Master agile backlog. All epics, features, stories, and requirements from this epic forward.",
                     "size": "S",
                     "status": "in_progress",
@@ -56400,7 +56664,7 @@
                   },
                   {
                     "story_id": "BRAIN-AI-OPERATIONS",
-                    "title": "ai_operations.json — Brain artifact",
+                    "title": "ai_operations.json \u2014 Brain artifact",
                     "description": "Brain artifact: ai_operations",
                     "size": "S",
                     "status": "in_progress",
@@ -56481,7 +56745,7 @@
                   },
                   {
                     "story_id": "BRAIN-ARCHITECTURE",
-                    "title": "architecture.json — Brain artifact",
+                    "title": "architecture.json \u2014 Brain artifact",
                     "description": "Brain artifact: architecture",
                     "size": "S",
                     "status": "in_progress",
@@ -56570,7 +56834,7 @@
                   },
                   {
                     "story_id": "BRAIN-BUGS",
-                    "title": "bugs.json — Brain artifact",
+                    "title": "bugs.json \u2014 Brain artifact",
                     "description": "All system bugs. Each bug has its own environment and status attributes. Environments constrained to local/dev/qa/prod. Source of truth for defect tracking.",
                     "size": "S",
                     "status": "in_progress",
@@ -56661,7 +56925,7 @@
                   },
                   {
                     "story_id": "BRAIN-BUSINESS-PLAN",
-                    "title": "business_plan.json — Brain artifact",
+                    "title": "business_plan.json \u2014 Brain artifact",
                     "description": "Brain artifact: business_plan",
                     "size": "S",
                     "status": "in_progress",
@@ -56742,7 +57006,7 @@
                   },
                   {
                     "story_id": "BRAIN-CONTROLLED-VOCABULAR",
-                    "title": "controlled_vocabularies.json — Brain artifact",
+                    "title": "controlled_vocabularies.json \u2014 Brain artifact",
                     "description": "Governed controlled vocabularies used across the ChatHealthy.ai system. Each vocabulary has a definition, members with definitions, and implementation traceability. Engineering rules (engineering_rule",
                     "size": "S",
                     "status": "in_progress",
@@ -56823,7 +57087,7 @@
                   },
                   {
                     "story_id": "BRAIN-CONVERSATION-LOG",
-                    "title": "conversation_log.json — Brain artifact",
+                    "title": "conversation_log.json \u2014 Brain artifact",
                     "description": "Rolling 24h conversation log.",
                     "size": "S",
                     "status": "in_progress",
@@ -57373,7 +57637,7 @@
                   },
                   {
                     "story_id": "BRAIN-DAILY-PUNCH-LIST-WIT",
-                    "title": "daily_punch_list_with_results_and_accomplishments.json — Brain artifact",
+                    "title": "daily_punch_list_with_results_and_accomplishments.json \u2014 Brain artifact",
                     "description": "Daily punch lists with results. Tracks what was planned, what was done, and what carried over. Source of truth for daily velocity and accountability.",
                     "size": "S",
                     "status": "in_progress",
@@ -57438,7 +57702,7 @@
                   },
                   {
                     "story_id": "BRAIN-DESIGN",
-                    "title": "design.json — Brain artifact",
+                    "title": "design.json \u2014 Brain artifact",
                     "description": "Brain artifact: design",
                     "size": "S",
                     "status": "in_progress",
@@ -57539,7 +57803,7 @@
                   },
                   {
                     "story_id": "BRAIN-EMERGENCY-KEYWORDS",
-                    "title": "emergency_keywords.json — Brain artifact",
+                    "title": "emergency_keywords.json \u2014 Brain artifact",
                     "description": "Config-driven keyword list for SafetyService EmergencyDetector. Dual-trigger OR logic: keyword match OR semantic classifier. F-09 fix: expanded from v1.0.",
                     "size": "S",
                     "status": "in_progress",
@@ -57628,7 +57892,7 @@
                   },
                   {
                     "story_id": "BRAIN-ENGINEERING-RULES",
-                    "title": "engineering_rules.json — Brain artifact",
+                    "title": "engineering_rules.json \u2014 Brain artifact",
                     "description": "Authoritative engineering rules for ChatHealthy.ai. Single source of truth. Combines operating standards (v4-series) and incident-driven lessons (DR-series). No deviation without signed risk acceptanc",
                     "size": "S",
                     "status": "in_progress",
@@ -57693,6 +57957,48 @@
                             ]
                           },
                           "approval": "proposed"
+                        },
+                        {
+                          "req_id": "BRAIN-ENGINEERING-RULES-REQ-B001",
+                          "requirement": "engineering_rules.json MUST express each rule as (a) a short name (max 80 chars), (b) a non-binding description, and (c) one or more individually Boolean-testable statements. Rule identifiers MUST be uniform Rule-NNN. Every rule MUST carry a date.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "type": "business",
+                          "story_id": "BRAIN-ENGINEERING-RULES",
+                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "date": "2026-04-19"
+                        },
+                        {
+                          "req_id": "BRAIN-ENGINEERING-RULES-REQ-T001",
+                          "requirement": "Publish a strict JSON schema (Draft 2020-12) defining rules[].rule with fields {id (matching ^Rule-\\d{3}$), name (maxLength 80), description, rule_statements[] of {statement_number >=1, statement_body}, date, type (enum standard|incident-driven), source}. Migrate engineering_rules.json in one commit; in the same commit rename every v4-NNN/DR-NNN to Rule-NNN and update every reference in non-loose-schema brain JSONs and bugs.json. preCommitScan.py + pre_deploy_rule_check.py iterate rule_statements[] instead of the prose body.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "type": "technical",
+                          "story_id": "BRAIN-ENGINEERING-RULES",
+                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "date": "2026-04-19"
                         }
                       ]
                     },
@@ -57701,7 +58007,7 @@
                   },
                   {
                     "story_id": "BRAIN-EXTERNAL-AUDITS",
-                    "title": "external_audits.json — Brain artifact",
+                    "title": "external_audits.json \u2014 Brain artifact",
                     "description": "Brain artifact: external_audits",
                     "size": "S",
                     "status": "in_progress",
@@ -57766,7 +58072,7 @@
                   },
                   {
                     "story_id": "BRAIN-GOVERNANCE",
-                    "title": "governance.json — Brain artifact",
+                    "title": "governance.json \u2014 Brain artifact",
                     "description": "Governance records: sign-offs, corporate cadence, and policies. Policies is a child of governance. Operating rules in engineering_rules.json. Risk acceptances in risk_acceptance.json.",
                     "size": "S",
                     "status": "in_progress",
@@ -57847,7 +58153,7 @@
                   },
                   {
                     "story_id": "BRAIN-GOVERNANCE-MATRIX",
-                    "title": "governance_matrix.json — Brain artifact",
+                    "title": "governance_matrix.json \u2014 Brain artifact",
                     "description": "Governance propensity matrix. Rows = brain JSONs. Columns = Anthropic action events. Cells = CV-007 labels. GOV-015: all environments equal. Policies is a child of governance. Every cell value must be",
                     "size": "S",
                     "status": "in_progress",
@@ -57912,7 +58218,7 @@
                   },
                   {
                     "story_id": "BRAIN-LEGAL",
-                    "title": "legal.json — Brain artifact",
+                    "title": "legal.json \u2014 Brain artifact",
                     "description": "Brain artifact: legal",
                     "size": "S",
                     "status": "in_progress",
@@ -58001,7 +58307,7 @@
                   },
                   {
                     "story_id": "BRAIN-PROJECT-MANIFEST",
-                    "title": "project_manifest.json — Brain artifact",
+                    "title": "project_manifest.json \u2014 Brain artifact",
                     "description": "Brain artifact: project_manifest",
                     "size": "S",
                     "status": "in_progress",
@@ -58094,7 +58400,7 @@
                   },
                   {
                     "story_id": "BRAIN-PROMPTS",
-                    "title": "prompts.json — Brain artifact",
+                    "title": "prompts.json \u2014 Brain artifact",
                     "description": "All system and user prompts for GPT and Claude agent assignments. Registered per GOV-009 (Role In System Prompt).",
                     "size": "S",
                     "status": "in_progress",
@@ -58183,7 +58489,7 @@
                   },
                   {
                     "story_id": "BRAIN-REGRESSION-REPORT",
-                    "title": "regression_report.json — Brain artifact",
+                    "title": "regression_report.json \u2014 Brain artifact",
                     "description": "Brain artifact: regression_report",
                     "size": "S",
                     "status": "in_progress",
@@ -58248,7 +58554,7 @@
                   },
                   {
                     "story_id": "BRAIN-RISK-ACCEPTANCE",
-                    "title": "risk_acceptance.json — Brain artifact",
+                    "title": "risk_acceptance.json \u2014 Brain artifact",
                     "description": "Formal risk acceptance register. Every deviation from policy or operating rules requires a signed risk acceptance from Skip Snow recorded here. Referenced by GOV-007 (Engineering Rules Are Standards),",
                     "size": "S",
                     "status": "in_progress",
@@ -58323,7 +58629,7 @@
                   },
                   {
                     "story_id": "BRAIN-SCHEMA",
-                    "title": "schema.json — Brain artifact",
+                    "title": "schema.json \u2014 Brain artifact",
                     "description": "Defines all brain collections in brain/machine_artifacts/content/, their record types, and artifact generation rules. All brain content is JSON. Diagrams live in brain/machine_artifacts/diagrams/.",
                     "size": "S",
                     "status": "in_progress",
@@ -58374,7 +58680,7 @@
                       "requirement": [
                         {
                           "req_id": "BRAIN-SCHEMA-REQ-001",
-                          "requirement": "All ChatHealthy JSON content files MUST reference a published schema on chathealthy.ai/schemas/{env}/ via a $schema field. All ChatHealthy JSON schema files MUST reference the JSON Schema spec at https://json-schema.org/draft/2020-12/schema — not the ChatHealthy website. Schemas define the spec. Content references the schema. On each check-in each JSON content file MUST be validated against its schema. All schemas MUST be published on ChatHealthy's static web site in the directory /schemas/{env}/. Third-party JSON files (e.g. VS Code, npm, .NET, Anthropic) are exempt.",
+                          "requirement": "All ChatHealthy JSON content files MUST reference a published schema on chathealthy.ai/schemas/{env}/ via a $schema field. All ChatHealthy JSON schema files MUST reference the JSON Schema spec at https://json-schema.org/draft/2020-12/schema \u2014 not the ChatHealthy website. Schemas define the spec. Content references the schema. On each check-in each JSON content file MUST be validated against its schema. All schemas MUST be published on ChatHealthy's static web site in the directory /schemas/{env}/. Third-party JSON files (e.g. VS Code, npm, .NET, Anthropic) are exempt.",
                           "priority": "must-have",
                           "status": "done",
                           "realized_by": [
@@ -58442,7 +58748,7 @@
                   },
                   {
                     "story_id": "BRAIN-SECURITY",
-                    "title": "security.json — Brain artifact",
+                    "title": "security.json \u2014 Brain artifact",
                     "description": "Security architecture design, compliance control mappings, and CUI readiness assessment. Authoritative source for all security architecture decisions. Features and requirements are in agile_backlog.js",
                     "size": "S",
                     "status": "in_progress",
@@ -58515,7 +58821,7 @@
                   },
                   {
                     "story_id": "BRAIN-SPRINT-PLAN",
-                    "title": "sprint_plan.json — Brain artifact",
+                    "title": "sprint_plan.json \u2014 Brain artifact",
                     "description": "Brain artifact: sprint_plan",
                     "size": "S",
                     "status": "in_progress",
@@ -58584,7 +58890,7 @@
                   },
                   {
                     "story_id": "BRAIN-TOKEN-USAGE",
-                    "title": "token_usage.json — Brain artifact",
+                    "title": "token_usage.json \u2014 Brain artifact",
                     "description": "Brain artifact: token_usage",
                     "size": "S",
                     "status": "in_progress",
@@ -58653,7 +58959,7 @@
                   },
                   {
                     "story_id": "BRAIN-TRACEABILITY-MATRIX",
-                    "title": "traceability_matrix.json — Brain artifact",
+                    "title": "traceability_matrix.json \u2014 Brain artifact",
                     "description": "Brain artifact: traceability_matrix",
                     "size": "S",
                     "status": "in_progress",
@@ -58734,7 +59040,7 @@
                   },
                   {
                     "story_id": "BRAIN-UNREALIZED-IDEAS",
-                    "title": "unrealized_ideas.json — Brain artifact",
+                    "title": "unrealized_ideas.json \u2014 Brain artifact",
                     "description": "Ideas captured from Boss that are not yet in the backlog. Every idea gets tracked here first, then promoted to a story when prioritized.",
                     "size": "S",
                     "status": "in_progress",
@@ -58799,7 +59105,7 @@
                   },
                   {
                     "story_id": "BRAIN-VERSION",
-                    "title": "version.json — Brain artifact",
+                    "title": "version.json \u2014 Brain artifact",
                     "description": "Product version, framework version, and build history. Loaded by the singleton at SessionStart. Displayed in banner. Included in every git commit message.",
                     "size": "S",
                     "status": "in_progress",
@@ -58900,7 +59206,7 @@
                   },
                   {
                     "story_id": "BRAIN-WORK-LOG",
-                    "title": "work_log.json — Brain artifact",
+                    "title": "work_log.json \u2014 Brain artifact",
                     "description": "Brain artifact: work_log",
                     "size": "S",
                     "status": "in_progress",
@@ -58969,7 +59275,7 @@
                   },
                   {
                     "story_id": "BRAIN-ERRORS",
-                    "title": "errors.json — Brain artifact",
+                    "title": "errors.json \u2014 Brain artifact",
                     "description": "System error log. All unrecoverable errors from agents, services, and background processes are recorded here.",
                     "size": "S",
                     "status": "not_started",
@@ -59071,7 +59377,7 @@
                         },
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-002",
-                          "requirement": "The orphan scan MUST be pure file I/O — no network, no database. If bugs.json is not found, corrupt, or unreadable, the scan MUST fail open with a specific exception message and full stack trace printed to stderr.",
+                          "requirement": "The orphan scan MUST be pure file I/O \u2014 no network, no database. If bugs.json is not found, corrupt, or unreadable, the scan MUST fail open with a specific exception message and full stack trace printed to stderr.",
                           "priority": "must-have",
                           "status": "done",
                           "realized_by": [
@@ -59270,7 +59576,7 @@
                         },
                         {
                           "req_id": "PIPE-TR-003-REQ-005",
-                          "requirement": "The scanner is a single class that holds state (definitions map, references set, findings list). It is not a separate script — it is a method on the existing pre_deploy_rule_check scanner class. One scanner, one class, shared state.",
+                          "requirement": "The scanner is a single class that holds state (definitions map, references set, findings list). It is not a separate script \u2014 it is a method on the existing pre_deploy_rule_check scanner class. One scanner, one class, shared state.",
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [
@@ -59297,6 +59603,74 @@
               },
               "orphan": false,
               "approval": "proposed"
+            },
+            {
+              "feature_id": "BRAIN-GOVERNANCE-DEFERRAL-PATTERN",
+              "name": "Deferred work as a first-class concept",
+              "status": "not_started",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "BRAIN-DEFERRED-WORK-001",
+                    "name": "End-to-end deferred-work tracking pattern",
+                    "status": "not_started",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "BRAIN-DEFERRED-WORK-001-REQ-B001",
+                          "requirement": "Every unit of work that is deferred MUST be visible end-to-end: the deferred state, the requirement awaiting completion, and an auto-tracking bug that escalates severity as the un-completed work approaches production. Deferral remains visible until the requirement is fulfilled.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "type": "business",
+                          "story_id": "BRAIN-DEFERRED-WORK-001",
+                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "date": "2026-04-19"
+                        },
+                        {
+                          "req_id": "BRAIN-DEFERRED-WORK-001-REQ-T001",
+                          "requirement": "Backlog requirements with status=deferred MUST have a paired tracking bug in bugs.json with resolution_status=deferred and severity_by_environment={dev: low, qa: critical, prod: show_stopper}. The unit's inputs, outputs, src, and a README MUST live under Code/_pending/<unit-name>/. A BugManagerAgent (future) auto-escalates severity on environment promotion. Engineering rule v4-041 (to become Rule-NNN post-redesign) codifies the pattern.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "type": "technical",
+                          "story_id": "BRAIN-DEFERRED-WORK-001",
+                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "date": "2026-04-19"
+                        }
+                      ]
+                    },
+                    "title": "End-to-end deferred-work tracking pattern",
+                    "description": "End-to-end deferred-work tracking pattern",
+                    "size": "M",
+                    "orphan": false,
+                    "approval": "approved"
+                  }
+                ]
+              },
+              "orphan": false,
+              "approval": "approved",
+              "description": "Deferred work as a first-class concept"
             }
           ]
         },
@@ -59447,7 +59821,7 @@
                 "story": [
                   {
                     "story_id": "FC-BACKEND-001",
-                    "title": "Core backend infrastructure — notifications, audit, logging, CORS",
+                    "title": "Core backend infrastructure \u2014 notifications, audit, logging, CORS",
                     "description": "Push notifications via SparkPost, activity audit trail to MongoDB, chat history formatting, request logging middleware, CORS security policy, welcome endpoint.",
                     "parent_feature": "FC-BACKEND",
                     "size": "M",
@@ -59568,7 +59942,7 @@
                   },
                   {
                     "story_id": "FC-BACKEND-002",
-                    "title": "URL Guardian — validate and sanitize URLs in LLM responses",
+                    "title": "URL Guardian \u2014 validate and sanitize URLs in LLM responses",
                     "description": "Three-stage URL validation (HEAD check, AI content verification, Google search correction) with TTL cache. Defangs broken URLs in markdown text and tool results. Prevents users from clicking broken links.",
                     "parent_feature": "FC-BACKEND",
                     "size": "L",
@@ -59761,7 +60135,7 @@
                   },
                   {
                     "story_id": "FC-BACKEND-005",
-                    "title": "Tool Router — GOV-004 allowlist enforcement",
+                    "title": "Tool Router \u2014 GOV-004 allowlist enforcement",
                     "description": "Pydantic-validated allowlist tool dispatch. Only registered tools can be called. GOV-004: 'The model may suggest. The system must decide.'",
                     "parent_feature": "FC-BACKEND",
                     "size": "M",
@@ -59839,7 +60213,7 @@
                   },
                   {
                     "story_id": "FC-BACKEND-006",
-                    "title": "Lead Capture — contact record creation with consent (UAT Feature 6)",
+                    "title": "Lead Capture \u2014 contact record creation with consent (UAT Feature 6)",
                     "description": "Record user contact details with two-tier consent: verbatim transcript, de-identified summary, or contact-only. Dedup by email. Delegates to ConsentService.",
                     "parent_feature": "FC-BACKEND",
                     "size": "M",
@@ -60037,7 +60411,7 @@
                   },
                   {
                     "story_id": "FC-BACKEND-010",
-                    "title": "Consent Framework — two-tier HIPAA consent (UAT Feature 7)",
+                    "title": "Consent Framework \u2014 two-tier HIPAA consent (UAT Feature 7)",
                     "description": "Two-tier consent: Tier 1 = verbatim transcript, Tier 2 = de-identified summary. ConsentService summarizes via Claude Haiku and de-identifies via HIPAA Safe Harbor.",
                     "parent_feature": "FC-BACKEND",
                     "size": "M",
@@ -60094,7 +60468,7 @@
                   },
                   {
                     "story_id": "FC-BACKEND-011",
-                    "title": "About Content — Skip Snow and ChatHealthy context (UAT Feature 4)",
+                    "title": "About Content \u2014 Skip Snow and ChatHealthy context (UAT Feature 4)",
                     "description": "Static content service for about intents. Returns Skip Snow professional context with LinkedIn link, and ChatHealthy business plan and principles.",
                     "parent_feature": "FC-BACKEND",
                     "size": "S",
@@ -60151,7 +60525,7 @@
                   },
                   {
                     "story_id": "FC-BACKEND-012",
-                    "title": "Debug Logging — chat call metadata to MongoDB",
+                    "title": "Debug Logging \u2014 chat call metadata to MongoDB",
                     "description": "DebugLogger persists chat call metadata (IP, message preview, tokens, errors) to {ENV}_Debug.chat_calls. On error, de-identified chat history is included.",
                     "parent_feature": "FC-BACKEND",
                     "size": "S",
@@ -60188,7 +60562,7 @@
                   },
                   {
                     "story_id": "FC-BACKEND-013",
-                    "title": "Embedding Infrastructure — centralized AI embedding and query expansion",
+                    "title": "Embedding Infrastructure \u2014 centralized AI embedding and query expansion",
                     "description": "EmbeddingClient provides text-embedding-3-large (provider vector search), text-embedding-3-small (specialty matching), and Claude Haiku query expansion (regex pipeline).",
                     "parent_feature": "FC-BACKEND",
                     "size": "M",
@@ -60278,6 +60652,89 @@
         },
         "orphan": false,
         "approval": "proposed"
+      },
+      {
+        "epic_id": "EPIC-010",
+        "name": "Engineering Productivity",
+        "type": "functional",
+        "status": "in_progress",
+        "description": "ChatHealthy.ai engineering productivity is amplified by AI-assisted agents that execute well-scoped procedural assignments end-to-end, with cascading risk acceptance (v4-039), brain-aware authority, and transparent push-back. Direct anchor to the founding thesis: a 1-3 person company plus a call center can deliver a major American brand. Agents that serve customers belong in their respective business epics; agents that serve the engineering function live here.",
+        "features": {
+          "feature": [
+            {
+              "feature_id": "AGENT-SKIPS-ASSISTANT",
+              "name": "SkipsAssistant",
+              "status": "in_progress",
+              "description": "Skips Assistant - the agent that helps Skip Snow execute well-scoped procedural assignments inside the ChatHealthy.ai project. Today realized by Claude Code (Anthropic) configured by CLAUDE.md, .claude/settings.json hooks, the engineering rules brain, and a per-conversation memory layer. Operates under cascading risk acceptance (v4-039) and treats an active assignment as overriding ordinary engineering rules per v4-042.",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "SKIP-ASSIST-001",
+                    "name": "Codify SkipsAssistant capabilities and authority profile",
+                    "status": "in_progress",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "SKIP-ASSIST-001-REQ-B001",
+                          "requirement": "SkipsAssistant MUST be able to: (1) execute well-scoped procedural assignments end-to-end (brain edits, code refactors, file moves, doc generation, test runs); (2) propagate any new concept across all governed brain artifacts in one coherent change set; (3) honor every engineering rule unless the active assignment explicitly overrides specific ones (v4-042); (4) push back when Bosss idea is flawed (with evidence) before acting; (5) ring the bell before any pause that needs Boss input (v4-008); (6) measure load size before asking Boss to test boot/hook/CLAUDE.md changes.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "type": "business",
+                          "story_id": "SKIP-ASSIST-001",
+                          "source": "Boss directive 2026-04-19 - BuildAnEpic Agents",
+                          "date": "2026-04-19",
+                          "traces_to": "EPIC-010 (Engineering Productivity epic intent)"
+                        },
+                        {
+                          "req_id": "SKIP-ASSIST-001-REQ-T001",
+                          "requirement": "SkipsAssistant is realized by Claude Code (Anthropic) configured by: (a) CLAUDE.md at the project root carrying the binding boot directives; (b) .claude/settings.json hook graph that invokes Code/Shared/ops/tools/chathealthy_devops_boot.py on UserPromptSubmit, PreToolUse, Stop, SessionStart, SessionEnd; (c) the engineering rules brain (engineering_rules.json) loaded at boot; (d) per-conversation auto-memory under C:/Users/skips/.claude/projects/c--chatHealthy-findCare/memory/. Authority profile: Normal Mode (default per v4-004), with cascade-on-acceptance per v4-039 and assignment-scope override per v4-042. The agent has tools-use access via the Anthropic SDK and standing local + dev deploy authority.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-not-implemented-yet",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "type": "technical",
+                          "story_id": "SKIP-ASSIST-001",
+                          "source": "Boss directive 2026-04-19 - BuildAnEpic Agents",
+                          "date": "2026-04-19",
+                          "traces_to": "EPIC-010 (Engineering Productivity epic intent)"
+                        }
+                      ]
+                    },
+                    "title": "Codify SkipsAssistant capabilities and authority profile",
+                    "description": "Codify SkipsAssistant capabilities and authority profile",
+                    "size": "M",
+                    "orphan": false,
+                    "approval": "approved"
+                  }
+                ]
+              },
+              "orphan": false,
+              "approval": "approved"
+            }
+          ]
+        },
+        "orphan": false,
+        "approval": "approved"
       }
     ]
   },
@@ -60286,7 +60743,7 @@
       "sprint": 1,
       "sprint_goal": "Deliver Provider Quality Scoring Engine end-to-end",
       "capacity_split": "100% EPIC-1",
-      "max_capacity": "4 stories (1L + 2M + 1S) — exceeds standard capacity",
+      "max_capacity": "4 stories (1L + 2M + 1S) \u2014 exceeds standard capacity",
       "features_shipped": [
         "EVAL-SCORE-PROV"
       ],
@@ -60385,7 +60842,7 @@
     "features": 25,
     "stories": 114,
     "requirements": 1507,
-    "note": "Summary reflects EPIC-1 GPT planning output only. EPIC-2 (Maintenance) dissolved — features moved to EPIC-FINDCARE and EPIC-10. Other epics (3-9) are tracked in their own sections above."
+    "note": "Summary reflects EPIC-1 GPT planning output only. EPIC-2 (Maintenance) dissolved \u2014 features moved to EPIC-FINDCARE and EPIC-10. Other epics (3-9) are tracked in their own sections above."
   },
   "ch_matrix_id": "eb04b6f6-fc97-4627-97c8-0724822e5184"
 }
