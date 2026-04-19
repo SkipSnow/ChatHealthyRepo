@@ -2891,7 +2891,7 @@
     {
       "bugid": "BUG-ARCH-GRAPH-EXEMPT-001",
       "title": "Tracking: 20 FastAPI handlers exempted from v4-043 graph-orchestration rule (mechanical exemptions for health/splash/proxy/debug/security primitives)",
-      "description": "Bookkeeping bug — not a defect. Tracks the 20 FastAPI route handlers that were marked `# graph-exempt` to clear the v4-043 pre-push scanner. The exemptions are mechanical: each handler carries no business logic that v4-043 is meant to gate (health checks, static splash pages, transfer/proxy redirects, debug endpoints, mTLS/session/Key Vault security primitives). Paired with risk_acceptance entry RA-ARCH-GRAPH-EXEMPT-001 (accepted 2026-04-19, expires 2026-12-31). Real v4-043 violations remain blocking under BUG-ARCH-GRAPH-001 (/classify and EvaluateCare scoring endpoints).\n\nExempted handlers:\n- Code/ConversationalUX/FindCareChat/backend/main.py: health, get_session, evaluate_splash, transfer_to_findcare, evaluate_proxy, shared_splash, shared_verify_token, evaluate_verify_token, serve_index\n- Code/evaluate_care/app.py: debug_verify_live, debug_bootstrap, health, splash, transfer_to_findcare, verify_token\n- Code/shared_services/app.py: health, splash, transfer_to_findcare, verify_token, get_secret\n\nWork the bug tracks: revisit each exemption when the broader graph-orchestration refactor is scheduled. For each handler, decide one of: (a) leave exempt permanently because the handler genuinely has no shared-concern surface; (b) route through a thin graph wrapper if any shared concern (audit, auth gating) becomes relevant; (c) delete the handler if it has been superseded.",
+      "description": "Bookkeeping bug \u2014 not a defect. Tracks the 20 FastAPI route handlers that were marked `# graph-exempt` to clear the v4-043 pre-push scanner. The exemptions are mechanical: each handler carries no business logic that v4-043 is meant to gate (health checks, static splash pages, transfer/proxy redirects, debug endpoints, mTLS/session/Key Vault security primitives). Paired with risk_acceptance entry RA-ARCH-GRAPH-EXEMPT-001 (accepted 2026-04-19, expires 2026-12-31). Real v4-043 violations remain blocking under BUG-ARCH-GRAPH-001 (/classify and EvaluateCare scoring endpoints).\n\nExempted handlers:\n- Code/ConversationalUX/FindCareChat/backend/main.py: health, get_session, evaluate_splash, transfer_to_findcare, evaluate_proxy, shared_splash, shared_verify_token, evaluate_verify_token, serve_index\n- Code/evaluate_care/app.py: debug_verify_live, debug_bootstrap, health, splash, transfer_to_findcare, verify_token\n- Code/shared_services/app.py: health, splash, transfer_to_findcare, verify_token, get_secret\n\nWork the bug tracks: revisit each exemption when the broader graph-orchestration refactor is scheduled. For each handler, decide one of: (a) leave exempt permanently because the handler genuinely has no shared-concern surface; (b) route through a thin graph wrapper if any shared concern (audit, auth gating) becomes relevant; (c) delete the handler if it has been superseded.",
       "environments": [
         "dev",
         "qa",
@@ -2914,6 +2914,786 @@
       "orphan": false,
       "next_action": [
         "Schedule alongside BUG-ARCH-GRAPH-001 graph-orchestration refactor work; revisit every exempted handler at that time."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-HEALTH",
+      "title": "Empty LangChain container: health() in main.py:595 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'health' at Code/ConversationalUX/FindCareChat/backend/main.py:595 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for health in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts health as a node",
+        "Existing functional behavior of health is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'health'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap health in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-GET-SESSION",
+      "title": "Empty LangChain container: get_session() in main.py:625 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'get_session' at Code/ConversationalUX/FindCareChat/backend/main.py:625 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for get_session in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts get_session as a node",
+        "Existing functional behavior of get_session is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'get_session'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap get_session in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-EVALUATE-SPLASH",
+      "title": "Empty LangChain container: evaluate_splash() in main.py:656 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'evaluate_splash' at Code/ConversationalUX/FindCareChat/backend/main.py:656 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for evaluate_splash in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts evaluate_splash as a node",
+        "Existing functional behavior of evaluate_splash is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'evaluate_splash'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap evaluate_splash in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-TRANSFER-TO-FINDCARE",
+      "title": "Empty LangChain container: transfer_to_findcare() in main.py:679 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'transfer_to_findcare' at Code/ConversationalUX/FindCareChat/backend/main.py:679 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for transfer_to_findcare in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts transfer_to_findcare as a node",
+        "Existing functional behavior of transfer_to_findcare is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'transfer_to_findcare'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap transfer_to_findcare in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-EVALUATE-PROXY",
+      "title": "Empty LangChain container: evaluate_proxy() in main.py:703 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'evaluate_proxy' at Code/ConversationalUX/FindCareChat/backend/main.py:703 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for evaluate_proxy in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts evaluate_proxy as a node",
+        "Existing functional behavior of evaluate_proxy is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'evaluate_proxy'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap evaluate_proxy in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-SHARED-SPLASH",
+      "title": "Empty LangChain container: shared_splash() in main.py:742 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'shared_splash' at Code/ConversationalUX/FindCareChat/backend/main.py:742 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for shared_splash in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts shared_splash as a node",
+        "Existing functional behavior of shared_splash is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'shared_splash'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap shared_splash in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-SHARED-VERIFY-TOKEN",
+      "title": "Empty LangChain container: shared_verify_token() in main.py:765 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'shared_verify_token' at Code/ConversationalUX/FindCareChat/backend/main.py:765 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for shared_verify_token in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts shared_verify_token as a node",
+        "Existing functional behavior of shared_verify_token is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'shared_verify_token'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap shared_verify_token in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-EVALUATE-VERIFY-TOKEN",
+      "title": "Empty LangChain container: evaluate_verify_token() in main.py:789 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'evaluate_verify_token' at Code/ConversationalUX/FindCareChat/backend/main.py:789 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for evaluate_verify_token in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts evaluate_verify_token as a node",
+        "Existing functional behavior of evaluate_verify_token is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'evaluate_verify_token'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap evaluate_verify_token in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-SERVE-INDEX",
+      "title": "Empty LangChain container: serve_index() in main.py:964 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'serve_index' at Code/ConversationalUX/FindCareChat/backend/main.py:964 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for serve_index in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts serve_index as a node",
+        "Existing functional behavior of serve_index is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'serve_index'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap serve_index in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-SEARCH",
+      "title": "Empty LangChain container: search() in main.py:370 bypasses graph orchestrator (v4-043) \u2014 business-logic",
+      "description": "FastAPI route handler 'search' at Code/ConversationalUX/FindCareChat/backend/main.py:370 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "high",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for search in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts search as a node",
+        "Existing functional behavior of search is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'search'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap search in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-CLASSIFY",
+      "title": "Empty LangChain container: classify() in main.py:383 bypasses graph orchestrator (v4-043) \u2014 business-logic",
+      "description": "FastAPI route handler 'classify' at Code/ConversationalUX/FindCareChat/backend/main.py:383 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "high",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for classify in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts classify as a node",
+        "Existing functional behavior of classify is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'classify'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap classify in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-QA-REPORT",
+      "title": "Empty LangChain container: qa_report() in main.py:482 bypasses graph orchestrator (v4-043) \u2014 business-logic",
+      "description": "FastAPI route handler 'qa_report' at Code/ConversationalUX/FindCareChat/backend/main.py:482 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "high",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for qa_report in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts qa_report as a node",
+        "Existing functional behavior of qa_report is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'qa_report'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap qa_report in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-QA-REPORT-SUBMIT",
+      "title": "Empty LangChain container: qa_report_submit() in main.py:539 bypasses graph orchestrator (v4-043) \u2014 business-logic",
+      "description": "FastAPI route handler 'qa_report_submit' at Code/ConversationalUX/FindCareChat/backend/main.py:539 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "high",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for qa_report_submit in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts qa_report_submit as a node",
+        "Existing functional behavior of qa_report_submit is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'qa_report_submit'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap qa_report_submit in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-WELCOME",
+      "title": "Empty LangChain container: welcome() in main.py:569 bypasses graph orchestrator (v4-043) \u2014 business-logic",
+      "description": "FastAPI route handler 'welcome' at Code/ConversationalUX/FindCareChat/backend/main.py:569 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "high",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for welcome in Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Studio renders the graph that hosts welcome as a node",
+        "Existing functional behavior of welcome is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'welcome'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap welcome in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-DEBUG-VERIFY-LIVE",
+      "title": "Empty LangChain container: debug_verify_live() in app.py:94 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'debug_verify_live' at Code/evaluate_care/app.py:94 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for debug_verify_live in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts debug_verify_live as a node",
+        "Existing functional behavior of debug_verify_live is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'debug_verify_live'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap debug_verify_live in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-DEBUG-BOOTSTRAP",
+      "title": "Empty LangChain container: debug_bootstrap() in app.py:127 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'debug_bootstrap' at Code/evaluate_care/app.py:127 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for debug_bootstrap in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts debug_bootstrap as a node",
+        "Existing functional behavior of debug_bootstrap is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'debug_bootstrap'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap debug_bootstrap in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-HEALTH",
+      "title": "Empty LangChain container: health() in app.py:172 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'health' at Code/evaluate_care/app.py:172 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for health in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts health as a node",
+        "Existing functional behavior of health is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'health'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap health in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-SPLASH",
+      "title": "Empty LangChain container: splash() in app.py:192 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'splash' at Code/evaluate_care/app.py:192 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for splash in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts splash as a node",
+        "Existing functional behavior of splash is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'splash'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap splash in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-TRANSFER-TO-FINDCARE",
+      "title": "Empty LangChain container: transfer_to_findcare() in app.py:200 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'transfer_to_findcare' at Code/evaluate_care/app.py:200 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for transfer_to_findcare in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts transfer_to_findcare as a node",
+        "Existing functional behavior of transfer_to_findcare is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'transfer_to_findcare'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap transfer_to_findcare in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-VERIFY-TOKEN",
+      "title": "Empty LangChain container: verify_token() in app.py:214 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'verify_token' at Code/evaluate_care/app.py:214 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for verify_token in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts verify_token as a node",
+        "Existing functional behavior of verify_token is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'verify_token'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap verify_token in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-SCORE-PROVIDER",
+      "title": "Empty LangChain container: score_provider() in app.py:251 bypasses graph orchestrator (v4-043) \u2014 business-logic",
+      "description": "FastAPI route handler 'score_provider' at Code/evaluate_care/app.py:251 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "high",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for score_provider in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts score_provider as a node",
+        "Existing functional behavior of score_provider is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'score_provider'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap score_provider in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-SCORE-TRIAL",
+      "title": "Empty LangChain container: score_trial() in app.py:271 bypasses graph orchestrator (v4-043) \u2014 business-logic",
+      "description": "FastAPI route handler 'score_trial' at Code/evaluate_care/app.py:271 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "high",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for score_trial in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts score_trial as a node",
+        "Existing functional behavior of score_trial is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'score_trial'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap score_trial in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-EXPLAIN",
+      "title": "Empty LangChain container: explain() in app.py:289 bypasses graph orchestrator (v4-043) \u2014 business-logic",
+      "description": "FastAPI route handler 'explain' at Code/evaluate_care/app.py:289 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "high",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for explain in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts explain as a node",
+        "Existing functional behavior of explain is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'explain'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap explain in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-EVALUATE-PROVIDERS",
+      "title": "Empty LangChain container: evaluate_providers() in app.py:304 bypasses graph orchestrator (v4-043) \u2014 business-logic",
+      "description": "FastAPI route handler 'evaluate_providers' at Code/evaluate_care/app.py:304 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "high",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for evaluate_providers in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts evaluate_providers as a node",
+        "Existing functional behavior of evaluate_providers is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'evaluate_providers'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap evaluate_providers in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-EVALUATE-VIEW",
+      "title": "Empty LangChain container: evaluate_view() in app.py:346 bypasses graph orchestrator (v4-043) \u2014 business-logic",
+      "description": "FastAPI route handler 'evaluate_view' at Code/evaluate_care/app.py:346 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "high",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for evaluate_view in Code/evaluate_care/app.py",
+        "Studio renders the graph that hosts evaluate_view as a node",
+        "Existing functional behavior of evaluate_view is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'evaluate_view'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap evaluate_view in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-HEALTH",
+      "title": "Empty LangChain container: health() in app.py:108 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'health' at Code/shared_services/app.py:108 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for health in Code/shared_services/app.py",
+        "Studio renders the graph that hosts health as a node",
+        "Existing functional behavior of health is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'health'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap health in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-SPLASH",
+      "title": "Empty LangChain container: splash() in app.py:129 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'splash' at Code/shared_services/app.py:129 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for splash in Code/shared_services/app.py",
+        "Studio renders the graph that hosts splash as a node",
+        "Existing functional behavior of splash is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'splash'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap splash in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-TRANSFER-TO-FINDCARE",
+      "title": "Empty LangChain container: transfer_to_findcare() in app.py:137 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'transfer_to_findcare' at Code/shared_services/app.py:137 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for transfer_to_findcare in Code/shared_services/app.py",
+        "Studio renders the graph that hosts transfer_to_findcare as a node",
+        "Existing functional behavior of transfer_to_findcare is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'transfer_to_findcare'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap transfer_to_findcare in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-VERIFY-TOKEN",
+      "title": "Empty LangChain container: verify_token() in app.py:150 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'verify_token' at Code/shared_services/app.py:150 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for verify_token in Code/shared_services/app.py",
+        "Studio renders the graph that hosts verify_token as a node",
+        "Existing functional behavior of verify_token is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'verify_token'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap verify_token in a real LangGraph StateGraph; route the handler body through graph.invoke()."
+      ]
+    },
+    {
+      "bugid": "BUG-LANGCHAIN-CONTAINER-APP-GET-SECRET",
+      "title": "Empty LangChain container: get_secret() in app.py:176 bypasses graph orchestrator (v4-043) \u2014 mechanical",
+      "description": "FastAPI route handler 'get_secret' at Code/shared_services/app.py:176 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "environments": [
+        "dev"
+      ],
+      "status": "tested_passed",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-routed-handler-test",
+      "pytest_success_criteria": [
+        "v4-043 graph_entry_check reports zero violations for get_secret in Code/shared_services/app.py",
+        "Studio renders the graph that hosts get_secret as a node",
+        "Existing functional behavior of get_secret is unchanged"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "Closed 2026-04-19: handler refactored to invoke through LangGraph StateGraph. v4-043 scanner reports zero violations. Smoke test (Code/Shared/ops/tools/tests/test_langgraph_compliance_smoke.py) verifies. UAT in Studio still pending per BRAIN-DEFERRED-WORK pattern (human signs off via LangSmith annotation queue once deployed).",
+      "reproduction": "Run: python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare 2>&1 | grep 'get_secret'. Expected after fix: zero v4-043 violations for this handler.",
+      "orphan": false,
+      "next_action": [
+        "Wrap get_secret in a real LangGraph StateGraph; route the handler body through graph.invoke()."
       ]
     }
   ],

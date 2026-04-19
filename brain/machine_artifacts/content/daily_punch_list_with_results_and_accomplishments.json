@@ -18,7 +18,7 @@
           },
           {
             "id": 2,
-            "task": "CopyToFrontEnd — providers, SpecialtyMetaData, and provider_quality for DE, MS, CA, VA to frontend cluster",
+            "task": "CopyToFrontEnd \u2014 providers, SpecialtyMetaData, and provider_quality for DE, MS, CA, VA to frontend cluster",
             "status": "IN_PROGRESS",
             "ch_matrix_id": "761e1c1a-ef46-4444-bfcb-29cae77f7416"
           },
@@ -59,7 +59,7 @@
           },
           {
             "id": 5,
-            "task": "EvaluateCare scoring engine — wire real measures",
+            "task": "EvaluateCare scoring engine \u2014 wire real measures",
             "status": "PENDING",
             "ch_matrix_id": "9ccba2e3-50e4-4182-a102-1718b536c9da"
           },
@@ -119,11 +119,104 @@
         "BUG-LEGAL-001: CPT codes cannot be consumer-facing",
         "DR-022: Never embed on frontend cluster",
         "DR-023: No code without backlog traceability",
-        "BUG-GOV-001: Claude Code governance hooks crash Cursor plugin — dialog box appears, entire plugin dies, requires logout/login via command palette. No known reproduction steps. Feature: Brain governance (EPIC-10). Fix: add try/finally with stack trace logging to all four lifecycle methods."
+        "BUG-GOV-001: Claude Code governance hooks crash Cursor plugin \u2014 dialog box appears, entire plugin dies, requires logout/login via command palette. No known reproduction steps. Feature: Brain governance (EPIC-10). Fix: add try/finally with stack trace logging to all four lifecycle methods."
       ],
       "sign_offs": [
         "UAT-UX-001: Timer + Stop button (human approved)",
         "UAT-FILTER-001: Filter functionality (human approved, UX not approved)"
+      ]
+    },
+    {
+      "date": "2026-04-19",
+      "title": "Production-grade LangGraph implementation \u2014 local + dev",
+      "description": "Implement LangGraph into ChatHealthy.ai infrastructure today, production-grade, running on HuggingFace and locally, monitored by LangSmith. Per Human directive 2026-04-19. Local + dev only for monitoring; QA/prod deferred. 30 BUG-LANGCHAIN-CONTAINER-* bugs are the basis of work; each closes when its handler routes through a real LangGraph StateGraph and the v4-043 scanner reports clean for that handler.",
+      "items": [
+        {
+          "text": "Per-environment LangSmith monitoring (local + dev only today; QA/prod deferred)",
+          "needs_human": false,
+          "status": "done"
+        },
+        {
+          "text": "LangSmith API key (already wired in Code/.env)",
+          "needs_human": false,
+          "status": "done"
+        },
+        {
+          "text": "Eliminate local server (deploy to LangGraph Platform)",
+          "needs_human": true,
+          "status": "blocked-on-human",
+          "blocker": "Enable Deployments at https://smith.langchain.com/host/deployments"
+        },
+        {
+          "text": "UAT in Studio (LangSmith annotation queue)",
+          "needs_human": false,
+          "status": "pending"
+        },
+        {
+          "text": "1 bug per non-graph container",
+          "needs_human": false,
+          "status": "done \u2014 30 BUG-LANGCHAIN-CONTAINER-* filed"
+        },
+        {
+          "text": "Give Studio our graphs \u2014 Studio renders / UATs / monitors them",
+          "needs_human": false,
+          "status": "pending"
+        },
+        {
+          "text": "Production-grade execution \u2014 nodes run against real services",
+          "needs_human": false,
+          "status": "pending"
+        },
+        {
+          "text": "Create story (or cite existing) + create all necessary bugs",
+          "needs_human": false,
+          "status": "done \u2014 ARCH-GRAPH-ORCHESTRATION-001 + 30 bugs filed"
+        },
+        {
+          "text": "Smoke test proving all bugs",
+          "needs_human": false,
+          "status": "pending"
+        },
+        {
+          "text": "Fix all bugs \u2014 refactor each handler to LangGraph",
+          "needs_human": false,
+          "status": "pending"
+        },
+        {
+          "text": "Search for dangling code (dead/orphan code from refactor) before handoff",
+          "needs_human": false,
+          "status": "pending"
+        },
+        {
+          "text": "Hand off to UAT",
+          "needs_human": true,
+          "status": "pending"
+        },
+        {
+          "text": "UAT: Find a clinical trial",
+          "needs_human": true,
+          "status": "pending"
+        },
+        {
+          "text": "UAT: Emergency lock out (safety classifier)",
+          "needs_human": true,
+          "status": "pending"
+        },
+        {
+          "text": "UAT: 'Contact us' (because you asked us to)",
+          "needs_human": true,
+          "status": "pending"
+        },
+        {
+          "text": "UAT: Store unknown question with 3 types of answers",
+          "needs_human": true,
+          "status": "pending"
+        },
+        {
+          "text": "UAT: Stitch modes from one service to another",
+          "needs_human": true,
+          "status": "pending"
+        }
       ]
     }
   ],

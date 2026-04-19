@@ -37,6 +37,13 @@ from domain.shared.content.about_service import AboutService
 from application.tool_models.provider_search_models import ProviderSearchInput, SpecialtyInput
 from application.tool_models.clinical_trials_models import ClinicalTrialsInput, ProviderDetailInput
 from application.tool_models.consent_models import LeadInput, UnknownInput
+from application.graphs import (
+    build_search_graph,
+    build_classify_graph,
+    build_qa_report_graph,
+    build_qa_report_submit_graph,
+    build_welcome_graph,
+)
 from infrastructure.embeddings.embedding_client import EmbeddingClient
 from infrastructure.debug_logger import DebugLogger
 
@@ -368,10 +375,9 @@ class SearchRequest(BaseModel):
 
 @app.post("/search")
 async def search(body: SearchRequest):
-    """Direct provider search — for pagination. No LLM involved."""
-    params = body.model_dump(exclude_none=True)
-    result = _find_care.search_providers(**params)
-    return result
+    """v4-043: routes through search_graph (single-node thin wrapper)."""
+    return search_graph.invoke(
+        {"params": body.model_dump(exclude_none=True)})["response"]
 
 
 class ClassifyRequest(BaseModel):
@@ -381,80 +387,11 @@ class ClassifyRequest(BaseModel):
 
 @app.post("/classify")
 async def classify(body: ClassifyRequest, request: Request):
-    """FC-FILT-001-REQ-001: AI vector search for specialties.
-    Replaces the GPT classify call with embedding + vector search.
-    Returns specialty codes ranked by cosine similarity + location extracted by simple parsing."""
-
-    # BUG-SAFETY-001: Safety gate — emergency detection must run on every user input,
-    # regardless of which endpoint the frontend calls.
+    """v4-043: routes through classify_graph (safety gate → vector search →
+    location extraction → homeopathic generalists)."""
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
-    if _safety_service.is_ip_locked(ip):
-        return {"emergency": True, "response": EMERGENCY_RESPONSE}
-    if _safety_service.is_emergency(body.message):
-        full_history = [{"role": "user", "content": body.message}]
-        _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
-        return {"emergency": True, "response": EMERGENCY_RESPONSE}
-
-    # Vector search for specialties
-    result = _specialty_service.find_specialty_codes(body.message)
-
-    if "error" in result:
-        return {"specialties": [], "error": result["error"]}
-
-    # Map to the format the frontend expects
-    specialties = [
-        {"code": s["Code"], "name": s["Display Name"],
-         "can_prescribe": s.get("can_prescribe", False),
-         "homeopathic": s.get("homeopathic", False),
-         "rank": s.get("rank", 0)}
-        for s in result.get("specialties", [])
-    ]
-
-    # Simple location extraction — no LLM needed
-    msg = body.message.lower()
-    state = None
-    city = None
-    county = None
-    # State codes
-    for code in ["DE", "MS", "VA", "IN"]:
-        if f" {code.lower()} " in f" {msg} " or msg.endswith(f" {code.lower()}"):
-            state = code
-            break
-    # Full state names
-    state_names = {"delaware": "DE", "mississippi": "MS", "virginia": "VA", "indiana": "IN"}
-    for name, code in state_names.items():
-        if name in msg:
-            state = code
-            break
-
-    # Load homeopathic generalists for client-side cache
-    homeo_generalists = []
-    try:
-        db = _get_db()
-        if db:
-            for doc in db[f"{_ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"].find(
-                {"homeopathic_general": True, "Section": "Individual"},
-                {"_id": 0, "Code": 1, "Display Name": 1, "can_prescribe": 1, "homeopathic": 1}
-            ):
-                homeo_generalists.append({
-                    "code": doc.get("Code", ""),
-                    "name": doc.get("Display Name", ""),
-                    "can_prescribe": doc.get("can_prescribe", False),
-                    "homeopathic": True,
-                    "homeopathic_general": True,
-                })
-    except Exception:
-        pass
-
-    return {
-        "specialties": specialties,
-        "homeopathic_generalists": homeo_generalists,
-        "state": state,
-        "city": city,
-        "county": county,
-        "model": "text-embedding-3-large (vector search)",
-    }
+    return classify_graph.invoke({"message": body.message, "ip": ip})["response"]
 
 def _get_qa_report():
     """Load QA report from MongoDB (source of truth), fall back to file for bootstrap."""
@@ -480,94 +417,29 @@ def _get_qa_report():
 
 @app.get("/qa-report")
 def qa_report():
-    """DEVOPS-QA-001: Render QA report from MongoDB. Dev/QA only."""
-    if _ENV_PREFIX == "prod":
-        return {"error": "QA report not available in production"}
-    report = _get_qa_report()
-    if not report:
-        return {"error": "QA report not found"}
-    features = report.get("features", [])
-    # Build HTML with editable dropdowns (DEVOPS-QA-005)
-    options = "".join(f'<option value="{s}">{s}</option>' for s in
-                      ["", "PASS", "FAIL", "DEFERRED", "NOT_STARTED", "IN_PROGRESS", "TO_TEST", "UNTESTED", "RELEASE_BLOCKER"])
-    rows = ""
-    for feat in features:
-        status = feat.get("status", "NOT_STARTED")
-        color = {"PASS": "#059669", "IN_PROGRESS": "#2563eb", "NOT_STARTED": "#9ca3af",
-                 "UNTESTED": "#d97706", "RELEASE_BLOCKER": "#dc2626", "TO_TEST": "#7c3aed"}.get(status, "#6b7280")
-        tc_count = len(feat.get("test_cases", []))
-        tc_pass = sum(1 for tc in feat.get("test_cases", []) if tc.get("status") == "PASS")
-        rows += f'<tr style="background:#f9fafb"><td>{feat.get("id","")}</td><td><b>{feat.get("feature_id","")}</b></td>'
-        rows += f'<td><b>{feat.get("name","")}</b></td><td>{feat.get("epic","")}</td>'
-        rows += f'<td style="color:{color};font-weight:600">{status}</td>'
-        rows += f'<td>{tc_pass}/{tc_count}</td></tr>\n'
-        for tc in feat.get("test_cases", []):
-            tc_id = tc.get("tc", "")
-            tc_status = tc.get("status", "")
-            sel_options = options.replace(f'value="{tc_status}"', f'value="{tc_status}" selected')
-            rows += f'<tr style="font-size:12px"><td></td><td></td>'
-            rows += f'<td style="padding-left:24px">{tc_id}: {tc.get("test","")}</td>'
-            rows += f'<td></td><td><select name="{tc_id}" style="font-size:11px;padding:2px">{sel_options}</select></td><td></td></tr>\n'
-    summary = report.get("summary", {})
+    """v4-043: routes through qa_report_graph (loads report → renders HTML)."""
     from starlette.responses import HTMLResponse
-    html = f"""<!DOCTYPE html><html><head><title>QA Report — {report.get('version','')}</title>
-<style>body{{font-family:system-ui,sans-serif;max-width:1000px;margin:40px auto;padding:0 20px}}
-table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #e5e7eb;padding:8px 12px;text-align:left}}
-th{{background:#f3f4f6;font-size:13px}}tr:hover{{background:#f9fafb}}
-h1{{font-size:24px}}h2{{font-size:16px;color:#6b7280}}
-select{{border:1px solid #d1d5db;border-radius:4px}}
-.submit-btn{{background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;border:none;padding:10px 24px;
-border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px}}
-.submit-btn:hover{{opacity:0.9}}</style></head><body>
-<form method="POST" action="/qa-report">
-<h1>QA Report — {report.get('version','')} Dev→SIT</h1>
-<h2>{report.get('scope','')}</h2>
-<p>Date: {report.get('date','')} | Target: {report.get('target','')} | Status: {report.get('status','')}</p>
-<p><b>Features:</b> {summary.get('total_features',0)} | <b>Test Cases:</b> {summary.get('total_test_cases',0)} |
-<b style="color:#059669">Pass:</b> {summary.get('pass',0)} |
-<b style="color:#2563eb">In Progress:</b> {summary.get('in_progress',0)} |
-<b style="color:#9ca3af">Not Started:</b> {summary.get('not_started',0)}</p>
-<table><tr><th>#</th><th>Feature ID</th><th>Name</th><th>Epic</th><th>Status</th><th>Tests</th></tr>
-{rows}</table>
-<button type="submit" class="submit-btn">Save QA Report</button>
-</form>
-<p style="font-size:11px;color:#9ca3af;margin-top:24px">&copy; 2026 Skip Snow. All rights reserved.</p>
-</body></html>"""
-    return HTMLResponse(content=html)
+    result = qa_report_graph.invoke({"env_prefix": _ENV_PREFIX})["response"]
+    if "html" in result:
+        return HTMLResponse(content=result["html"])
+    return result
 
 @app.post("/qa-report")
 async def qa_report_submit(request: Request):
-    """DEVOPS-QA-005: Save QA report edits to MongoDB."""
-    if _ENV_PREFIX == "prod":
-        return {"error": "QA report not available in production"}
-    report = _get_qa_report()
-    if not report:
-        return {"error": "QA report not found"}
+    """v4-043: routes through qa_report_submit_graph (parse form → persist → redirect)."""
     form = await request.form()
-    updated = 0
-    for feat in report.get("features", []):
-        for tc in feat.get("test_cases", []):
-            tc_id = tc.get("tc", "")
-            if tc_id in form and form[tc_id]:
-                tc["status"] = form[tc_id]
-                updated += 1
-    # Recompute summary
-    all_tc = [tc for f in report["features"] for tc in f.get("test_cases", [])]
-    report["summary"]["pass"] = sum(1 for tc in all_tc if tc.get("status") == "PASS")
-    report["summary"]["in_progress"] = sum(1 for tc in all_tc if tc.get("status") == "IN_PROGRESS")
-    report["summary"]["not_started"] = sum(1 for tc in all_tc if tc.get("status") in ("NOT_STARTED", ""))
-    # Write to MongoDB
-    db = _get_db()
-    if db:
-        db[f"{_ENV_PREFIX}_System"]["bugs"].replace_one(
-            {"_record_id": "qa_report_v014_sit"}, report, upsert=True)
-    _log.info("QA report saved to MongoDB: %d test cases updated", updated)
-    from starlette.responses import RedirectResponse
-    return RedirectResponse(url="/qa-report", status_code=303)
+    form_dict = {k: v for k, v in form.items()}
+    result = qa_report_submit_graph.invoke(
+        {"env_prefix": _ENV_PREFIX, "form": form_dict})["response"]
+    if "redirect" in result:
+        from starlette.responses import RedirectResponse
+        return RedirectResponse(url=result["redirect"], status_code=303)
+    return result
 
 @app.get("/welcome")
 def welcome():
-    return {"message": WELCOME_MESSAGE}
+    """v4-043: routes through welcome_graph (single-node, returns welcome message)."""
+    return welcome_graph.invoke({})["response"]
 
 _REQUIRED_INDEXES = {
     "providers": ["provider_vector_index"],
@@ -911,6 +783,27 @@ from domain.find_care.provider_search_service import FindCareService as _FindCar
 from application.chat_graph import build_graph
 
 _CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
+
+# ── v4-043 module-level business-logic graphs ─────────────────
+# Each graph wraps an existing service call(s) so the FastAPI handler can
+# invoke through the graph instead of calling services directly. Studio
+# renders these; LangSmith traces every invocation.
+
+search_graph = build_search_graph(_find_care)
+classify_graph = build_classify_graph(
+    safety_service=_safety_service,
+    specialty_service=_specialty_service,
+    get_db_fn=_get_db,
+    env_prefix=_ENV_PREFIX,
+    emergency_response=EMERGENCY_RESPONSE,
+)
+qa_report_graph = build_qa_report_graph(get_qa_report_fn=_get_qa_report)
+qa_report_submit_graph = build_qa_report_submit_graph(
+    get_qa_report_fn=_get_qa_report,
+    get_db_fn=_get_db,
+)
+welcome_graph = build_welcome_graph(welcome_message=WELCOME_MESSAGE)
+
 
 _chat_graph = build_graph(
     safety_service=_safety_service,
