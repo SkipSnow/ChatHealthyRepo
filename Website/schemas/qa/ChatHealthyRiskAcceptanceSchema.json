@@ -17,9 +17,6 @@
       "type": "string",
       "const": "risk_acceptance"
     },
-    "governance_attribute_id": {
-      "type": "string"
-    },
     "description": {
       "type": "string"
     },
