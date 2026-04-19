@@ -15,9 +15,6 @@
     "collection": {
       "type": "string"
     },
-    "governance_attribute_id": {
-      "type": "string"
-    },
     "version": {
       "type": "string"
     },

@@ -20,9 +20,6 @@
     "schema_address": {
       "type": "string"
     },
-    "governance_attribute_id": {
-      "type": "string"
-    },
     "description": {
       "type": "string"
     },

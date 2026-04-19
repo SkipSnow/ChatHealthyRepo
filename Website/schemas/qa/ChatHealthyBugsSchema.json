@@ -20,9 +20,6 @@
     "schema_address": {
       "type": "string"
     },
-    "governance_attribute_id": {
-      "type": "string"
-    },
     "description": {
       "type": "string"
     },
@@ -104,7 +101,7 @@
               "not_a_bug",
               "resolved"
             ],
-            "description": "Legacy field — use type instead"
+            "description": "Legacy field \u2014 use type instead"
           },
           "req_id": {
             "type": "string",
@@ -123,7 +120,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Success criteria from the pytest record — mandatory, not freetext"
+            "description": "Success criteria from the pytest record \u2014 mandatory, not freetext"
           },
           "discovery_date": {
             "type": "string",
