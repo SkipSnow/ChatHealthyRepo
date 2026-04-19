@@ -113,14 +113,20 @@ def validate_bugs(brain_dir: str) -> list[str]:
     if not col_schema:
         return ["Schema collection 'bugs' not found in schema.json"]
 
-    record_schemas = col_schema.get("record_schemas", col_schema.get("fields", {}))
-    constraints = {}
+    # New shape: collections.bugs.bug is an array of field-definition dicts
+    # keyed by "name". Each entry may carry possible_values.
+    bug_defs = col_schema.get("bug", [])
+    field_specs = {}
+    if isinstance(bug_defs, list):
+        for entry in bug_defs:
+            if isinstance(entry, dict) and "name" in entry:
+                field_specs[entry["name"]] = entry
 
-    # bugs.json has a flat field structure, not nested record_schemas
-    if "status" in record_schemas and isinstance(record_schemas["status"], dict):
-        pv = record_schemas["status"].get("possible_values")
+    constraints = {}
+    for fname, spec in field_specs.items():
+        pv = spec.get("possible_values")
         if pv:
-            constraints["bug"] = {"status": pv}
+            constraints.setdefault("bug", {})[fname] = pv
 
     if not constraints:
         return []
@@ -130,8 +136,8 @@ def validate_bugs(brain_dir: str) -> list[str]:
         data = json.load(f)
 
     errors = []
-    for i, bug in enumerate(data.get("bugs", [])):
-        bug_path = f"bugs[{i}]({bug.get('id', '?')})"
+    for i, bug in enumerate(data.get("bug", [])):
+        bug_path = f"bug[{i}]({bug.get('bugid', '?')})"
         errors.extend(_validate_record(bug, "bug", constraints, bug_path))
 
     return errors
