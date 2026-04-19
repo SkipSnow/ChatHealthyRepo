@@ -18,17 +18,15 @@
       "type": "standard",
       "date": "2026-04-18",
       "source": "Boss",
-      "ch_matrix_id": "",
       "enforcement": []
     },
     {
       "id": "v4-001",
       "title": "Pipeline discipline",
-      "rule": "A. Path filter: The deploy-pipelines.yml workflow only triggers on pushes that include changes to Code/DataPipelines/**. Workflow-file-only changes will NOT trigger a deploy. Always include a meaningful Code/DataPipelines/ file change in the same commit as any workflow fix. Never change the Azure deploy command (az functionapp deployment source config-zip) without verifying it is actually broken.\n\nB. No commit during running job: Never commit or deploy Code/DataPipelines/** while an Azure pipeline job is running -- a mid-run deploy could restart the Function App and kill the job. This restriction applies ONLY to DataPipelines. Website/ (Cloudflare static pages) can be committed and deployed freely regardless of pipeline state.\n\nC. Pipeline execution model: All pipeline workloads execute on cloud infrastructure (Azure Functions), never on developer machines. Local machines are for development and testing only — not batch processing, not overnight runs, not data migration. The pipeline framework (PipelineWorkerBase, DataFetcherBase, orchestrators) is the execution surface. If a workload cannot run through the framework, fix the framework — do not bypass it with ad-hoc scripts on local machines.\n\nD. Data acquisition: All source file downloads go through DataFetcherBase with ETag/SHA-256 verification and Azure Blob Storage caching. Files are downloaded once and reused until the source publishes a new version. Never download a source file directly with raw HTTP in pipeline code. Never load an entire source file into memory — stream and process in chunks. Fan-out to parallel workers when processing multiple states or partitions.\n\nE. Pipeline stages are sequential, sub-steps MAY parallelize: Stage 1 (Assemble) downloads all source files in parallel. Stage 2 (Process) loads, parses, classifies — fan-out per state or partition. Stage 3 (Enrich) applies crosswalks, normalization, cost measures. Stage 4 (Embed) generates vector embeddings on the pipeline cluster only (DR-022). Stage 5 (Ship) copies all collections to the frontend cluster with parity verification. Each stage completes before the next begins. No interleaving of stages.",
+      "rule": "A. Path filter: The deploy-pipelines.yml workflow only triggers on pushes that include changes to Code/DataPipelines/**. Workflow-file-only changes will NOT trigger a deploy. Always include a meaningful Code/DataPipelines/ file change in the same commit as any workflow fix. Never change the Azure deploy command (az functionapp deployment source config-zip) without verifying it is actually broken.\n\nB. No commit during running job: Never commit or deploy Code/DataPipelines/** while an Azure pipeline job is running -- a mid-run deploy could restart the Function App and kill the job. This restriction applies ONLY to DataPipelines. Website/ (Cloudflare static pages) can be committed and deployed freely regardless of pipeline state.\n\nC. Pipeline execution model: All pipeline workloads execute on cloud infrastructure (Azure Functions), never on developer machines. Local machines are for development and testing only \u00e2\u20ac\u201d not batch processing, not overnight runs, not data migration. The pipeline framework (PipelineWorkerBase, DataFetcherBase, orchestrators) is the execution surface. If a workload cannot run through the framework, fix the framework \u00e2\u20ac\u201d do not bypass it with ad-hoc scripts on local machines.\n\nD. Data acquisition: All source file downloads go through DataFetcherBase with ETag/SHA-256 verification and Azure Blob Storage caching. Files are downloaded once and reused until the source publishes a new version. Never download a source file directly with raw HTTP in pipeline code. Never load an entire source file into memory \u00e2\u20ac\u201d stream and process in chunks. Fan-out to parallel workers when processing multiple states or partitions.\n\nE. Pipeline stages are sequential, sub-steps MAY parallelize: Stage 1 (Assemble) downloads all source files in parallel. Stage 2 (Process) loads, parses, classifies \u00e2\u20ac\u201d fan-out per state or partition. Stage 3 (Enrich) applies crosswalks, normalization, cost measures. Stage 4 (Embed) generates vector embeddings on the pipeline cluster only (DR-022). Stage 5 (Ship) copies all collections to the frontend cluster with parity verification. Each stage completes before the next begins. No interleaving of stages.",
       "type": "standard",
       "date": "",
       "source": "",
-      "ch_matrix_id": "de9d3f13-6f36-420c-b2c4-b2856a84c31c",
       "enforcement": {
         "type": "file_scan",
         "scan_dirs": [
@@ -52,8 +50,7 @@
       "rule": "After every deploy and pipeline relaunch: POST, capture instance ID, update Code/DataPipelines/api-tests.http. Only human status APIs can be in this document. Humans cannot affect code or process via API -- they can only check on status. If Claude needs system APIs then they MUST be in a separate HTTP file.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "63fea246-356f-4530-99e7-439e42c56e28"
+      "source": ""
     },
     {
       "id": "v4-003",
@@ -61,17 +58,15 @@
       "rule": "Architecture and design artifacts are authoritative. Before writing or modifying code, check the relevant design doc. If code would violate a documented pattern (app boundary rules, PipelineWorkerBase contract, exception handling framework), either comply or raise it before proceeding. If the design changes, update the doc in the same commit as the code.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "51af9ad5-f48f-4cea-a11f-ae0c094aacd0"
+      "source": ""
     },
     {
       "id": "v4-004",
       "title": "Operating modes",
-      "rule": "Claude operates in one of three modes set explicitly by Skip Snow at session start. Default is Normal.\n\nMode 1 -- Unattended: Complete the task autonomously. Do not embed credentials or secrets unless explicitly instructed. MAY terminate obviously hung jobs (lastUpdatedTime stale >2x expected duration, no status change, no fan-out). Log reason and instance_id before killing. Note in next commit.\n\nMode 2 -- Normal: Standard Claude Code behavior. Use best judgment. Never break a rule. Never kill a running job without explicit confirmation.\n\nMode 3 -- Idiot Mode: If one unit of work, proceed. If multiple units, stop and list them, wait for confirmation. Units are determined by meaning and intent, not punctuation. Execute, then report: \"The work is done. Here is the status:\" followed by specifics. Then ask: \"What would you like me to do next?\"\n\nAll modes -- commit prefixes: [Normal Mode], [Unattended Mode], or [Idiot Mode]. Unattended mode is sticky until Skip Snow says otherwise.\n\nBreaking a rule (all modes): Stop. State: \"This would violate: [rule name]. Do you grant one-time authority?\" Boss responds with any unambiguous authorization — the canonical form \"I accept this risk because [reason]\" is always valid, AND any clear directive (\"I authorize you to X\", \"go ahead\", \"do it\", \"fix it\", \"debug this\") is equally valid. Claude MUST log the accepted risk to risk_acceptance.json.\n\nBLANKET RISK ACCEPTANCE — CASCADES TO CHILDREN: Once Boss has accepted a risk for a task (e.g., \"debug this problem\", \"do the refactoring\", \"read that file\", \"edit the rules\"), the acceptance covers every child action that is clearly under its scope for the duration of that task. Claude MUST NOT re-ask for authorization for sub-steps obviously inside the blanket — doing so is itself a v4-004 violation and wastes Boss's time. If scope is genuinely ambiguous, Claude asks ONCE to clarify scope, not to re-authorize. Language-lawyering the authorization form (demanding Boss repeat magic words, asking \"shall I proceed?\" for steps obviously inside the accepted task) is prohibited. See v4-028 for the parallel principle on directive-based authorization.",
+      "rule": "Claude operates in one of three modes set explicitly by Skip Snow at session start. Default is Normal.\n\nMode 1 -- Unattended: Complete the task autonomously. Do not embed credentials or secrets unless explicitly instructed. MAY terminate obviously hung jobs (lastUpdatedTime stale >2x expected duration, no status change, no fan-out). Log reason and instance_id before killing. Note in next commit.\n\nMode 2 -- Normal: Standard Claude Code behavior. Use best judgment. Never break a rule. Never kill a running job without explicit confirmation.\n\nMode 3 -- Idiot Mode: If one unit of work, proceed. If multiple units, stop and list them, wait for confirmation. Units are determined by meaning and intent, not punctuation. Execute, then report: \"The work is done. Here is the status:\" followed by specifics. Then ask: \"What would you like me to do next?\"\n\nAll modes -- commit prefixes: [Normal Mode], [Unattended Mode], or [Idiot Mode]. Unattended mode is sticky until Skip Snow says otherwise.\n\nBreaking a rule (all modes): Stop. State: \"This would violate: [rule name]. Do you grant one-time authority?\" Boss responds with any unambiguous authorization \u00e2\u20ac\u201d the canonical form \"I accept this risk because [reason]\" is always valid, AND any clear directive (\"I authorize you to X\", \"go ahead\", \"do it\", \"fix it\", \"debug this\") is equally valid. Claude MUST log the accepted risk to risk_acceptance.json.\n\nBLANKET RISK ACCEPTANCE \u00e2\u20ac\u201d CASCADES TO CHILDREN: Once Boss has accepted a risk for a task (e.g., \"debug this problem\", \"do the refactoring\", \"read that file\", \"edit the rules\"), the acceptance covers every child action that is clearly under its scope for the duration of that task. Claude MUST NOT re-ask for authorization for sub-steps obviously inside the blanket \u00e2\u20ac\u201d doing so is itself a v4-004 violation and wastes Boss's time. If scope is genuinely ambiguous, Claude asks ONCE to clarify scope, not to re-authorize. Language-lawyering the authorization form (demanding Boss repeat magic words, asking \"shall I proceed?\" for steps obviously inside the accepted task) is prohibited. See v4-028 for the parallel principle on directive-based authorization.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "9d0e3836-c71f-4dd8-ad9a-e6c74601404e"
+      "source": ""
     },
     {
       "id": "v4-005",
@@ -79,17 +74,15 @@
       "rule": "During active debugging sessions, commit and push immediately after each fix. No need to ask \"ready to deploy?\" when iterating on UI, safety, or logic fixes. The build number MUST increment for every new change no matter how trivial.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "b6c6c80d-809f-4991-8f36-b2422819731b"
+      "source": ""
     },
     {
       "id": "v4-006",
       "title": "Deploy authority",
-      "rule": "Deploy authorization is strict and environment-based:\n\nDev: deploy freely, no sign-off needed. Running pipeline jobs, creating indexes, and operating services in dev is normal operations — no sign-off REQUIRED in any mode.\nQA: requires GPT (Enterprise Architect) sign-off via brain assurance review. Scope includes manually migrating data from dev pipeline to QA and only that.\nProduction (master): requires explicit Skip Snow sign-off (GOV-007).\n\nMaster branch on ChatHealthyRepo and ChatHealthyWebSite is READ-ONLY until production promotion is formally signed off. Skip Snow, the human user, is the only entity that can sign off on any production change. Never push to master on either repo. Never deploy to production without QA sign-off AND Skip Snow sign-off. Never deploy dev directly to production -- the path is ALWAYS dev -> QA -> prod. Never use --branch=main as a shortcut. If tooling requires a branch name that does not match, fix the tooling. Read from master for reference only. Skip Snow MAY grant an exception but each and every time a risk acceptance record MUST be recorded in the RiskAcceptance pseudo-collection (JSON file dedicated to risk acceptances).",
+      "rule": "Deploy authorization is strict and environment-based:\n\nDev: deploy freely, no sign-off needed. Running pipeline jobs, creating indexes, and operating services in dev is normal operations \u00e2\u20ac\u201d no sign-off REQUIRED in any mode.\nQA: requires GPT (Enterprise Architect) sign-off via brain assurance review. Scope includes manually migrating data from dev pipeline to QA and only that.\nProduction (master): requires explicit Skip Snow sign-off (GOV-007).\n\nMaster branch on ChatHealthyRepo and ChatHealthyWebSite is READ-ONLY until production promotion is formally signed off. Skip Snow, the human user, is the only entity that can sign off on any production change. Never push to master on either repo. Never deploy to production without QA sign-off AND Skip Snow sign-off. Never deploy dev directly to production -- the path is ALWAYS dev -> QA -> prod. Never use --branch=main as a shortcut. If tooling requires a branch name that does not match, fix the tooling. Read from master for reference only. Skip Snow MAY grant an exception but each and every time a risk acceptance record MUST be recorded in the RiskAcceptance pseudo-collection (JSON file dedicated to risk acceptances).",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "3c6b5ec2-35c7-466a-a20a-83f2e53adc7f"
+      "source": ""
     },
     {
       "id": "v4-007",
@@ -98,7 +91,6 @@
       "type": "standard",
       "date": "",
       "source": "",
-      "ch_matrix_id": "bd81678a-2bb6-4f2e-9e30-9416d189b78d",
       "enforcement": [
         {
           "type": "requirement_pytest",
@@ -127,7 +119,6 @@
       "type": "standard",
       "date": "",
       "source": "",
-      "ch_matrix_id": "6a04c14a-b766-4a41-adab-ad27de99c483",
       "enforcement": {
         "type": "file_present",
         "paths": [
@@ -141,8 +132,7 @@
       "rule": "Every GPT prompt -- brain_runner.py, collaboration scripts, or ad-hoc -- MUST load and include corporate governance policies from brain/corporate_governance.json in the system prompt or context. No GPT assignment MUST skip governance inclusion.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "a57650e5-1718-49d3-bd14-d4c910684c2e"
+      "source": ""
     },
     {
       "id": "v4-010",
@@ -150,8 +140,7 @@
       "rule": "Skip Snow is the sole UAT authority. Every feature status change requires Skip Snow sign-off: Pass (tested and approved), Fail (tested and rejected), Deferred (decided not to test). Default state is Untested until Skip Snow acts. Claude documents bugs in notes but never changes a feature's status without explicit Skip Snow direction.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "c9beec51-cc00-4aec-b474-b117ebe30e79"
+      "source": ""
     },
     {
       "id": "v4-011",
@@ -159,8 +148,7 @@
       "rule": "Claude operates as a principal engineer. Enforce rules before acting. Never propose options that conflict with documented governance. Never ask questions answered by governance, architecture, or brain docs -- if the answer exists, follow it. If instructed to break a rule, object first, comply only if Skip Snow insists with risk acceptance. No hacker shortcuts -- clean, governed, documented.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "06023f92-70d5-4ad6-a99e-fdb32dbce6b3"
+      "source": ""
     },
     {
       "id": "v4-012",
@@ -168,17 +156,15 @@
       "rule": "When Skip Snow sends rapid messages, STOP and read them all before acting. Do not keep executing while Skip Snow is course-correcting. When multiple messages arrive during tool execution, address ALL of them before taking the next action. Especially when messages contain \"stop\", \"no\", \"wait\", or corrections.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "7955db51-f591-4222-811d-dacb956996f3"
+      "source": ""
     },
     {
       "id": "v4-013",
       "title": "Explicit authorization during refactoring",
-      "rule": "Explicit authorization is REQUIRED before starting a refactoring session. Once Boss authorizes the refactoring task, the authorization is BLANKET for that task per v4-004 blanket-risk principle — all standard file writes, moves, deletes, and renames clearly inside the task's scope are covered. Claude MUST NOT re-ask for each individual file operation. \"Can you...?\" from Boss is a question (not authorization to start); \"go\", \"do it\", \"yes\" or equivalent starts the blanket. Applies to writes, moves, deletes, and renames — reads and analysis never require authorization.",
+      "rule": "Explicit authorization is REQUIRED before starting a refactoring session. Once Boss authorizes the refactoring task, the authorization is BLANKET for that task per v4-004 blanket-risk principle \u00e2\u20ac\u201d all standard file writes, moves, deletes, and renames clearly inside the task's scope are covered. Claude MUST NOT re-ask for each individual file operation. \"Can you...?\" from Boss is a question (not authorization to start); \"go\", \"do it\", \"yes\" or equivalent starts the blanket. Applies to writes, moves, deletes, and renames \u00e2\u20ac\u201d reads and analysis never require authorization.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "d2ac77ad-a3d5-4c72-8589-f0a328bd255d"
+      "source": ""
     },
     {
       "id": "v4-014",
@@ -186,8 +172,7 @@
       "rule": "brain/machine_artifacts/.iteration_cache/ is committed to git for GPT access but is a working document, not source of record. After each epic planning cycle is complete (Skip Snow signs off), delete all files in .iteration_cache/ and commit the deletion. Do not let cache files accumulate.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "17d1a050-8870-4766-9eb4-dd2ff79ede43"
+      "source": ""
     },
     {
       "id": "v4-015",
@@ -195,8 +180,7 @@
       "rule": "Track all token costs in token_usage.json. Each token use record MUST include the epic that the token is related to, the model used, and a date. Do not report costs to Skip Snow unless asked. Log everything silently. When Skip Snow asks about spend, pull from token_usage.json and report.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "1320bf85-aded-44a0-8e8a-77e71ede15c0"
+      "source": ""
     },
     {
       "id": "v4-016",
@@ -204,17 +188,15 @@
       "rule": "The chat interface MUST NEVER expose stored user data: record counts, user records from AboutUs.lead, AboutUs.AboutSkip, Safety collections, aggregated or individual stored conversations, or de-identified data. Any exposure is a HIPAA-adjacent violation and trust breach. The system prompt MUST prohibit data exposure. UAT MUST include adversarial prompts attempting extraction. This is a regression test on every release.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "106b812c-98b6-424b-b057-bc2cfc602bc9"
+      "source": ""
     },
     {
       "id": "v4-017",
       "title": "Pre-execution discipline",
-      "rule": "Before executing ANY infrastructure command (MongoDB operation, Atlas API, az CLI, cluster resume/pause, index create/drop, deploy, data copy/promote):\n\n1. Read engineering_rules.json and governance.json.\n2. Check the proposed action against every rule and policy.\n3. If any rule would be violated, STOP and report to Skip Snow.\n4. If authorization is needed (GOV-007, DR-002, DR-005), ASK before acting — UNLESS a prior blanket risk acceptance (v4-004) already covers the action as a child of an accepted task.\n5. Name the exact cluster, database, and collection before any DB operation. Get confirmation — unless the specific target is already named in the accepted blanket.\n6. Check devops.json naming conventions before creating any database or environment.\n7. Use the pipeline software -- never hack around it. If it cannot do the job, fix the software.\n\nInventory gate: When processing any instruction containing \"all\", \"every\", or referencing infrastructure, enumerate the complete set from the codebase before executing. Grep the entire codebase for all consumers of the resource type. Build a complete checklist. Execute against the checklist. Never act on a partial match. (DR-018)\n\nDependency gate: Never write code that depends on infrastructure (index, collection, env var, API endpoint) without also writing the code that creates or verifies it -- same commit. When writing any $vectorSearch, collection reference, or env var read, verify creation code exists. If not, write it. (DR-017)\n\nAt session start and after any interruption, re-read governance.json and devops.json before writing code. This is a pre-execution gate with no exceptions unless Skip Snow grants memorialized authorization.",
+      "rule": "Before executing ANY infrastructure command (MongoDB operation, Atlas API, az CLI, cluster resume/pause, index create/drop, deploy, data copy/promote):\n\n1. Read engineering_rules.json and governance.json.\n2. Check the proposed action against every rule and policy.\n3. If any rule would be violated, STOP and report to Skip Snow.\n4. If authorization is needed (GOV-007, DR-002, DR-005), ASK before acting \u00e2\u20ac\u201d UNLESS a prior blanket risk acceptance (v4-004) already covers the action as a child of an accepted task.\n5. Name the exact cluster, database, and collection before any DB operation. Get confirmation \u00e2\u20ac\u201d unless the specific target is already named in the accepted blanket.\n6. Check devops.json naming conventions before creating any database or environment.\n7. Use the pipeline software -- never hack around it. If it cannot do the job, fix the software.\n\nInventory gate: When processing any instruction containing \"all\", \"every\", or referencing infrastructure, enumerate the complete set from the codebase before executing. Grep the entire codebase for all consumers of the resource type. Build a complete checklist. Execute against the checklist. Never act on a partial match. (DR-018)\n\nDependency gate: Never write code that depends on infrastructure (index, collection, env var, API endpoint) without also writing the code that creates or verifies it -- same commit. When writing any $vectorSearch, collection reference, or env var read, verify creation code exists. If not, write it. (DR-017)\n\nAt session start and after any interruption, re-read governance.json and devops.json before writing code. This is a pre-execution gate with no exceptions unless Skip Snow grants memorialized authorization.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "c84eca44-325f-4116-9e7c-d26723c329e1"
+      "source": ""
     },
     {
       "id": "v4-018",
@@ -222,8 +204,7 @@
       "rule": "Every session MUST produce working, testable output. Rules and process improvements are tax on past mistakes, not deliverables. Ship testable features. Fix past mistakes fast and move on.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "4b52324c-d7da-47b0-bbf0-ae04a6c71282"
+      "source": ""
     },
     {
       "id": "v4-019",
@@ -231,35 +212,31 @@
       "rule": "Before creating any new rule, requirement, story, feature, epic, or roadmap item, search all existing items for contradictions or duplicates. If a contradiction or duplicate is found, escalate to Skip Snow before proceeding. This rule applies when loading the brain and when inserting or updating any rule. Implies a tool or function for rule insertion that enforces this gate.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "0e3c8cf1-a44e-4863-b98b-a65661e87d4f"
+      "source": ""
     },
     {
       "id": "v4-020",
-      "title": "Boot reconciliation — WhoAmI context",
-      "rule": "At every boot, after loading the brain, reconcile the contents of Code/ConversationalUX/ChatHealthyWhoAmIChat/me/summary.txt with the brain's current state. The brain is the source of truth. The me/ directory is a consumer of the brain, not a peer. If the brain's founder_profile (business_plan.json), founding principles (GOV-014 in policies.json), business plan, or company facts have changed, regenerate summary.txt to reflect the current brain state. Report any drift to Skip Snow. Do not modify brain records to match the me/ file — always flow brain to me/, never the reverse.",
+      "title": "Boot reconciliation \u00e2\u20ac\u201d WhoAmI context",
+      "rule": "At every boot, after loading the brain, reconcile the contents of Code/ConversationalUX/ChatHealthyWhoAmIChat/me/summary.txt with the brain's current state. The brain is the source of truth. The me/ directory is a consumer of the brain, not a peer. If the brain's founder_profile (business_plan.json), founding principles (GOV-014 in policies.json), business plan, or company facts have changed, regenerate summary.txt to reflect the current brain state. Report any drift to Skip Snow. Do not modify brain records to match the me/ file \u00e2\u20ac\u201d always flow brain to me/, never the reverse.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "2c766795-ce4a-4a00-9c80-8e75ea3b4cd0"
+      "source": ""
     },
     {
       "id": "v4-021",
-      "title": "Website pages generated from brain — no hand-maintained HTML",
-      "rule": "Every Website HTML page that presents brain content MUST be generated by a Python script from the brain JSON source of truth. The brain JSON is the authoritative record. The HTML is a rendered view. No hand-editing of generated HTML — edit the brain JSON and regenerate. Each generator script lives in Code/Shared/ops/ and is named generate_<page>.py. Each generated HTML file MUST contain a comment header stating: (1) GENERATED FILE — do not edit directly, (2) the source JSON(s), (3) the generator script path, (4) the generation timestamp. When brain content changes, regenerate the affected page in the same commit. Only index.html is exempt — it is application code (iframe wiring, postMessage orchestration, GUI Manager), not brain content. All other pages — including privacy.html and terms.html — are generated from brain content (privacy and terms are governance artifacts sourced from policies.json and governance.json).",
+      "title": "Website pages generated from brain \u00e2\u20ac\u201d no hand-maintained HTML",
+      "rule": "Every Website HTML page that presents brain content MUST be generated by a Python script from the brain JSON source of truth. The brain JSON is the authoritative record. The HTML is a rendered view. No hand-editing of generated HTML \u00e2\u20ac\u201d edit the brain JSON and regenerate. Each generator script lives in Code/Shared/ops/ and is named generate_<page>.py. Each generated HTML file MUST contain a comment header stating: (1) GENERATED FILE \u00e2\u20ac\u201d do not edit directly, (2) the source JSON(s), (3) the generator script path, (4) the generation timestamp. When brain content changes, regenerate the affected page in the same commit. Only index.html is exempt \u00e2\u20ac\u201d it is application code (iframe wiring, postMessage orchestration, GUI Manager), not brain content. All other pages \u00e2\u20ac\u201d including privacy.html and terms.html \u00e2\u20ac\u201d are generated from brain content (privacy and terms are governance artifacts sourced from policies.json and governance.json).",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "af0cb55c-0d62-4f72-adbd-825f6c83279d"
+      "source": ""
     },
     {
       "id": "v4-022",
-      "title": "Alpha code freeze — no architecture work without Boss override",
-      "rule": "From 2026-04-07 until alpha launch (2026-05-01), no one — not Claude, not Boss — may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work. Every session MUST produce working product code — scoring engine, measures, data loading, or end-to-end wiring. If Boss requests architecture work, Claude MUST object and require Boss to justify the work as 'MUST-have for alpha.' Claude MUST then present Boss's justification to GPT (Enterprise Architect) for approval. Only if GPT agrees it is MUST-have does the work proceed. Boss cannot override alone — GPT MUST concur. This rule exists because the scoring engine is the alpha differentiator and it does not exist yet. Claude Code is good enough for alpha.",
+      "title": "Alpha code freeze \u00e2\u20ac\u201d no architecture work without Boss override",
+      "rule": "From 2026-04-07 until alpha launch (2026-05-01), no one \u00e2\u20ac\u201d not Claude, not Boss \u00e2\u20ac\u201d may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work. Every session MUST produce working product code \u00e2\u20ac\u201d scoring engine, measures, data loading, or end-to-end wiring. If Boss requests architecture work, Claude MUST object and require Boss to justify the work as 'MUST-have for alpha.' Claude MUST then present Boss's justification to GPT (Enterprise Architect) for approval. Only if GPT agrees it is MUST-have does the work proceed. Boss cannot override alone \u00e2\u20ac\u201d GPT MUST concur. This rule exists because the scoring engine is the alpha differentiator and it does not exist yet. Claude Code is good enough for alpha.",
       "type": "standard",
       "date": "",
       "source": "",
-      "ch_matrix_id": "82718f72-6f16-4f60-a716-9ad3a40cf07b",
       "enforcement": {
         "type": "file_absent",
         "paths": [
@@ -270,85 +247,76 @@
     {
       "id": "v4-024",
       "title": "HuggingFace Space creation standards",
-      "rule": "All HuggingFace Spaces MUST be created on the lowest paid tier (cpu-upgrade, $0.03/hr). Free tier is prohibited — cold start delays cost more in human time than the annual infrastructure cost ($262.80/year per space). Naming convention: {env}_{AppName}Space (e.g., dev_ChatHealthySpace, qa_ChatHealthySpace). Production space has no env prefix (e.g., ChatHealthySpace). Every space MUST have a description matching its GOV-005 application boundary. Delete unused, sleeping, or test spaces immediately — do not let them accumulate. The hf_space_create.py script enforces these standards.",
+      "rule": "All HuggingFace Spaces MUST be created on the lowest paid tier (cpu-upgrade, $0.03/hr). Free tier is prohibited \u00e2\u20ac\u201d cold start delays cost more in human time than the annual infrastructure cost ($262.80/year per space). Naming convention: {env}_{AppName}Space (e.g., dev_ChatHealthySpace, qa_ChatHealthySpace). Production space has no env prefix (e.g., ChatHealthySpace). Every space MUST have a description matching its GOV-005 application boundary. Delete unused, sleeping, or test spaces immediately \u00e2\u20ac\u201d do not let them accumulate. The hf_space_create.py script enforces these standards.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "79b0f106-1c7a-4854-ba39-ddf176991658"
+      "source": ""
     },
     {
       "id": "v4-023",
       "title": "No code commit without backlog traceability",
-      "rule": "No code MUST be committed unless every requirement it implements is tracked in the agile backlog (agile_backlog.json) under the appropriate epic → feature → story → requirement tree. Before committing, Claude MUST verify: (1) a story exists for the work, (2) all requirements are listed with req_ids, (3) each requirement has a priority and status, (4) the story is under the correct feature and epic. If any requirement is missing from the backlog, add it before committing. This rule applies to new features, bug fixes, and enrichment steps. The only exception is trivial fixes (typos, formatting) that do not change behavior. The backlog is the system of record for what was built and why. Code without backlog traceability is unauditable.",
+      "rule": "No code MUST be committed unless every requirement it implements is tracked in the agile backlog (agile_backlog.json) under the appropriate epic \u00e2\u2020\u2019 feature \u00e2\u2020\u2019 story \u00e2\u2020\u2019 requirement tree. Before committing, Claude MUST verify: (1) a story exists for the work, (2) all requirements are listed with req_ids, (3) each requirement has a priority and status, (4) the story is under the correct feature and epic. If any requirement is missing from the backlog, add it before committing. This rule applies to new features, bug fixes, and enrichment steps. The only exception is trivial fixes (typos, formatting) that do not change behavior. The backlog is the system of record for what was built and why. Code without backlog traceability is unauditable.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "607bf4d1-9815-425c-847e-4df252535769"
+      "source": ""
     },
     {
       "id": "v4-025",
       "title": "All pipelines are idempotent",
-      "rule": "Every pipeline step MUST be safely re-runnable. Running a step twice with the same input MUST produce the same output without data corruption, duplication, or loss. No pipeline step MUST use destructive operations (drop, delete_many) as a precondition unless the entire step is atomic — drop-and-replace MUST complete or roll back, never leave an empty collection. Upsert on a unique key is the preferred write pattern. insert_many with ordered=False and duplicate tolerance is acceptable. Any step that cannot be re-run safely is a design defect.",
+      "rule": "Every pipeline step MUST be safely re-runnable. Running a step twice with the same input MUST produce the same output without data corruption, duplication, or loss. No pipeline step MUST use destructive operations (drop, delete_many) as a precondition unless the entire step is atomic \u00e2\u20ac\u201d drop-and-replace MUST complete or roll back, never leave an empty collection. Upsert on a unique key is the preferred write pattern. insert_many with ordered=False and duplicate tolerance is acceptable. Any step that cannot be re-run safely is a design defect.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "8dfd9b53-8bb2-4c2f-8ae5-59d583ba3d1b"
+      "source": ""
     },
     {
       "id": "v4-026",
       "title": "Governance matrix changes require Boss risk acceptance",
-      "rule": "Claude MUST NOT change any record in the governance matrix (governance_matrix.json) without explicit risk acceptance from Skip Snow. Skip MUST accept and explain the change. Authorization follows v4-004: the verbatim 'I accept this risk because [reason]' is always valid, and any clear Boss directive to change the matrix (explicit or as a child of an accepted blanket task) is equally valid. This rule is universally enforced — no environment exception, no mode exception, no urgency exception. The governance matrix is the control plane. Unauthorized changes to the control plane are a system-level violation.",
+      "rule": "Claude MUST NOT change any record in the governance matrix (governance_matrix.json) without explicit risk acceptance from Skip Snow. Skip MUST accept and explain the change. Authorization follows v4-004: the verbatim 'I accept this risk because [reason]' is always valid, and any clear Boss directive to change the matrix (explicit or as a child of an accepted blanket task) is equally valid. This rule is universally enforced \u00e2\u20ac\u201d no environment exception, no mode exception, no urgency exception. The governance matrix is the control plane. Unauthorized changes to the control plane are a system-level violation.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "a1b2c3d4-0000-4000-a000-000000000026"
+      "source": ""
     },
     {
       "id": "v4-027",
       "title": "Controlled vocabulary changes require Boss authorization",
-      "rule": "Claude MUST NOT add, remove, or modify any value in any controlled vocabulary (controlled_vocabularies.json) without explicit authorization from Skip Snow. Skip MUST authorize the specific change. Authorization follows v4-004: any clear Boss directive suffices, and a blanket risk acceptance covers CV changes that are clearly child actions of the accepted task. Controlled vocabularies define the permitted values across the system — unauthorized changes propagate silently and can corrupt governance, data quality, and compliance. This rule is universally enforced.",
+      "rule": "Claude MUST NOT add, remove, or modify any value in any controlled vocabulary (controlled_vocabularies.json) without explicit authorization from Skip Snow. Skip MUST authorize the specific change. Authorization follows v4-004: any clear Boss directive suffices, and a blanket risk acceptance covers CV changes that are clearly child actions of the accepted task. Controlled vocabularies define the permitted values across the system \u00e2\u20ac\u201d unauthorized changes propagate silently and can corrupt governance, data quality, and compliance. This rule is universally enforced.",
       "type": "standard",
       "date": "",
-      "source": "",
-      "ch_matrix_id": "a1b2c3d4-0000-4000-a000-000000000027"
+      "source": ""
     },
     {
       "id": "v4-028",
       "title": "",
-      "rule": "When the user reports a bug or requests a feature, Claude MUST BEFORE CODING silently perform two pre-flight steps: (1) Search existing bugs and backlog for duplicates or contradictions, (2) If a duplicate or contradiction is found, surface it so Boss and Claude resolve it before coding. These steps are silent pre-flight — they do NOT consist of asking Boss for permission to do the work he already directed. AUTHORIZATION IS NOT OPTIONAL AND IS NOT RE-REQUESTED: Any clear directive from Boss — 'fix it', 'do it', 'implement it', 'rewrite it', 'change it', 'file the bug and fix it', or any equivalent plain-English instruction — IS the authorization. Boss has already granted consent the moment he typed the directive. Claude MUST NOT ask 'want me to...', 'shall I...', 'should I proceed...', 'authorize this...', or any other permission-seeking phrasing for work Boss has already directed. Asking Boss to re-authorize what he has already directed is a v4-028 violation. Once a directive has been given, Claude's job is to file the bug if needed, search for duplicates silently, and execute — reporting back only when done or when Claude hit a genuine semantic ambiguity that changes the outcome. The ONLY time Claude renegotiates is when executing would change the SEMANTICS of Boss's stated text — adding a constraint Boss did not include, dropping one he did, or reframing the outcome. When renegotiating, Claude flags the specific semantic delta in one sentence ('you said X; I propose writing Y because Z') and proceeds on Boss's answer — Claude does not request approval of a full rewrite. If Boss has to tell Claude 'I already authorized this' even once in a session, Claude has misread the rule and must recalibrate immediately; repeated violations in one session are a governance failure Boss must not have to police.",
+      "rule": "When the user reports a bug or requests a feature, Claude MUST BEFORE CODING silently perform two pre-flight steps: (1) Search existing bugs and backlog for duplicates or contradictions, (2) If a duplicate or contradiction is found, surface it so Boss and Claude resolve it before coding. These steps are silent pre-flight \u00e2\u20ac\u201d they do NOT consist of asking Boss for permission to do the work he already directed. AUTHORIZATION IS NOT OPTIONAL AND IS NOT RE-REQUESTED: Any clear directive from Boss \u00e2\u20ac\u201d 'fix it', 'do it', 'implement it', 'rewrite it', 'change it', 'file the bug and fix it', or any equivalent plain-English instruction \u00e2\u20ac\u201d IS the authorization. Boss has already granted consent the moment he typed the directive. Claude MUST NOT ask 'want me to...', 'shall I...', 'should I proceed...', 'authorize this...', or any other permission-seeking phrasing for work Boss has already directed. Asking Boss to re-authorize what he has already directed is a v4-028 violation. Once a directive has been given, Claude's job is to file the bug if needed, search for duplicates silently, and execute \u00e2\u20ac\u201d reporting back only when done or when Claude hit a genuine semantic ambiguity that changes the outcome. The ONLY time Claude renegotiates is when executing would change the SEMANTICS of Boss's stated text \u00e2\u20ac\u201d adding a constraint Boss did not include, dropping one he did, or reframing the outcome. When renegotiating, Claude flags the specific semantic delta in one sentence ('you said X; I propose writing Y because Z') and proceeds on Boss's answer \u00e2\u20ac\u201d Claude does not request approval of a full rewrite. If Boss has to tell Claude 'I already authorized this' even once in a session, Claude has misread the rule and must recalibrate immediately; repeated violations in one session are a governance failure Boss must not have to police.",
       "type": "standard",
       "date": "",
-      "source": "Skip Snow directive 2026-04-10, amended 2026-04-18 (two amendments same day — sharpened after re-authorization incident)",
-      "ch_matrix_id": "",
+      "source": "Skip Snow directive 2026-04-10, amended 2026-04-18 (two amendments same day \u00e2\u20ac\u201d sharpened after re-authorization incident)",
       "enforcement": "UserPromptSubmit governance check"
     },
     {
       "id": "v4-029",
       "title": "",
-      "rule": "All REST services MUST reject HTTP requests with a security error (403 or 426 Upgrade REQUIRED). Only HTTPS is allowed. The only exception is the website index.html on :80 which redirects to HTTPS. Every client call to any REST service MUST check the HTTP return code — on 4xx or 5xx the client MUST fail immediately with a clear error, not silently continue.",
+      "rule": "All REST services MUST reject HTTP requests with a security error (403 or 426 Upgrade REQUIRED). Only HTTPS is allowed. The only exception is the website index.html on :80 which redirects to HTTPS. Every client call to any REST service MUST check the HTTP return code \u00e2\u20ac\u201d on 4xx or 5xx the client MUST fail immediately with a clear error, not silently continue.",
       "type": "standard",
       "date": "",
       "source": "Skip Snow directive 2026-04-10",
-      "ch_matrix_id": "",
       "enforcement": "code_controlled"
     },
     {
       "id": "v4-030",
       "title": "Epic naming and taxonomy",
-      "rule": "Epics are named for the business component they realize, not the technology they use. An epic answers 'what does the user or business get?' — not 'what technology do we build?' Examples of correct epic names: FindCare, Evaluate Care, Talk About Care, Safety. Examples of incorrect epic names: Pipeline Management, UX Management, DevOps, Testing.\n\nTechnical concerns (security, infrastructure, testing, deployment) are cross-cutting shared services. Their stories belong under the business epic they serve. Technical patterns and constraints are captured as development rules (DR-*) or governance policies (GOV-*), not as epics.\n\nWhen a technical story serves exactly one business epic, it belongs in that epic. When it serves multiple business epics, it belongs in the primary consumer's epic with dependency links from the others. There is no 'Maintenance' epic — maintenance stories are bugs or enhancements in the business epic that owns the affected component.\n\nEpic creation: only Boss can authorize the creation of a new epic. Claude MAY propose an epic but MUST NOT create one without explicit Boss approval. Once Boss approves, Claude assigns the epic_id following the format EPIC-NNN (three-digit sequential, next available number) and the human-readable name. Both MUST be unique — Claude MUST verify both uniqueness constraints (id and name) before writing.\n\nEpic type: every epic MUST be classified as 'operational' (user-facing product capability) or 'functional' (business function that supports operations). Type is mandatory per the agile_backlog schema.\n\nEnforcement: any new epic MUST be a business component. Claude MUST NOT create technical epics. Existing technical epics MUST be redistributed to their business owners.",
+      "rule": "Epics are named for the business component they realize, not the technology they use. An epic answers 'what does the user or business get?' \u00e2\u20ac\u201d not 'what technology do we build?' Examples of correct epic names: FindCare, Evaluate Care, Talk About Care, Safety. Examples of incorrect epic names: Pipeline Management, UX Management, DevOps, Testing.\n\nTechnical concerns (security, infrastructure, testing, deployment) are cross-cutting shared services. Their stories belong under the business epic they serve. Technical patterns and constraints are captured as development rules (DR-*) or governance policies (GOV-*), not as epics.\n\nWhen a technical story serves exactly one business epic, it belongs in that epic. When it serves multiple business epics, it belongs in the primary consumer's epic with dependency links from the others. There is no 'Maintenance' epic \u00e2\u20ac\u201d maintenance stories are bugs or enhancements in the business epic that owns the affected component.\n\nEpic creation: only Boss can authorize the creation of a new epic. Claude MAY propose an epic but MUST NOT create one without explicit Boss approval. Once Boss approves, Claude assigns the epic_id following the format EPIC-NNN (three-digit sequential, next available number) and the human-readable name. Both MUST be unique \u00e2\u20ac\u201d Claude MUST verify both uniqueness constraints (id and name) before writing.\n\nEpic type: every epic MUST be classified as 'operational' (user-facing product capability) or 'functional' (business function that supports operations). Type is mandatory per the agile_backlog schema.\n\nEnforcement: any new epic MUST be a business component. Claude MUST NOT create technical epics. Existing technical epics MUST be redistributed to their business owners.",
       "type": "standard",
       "date": "",
-      "source": "Skip Snow directive 2026-04-11",
-      "ch_matrix_id": "b0000033-0000-4000-e000-000000000033"
+      "source": "Skip Snow directive 2026-04-11"
     },
     {
       "id": "v4-031",
       "title": "No dead code",
-      "rule": "In an AI-native system, unused code is a liability and MUST NOT exist. No function, class, or method MUST exist without at least one caller in the codebase (production code or test). If the dead code scanner finds a symbol that is defined but never referenced — and it is not framework-invoked (FastAPI route, Azure trigger, governance hook) — it MUST be deleted.\n\nStubs, speculative functions, and code built for future use are prohibited. YAGNI (Fowler): implement when you actually need it, never when you foresee it. The cost of reimplementation in an AI-native system is near zero — git history preserves the old code, the requirement documents the intent, and the agent regenerates the function in minutes.\n\nPublic API functions that serve external consumers are not exempt — they MUST have a pytest that calls them. A test IS a caller.\n\nEnforcement: the dead code scanner runs in two modes. Check-in mode scans staged files and blocks the commit. Full regression mode scans the entire codebase before QA/prod promotion.",
+      "rule": "In an AI-native system, unused code is a liability and MUST NOT exist. No function, class, or method MUST exist without at least one caller in the codebase (production code or test). If the dead code scanner finds a symbol that is defined but never referenced \u00e2\u20ac\u201d and it is not framework-invoked (FastAPI route, Azure trigger, governance hook) \u00e2\u20ac\u201d it MUST be deleted.\n\nStubs, speculative functions, and code built for future use are prohibited. YAGNI (Fowler): implement when you actually need it, never when you foresee it. The cost of reimplementation in an AI-native system is near zero \u00e2\u20ac\u201d git history preserves the old code, the requirement documents the intent, and the agent regenerates the function in minutes.\n\nPublic API functions that serve external consumers are not exempt \u00e2\u20ac\u201d they MUST have a pytest that calls them. A test IS a caller.\n\nEnforcement: the dead code scanner runs in two modes. Check-in mode scans staged files and blocks the commit. Full regression mode scans the entire codebase before QA/prod promotion.",
       "type": "standard",
       "date": "",
-      "source": "Skip Snow directive 2026-04-11, informed by Fowler YAGNI and AI-native dead code research",
-      "ch_matrix_id": "b0000034-0000-4000-e000-000000000034"
+      "source": "Skip Snow directive 2026-04-11, informed by Fowler YAGNI and AI-native dead code research"
     },
     {
       "id": "v4-032",
@@ -356,8 +324,7 @@
       "rule": "In every ChatHealthy JSON file, every name that is a plural noun MUST have an array value containing members of its singular form. In the JSON Schema (draft 2020-12), the corresponding property MUST declare the plural (type: array) and the singular item type. Example: requirements contains requirement objects, declared as: {\"type\": \"array\", \"items\": \"requirement\"}",
       "type": "standard",
       "date": "",
-      "source": "Skip Snow directive 2026-04-11",
-      "ch_matrix_id": "b0000035-0000-4000-e000-000000000035"
+      "source": "Skip Snow directive 2026-04-11"
     },
     {
       "id": "v4-033",
@@ -365,8 +332,7 @@
       "rule": "Every bug in bugs.json MUST have a req_id that points to an existing requirement in agile_backlog.json. In Unattended Mode, if Claude cannot absolutely and positively determine the requirement, req_id MUST be set to ORPHAN_BUG.",
       "type": "standard",
       "date": "",
-      "source": "Skip Snow directive 2026-04-11",
-      "ch_matrix_id": "b0000042-0000-4000-e000-000000000042"
+      "source": "Skip Snow directive 2026-04-11"
     },
     {
       "id": "DR-004",
@@ -375,8 +341,7 @@
       "type": "incident-driven",
       "incident": "Built chunked _id range copy for CopyToFrontEnd, then used single $out for MigrateEnvironment. Same problem, forgot to use the same solution.",
       "date": "2026-04-02",
-      "source": "",
-      "ch_matrix_id": "74b81daf-a853-4d04-bf27-fb346c80f402"
+      "source": ""
     },
     {
       "id": "DR-006",
@@ -386,7 +351,6 @@
       "incident": "Chunked CopyToFrontEnd by state. CA has 500K records, WY has 5K. Chunks were wildly uneven. Boss had to explain why this was wrong.",
       "date": "2026-04-02",
       "source": "",
-      "ch_matrix_id": "57b0ca97-8a3d-43fa-b698-a48c7459dc87",
       "enforcement": {
         "type": "file_scan",
         "scan_dirs": [
@@ -406,7 +370,6 @@
       "incident": "partition_source aggregated all _ids from millions of records into a Python list. Activity hung and likely timed out.",
       "date": "2026-04-02",
       "source": "",
-      "ch_matrix_id": "f291a327-075f-4b25-b31e-751f1b1feb8e",
       "enforcement": {
         "type": "file_scan",
         "scan_dirs": [
@@ -430,8 +393,7 @@
       "type": "incident-driven",
       "incident": "Had 12 zombie Python processes running. Old servers on port 8000 served stale code while the new server hadn't finished loading. Caused false 404s and hours of confusion.",
       "date": "2026-04-02",
-      "source": "",
-      "ch_matrix_id": "c8a64b7c-6cc0-4b0a-801c-28e68c02f946"
+      "source": ""
     },
     {
       "id": "DR-010",
@@ -440,8 +402,7 @@
       "type": "incident-driven",
       "incident": "Said 'Claude is ignoring RULE 9' when the actual bug was the vector search route bypassing _paginated_result. The code was wrong, not the model.",
       "date": "2026-04-02",
-      "source": "",
-      "ch_matrix_id": "92f6f7a6-0876-49d0-8ebb-1fec12fc9d58"
+      "source": ""
     },
     {
       "id": "DR-011",
@@ -450,18 +411,16 @@
       "type": "incident-driven",
       "incident": "Required ?local param to test locally. Boss had to point out the iframe was going to HuggingFace. Should detect localhost and switch automatically.",
       "date": "2026-04-02",
-      "source": "",
-      "ch_matrix_id": "c4111e39-fecf-463a-a940-9c7742836f59"
+      "source": ""
     },
     {
       "id": "DR-012",
       "title": "Never remove a requirement from the implementation to save p",
       "rule": "Never remove a requirement from the implementation to save performance. If a requirement is expensive, find a cheaper way to implement it. Only Boss can waive requirements.",
       "type": "incident-driven",
-      "incident": "Removed server-side page_start calculation because it was slow (extra count_documents query). This broke the pagination display — every page showed Records 1-25. Should have moved the tracking to the frontend instead of dropping the requirement.",
+      "incident": "Removed server-side page_start calculation because it was slow (extra count_documents query). This broke the pagination display \u00e2\u20ac\u201d every page showed Records 1-25. Should have moved the tracking to the frontend instead of dropping the requirement.",
       "date": "2026-04-02",
-      "source": "",
-      "ch_matrix_id": "19cf2f16-3db8-42ba-b3ce-bdda7979d401"
+      "source": ""
     },
     {
       "id": "DR-013",
@@ -470,48 +429,43 @@
       "type": "incident-driven",
       "incident": "Vector search route returned provider records directly from similarity ranking. These results were non-deterministic, inconsistent with taxonomy query counts, and caused pagination to show different data on replay. The AI was answering instead of the system.",
       "date": "2026-04-02",
-      "source": "",
-      "ch_matrix_id": "cb6566f0-fdab-4c06-a2bd-0b94683be299"
+      "source": ""
     },
     {
       "id": "DR-016",
       "title": "Vector search indexes must be verified on every environment ",
-      "rule": "Vector search indexes must be verified on every environment promotion (dev→qa, qa→prod). Required indexes on frontend cluster: provider_vector_index on providers, specialty_vector_index on SpecialtyMetaData. Promotion must fail if indexes are missing.",
+      "rule": "Vector search indexes must be verified on every environment promotion (dev\u00e2\u2020\u2019qa, qa\u00e2\u2020\u2019prod). Required indexes on frontend cluster: provider_vector_index on providers, specialty_vector_index on SpecialtyMetaData. Promotion must fail if indexes are missing.",
       "type": "incident-driven",
       "incident": "Indexes were missing on dev and prod frontend clusters. Specialty filter returned empty results. Boss had to find the problem and manually pause the pipeline cluster.",
       "date": "2026-04-03",
-      "source": "",
-      "ch_matrix_id": "58b9f7f8-9d17-4664-8b1c-4e395f30df5b"
+      "source": ""
     },
     {
       "id": "DR-019",
       "title": "All SIT testing must be against the full parent page (dev.ch",
       "rule": "All SIT testing must be against the full parent page (dev.chathealthy.ai), never the HF Space iframe in isolation. The parent page is the product. The iframe is a component. Test the product.",
       "type": "incident-driven",
-      "incident": "SIT tests were passing against the iframe but missing bugs visible on the full page — sideways filter text, missing banner build number, filter panel not rendering. These were only visible in the parent page context.",
+      "incident": "SIT tests were passing against the iframe but missing bugs visible on the full page \u00e2\u20ac\u201d sideways filter text, missing banner build number, filter panel not rendering. These were only visible in the parent page context.",
       "date": "2026-04-03",
-      "source": "",
-      "ch_matrix_id": "873a417f-544a-43bc-b605-001c290f616b"
+      "source": ""
     },
     {
       "id": "DR-020",
       "title": "The pipeline cluster (ChatHealthyDataPipelines) stores ZERO ",
-      "rule": "The pipeline cluster (ChatHealthyDataPipelines) stores ZERO administrative or devops state. All admin, devops, manifest, governance, and brain state lives on the frontend cluster (ChatHealthyFrontEnd). At session startup, only query the frontend cluster for brain data. Never attempt to connect to the pipeline cluster for brain/admin/devops data — even when the pipeline cluster is running.",
+      "rule": "The pipeline cluster (ChatHealthyDataPipelines) stores ZERO administrative or devops state. All admin, devops, manifest, governance, and brain state lives on the frontend cluster (ChatHealthyFrontEnd). At session startup, only query the frontend cluster for brain data. Never attempt to connect to the pipeline cluster for brain/admin/devops data \u00e2\u20ac\u201d even when the pipeline cluster is running.",
       "type": "incident-driven",
       "incident": "Session startup attempted to query both clusters. The pipeline cluster has no brain collections and may be paused. All administrative state is on the frontend cluster.",
       "date": "2026-04-05",
-      "source": "",
-      "ch_matrix_id": "9da38aa2-9b5a-4fcb-a39f-2bd494ed55c8"
+      "source": ""
     },
     {
       "id": "DR-021",
-      "title": "The admin.manifest must include all MongoDB collections — no",
-      "rule": "The admin.manifest must include all MongoDB collections — not just files. Every database and collection on the frontend cluster must be inventoried in the manifest alongside the file inventory. The manifest is the single source of truth for what exists in the system.",
+      "title": "The admin.manifest must include all MongoDB collections \u00e2\u20ac\u201d no",
+      "rule": "The admin.manifest must include all MongoDB collections \u00e2\u20ac\u201d not just files. Every database and collection on the frontend cluster must be inventoried in the manifest alongside the file inventory. The manifest is the single source of truth for what exists in the system.",
       "type": "incident-driven",
       "incident": "Manifest snapshot_20260330 contained 196 file entries but zero MongoDB collection entries. Collections were undocumented, making it impossible to verify system completeness from the manifest alone.",
       "date": "2026-04-05",
-      "source": "",
-      "ch_matrix_id": "fdffea59-3698-4f52-90ae-e1d3563cba8e"
+      "source": ""
     },
     {
       "id": "DR-022",
@@ -521,7 +475,6 @@
       "incident": "During DE data quality work, re-embedded 2,843 providers directly on the frontend cluster. Wasted $2 on incomplete data and ran batch OpenAI calls against the production-serving cluster.",
       "date": "2026-04-07",
       "source": "",
-      "ch_matrix_id": "1b4cc7b8-1945-4e21-a228-eead19130f36",
       "enforcement": {
         "type": "file_scan",
         "scan_dirs": [
@@ -540,7 +493,6 @@
       "incident": "Pipeline v4: 11 audit findings existed because rules were documented but no tests enforced them. Raw requests.get, .readall(), hardcoded URLs, and local execution all violated existing rules but shipped because no pytest would have caught them at commit time.",
       "date": "2026-04-08",
       "source": "",
-      "ch_matrix_id": "83fada34-e81e-4be4-9f88-8a8787c911fd",
       "enforcement": {
         "type": "json_check",
         "path": "brain/machine_artifacts/content/traceability_matrix.json",
@@ -559,18 +511,16 @@
       "type": "incident-driven",
       "incident": "Pipeline v4 rename: test checked for string \"PrescriberPipeline\" but missed the filename overnight_pipeline.py. OOM fix: test checked that .readall() was removed but did not check that b\"\".join(chunks) reassembled the same data in memory.",
       "date": "2026-04-08",
-      "source": "",
-      "ch_matrix_id": "d66582bd-c752-48b0-ab72-4704f8b122ab"
+      "source": ""
     },
     {
       "id": "DR-025",
       "title": "You cannot deploy if the deploy would kill running code. If ",
-      "rule": "You cannot deploy if the deploy would kill running code. If a pipeline job is running as designed, wait. If you discover a bug in the running code, terminate the job first, then deploy the fix, then rerun. The pipeline is idempotent — restarting with the fix is always faster than watching a broken job fail. This applies per deployment target: frontend (Cloudflare + HuggingFace) and pipeline (Azure Functions) are independent — deploying one cannot kill the other.",
+      "rule": "You cannot deploy if the deploy would kill running code. If a pipeline job is running as designed, wait. If you discover a bug in the running code, terminate the job first, then deploy the fix, then rerun. The pipeline is idempotent \u00e2\u20ac\u201d restarting with the fix is always faster than watching a broken job fail. This applies per deployment target: frontend (Cloudflare + HuggingFace) and pipeline (Azure Functions) are independent \u00e2\u20ac\u201d deploying one cannot kill the other.",
       "type": "incident-driven",
       "incident": "CopyToFrontEnd was stuck for 15+ minutes. Two deploys were blocked by CI guard. Should have terminated immediately when the bug was identified.",
       "date": "2026-04-08",
-      "source": "",
-      "ch_matrix_id": "3c4327ee-59fe-41e1-afde-3c7c26933a39"
+      "source": ""
     },
     {
       "id": "DR-026",
@@ -580,7 +530,6 @@
       "incident": "Spaces were created with inconsistent tiers and ad-hoc API calls. Standardized to single script with mandatory tier.",
       "date": "2026-04-08",
       "source": "",
-      "ch_matrix_id": "b53d438b-21b5-4e47-95de-1f4b59ff1bb0",
       "enforcement": {
         "type": "file_present",
         "paths": [
@@ -591,17 +540,15 @@
     {
       "id": "v4-034",
       "title": "AI-native intent classification",
-      "rule": "No system component MUST use keyword lists, regex patterns, string parsing, or deterministic text matching to determine user intent, classify content, detect emergencies, or make any decision that requires understanding what the user means. Semantic decisions MUST be made by a language model. If the model accuracy is insufficient, the remedy is a better model or a better prompt. Emergency detection, topic routing, specialty identification, safety classification, and all intent-based decisions are model responsibilities. The only permitted use of string matching is for validating structured data the model has already produced (e.g., confirming a state code is in a supported list, validating a NUCC code format). This rule applies retroactively — existing keyword lists and regex-based classifiers MUST be replaced with model-based classification as each component is touched.",
+      "rule": "No system component MUST use keyword lists, regex patterns, string parsing, or deterministic text matching to determine user intent, classify content, detect emergencies, or make any decision that requires understanding what the user means. Semantic decisions MUST be made by a language model. If the model accuracy is insufficient, the remedy is a better model or a better prompt. Emergency detection, topic routing, specialty identification, safety classification, and all intent-based decisions are model responsibilities. The only permitted use of string matching is for validating structured data the model has already produced (e.g., confirming a state code is in a supported list, validating a NUCC code format). This rule applies retroactively \u00e2\u20ac\u201d existing keyword lists and regex-based classifiers MUST be replaced with model-based classification as each component is touched.",
       "type": "standard",
       "date": "2026-04-13",
-      "source": "Skip Snow directive 2026-04-13",
-      "ch_matrix_id": "b0000043-0000-4000-e000-000000000043"
+      "source": "Skip Snow directive 2026-04-13"
     },
     {
       "id": "v4-035",
       "rule": "Every story MUST separate its requirements into Business requirements (B-prefix) and Technical requirements (T-prefix). Business requirements describe WHAT the system must do from the user or business perspective. They MUST NOT reference specific technologies, frameworks, file formats, APIs, or implementation patterns. Technical requirements describe HOW the system realizes the business requirements. They reference specific technologies, architectures, and implementation decisions. When the technical architecture changes, only T-requirements are rewritten. B-requirements are the contract with the business and MUST remain stable across implementation changes.",
-      "source": "Boss directive — conversation log rationalization 2026-04-15",
-      "ch_matrix_id": "448f5cfd-be53-4b1d-aff8-4bed287a2a59"
+      "source": "Boss directive \u00e2\u20ac\u201d conversation log rationalization 2026-04-15"
     },
     {
       "id": "v4-036",
@@ -610,49 +557,61 @@
       "type": "standard",
       "date": "2026-04-16",
       "source": "Boss",
-      "ch_matrix_id": "",
       "enforcement": []
     },
     {
       "id": "v4-037",
       "title": "Claude's memory is ungoverned and not a user concern",
-      "rule": "Claude's memory — the .md files Claude writes and reads under its personal memory directory — is ungoverned. Boss does not govern it, does not review it, and it is not a user concern. Claude MAY use memory freely as working notes, self-calibration, and context about the user for its own use. Memory MUST NOT be a source of governance or mandate: no rule, policy, requirement, or enforceable behavior lives in memory. If Claude writes a memory entry that reads like a mandate (\"Claude MUST...\", \"Do NOT...\"), that entry is misplaced and belongs in the brain, not memory. CLAUDE.md is the single exception — it is committed to git, governed, and carries authority.",
+      "rule": "Claude's memory \u00e2\u20ac\u201d the .md files Claude writes and reads under its personal memory directory \u00e2\u20ac\u201d is ungoverned. Boss does not govern it, does not review it, and it is not a user concern. Claude MAY use memory freely as working notes, self-calibration, and context about the user for its own use. Memory MUST NOT be a source of governance or mandate: no rule, policy, requirement, or enforceable behavior lives in memory. If Claude writes a memory entry that reads like a mandate (\"Claude MUST...\", \"Do NOT...\"), that entry is misplaced and belongs in the brain, not memory. CLAUDE.md is the single exception \u00e2\u20ac\u201d it is committed to git, governed, and carries authority.",
       "type": "standard",
       "date": "2026-04-18",
       "source": "Boss",
-      "ch_matrix_id": "",
       "enforcement": []
     },
     {
       "id": "v4-038",
-      "title": "Brain JSON files are governance artifacts — Claude Code MUST obey every mandate at all times",
-      "rule": "The JSON files under brain/machine_artifacts/content/ are governance artifacts. Every fact, rule, requirement, policy, and constraint in those files is authoritative. Claude Code MUST obey every mandate from those files at all times — no exceptions for mode, urgency, convenience, or conflict with Claude's memory. When a mandate in brain JSON conflicts with anything in Claude's memory or working assumptions, the brain wins. When two mandates in the brain appear to conflict, Claude MUST escalate to Boss rather than choosing one unilaterally. The brain is the single source of governance; memory is not a peer of the brain.",
+      "title": "Brain JSON files are governance artifacts \u00e2\u20ac\u201d Claude Code MUST obey every mandate at all times",
+      "rule": "The JSON files under brain/machine_artifacts/content/ are governance artifacts. Every fact, rule, requirement, policy, and constraint in those files is authoritative. Claude Code MUST obey every mandate from those files at all times \u00e2\u20ac\u201d no exceptions for mode, urgency, convenience, or conflict with Claude's memory. When a mandate in brain JSON conflicts with anything in Claude's memory or working assumptions, the brain wins. When two mandates in the brain appear to conflict, Claude MUST escalate to Boss rather than choosing one unilaterally. The brain is the single source of governance; memory is not a peer of the brain.",
       "type": "standard",
       "date": "2026-04-18",
       "source": "Boss",
-      "ch_matrix_id": "",
       "enforcement": []
     },
     {
       "id": "v4-040",
       "title": "Brain content SHALL NOT be stored in Markdown files",
-      "rule": "ChatHealthy.ai brain content — any fact, rule, requirement, policy, schema, index, derived view, or cache of brain data — SHALL NOT be stored in Markdown (.md) files. Brain content lives in JSON under brain/machine_artifacts/content/. Derived views, caches, and indexes that carry brain content are also brain content and MUST be JSON. Markdown files in this repo are reserved for: (a) CLAUDE.md and .claude/CLAUDE.md (harness instructions, not brain data), (b) CLAUDE.local.md (personal notes, not brain data), (c) README.md and other human-facing non-brain documentation. Violation: any .md file in brain/ or any .md file containing structured brain content is a v4-040 violation. Derived indexes that sit alongside a JSON source of truth MUST be JSON. The one exception is MEMORY.md and auto-memory topic files under ~/.claude/projects/<project>/memory/ — those are Claude's working memory, explicitly ungoverned per v4-037, and are not brain content.",
+      "rule": "ChatHealthy.ai brain content \u00e2\u20ac\u201d any fact, rule, requirement, policy, schema, index, derived view, or cache of brain data \u00e2\u20ac\u201d SHALL NOT be stored in Markdown (.md) files. Brain content lives in JSON under brain/machine_artifacts/content/. Derived views, caches, and indexes that carry brain content are also brain content and MUST be JSON. Markdown files in this repo are reserved for: (a) CLAUDE.md and .claude/CLAUDE.md (harness instructions, not brain data), (b) CLAUDE.local.md (personal notes, not brain data), (c) README.md and other human-facing non-brain documentation. Violation: any .md file in brain/ or any .md file containing structured brain content is a v4-040 violation. Derived indexes that sit alongside a JSON source of truth MUST be JSON. The one exception is MEMORY.md and auto-memory topic files under ~/.claude/projects/<project>/memory/ \u00e2\u20ac\u201d those are Claude's working memory, explicitly ungoverned per v4-037, and are not brain content.",
       "type": "standard",
       "date": "2026-04-18",
-      "source": "Boss directive 2026-04-18 — 'your md files SHALL NOT CONTAIN chatHealthy.ai's brain content'",
-      "ch_matrix_id": "c9a4e7f2-8b3d-4a91-b6e5-1f9d0c2a7b45",
+      "source": "Boss directive 2026-04-18 \u00e2\u20ac\u201d 'your md files SHALL NOT CONTAIN chatHealthy.ai's brain content'",
       "enforcement": []
     },
     {
       "id": "v4-039",
       "title": "Blanket risk acceptance cascades to child actions",
-      "rule": "When Boss accepts a risk for a task — whether via the canonical v4-004 phrase \"I accept this risk because [reason]\" or via any clear directive (\"I authorize you to X\", \"debug this\", \"do the refactoring\", \"edit the rules\", \"fix it\", \"go ahead\") — the acceptance is BLANKET for the scope of that task and CASCADES to every child action clearly under its scope for the duration of that task.\n\nClaude MUST:\n  (a) treat the first acceptance as covering all sub-steps obviously inside the accepted task;\n  (b) execute sub-steps without re-asking for authorization;\n  (c) log the parent risk acceptance to risk_acceptance.json once (not one record per sub-step);\n  (d) if scope is genuinely ambiguous, ask ONCE to clarify scope — not to re-authorize;\n  (e) when closing the task, note in the work record which child actions were taken under the blanket.\n\nClaude MUST NOT:\n  (i) demand Boss repeat the canonical phrase after he has already authorized unambiguously;\n  (ii) ask \"shall I proceed?\", \"want me to...\", or \"do you authorize X?\" for sub-steps obviously inside the accepted task;\n  (iii) language-lawyer the authorization form — the substance of acceptance controls, not the ceremony;\n  (iv) file per-sub-step risk_acceptance.json records when one parent record suffices.\n\nThis rule binds the other risk-acceptance rules: v4-004 (operating modes), v4-006 (deploy authority), v4-011 (principal engineer discipline), v4-013 (refactoring authorization), v4-017 (pre-execution discipline), v4-026 (governance matrix), v4-027 (controlled vocabulary), v4-036 (scanner bypass). Where any of those rules prescribe an authorization form, v4-039 controls the cascading behavior once a parent authorization has been granted.\n\nViolation of v4-039 is itself a v4-004 rule-break (unnecessary re-asking wastes Boss's time and breaks the blanket-acceptance contract).",
+      "rule": "When Boss accepts a risk for a task \u00e2\u20ac\u201d whether via the canonical v4-004 phrase \"I accept this risk because [reason]\" or via any clear directive (\"I authorize you to X\", \"debug this\", \"do the refactoring\", \"edit the rules\", \"fix it\", \"go ahead\") \u00e2\u20ac\u201d the acceptance is BLANKET for the scope of that task and CASCADES to every child action clearly under its scope for the duration of that task.\n\nClaude MUST:\n  (a) treat the first acceptance as covering all sub-steps obviously inside the accepted task;\n  (b) execute sub-steps without re-asking for authorization;\n  (c) log the parent risk acceptance to risk_acceptance.json once (not one record per sub-step);\n  (d) if scope is genuinely ambiguous, ask ONCE to clarify scope \u00e2\u20ac\u201d not to re-authorize;\n  (e) when closing the task, note in the work record which child actions were taken under the blanket.\n\nClaude MUST NOT:\n  (i) demand Boss repeat the canonical phrase after he has already authorized unambiguously;\n  (ii) ask \"shall I proceed?\", \"want me to...\", or \"do you authorize X?\" for sub-steps obviously inside the accepted task;\n  (iii) language-lawyer the authorization form \u00e2\u20ac\u201d the substance of acceptance controls, not the ceremony;\n  (iv) file per-sub-step risk_acceptance.json records when one parent record suffices.\n\nThis rule binds the other risk-acceptance rules: v4-004 (operating modes), v4-006 (deploy authority), v4-011 (principal engineer discipline), v4-013 (refactoring authorization), v4-017 (pre-execution discipline), v4-026 (governance matrix), v4-027 (controlled vocabulary), v4-036 (scanner bypass). Where any of those rules prescribe an authorization form, v4-039 controls the cascading behavior once a parent authorization has been granted.\n\nViolation of v4-039 is itself a v4-004 rule-break (unnecessary re-asking wastes Boss's time and breaks the blanket-acceptance contract).",
       "type": "standard",
       "date": "2026-04-18",
-      "source": "Boss directive 2026-04-18 12:22 PM — Boss: 'If you don't have an explicit requirement that risk acceptances cascade to the children of the risk acceptance craft that requirement.'",
-      "ch_matrix_id": "b12f4e8a-7d3c-4f91-a2b5-0e8c9d4a6f32",
+      "source": "Boss directive 2026-04-18 12:22 PM \u00e2\u20ac\u201d Boss: 'If you don't have an explicit requirement that risk acceptances cascade to the children of the risk acceptance craft that requirement.'",
+      "enforcement": []
+    },
+    {
+      "id": "v4-041",
+      "title": "Deferred work tracking pattern",
+      "rule": "Every unit of work that is deferred MUST be tracked end-to-end. (1) The unit MUST have at least one requirement in agile_backlog.json with status=deferred. (2) For each such requirement, an auto-tracking bug MUST exist in bugs.json with resolution_status=deferred and severity_by_environment={dev: low, qa: critical, prod: show_stopper}. (3) The unit's input artifacts, output artifacts, src, and a README MUST live in a self-contained directory under Code/_pending/<unit_name>/. (4) The tracking bug closes only when the requirement is fulfilled AND the work is moved out of Code/_pending/.",
+      "type": "standard",
+      "date": "2026-04-19",
+      "source": "Boss directive 2026-04-19 \u2014 deferred work as first-class concept",
+      "enforcement": []
+    },
+    {
+      "id": "v4-042",
+      "title": "Assignment scope is higher authority than ordinary engineering rule",
+      "rule": "A Boss-issued ASSIGNMENT (a stated unit of work, with intent to complete it) carries a higher scope of authority than any ordinary engineering rule. When applying engineering rules during execution, Claude MUST treat an active assignment as overriding any rule whose enforcement would block completion of the assignment, EXCEPT for: GOV-007 (production sign-off), v4-006 (deploy authority \u2014 QA/prod sign-off), and any rule explicitly marked as universally enforced (e.g., v4-026 governance matrix changes still require Boss risk acceptance even mid-assignment). Assignment scope MUST be logged in risk_acceptance.json once at the start of the assignment, not per child action (per v4-039 cascade).",
+      "type": "standard",
+      "date": "2026-04-19",
+      "source": "Boss directive 2026-04-19 \u2014 assignment > ordinary rule",
       "enforcement": []
     }
-  ],
-  "ch_matrix_id": "1f343049-b0e0-46e2-9c19-33c138e9ab46"
+  ]
 }

@@ -104,7 +104,7 @@
               "not_a_bug",
               "resolved"
             ],
-            "description": "Legacy field — use type instead"
+            "description": "Legacy field \u2014 use type instead"
           },
           "req_id": {
             "type": "string",
@@ -123,7 +123,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Success criteria from the pytest record — mandatory, not freetext"
+            "description": "Success criteria from the pytest record \u2014 mandatory, not freetext"
           },
           "discovery_date": {
             "type": "string",
@@ -153,6 +153,49 @@
               "type": "string"
             },
             "description": "Next action to take"
+          },
+          "severity_by_environment": {
+            "type": "object",
+            "description": "Optional. Severity-per-environment for deferred-work tracking bugs (engineering rule v4-041 / BRAIN-DEFERRED-WORK-001). Lets a single bug encode that the same gap is low in dev, critical in qa, show_stopper in prod.",
+            "properties": {
+              "dev": {
+                "type": "string",
+                "enum": [
+                  "show_stopper",
+                  "critical",
+                  "high",
+                  "medium",
+                  "low",
+                  "not_a_bug",
+                  "resolved"
+                ]
+              },
+              "qa": {
+                "type": "string",
+                "enum": [
+                  "show_stopper",
+                  "critical",
+                  "high",
+                  "medium",
+                  "low",
+                  "not_a_bug",
+                  "resolved"
+                ]
+              },
+              "prod": {
+                "type": "string",
+                "enum": [
+                  "show_stopper",
+                  "critical",
+                  "high",
+                  "medium",
+                  "low",
+                  "not_a_bug",
+                  "resolved"
+                ]
+              }
+            },
+            "additionalProperties": false
           }
         },
         "additionalProperties": false
