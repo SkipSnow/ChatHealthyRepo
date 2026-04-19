@@ -110,50 +110,43 @@ class governance_worker_base(BaseModel if BaseModel is not object else object):
 
 class bug_governance_constraints(governance_worker_base):
     """Pydantic model for a governed bug record.
-    Constructor validates bug data against governance constraints."""
+    Mirrors ChatHealthyBugsSchema v1 (16 fields)."""
 
-    id: str = ""
-    rule: str = ""
+    bugid: str = ""
+    title: str = ""
     description: str = ""
-    type: str = ""  # constrained by CV-008 bug_type
-    reason: str = ""
-    severity: str = ""  # legacy — use type
-    environments: list = []  # constrained by CV-010
-    date: str = ""
+    environments: list = []            # CV-010
+    status: str = "new"                # CV-009
+    severity: str = ""                 # CV-008
+    req_id: str = ""
+    story_id: str = ""
+    pytest_id: str = ""
+    pytest_success_criteria: list = []
     discovery_date: str = ""
     due_date: str = ""
-    next_action: str = "analysis"
-    status: str = "open"
-    resolution_status: str = "in_analysis"  # constrained by CV-009
-    risk_acceptance_id: str = None  # null until Boss authorizes
-    pytest_id: str = ""
-    pytest_success_criteria: str = ""
-    success_criteria_to_close: str = ""
-    source: str = ""
-    ch_matrix_id: str = ""
-    incident: str = ""
-    risk_level: str = ""
-    reason: str = ""
+    fix: str = ""
+    reproduction: str = ""
+    orphan: bool = False
+    next_action: list = []
 
     def is_show_stopper(self) -> bool:
-        return "SHOW STOPPER" in (self.rule or "") or "SHOW STOPPER" in (self.severity or "")
+        return self.severity == "show_stopper"
 
     def is_release_blocker(self) -> bool:
-        return "RELEASE BLOCKER" in (self.rule or "") or "SPRINT BLOCKER" in (self.rule or "")
+        return self.severity in ("show_stopper", "critical")
+
     def run_governance_process(self, transcript_path: str = "") -> dict:
         """Execute the governance process for this bug instance.
         Calls base class pre_run_checks first — Boss constraint and risk acceptance."""
 
-        # Base class checks — Boss constraint, risk acceptance
         pre = self.pre_run_checks(transcript_path)
         if not pre.get("comply", True):
             return pre
 
         result = {
-            "bug_id": self.id,
-            "type": self.type,
-            "resolution_status": self.resolution_status,
-            "risk_acceptance_id": self.risk_acceptance_id,
+            "bugid": self.bugid,
+            "severity": self.severity,
+            "status": self.status,
             "comply": True,
         }
 
@@ -161,15 +154,13 @@ class bug_governance_constraints(governance_worker_base):
         if not self.check_risk_acceptance() and (self.is_show_stopper() or self.is_release_blocker()):
             result["comply"] = False
             result["action"] = "escalate"
-            result["reason"] = f"{self.id}: {self.type or 'SHOW STOPPER'} — no risk acceptance. Escalate to Boss."
+            result["reason"] = f"{self.bugid}: {self.severity or 'SHOW STOPPER'} — no risk acceptance. Escalate to Boss."
             return result
 
-        # Risk accepted — authorized
         if self.check_risk_acceptance():
-            result["authorized_by"] = self.risk_acceptance_id
+            result["authorized"] = True
             return result
 
-        # Default: allow for non-blocking bugs
         return result
 
     @classmethod
@@ -179,7 +170,6 @@ class bug_governance_constraints(governance_worker_base):
         try:
             return cls(**fields)
         except Exception:
-            # Fallback for non-pydantic
             obj = cls()
             for k, v in data.items():
                 if hasattr(obj, k):
@@ -895,7 +885,7 @@ class chathealthy_devops_boot:
     def check_bugs(self, source="", destination="", action_event="session_start", transcript_path="") -> dict:
         """Construct each bug, call run_governance_process. The class owns the rules."""
         bugs_data = self.brain.get("bugs", {})
-        for bug_dict in bugs_data.get("bugs", []):
+        for bug_dict in bugs_data.get("bug", []):
             bug = bug_governance_constraints.from_dict(bug_dict)
             result = bug.run_governance_process(transcript_path=transcript_path)
             if not result.get("comply", True):
@@ -1125,13 +1115,13 @@ class chathealthy_devops_boot:
             with open(bugs_path, encoding="utf-8") as f:
                 data = json.load(f)
             orphans = []
-            for bug in data.get("bugs", []):
+            for bug in data.get("bug", []):
                 if bug.get("orphan") is True:
                     orphans.append({
-                        "id": bug.get("id", "?"),
-                        "type": bug.get("type", "?"),
-                        "rule": (bug.get("rule", "") or "")[:80],
-                        "date": bug.get("date", "?"),
+                        "bugid": bug.get("bugid", "?"),
+                        "severity": bug.get("severity", "?"),
+                        "title": (bug.get("title", "") or "")[:80],
+                        "discovery_date": bug.get("discovery_date", "?"),
                     })
             return orphans
         except FileNotFoundError as e:
@@ -1204,10 +1194,10 @@ class chathealthy_devops_boot:
             lines.append("and ask the user to triage each one by assigning a req_id or closing it.")
             lines.append("Do NOT proceed to other work until triage is complete or the user explicitly defers.")
             lines.append("")
-            lines.append("| ID | Type | Description | Date |")
+            lines.append("| bugid | severity | title | discovery_date |")
             lines.append("|---|---|---|---|")
             for o in orphans:
-                lines.append(f"| {o['id']} | {o['type']} | {o['rule']} | {o['date']} |")
+                lines.append(f"| {o['bugid']} | {o['severity']} | {o['title']} | {o['discovery_date']} |")
             lines.append("")
         return "\n".join(lines)
 
