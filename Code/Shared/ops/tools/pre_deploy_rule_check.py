@@ -137,21 +137,28 @@ def enforce_no_pattern(rule_id, enforcement):
 
 
 def enforce_bugs_schema(rule_id, enforcement):
-    """Validate bugs.json against its web-published JSON Schema.
-    ARCH-SCAN-JSON-REQ-002: The authoritative schema is
-    Website/schemas/dev/ChatHealthyBugsSchema.json, referenced by
-    bugs.json's own $schema property. Controlled-vocabulary enforcement
-    is baked into that schema via enum constraints."""
+    """Validate bugs.json against the PUBLISHED schema declared in its
+    $schema field. Never validate against a local file - would let
+    local-vs-published drift hide. Per ARCH-SCAN-JSON-REQ-003."""
     violations = []
     bugs_path = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content", "bugs.json")
-    schema_path = os.path.join(REPO_ROOT, "Website", "schemas", "dev", "ChatHealthyBugsSchema.json")
     try:
-        with open(schema_path, "r", encoding="utf-8") as f:
-            schema = json.load(f)
         with open(bugs_path, "r", encoding="utf-8") as f:
             bugs = json.load(f)
     except (json.JSONDecodeError, FileNotFoundError) as e:
         violations.append(f"{rule_id}: {e}")
+        return violations
+
+    schema_url = bugs.get("$schema")
+    if not schema_url or not schema_url.startswith("http"):
+        violations.append(
+            f"{rule_id}: bugs.json missing or non-URL $schema field "
+            f"(got {schema_url!r}) - cannot validate against the published schema")
+        return violations
+
+    schema, err = _fetch_published_schema(schema_url, rule_id)
+    if err:
+        violations.append(err)
         return violations
 
     try:
@@ -191,6 +198,178 @@ def enforce_ai_operations_schema(rule_id, enforcement):
                 val = rec[fname]
                 if possible and val and isinstance(val, str) and val not in possible:
                     violations.append(f"{rule_id}: dc:{rid} '{fname}' value '{val}' not in {possible}")
+    return violations
+
+
+def enforce_published_schema_validation(rule_id, enforcement):
+    """Generic validator: for every JSON under the configured scan_dir,
+    read its $schema URL, fetch the schema from the published URL, and
+    validate the JSON against it. One executor for every governed brain
+    JSON. Never falls back to a local schema file - that would let
+    local-vs-published drift hide. Per ARCH-SCAN-JSON-REQ-003 and human
+    directive: every JSON we own MUST be validated against its published
+    schema, no exceptions."""
+    violations = []
+    scan_dir = enforcement.get("scan_dir") or os.path.join(
+        "brain", "machine_artifacts", "content")
+    if not os.path.isabs(scan_dir):
+        scan_dir = os.path.join(REPO_ROOT, scan_dir)
+
+    if not os.path.isdir(scan_dir):
+        violations.append(f"{rule_id}: scan_dir {scan_dir} does not exist")
+        return violations
+
+    try:
+        from jsonschema import Draft202012Validator
+    except ImportError:
+        violations.append(f"{rule_id}: jsonschema library not installed")
+        return violations
+
+    schema_cache = {}  # by URL, to avoid re-fetching the same loose schema
+    json_files = sorted(f for f in os.listdir(scan_dir) if f.endswith(".json"))
+    if not json_files:
+        violations.append(f"{rule_id}: no JSON files found in {scan_dir}")
+        return violations
+
+    for fname in json_files:
+        fpath = os.path.join(scan_dir, fname)
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except json.JSONDecodeError as e:
+            violations.append(f"{rule_id}: {fname}: invalid JSON: {e}")
+            continue
+
+        if not isinstance(data, dict):
+            violations.append(
+                f"{rule_id}: {fname}: top-level is not an object - cannot "
+                f"declare $schema")
+            continue
+
+        schema_url = data.get("$schema")
+        if not schema_url or not isinstance(schema_url, str) or \
+                not schema_url.startswith("http"):
+            violations.append(
+                f"{rule_id}: {fname}: missing or non-URL $schema field "
+                f"(got {schema_url!r}) - every governed JSON MUST declare "
+                f"its published schema URL")
+            continue
+
+        if schema_url not in schema_cache:
+            schema, err = _fetch_published_schema(schema_url, rule_id)
+            if err:
+                schema_cache[schema_url] = (None, err)
+            else:
+                schema_cache[schema_url] = (schema, None)
+        schema, err = schema_cache[schema_url]
+        if err:
+            violations.append(f"{rule_id}: {fname}: {err}")
+            continue
+
+        for jerr in Draft202012Validator(schema).iter_errors(data):
+            path = "/".join(str(p) for p in jerr.absolute_path) or "(root)"
+            violations.append(
+                f"{rule_id}: {fname} {path}: {jerr.message[:200]}")
+
+    return violations
+
+
+def _fetch_published_schema(schema_url, rule_id):
+    """Fetch a JSON Schema from its PUBLISHED URL. Never fall back to a
+    local file — that would silently validate against an unpublished
+    schema and let drift hide. Per ARCH-SCAN-JSON-REQ-003 and human
+    directive: the validator uses the published schema, period."""
+    import urllib.request
+    import urllib.error
+    try:
+        req = urllib.request.Request(
+            schema_url, headers={"User-Agent": "chathealthy-validator/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = resp.read()
+        return json.loads(data.decode("utf-8")), None
+    except urllib.error.HTTPError as e:
+        return None, (
+            f"{rule_id}: published schema {schema_url} returned HTTP "
+            f"{e.code} - publish the schema before validating")
+    except urllib.error.URLError as e:
+        return None, (
+            f"{rule_id}: published schema {schema_url} unreachable "
+            f"({e.reason}) - publish the schema before validating")
+    except json.JSONDecodeError as e:
+        return None, (
+            f"{rule_id}: published schema {schema_url} is not valid JSON: {e}")
+
+
+def enforce_backlog_schema(rule_id, enforcement):
+    """Validate agile_backlog.json against the PUBLISHED schema declared in
+    its $schema field. Never validate against a local file — would let
+    local-vs-published drift hide. Also enforce cross-record uniqueness
+    on every ID field per the schema's 'Never reused' contract."""
+    violations = []
+    backlog_path = enforcement.get("path") or os.path.join(
+        REPO_ROOT, "brain", "machine_artifacts", "content", "agile_backlog.json")
+    if not os.path.isabs(backlog_path):
+        backlog_path = os.path.join(REPO_ROOT, backlog_path)
+
+    try:
+        with open(backlog_path, "r", encoding="utf-8") as f:
+            backlog = json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError) as e:
+        violations.append(f"{rule_id}: {e}")
+        return violations
+
+    schema_url = backlog.get("$schema")
+    if not schema_url or not schema_url.startswith("http"):
+        violations.append(
+            f"{rule_id}: agile_backlog.json missing or non-URL $schema field "
+            f"(got {schema_url!r}) - cannot validate against the published "
+            f"schema")
+        return violations
+
+    schema, err = _fetch_published_schema(schema_url, rule_id)
+    if err:
+        violations.append(err)
+        return violations
+
+    try:
+        from jsonschema import Draft202012Validator
+    except ImportError:
+        violations.append(f"{rule_id}: jsonschema library not installed")
+        return violations
+
+    for err in Draft202012Validator(schema).iter_errors(backlog):
+        path = "/".join(str(p) for p in err.absolute_path) or "(root)"
+        violations.append(
+            f"{rule_id}: agile_backlog.json {path}: {err.message[:200]}")
+
+    # Cross-record uniqueness check — schema text says these IDs are
+    # "never reused" but JSON Schema cannot express that constraint.
+    # Authorized by: TBD (pending requirement to be filed and approved).
+    seen = {"epic_id": {}, "feature_id": {}, "story_id": {}, "req_id": {}}
+    for epic in backlog.get("epics", {}).get("epic", []):
+        eid = epic.get("epic_id")
+        if eid:
+            seen["epic_id"].setdefault(eid, []).append(epic.get("name", "?"))
+        for feature in epic.get("features", {}).get("feature", []):
+            fid = feature.get("feature_id")
+            if fid:
+                seen["feature_id"].setdefault(fid, []).append(feature.get("name", "?"))
+            for story in feature.get("stories", {}).get("story", []):
+                sid = story.get("story_id")
+                if sid:
+                    seen["story_id"].setdefault(sid, []).append(
+                        story.get("name", story.get("title", "?")))
+                for req in story.get("requirements", {}).get("requirement", []):
+                    rid = req.get("req_id")
+                    if rid:
+                        seen["req_id"].setdefault(rid, []).append(rid)
+    for kind, m in seen.items():
+        for k, names in m.items():
+            if len(names) > 1:
+                violations.append(
+                    f"{rule_id}: duplicate {kind} '{k}' used by {len(names)} "
+                    f"records: {names[:5]}")
+
     return violations
 
 
@@ -330,7 +509,13 @@ EXECUTORS = {
     "file_present": enforce_file_present,
     "json_check": enforce_json_check,
     "no_pattern": enforce_no_pattern,
+    "published_schema_validation": enforce_published_schema_validation,
+    # Per-file executors below are deprecated by the generic
+    # published_schema_validation above. Kept for backwards compatibility
+    # with rule entries that still name them; remove once v4-007 only
+    # declares published_schema_validation.
     "bugs_schema": enforce_bugs_schema,
+    "backlog_schema": enforce_backlog_schema,
     "ai_operations_schema": enforce_ai_operations_schema,
     "conversation_log_schema": enforce_conversation_log_schema,
     "graph_entry_check": enforce_graph_entry_check,
@@ -490,7 +675,8 @@ def main(target: str) -> int:
     print(f"Pre-deploy rule check for: {target}")
     print("=" * 60)
 
-    # Load all rules from brain
+    # Load all rules from brain (new shape: rules.rule[]; backward-compat
+    # path also accepts old shape: rules[] for transition safety).
     all_rules = []
     for fname in ["engineering_rules.json"]:
         fpath = os.path.join(BRAIN_DIR, fname)
@@ -498,8 +684,13 @@ def main(target: str) -> int:
             continue
         with open(fpath, "r", encoding="utf-8") as f:
             data = json.load(f)
-        for r in data.get("rules", []):
-            all_rules.append(r)
+        rules_blob = data.get("rules", [])
+        if isinstance(rules_blob, dict):
+            for r in rules_blob.get("rule", []):
+                all_rules.append(r)
+        else:
+            for r in rules_blob:
+                all_rules.append(r)
 
     print(f"Loaded {len(all_rules)} rules")
 
@@ -509,7 +700,12 @@ def main(target: str) -> int:
 
     for rule in all_rules:
         rule_id = rule.get("id", "unknown")
-        enforcement = rule.get("enforcement")
+        # New shape: rule.enforcements.enforcement[]; old shape: rule.enforcement
+        enf_block = rule.get("enforcements")
+        if isinstance(enf_block, dict):
+            enforcement = enf_block.get("enforcement", [])
+        else:
+            enforcement = rule.get("enforcement")
 
         if not enforcement:
             skipped += 1

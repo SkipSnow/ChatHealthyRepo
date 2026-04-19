@@ -273,14 +273,29 @@ class engineering_rules_worker(governance_worker_base):
     Uses GPT-4.1-mini to adjudicate tool calls. No regex."""
 
     def _load_rules_text(self) -> str:
-        """Load engineering rules + policies as text for GPT."""
+        """Load engineering rules + policies as text for GPT.
+        Accepts both new shape (rules.rule[] with rule_statements) and
+        legacy shape (rules[] with prose rule field) for transition safety."""
         lines = []
         path = BRAIN_DIR / "engineering_rules.json"
         if path.exists():
             data = json.loads(path.read_text(encoding="utf-8"))
-            for r in data.get("rules", []):
+            rules_blob = data.get("rules", [])
+            if isinstance(rules_blob, dict):
+                rules_iter = rules_blob.get("rule", [])
+            else:
+                rules_iter = rules_blob
+            for r in rules_iter:
                 rule_id = r.get("id", "?")
-                rule_text = r.get("rule", "")[:200]
+                # New shape: compose from rule_statements; legacy: prose 'rule'
+                rs = r.get("rule_statements")
+                if isinstance(rs, dict):
+                    statements = rs.get("rule_statement", [])
+                    rule_text = " ".join(
+                        s.get("statement_body", "") for s in statements
+                    )[:200]
+                else:
+                    rule_text = r.get("rule", "")[:200]
                 lines.append(f"[{rule_id}] {rule_text}")
         # Policies from governance.json
         gov_path = BRAIN_DIR / "governance.json"

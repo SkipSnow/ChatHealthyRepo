@@ -399,6 +399,19 @@ def enforce_graph_entry_check(rule_id, enforcement):
     return violations
 
 
+# Reuse schema validators from the deploy-time scanner so both gates apply
+# the same rule executors (single source of truth — no executor drift).
+try:
+    from pre_deploy_rule_check import (  # noqa: E402
+        enforce_bugs_schema,
+        enforce_backlog_schema,
+        enforce_ai_operations_schema,
+        enforce_conversation_log_schema,
+    )
+except ImportError:
+    enforce_bugs_schema = enforce_backlog_schema = None
+    enforce_ai_operations_schema = enforce_conversation_log_schema = None
+
 EXECUTORS = {
     "file_scan": enforce_file_scan,
     "file_absent": enforce_file_absent,
@@ -407,6 +420,13 @@ EXECUTORS = {
     "no_pattern": enforce_no_pattern,
     "graph_entry_check": enforce_graph_entry_check,
 }
+if enforce_bugs_schema:
+    EXECUTORS.update({
+        "bugs_schema": enforce_bugs_schema,
+        "backlog_schema": enforce_backlog_schema,
+        "ai_operations_schema": enforce_ai_operations_schema,
+        "conversation_log_schema": enforce_conversation_log_schema,
+    })
 
 
 # ── Dead code scanner (v4-031) ──────────────────────────────────
@@ -560,12 +580,17 @@ def main():
         print("Pre-deploy rule check for: all")
         print("=" * 60)
 
-        # Load engineering rules
+        # Load engineering rules (new shape: rules.rule[]; backward-compat
+        # path also accepts old shape: rules[] for safety during transition).
         all_rules = []
         rules_path = os.path.join(BRAIN_DIR, "engineering_rules.json")
         if os.path.exists(rules_path):
             with open(rules_path, "r", encoding="utf-8") as f:
-                all_rules = json.load(f).get("rules", [])
+                rules_blob = json.load(f).get("rules", [])
+            if isinstance(rules_blob, dict):
+                all_rules = rules_blob.get("rule", [])
+            else:
+                all_rules = rules_blob
         print(f"Loaded {len(all_rules)} rules")
 
         all_violations = []
@@ -574,7 +599,12 @@ def main():
 
         for rule in all_rules:
             rule_id = rule.get("id", "unknown")
-            enforcement = rule.get("enforcement")
+            # New shape: rule.enforcements.enforcement[]; old shape: rule.enforcement
+            enf_block = rule.get("enforcements")
+            if isinstance(enf_block, dict):
+                enforcement = enf_block.get("enforcement", [])
+            else:
+                enforcement = rule.get("enforcement")
             if not enforcement:
                 skipped += 1
                 continue
