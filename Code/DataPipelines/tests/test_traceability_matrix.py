@@ -75,18 +75,25 @@ def test_test_files_exist():
 # test_no_orphan_requirements
 # ------------------------------------------------------------------
 def test_no_orphan_requirements():
-    """Every v4-* requirement in engineering_rules.json must appear in the
-    traceability matrix."""
+    """Every Rule-* requirement in engineering_rules.json must appear in
+    the traceability matrix. Accepts both new shape (rules.rule[]) and
+    legacy shape (rules[]) for transition safety."""
     rules = _load_json(OPERATING_RULES_PATH)
     matrix = _load_json(MATRIX_PATH)
     matrix_ids = set(matrix["entries"].keys())
 
+    rules_blob = rules.get("rules", [])
+    if isinstance(rules_blob, dict):
+        rule_list = rules_blob.get("rule", [])
+    else:
+        rule_list = rules_blob
+
     orphans = []
-    for rule in rules.get("rules", []):
+    for rule in rule_list:
         rule_id = rule.get("id", "")
-        if rule_id.startswith("v4-") and rule_id not in matrix_ids:
+        if rule_id.startswith("Rule-") and rule_id not in matrix_ids:
             orphans.append(rule_id)
     assert not orphans, (
-        f"v4 requirements in engineering_rules but missing from "
+        f"Rule-* requirements in engineering_rules but missing from "
         f"traceability matrix: {orphans}"
     )
