@@ -25,9 +25,7 @@ import sys
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 BRAIN_DIR = os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content")
 
-SKIP_FILES = {"conversation_log.json", "pipeline_v3_compliance_log.json",
-              "pipeline_v3_iteration_log.json", "pipeline_v4_design_iterations.json",
-              "pre_deploy_rule_check.py"}
+SKIP_FILES = {"conversation_log.json", "pre_deploy_rule_check.py"}
 
 
 def _resolve_dir(rel_path):

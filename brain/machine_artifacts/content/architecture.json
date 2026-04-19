@@ -4713,7 +4713,6 @@
           "GAP-005: Manifest should include MongoDB collections (DR-021) — LOW"
         ],
         "recommendation": "APPROVE for implementation. Address 5 gaps during implementation sprint.",
-        "full_log_ref": "brain/machine_artifacts/content/pipeline_v3_compliance_log.json",
         "perplexity_audit_ref": "c:\temp\\perplexity_audit.json (2026-04-07, external audit context)",
         "token_usage": {
           "total_tokens": 918674,
@@ -4737,8 +4736,7 @@
         "iterations": 21,
         "model_used": "gpt-4.1",
         "total_tokens": 229689,
-        "consensus_reached": true,
-        "iteration_log": "pipeline_v4_design_iterations.json"
+        "consensus_reached": true
       },
       "boss_requirements": {
         "req_1": "Bullet proof ETL, 95 pct success rate given source files exist",

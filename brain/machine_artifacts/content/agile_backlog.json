@@ -54104,9 +54104,9 @@
                         },
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-007",
-                          "requirement": "There MUST be no SessionStart hook in .claude/settings.json.",
+                          "requirement": "Each Claude Code session MUST complete a deterministic, non-circumventable boot sequence before any other work. The sequence is: (1) load the governance brain and run compliance checks; (2) at the end of boot, ask the user exactly two questions in order and block all other assistant output until both are answered — Q1: mode selection per REQ-010; Q2: orphan triage per REQ-011. The sequence MUST NOT be skippable, paraphrasable, summarizable, or deferrable by Claude Code. Implementation MAY use any hook topology (SessionStart, UserPromptSubmit, Stop-hook validator, blocking-reply pattern) so long as the user-observable behavior holds: every new session begins with those two questions presented verbatim, in order, with no other assistant output preceding them.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "realized_by": [
                             "Python 3.11"
                           ],
@@ -54114,7 +54114,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "test_devops_boot_and_scanner::TestREQ007_NoSessionStartHook",
+                                "pytest_id": "test_devops_boot_and_scanner::TestREQ007_SessionStartHook",
                                 "pytest_type": "integration",
                                 "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
                                 "orphan": false
@@ -54146,7 +54146,7 @@
                         },
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-009",
-                          "requirement": "SessionEnd hook MUST clear the booted flag in .claude/ChatHealthySettings.json so the next session gets a fresh boot on first prompt. SessionEnd is wrapped in try/except/finally and MUST fail open.",
+                          "requirement": "SessionEnd hook MUST clear the booted flag in .claude/ChatHealthySettings.json on every invocation. SessionEnd MUST be wrapped in try/except/finally and MUST fail open. SessionEnd is known not to fire on Cursor window-close or auto-compaction; the SessionStart hook (REQ-007) is the primary clearer, and SessionEnd is the secondary clearer for clean exits (/logout, /exit, /clear).",
                           "priority": "must-have",
                           "status": "done",
                           "realized_by": [
@@ -54188,9 +54188,9 @@
                         },
                         {
                           "req_id": "ARCH-DEVOPS-BOOT-001-REQ-011",
-                          "requirement": "After mode selection, if orphan bugs exist, Claude Code MUST present the orphan table and ask the user to triage each orphan bug by assigning a req_id or closing it. Claude Code MUST NOT proceed to other work until triage is complete or the user explicitly defers it.",
+                          "requirement": "Orphan triage is the second of the two boot questions. After the user answers REQ-010, Claude Code MUST ask a single yes/no question: 'Triage orphan bugs?' If the user answers no, boot completes and normal work begins. If the user answers yes, Claude Code MUST present the orphan bug table and the user chooses how many to triage this boot — one, several, or all. Triaging an orphan means assigning it a req_id or closing it. There is no per-orphan defer option and no obligation to triage every orphan; the single yes/no gate governs whether the list is shown at all, and within 'yes' the user drives how many get worked.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "realized_by": [
                             "Python 3.11"
                           ],
@@ -54206,11 +54206,285 @@
                             ]
                           },
                           "approval": "proposed"
+                        },
+                        {
+                          "req_id": "ARCH-DEVOPS-BOOT-001-REQ-012",
+                          "requirement": "Three context-resident artifacts MUST be loaded into the Claude Code session context at every session start, and MUST be re-injected after any context compaction: (1) brain/machine_artifacts/content/bugs.json — active bug register, loaded in full; (2) brain/machine_artifacts/content/engineering_rules.json — engineering rules, loaded in full; (3) test_output/backlog_stories.json — story-level pruned view of agile_backlog.json covering Epic → Feature → Story only. The story view carries story metadata (story_id, title, description, parent_feature, sprint, size, status, accepted_by, orphan, approval) plus an integer requirement_count per story. It does NOT carry requirement bodies, pytest pointers, realized_by arrays, or any node below story. The full agile_backlog.json (~521K tokens) is NOT context-resident; specific requirement bodies, pytest ids, and realized_by data MUST be fetched from the canonical brain/machine_artifacts/content/agile_backlog.json via Read when Claude needs them. Canonical brain content lives on disk under brain/machine_artifacts/content/ and is never stored anywhere else. The story view is a derived artifact — gitignored, regenerated at session start from the canonical source — it does not replace the source. A pytest MUST verify: (a) @-imports for the three context-resident artifacts are present in the root CLAUDE.md; (b) every current file under Code/DataPipelines/ matching the listed extensions (minus excluded dirs) has a corresponding @-import; (c) every @-imported file exists and is non-empty; (d) no @-imported path is stale. A git pre-commit hook MUST regenerate the DataPipelines @-import block when any file under Code/DataPipelines/ is added, moved, or deleted; if the block is stale, pre-commit MUST fail. Purpose: these artifacts are the ones Claude is most prone to shortcut-reasoning about — grepping instead of reading, guessing instead of checking, proposing duplicates because the original was never loaded. Making the backlog's high-level shape (9 epics / 83 features / 301 stories) context-resident removes the option to grep-and-punt for structure. Requirement bodies remain on-demand because loading the full backlog at ~521K tokens would consume more than half the 1M context window for content that is rarely needed in full. History: agile_backlog.json was attempted in context-residency 2026-04-18 and was replaced with the story-level view the same day. BRAIN-RUNTIME-REQ-005 (the flat pipe-delimited req_index.txt view) is deprecated in favor of this story-tree view. API source: Claude Code memory docs at https://code.claude.com/docs/en/memory.md — '@path/to/import' syntax, 'Imported files are expanded and loaded into context at launch', 'CLAUDE.md files are loaded in full regardless of length', 'Project-root CLAUDE.md survives compaction: after /compact, Claude re-reads it from disk and re-injects it into the session.' Hook-based injection is NOT a viable substitute because per https://code.claude.com/docs/en/hooks.md SessionStart and UserPromptSubmit hooks cap additionalContext at 10,000 characters with overflow saved to file + preview — too small for these artifacts.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "realized_by": [
+                            "Claude Code CLAUDE.md @-import",
+                            "Python 3.11 (pre-commit @-import-block regenerator, not yet written)"
+                          ],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "test_devops_boot_and_scanner::TestREQ012_ContextResidentTruthArtifacts",
+                                "pytest_type": "unit",
+                                "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                                "orphan": false
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "b5e8d2a1-4c7f-4d9a-a3b6-1e9f2c8d7a43",
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "ARCH-DEVOPS-BOOT-001-REQ-013",
+                          "requirement": "Every action taken within this project MUST be governed by any applicable rule found in brain/machine_artifacts/content/engineering_rules.json. These engineering rules MUST be in Claude's 1,000,000 token context and MUST be checked before any action for compliance. If an order from a human or a task Claude or an agent of Claude contradicts any rules, Claude CANNOT take that action or follow that order.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "realized_by": [
+                            "Claude Code CLAUDE.md @-import (rules in 1M context)",
+                            "engineering_rules.json v4-000 (binds every action)",
+                            "engineering_rules_worker._adjudicate_rule_compliance (GPT-4.1-mini gate)",
+                            "PreToolUse hook (blocks violating tool calls)",
+                            "UserPromptSubmit hook (emits refusal directive on contradictory orders)",
+                            "Stop hook (blocks violating final output)"
+                          ],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "test_devops_boot_and_scanner::TestREQ013_UniversalGovernance",
+                                "pytest_type": "unit",
+                                "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                                "orphan": false
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "",
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "ARCH-DEVOPS-BOOT-001-REQ-014",
+                          "requirement": "The user MUST NOT be forced to login twice during the boot sequence. A single interactive login event per identity provider is the limit; a second consecutive prompt for the same user to the same provider within one boot is a failure. If the first login produced a valid session or cached credential, the boot sequence MUST reuse that credential rather than re-prompt.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "realized_by": [],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "test_devops_boot_and_scanner::TestREQ014_NoDoubleLogin",
+                                "pytest_type": "unit",
+                                "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                                "orphan": false
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "",
+                          "approval": "proposed"
+                        },
+                        {
+                          "req_id": "ARCH-DEVOPS-BOOT-001-REQ-015",
+                          "requirement": "Per-artifact load confirmation. After each session boot, the diagnostic MUST emit one confirmation line per context-resident artifact as defined in REQ-012. Each line MUST cite the full project-relative path of the artifact. Silent success is not permitted. The diagnostic signal may come from the InstructionsLoaded hook log, a direct content canary, or both; the reporting format is one line per artifact regardless of source. This requirement MUST NOT name specific artifacts — REQ-012 is the single source of truth for the artifact list; any change to scope belongs there, not here.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "realized_by": [],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN_PYTEST",
+                                "pytest_type": "ORPHAN",
+                                "test_file": "",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "",
+                          "approval": "proposed"
+                        },
+                        {
+                          "req_id": "ARCH-DEVOPS-BOOT-001-REQ-016",
+                          "requirement": "Load-failure short message. If any context-resident brain artifact fails load verification at session boot (per REQ-012 and REQ-017), the diagnostic MUST output a single short failure line (one line, under 200 characters) that names the failing artifact and classifies the failure as exactly one of four reasons — no more, no less: invalid_json | hash_unreadable | not_loaded | hash_mismatch. A long explanation is a violation of this requirement — follow-up detail belongs in a separate report, not the verdict line.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "realized_by": [],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN_PYTEST",
+                                "pytest_type": "ORPHAN",
+                                "test_file": "",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "",
+                          "approval": "proposed"
+                        },
+                        {
+                          "req_id": "ARCH-DEVOPS-BOOT-001-REQ-017",
+                          "requirement": "Load verification procedure. For each context-resident artifact as defined in REQ-012, the diagnostic MUST execute exactly four steps in order, short-circuiting on the first failure: (1) validate the file as JSON — on failure emit 'invalid_json'; (2) compute sha256 of the file on disk and retain it — on I/O or hash failure emit 'hash_unreadable'; (3) confirm the harness loaded the file into context (InstructionsLoaded event fired for that file_path) — on absence emit 'not_loaded'; (4) recompute sha256 at the InstructionsLoaded event and compare to the hash from step 2 — on inequality emit 'hash_mismatch'. If all four steps pass, emit one 'LOADED' line per REQ-015. These four failure reasons are exhaustive: the diagnostic MUST NOT introduce a fifth category (e.g. timeout, truncation, attention_drift, unknown). Any observed failure that does not map to one of the four reasons is a gap in the procedure, not a new reason. This requirement MUST NOT name specific artifacts — REQ-012 is the single source of truth for the artifact list.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "realized_by": [],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN_PYTEST",
+                                "pytest_type": "ORPHAN",
+                                "test_file": "",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "",
+                          "approval": "proposed"
                         }
                       ]
                     },
                     "orphan": false,
                     "approval": "proposed"
+                  },
+                  {
+                    "story_id": "BRAIN-RUNTIME",
+                    "title": "Brain at runtime — where brain content lives on disk and in context",
+                    "description": "Runtime requirements for the brain — specifically WHERE ChatHealthy.AI brain content is persisted on disk and WHERE it must be at runtime (i.e. loaded into Claude's active context). Brain content lives under brain/machine_artifacts/content/. Files outside that tree, including Claude Code's and Cursor's harness-managed Markdown files (CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md, .claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/), are NOT brain storage regardless of their content type. At runtime, brain content MUST be accessible to Claude without a disk Read (context-resident, per ARCH-DEVOPS-BOOT-001-REQ-012). The mechanism is harness-level @-imports from a project-root file (CLAUDE.md) that point at the brain JSONs and derived JSON views of brain JSONs.",
+                    "size": "S",
+                    "status": "in_progress",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "BRAIN-RUNTIME-REQ-001",
+                          "story_id": "BRAIN-RUNTIME",
+                          "requirement": "ChatHealthy.AI brain content MUST be persisted on disk under brain/machine_artifacts/content/ and nowhere else. Claude Code's and Cursor's harness-managed Markdown files — CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md, .claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/ — are NOT brain storage. Those MD files are reserved for harness instructions (CLAUDE.md family) or Claude's ungoverned working memory (MEMORY.md, per v4-037) and MUST NOT carry brain content. @-imports from CLAUDE.md that point at brain JSON files are the required mechanism to make brain content runtime-resident — they do not move the content into the MD file; the content stays on disk in JSON under brain/machine_artifacts/content/. Governing rule: v4-040.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "realized_by": [
+                            "brain/machine_artifacts/content/engineering_rules.json (v4-040)",
+                            "Code/Shared/ops/tools/chathealthy_devops_boot.py::_write_req_index (writes transient byte-stream to test_output/req_index.txt, gitignored; canonical brain content stays under brain/machine_artifacts/content/ per REQ-001)"
+                          ],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "test_devops_boot_and_scanner::TestBrainRuntimeREQ001_BrainContentOnDisk",
+                                "pytest_type": "unit",
+                                "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "d8e5b2f4-3c9a-4f71-a6b8-2e0c5d9a7f38",
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "BRAIN-RUNTIME-REQ-002",
+                          "story_id": "BRAIN-RUNTIME",
+                          "requirement": "Before creating any bug record in brain/machine_artifacts/content/bugs.json, Claude MUST search the register for a semantically duplicate or closely-related existing bug and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the bug is novel, Claude MUST insert it under a logical parent requirement (its req_id) in the register. When no logical parent requirement exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to Boss and wait for a decision before inserting; in Unattended Mode Claude MUST insert the bug with req_id = ORPHAN_BUG, flag it for Boss's async review at the next boot's orphan triage, and proceed with its work.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "realized_by": [
+                            "Code/Shared/ops/tools/brain_write_validator.py (find_duplicate_bug, validate_bug_insert)",
+                            "Code/Shared/ops/tools/chathealthy_devops_boot.py::engineering_rules_worker._validate_brain_edit (PreToolUse hook wiring for Edit/Write on bugs.json)",
+                            "Code/Shared/ops/tools/tests/test_brain_write_validator.py (TestFindDuplicateBug, TestValidateBugInsert, TestPreToolUseBrainEditHook)"
+                          ],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "test_brain_write_validator::TestFindDuplicateBug",
+                                "pytest_type": "unit",
+                                "test_file": "Code/Shared/ops/tools/tests/test_brain_write_validator.py",
+                                "orphan": false
+                              },
+                              {
+                                "pytest_id": "test_brain_write_validator::TestValidateBugInsert",
+                                "pytest_type": "unit",
+                                "test_file": "Code/Shared/ops/tools/tests/test_brain_write_validator.py",
+                                "orphan": false
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "e2c7a4b1-9d8f-4e51-b3a9-6c0d5e8f2a47",
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "BRAIN-RUNTIME-REQ-003",
+                          "story_id": "BRAIN-RUNTIME",
+                          "requirement": "Before creating any requirement, story, feature, or epic in brain/machine_artifacts/content/agile_backlog.json, Claude MUST search the backlog for a semantically duplicate or closely-related existing entry and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the entry is novel, Claude MUST insert it under a logical parent — requirement under story, story under feature, feature under epic. When no logical parent exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to Boss and wait for a decision before inserting; in Unattended Mode Claude MUST insert the entry with orphan = true under the nearest ancestor, flag it for Boss's async review, and proceed with its work.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "realized_by": [
+                            "Code/Shared/ops/tools/brain_write_validator.py (find_duplicate_req, validate_backlog_insert)",
+                            "Code/Shared/ops/tools/chathealthy_devops_boot.py::engineering_rules_worker._validate_brain_edit (PreToolUse hook wiring for Edit/Write on agile_backlog.json)",
+                            "Code/Shared/ops/tools/tests/test_brain_write_validator.py (TestFindDuplicateReq, TestValidateBacklogInsert, TestPreToolUseBrainEditHook)"
+                          ],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "f9d1a8b3-5c4e-4872-a9e6-3b7f1c4d0e29",
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "BRAIN-RUNTIME-REQ-004",
+                          "story_id": "BRAIN-RUNTIME",
+                          "requirement": "When any of bugs.json, engineering_rules.json, or agile_backlog.json is edited during a session, Claude MUST flush the stale copy from its context and reload the current on-disk version before taking any further action governed by that file. The in-context copy MUST NOT lag the on-disk canonical copy across any action that reads or reasons about the file.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "realized_by": [
+                            "Code/Shared/ops/tools/brain_write_validator.py (snapshot_brain_mtimes, detect_stale_brain_files)",
+                            "Code/Shared/ops/tools/chathealthy_devops_boot.py::_check_brain_freshness (emits stale-context reminder via additionalContext on UserPromptSubmit)",
+                            "Code/Shared/ops/tools/tests/test_brain_write_validator.py (TestCacheFreshness)"
+                          ],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "a3b5c7d9-e1f2-4083-b4c6-5d8e9f0a1b2c",
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "BRAIN-RUNTIME-REQ-005",
+                          "story_id": "BRAIN-RUNTIME",
+                          "source": "architecture_constraint",
+                          "requirement_type": "technical",
+                          "requirement": "The system MUST write a byte-stream copy of brain/machine_artifacts/content/agile_backlog.json to test_output/req_index.txt at every UserPromptSubmit boot and at every session_end. Each write MUST overwrite any prior file at that path. test_output/ MUST be a gitignored project-local folder. CLAUDE.md MUST @-import test_output/req_index.txt. The canonical agile_backlog.json MUST remain the single authoritative source of backlog content. session_end MUST delete the prior test_output/req_index.txt before writing its regenerated copy. The copy format MUST be newline-delimited pipe-separated fields, one requirement per line, columns in order: epic_id, feature_id, story_id, req_id, priority, status, approval, orphan, requirement_text.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "realized_by": [
+                            "Code/Shared/ops/tools/chathealthy_devops_boot.py::_write_req_index",
+                            "Code/Shared/ops/tools/chathealthy_devops_boot.py session_end mode (delete + regenerate)",
+                            "CLAUDE.md @-import of @test_output/req_index.txt",
+                            ".gitignore: test_output/ (line 72)"
+                          ],
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "test_devops_boot_and_scanner::TestBugGov010_ReqIndexContextResident",
+                                "pytest_type": "unit",
+                                "test_file": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
+                                "orphan": false
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "f4b8e2d6-9a1c-4e73-b5f8-2c0a7d9e1f45",
+                          "approval": "approved"
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "approved"
                   }
                 ]
               },
@@ -57711,86 +57985,7 @@
                     "approval": "proposed"
                   },
                   {
-                    "story_id": "BRAIN-PIPELINE-V3-COMPLIAN",
-                    "title": "pipeline_v3_compliance_log.json — Brain artifact",
-                    "description": "Brain artifact: pipeline_v3_compliance_log",
-                    "size": "S",
-                    "status": "in_progress",
-                    "code_controlled": true,
-                    "code_references": [
-                      {
-                        "file": "Code/DataPipelines/tests/test_pipeline_rename_compliance.py",
-                        "relationship": "uses"
-                      },
-                      {
-                        "file": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
-                        "relationship": "controls"
-                      },
-                      {
-                        "file": "Code/Shared/ops/tools/pre_deploy_rule_check.py",
-                        "relationship": "controls"
-                      },
-                      {
-                        "file": "Code/Shared/ops/tools/scan_http.py",
-                        "relationship": "uses"
-                      }
-                    ],
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "BRAIN-PIPELINE-V3-COMPLIAN-REQ-001",
-                          "requirement": "pipeline_v3_compliance_log.json MUST be controlled by a JSON schema. The file MUST be in strict compliance with that schema at all times.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "realized_by": [
-                            "Python 3.11"
-                          ],
-                          "orphan": true,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "ORPHAN",
-                                "pytest_type": "ORPHAN",
-                                "orphan": true
-                              }
-                            ]
-                          },
-                          "approval": "proposed"
-                        },
-                        {
-                          "req_id": "BRAIN-PIPELINE-V3-COMPLIAN-REQ-002",
-                          "story_id": "BRAIN-PIPELINE-V3-COMPLIAN",
-                          "requirement": "pipeline_v3_compliance_log.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "resolution_status": "new",
-                          "ch_matrix_id": "90fc9504-12cd-4dea-8811-e1c52226cbe0",
-                          "realized_by": [
-                            "Boss review",
-                            "Claude analysis"
-                          ],
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "ORPHAN",
-                                "pytest_type": "ORPHAN",
-                                "orphan": true
-                              }
-                            ]
-                          },
-                          "approval": "proposed"
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed"
-                  },
-                  {
                     "story_id": "BRAIN-PIPELINE-V3-ITERATIO",
-                    "title": "pipeline_v3_iteration_log.json — Brain artifact",
-                    "description": "Brain artifact: pipeline_v3_iteration_log",
                     "size": "S",
                     "status": "in_progress",
                     "code_controlled": true,
@@ -57816,7 +58011,6 @@
                       "requirement": [
                         {
                           "req_id": "BRAIN-PIPELINE-V3-ITERATIO-REQ-001",
-                          "requirement": "pipeline_v3_iteration_log.json MUST be controlled by a JSON schema. The file MUST be in strict compliance with that schema at all times.",
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [
@@ -57837,7 +58031,6 @@
                         {
                           "req_id": "BRAIN-PIPELINE-V3-ITERATIO-REQ-002",
                           "story_id": "BRAIN-PIPELINE-V3-ITERATIO",
-                          "requirement": "pipeline_v3_iteration_log.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "source": "Boss",
                           "priority": "must-have",
                           "status": "not_started",
@@ -57866,8 +58059,6 @@
                   },
                   {
                     "story_id": "BRAIN-PIPELINE-V4-DESIGN-I",
-                    "title": "pipeline_v4_design_iterations.json — Brain artifact",
-                    "description": "Brain artifact: pipeline_v4_design_iterations",
                     "size": "S",
                     "status": "in_progress",
                     "code_controlled": true,
@@ -57893,7 +58084,6 @@
                       "requirement": [
                         {
                           "req_id": "BRAIN-PIPELINE-V4-DESIGN-I-REQ-001",
-                          "requirement": "pipeline_v4_design_iterations.json MUST be controlled by a JSON schema. The file MUST be in strict compliance with that schema at all times.",
                           "priority": "must-have",
                           "status": "not_started",
                           "realized_by": [
@@ -57914,7 +58104,6 @@
                         {
                           "req_id": "BRAIN-PIPELINE-V4-DESIGN-I-REQ-002",
                           "story_id": "BRAIN-PIPELINE-V4-DESIGN-I",
-                          "requirement": "pipeline_v4_design_iterations.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "source": "Boss",
                           "priority": "must-have",
                           "status": "not_started",

@@ -609,9 +609,6 @@ class chathealthy_devops_boot:
         "external_audits": "check_external_audits",
         "governance": "check_governance",
         "legal": "check_legal",
-        "pipeline_v3_compliance_log": "check_pipeline_v3_compliance_log",
-        "pipeline_v3_iteration_log": "check_pipeline_v3_iteration_log",
-        "pipeline_v4_design_iterations": "check_pipeline_v4_design_iterations",
         # policies merged into governance.json as top-level attribute
         "project_manifest": "check_project_manifest",
         "prompts": "check_prompts",
@@ -928,15 +925,6 @@ class chathealthy_devops_boot:
 
     def check_unrealized_ideas(self, source="", destination="", action_event="session_start") -> dict:
         return self._check_json("unrealized_ideas", action_event)
-
-    def check_pipeline_v3_compliance_log(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("pipeline_v3_compliance_log", action_event)
-
-    def check_pipeline_v3_iteration_log(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("pipeline_v3_iteration_log", action_event)
-
-    def check_pipeline_v4_design_iterations(self, source="", destination="", action_event="session_start") -> dict:
-        return self._check_json("pipeline_v4_design_iterations", action_event)
 
     # ══════════════════════════════════════════════════════════════════════
     # Four lifecycle methods
