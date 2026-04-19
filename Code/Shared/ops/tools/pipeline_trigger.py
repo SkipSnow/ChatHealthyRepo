@@ -175,7 +175,7 @@ def main():
 
     instance_id, status_url, trigger_data = trigger(payload, token)
 
-    # Save status URL to .http file for Boss to monitor
+    # Save status URL to .http file for human to monitor
     with open(os.path.join(REPO_ROOT, "pipeline_status.http"), "w") as f:
         f.write(f"GET {status_url}\n")
     print(f"Status URL saved to pipeline_status.http")

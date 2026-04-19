@@ -1,5 +1,5 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
-# One-shot apply script for the four brain edits Boss approved 2026-04-19.
+# One-shot apply script for the four brain edits human approved 2026-04-19.
 # After it runs successfully, this file may be deleted (it has no future caller).
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ def make_req(req_id, type_, priority, requirement, story_id):
         "approval": "proposed",
         "type": type_,
         "story_id": story_id,
-        "source": "Boss directive 2026-04-19 — overnight compliance crosswalk + deferral pattern",
+        "source": "human directive 2026-04-19 — overnight compliance crosswalk + deferral pattern",
         "date": TODAY,
     }
 
@@ -337,14 +337,14 @@ def edit_4_rules():
                      "fulfilled AND the work is moved out of Code/_pending/."),
             "type": "standard",
             "date": TODAY,
-            "source": "Boss directive 2026-04-19 — deferred work as first-class concept",
+            "source": "human directive 2026-04-19 — deferred work as first-class concept",
             "enforcement": [],
         })
     if "v4-042" not in existing:
         new_rules.append({
             "id": "v4-042",
             "title": "Assignment scope is higher authority than ordinary engineering rule",
-            "rule": ("A Boss-issued ASSIGNMENT (a stated unit of work, with "
+            "rule": ("A human-issued ASSIGNMENT (a stated unit of work, with "
                      "intent to complete it) carries a higher scope of "
                      "authority than any ordinary engineering rule. When "
                      "applying engineering rules during execution, Claude "
@@ -353,14 +353,14 @@ def edit_4_rules():
                      "assignment, EXCEPT for: GOV-007 (production sign-off), "
                      "v4-006 (deploy authority — QA/prod sign-off), and any "
                      "rule explicitly marked as universally enforced (e.g., "
-                     "v4-026 governance matrix changes still require Boss "
+                     "v4-026 governance matrix changes still require human "
                      "risk acceptance even mid-assignment). Assignment scope "
                      "MUST be logged in risk_acceptance.json once at the "
                      "start of the assignment, not per child action (per "
                      "v4-039 cascade)."),
             "type": "standard",
             "date": TODAY,
-            "source": "Boss directive 2026-04-19 — assignment > ordinary rule",
+            "source": "human directive 2026-04-19 — assignment > ordinary rule",
             "enforcement": [],
         })
 

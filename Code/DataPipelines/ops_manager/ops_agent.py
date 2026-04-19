@@ -108,7 +108,7 @@ class OpsManagerAgent(BaseAgent):
                                                "active_reservations": len(reservations)})
 
     def _check_overdue(self, reservations: list):
-        """Check for overdue jobs. Notify Boss with cooldown."""
+        """Check for overdue jobs. Notify human with cooldown."""
         now = datetime.now(timezone.utc)
         for r in reservations:
             expected_end = r.get("expected_end_time", "")
@@ -125,7 +125,7 @@ class OpsManagerAgent(BaseAgent):
                         message=f"Job {job_id} ({r.get('requester', '')}) is {minutes_over} min "
                                 f"past expected. Cluster {r.get('cluster_name', '')} still running.",
                     )
-                    self._audit.log_notification("boss", "job_overdue",
+                    self._audit.log_notification("human", "job_overdue",
                                                   f"Job {job_id} overdue by {minutes_over} min", True)
             except (ValueError, TypeError):
                 pass
@@ -140,11 +140,11 @@ class OpsManagerAgent(BaseAgent):
         job_id = event.get("job_id", "")
         requester = event.get("requester", "")
 
-        # Step 1: Notify Boss — error detected
+        # Step 1: Notify human — error detected
         self.tools.execute("alert", event_type="error_detected",
                            title="Pipeline Error Detected",
                            message=f"Error {error_code} in job {job_id} ({requester}). Investigating.")
-        self._audit.log_notification("boss", "error_detected",
+        self._audit.log_notification("human", "error_detected",
                                       f"Error {error_code} in {job_id}", True)
 
         # Step 2: Get cluster state for context
@@ -233,7 +233,7 @@ class OpsManagerAgent(BaseAgent):
                                    title="Infrastructure Self-Repaired",
                                    message=f"Error {error_code} in job {job_id} fixed. "
                                            f"Cluster {cluster_name} is IDLE.")
-                self._audit.log_notification("boss", "self_repaired",
+                self._audit.log_notification("human", "self_repaired",
                                               f"Infra repaired: {error_code}", True)
                 return ToolResult(success=True, data={"repaired": True, "attempts": attempt})
 
@@ -251,7 +251,7 @@ class OpsManagerAgent(BaseAgent):
             reasoning=f"Infra repair failed after {attempt} attempts",
             cluster_state=cluster_state, job_id=job_id, requester=requester,
         )
-        self._audit.log_escalation("boss", f"Infra repair failed after {attempt} attempts",
+        self._audit.log_escalation("human", f"Infra repair failed after {attempt} attempts",
                                     evidence.to_dict())
         self.escalate_to_boss("Infrastructure Repair Failed",
                               f"Error {error_code} in job {job_id}. "
@@ -296,14 +296,14 @@ class OpsManagerAgent(BaseAgent):
 
     def _escalate_unknown(self, error_code, error_message, cluster_state,
                           job_id, requester) -> ToolResult:
-        """Can't classify — escalate to Boss."""
+        """Can't classify — escalate to human."""
         evidence = EvidencePackage(
             error_code=error_code, error_message=error_message,
             classification="UNKNOWN", confidence=0.0,
             reasoning="Could not classify error after triage",
             cluster_state=cluster_state, job_id=job_id, requester=requester,
         )
-        self._audit.log_escalation("boss", f"Unclassifiable error: {error_code}", evidence.to_dict())
+        self._audit.log_escalation("human", f"Unclassifiable error: {error_code}", evidence.to_dict())
         self.escalate_to_boss("Unclassifiable Error",
                               f"Error {error_code} in job {job_id}. Cannot determine if infra or code. Need help.")
         return ToolResult(success=False, error_code="UNKNOWN_CLASSIFICATION",

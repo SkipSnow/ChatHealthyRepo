@@ -44,6 +44,9 @@ HTTP_EXEMPT_PATTERNS = [
     r"test_",
     r"conftest\.py",
     r"brain/BusinessArtifacts/",
+    r"Code/Shared/ops/tools/scan_http\.py$",  # scanner's own regex patterns
+    r"Code/Shared/ops/tools/preCommitScan\.py$",  # ditto
+    r"Code/Shared/ops/tools/pre_deploy_rule_check\.py$",  # ditto
 ]
 
 SCHEMA_EXEMPT_PATTERNS = [
@@ -59,6 +62,8 @@ SCHEMA_EXEMPT_PATTERNS = [
     r"__pycache__",
     r"\.iteration_cache/",
     r"brain/BusinessArtifacts/Audits/",
+    r"^langgraph\.json$",  # LangGraph CLI config; not a brain content file
+    r"/langgraph\.json$",
 ]
 
 SKIP_PATTERNS = [r"__pycache__", r"\.pyc$", r"node_modules", r"\.venv"]
@@ -288,12 +293,119 @@ def enforce_no_pattern(rule_id, enforcement):
     return violations
 
 
+# ── v4-043 — graph orchestration entry point check ─────────────
+
+
+# Decorator names that mark a route handler (FastAPI / Flask / Starlette).
+_ROUTE_DECO_ATTRS = {"post", "get", "put", "delete", "patch",
+                     "options", "head", "route"}
+# Variable suffixes typically used for the app/router instance.
+_APP_NAMES = {"app", "router", "blueprint", "api", "bp"}
+
+
+def _is_route_decorator(deco) -> bool:
+    """Match @app.post(...), @router.get(...), @blueprint.route(...)."""
+    if isinstance(deco, ast.Call):
+        deco = deco.func
+    if isinstance(deco, ast.Attribute) and isinstance(deco.value, ast.Name):
+        return (deco.value.id in _APP_NAMES and
+                deco.attr in _ROUTE_DECO_ATTRS)
+    return False
+
+
+def _calls_graph_invoke(node) -> bool:
+    """Walk an AST node and return True if any descendant Call matches
+    `<something>.invoke(...)` (the LangGraph orchestrator entry pattern)."""
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Call):
+            f = sub.func
+            if isinstance(f, ast.Attribute) and f.attr == "invoke":
+                return True
+            if (isinstance(f, ast.Attribute) and
+                    isinstance(f.value, ast.Attribute) and
+                    f.value.attr == "invoke"):
+                return True
+    return False
+
+
+def enforce_graph_entry_check(rule_id, enforcement):
+    """v4-043: every FastAPI/Flask route handler in the named scan_dirs
+    MUST invoke through a graph (any `<x>.invoke(...)` in the handler
+    body, OR delegate to a same-module helper that does)."""
+    violations = []
+    for d in enforcement.get("scan_dirs", []):
+        root = _resolve_dir(d)
+        if not os.path.isdir(root):
+            continue
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [x for x in dirnames
+                           if x not in {"__pycache__", ".pytest_cache",
+                                        ".venv", "node_modules", "tests"}]
+            for fn in filenames:
+                if not fn.endswith(".py") or fn.startswith("test_"):
+                    continue
+                fp = os.path.join(dirpath, fn)
+                try:
+                    with open(fp, "r", encoding="utf-8", errors="replace") as f:
+                        src = f.read()
+                    tree = ast.parse(src)
+                except (SyntaxError, UnicodeDecodeError):
+                    continue
+                # Build a map of locally-defined function name -> its body
+                local_funcs = {}
+                for n in ast.walk(tree):
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        local_funcs[n.name] = n
+                # Find all route handlers and check each
+                for n in ast.walk(tree):
+                    if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        continue
+                    if not any(_is_route_decorator(d) for d in n.decorator_list):
+                        continue
+                    # Allow exemption via marker comment in source
+                    src_lines = src.splitlines()
+                    if 0 < n.lineno <= len(src_lines):
+                        head = "\n".join(src_lines[max(0, n.lineno - 4):n.lineno])
+                        if "graph-exempt" in head:
+                            continue
+                    # Direct invoke?
+                    if _calls_graph_invoke(n):
+                        continue
+                    # Delegated helper one level deep?
+                    delegated_ok = False
+                    for sub in ast.walk(n):
+                        if isinstance(sub, ast.Call):
+                            f = sub.func
+                            name = None
+                            if isinstance(f, ast.Name):
+                                name = f.id
+                            elif isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name):
+                                # e.g., self._chat_inner — skip self
+                                name = f.attr
+                            if name and name in local_funcs:
+                                if _calls_graph_invoke(local_funcs[name]):
+                                    delegated_ok = True
+                                    break
+                    if delegated_ok:
+                        continue
+                    rel = os.path.relpath(fp, REPO_ROOT).replace("\\", "/")
+                    violations.append(
+                        f"{rule_id}: {rel}:{n.lineno}: route handler "
+                        f"'{n.name}' bypasses graph orchestrator (no "
+                        f"<state_graph>.invoke(...) in body or in same-"
+                        f"module helper). Add a graph node or mark the "
+                        f"handler '# graph-exempt' with a paired "
+                        f"risk_acceptance entry.")
+    return violations
+
+
 EXECUTORS = {
     "file_scan": enforce_file_scan,
     "file_absent": enforce_file_absent,
     "file_present": enforce_file_present,
     "json_check": enforce_json_check,
     "no_pattern": enforce_no_pattern,
+    "graph_entry_check": enforce_graph_entry_check,
 }
 
 

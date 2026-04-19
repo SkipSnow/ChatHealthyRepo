@@ -445,7 +445,7 @@ def build_document():
         ("Date", "April 15, 2026"),
         ("Authors", "Skip Snow (CTO/CEO), Claude Opus 4.6"),
         ("Pattern", "Assembly Factory with Neighbor-Aware Sub-Factory Composition"),
-        ("Status", "Design \u2014 Boss review required"),
+        ("Status", "Design \u2014 human review required"),
         ("Copyright", "ChatHealthy.ai LLC."),
     ]
     for label, value in meta_items:
@@ -1005,7 +1005,7 @@ def build_document():
     # SECTION 10: Backlog
     # ================================================================
     doc.add_heading("10. Backlog", level=1)
-    add_body(doc, "Pending \u2014 features, stories, requirements with B/T separation per engineering rule v4-035. Will be created after Boss approves the architecture.")
+    add_body(doc, "Pending \u2014 features, stories, requirements with B/T separation per engineering rule v4-035. Will be created after human approves the architecture.")
 
     # ================================================================
     # SAVE

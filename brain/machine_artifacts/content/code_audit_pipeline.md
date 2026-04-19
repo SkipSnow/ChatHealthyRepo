@@ -253,7 +253,7 @@
 
 ### 1.22 otp_manager.py
 
-**What it does:** One-time password key exchange for Brain API. Boss generates OTP, agent calls ExchangeOTP to get permanent Bearer key. Stored in MachineBrain.otp_tokens.
+**What it does:** One-time password key exchange for Brain API. Human generates OTP, agent calls ExchangeOTP to get permanent Bearer key. Stored in MachineBrain.otp_tokens.
 
 **Status:** NEEDS-REQ (agent auth infrastructure, no EPIC-006 backlog entry)
 
@@ -451,7 +451,7 @@ The following files have clear purposes but no matching requirement in agile_bac
 
 **Proposed story:** FC-PIPE-OTP-001
 **Title:** One-time password key exchange for agent API access
-**Description:** Boss generates OTP, agent exchanges for permanent Bearer key. OTP expires after 30 minutes, consumed on first use.
+**Description:** human generates OTP, agent exchanges for permanent Bearer key. OTP expires after 30 minutes, consumed on first use.
 **Requirements:**
 - REQ-001: Generate OTP with 30-minute TTL
 - REQ-002: Exchange OTP for permanent Bearer key (single use)
@@ -581,7 +581,7 @@ The following files have clear purposes but no matching requirement in agile_bac
 **Proposed story:** FC-PIPE-IDLE-001
 **Title:** Auto-pause pipeline cluster after idle threshold
 **Description:** Timer-based check of pipeline cluster activity. Pauses and notifies when idle exceeds threshold hours. Currently disabled in favor of ClusterLifecycleManager reservation-based approach.
-**Status note:** May be DEPRECATED by ClusterLifecycleManager (PIPE-LC-015). Confirm with Boss whether to keep or remove.
+**Status note:** May be DEPRECATED by ClusterLifecycleManager (PIPE-LC-015). Confirm with human whether to keep or remove.
 **pytest_ids:** `test_idle_monitor.py::test_idle_pause_triggered`
 
 ---

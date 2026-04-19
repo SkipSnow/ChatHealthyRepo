@@ -6,7 +6,7 @@
 """
 OTP Manager — one-time password key exchange for Brain API.
 
-Boss generates an OTP and gives it to an agent (e.g. GPT) verbally.
+Human generates an OTP and gives it to an agent (e.g. GPT) verbally.
 The agent calls GET /api/ExchangeOTP?code=<otp> to receive their
 permanent Bearer key. The OTP is consumed on first use and expires
 after 30 minutes regardless.

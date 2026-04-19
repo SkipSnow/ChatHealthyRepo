@@ -233,6 +233,97 @@ def enforce_conversation_log_schema(rule_id, enforcement):
     return violations
 
 
+# ── v4-043 — graph orchestration entry point check ─────────────
+
+
+_ROUTE_DECO_ATTRS = {"post", "get", "put", "delete", "patch",
+                     "options", "head", "route"}
+_APP_NAMES = {"app", "router", "blueprint", "api", "bp"}
+
+
+def _is_route_decorator(deco) -> bool:
+    if isinstance(deco, ast.Call):
+        deco = deco.func
+    if isinstance(deco, ast.Attribute) and isinstance(deco.value, ast.Name):
+        return (deco.value.id in _APP_NAMES and
+                deco.attr in _ROUTE_DECO_ATTRS)
+    return False
+
+
+def _calls_graph_invoke(node) -> bool:
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Call):
+            f = sub.func
+            if isinstance(f, ast.Attribute) and f.attr == "invoke":
+                return True
+            if (isinstance(f, ast.Attribute) and
+                    isinstance(f.value, ast.Attribute) and
+                    f.value.attr == "invoke"):
+                return True
+    return False
+
+
+def enforce_graph_entry_check(rule_id, enforcement):
+    """v4-043: every FastAPI/Flask route handler in the named scan_dirs
+    MUST invoke through a graph (any `<x>.invoke(...)` in the handler
+    body, OR delegate to a same-module helper that does)."""
+    violations = []
+    for d in enforcement.get("scan_dirs", []):
+        root = os.path.join(REPO_ROOT, d)
+        if not os.path.isdir(root):
+            continue
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [x for x in dirnames
+                           if x not in {"__pycache__", ".pytest_cache",
+                                        ".venv", "node_modules", "tests"}]
+            for fn in filenames:
+                if not fn.endswith(".py") or fn.startswith("test_"):
+                    continue
+                fp = os.path.join(dirpath, fn)
+                try:
+                    with open(fp, "r", encoding="utf-8", errors="replace") as f:
+                        src = f.read()
+                    tree = ast.parse(src)
+                except (SyntaxError, UnicodeDecodeError):
+                    continue
+                local_funcs = {}
+                for n in ast.walk(tree):
+                    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        local_funcs[n.name] = n
+                for n in ast.walk(tree):
+                    if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        continue
+                    if not any(_is_route_decorator(d) for d in n.decorator_list):
+                        continue
+                    src_lines = src.splitlines()
+                    if 0 < n.lineno <= len(src_lines):
+                        head = "\n".join(src_lines[max(0, n.lineno - 4):n.lineno])
+                        if "graph-exempt" in head:
+                            continue
+                    if _calls_graph_invoke(n):
+                        continue
+                    delegated_ok = False
+                    for sub in ast.walk(n):
+                        if isinstance(sub, ast.Call):
+                            f = sub.func
+                            name = None
+                            if isinstance(f, ast.Name):
+                                name = f.id
+                            elif isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name):
+                                name = f.attr
+                            if name and name in local_funcs:
+                                if _calls_graph_invoke(local_funcs[name]):
+                                    delegated_ok = True
+                                    break
+                    if delegated_ok:
+                        continue
+                    rel = os.path.relpath(fp, REPO_ROOT).replace("\\", "/")
+                    violations.append(
+                        f"{rule_id}: {rel}:{n.lineno}: route handler "
+                        f"'{n.name}' bypasses graph orchestrator")
+    return violations
+
+
 EXECUTORS = {
     "file_scan": enforce_file_scan,
     "file_absent": enforce_file_absent,
@@ -242,6 +333,7 @@ EXECUTORS = {
     "bugs_schema": enforce_bugs_schema,
     "ai_operations_schema": enforce_ai_operations_schema,
     "conversation_log_schema": enforce_conversation_log_schema,
+    "graph_entry_check": enforce_graph_entry_check,
 }
 
 

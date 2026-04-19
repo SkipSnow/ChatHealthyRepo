@@ -17,7 +17,7 @@
 
 ## Table of Contents
 
-1. [Boss Requirements](#boss-requirements)
+1. [human Requirements](#human-requirements)
 2. [v3 Decisions Retained](#v3-decisions-retained)
 3. [Provider Pipeline](#provider-pipeline)
 4. [Prescriber Pipeline](#prescriber-pipeline)
@@ -30,10 +30,10 @@
 
 ---
 
-## Boss Requirements
+## Human Requirements
 
 - **Target:** Bulletproof ETL -- 95% successful end-to-end runs when source files exist
-- **Fatal Alert:** Ring bell continuously every 5 seconds on Boss's computer for fatal errors
+- **Fatal Alert:** Ring bell continuously every 5 seconds on human's computer for fatal errors
 - **Priority:** Reliability > Speed > Cost
 
 ---

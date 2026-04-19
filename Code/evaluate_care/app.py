@@ -89,7 +89,29 @@ app.add_middleware(
 
 _engine = ScoringEngine()
 
+# ── LangGraph orchestrators (v4-043) ────────────────────────
+# Every business-logic route handler below routes through one of these
+# compiled StateGraphs instead of calling services directly. Behavior
+# is byte-identical to the pre-graph implementation.
+from evaluate_care.explainability import explain_score as _explain_score
+from evaluate_care.graphs import (
+    build_score_provider_graph,
+    build_score_trial_graph,
+    build_explain_graph,
+    build_evaluate_providers_graph,
+    build_evaluate_view_graph,
+)
+
+_last_evaluation = {"providers": [], "question": ""}
+
+_score_provider_graph = build_score_provider_graph({"engine": _engine})
+_score_trial_graph = build_score_trial_graph({"engine": _engine})
+_explain_graph = build_explain_graph({"explain_fn": _explain_score})
+_evaluate_providers_graph = build_evaluate_providers_graph({"last_evaluation": _last_evaluation})
+_evaluate_view_graph = build_evaluate_view_graph({"last_evaluation": _last_evaluation})
+
 # ── Debug back door (enabled only when DEBUG=1) ─────────────
+# graph-exempt: debug endpoint, no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/debug/verify-live")
 def debug_verify_live(body: dict):
     """Runs verify_session_token on a posted token and returns structured
@@ -123,6 +145,7 @@ def debug_verify_live(body: dict):
     return result
 
 
+# graph-exempt: debug endpoint, no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/debug/bootstrap")
 def debug_bootstrap():
     """Back door for mTLS/cert audit. Gated by DEBUG=1 env var so prod
@@ -168,6 +191,7 @@ def _mongo():
         _log.warning("evaluate_care /health: MongoClient init failed: %s", e)
         return None
 
+# graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/health")
 def health():
     # DEVOPS-DEPLOY-001-REQ-016: read build/version/framework from
@@ -188,6 +212,7 @@ def health():
             "db": db_status, "env": _ENV_PREFIX,
             "build": _build, "version": _version_str, "framework": _framework_str}
 
+# graph-exempt: static page render — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/splash")
 def splash():
     _log.info("CONTROL TRANSFER: EvaluateCare has taken ownership of the page")
@@ -196,6 +221,7 @@ def splash():
             '<div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">is still unimplemented.</div>'
             '</div>'}
 
+# graph-exempt: proxy/redirect — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/transfer/to-findcare")
 def transfer_to_findcare():
     """EvaluateCare releases page ownership back to FindCare.
@@ -210,6 +236,7 @@ from typing import Optional as _Optional
 class _VerifyTokenRequest(_BaseModel):
     session_token: _Optional[dict] = None
 
+# graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/verify-token")
 def verify_token(body: _VerifyTokenRequest):
     """Verify a session token from FindCare. Proves mutual authentication.

@@ -17,7 +17,7 @@ Scopes:
   read:reviews       — GET /brain/reviews/*
   write:assurance    — POST /brain/assurance
   write:usage        — POST /brain/usage
-  write:assignments  — POST /brain/assignments (Boss/Claude only)
+  write:assignments  — POST /brain/assignments (human/Claude only)
   admin              — budget limits, reset, full report (Skip only)
 
 ADR: ADR-0007, framework_02

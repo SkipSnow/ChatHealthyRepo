@@ -109,7 +109,7 @@
     {
       "bugid": "BUG-DESIGN-001",
       "next_action": [
-        "UX design decision needed from Boss: pagination controls placement in cursor bar."
+        "UX design decision needed from human: pagination controls placement in cursor bar."
       ],
       "req_id": "UX-CTRL-001-REQ-001",
       "status": "in_analysis",
@@ -560,7 +560,7 @@
       "description": "Factual health questions misclassified as medical advice. Example: 'What is the most common form of breast cancer?' was declined as medical advice when it should be answered as general health knowledge.",
       "fix": "Prompt tuning: distinguish factual health questions from personal medical advice.",
       "next_action": [
-        "Needs Boss to define the boundary between factual health questions and medical advice for prompt tuning. No rule text defined yet."
+        "Needs human to define the boundary between factual health questions and medical advice for prompt tuning. No rule text defined yet."
       ],
       "req_id": "FC-BACKEND-007-REQ-002",
       "status": "in_analysis",
@@ -693,7 +693,7 @@
       "req_id": "ORPHAN_BUG",
       "story_id": "ORPHAN",
       "orphan": true,
-      "description": "ORPHAN\n\nschema.json and bugs.json after Boss said 'don't make any changes to the code base or any of our JSONs' in Normal Mode.",
+      "description": "ORPHAN\n\nschema.json and bugs.json after human said 'don't make any changes to the code base or any of our JSONs' in Normal Mode.",
       "due_date": "2026-05-01",
       "pytest_id": "ORPHAN_PYTEST",
       "environments": [
@@ -784,7 +784,7 @@
     {
       "bugid": "BUG-UX-007",
       "next_action": [
-        "Needs UX design spec from Boss. Excel mockup must be translated to implementation requirements."
+        "Needs UX design spec from human. Excel mockup must be translated to implementation requirements."
       ],
       "req_id": "FC-FILT-001-REQ-006",
       "status": "closed_reqs_reorganized",
@@ -840,7 +840,7 @@
     {
       "bugid": "BUG-UX-008",
       "next_action": [
-        "Needs UX design spec from Boss for banner content and formatting."
+        "Needs UX design spec from human for banner content and formatting."
       ],
       "req_id": "TEST-SIM-001-REQ-002",
       "status": "tested_passed",
@@ -1964,7 +1964,7 @@
       "discovery_date": "2026-04-12",
       "status": "fixed",
       "next_action": [
-        "Boss to verify build number on dev.chathealthy.ai/health after next deploy"
+        "human to verify build number on dev.chathealthy.ai/health after next deploy"
       ],
       "environments": [
         "dev",
@@ -2024,7 +2024,7 @@
     {
       "bugid": "BUG-DEVOPS-002",
       "next_action": [
-        "Boss to verify output file exists after next deploy"
+        "human to verify output file exists after next deploy"
       ],
       "req_id": "DEVOPS-DEPLOY-001-REQ-014",
       "status": "fixed",
@@ -2618,7 +2618,7 @@
       "discovery_date": "2026-04-18",
       "status": "testing",
       "next_action": [
-        "Boss must verify on a FRESH Cursor restart: (1) boot still fires \u2014 mode-selection prompt (REQ-010) and orphan-triage prompt (REQ-011) both present in order; (2) asking Claude for the verbatim content of any req_id is answered without a disk Read/Grep of agile_backlog.json. If either check fails, revert the CLAUDE.md @-import line and the _write_req_index call in _load_brain and re-open this bug with the failure mode captured."
+        "human must verify on a FRESH Cursor restart: (1) boot still fires \u2014 mode-selection prompt (REQ-010) and orphan-triage prompt (REQ-011) both present in order; (2) asking Claude for the verbatim content of any req_id is answered without a disk Read/Grep of agile_backlog.json. If either check fails, revert the CLAUDE.md @-import line and the _write_req_index call in _load_brain and re-open this bug with the failure mode captured."
       ],
       "orphan": true,
       "description": "ORPHAN\n\nithout breaking boot.",
@@ -2641,7 +2641,7 @@
       "discovery_date": "2026-04-18",
       "status": "fixing",
       "next_action": [
-        "Edit inform_claude() and prompt() in chathealthy_devops_boot.py per fix plan above. Add pytest for sequential emission. Boss retests on fresh Cursor restart."
+        "Edit inform_claude() and prompt() in chathealthy_devops_boot.py per fix plan above. Add pytest for sequential emission. Human retests on fresh Cursor restart."
       ],
       "orphan": true,
       "description": "ORPHAN",
@@ -2659,11 +2659,11 @@
     {
       "bugid": "BUG-GOV-009",
       "req_id": "ARCH-DEVOPS-BOOT-001-REQ-007",
-      "description": "UAT 2026-04-18 (Boss typed 'test' on fresh boot): hook emitted both BOOT DIRECTIVE sections correctly (verified at lines 211 and 222 of the additionalContext file). Claude responded with a paraphrased 'REQ-010 \u2014 Mode: Unattended / Normal / Idiot?' instead of the verbatim numbered prompt the directive demanded. Boss's finding: requirements say the flow is deterministic; a flow that depends on the LLM following a text instruction is non-deterministic by construction. The fix landed in the prior iteration (SessionStart hook clearing the booted flag) closed the lifecycle-gap symptom but not the underlying enforcement gap.\n\nopen because the flow has not yet been made non-circumventable.",
+      "description": "UAT 2026-04-18 (human typed 'test' on fresh boot): hook emitted both BOOT DIRECTIVE sections correctly (verified at lines 211 and 222 of the additionalContext file). Claude responded with a paraphrased 'REQ-010 \u2014 Mode: Unattended / Normal / Idiot?' instead of the verbatim numbered prompt the directive demanded. Human's finding: requirements say the flow is deterministic; a flow that depends on the LLM following a text instruction is non-deterministic by construction. The fix landed in the prior iteration (SessionStart hook clearing the booted flag) closed the lifecycle-gap symptom but not the underlying enforcement gap.\n\nopen because the flow has not yet been made non-circumventable.",
       "discovery_date": "2026-04-18",
       "status": "testing",
       "next_action": [
-        "Boss retest in a fresh session: open Claude Code, send any prompt, confirm that the verbatim mode-selection prompt is presented and that trying to skip it produces a stop-hook block."
+        "human retest in a fresh session: open Claude Code, send any prompt, confirm that the verbatim mode-selection prompt is presented and that trying to skip it produces a stop-hook block."
       ],
       "pytest_id": "test_devops_boot_and_scanner::TestBugGov009_ModePromptEnforcement",
       "story_id": "ARCH-DEVOPS-BOOT-001",
@@ -2676,7 +2676,7 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "UAT 2026-04-18 (Boss typed 'test' on fresh boot): hook emitted both BOOT DIRECTI"
+      "title": "UAT 2026-04-18 (human typed 'test' on fresh boot): hook emitted both BOOT DIRECTI"
     },
     {
       "bugid": "BUG-DEFER-001",
@@ -2808,6 +2808,112 @@
       "orphan": false,
       "next_action": [
         "Replace ORPHAN placeholder pytest with a real test that exercises 100%-from-project boot determinism."
+      ]
+    },
+    {
+      "bugid": "BUG-SKIP-002",
+      "title": "Agent re-asked permission for in-scope localhost deploy during active human assignment (critical)",
+      "description": "human assignment 2026-04-19 was: 'run the local host and dev deployment scripts.' After dev deploy completed successfully, the agent asked 'Want me to start the localhost deploy now?' instead of just running it. The localhost deploy was clearly inside the named assignment scope and within standing local authority (feedback_deploy_authority), so the re-ask blocked execution and consumed human time. Human called this out as the rule-that-interfered-with-execution, instructed Claude to override via v4-042 assignment scope as one of that rule's enforcement mechanisms, and required this bug be filed at critical severity. The fix is encoded in SKIP-ASSIST-001-REQ-T002 (no-reask-during-assignment). Per v4-041 severity_by_environment intent: dev=critical, qa=show_stopper, prod=show_stopper (field will move to a structured property once the schema update ships to the published Cloudflare URL).",
+      "environments": [
+        "dev"
+      ],
+      "status": "fixing",
+      "severity": "critical",
+      "req_id": "SKIP-ASSIST-001-REQ-T002",
+      "story_id": "SKIP-ASSIST-001",
+      "pytest_id": "TBD-behavioral-UAT-needed",
+      "pytest_success_criteria": [
+        "During an active named assignment, SkipsAssistant runs the next clearly in-scope deploy script without asking permission first.",
+        "If scope is genuinely ambiguous, SkipsAssistant asks ONCE to clarify scope, not to re-authorize.",
+        "Zero unprompted permission-asks observed across at least 3 successive multi-step assignments under UAT."
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-04-26",
+      "fix": "SKIP-ASSIST-001-REQ-T002 added to the backlog under AGENT-SKIPS-ASSISTANT/SKIP-ASSIST-001. The agent profile now codifies that in-scope steps under an active human assignment proceed without permission asks. v4-042 (assignment scope > ordinary rule) is the binding authority. Real validation is behavioral UAT (human observation across multiple assignments).",
+      "reproduction": "1. Human issues a multi-step assignment naming both step A and step B (e.g., 'run local + dev deploy scripts'). 2. Claude completes step A. 3. Before step B, Claude asks 'Want me to do step B now?' instead of just executing. Expected: Claude executes step B without asking.",
+      "orphan": false,
+      "next_action": [
+        "UAT during the next 3 multi-step assignments \u2014 verify no unprompted permission-asks for clearly in-scope steps."
+      ]
+    },
+    {
+      "bugid": "BUG-ARCH-GRAPH-001",
+      "title": "/classify endpoint bypasses the LangGraph orchestrator (violates v4-043)",
+      "description": "Code/ConversationalUX/FindCareChat/backend/main.py:382 @app.post('/classify') handler calls _safety_service.is_emergency() and _specialty_service.find_specialty_codes() directly, bypassing the LangGraph orchestrator (_chat_graph) used by /chat. This is the parallel-path bug that lets a safety-classifier change silently break one path while the other looks fine. Manifested 2026-04-19 when the query 'I need a Shrink in DE' triggered a safety false-positive on /classify, returning {emergency: true} that the frontend mis-rendered as 'Could not identify relevant specialties.' Fix: refactor /classify to either (a) be a thin wrapper that invokes a subset of the graph (just classify + safety nodes), or (b) be deprecated with the frontend always going through /chat. Per v4-041 severity_by_environment intent: dev=critical, qa=show_stopper, prod=show_stopper.",
+      "environments": [
+        "dev"
+      ],
+      "status": "in_analysis",
+      "severity": "critical",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-refactor-pytest",
+      "pytest_success_criteria": [
+        "/classify route handler body contains _chat_graph.invoke(...) or equivalent graph entry call",
+        "preCommitScan graph_entry_check passes for Code/ConversationalUX/FindCareChat/backend/main.py",
+        "Same query through /chat and /classify produces consistent behavior across safety + classification."
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "1. POST {message: 'I need a Shrink in DE'} to https://localhost:7860/classify. 2. Observe response: {emergency: true, response: 'Call 911...'}. 3. POST same message to /chat. 4. Observe whether /chat behaves consistently (likely also false-positives via shared safety_service, but routes through the graph).",
+      "orphan": false,
+      "next_action": [
+        "Decide refactor approach for /classify: (a) graph subset wrapper, or (b) deprecate and route frontend through /chat."
+      ]
+    },
+    {
+      "bugid": "BUG-ARCH-GRAPH-002",
+      "title": "preCommitScan has no executor for v4-043 graph-orchestration enforcement",
+      "description": "Engineering rule v4-043 declares enforcement type 'graph_entry_check' but preCommitScan.py + pre_deploy_rule_check.py do not yet implement that executor. Until built, v4-043 is documentation-only and new violations will land at check-in undetected. The executor needs AST-level analysis (not pure regex) to detect FastAPI/Flask route handlers whose body does not invoke a StateGraph. Per v4-041 severity_by_environment intent: dev=low, qa=critical, prod=show_stopper.",
+      "environments": [
+        "dev"
+      ],
+      "status": "new",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-scanner-implementation",
+      "pytest_success_criteria": [
+        "preCommitScan.py EXECUTORS dict has 'graph_entry_check' key",
+        "When run against a synthetic file containing a non-graph @app.post handler, the executor reports a violation",
+        "When run against the same file with a graph.invoke() call, the executor reports clean"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-05-15",
+      "fix": "",
+      "reproduction": "Add a new @app.post handler that calls a service directly (bypassing any StateGraph) - commit succeeds without warning.",
+      "orphan": false,
+      "next_action": [
+        "Implement enforce_graph_entry_check(rule_id, enforcement) in preCommitScan.py + pre_deploy_rule_check.py using ast module."
+      ]
+    },
+    {
+      "bugid": "BUG-ARCH-GRAPH-EXEMPT-001",
+      "title": "Tracking: 20 FastAPI handlers exempted from v4-043 graph-orchestration rule (mechanical exemptions for health/splash/proxy/debug/security primitives)",
+      "description": "Bookkeeping bug — not a defect. Tracks the 20 FastAPI route handlers that were marked `# graph-exempt` to clear the v4-043 pre-push scanner. The exemptions are mechanical: each handler carries no business logic that v4-043 is meant to gate (health checks, static splash pages, transfer/proxy redirects, debug endpoints, mTLS/session/Key Vault security primitives). Paired with risk_acceptance entry RA-ARCH-GRAPH-EXEMPT-001 (accepted 2026-04-19, expires 2026-12-31). Real v4-043 violations remain blocking under BUG-ARCH-GRAPH-001 (/classify and EvaluateCare scoring endpoints).\n\nExempted handlers:\n- Code/ConversationalUX/FindCareChat/backend/main.py: health, get_session, evaluate_splash, transfer_to_findcare, evaluate_proxy, shared_splash, shared_verify_token, evaluate_verify_token, serve_index\n- Code/evaluate_care/app.py: debug_verify_live, debug_bootstrap, health, splash, transfer_to_findcare, verify_token\n- Code/shared_services/app.py: health, splash, transfer_to_findcare, verify_token, get_secret\n\nWork the bug tracks: revisit each exemption when the broader graph-orchestration refactor is scheduled. For each handler, decide one of: (a) leave exempt permanently because the handler genuinely has no shared-concern surface; (b) route through a thin graph wrapper if any shared concern (audit, auth gating) becomes relevant; (c) delete the handler if it has been superseded.",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "deferred",
+      "severity": "low",
+      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+      "pytest_id": "TBD-graph-exemption-review",
+      "pytest_success_criteria": [
+        "Each of the 20 exempted handlers has been re-reviewed during the scheduled graph-orchestration refactor.",
+        "For each handler, a disposition decision (leave exempt / wrap in graph / delete) is recorded.",
+        "RA-ARCH-GRAPH-EXEMPT-001 is closed or renewed based on the review outcome."
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-12-31",
+      "fix": "",
+      "reproduction": "Run `python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare`. The 20 handlers listed in the description are skipped by the v4-043 graph_entry_check executor because each carries an inline `# graph-exempt: <reason>; per BUG-ARCH-GRAPH-EXEMPT-001` comment within the 4 lines preceding the function def. Removing the comment from any one would cause that handler to re-enter the scanner's violation list.",
+      "orphan": false,
+      "next_action": [
+        "Schedule alongside BUG-ARCH-GRAPH-001 graph-orchestration refactor work; revisit every exempted handler at that time."
       ]
     }
   ],

@@ -1,0 +1,7 @@
+{
+  "dependencies": ["./Code/ConversationalUX/FindCareChat/backend"],
+  "graphs": {
+    "find_care_chat": "./Code/ConversationalUX/FindCareChat/backend/application/_langgraph_studio_entry.py:_chat_graph"
+  },
+  "env": "Code/.env"
+}

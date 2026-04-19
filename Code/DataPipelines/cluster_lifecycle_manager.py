@@ -248,7 +248,7 @@ class ClusterLifecycleManager:
     # ── Kill switch ──────────────────────────────────────────
 
     def force_release_all(self, cluster_name: str) -> dict:
-        """Boss kill switch. Release everything, shut down."""
+        """human kill switch. Release everything, shut down."""
         state = self._get_state()
         released = len(state["reservations"])
         state["reservations"] = [r for r in state["reservations"]

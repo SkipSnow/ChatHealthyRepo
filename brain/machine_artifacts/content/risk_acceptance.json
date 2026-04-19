@@ -35,7 +35,7 @@
       "risk": "Broader kill capability could accidentally terminate legitimate processes if wrong name is passed.",
       "status": "accepted",
       "mitigation": "kill_zombies.py is the only way to kill. Guard blocks direct taskkill. --kill-name requires explicit process name argument. Cannot kill by wildcard.",
-      "description": "DR-009 prohibits direct taskkill/kill from bash. kill_zombies.py only kills by port. A rogue pipeline process (not bound to a port) cannot be killed by the sanctioned tool. Boss authorized adding --kill-name flag to kill by process name.",
+      "description": "DR-009 prohibits direct taskkill/kill from bash. kill_zombies.py only kills by port. A rogue pipeline process (not bound to a port) cannot be killed by the sanctioned tool. Human authorized adding --kill-name flag to kill by process name.",
       "version": "0.1.4",
       "framework": "0.1.3",
       "claude_stipulation": "Chief Engineer stipulation: pre-dates the current session; no live engineering context available. Historic acceptance retained as-is."
@@ -46,7 +46,7 @@
       "title": "End-to-end governance commit architecture implementation",
       "risk": "Low. Changes are to governance infrastructure, not product code. All changes traceable through this risk acceptance.",
       "status": "accepted",
-      "mitigation": "Every change references RISK-004. Pre-commit scan validates. Boss reviews commit.",
+      "mitigation": "Every change references RISK-004. Pre-commit scan validates. Human reviews commit.",
       "description": "Claude authorized to implement full governance commit architecture: create pydantic commit scan class, wire pre-commit hook to pydantic object, update chathealthy_devops_boot.py proxy, edit pipeline files to fix scan violations, update settings.json hooks, create/update bug records.",
       "version": "0.1.4",
       "framework": "0.1.3",
@@ -83,7 +83,7 @@
       "risk": "Dev data corruption or index misconfiguration. No production impact.",
       "status": "accepted",
       "mitigation": "",
-      "description": "Boss authorizes Claude to perform database operations (create indexes, drop collections, load data) on the dev frontend and pipeline clusters. Pipeline is not yet certified. Risk is negligible — dev environment, no production impact.",
+      "description": "human authorizes Claude to perform database operations (create indexes, drop collections, load data) on the dev frontend and pipeline clusters. Pipeline is not yet certified. Risk is negligible — dev environment, no production impact.",
       "version": "0.1.4",
       "framework": "0.1.3",
       "claude_stipulation": "Chief Engineer stipulation: pre-dates the current session; no live engineering context available. Historic acceptance retained as-is."
@@ -107,7 +107,7 @@
       "risk": "High. Data may be inconsistent, pipeline state may diverge from database state, embeddings may not match pipeline-generated ones.",
       "status": "accepted",
       "mitigation": "",
-      "description": "Boss authorizes Claude to break multiple engineering rules for up to 3 hours to produce test data with embeddings on the dev frontend cluster. This includes direct database writes, skipping pipeline, manual embedding generation, copying between environments, and any other operations needed to get FindCare specialty select working with real data.",
+      "description": "human authorizes Claude to break multiple engineering rules for up to 3 hours to produce test data with embeddings on the dev frontend cluster. This includes direct database writes, skipping pipeline, manual embedding generation, copying between environments, and any other operations needed to get FindCare specialty select working with real data.",
       "version": "0.1.4",
       "framework": "0.1.3",
       "claude_stipulation": "Chief Engineer stipulation: pre-dates the current session; no live engineering context available. Historic acceptance retained as-is."
@@ -130,7 +130,7 @@
       "title": "Delete orphaned conversation_log_hook.py + add v4-037 dead-code deletion rule",
       "risk": "Low for code recoverability — all deleted content is preserved in git history and reversible via git revert or blob extraction. Separate functional regression risk noted under claude_warning regarding content-rule port.",
       "status": "accepted",
-      "mitigation": "Deletion landed via single git commit with message naming what replaced the file and what references were updated. Risk acceptance record (RISK-011) referenced in the commit message. v4-037 added to engineering_rules.json as the governance record for future dead-code cleanup. TR9/TR11/TR16 regression treatment to be confirmed with Boss before the irreversible deletion step.",
+      "mitigation": "Deletion landed via single git commit with message naming what replaced the file and what references were updated. Risk acceptance record (RISK-011) referenced in the commit message. v4-037 added to engineering_rules.json as the governance record for future dead-code cleanup. TR9/TR11/TR16 regression treatment to be confirmed with human before the irreversible deletion step.",
       "description": "Delete Code/Shared/ops/conversation_log_hook.py — orphaned file replaced by the Kafka-based conversation log pipeline (producer + consumer). Update three caller references: remove pattern entry at chathealthy_devops_boot.py:427, remove or refactor associated tests in test_prompt_log.py (which actively imports the module), update realized_by pointer at agile_backlog.json:56450. Additionally add new engineering rule v4-037 to engineering_rules.json mandating that discarded code (orphaned files, dead functions, replaced-by-successor modules) MUST be deleted via git commit as part of the same task where the discovery occurred — complement to v4-031 (No dead code).",
       "version": "0.1.4",
       "framework": "0.1.3",
@@ -143,7 +143,7 @@
       "risk": "Sanctioning a direct backlog Read in-session sets a precedent that could erode the 'no grep-and-punt' discipline v4-011/REQ-012 were written to enforce. Limiting it to a one-time, logged exception contains the precedent.",
       "status": "accepted",
       "mitigation": "Scope: a single Grep + single Read on agile_backlog.json in this session, to quote ARCH-DEVOPS-BOOT-001-REQ-012. Not a rule change, not a repeatable pattern — RISK-012 is the one-time authorization. The durable fix remains req_index.md @-imported by CLAUDE.md (landed this session, effective next restart).",
-      "description": "Boss directed Claude to quote ARCH-DEVOPS-BOOT-001-REQ-012 verbatim in-session. req_index.md (the BUG-GOV-010 fix) was generated earlier in the same session but its @-import only takes effect on next CLAUDE.md reparse (fresh session or /compact). In the current session agile_backlog.json content is not in context, so reading it required a disk Grep+Read — exactly the shortcut the context-residency rule (v4-011 / ARCH-DEVOPS-BOOT-001-REQ-012 spirit) forbids. A prior UserPromptSubmit hook injected a REQ-013 REFUSAL DIRECTIVE that told Claude to refuse. Claude refused twice; Boss authorized with 'I authorize you' and then 'Read me the requirement... do not analyze'. Claude ran Grep on agile_backlog.json and Read of line 54211-54213, quoted REQ-012 verbatim back to Boss.",
+      "description": "human directed Claude to quote ARCH-DEVOPS-BOOT-001-REQ-012 verbatim in-session. req_index.md (the BUG-GOV-010 fix) was generated earlier in the same session but its @-import only takes effect on next CLAUDE.md reparse (fresh session or /compact). In the current session agile_backlog.json content is not in context, so reading it required a disk Grep+Read — exactly the shortcut the context-residency rule (v4-011 / ARCH-DEVOPS-BOOT-001-REQ-012 spirit) forbids. A prior UserPromptSubmit hook injected a REQ-013 REFUSAL DIRECTIVE that told Claude to refuse. Claude refused twice; human authorized with 'I authorize you' and then 'Read me the requirement... do not analyze'. Claude ran Grep on agile_backlog.json and Read of line 54211-54213, quoted REQ-012 verbatim back to human.",
       "version": "0.1.4",
       "framework": "0.1.3",
       "claude_stipulation": "Chief Engineer stipulation: pre-dates the current session; no live engineering context available. Historic acceptance retained as-is."
@@ -152,10 +152,10 @@
       "id": "RISK-013",
       "date": "2026-04-18",
       "title": "Bulk bugs.json schema change: mandate description/discovery_date/pytest_id; delete status/ch_matrix_id/risk_acceptance_id fields",
-      "risk": "Deleting ch_matrix_id from all bug records severs the governance-matrix linkage across the full bug register. Deleting risk_acceptance_id removes the structural placeholder that flagged bugs needing acceptance (Boss determined bugs should not carry that field). Mass sentinel backfill for description/discovery_date/pytest_id obscures true provenance of missing data. Schema/data misalignment until the schema is updated in a follow-up step. Commit is deferred per Boss directive 'do not commit'.",
+      "risk": "Deleting ch_matrix_id from all bug records severs the governance-matrix linkage across the full bug register. Deleting risk_acceptance_id removes the structural placeholder that flagged bugs needing acceptance (human determined bugs should not carry that field). Mass sentinel backfill for description/discovery_date/pytest_id obscures true provenance of missing data. Schema/data misalignment until the schema is updated in a follow-up step. Commit is deferred per human directive 'do not commit'.",
       "status": "accepted",
-      "mitigation": "(a) no commit in this step, per Boss directive; (b) schema update required as a follow-on to restore schema/data alignment; (c) RISK-013 is scoped to bugs.json only and does not sanction similar field deletions from other brain collections; (d) original session-start working-tree state cannot be byte-exactly restored — 4 bug records were reconstructed from session context and may differ from the original uncommitted versions.",
-      "description": "Boss directed a seven-rule backfill of bugs.json: (1) description required, null->'ORPHAN'; (2) discovery_date required, null->today 2026-04-18; (3) due_date optional, null->2026-05-01; (4) move status values into resolution_status (only if rs empty), delete status key from all records; (5) pytest_id required, null->'ORPHAN_PYTEST' with orphan=true forced; (6) delete ch_matrix_id from all records; (7) delete risk_acceptance_id from all records. Executed against 137 bug records. Schema file (brain/machine_artifacts/content/schema.json collections.bugs.record_schema) is NOT yet updated, so the data will be out of alignment with the declared schema until the schema is revised.",
+      "mitigation": "(a) no commit in this step, per human directive; (b) schema update required as a follow-on to restore schema/data alignment; (c) RISK-013 is scoped to bugs.json only and does not sanction similar field deletions from other brain collections; (d) original session-start working-tree state cannot be byte-exactly restored — 4 bug records were reconstructed from session context and may differ from the original uncommitted versions.",
+      "description": "human directed a seven-rule backfill of bugs.json: (1) description required, null->'ORPHAN'; (2) discovery_date required, null->today 2026-04-18; (3) due_date optional, null->2026-05-01; (4) move status values into resolution_status (only if rs empty), delete status key from all records; (5) pytest_id required, null->'ORPHAN_PYTEST' with orphan=true forced; (6) delete ch_matrix_id from all records; (7) delete risk_acceptance_id from all records. Executed against 137 bug records. Schema file (brain/machine_artifacts/content/schema.json collections.bugs.record_schema) is NOT yet updated, so the data will be out of alignment with the declared schema until the schema is revised.",
       "version": "0.1.4",
       "framework": "0.1.3",
       "claude_stipulation": "Chief Engineer stipulation: pre-dates the current session; no live engineering context available. Historic acceptance retained as-is."
@@ -171,6 +171,18 @@
       "version": "0.1.4",
       "framework": "0.1.3",
       "claude_stipulation": "Chief Engineer stipulation: the acceptance is justified. Refactoring a mid-size schema + all callers is within Claude Code's core capability; the session's failure was procedural — the data migration landed before the code refactor was smoke-tested, creating a chicken-and-egg that blocked verification. Rolling back to morning HEAD on the six boot-path files (commits 429a8b3 + ddface5) while keeping the committed schema + content migrations (4931fe9, 6668795, a6f41ea, a3a8b45, be92b49) is the correct containment. UAT + SIT is the right mitigation: it validates the retained schema migrations end-to-end against the restored boot code, exposes any remaining integration gaps, and scopes tomorrow's clean refactor atomically with the data."
+    },
+    {
+      "id": "RA-ARCH-GRAPH-EXEMPT-001",
+      "date": "2026-04-19",
+      "title": "v4-043 mechanical exemptions: 20 FastAPI handlers (health/splash/proxy/debug/security primitives)",
+      "risk": "Low. The 20 exempted handlers carry no business logic that v4-043 is meant to gate (health checks, static splash pages, transfer/proxy redirects, debug endpoints, mTLS/session/Key Vault security primitives). Exemption is mechanical, not a waiver of any underlying control. Real v4-043 enforcement remains active for all business-logic handlers (currently /classify, score_provider, score_trial, explain, evaluate_providers, evaluate_view — tracked by BUG-ARCH-GRAPH-001). Residual risk: future edits to an exempted handler could quietly add business logic without graph routing; mitigated by re-review under BUG-ARCH-GRAPH-EXEMPT-001 when the broader graph refactor is scheduled.",
+      "status": "accepted",
+      "mitigation": "Each exempted handler carries an inline `# graph-exempt: <reason>; per BUG-ARCH-GRAPH-EXEMPT-001` comment so the scanner exemption-window catches it and the rationale is visible at the call site. BUG-ARCH-GRAPH-EXEMPT-001 (deferred) tracks revisiting every exemption when the graph-orchestration refactor is scheduled. Real business-logic v4-043 violations remain blocking under BUG-ARCH-GRAPH-001.",
+      "description": "Per human directive 2026-04-19 — fix mechanical v4-043 violations to clear pre-push, leave business-logic refactors as separate work. Scope: 20 FastAPI route handlers across Code/ConversationalUX/FindCareChat/backend/main.py, Code/evaluate_care/app.py, and Code/shared_services/app.py. Expires 2026-12-31 (revisit during scheduled graph-orchestration refactor). Exempted handlers: (1) Code/ConversationalUX/FindCareChat/backend/main.py: health, get_session, evaluate_splash, transfer_to_findcare, evaluate_proxy, shared_splash, shared_verify_token, evaluate_verify_token, serve_index. (2) Code/evaluate_care/app.py: debug_verify_live, debug_bootstrap, health, splash, transfer_to_findcare, verify_token. (3) Code/shared_services/app.py: health, splash, transfer_to_findcare, verify_token, get_secret.",
+      "version": "0.1.4",
+      "framework": "0.1.3",
+      "claude_stipulation": "Chief Engineer stipulation: the acceptance is justified. v4-043's intent is to centralize cross-cutting concerns (safety, auth, audit, classify) on a single graph orchestration surface so a change to any shared concern propagates to every business entry point automatically. The 20 handlers in this exemption do not exercise those cross-cutting concerns: health/splash/serve_index produce static or reflective responses with no LLM/safety/audit involvement; transfer_to_findcare/evaluate_proxy/shared_splash are HTTP proxies whose downstream service runs its own graph; debug_verify_live/debug_bootstrap are gated debug endpoints; *_verify_token and get_secret are mTLS/Key Vault security primitives that MUST fail loud rather than route through an LLM-bearing graph (per the no-silent-security-fallbacks rule). Mechanical exemption is therefore the right disposition; the real v4-043 work is the BUG-ARCH-GRAPH-001 refactor of /classify and the EvaluateCare scoring endpoints, which remain blocking. Pairing this acceptance with BUG-ARCH-GRAPH-EXEMPT-001 (deferred) ensures each exemption is revisited during the scheduled graph refactor rather than becoming permanent by inattention."
     }
   ],
   "ch_matrix_id": "1001cdca-db77-40c2-ab15-5c0441f5ab2b"

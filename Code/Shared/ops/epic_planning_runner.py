@@ -744,7 +744,7 @@ def grow_risk_matrix(system_prompt: str, model: str, tree: dict) -> dict:
         f"Build the risk matrix and gate recommendation.\n"
         f"Per feature: likelihood, impact, mitigation (must not expand scope).\n"
         f"Per measure (EPIC-1): data_source_availability, data_quality, credibility.\n"
-        f"Risk mitigations may not expand scope — escalate to Boss if needed.\n\n"
+        f"Risk mitigations may not expand scope — escalate to human if needed.\n\n"
         f"Plan:\n{json.dumps(tree, indent=2, ensure_ascii=False)[:30000]}\n"
     )
 

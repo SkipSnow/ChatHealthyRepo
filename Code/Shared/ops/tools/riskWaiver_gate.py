@@ -7,7 +7,7 @@
 # Consults GPT-4.1 with:
 #   - the pending tool call (tool_name + tool_input)
 #   - risk_acceptance.json (accepted risks, structured)
-#   - the last 10 Boss↔Claude exchanges from the transcript
+#   - the last 10 human↔Claude exchanges from the transcript
 # and decides whether a recorded risk acceptance covers this pending
 # action. Emits a Claude Code hook JSON response:
 #
@@ -33,7 +33,7 @@ from pathlib import Path
 PROJECT = Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")).resolve()
 RISK_ACCEPTANCE_PATH = PROJECT / "brain" / "machine_artifacts" / "content" / "risk_acceptance.json"
 MODEL = "gpt-4.1"
-EXCHANGES = 10                    # last N Boss↔Claude exchanges to include
+EXCHANGES = 10                    # last N human↔Claude exchanges to include
 GPT_TIMEOUT_SEC = 5.0             # hot-path budget
 
 

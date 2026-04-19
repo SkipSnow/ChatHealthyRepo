@@ -11,7 +11,7 @@
       "epic_id": "EPIC-4",
       "status": "designed",
       "created": "2026-04-06",
-      "created_by": "Boss + Claude",
+      "created_by": "human + Claude",
       "publish": false,
       "diagrams": {
         "local": {
@@ -311,7 +311,7 @@
                 {
                   "id": "10.f",
                   "control": "Technical review of applications after operating platform changes",
-                  "how": "Three-environment promotion (dev, qa, prod). QA gate requires GPT sign-off. Production requires Boss sign-off (GOV-007). Full regression after every architecture change.",
+                  "how": "Three-environment promotion (dev, qa, prod). QA gate requires GPT sign-off. Production requires human sign-off (GOV-007). Full regression after every architecture change.",
                   "ch_matrix_id": "3237dc36-7956-4b1f-aee2-4134c716488b"
                 },
                 {

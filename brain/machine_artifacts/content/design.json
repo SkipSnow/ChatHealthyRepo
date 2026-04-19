@@ -11,7 +11,7 @@
       "epic_id": "EPIC-1",
       "status": "stub",
       "created": "2026-04-02",
-      "created_by": "Boss + Claude",
+      "created_by": "human + Claude",
       "description": "Design for mapping provider prescription data to on-label FDA indications with ICD-10 codes, tied to recognized CMS/NQF quality measures. Two implementation paths under evaluation: static reference dataset or LLM-generated mapping with cache.",
       "data_sources": {
         "prescriptions": "CMS Medicare Part D Public Use Files (data.cms.gov) -- provider NPI + drug + quantity",
@@ -155,7 +155,7 @@
       "epic_id": "EPIC-3",
       "status": "designed",
       "created": "2026-04-02",
-      "created_by": "Boss + Claude",
+      "created_by": "human + Claude",
       "description": "Shared agent framework for all ChatHealthy AI agents. BaseAgent, BaseTool, ToolRegistry. Extensible without refactor.",
       "agents": {
         "ops_manager": "Pipeline infrastructure lifecycle. Tools: ClusterTool, CostTool, AlertTool, ScheduleTool.",
@@ -170,11 +170,11 @@
       },
       "event_flow": "Timer/API/Error -> Agent.handle_event() -> pick tool -> execute -> success or escalate",
       "error_routing": {
-        "infrastructure_error": "Ops Manager attempts self-repair via repair tool. If fails, escalates to Boss.",
+        "infrastructure_error": "Ops Manager attempts self-repair via repair tool. If fails, escalates to human.",
         "pipeline_error": "Escalates to Dev Manager (Claude). Ops Manager does not diagnose pipeline errors.",
-        "unknown_error": "Escalates to Boss with full context."
+        "unknown_error": "Escalates to human with full context."
       },
-      "governance": "GOV-004 enforced via ToolRegistry. Agent suggests tool, registry decides if allowed. Boss is final escalation.",
+      "governance": "GOV-004 enforced via ToolRegistry. Agent suggests tool, registry decides if allowed. Human is final escalation.",
       "versioning": {
         "v01": "Rule-based decisions. Ops Manager with ClusterLifecycleTool only.",
         "v02": "AI-powered triage. LLM reads error context, decides repair vs escalate.",
@@ -284,7 +284,7 @@
           "id": "GUI-LEAF",
           "title": "Leaf page control — more control over right panel behavior",
           "status": "backlog",
-          "notes": "Boss directive: add to GUI Manager. Not further defined yet.",
+          "notes": "human directive: add to GUI Manager. Not further defined yet.",
           "ch_matrix_id": "5a1e28d4-d084-4f1e-b46b-2ca07a76d231"
         }
       ],
@@ -311,7 +311,7 @@
       "audit_source": "EXT-AUDIT-003 (Perplexity Pipeline v4 Design Audit)",
       "boss_requirements": {
         "target": "Bulletproof ETL -- 95% successful end-to-end runs when source files exist",
-        "fatal_alert": "Ring bell continuously every 5 seconds on Boss computer for fatal errors",
+        "fatal_alert": "Ring bell continuously every 5 seconds on human computer for fatal errors",
         "priority": "reliability > speed > cost"
       },
       "v3_retained": [

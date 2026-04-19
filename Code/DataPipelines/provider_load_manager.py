@@ -122,7 +122,7 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
 
     Lifecycle: registers a cluster reservation at start, releases in finally.
     If orchestrator fails, the ClusterLifecycleManager timer catches overdue
-    reservations and alerts Boss.
+    reservations and alerts human.
     """
     config = context.get_input()
 
@@ -231,7 +231,7 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
 
     # Release cluster reservation — always runs after pipeline completes.
     # If orchestrator fails mid-way, ClusterLifecycleManager timer catches
-    # the overdue reservation and alerts Boss.
+    # the overdue reservation and alerts human.
     context.set_custom_status("Step 11/10: Releasing cluster reservation")
     yield context.call_activity("release_reservation_activity", reservation)
 

@@ -4,8 +4,8 @@
 """
 Brain Runner — drives the Claude ↔ GPT loop via OpenAI API.
 
-Removes Boss as relay for the Claude ↔ GPT exchange.
-Boss still approves High+ risk gates.
+Removes human as relay for the Claude ↔ GPT exchange.
+Human still approves High+ risk gates.
 
 Usage:
     ENV_PREFIX=dev python brain_runner.py
@@ -17,9 +17,9 @@ Flow:
     4. Parses Assurance Output JSON from response
     5. Commits to brain/assurance_results.json
     6. Logs usage to brain/usage_log.json via cost_guard
-    7. Prints gate decision — Boss acts if High+
+    7. Prints gate decision — human acts if High+
 
-ADR: ADR-0007, MB-0001 (Boss Governance)
+ADR: ADR-0007, MB-0001 (human Governance)
 """
 
 import json
@@ -140,7 +140,7 @@ def _build_prompt(assignment: dict, context: str, mb_context: str) -> str:
     boss_scope = assignment.get('boss_scope', [])
 
     feature_block = (
-        f"\nPRODUCT REQUIREMENTS (provided by Boss — use these as the source of truth for planning):\n{feature_context}\n"
+        f"\nPRODUCT REQUIREMENTS (provided by human — use these as the source of truth for planning):\n{feature_context}\n"
         if feature_context else
         "\nPRODUCT REQUIREMENTS: None provided. Derive requirements from the repo context files and code.\n"
     )
@@ -148,10 +148,10 @@ def _build_prompt(assignment: dict, context: str, mb_context: str) -> str:
     if boss_scope:
         scope_lines = "\n".join(f"  - {item}" for item in boss_scope)
         scope_block = (
-            f"\nMANDATORY SCOPE (Boss directive — non-negotiable):\n{scope_lines}\n"
+            f"\nMANDATORY SCOPE (human directive — non-negotiable):\n{scope_lines}\n"
             f"These items MUST appear in ships_tuesday and scope_assessment. "
             f"You may assess their risk but you may NOT defer them. "
-            f"If you see tradeoffs, put them in tradeoff_suggestions — clearly labeled, Boss decides.\n"
+            f"If you see tradeoffs, put them in tradeoff_suggestions — clearly labeled, human decides.\n"
         )
     else:
         scope_block = ""
@@ -356,10 +356,10 @@ def run(assignment_id: str = None) -> dict:
             print(f"  {i}. {issue}")
 
     if gate in ("block_escalate", "block_boss_required"):
-        print(f"\n[BrainRunner] BLOCKED — Boss sign-off required before Claude proceeds.")
+        print(f"\n[BrainRunner] BLOCKED — human sign-off required before Claude proceeds.")
         print(f"[BrainRunner] Gate: {gate} | Risk: {risk}")
     elif gate == "escalate":
-        print(f"\n[BrainRunner] ESCALATED — Boss notification required. Risk: {risk}")
+        print(f"\n[BrainRunner] ESCALATED — human notification required. Risk: {risk}")
     elif gate == "proceed_with_warning":
         print(f"\n[BrainRunner] WARNING — Moderate risk. Claude may proceed with caution.")
     else:

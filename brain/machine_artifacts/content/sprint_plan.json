@@ -4,7 +4,7 @@
   "governance_attribute_id": "ch_governance_record_id_2326f467-3633-4a69-82e5-c8267d93c683",
   "record_count": 7,
   "daily_punch_list": {
-    "description": "Today's work plan and tomorrow's. Agreed between Boss and Claude at end of session or start of next. Not a backlog. Not a bug tracker. Just what we are doing next.",
+    "description": "Today's work plan and tomorrow's. Agreed between human and Claude at end of session or start of next. Not a backlog. Not a bug tracker. Just what we are doing next.",
     "date": "2026-04-05",
     "today": [
       {
@@ -315,7 +315,7 @@
         },
         {
           "id": "QA-REQ-003",
-          "requirement": "Done column statuses: Y (passed), DEF (deferred), FAIL (failed), OOS (out of scope), blank (untested). Every requirement must carry exactly one label — no requirement may be left blank at release. Only Boss can set these during UAT.",
+          "requirement": "Done column statuses: Y (passed), DEF (deferred), FAIL (failed), OOS (out of scope), blank (untested). Every requirement must carry exactly one label — no requirement may be left blank at release. Only human can set these during UAT.",
           "status": "implemented",
           "ch_matrix_id": "ccc2c8a1-523f-4fac-88de-9b718907e222"
         },
@@ -363,7 +363,7 @@
         }
       ],
       "governance": {
-        "uat_signoff_rule": "Only Boss can mark features as pass, fail, or deferred. Claude documents bugs and implements fixes but does not change UAT status.",
+        "uat_signoff_rule": "Only human can mark features as pass, fail, or deferred. Claude documents bugs and implements fixes but does not change UAT status.",
         "production_override": "HUMAN_TESTING is always false in production regardless of env var setting."
       },
       "_record_id": "qa_report_feature",
@@ -503,9 +503,9 @@
             },
             {
               "id": "B-199",
-              "task": "Boss UAT on QA",
-              "detail": "Boss tests maps, provider search, clinical trials, safety, consent on QA environment.",
-              "risk": "N/A — Boss pass/fail",
+              "task": "human UAT on QA",
+              "detail": "human tests maps, provider search, clinical trials, safety, consent on QA environment.",
+              "risk": "N/A — human pass/fail",
               "deploy": "qa",
               "ch_matrix_id": "0aebbd8b-4207-47e4-afe7-0ffc6d2b3f9c"
             }
@@ -518,7 +518,7 @@
             {
               "id": "B-200",
               "task": "Fix any UAT bugs",
-              "detail": "Address Boss feedback from QA testing.",
+              "detail": "Address human feedback from QA testing.",
               "risk": "VARIES",
               "deploy": "qa",
               "ch_matrix_id": "92ea002e-9feb-42bf-9df3-701dfd2b0f3d"
@@ -526,7 +526,7 @@
             {
               "id": "B-201",
               "task": "Promote to Production",
-              "detail": "Merge qa to main. Deploy. Boss sign-off required (GOV-007).",
+              "detail": "Merge qa to main. Deploy. Human sign-off required (GOV-007).",
               "risk": "LOW (if QA passed)",
               "deploy": "prod",
               "ch_matrix_id": "ab78975a-3fdd-4d7a-a2b4-db673640b688"
@@ -667,7 +667,7 @@
           {
             "id": "DEVOPS-UAT-INJECT",
             "task": "Automate UAT report via HuggingFace Space config injection",
-            "detail": "Investigate: can we parameterize HUMAN_TESTING via HF Space API or redirect? Goal: Claude triggers a fresh UAT session programmatically without Boss manually editing secrets. Options: HF API to update secrets, redirect with query param, or environment variable injection from GitHub Actions deploy workflow.",
+            "detail": "Investigate: can we parameterize HUMAN_TESTING via HF Space API or redirect? Goal: Claude triggers a fresh UAT session programmatically without human manually editing secrets. Options: HF API to update secrets, redirect with query param, or environment variable injection from GitHub Actions deploy workflow.",
             "deadline": "2026-04-08 (Wednesday)",
             "priority": "MEDIUM",
             "origin": "Manual secret editing during Cycle 1 was error-prone. UAT report display should be automated as part of deploy pipeline.",
@@ -720,7 +720,7 @@
         "F-08: All-state coverage (pipeline run, not code change)",
         "F-11: FIPS hack resolution (pipeline re-run)",
         "F-12: DeepSeek privacy disclosure (legal/copy)",
-        "F-13: Lock architecture docs (Boss decision on access gate)",
+        "F-13: Lock architecture docs (human decision on access gate)",
         "R19: Azure Function timeout UAT",
         "R35: Paused cluster UAT",
         "BL-001 through BL-010: Perplexity backlog (v0.1.4)"
@@ -771,7 +771,7 @@
               "GPT can read any collection via PromptSystemMaker.read_collection()",
               "GPT can read any record via PromptSystemMaker.read_record()",
               "GPT can identify which business artifacts map to which brain records",
-              "When brain records conflict, GPT flags the conflict to Boss"
+              "When brain records conflict, GPT flags the conflict to human"
             ],
             "test_question": {
               "question": "How much money must we raise and when?",
@@ -787,7 +787,7 @@
                 "sprint_plan says Jul 31 funding close",
                 "roadmap says Jul 31",
                 "component_discuss_care says post-funding for Talk About Care",
-                "GPT must reconcile these and present to Boss"
+                "GPT must reconcile these and present to human"
               ]
             },
             "ch_matrix_id": "8dd50b32-9d65-451f-a86a-d7c26b3e877e"
@@ -825,7 +825,7 @@
       "status": "DRAFT",
       "date": "2026-03-30",
       "base_version": "v0.1.2",
-      "owner": "Boss",
+      "owner": "human",
       "features": [
         {
           "id": 1,

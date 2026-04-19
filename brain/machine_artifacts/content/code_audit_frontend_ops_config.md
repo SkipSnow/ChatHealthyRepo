@@ -389,7 +389,7 @@ Source of truth: brain/machine_artifacts/content/agile_backlog.json
 - Requirement: NEEDS REQUIREMENT: Brain operating model automation.
 
 ### Code/Shared/brain_runner.py
-- Purpose: Drives Claude-GPT loop via OpenAI API. Boss approves High+ risk gates.
+- Purpose: Drives Claude-GPT loop via OpenAI API. Human approves High+ risk gates.
 - Requirement: NEEDS REQUIREMENT: Brain operating model automation.
 
 ### Code/Shared/machine_brain.py
@@ -562,7 +562,7 @@ Source of truth: brain/machine_artifacts/content/agile_backlog.json
 - Requirement: EXTRANEOUS: One-time plan tree modification.
 
 ### brain/machine_artifacts/code/cleanup_epics.py
-- Purpose: One-time script to clean up epics per Boss directives.
+- Purpose: One-time script to clean up epics per human directives.
 - Requirement: EXTRANEOUS: One-time plan tree modification.
 
 ### brain/machine_artifacts/code/generate_arch001_pdf.py

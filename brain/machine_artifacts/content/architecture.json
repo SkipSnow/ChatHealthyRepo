@@ -8,7 +8,7 @@
       "title": "Talk About Care — Business Component Definition",
       "component_name": "Talk About Care",
       "date": "2026-03-31",
-      "author": "Boss (Skip Snow)",
+      "author": "human (Skip Snow)",
       "status": "CONCEPT",
       "target": "Beta Sprint 1 (May 2026). April is quality month — no new components.",
       "three_component_architecture": {
@@ -99,7 +99,7 @@
         "GOV-001 preserved: consumer-only, no payer revenue",
         "DiscussCareFacade as the entry point — same pattern as FindCare and EvaluateCare"
       ],
-      "origin": "Boss insight: wanted to invite himself and Perplexity into a conversation. Realized consumers benefit from the same pattern — invite family into a healthcare chat with AI assistance.",
+      "origin": "human insight: wanted to invite himself and Perplexity into a conversation. Realized consumers benefit from the same pattern — invite family into a healthcare chat with AI assistance.",
       "revenue_model": {
         "name": "Choose Your AI",
         "mechanism": "AI model providers pay ChatHealthy.ai for access to user sessions",
@@ -154,7 +154,7 @@
         "innovation": "All signals are public. LLMs exist. The method of combining them for consumer healthcare navigation is novel.",
         "next_steps": [
           "GPT patent search",
-          "Provisional patent draft in Talk About Care beta session (Boss + Claude + GPT + patent lawyer)",
+          "Provisional patent draft in Talk About Care beta session (human + Claude + GPT + patent lawyer)",
           "Patent attorney files and negotiates"
         ],
         "first_use_case_for_discuss_care": "Drafting the provisional patent IS the beta test of the product."
@@ -262,7 +262,7 @@
       "authors": {
         "architect": "GPT-4o (Enterprise Architect role)",
         "engineer": "Claude Opus 4.6 (Implementation Engineer)",
-        "sponsor": "Skip Snow (Boss)"
+        "sponsor": "Skip Snow (human)"
       },
       "collaboration": {
         "method": "Brain Loop — 4 iteration design review",
@@ -497,7 +497,7 @@
           "topic": "Dependency injection for MongoDB and notifications",
           "gpt_proposed": "Inject DatabaseManager and NotificationService into FindCareApp constructor for testability.",
           "claude_decided": "FindCareApp creates its own MongoDB connection and SparkPost notifier internally. NOT injected.",
-          "rationale": "Boss rule: e2e tests use real systems (MongoDB, Anthropic, SparkPost) — no mocks. DI for testability is pointless when you don't mock. Injecting adds constructor complexity for zero practical benefit.",
+          "rationale": "human rule: e2e tests use real systems (MongoDB, Anthropic, SparkPost) — no mocks. DI for testability is pointless when you don't mock. Injecting adds constructor complexity for zero practical benefit.",
           "risk_of_this_decision": "Harder to unit test FindCareApp in isolation. Mitigated by the fact that this project's testing strategy is e2e with real systems.",
           "ch_matrix_id": "93b45afa-b665-40fb-a8f8-3a14f76c567c"
         },
@@ -1286,7 +1286,7 @@
             "ToolRouter + Facades",
             "ChatOrchestrator with fake LLM responses"
           ],
-          "e2e_tests": "Real systems (MongoDB, Anthropic) — no mocks per Boss directive",
+          "e2e_tests": "Real systems (MongoDB, Anthropic) — no mocks per human directive",
           "regression": [
             "Capture baseline outputs from main.py before refactor",
             "Replay test prompts and compare outputs"
@@ -1408,7 +1408,7 @@
             "id": "F-13",
             "title": "Architecture documentation is publicly accessible",
             "status": "DEFERRED",
-            "response": "Boss decision required on access gate before Alpha.",
+            "response": "human decision required on access gate before Alpha.",
             "ch_matrix_id": "b3462baf-a479-42ec-b493-f0a05b909c63"
           },
           {
@@ -1573,7 +1573,7 @@
               },
               {
                 "id": "B-199",
-                "task": "Boss UAT on QA",
+                "task": "human UAT on QA",
                 "risk": "N/A",
                 "deploy": "qa",
                 "ch_matrix_id": "7fa108e4-2e55-4099-9943-2069ac3a70f9"
@@ -1632,7 +1632,7 @@
           "F-08: All-state coverage (pipeline run)",
           "F-11: FIPS hack resolution (pipeline re-run)",
           "F-12: DeepSeek privacy disclosure (legal/copy)",
-          "F-13: Lock architecture docs (Boss decision)",
+          "F-13: Lock architecture docs (human decision)",
           "R19: Azure Function timeout UAT",
           "R35: Paused cluster UAT",
           "BL-001 through BL-010: Perplexity backlog (v0.1.4)"
@@ -1649,7 +1649,7 @@
         },
         {
           "decision": "System prompt stays in ChatOrchestrator (not PromptBuilder)",
-          "rationale": "Per Boss decision. Prompt references tool names only (not class names). ToolRouter is source of truth for available tools."
+          "rationale": "Per human decision. Prompt references tool names only (not class names). ToolRouter is source of truth for available tools."
         },
         {
           "decision": "Provider Detail belongs to EvaluateCareQuality (not FindCare)",
@@ -1665,7 +1665,7 @@
         },
         {
           "decision": "No dependency injection for MongoDB/notification clients",
-          "rationale": "Boss rule: e2e tests use real systems, no mocks. DI for testability is unnecessary when you do not mock."
+          "rationale": "human rule: e2e tests use real systems, no mocks. DI for testability is unnecessary when you do not mock."
         }
       ],
       "governance_alignment": {
@@ -1675,11 +1675,11 @@
         "GOV-005": "Strict three-application separation preserved"
       },
       "sign_off": {
-        "boss": {
+        "human": {
           "role": "CEO / Final Authority",
           "status": "APPROVED",
           "date": "2026-03-30",
-          "notes": "Design and sprint plan approved. Consent elevated to bounded context per Boss directive. Appendix A (AI model usage) approved. Proceed to build."
+          "notes": "Design and sprint plan approved. Consent elevated to bounded context per human directive. Appendix A (AI model usage) approved. Proceed to build."
         },
         "claude": {
           "role": "Engineer",
@@ -2160,7 +2160,7 @@
       "title": "FindCare Backend Portability Refactoring — Sprint 2 Design",
       "status": "approved_design_pending_implementation",
       "collaboration": "Claude (engineer) + GPT (architect), 4 iterations, 2026-03-27",
-      "trigger": "Boss directive: porting to Azure should not be major work. Portability must be a design property.",
+      "trigger": "human directive: porting to Azure should not be major work. Portability must be a design property.",
       "current_state": {
         "file": "Code/ConversationalUX/FindCareChat/backend/main.py",
         "lines": 1323,
@@ -2358,7 +2358,7 @@
           {
             "issue": "GPT wanted DatabaseManager and NotificationService injected into FindCareApp",
             "resolution": "FindCareApp creates its own MongoDB and notification internals",
-            "reason": "Boss rule: e2e tests use real systems, no mocks. DI for testability is pointless when you don't mock."
+            "reason": "human rule: e2e tests use real systems, no mocks. DI for testability is pointless when you don't mock."
           },
           {
             "issue": "GPT placed _handle_tool_calls in PromptFactory",
@@ -2504,7 +2504,7 @@
           "app.py": "HuggingFace entrypoint only",
           "adapter/host_chat_adapter.py": "HTTP <-> ChatOrchestrator",
           "application/": {
-            "chat_orchestrator.py": "LLM loop, system prompt (per Boss decision), safety gating",
+            "chat_orchestrator.py": "LLM loop, system prompt (per human decision), safety gating",
             "tool_router.py": "Pydantic-validated tool dispatch (allowlist enforced)",
             "session_manager.py": "Chat session + UX state",
             "facades/": {
@@ -2611,7 +2611,7 @@
           },
           "enforcement": [
             "Reject unknown tools (F-05 fix)",
-            "Validate all inputs via Pydantic (Boss decision)",
+            "Validate all inputs via Pydantic (human decision)",
             "Validate outputs before returning to LLM"
           ]
         }
@@ -2712,7 +2712,7 @@
       },
       "_record_id": "refactor_proposal_iteration3",
       "_source_file": "refactor_proposal_iteration3.json",
-      "description": "GPT-5.3 revised proposal after Boss sign-off on 3 open questions.",
+      "description": "GPT-5.3 revised proposal after human sign-off on 3 open questions.",
       "ch_matrix_id": "70798fbc-31dd-48ea-b1d7-3dafb0ab6ec1"
     },
     {
@@ -2991,20 +2991,20 @@
           "trigger": "Manual — merge dev to qa branch",
           "build_action": "Increment qa_System.build_counter (promotion is a build)",
           "verification": "QA tests against this build number",
-          "sign_off": "GPT reviews QA report, Boss approves"
+          "sign_off": "GPT reviews QA report, human approves"
         },
         "qa_to_prod": {
           "trigger": "Manual — merge qa to main branch",
           "build_action": "Increment prod_System.build_counter (promotion is a build)",
           "verification": "Smoke test on prod",
-          "sign_off": "Boss only (GOV-007)"
+          "sign_off": "human only (GOV-007)"
         }
       },
       "version_number": {
         "description": "Manual semantic version (e.g., v0.1.2). Set in APP_VERSION env var.",
-        "managed_by": "Boss",
+        "managed_by": "human",
         "storage": ".env file + HF Space secrets",
-        "increment_rule": "Boss decides when to bump version. Build number is automatic.",
+        "increment_rule": "human decides when to bump version. Build number is automatic.",
         "ch_matrix_id": "4a7e1718-9583-44f9-a897-50c96814f464"
       },
       "components": {
@@ -3222,7 +3222,7 @@
           "pipeline_cluster": "Paused when idle (cost saving)",
           "frontend_cluster": "Runs 24/7",
           "overdue_timer": "5-min check for overdue reservations + alerts",
-          "kill_switch": "Force-release for Boss"
+          "kill_switch": "Force-release for human"
         },
         "9_checkpoint_restart": {
           "durable_functions": "Automatic checkpoint at every yield (built-in replay)",
@@ -3359,7 +3359,7 @@
         "model_used": "gpt-4.1",
         "consensus_reached": true
       },
-      "overview": "v3 establishes Parquet as the canonical intermediate format, implements dual logging (ADLS commit log + MongoDB checkpoint), and mandates full reliability patterns. All previously parked items are resolved per Boss's direction. The pipeline is ready for 50-state scale, with explicit migration, rollback, and operational runbooks.",
+      "overview": "v3 establishes Parquet as the canonical intermediate format, implements dual logging (ADLS commit log + MongoDB checkpoint), and mandates full reliability patterns. All previously parked items are resolved per human's direction. The pipeline is ready for 50-state scale, with explicit migration, rollback, and operational runbooks.",
       "priority_goals": [
         "1. RELIABILITY -- pipeline must complete or resume from last checkpoint. No data loss. Parity verification mandatory.",
         "2. SPEED -- parallel where possible. Fan-out per state. Download in parallel. Process in parallel.",
@@ -3990,7 +3990,7 @@
           "pipeline_cluster": "Paused when idle (cost saving)",
           "frontend_cluster": "Runs 24/7",
           "overdue_timer": "5-min check for overdue reservations + alerts",
-          "kill_switch": "Force-release for Boss"
+          "kill_switch": "Force-release for human"
         },
         "11_checkpoint_restart": {
           "durable_functions": "Automatic checkpoint at every yield (built-in replay)",
@@ -4614,27 +4614,27 @@
         {
           "topic": "External Vector DB vs MongoDB Atlas",
           "decision": "Stay with MongoDB Atlas Vector Search (frontend cluster only). No external vector DB.",
-          "rationale": "Boss: Already invested in Atlas, external DB adds ops burden. RAM monitored; offload only if >80% or 2M providers."
+          "rationale": "human: Already invested in Atlas, external DB adds ops burden. RAM monitored; offload only if >80% or 2M providers."
         },
         {
           "topic": "Parquet as Canonical Intermediate Format vs Direct CSV-to-MongoDB",
           "decision": "Parquet is canonical intermediate format. All ingest and downstream processing use Parquet.",
-          "rationale": "Boss: CSV fragility will bite us at 50-state scale. Better to invest now."
+          "rationale": "human: CSV fragility will bite us at 50-state scale. Better to invest now."
         },
         {
           "topic": "Distributed Commit Log vs MongoDB-based Checkpointing",
           "decision": "Implement both: ADLS append-only commit log (audit trail) and MongoDB checkpoint (operational state).",
-          "rationale": "Boss: Different purposes. Commit log = what happened; checkpoint = where are we now."
+          "rationale": "human: Different purposes. Commit log = what happened; checkpoint = where are we now."
         },
         {
           "topic": "Schema Registry Service vs Schema-in-Code",
           "decision": "Lightweight schema validation in code (header match, field count, type check) + schema fingerprint per batch.",
-          "rationale": "Boss: Full registry not needed for 4 sources. Fingerprints and validation suffice."
+          "rationale": "human: Full registry not needed for 4 sources. Fingerprints and validation suffice."
         },
         {
           "topic": "Complexity vs Pragmatism",
           "decision": "Full reliability patterns NOW: chunked streaming, checkpoint/restart, parity verification, circuit breakers, dead letters.",
-          "rationale": "Boss: 'If not now, when.' No more deferral."
+          "rationale": "human: 'If not now, when.' No more deferral."
         }
       ],
       "consensus_decisions": [
@@ -4681,7 +4681,7 @@
         "COMMIT_LOG_GAP": "Fixed by implementing dual logging (commit log + MongoDB checkpoint) with reconciliation job"
       },
       "iteration_summary": {
-        "iterations_1_5": "Resolved all parked items per Boss's direction: Parquet canonical, dual logging, Atlas-only vector, full reliability patterns, lightweight schema validation.",
+        "iterations_1_5": "Resolved all parked items per human's direction: Parquet canonical, dual logging, Atlas-only vector, full reliability patterns, lightweight schema validation.",
         "iterations_6_10": "Detailed Parquet layer: conversion, partitioning, schema evolution, storage, and Parquet-to-MongoDB ingest.",
         "iterations_11_15": "Designed dual logging: commit log schema, MongoDB checkpoint schema, reconciliation, RBAC, retention, and compliance.",
         "iterations_16_20": "Reliability and chaos testing: circuit breaker, checkpoint/restart, Parquet corruption, chaos schedule, operational runbooks, edge case handling, cost analysis, migration path.",

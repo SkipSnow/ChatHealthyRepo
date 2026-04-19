@@ -591,6 +591,7 @@ def _check_indexes() -> dict:
             missing.append(f"{coll_name}/ERROR")
     return {"missing": missing, "status": "fail" if missing else "ok"}
 
+# graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/health")
 def health():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
@@ -621,6 +622,7 @@ def health():
     return result
 
 # ── Session token — signed with FindCare's x509 cert ──────────
+# graph-exempt: session token read, no LLM — security primitive; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/session")
 def get_session():
     """Generate a signed session token for this browser session.
@@ -652,6 +654,7 @@ class EvaluateRequest(BaseModel):
     session_token: Optional[dict] = None
     question_summary: str = ""
 
+# graph-exempt: static page render — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/evaluate/splash")
 def evaluate_splash():
     """Proxy splash call to EvaluateCare service. Transfers page ownership to EvaluateCare."""
@@ -675,6 +678,7 @@ def evaluate_splash():
         _log.error("CONTROL TRANSFER FAILED: EvaluateCare unreachable at %s: %s", evalcare_url, e)
         return {"html": '<div style="text-align:center;padding:20px;"><div style="font-size:24px;font-weight:700;color:#1f2937;">EvaluateCare</div><div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">Service unavailable</div></div>'}
 
+# graph-exempt: proxy/redirect — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/transfer/to-findcare")
 def transfer_to_findcare():
     """EvaluateCare calls FindCare facade to return page ownership.
@@ -699,6 +703,7 @@ def transfer_to_findcare():
         _log.warning("Could not notify EvaluateCare of transfer")
     return {"owner": "findcare", "splash": WELCOME_MESSAGE}
 
+# graph-exempt: proxy/redirect — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/evaluate/providers")
 def evaluate_proxy(body: EvaluateRequest):
     """Proxy evaluate call through FindCare → EvaluateCare.
@@ -738,6 +743,7 @@ def evaluate_proxy(body: EvaluateRequest):
         return {"status": "error", "error": str(e)}
 
 # ── Shared Services proxy — FindCare backend → CHShared over mTLS ──
+# graph-exempt: static page render — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/shared/splash")
 def shared_splash():
     """Proxy splash call to SharedServices. Transfers page ownership."""
@@ -761,6 +767,7 @@ def shared_splash():
         _log.error("CONTROL TRANSFER FAILED: SharedServices unreachable at %s", shared_url)
         return {"html": '<div style="text-align:center;padding:20px;"><div style="font-size:24px;font-weight:700;color:#1f2937;">Shared Services</div><div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">Service unavailable</div></div>'}
 
+# graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/shared/verify-token")
 def shared_verify_token(body: EvaluateRequest):
     """Proxy token verification to SharedServices over mTLS."""
@@ -785,6 +792,7 @@ def shared_verify_token(body: EvaluateRequest):
         _log.error("SharedServices verify-token failed: %s", e)
         return {"status": "error", "error": str(e)}
 
+# graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/evaluate/verify-token")
 def evaluate_verify_token(body: EvaluateRequest):
     """Proxy token verification to EvaluateCare over mTLS — mirrors /shared/verify-token.
@@ -960,6 +968,7 @@ if os.path.isdir(_static_dir):
     from starlette.staticfiles import StaticFiles
     from starlette.responses import FileResponse
 
+    # graph-exempt: static page render — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
     @app.get("/")
     async def serve_index():
         return FileResponse(

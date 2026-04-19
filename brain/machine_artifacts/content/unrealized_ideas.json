@@ -2,11 +2,11 @@
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "unrealized_ideas",
   "governance_attribute_id": "ch_governance_record_id_e85047f3-d6e4-4be6-8578-0ddc8793ff65",
-  "description": "Ideas captured from Boss that are not yet in the backlog. Every idea gets tracked here first, then promoted to a story when prioritized.",
+  "description": "Ideas captured from human that are not yet in the backlog. Every idea gets tracked here first, then promoted to a story when prioritized.",
   "ideas": [
     {
       "id": "IDEA-001",
-      "author": "Boss",
+      "author": "human",
       "datetime": "2026-04-04T02:30:00Z",
       "title": "Biz Ops MongoDB Cluster",
       "description": "Break out a dedicated MongoDB cluster for business operations (lifecycle reservations, audit trails, build counters, promotion logs). Currently these are on the frontend cluster as an interim fix. The pipeline cluster is expensive and usually off — devops state should not be there. The frontend cluster is for user-facing data — devops state should not be there either.",
@@ -18,7 +18,7 @@
     },
     {
       "id": "IDEA-002",
-      "author": "Boss",
+      "author": "human",
       "datetime": "2026-04-04T03:00:00Z",
       "title": "Unattended Agent Space on HuggingFace",
       "description": "Dedicated HuggingFace Space for unattended agent work. Runs 24/7, monitors pipelines, grooms unrealized_ideas.json, executes overnight assignments, checks semaphores. Separate from the product app — no dev pollution. Secure access via HF token. Can expose a port for webhook callbacks.",
@@ -30,10 +30,10 @@
     },
     {
       "id": "IDEA-003",
-      "author": "Boss",
+      "author": "human",
       "datetime": "2026-04-04T03:05:00Z",
       "title": "Daily Agent Grooming of Unrealized Ideas",
-      "description": "An agent reads unrealized_ideas.json daily, cross-references with architecture and backlog, proposes solutions and roadmap placement, surfaces recommendations for morning Boss review. The Brain grooms itself.",
+      "description": "An agent reads unrealized_ideas.json daily, cross-references with architecture and backlog, proposes solutions and roadmap placement, surfaces recommendations for morning human review. The Brain grooms itself.",
       "recommended_roadmap": {
         "epic": "EPIC-3 Pipeline Management",
         "date_of_delivery": "2026-04-25"
@@ -42,7 +42,7 @@
     },
     {
       "id": "IDEA-004",
-      "author": "Boss",
+      "author": "human",
       "datetime": "2026-04-04T09:15:00Z",
       "title": "Continuous Improvement Opportunity",
       "description": "These are real KPIs that must be broken down to measurable things and Skip must set goals for improvement and work to meet them.",
@@ -186,7 +186,7 @@
           "band": "Middle 30%",
           "score": 60,
           "kpis": [
-            "Boss corrections per feature",
+            "human corrections per feature",
             "Requirements changed after implementation started",
             "Features rebuilt due to wrong interpretation",
             "Clarifying questions asked before coding vs after"
@@ -200,7 +200,7 @@
             "Design reversals per session",
             "Components placed in wrong location count",
             "Ad hoc decisions without backlog item",
-            "Design decisions made without asking Boss"
+            "Design decisions made without asking human"
           ]
         },
         {
@@ -222,7 +222,7 @@
             "Rules broken per session",
             "Infrastructure touched without authorization",
             "DR violations (DR-001 through DR-019)",
-            "Times Boss had to correct same mistake twice"
+            "Times human had to correct same mistake twice"
           ]
         },
         {
@@ -245,14 +245,14 @@
     },
     {
       "id": "IDEA-006",
-      "author": "Boss",
+      "author": "human",
       "datetime": "2026-04-05T10:00:00Z",
       "title": "Competitive Intelligence — Amigo AI Series A",
       "source_url": "https://www.amigo.ai/blog/amigo-series-a",
       "claude_conclusion": {
         "analyst": "Claude Opus 4.6",
         "date": "2026-04-05",
-        "verdict": "Not a competitor. Different market, different model, dubious claims. Boss spent 30 minutes on their site and confirms they have not cracked it.",
+        "verdict": "Not a competitor. Different market, different model, dubious claims. Human spent 30 minutes on their site and confirms they have not cracked it.",
         "summary": "Amigo AI raised $17.5M Series A (Madrona lead, Optum Ventures co-investor) on top of seed from General Catalyst and GSV Ventures. They build enterprise clinical AI agents sold to hospitals and clinics for workflow automation (intake, triage, chronic care, scheduling). CEO Ali Khokhar, CTO John Xing, 11-50 employees, NYC-based.",
         "threat_to_chathealthy": "None. Amigo sells B2B to healthcare organizations — the same entities whose opacity ChatHealthy exists to counterbalance. ChatHealthy empowers consumers directly (GOV-001 Provider Neutrality). Completely different value chain position. If anything, Amigo making providers more efficient could increase the information asymmetry that ChatHealthy addresses.",
         "skepticism_flags": [
@@ -340,7 +340,7 @@
     },
     {
       "id": "IDEA-005",
-      "author": "Boss",
+      "author": "human",
       "datetime": "2026-04-06T03:37:13Z",
       "title": "Architecture-Compliant Code Enforcement",
       "description": "No line of code can be written by Claude that is not in compliance with the enterprise business and technical architecture. The system must iterate towards that goal. This is not a hook problem — it is a discipline + audit problem. The architecture docs (policies.json, architecture.json, design.json) are authoritative. Claude must check compliance before writing code. GPT audits after. The gap between today and full enforcement narrows with every session, every audit, and every incident logged to engineering_rules.json.",
@@ -352,7 +352,7 @@
     },
     {
       "id": "IDEA-007",
-      "author": "Boss",
+      "author": "human",
       "datetime": "2026-04-07T23:10:00Z",
       "title": "Zero-Trust Component-to-Component Communication",
       "description": "In a zero-trust environment, how do our four components (FindCare, EvaluateCare, Shared Services, Brain) authenticate and authorize communication with each other? Current: mTLS with per-service x509 certs for service identity. Missing: (1) service-level authorization — what can FindCare ask EvaluateCare to do? (2) request-level signing — can we verify a request wasn't tampered in transit even with TLS? (3) token-based session binding — tie a user's session across components without sharing state. (4) audit trail — every cross-component call logged with caller identity, action, timestamp. This is the foundation for HITRUST High with zero findings. Must decide the pattern before production: mTLS only, mTLS + JWT, mTLS + signed requests, or full service mesh.",

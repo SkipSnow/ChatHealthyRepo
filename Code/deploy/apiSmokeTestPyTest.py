@@ -17,7 +17,7 @@ a dedicated service-to-service port, flip these tests to expect pass.
 
 Debug logging (SMOKE_DEBUG=1): for each attempt, log caller cert subject
 CN, callee URL, response status, and a 120-char body snippet. Approved
-by Boss 2026-04-17 as the condition for signing off this test file.
+by human 2026-04-17 as the condition for signing off this test file.
 
 Run:
   SMOKE_TEST_ENV=local python -m pytest Code/deploy/apiSmokeTestPyTest.py -v

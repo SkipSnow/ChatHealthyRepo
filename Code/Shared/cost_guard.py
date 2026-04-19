@@ -10,7 +10,7 @@ brain/budget_config.json.
 
 Agents call log_usage() after every API call.
 brain_loop calls check_budget() before picking up assignments.
-Boss calls get_usage_report() to see spend at any time.
+Human calls get_usage_report() to see spend at any time.
 
 Brain files:
   brain/usage_log.json    — all API call records
@@ -178,7 +178,7 @@ def log_usage(
             raise RuntimeError(
                 f"[CostGuard] HARD STOP: Assignment {assignment_id} exceeded "
                 f"per-assignment budget ${limit:.2f}. Actual: ${asn_total:.4f}. "
-                f"Boss must raise the limit or close the assignment."
+                f"human must raise the limit or close the assignment."
             )
 
     return cost
@@ -188,7 +188,7 @@ def check_budget(assignment_id: Optional[str] = None) -> dict:
     """
     Check remaining budget before starting or continuing work.
 
-    Returns a status dict. If 'ok' is False, do not proceed — escalate to Boss.
+    Returns a status dict. If 'ok' is False, do not proceed — escalate to human.
 
     Args:
         assignment_id: Check per-assignment budget (optional)

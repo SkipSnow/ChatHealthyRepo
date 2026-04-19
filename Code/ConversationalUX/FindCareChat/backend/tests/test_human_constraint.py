@@ -1,12 +1,12 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# BUG-GOV-002: Boss prompt instructions take precedence over all other rules.
+# BUG-GOV-002: Human prompt instructions take precedence over all other rules.
 #
-# Requirement: If Boss constrained Claude from changing state in any way
+# Requirement: If human constrained Claude from changing state in any way
 # in the last 3 hours in the transcript, Claude must respect that constraint.
 #
-# Success criteria: tool_call returns {allow: False} when Boss constraint
+# Success criteria: tool_call returns {allow: False} when human constraint
 # is active, even if other rules would allow the action.
 
 import json
@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 
 class TestBossConstraint(unittest.TestCase):
-    """BUG-GOV-002: Boss prompt constraint enforcement."""
+    """BUG-GOV-002: Human prompt constraint enforcement."""
 
     def _make_transcript(self, messages):
         """Create a temp transcript JSONL with given messages."""
@@ -30,7 +30,7 @@ class TestBossConstraint(unittest.TestCase):
         return f.name
 
     def test_boss_says_no_changes_blocks_edit(self):
-        """Boss says 'don't make any changes' — Edit must be blocked."""
+        """human says 'don't make any changes' — Edit must be blocked."""
         from chathealthy_devops_boot import chathealthy_devops_boot
         transcript = self._make_transcript([
             {"role": "user", "content": "don't make any changes to the code base or any of our JSONs"},
@@ -41,7 +41,7 @@ class TestBossConstraint(unittest.TestCase):
         os.unlink(transcript)
 
     def test_boss_says_stop_blocks(self):
-        """Boss says 'stop' — state changes blocked."""
+        """human says 'stop' — state changes blocked."""
         from chathealthy_devops_boot import chathealthy_devops_boot
         transcript = self._make_transcript([
             {"role": "user", "content": "stop"},
@@ -51,7 +51,7 @@ class TestBossConstraint(unittest.TestCase):
         os.unlink(transcript)
 
     def test_boss_says_do_nothing_blocks(self):
-        """Boss says 'do nothing' — state changes blocked."""
+        """human says 'do nothing' — state changes blocked."""
         from chathealthy_devops_boot import chathealthy_devops_boot
         transcript = self._make_transcript([
             {"role": "user", "content": "do nothing"},
@@ -95,7 +95,7 @@ class TestBossConstraint(unittest.TestCase):
         self.assertFalse(result["constrained"])
 
     def test_bug_pydantic_escalates_with_boss_constraint(self):
-        """Bug pydantic object returns escalate when Boss constraint active."""
+        """Bug pydantic object returns escalate when human constraint active."""
         from chathealthy_devops_boot import bug_governance_constraints
         transcript = self._make_transcript([
             {"role": "user", "content": "don't make any changes"},

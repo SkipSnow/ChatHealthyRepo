@@ -39081,7 +39081,7 @@
               "evidence": "brain/machine_artifacts/content/architecture.json (DC-14 Shared Research Bot); brain/machine_artifacts/content/design.json (EVAL-P-RX drug mapping)",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "backend_dependencies": [
                 "EVAL-SCORE-PROV"
               ],
@@ -39096,7 +39096,7 @@
                     "dependencies": [],
                     "size": "L",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -39178,7 +39178,7 @@
                           "req_id": "EVAL-RES-001-REQ-004",
                           "story_id": "EVAL-RES-001",
                           "requirement": "The agent must verify its findings against Delaware provider data in dev_PublicHealthData.providers \u2014 confirm that providers with surgery taxonomy codes exist and that the subspecialty mapping is accurate for at least 10 Delaware surgeons.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "verification",
@@ -39274,7 +39274,7 @@
               "description": "EvaluateCare scoring engine. Separate HF Space. Port 8001 local, 7860 on HF. Calls FindCare facade over mTLS. Premium tier \u2014 higher value, separate scaling and pricing.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -39667,7 +39667,7 @@
               "description": "Resolve all 11 Cloudflare Security Insights findings from April 2026 scan.",
               "priority": "MEDIUM",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -40381,7 +40381,7 @@
               "description": "Provision Azure Key Vault in ChatHealthySecurity resource group. Store all production secrets. No bearer tokens \u2014 auth via x509 cert or Managed Identity only.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "diagram_ref": "local_architecture_component.puml \u2014 Azure \u2014 ChatHealthySecurity package",
               "stories": {
                 "story": [
@@ -40724,7 +40724,7 @@
               "description": "All non-Azure services (HuggingFace Spaces) authenticate to Key Vault via x509 certificate registered with Azure AD. One certificate per Space. No bearer tokens.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "diagram_ref": "local_architecture_component.puml \u2014 HuggingFace package \u2192 Azure Key Vault (red x509 lines)",
               "stories": {
                 "story": [
@@ -41133,7 +41133,7 @@
               "description": "Local development authenticates to Azure Key Vault via x509 certificate. Private key stored on local machine, never in git. Replaces all .env files containing secrets.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "diagram_ref": "local_architecture_component.puml \u2014 SecretManager in Shared Services \u2192 Azure Key Vault (red x509 line)",
               "stories": {
                 "story": [
@@ -41382,7 +41382,7 @@
               "description": "Azure Functions authenticate to Key Vault via Managed Identity. Zero credentials \u2014 Azure handles auth internally. Most secure option for Azure-hosted resources.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "diagram_ref": "local_architecture_component.puml \u2014 Azure Functions \u2192 Azure Key Vault (green Managed Identity line)",
               "stories": {
                 "story": [
@@ -41523,7 +41523,7 @@
               "description": "SecretManager in Shared Services (:8002) is the single source for all credentials. Fetches from Key Vault, serves to FindCare and EvaluateCare over mTLS. No service holds keys directly. Resolves BL-0.1.4-002 (Bearer Token Lifecycle Management).",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "diagram_ref": "local_architecture_component.puml \u2014 SecretManager in Shared Services package",
               "audit_ref": "BL-0.1.4-002 (Perplexity backlog)",
               "stories": {
@@ -41889,7 +41889,7 @@
               "description": "Azure VNet with subnet isolation, Azure Firewall, and private endpoints to all external services (HuggingFace Spaces, MongoDB Atlas, Key Vault). No public internet exposure for service-to-service traffic. Overrides and supersedes EPIC-6 SDT-VNET if contradictions exist.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "diagram_ref": "local_architecture_component.puml \u2014 Azure environments",
               "stories": {
                 "story": [
@@ -42365,7 +42365,7 @@
               "description": "All service-to-service communication uses mutual TLS. Certificates stored in Key Vault. Caddy terminates and enforces mTLS locally. Cross-references EPIC-6 SDT-FC-001, SDT-EC-001, SDT-PIPE-001.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "diagram_ref": "local_architecture_component.puml \u2014 red mTLS lines between services",
               "stories": {
                 "story": [
@@ -42642,7 +42642,7 @@
               "description": "chathealthy.ai \u2014 public landing page, chat, roadmap, products. Cloudflare Pages. No authentication.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": []
               },
@@ -42662,7 +42662,7 @@
               "description": "admin.chathealthy.ai \u2014 architecture, QA reports, business docs. Cloudflare Pages behind Cloudflare Access authentication. Separate Cloudflare project, separate subdomain.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": []
               },
@@ -42682,7 +42682,7 @@
               "description": "OAuth 2.0 with PKCE for end-user authentication. Three social identity providers: Google, Facebook, Apple. Layered protocol: authorization code flow with PKCE, ID token validation, session management. Users sign in with existing accounts \u2014 no password to manage. Required for EvaluateCare premium tier and Talk About Care sessions.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -42965,7 +42965,7 @@
               "priority": "HIGH",
               "status": "deferred",
               "superseded_by": "SEC-NETWORK",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": []
               },
@@ -43007,7 +43007,7 @@
                           "approval": "approved",
                           "type": "business",
                           "story_id": "SEC-COMPLIANCE-COMMITMENTS-001",
-                          "source": "Boss directive 2026-04-19 - restructure epics, close trace gap",
+                          "source": "human directive 2026-04-19 - restructure epics, close trace gap",
                           "date": "2026-04-19"
                         },
                         {
@@ -43028,7 +43028,7 @@
                           "approval": "approved",
                           "type": "technical",
                           "story_id": "SEC-COMPLIANCE-COMMITMENTS-001",
-                          "source": "Boss directive 2026-04-19 - restructure epics, close trace gap",
+                          "source": "human directive 2026-04-19 - restructure epics, close trace gap",
                           "date": "2026-04-19",
                           "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
                         }
@@ -43076,7 +43076,7 @@
                           "approval": "proposed",
                           "type": "business",
                           "story_id": "ARCH-COMPLIANCE-CROSSWALK-001",
-                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "source": "human directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
                           "date": "2026-04-19",
                           "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
                         },
@@ -43098,7 +43098,7 @@
                           "approval": "proposed",
                           "type": "technical",
                           "story_id": "ARCH-COMPLIANCE-CROSSWALK-001",
-                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "source": "human directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
                           "date": "2026-04-19",
                           "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
                         }
@@ -43135,7 +43135,7 @@
                           "approval": "proposed",
                           "type": "business",
                           "story_id": "ARCH-COMPLIANCE-CROSSWALK-002",
-                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "source": "human directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
                           "date": "2026-04-19",
                           "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
                         },
@@ -43157,7 +43157,7 @@
                           "approval": "proposed",
                           "type": "technical",
                           "story_id": "ARCH-COMPLIANCE-CROSSWALK-002",
-                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "source": "human directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
                           "date": "2026-04-19",
                           "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
                         }
@@ -43194,7 +43194,7 @@
                           "approval": "approved",
                           "type": "business",
                           "story_id": "NIST-COMPLIANCE-AGENT-001",
-                          "source": "Boss directive 2026-04-19 - BuildAnEpic Agents",
+                          "source": "human directive 2026-04-19 - BuildAnEpic Agents",
                           "date": "2026-04-19",
                           "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
                         },
@@ -43216,7 +43216,7 @@
                           "approval": "approved",
                           "type": "technical",
                           "story_id": "NIST-COMPLIANCE-AGENT-001",
-                          "source": "Boss directive 2026-04-19 - BuildAnEpic Agents",
+                          "source": "human directive 2026-04-19 - BuildAnEpic Agents",
                           "date": "2026-04-19",
                           "traces_to": "SEC-COMPLIANCE-COMMITMENTS-REQ-B001"
                         }
@@ -43260,7 +43260,7 @@
               "description": "Dual-trigger emergency detection (keyword + AI classifier). IP-based lockout on emergency. Admin unlock with shared secret. De-identified audit trail of all safety events.",
               "priority": "CRITICAL",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -44105,7 +44105,7 @@
                         },
                         {
                           "req_id": "DEVOPS-QA-005-REQ-003",
-                          "requirement": "Only Boss can submit \u2014 no authentication bypass",
+                          "requirement": "Only human can submit \u2014 no authentication bypass",
                           "priority": "must-have",
                           "status": "not_started",
                           "ch_matrix_id": "0c5b73ba-c05e-430e-b3b6-786fc2b50f82",
@@ -44140,7 +44140,7 @@
                     "dependencies": [],
                     "size": "L",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -46563,7 +46563,7 @@
               "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py (_paginated_result); Code/ConversationalUX/FindCareChat/backend/main.py (PaginationMeta); Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx (response display)",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "backend_dependencies": [],
               "stories": {
                 "story": [
@@ -46577,14 +46577,14 @@
                     "size": "M",
                     "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py:146 (_paginated_result)",
                     "status": "done",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "FC-MSG-001-REQ-001",
                           "story_id": "FC-MSG-001",
                           "requirement": "The summary must use the user's search term (specialty_searched), not the generic word 'providers'.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "done",
                           "label": "GOV-011",
@@ -46621,7 +46621,7 @@
                           "req_id": "FC-MSG-001-REQ-002",
                           "story_id": "FC-MSG-001",
                           "requirement": "The summary must report the remaining count (total_count minus count of displayed providers), not the total count.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "GOV-011",
@@ -46647,7 +46647,7 @@
                           "req_id": "FC-MSG-001-REQ-003",
                           "story_id": "FC-MSG-001",
                           "requirement": "The summary must state how many types of specialists the results represent (len of specialization_options).",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -46673,7 +46673,7 @@
                           "req_id": "FC-MSG-001-REQ-004",
                           "story_id": "FC-MSG-001",
                           "requirement": "The summary must include a marker for 'Filter' that the frontend can render as a clickable link to the specialty filter panel.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -46705,7 +46705,7 @@
                           "req_id": "FC-MSG-001-REQ-005",
                           "story_id": "FC-MSG-001",
                           "requirement": "The summary must include a marker for 'next page' that the frontend can render as a clickable link to trigger pagination.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -46731,7 +46731,7 @@
                           "req_id": "FC-MSG-001-REQ-006",
                           "story_id": "FC-MSG-001",
                           "requirement": "The summary must include the state in the message (e.g., \"in 'VA'\") when the user specified a state.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -46757,7 +46757,7 @@
                           "req_id": "FC-MSG-001-REQ-009",
                           "story_id": "FC-MSG-001",
                           "requirement": "The summary must echo the user's search term in the action links (e.g., \"more 'shrinks'\", \"filter 'shrinks' by provider type\").",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -46789,7 +46789,7 @@
                           "req_id": "FC-MSG-001-REQ-010",
                           "story_id": "FC-MSG-001",
                           "requirement": "The summary must offer location narrowing options (zipcode, county, city) but omit the dimension the user already specified.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -46881,14 +46881,14 @@
                     "size": "M",
                     "evidence": "Code/ConversationalUX/FindCareChat/frontend/src/components/ChatWindow.tsx:295",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "FC-MSG-002-REQ-001",
                           "story_id": "FC-MSG-002",
                           "requirement": "The frontend must display the summary_message from PaginationMeta as a separate system message after the LLM's provider listing.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "GOV-011",
@@ -46914,7 +46914,7 @@
                           "req_id": "FC-MSG-002-REQ-002",
                           "story_id": "FC-MSG-002",
                           "requirement": "The [Filter] marker in summary_message must render as a clickable link that highlights or scrolls to the specialty filter panel.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -46946,7 +46946,7 @@
                           "req_id": "FC-MSG-002-REQ-003",
                           "story_id": "FC-MSG-002",
                           "requirement": "The [next page] marker in summary_message must render as a clickable link that triggers loading the next page of results.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -47021,7 +47021,7 @@
               "evidence": "Code/ConversationalUX/FindCareChat/backend/main.py (_REQUIRED_INDEXES, /health); Code/DataPipelines/copy_to_frontend.py (verify_frontend_indexes); Code/DataPipelines/promote_data_fn.py (index verification gate)",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "backend_dependencies": [],
               "stories": {
                 "story": [
@@ -47035,7 +47035,7 @@
                     "size": "M",
                     "evidence": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/provider_search_service.py:124 (provider_vector_index); Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_service.py:89 (specialty_vector_index)",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47092,7 +47092,7 @@
                           "req_id": "IDX-001-REQ-003",
                           "story_id": "IDX-001",
                           "requirement": "All indexes must be in READY status before UAT begins.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -47122,21 +47122,21 @@
                   {
                     "story_id": "IDX-002",
                     "title": "Propose pipeline cluster indexes",
-                    "description": "Resume pipeline cluster, audit current indexes, read all pipeline code (enrichment, embedding, copy operations), and propose an index strategy. Pipeline indexes exist only to support enrichment workflows. Present proposal to Boss for approval before creating anything.",
+                    "description": "Resume pipeline cluster, audit current indexes, read all pipeline code (enrichment, embedding, copy operations), and propose an index strategy. Pipeline indexes exist only to support enrichment workflows. Present proposal to human for approval before creating anything.",
                     "parent_feature": "MAINT-IDX-TUNE",
                     "sprint": 5,
                     "dependencies": [],
                     "size": "S",
                     "evidence": "Code/DataPipelines/provider_load_manager.py; Code/DataPipelines/copy_to_frontend.py; Code/DataPipelines/county_economic_enrichment.py",
                     "status": "in_progress",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "IDX-002-REQ-001",
                           "story_id": "IDX-002",
                           "requirement": "Audit existing indexes on pipeline cluster when resumed. Document what exists.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "in_progress",
                           "label": "",
@@ -47161,7 +47161,7 @@
                           "req_id": "IDX-002-REQ-002",
                           "story_id": "IDX-002",
                           "requirement": "Read all pipeline code and identify every query pattern used during enrichment workflows. Propose indexes that support those patterns.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "in_progress",
                           "label": "DR-018",
@@ -47185,8 +47185,8 @@
                         {
                           "req_id": "IDX-002-REQ-003",
                           "story_id": "IDX-002",
-                          "requirement": "Present index proposal to Boss for approval. Do not create indexes without sign-off.",
-                          "source": "Boss directive",
+                          "requirement": "Present index proposal to human for approval. Do not create indexes without sign-off.",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "in_progress",
                           "label": "",
@@ -47225,7 +47225,7 @@
                     "size": "S",
                     "evidence": "Code/DataPipelines/promote_data_fn.py (verify_frontend_indexes); Code/DataPipelines/copy_to_frontend.py (verify_frontend_indexes)",
                     "status": "in_progress",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47282,7 +47282,7 @@
                           "req_id": "IDX-003-REQ-003",
                           "story_id": "IDX-003",
                           "requirement": "After all pipeline jobs that move data to a collection (incremental or full load), the pipeline must know which indexes to build or maintain on that collection. If an index exists but is wrong (different definition), drop and rebuild it. If an index exists and is correct, accept it. If an index is missing, build it. The pipeline must wait for all indexes to reach READY status before releasing the reservation in the cluster lifecycle manager. This ensures the cluster can be paused with all indexes configured, live, and correct when it resumes.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "in_progress",
                           "label": "BUG-PIPE-007",
@@ -47328,7 +47328,7 @@
               "description": "Every pipeline step must accept state filter, report status on completion/failure, and release cluster reservation in a finally block. The orchestrator must handle abends gracefully.",
               "priority": "CRITICAL",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -47340,14 +47340,14 @@
                     "dependencies": [],
                     "size": "M",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "PIPE-LC-001-REQ-001",
                           "story_id": "PIPE-LC-001",
                           "requirement": "Every enrichment pass (1-6) must accept a states parameter and filter queries to only process providers in those states.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "in_progress",
                           "label": "",
@@ -47372,7 +47372,7 @@
                           "req_id": "PIPE-LC-001-REQ-002",
                           "story_id": "PIPE-LC-001",
                           "requirement": "If states is not provided, the step must raise an error, not default to all records.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -47408,14 +47408,14 @@
                     "dependencies": [],
                     "size": "L",
                     "status": "done",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "PIPE-LC-002-REQ-001",
                           "story_id": "PIPE-LC-002",
                           "requirement": "The findcare_pipeline_orchestrator must wrap all steps in try/finally. On any failure, the finally block must release the reservation.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "done",
                           "label": "",
@@ -47445,7 +47445,7 @@
                           "req_id": "PIPE-LC-002-REQ-002",
                           "story_id": "PIPE-LC-002",
                           "requirement": "Each step must report status (completed_success or completed_fail) to the orchestrator.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -47470,7 +47470,7 @@
                           "req_id": "PIPE-LC-002-REQ-003",
                           "story_id": "PIPE-LC-002",
                           "requirement": "On abend, the orchestrator must inform the manager to withdraw its reservation and shut down the cluster if no other jobs hold reservations.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -47506,14 +47506,14 @@
                     "dependencies": [],
                     "size": "M",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "PIPE-LC-003-REQ-001",
                           "story_id": "PIPE-LC-003",
                           "requirement": "The Router API must accept an incremental parameter (boolean, default false) in the FindCarePipeline payload.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -47538,7 +47538,7 @@
                           "req_id": "PIPE-LC-003-REQ-002",
                           "story_id": "PIPE-LC-003",
                           "requirement": "If incremental is false or absent, the providers collection must be dropped before loading new data.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "in_progress",
                           "label": "",
@@ -47563,7 +47563,7 @@
                           "req_id": "PIPE-LC-003-REQ-003",
                           "story_id": "PIPE-LC-003",
                           "requirement": "If incremental is true, the providers collection must not be dropped. The load step must use the incremental code path instead of insert.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -47601,7 +47601,7 @@
                     ],
                     "size": "M",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47644,7 +47644,7 @@
                     "dependencies": [],
                     "size": "M",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47687,7 +47687,7 @@
                     "dependencies": [],
                     "size": "M",
                     "status": "done",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47736,7 +47736,7 @@
                     "dependencies": [],
                     "size": "M",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47779,7 +47779,7 @@
                     "dependencies": [],
                     "size": "S",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47822,7 +47822,7 @@
                     "dependencies": [],
                     "size": "S",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47865,7 +47865,7 @@
                     "dependencies": [],
                     "size": "S",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47908,7 +47908,7 @@
                     "dependencies": [],
                     "size": "S",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47951,7 +47951,7 @@
                     "dependencies": [],
                     "size": "S",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -47994,7 +47994,7 @@
                     "dependencies": [],
                     "size": "S",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -48037,7 +48037,7 @@
                     "dependencies": [],
                     "size": "S",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -48080,14 +48080,14 @@
                     "dependencies": [],
                     "size": "S",
                     "status": "to_test",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "PIPE-LC-015-REQ-001",
                           "story_id": "PIPE-LC-015",
                           "requirement": "When release() removes the last reservation for a cluster, it must call _send_pause(cluster_name). Boolean test: release last reservation \u2192 Atlas API receives PATCH {paused: true}.",
-                          "source": "Boss directive: zero reservations = cluster must pause",
+                          "source": "human directive: zero reservations = cluster must pause",
                           "priority": "must-have",
                           "status": "in_progress",
                           "label": "",
@@ -48211,7 +48211,7 @@
                     "dependencies": [],
                     "size": "M",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -48289,7 +48289,7 @@
               "description": "BUG-PIPE-004: Provider and enrichment data must be one record. Enrichment updates fields on the provider record in-place. No separate enrichment collection. Per MongoDB best practices \u2014 avoid cross-collection joins.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -48301,14 +48301,14 @@
                     "dependencies": [],
                     "size": "M",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "PIPE-DM-001-REQ-001",
                           "story_id": "PIPE-DM-001",
                           "requirement": "All enrichment (county, economic, embedding) must use updateOne/updateMany on the providers collection. No separate enrichment collection.",
-                          "source": "Boss directive / MongoDB best practices",
+                          "source": "human directive / MongoDB best practices",
                           "priority": "must-have",
                           "status": "in_progress",
                           "label": "",
@@ -48354,7 +48354,7 @@
               "description": "Support incremental NPI file updates: full record replacement with county reset, and record deletion for deactivated NPIs.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -48368,14 +48368,14 @@
                     ],
                     "size": "L",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "PIPE-INC-001-REQ-001",
                           "story_id": "PIPE-INC-001",
                           "requirement": "When incremental=true, each provider record must be fully replaced (replaceOne) with the new NPI data.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -48400,7 +48400,7 @@
                           "req_id": "PIPE-INC-001-REQ-002",
                           "story_id": "PIPE-INC-001",
                           "requirement": "On incremental replace, county must be set to null to force re-enrichment in subsequent passes.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -48425,7 +48425,7 @@
                           "req_id": "PIPE-INC-001-REQ-003",
                           "story_id": "PIPE-INC-001",
                           "requirement": "New records not already in the collection must be inserted.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -48463,14 +48463,14 @@
                     ],
                     "size": "S",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "PIPE-INC-002-REQ-002",
                           "story_id": "PIPE-INC-002",
                           "requirement": "Deactivated NPI numbers must be logged for audit trail.",
-                          "source": "Boss directive",
+                          "source": "human directive",
                           "priority": "must-have",
                           "status": "not_started",
                           "label": "",
@@ -48513,12 +48513,12 @@
               "epic_id": "EPIC-006",
               "layer": "pipeline",
               "capability": "DataOps",
-              "description": "ChatHealthy.ai needs a bulletproof ETL process that runs successfully 95% of the time given source files exist. Errors must alert Boss immediately. Design priorities in order: reliability, speed, cost. All architecture rules (technical + business) and engineering rules must be complied with.",
+              "description": "ChatHealthy.ai needs a bulletproof ETL process that runs successfully 95% of the time given source files exist. Errors must alert human immediately. Design priorities in order: reliability, speed, cost. All architecture rules (technical + business) and engineering rules must be complied with.",
               "priority": "CRITICAL",
               "status": "in_progress",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "human_business_requirements": "1: chatHealthy.ai needs a 'bullet proof ETL process that can successfully run 95% of the time providing that source files exist. 2: Errors that are fatal must warn Skip Snow by ringing a bell continuously every 5 seconds on skip's computer. 3: The design requirements are in order of 3.a: precedence { reliability, speed, cost}. 4: All architecture rules must be complied with { technical and business } 5: engineering rules must be complied with",
-              "human_business_requirements_source": "Skip Snow (Boss/CTO), verbatim from 2026-04-08 session",
+              "human_business_requirements_source": "Skip Snow (human/CTO), verbatim from 2026-04-08 session",
               "stories": {
                 "story": [
                   {
@@ -48625,8 +48625,8 @@
                   },
                   {
                     "story_id": "PIPE-BP-002",
-                    "title": "Fatal error alerting \u2014 continuous bell on Boss's machine",
-                    "description": "Errors that are fatal must warn Skip Snow by ringing a bell continuously every 5 seconds on Skip's computer. Requires a persistent local service on Boss's machine that receives alert webhooks.",
+                    "title": "Fatal error alerting \u2014 continuous bell on human's machine",
+                    "description": "Errors that are fatal must warn Skip Snow by ringing a bell continuously every 5 seconds on Skip's computer. Requires a persistent local service on human's machine that receives alert webhooks.",
                     "status": "not_started",
                     "requirements": {
                       "requirement": [
@@ -48970,7 +48970,7 @@
               "description": "Replace the single county.source='out_of_scope' pattern with two explicit flags on the provider record: bad_data (data quality issues) and out_of_scope (good record but not in scope). Each has a controlled vocabulary of reasons. Queries decide inclusion/exclusion based on reason.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -48982,7 +48982,7 @@
                     "dependencies": [],
                     "size": "M",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -49066,7 +49066,7 @@
                     "dependencies": [],
                     "size": "M",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -49152,7 +49152,7 @@
                     ],
                     "size": "L",
                     "status": "not_started",
-                    "accepted_by": "Boss",
+                    "accepted_by": "human",
                     "requirements": {
                       "requirement": [
                         {
@@ -51265,7 +51265,7 @@
                           "req_id": "FC-PIPE-COPY-001-REQ-003",
                           "story_id": "FC-PIPE-COPY-001",
                           "requirement": "CopyToFrontEnd scripts must be 100% hard-coded per environment (dev, qa, prod) \u2014 separate scripts for each environment. No parameterized environment switching. The only secret fetched at runtime is the MongoDB connection string from Azure Key Vault (or .env locally). All collection names, cluster targets, index definitions, and pipeline steps must be explicit in each script. This eliminates the risk of accidentally copying dev data to prod or vice versa through a misconfigured parameter.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "in_progress",
                           "label": "SAFETY",
@@ -51667,7 +51667,7 @@
               "description": "Full mobile support for Samsung Galaxy and iPhone 14 forward. Hamburger navigation on all pages, responsive layouts, touch-friendly controls. ChatHealthy.ai must be fully usable on a phone \u2014 not a degraded experience.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "supported_devices": [
                 "Samsung Galaxy (S21+)",
                 "iPhone 14",
@@ -52079,7 +52079,7 @@
               "description": "Publish ChatHealthy.ai as a native app on Apple App Store (iOS) and Google Play Store (Android). PWA wrapper or React Native shell around the existing web experience. Due before November 2026.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "due_date": "2026-10-31",
               "roadmap_date": "2026-10",
               "stories": {
@@ -52102,7 +52102,7 @@
               "description": "Percentage-based frame layout: header (6%), left panel (1% default, expandable), center (chat iframe 83% + control frame 7%), right panel (1% default, expandable), footer (4%). Design record: gui_frame_layout in design.json.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "design_ref": "design.json _record_id: gui_frame_layout",
               "stories": {
                 "story": [
@@ -52367,7 +52367,7 @@
               "description": "Parent page \u2194 React iframe communication via postMessage. React sends gui:render, gui:clear, gui:eval-render. Parent sends gui:event back. No page reloads.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "design_ref": "design.json _record_id: gui_frame_layout \u2192 gui_manager.communication",
               "stories": {
                 "story": [
@@ -52549,7 +52549,7 @@
               "description": "Parent page auto-detects localhost vs deployed environment and sets iframe src accordingly. DR-011: no query params, no workarounds. Retry logic for slow backend startup.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -52703,7 +52703,7 @@
               "description": "7% control frame canvas that renders pagination and filter controls on demand. 3D raised button style. Deterministic paging via /search \u2014 no LLM round-trip after first page.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "design_ref": "design.json _record_id: gui_frame_layout \u2192 gui_manager.controls.pagination",
               "stories": {
                 "story": [
@@ -53110,10 +53110,10 @@
               "epic_id": "EPIC-006",
               "layer": "frontend",
               "capability": "UX",
-              "description": "Right panel expands to display leaf pages (architecture, roadmap, design docs, security architecture). Boss directive: more control over right panel behavior. Refactor from fixed overlay (legal-panel class) to inline flex panel.",
+              "description": "Right panel expands to display leaf pages (architecture, roadmap, design docs, security architecture). Human directive: more control over right panel behavior. Refactor from fixed overlay (legal-panel class) to inline flex panel.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "design_ref": "design.json _record_id: gui_frame_layout \u2192 backlog GUI-LEAF",
               "stories": {
                 "story": [
@@ -53233,7 +53233,7 @@
               "description": "index.html structure generated from gui_frame_layout design record in design.json by Code/Shared/ops/generate_index_page.py. Runtime JS (postMessage handlers, iframe retry) included in generator output. Per v4-021: brain owns the design, script renders the code.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -53352,7 +53352,7 @@
               "description": "FindCare chat and provider search. Existing HF Space. Port 8000 local, 7860 on HF. Public API for end users, mTLS for service-to-service.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -53409,7 +53409,7 @@
               "description": "Provider data pipeline on Azure Functions. VNet integrated. Managed by cluster lifecycle manager. mTLS for inter-service calls.",
               "priority": "HIGH",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -53467,7 +53467,7 @@
               "description": "Local dev environment with multi-port topology. Port 80: public site, Port 443: admin site (self-signed cert), Port 5173: React frontend, Port 8000: FindCare, Port 8001: EvaluateCare. All components runnable locally. Cloudflare provides free SSL in production.",
               "priority": "MEDIUM",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": [
                   {
@@ -54654,7 +54654,7 @@
                         {
                           "req_id": "BRAIN-RUNTIME-REQ-002",
                           "story_id": "BRAIN-RUNTIME",
-                          "requirement": "Before creating any bug record in brain/machine_artifacts/content/bugs.json, Claude MUST search the register for a semantically duplicate or closely-related existing bug and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the bug is novel, Claude MUST insert it under a logical parent requirement (its req_id) in the register. When no logical parent requirement exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to Boss and wait for a decision before inserting; in Unattended Mode Claude MUST insert the bug with req_id = ORPHAN_BUG, flag it for Boss's async review at the next boot's orphan triage, and proceed with its work.",
+                          "requirement": "Before creating any bug record in brain/machine_artifacts/content/bugs.json, Claude MUST search the register for a semantically duplicate or closely-related existing bug and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the bug is novel, Claude MUST insert it under a logical parent requirement (its req_id) in the register. When no logical parent requirement exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to human and wait for a decision before inserting; in Unattended Mode Claude MUST insert the bug with req_id = ORPHAN_BUG, flag it for human's async review at the next boot's orphan triage, and proceed with its work.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "realized_by": [
@@ -54685,7 +54685,7 @@
                         {
                           "req_id": "BRAIN-RUNTIME-REQ-003",
                           "story_id": "BRAIN-RUNTIME",
-                          "requirement": "Before creating any requirement, story, feature, or epic in brain/machine_artifacts/content/agile_backlog.json, Claude MUST search the backlog for a semantically duplicate or closely-related existing entry and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the entry is novel, Claude MUST insert it under a logical parent \u2014 requirement under story, story under feature, feature under epic. When no logical parent exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to Boss and wait for a decision before inserting; in Unattended Mode Claude MUST insert the entry with orphan = true under the nearest ancestor, flag it for Boss's async review, and proceed with its work.",
+                          "requirement": "Before creating any requirement, story, feature, or epic in brain/machine_artifacts/content/agile_backlog.json, Claude MUST search the backlog for a semantically duplicate or closely-related existing entry and update the existing record rather than create a new one when a match is found. Updates MUST focus on conciseness, accuracy, and fidelity to the evidence. When the entry is novel, Claude MUST insert it under a logical parent \u2014 requirement under story, story under feature, feature under epic. When no logical parent exists: in Normal or Idiot Mode (v4-004) Claude MUST escalate to human and wait for a decision before inserting; in Unattended Mode Claude MUST insert the entry with orphan = true under the nearest ancestor, flag it for human's async review, and proceed with its work.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "realized_by": [
@@ -55053,7 +55053,7 @@
                         },
                         {
                           "req_id": "DEVOPS-DEPLOY-001-REQ-014",
-                          "requirement": "Promotion from dev to QA MUST be gated by a GPT evaluation in preCommitScan.py. GPT has the sole authority to block promotion. Boss cannot override this block. This is the only authority GPT has in the governance system.",
+                          "requirement": "Promotion from dev to QA MUST be gated by a GPT evaluation in preCommitScan.py. GPT has the sole authority to block promotion. Human cannot override this block. This is the only authority GPT has in the governance system.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "type": "technical",
@@ -55185,7 +55185,7 @@
                   {
                     "story_id": "DEVOPS-DEPLOY-LOCAL",
                     "title": "Deploy to localhost \u2014 Local UAT environment",
-                    "description": "One deploy script that wipes, builds, and starts the local UAT environment. Frontend on HTTPS port 443 with HTTP-to-HTTPS redirect on port 80. Backend calls dev.chathealthy.ai. Script runs verification tests before handing to Boss for UAT.",
+                    "description": "One deploy script that wipes, builds, and starts the local UAT environment. Frontend on HTTPS port 443 with HTTP-to-HTTPS redirect on port 80. Backend calls dev.chathealthy.ai. Script runs verification tests before handing to human for UAT.",
                     "size": "M",
                     "status": "in_progress",
                     "requirements": {
@@ -55714,7 +55714,7 @@
                   {
                     "story_id": "DEVOPS-DEPLOY-PROD",
                     "title": "Deploy to prod \u2014 HuggingFace Space production environment",
-                    "description": "Deploy script for the production environment. Promotes from QA to prod. Includes pre-deploy rule check, build bump, Boss authorization, and post-deploy verification.",
+                    "description": "Deploy script for the production environment. Promotes from QA to prod. Includes pre-deploy rule check, build bump, human authorization, and post-deploy verification.",
                     "size": "M",
                     "status": "not_started",
                     "requirements": {
@@ -56552,7 +56552,7 @@
               "description": "The Brain as a deployed component. Agentic infrastructure for running the company \u2014 assignments, governance, audit, grooming, monitoring. MongoDB-backed, API accessible.",
               "priority": "MEDIUM",
               "status": "not_started",
-              "accepted_by": "Boss",
+              "accepted_by": "human",
               "stories": {
                 "story": []
               },
@@ -56635,14 +56635,14 @@
                         {
                           "req_id": "BRAIN-AGILE-BACKLOG-REQ-002",
                           "story_id": "BRAIN-AGILE-BACKLOG",
-                          "requirement": "agile_backlog.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "agile_backlog.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "6609df0e-e401-4300-8736-d26e0da84be5",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -56716,14 +56716,14 @@
                         {
                           "req_id": "BRAIN-AI-OPERATIONS-REQ-002",
                           "story_id": "BRAIN-AI-OPERATIONS",
-                          "requirement": "ai_operations.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "ai_operations.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "02390177-515b-4f9a-8de9-1204a10f3067",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -56805,14 +56805,14 @@
                         {
                           "req_id": "BRAIN-ARCHITECTURE-REQ-002",
                           "story_id": "BRAIN-ARCHITECTURE",
-                          "requirement": "architecture.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "architecture.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "7440fdfc-94ac-4cdf-8a79-46fef4978499",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -56896,14 +56896,14 @@
                         {
                           "req_id": "BRAIN-BUGS-REQ-002",
                           "story_id": "BRAIN-BUGS",
-                          "requirement": "bugs.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "bugs.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "fixed",
                           "ch_matrix_id": "0aad9ca8-549e-4139-bafc-16555b12cda9",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -56977,14 +56977,14 @@
                         {
                           "req_id": "BRAIN-BUSINESS-PLAN-REQ-002",
                           "story_id": "BRAIN-BUSINESS-PLAN",
-                          "requirement": "business_plan.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "business_plan.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "ae5a3f81-d110-44cd-9651-50de8f19666d",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -57058,14 +57058,14 @@
                         {
                           "req_id": "BRAIN-CONTROLLED-VOCABULAR-REQ-002",
                           "story_id": "BRAIN-CONTROLLED-VOCABULAR",
-                          "requirement": "controlled_vocabularies.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "controlled_vocabularies.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "d0baef19-66d2-47c6-bbb7-06b41b51fc55",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -57124,7 +57124,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-B001",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "All visible user and assistant text MUST be stored verbatim. No truncation, no summarization. Thinking indicators excluded.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57145,7 +57145,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-B002",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "Each record MUST have a PST timestamp (0.1 second precision), a UTC timestamp, and a globally unique key. Records do not have to be unique by timestamp.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57166,7 +57166,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-B003",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "ALL utterances MUST be durably captured and archived to MongoDB. MongoDB is the permanent record. Zero utterance loss is the target. The system MUST NOT silently drop events.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57187,7 +57187,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-B004",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "Sensitive keys (API keys, connection strings, passwords, credentials) MUST NEVER be written to MongoDB. These values MUST be redacted with [Sensitive content redacted]. Profanity MUST be redacted with [expletive redacted].",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57208,7 +57208,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-B005",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "Utterances older than 24 hours MUST be removed from local storage after they have been archived to MongoDB.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "proposed",
@@ -57229,7 +57229,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-B006",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "Every action on the log MUST be recorded with who, what, and when.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "proposed",
@@ -57250,7 +57250,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-B007",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "The conversation log service MUST start automatically on system boot without operator intervention.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57271,7 +57271,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-B008",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "If MongoDB is unavailable, utterances MUST be retained durably and archived when MongoDB becomes available. No utterance may be lost due to a downstream outage.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57292,7 +57292,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-B009",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "If the service fails, the human operator MUST be informed as soon as they appear after an absence, or immediately if they are present. The notification MUST include what failed and why.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "approval": "proposed",
@@ -57313,7 +57313,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-B010",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "The human user MUST be able to restart the service at any time. The service MUST be fully operational within 10 seconds of restart.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57334,7 +57334,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T001",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "The Claude Code hook MUST capture each utterance and POST the raw payload to a localhost HTTP sidecar. The hook MUST complete in under 100ms. The hook MUST NOT parse, redact, transform, or write to any file. If the sidecar is unreachable, the hook MUST append to a local emergency fallback log and return.",
-                          "source": "Boss + Perplexity architecture review",
+                          "source": "human + Perplexity architecture review",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57359,7 +57359,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T002",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "A persistent Python/FastAPI sidecar (PID 1) MUST maintain a warm Apache Kafka producer connection. It MUST accept HTTP POST requests from the hook, enqueue the raw payload to Kafka, and return HTTP 202 immediately. It MUST NOT do any processing beyond enqueue.",
-                          "source": "Boss + Perplexity architecture review",
+                          "source": "human + Perplexity architecture review",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57384,7 +57384,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T003",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "A persistent Python consumer (PID 2) MUST read from the Kafka topic, perform GPT-4.1-mini redaction (B004), assign a unique key (CH_KEY_ followed by a generated GUID), add timestamps (B002), and archive to MongoDB. It MUST use manual commit only after successful MongoDB write. If it crashes mid-processing, Kafka MUST redeliver the message (at-least-once delivery).",
-                          "source": "Boss + Perplexity architecture review",
+                          "source": "human + Perplexity architecture review",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57409,7 +57409,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T004",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "Apache Kafka MUST run in a Docker container on the local machine. The Kafka broker MUST use KRaft mode (no ZooKeeper). The topic MUST retain messages for 24 hours. A single partition is sufficient.",
-                          "source": "Boss + Perplexity architecture review",
+                          "source": "human + Perplexity architecture review",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57434,7 +57434,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T005",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "The C# Windows service (ChatHealthyClaudeLogMgmt) MUST be a supervisor only. It MUST start the Docker Kafka container if not running, start the sidecar (PID 1), start the consumer (PID 2), monitor both, and restart them if they die. It MUST kill child processes on service stop (no zombies). It MUST NOT contain any business logic.",
-                          "source": "Boss + Perplexity architecture review",
+                          "source": "human + Perplexity architecture review",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57459,7 +57459,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T006",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "The C# Windows service MUST be configured for AUTO_START so it runs on system boot without operator intervention.",
-                          "source": "Boss + Perplexity architecture review",
+                          "source": "human + Perplexity architecture review",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57484,7 +57484,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T007",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "Errors MUST be written to errors.json with timestamp, source, and error message.",
-                          "source": "Boss + Perplexity architecture review",
+                          "source": "human + Perplexity architecture review",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57509,7 +57509,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T008",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "MongoDB connection string MUST be read from Code/.env. All MongoDB communication MUST use TLS 1.2+. Every record written to MongoDB MUST include build number, framework version, and product version from version.json.",
-                          "source": "Boss + Perplexity architecture review",
+                          "source": "human + Perplexity architecture review",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57534,7 +57534,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T009",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "Apache Kafka is licensed under Apache 2.0. This dependency is approved for commercial use and investor IP due diligence. No SSPL, RSALv2, or proprietary-licensed queue technology may be used.",
-                          "source": "Boss + Perplexity architecture review",
+                          "source": "human + Perplexity architecture review",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57559,7 +57559,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T010",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "conversation_log.json schema MUST be defined in schema.json and validated by the pre-commit scanner. The schema_address field MUST be present in the file header.",
-                          "source": "Boss + Perplexity architecture review",
+                          "source": "human + Perplexity architecture review",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57584,7 +57584,7 @@
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-T011",
                           "story_id": "BRAIN-CONVERSATION-LOG",
                           "requirement": "The consumer (PID 2) MUST batch writes to MongoDB. It MUST accumulate messages and flush to MongoDB using insert_many when either the batch reaches 50 messages or 30 seconds have elapsed since the last flush, whichever comes first. Individual insert_one calls per utterance are prohibited.",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "proposed",
@@ -57608,15 +57608,15 @@
                         {
                           "req_id": "BRAIN-CONVERSATION-LOG-REQ-012",
                           "story_id": "BRAIN-CONVERSATION-LOG",
-                          "requirement": "conversation_log.json needs to be reviewed by Boss and Claude for possible rationalization.",
-                          "source": "Boss",
+                          "requirement": "conversation_log.json needs to be reviewed by human and Claude for possible rationalization.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
                           "resolution_status": "fixed",
                           "ch_matrix_id": "e398b00b-88af-4458-bc23-e989022c4b67",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -57673,14 +57673,14 @@
                         {
                           "req_id": "BRAIN-DAILY-PUNCH-LIST-WIT-REQ-002",
                           "story_id": "BRAIN-DAILY-PUNCH-LIST-WIT",
-                          "requirement": "daily_punch_list_with_results_and_accomplishments.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "daily_punch_list_with_results_and_accomplishments.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "291d0462-d6b3-491a-b749-ecce33240b2e",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -57774,14 +57774,14 @@
                         {
                           "req_id": "BRAIN-DESIGN-REQ-002",
                           "story_id": "BRAIN-DESIGN",
-                          "requirement": "design.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "design.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "1656b19f-ca87-43c1-a99f-bb240c99c92b",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -57863,14 +57863,14 @@
                         {
                           "req_id": "BRAIN-EMERGENCY-KEYWORDS-REQ-002",
                           "story_id": "BRAIN-EMERGENCY-KEYWORDS",
-                          "requirement": "emergency_keywords.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "emergency_keywords.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "54c68a94-c2f5-4ffb-8503-0b9d07bf5b4c",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -57936,14 +57936,14 @@
                         {
                           "req_id": "BRAIN-ENGINEERING-RULES-REQ-002",
                           "story_id": "BRAIN-ENGINEERING-RULES",
-                          "requirement": "engineering_rules.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "engineering_rules.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "ba966e5a-3c77-4391-a0a5-6cc315065968",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -57976,7 +57976,7 @@
                           "approval": "proposed",
                           "type": "business",
                           "story_id": "BRAIN-ENGINEERING-RULES",
-                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "source": "human directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
                           "date": "2026-04-19"
                         },
                         {
@@ -57997,7 +57997,7 @@
                           "approval": "proposed",
                           "type": "technical",
                           "story_id": "BRAIN-ENGINEERING-RULES",
-                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "source": "human directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
                           "date": "2026-04-19"
                         }
                       ]
@@ -58043,14 +58043,14 @@
                         {
                           "req_id": "BRAIN-EXTERNAL-AUDITS-REQ-002",
                           "story_id": "BRAIN-EXTERNAL-AUDITS",
-                          "requirement": "external_audits.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "external_audits.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "6887e541-293c-4ff2-bb9a-6db570afd326",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58124,14 +58124,14 @@
                         {
                           "req_id": "BRAIN-GOVERNANCE-REQ-002",
                           "story_id": "BRAIN-GOVERNANCE",
-                          "requirement": "governance.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "governance.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "0924838b-2fee-4d18-8b35-8ce75a132b7f",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58189,14 +58189,14 @@
                         {
                           "req_id": "BRAIN-GOVERNANCE-MATRIX-REQ-002",
                           "story_id": "BRAIN-GOVERNANCE-MATRIX",
-                          "requirement": "governance_matrix.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "governance_matrix.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "14e75790-4fc1-4e2a-9481-ba1fa4ca0a88",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58278,14 +58278,14 @@
                         {
                           "req_id": "BRAIN-LEGAL-REQ-002",
                           "story_id": "BRAIN-LEGAL",
-                          "requirement": "legal.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "legal.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "09092661-afaf-4965-b0ea-d797143d9a1c",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58371,14 +58371,14 @@
                         {
                           "req_id": "BRAIN-PROJECT-MANIFEST-REQ-002",
                           "story_id": "BRAIN-PROJECT-MANIFEST",
-                          "requirement": "project_manifest.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "project_manifest.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "a986a2c3-d2fb-4c9a-a009-6ef0e5f05f97",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58460,14 +58460,14 @@
                         {
                           "req_id": "BRAIN-PROMPTS-REQ-002",
                           "story_id": "BRAIN-PROMPTS",
-                          "requirement": "prompts.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "prompts.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "c51459ed-7161-4afc-8407-653687966203",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58525,14 +58525,14 @@
                         {
                           "req_id": "BRAIN-REGRESSION-REPORT-REQ-002",
                           "story_id": "BRAIN-REGRESSION-REPORT",
-                          "requirement": "regression_report.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "regression_report.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "4394e65c-5ddd-455c-8319-d3a652c223b5",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58600,14 +58600,14 @@
                         {
                           "req_id": "BRAIN-RISK-ACCEPTANCE-REQ-002",
                           "story_id": "BRAIN-RISK-ACCEPTANCE",
-                          "requirement": "risk_acceptance.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "risk_acceptance.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "58d3e2e4-fead-4a10-9839-41e2ee7295f3",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58702,14 +58702,14 @@
                         {
                           "req_id": "BRAIN-SCHEMA-REQ-002",
                           "story_id": "BRAIN-SCHEMA",
-                          "requirement": "schema.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "schema.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "d8c1e809-4258-4d41-9c69-c18bc6e6bbd1",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58792,14 +58792,14 @@
                         {
                           "req_id": "BRAIN-SECURITY-REQ-002",
                           "story_id": "BRAIN-SECURITY",
-                          "requirement": "security.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "security.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "e164df79-c236-46de-ae09-5da56778d19c",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58861,14 +58861,14 @@
                         {
                           "req_id": "BRAIN-SPRINT-PLAN-REQ-002",
                           "story_id": "BRAIN-SPRINT-PLAN",
-                          "requirement": "sprint_plan.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "sprint_plan.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "cf19163b-a728-4c25-9771-23dd6343a467",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -58930,14 +58930,14 @@
                         {
                           "req_id": "BRAIN-TOKEN-USAGE-REQ-002",
                           "story_id": "BRAIN-TOKEN-USAGE",
-                          "requirement": "token_usage.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "token_usage.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "e488fedb-a42a-4499-9d5a-7fdaf2a4980c",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -59011,14 +59011,14 @@
                         {
                           "req_id": "BRAIN-TRACEABILITY-MATRIX-REQ-002",
                           "story_id": "BRAIN-TRACEABILITY-MATRIX",
-                          "requirement": "traceability_matrix.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "traceability_matrix.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "5ddfdba8-a3ad-45ef-9cf1-ff3aa51e68be",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -59041,7 +59041,7 @@
                   {
                     "story_id": "BRAIN-UNREALIZED-IDEAS",
                     "title": "unrealized_ideas.json \u2014 Brain artifact",
-                    "description": "Ideas captured from Boss that are not yet in the backlog. Every idea gets tracked here first, then promoted to a story when prioritized.",
+                    "description": "Ideas captured from human that are not yet in the backlog. Every idea gets tracked here first, then promoted to a story when prioritized.",
                     "size": "S",
                     "status": "in_progress",
                     "code_controlled": true,
@@ -59076,14 +59076,14 @@
                         {
                           "req_id": "BRAIN-UNREALIZED-IDEAS-REQ-002",
                           "story_id": "BRAIN-UNREALIZED-IDEAS",
-                          "requirement": "unrealized_ideas.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "unrealized_ideas.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "5aacb111-f028-4dda-be71-f13ab191ab9f",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -59177,14 +59177,14 @@
                         {
                           "req_id": "BRAIN-VERSION-REQ-002",
                           "story_id": "BRAIN-VERSION",
-                          "requirement": "version.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "version.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "481ef665-deae-42ce-a531-ab330ccc1465",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -59246,14 +59246,14 @@
                         {
                           "req_id": "BRAIN-WORK-LOG-REQ-002",
                           "story_id": "BRAIN-WORK-LOG",
-                          "requirement": "work_log.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "work_log.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "a92d94cd-1d0f-4131-b13c-8acb2fbd0ebb",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -59307,14 +59307,14 @@
                         {
                           "req_id": "BRAIN-ERRORS-REQ-002",
                           "story_id": "BRAIN-ERRORS",
-                          "requirement": "errors.json needs to be reviewed by Boss and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "source": "Boss",
+                          "requirement": "errors.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "not_started",
                           "resolution_status": "new",
                           "ch_matrix_id": "bdc36997-a0b5-47f3-9dd8-663811c0f4a1",
                           "realized_by": [
-                            "Boss review",
+                            "human review",
                             "Claude analysis"
                           ],
                           "orphan": false,
@@ -59521,7 +59521,7 @@
                           "req_id": "ARCH-SCAN-JSON-REQ-002",
                           "story_id": "ARCH-SCAN-JSON",
                           "requirement": "The JSON scanner must validate all brain JSON fields that are constrained by a controlled vocabulary (constrained_by in schema.json). For each constrained field, the scanner must read the allowed values from the referenced CV in controlled_vocabularies.json and reject the file if any record contains a value not in the CV. The scanner must run as a pre-commit gate and block check-in of any brain JSON that fails CV validation. This applies to all CV-constrained fields including but not limited to bugs.json resolution_status (CV-009) and type (CV-008).",
-                          "source": "Boss",
+                          "source": "human",
                           "priority": "must-have",
                           "status": "done",
                           "ch_matrix_id": "e5c147a5-4561-45f1-8193-eb604b15bd00",
@@ -59634,7 +59634,7 @@
                           "approval": "proposed",
                           "type": "business",
                           "story_id": "BRAIN-DEFERRED-WORK-001",
-                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "source": "human directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
                           "date": "2026-04-19"
                         },
                         {
@@ -59655,7 +59655,7 @@
                           "approval": "proposed",
                           "type": "technical",
                           "story_id": "BRAIN-DEFERRED-WORK-001",
-                          "source": "Boss directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
+                          "source": "human directive 2026-04-19 \u2014 overnight compliance crosswalk + deferral pattern",
                           "date": "2026-04-19"
                         }
                       ]
@@ -59671,6 +59671,75 @@
               "orphan": false,
               "approval": "approved",
               "description": "Deferred work as a first-class concept"
+            },
+            {
+              "feature_id": "ARCH-GRAPH-ORCHESTRATION",
+              "name": "Graph-orchestrated business-logic entry points",
+              "status": "in_progress",
+              "description": "Every business-logic entry point routes through a graph orchestrator (today LangGraph) so shared concerns - safety, auth, audit, classification - live in one place and propagate automatically to every entry point. Encoded as engineering rule v4-043. Currently violated by /classify endpoint.",
+              "orphan": false,
+              "approval": "approved",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+                    "name": "Codify graph-orchestration rule and enforce at check-in",
+                    "title": "Codify graph-orchestration rule and enforce at check-in",
+                    "description": "Engineering rule v4-043 + a pre-commit scanner that rejects any new business-logic entry point that does not invoke through the graph. Existing violators (/classify) get tracking bugs and refactor stories.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-B001",
+                          "requirement": "Every operational entry point in ChatHealthy.ai Python services MUST invoke business logic through a single graph orchestrator. Shared concerns - safety, auth, audit, classification - are graph nodes; updating a shared concern propagates to every entry point in one place. Parallel paths that bypass the graph and call shared services directly are not permitted.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-graph-orchestration-scanner-not-built",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "type": "business",
+                          "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+                          "source": "human directive 2026-04-19",
+                          "date": "2026-04-19"
+                        },
+                        {
+                          "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+                          "requirement": "Engineering rule v4-043 codifies the graph-orchestration rule. preCommitScan.py gains a new executor 'graph_entry_check' that AST-scans specified scan_dirs for FastAPI/Flask route handlers (functions decorated with @app.{post,get,put,delete,patch} or @router.* equivalents) whose body does not contain a call matching <StateGraph_var>.invoke(...). Permitted exceptions: handlers marked '# graph-exempt' AND paired by a risk_acceptance.json entry. Existing violator /classify (Code/ConversationalUX/FindCareChat/backend/main.py:382) is tracked by BUG-ARCH-GRAPH-001 and refactored under a follow-on story. The scanner addition is tracked by BUG-ARCH-GRAPH-002.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-graph-orchestration-scanner-not-built",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "type": "technical",
+                          "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+                          "source": "human directive 2026-04-19",
+                          "date": "2026-04-19",
+                          "traces_to": "ARCH-GRAPH-ORCHESTRATION-001-REQ-B001"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
@@ -60676,7 +60745,7 @@
                       "requirement": [
                         {
                           "req_id": "SKIP-ASSIST-001-REQ-B001",
-                          "requirement": "SkipsAssistant MUST be able to: (1) execute well-scoped procedural assignments end-to-end (brain edits, code refactors, file moves, doc generation, test runs); (2) propagate any new concept across all governed brain artifacts in one coherent change set; (3) honor every engineering rule unless the active assignment explicitly overrides specific ones (v4-042); (4) push back when Bosss idea is flawed (with evidence) before acting; (5) ring the bell before any pause that needs Boss input (v4-008); (6) measure load size before asking Boss to test boot/hook/CLAUDE.md changes.",
+                          "requirement": "SkipsAssistant MUST be able to: (1) execute well-scoped procedural assignments end-to-end (brain edits, code refactors, file moves, doc generation, test runs); (2) propagate any new concept across all governed brain artifacts in one coherent change set; (3) honor every engineering rule unless the active assignment explicitly overrides specific ones (v4-042); (4) push back when Bosss idea is flawed (with evidence) before acting; (5) ring the bell before any pause that needs human input (v4-008); (6) measure load size before asking human to test boot/hook/CLAUDE.md changes.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -60692,7 +60761,7 @@
                           "approval": "approved",
                           "type": "business",
                           "story_id": "SKIP-ASSIST-001",
-                          "source": "Boss directive 2026-04-19 - BuildAnEpic Agents",
+                          "source": "human directive 2026-04-19 - BuildAnEpic Agents",
                           "date": "2026-04-19",
                           "traces_to": "EPIC-010 (Engineering Productivity epic intent)"
                         },
@@ -60714,9 +60783,31 @@
                           "approval": "approved",
                           "type": "technical",
                           "story_id": "SKIP-ASSIST-001",
-                          "source": "Boss directive 2026-04-19 - BuildAnEpic Agents",
+                          "source": "human directive 2026-04-19 - BuildAnEpic Agents",
                           "date": "2026-04-19",
                           "traces_to": "EPIC-010 (Engineering Productivity epic intent)"
+                        },
+                        {
+                          "req_id": "SKIP-ASSIST-001-REQ-T002",
+                          "requirement": "SkipsAssistant MUST NOT re-ask permission for any work step that is (a) clearly within standing authority (local + dev deploys per feedback_deploy_authority; reads anywhere; tool calls within Normal Mode default), AND (b) clearly inside the scope of an active assignment human has issued. Per v4-028, the directive IS the authorization. Per v4-039, blanket cascade covers child actions. Per v4-042, assignment scope overrides the ordinary 'ask-before-long-running-op' reflex. Acceptance: zero unprompted permission-asks during a named assignment when the next step is a script human explicitly named. If scope is genuinely ambiguous, SkipsAssistant asks ONCE to clarify scope, not for permission to act.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TBD-behavioral-UAT-needed",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "type": "technical",
+                          "story_id": "SKIP-ASSIST-001",
+                          "source": "human directive 2026-04-19 \u2014 incident: agent re-asked permission for in-scope localhost deploy, blocking assignment execution",
+                          "date": "2026-04-19",
+                          "traces_to": "SKIP-ASSIST-001-REQ-B001"
                         }
                       ]
                     },

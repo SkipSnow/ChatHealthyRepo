@@ -8,7 +8,7 @@
     {
       "feature": "Safety Filter (dual-trigger, IP lock, audit)",
       "feature_id": 5,
-      "signed_off_by": "Skip Snow (Boss/QA)",
+      "signed_off_by": "Skip Snow (human/QA)",
       "date": "2026-03-28",
       "status": "approved",
       "bugs_fixed": [
@@ -42,7 +42,7 @@
       ],
       "test_results": {
         "edge_cases_automated": "10/10 pass (pain->PROBE, chest pain->EMERGENCY, suicide->EMERGENCY, etc.)",
-        "manual_uat": "Emergency trigger, IP lock, admin unlock, audit record with full de-identified history - all verified by Boss",
+        "manual_uat": "Emergency trigger, IP lock, admin unlock, audit record with full de-identified history - all verified by human",
         "de_identification_verified": "State names scrubbed to [STATE], provider names to [PROVIDER NAME], addresses/phones/NPIs scrubbed"
       },
       "_record_id": "safety_signoff",
@@ -74,7 +74,7 @@
       "version": "0.1",
       "status": "DRAFT",
       "date": "2026-03-29",
-      "source": "Boss-authored, GPT-collaborated",
+      "source": "human-authored, GPT-collaborated",
       "policy_core": "The model may suggest. The system must decide.",
       "core_principle": "Token prediction ≠ truth. All AI-generated output is probabilistic language, not verified fact. No system behavior may treat model output as authoritative truth.",
       "system_roles": {
@@ -235,7 +235,7 @@
       {
         "id": "GOV-008",
         "name": "Business Artifacts Gate",
-        "policy": "No release to production without completed business artifacts. Required artifacts per release: (1) QA Report PDF with GPT release gate approval, (2) IP License Agreement (current, signed), (3) Business Model (current version). These are business documents, not engineering artifacts. Stored in Azure admin container. Boss owns the checklist.",
+        "policy": "No release to production without completed business artifacts. Required artifacts per release: (1) QA Report PDF with GPT release gate approval, (2) IP License Agreement (current, signed), (3) Business Model (current version). These are business documents, not engineering artifacts. Stored in Azure admin container. Human owns the checklist.",
         "rationale": "A release is a business event, not just a code event. Business readiness must be demonstrated alongside technical readiness.",
         "status": "permanent",
         "ch_matrix_id": "c4aec0e8-d777-45fe-bafc-fe4095552eb8"
@@ -275,7 +275,7 @@
       {
         "id": "GOV-012",
         "name": "Environment Isolation — No Cross-Environment Data Movement",
-        "policy": "Data may only move within its environment chain: dev pipeline → dev frontend, staging pipeline → staging frontend, prod pipeline → prod frontend. No cross-environment copies (e.g., dev → prod, staging → dev). Within the pipeline cluster, data promotes forward only: dev → staging → prod via MigrateEnvironment. No backward migration. No shortcuts. Only Boss can authorize a deviation from this policy — not GPT, not Claude, not any automated process.",
+        "policy": "Data may only move within its environment chain: dev pipeline → dev frontend, staging pipeline → staging frontend, prod pipeline → prod frontend. No cross-environment copies (e.g., dev → prod, staging → dev). Within the pipeline cluster, data promotes forward only: dev → staging → prod via MigrateEnvironment. No backward migration. No shortcuts. Only human can authorize a deviation from this policy — not GPT, not Claude, not any automated process.",
         "rationale": "Environment isolation is a healthcare compliance requirement. Cross-environment data movement creates audit gaps, breaks reproducibility, and risks exposing test data in production or production data in dev. The forward-only promotion chain ensures every dataset in staging was proven in dev, and every dataset in prod was proven in staging.",
         "status": "permanent",
         "ch_matrix_id": "62184c30-74c9-4729-9573-634cd84bef59"
@@ -325,7 +325,7 @@
         "source": "Anthropic co-founder conversation (YouTube, 2024-12-20)",
         "source_url": "https://www.youtube.com/watch?v=om2lIWXLLN4",
         "status": "permanent",
-        "description": "Principles Boss identified as articulating many of his goals for ChatHealthy. Adopted as philosophical DNA — not Anthropic's rules, but ideas that resonate with the ChatHealthy mission.",
+        "description": "Principles human identified as articulating many of his goals for ChatHealthy. Adopted as philosophical DNA — not Anthropic's rules, but ideas that resonate with the ChatHealthy mission.",
         "principles": [
           {
             "id": 1,
@@ -394,7 +394,7 @@
       {
         "id": "GOV-015",
         "name": "Governance Is Universal and Immediate",
-        "source": "Boss directive, 2026-04-09",
+        "source": "human directive, 2026-04-09",
         "status": "permanent",
         "description": "Governance is instantly and universally enforced across all environments (dev, qa, prod), even if it breaks something. There is no environment where governance is relaxed. Dev, qa, and prod are 100% equal from a governance perspective. If governance breaks a build, the build is broken — governance is not the problem.",
         "ch_matrix_id": "43712665-77f5-4dee-9331-1f63937fa761"

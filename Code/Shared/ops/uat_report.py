@@ -18,7 +18,7 @@ from pathlib import Path
 _log = logging.getLogger("findcare.uat_report")
 
 # UAT feature definitions — the WHAT, not the results
-# Results are filled in by Boss during testing
+# Results are filled in by human during testing
 UAT_FEATURES = [
     {"id": 1,  "feature": "Provider Search (DE + MS + VA, vector + regex)"},
     {"id": 2,  "feature": "Specialty Identification (NUCC + AI expansion)"},
@@ -63,7 +63,7 @@ ENHANCEMENT_CLASSIFICATIONS = {
 def _get_uat_status(db, env_prefix: str) -> dict:
     """Read UAT status from MongoDB. Returns {feature_id: {done, bugs_fixed, new_features, notes}}.
 
-    Simple: reads what's there. Claude updates it on commits. Boss clears it when needed.
+    Simple: reads what's there. Claude updates it on commits. Human clears it when needed.
     """
     if db is None:
         return {}
@@ -139,7 +139,7 @@ def build_uat_welcome(get_db_fn=None) -> str:
     lines.append("\n**Bug Classifications:** " + " | ".join(f"**{k}**: {v}" for k, v in BUG_CLASSIFICATIONS.items()))
     lines.append("\n**Enhancement Classifications:** " + " | ".join(f"**{k}**: {v}" for k, v in ENHANCEMENT_CLASSIFICATIONS.items()))
     lines.append(
-        "\n*Boss: mark Done (Y/DEF/FAIL/OOS), tally bugs and features as you test. Note type codes in chat.*"
+        "\n*human: mark Done (Y/DEF/FAIL/OOS), tally bugs and features as you test. Note type codes in chat.*"
     "\n*Y = passed | DEF = deferred to future release | FAIL = failed | OOS = out of scope for this release*"
     "\n*Every requirement must carry exactly one label. No requirement may be left blank.*"
     )

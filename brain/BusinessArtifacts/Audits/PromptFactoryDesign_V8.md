@@ -6,7 +6,7 @@ Date: April 15, 2026
 Authors: Skip Snow (CTO/CEO), Claude Opus 4.6
 With help from Perplexity using GPT 5.4 reasoning model
 Pattern: Assembly Factory with Neighbor-Aware Sub-Factory Composition
-Status: Design — Boss review required
+Status: Design — human review required
 Copyright: ChatHealthy.ai LLC.
 
 ## 1. Problem Statement
@@ -434,5 +434,5 @@ Candidate for lifting: If FindCare and EvaluateCare narrative side trip patterns
 
 
 ## 10. Backlog
-Pending — features, stories, requirements with B/T separation per engineering rule v4-035. Will be created after Boss approves the architecture.
+Pending — features, stories, requirements with B/T separation per engineering rule v4-035. Will be created after human approves the architecture.
 Note: I will not review sequence diagrams until we agree on the object model and the architecture.

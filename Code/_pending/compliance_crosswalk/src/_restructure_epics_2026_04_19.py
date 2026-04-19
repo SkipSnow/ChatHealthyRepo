@@ -1,5 +1,5 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
-# One-shot apply: restructure per Boss directive 2026-04-19.
+# One-shot apply: restructure per human directive 2026-04-19.
 #
 # Moves:
 #   - Adds EPIC-002/SEC-COMPLIANCE-COMMITMENTS (parent business req for compliance trace).
@@ -52,7 +52,7 @@ def make_req(req_id, type_, priority, requirement, story_id, traces_to=None):
         "approval": "approved",
         "type": type_,
         "story_id": story_id,
-        "source": "Boss directive 2026-04-19 - restructure epics, close trace gap",
+        "source": "human directive 2026-04-19 - restructure epics, close trace gap",
         "date": TODAY,
     }
     if traces_to:

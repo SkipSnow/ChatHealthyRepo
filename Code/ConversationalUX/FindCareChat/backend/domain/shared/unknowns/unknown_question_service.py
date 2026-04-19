@@ -28,7 +28,7 @@ TEMPLATES = {
         'We would save a de-identified version of this conversation.'
     ),
     # TODO: These templates need content management — not engineer decisions.
-    # Backlog: load from brain or MongoDB, reviewed by Boss + GPT.
+    # Backlog: load from brain or MongoDB, reviewed by human + GPT.
 }
 
 
