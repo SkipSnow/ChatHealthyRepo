@@ -3,6 +3,11 @@
 #
 # EvaluateCare Service — FastAPI app on port 8001.
 # Separate service from FindCare (GOV-005).
+#
+# v4-043: every route handler routes business logic through a LangGraph
+# StateGraph (compiled once at module load, invoked from the handler body).
+# Business-logic graphs live in evaluate_care/graphs/. Mechanical handler
+# graphs (health, splash, etc.) are defined inline below.
 
 import os
 import sys
@@ -11,6 +16,8 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from typing_extensions import TypedDict
+from langgraph.graph import StateGraph, START, END
 
 # Add evaluate_care to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -88,11 +95,28 @@ app.add_middleware(
 )
 
 _engine = ScoringEngine()
+_ENV_PREFIX = os.getenv("ENV_PREFIX", "dev")
+_MONGO_CLIENT = None
 
-# ── LangGraph orchestrators (v4-043) ────────────────────────
-# Every business-logic route handler below routes through one of these
-# compiled StateGraphs instead of calling services directly. Behavior
-# is byte-identical to the pre-graph implementation.
+
+def _mongo():
+    global _MONGO_CLIENT
+    if _MONGO_CLIENT is not None:
+        return _MONGO_CLIENT
+    uri = os.environ.get("MONGO_FRONTEND_connectionString")
+    if not uri:
+        return None
+    try:
+        from pymongo import MongoClient
+        _MONGO_CLIENT = MongoClient(uri, serverSelectionTimeoutMS=5000)
+        return _MONGO_CLIENT
+    except Exception as e:
+        _log.warning("evaluate_care /health: MongoClient init failed: %s", e)
+        return None
+
+
+# ── Business-logic LangGraph orchestrators (built in evaluate_care/graphs/) ──
+
 from evaluate_care.explainability import explain_score as _explain_score
 from evaluate_care.graphs import (
     build_score_provider_graph,
@@ -104,22 +128,38 @@ from evaluate_care.graphs import (
 
 _last_evaluation = {"providers": [], "question": ""}
 
-_score_provider_graph = build_score_provider_graph({"engine": _engine})
-_score_trial_graph = build_score_trial_graph({"engine": _engine})
-_explain_graph = build_explain_graph({"explain_fn": _explain_score})
-_evaluate_providers_graph = build_evaluate_providers_graph({"last_evaluation": _last_evaluation})
-_evaluate_view_graph = build_evaluate_view_graph({"last_evaluation": _last_evaluation})
+score_provider_graph = build_score_provider_graph({"engine": _engine})
+score_trial_graph = build_score_trial_graph({"engine": _engine})
+explain_graph = build_explain_graph({"explain_fn": _explain_score})
+evaluate_providers_graph = build_evaluate_providers_graph({"last_evaluation": _last_evaluation})
+evaluate_view_graph = build_evaluate_view_graph({"last_evaluation": _last_evaluation})
 
-# ── Debug back door (enabled only when DEBUG=1) ─────────────
-# graph-exempt: debug endpoint, no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.post("/debug/verify-live")
-def debug_verify_live(body: dict):
-    """Runs verify_session_token on a posted token and returns structured
-    diagnostic. Gated by DEBUG=1."""
+
+# ── Mechanical handler graphs (inline single-node StateGraphs) ──
+
+
+def _make_single_node_graph(node_name, fn, state_class):
+    g = StateGraph(state_class)
+    g.add_node(node_name, fn)
+    g.add_edge(START, node_name)
+    g.add_edge(node_name, END)
+    return g.compile()
+
+
+# ── /debug/verify-live ───────────────────────────────────────
+
+
+class DebugVerifyLiveState(TypedDict, total=False):
+    body: dict
+    response: dict
+
+
+def _debug_verify_live_node(state: DebugVerifyLiveState) -> dict:
     if os.getenv("DEBUG", "false").lower() not in ("1", "true", "yes"):
-        return {"disabled": "DEBUG not set"}
+        return {"response": {"disabled": "DEBUG not set"}}
     import traceback
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    body = state.get("body", {})
     result = {"verified": None, "error": None, "details": {}}
     try:
         from session_token import verify_session_token, CERTS_DIR as MODULE_CERTS_DIR
@@ -142,24 +182,35 @@ def debug_verify_live(body: dict):
     except Exception as e:
         result["error"] = f"{type(e).__name__}: {e}"
         result["tb"] = traceback.format_exc()
-    return result
+    return {"response": result}
 
 
-# graph-exempt: debug endpoint, no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.get("/debug/bootstrap")
-def debug_bootstrap():
-    """Back door for mTLS/cert audit. Gated by DEBUG=1 env var so prod
-    is unaffected. Reports whether the HF Space Secret bootstrap actually
-    wrote findcare.crt + peer certs into CERTS_DIR."""
+debug_verify_live_graph = _make_single_node_graph(
+    "debug_verify_live", _debug_verify_live_node, DebugVerifyLiveState)
+
+
+@app.post("/debug/verify-live")
+def debug_verify_live(body: dict):
+    return debug_verify_live_graph.invoke({"body": body})["response"]
+
+
+# ── /debug/bootstrap ─────────────────────────────────────────
+
+
+class DebugBootstrapState(TypedDict, total=False):
+    response: dict
+
+
+def _debug_bootstrap_node(state: DebugBootstrapState) -> dict:
     if os.getenv("DEBUG", "false").lower() not in ("1", "true", "yes"):
-        return {"disabled": "set DEBUG=1 on the Space to enable this endpoint"}
+        return {"response": {"disabled": "set DEBUG=1 on the Space to enable this endpoint"}}
     certs_dir = os.environ.get("CERTS_DIR", "<unset>")
     files = []
     if os.path.isdir(certs_dir):
         for f in sorted(os.listdir(certs_dir)):
             p = os.path.join(certs_dir, f)
             files.append({"name": f, "size": os.path.getsize(p)})
-    return {
+    return {"response": {
         "CERTS_DIR": certs_dir,
         "certs_dir_files": files,
         "env_present": {
@@ -168,34 +219,28 @@ def debug_bootstrap():
             "EVALCARE_SIGNING_KEY_PEM": bool(os.environ.get("EVALCARE_SIGNING_KEY_PEM")),
             "CA_CERT_PEM":              bool(os.environ.get("CA_CERT_PEM")),
         },
-    }
+    }}
 
 
-# ── Health ──────────────────────────────────────────────────
+debug_bootstrap_graph = _make_single_node_graph(
+    "debug_bootstrap", _debug_bootstrap_node, DebugBootstrapState)
 
-_ENV_PREFIX = os.getenv("ENV_PREFIX", "dev")
-_MONGO_CLIENT = None
 
-def _mongo():
-    global _MONGO_CLIENT
-    if _MONGO_CLIENT is not None:
-        return _MONGO_CLIENT
-    uri = os.environ.get("MONGO_FRONTEND_connectionString")
-    if not uri:
-        return None
-    try:
-        from pymongo import MongoClient
-        _MONGO_CLIENT = MongoClient(uri, serverSelectionTimeoutMS=5000)
-        return _MONGO_CLIENT
-    except Exception as e:
-        _log.warning("evaluate_care /health: MongoClient init failed: %s", e)
-        return None
+@app.get("/debug/bootstrap")
+def debug_bootstrap():
+    return debug_bootstrap_graph.invoke({})["response"]
 
-# graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.get("/health")
-def health():
-    # DEVOPS-DEPLOY-001-REQ-016: read build/version/framework from
-    # {ENV_PREFIX}_System.version._id='current'.
+
+# ── /health ──────────────────────────────────────────────────
+
+
+class HealthState(TypedDict, total=False):
+    response: dict
+
+
+def _health_node(state: HealthState) -> dict:
+    """DEVOPS-DEPLOY-001-REQ-016: read build/version/framework from
+    {ENV_PREFIX}_System.version._id='current'."""
     _build = "?"; _version_str = "?"; _framework_str = "?"
     db_status = "unavailable"
     c = _mongo()
@@ -208,110 +253,161 @@ def health():
             db_status = "connected"
         except Exception as e:
             _log.warning("evaluate_care /health: MongoDB read failed: %s", e)
-    return {"status": "ok", "service": "evaluate_care",
-            "db": db_status, "env": _ENV_PREFIX,
-            "build": _build, "version": _version_str, "framework": _framework_str}
+    return {"response": {
+        "status": "ok", "service": "evaluate_care",
+        "db": db_status, "env": _ENV_PREFIX,
+        "build": _build, "version": _version_str, "framework": _framework_str,
+    }}
 
-# graph-exempt: static page render — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
+
+health_graph = _make_single_node_graph("health_check", _health_node, HealthState)
+
+
+@app.get("/health")
+def health():
+    return health_graph.invoke({})["response"]
+
+
+# ── /splash ──────────────────────────────────────────────────
+
+
+class SplashState(TypedDict, total=False):
+    response: dict
+
+
+def _splash_node(state: SplashState) -> dict:
+    _log.info("CONTROL TRANSFER: EvaluateCare has taken ownership of the page")
+    return {"response": {
+        "html": ('<div style="text-align:center;padding:20px;">'
+                 '<div style="font-size:24px;font-weight:700;color:#1f2937;">EvaluateCare</div>'
+                 '<div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">is still unimplemented.</div>'
+                 '</div>')
+    }}
+
+
+splash_graph = _make_single_node_graph("render_splash", _splash_node, SplashState)
+
+
 @app.get("/splash")
 def splash():
-    _log.info("CONTROL TRANSFER: EvaluateCare has taken ownership of the page")
-    return {"html": '<div style="text-align:center;padding:20px;">'
-            '<div style="font-size:24px;font-weight:700;color:#1f2937;">EvaluateCare</div>'
-            '<div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">is still unimplemented.</div>'
-            '</div>'}
+    return splash_graph.invoke({})["response"]
 
-# graph-exempt: proxy/redirect — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.post("/transfer/to-findcare")
-def transfer_to_findcare():
+
+# ── /transfer/to-findcare ────────────────────────────────────
+
+
+class TransferState(TypedDict, total=False):
+    response: dict
+
+
+def _transfer_to_findcare_node(state: TransferState) -> dict:
     """EvaluateCare releases page ownership back to FindCare.
     Called when user interacts with the specialty filter while in EvaluateCare mode."""
     _log.info("CONTROL TRANSFER: EvaluateCare → FindCare (user touched filter)")
-    return {"owner": "findcare", "reason": "filter_interaction"}
+    return {"response": {"owner": "findcare", "reason": "filter_interaction"}}
 
-# ── Token Verification (DEVOPS-BANNER-B006 / SEC-HTTPS-001-REQ-013) ─────
+
+transfer_to_findcare_graph = _make_single_node_graph(
+    "transfer_to_findcare", _transfer_to_findcare_node, TransferState)
+
+
+@app.post("/transfer/to-findcare")
+def transfer_to_findcare():
+    return transfer_to_findcare_graph.invoke({})["response"]
+
+
+# ── /verify-token ────────────────────────────────────────────
+
+
 from pydantic import BaseModel as _BaseModel
 from typing import Optional as _Optional
+
 
 class _VerifyTokenRequest(_BaseModel):
     session_token: _Optional[dict] = None
 
-# graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.post("/verify-token")
-def verify_token(body: _VerifyTokenRequest):
-    """Verify a session token from FindCare. Proves mutual authentication.
-    Mirrors SharedServices /verify-token pattern."""
+
+class VerifyTokenState(TypedDict, total=False):
+    session_token: _Optional[dict]
+    response: dict
+
+
+def _verify_token_node(state: VerifyTokenState) -> dict:
+    """Verify a session token from FindCare. Proves mutual authentication."""
+    body_token = state.get("session_token")
     token_valid = False
-    if body.session_token:
+    if body_token:
         try:
             sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Shared"))
-            os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
+            os.environ.setdefault(
+                "CERTS_DIR",
+                os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
             from session_token import verify_session_token
-            token_valid = verify_session_token(body.session_token, "FindCare")
+            token_valid = verify_session_token(body_token, "FindCare")
             _log.info("EvalCare token verification: origin=%s valid=%s",
-                      body.session_token.get("origin", "unknown"), token_valid)
+                      body_token.get("origin", "unknown"), token_valid)
         except Exception as e:
             _log.warning("EvalCare token verification failed: %s", e)
-    return {
+    return {"response": {
         "status": "verified" if token_valid else "failed",
         "session_token": {
-            "token_received": body.session_token.get("token", "") if body.session_token else "",
-            "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
-            "origin": body.session_token.get("origin", "") if body.session_token else "",
+            "token_received": (body_token.get("token", "") if body_token else ""),
+            "signature_received": ((body_token.get("signature", "") or "")[:40] + "...") if body_token and body_token.get("signature") else "none",
+            "origin": (body_token.get("origin", "") if body_token else ""),
             "verified": token_valid,
         },
-    }
+    }}
+
+
+verify_token_graph = _make_single_node_graph(
+    "verify_session_token", _verify_token_node, VerifyTokenState)
+
+
+@app.post("/verify-token")
+def verify_token(body: _VerifyTokenRequest):
+    return verify_token_graph.invoke({"session_token": body.session_token})["response"]
+
 
 # ── Provider Scoring ────────────────────────────────────────
+
 
 class ScoreProviderRequest(BaseModel):
     provider_id: str = Field(..., description="Provider NPI or ID")
     measures: list[dict] = Field(..., description="List of {name, value} measure inputs")
 
+
 @app.post("/score/provider")
 def score_provider(body: ScoreProviderRequest):
-    from evaluate_care.models import MeasureInput
-    measure_inputs = []
-    for m in body.measures:
-        # Auto-route: numeric → value, non-numeric → raw_value
-        val = m.get("value")
-        if isinstance(val, (int, float, bool)):
-            measure_inputs.append(MeasureInput(name=m["name"], value=float(val) if not isinstance(val, bool) else (1.0 if val else 0.0), raw_value=val))
-        else:
-            measure_inputs.append(MeasureInput(name=m["name"], raw_value=val))
-    result = _engine.score_provider(body.provider_id, measure_inputs)
-    return result.model_dump()
+    return score_provider_graph.invoke({"request": body.model_dump()})["response"]
+
 
 # ── Clinical Trial Scoring ──────────────────────────────────
+
 
 class ScoreTrialRequest(BaseModel):
     trial_id: str = Field(..., description="Clinical trial NCT ID")
     measures: list[dict] = Field(..., description="List of {name, value} measure inputs")
 
+
 @app.post("/score/trial")
 def score_trial(body: ScoreTrialRequest):
-    from evaluate_care.models import MeasureInput
-    measure_inputs = []
-    for m in body.measures:
-        val = m.get("value")
-        if isinstance(val, (int, float, bool)):
-            measure_inputs.append(MeasureInput(name=m["name"], value=float(val) if not isinstance(val, bool) else (1.0 if val else 0.0), raw_value=val))
-        else:
-            measure_inputs.append(MeasureInput(name=m["name"], raw_value=val))
-    result = _engine.score_clinical_trial(body.trial_id, measure_inputs)
-    return result.model_dump()
+    return score_trial_graph.invoke({"request": body.model_dump()})["response"]
+
 
 # ── Explanation ─────────────────────────────────────────────
+
 
 class ExplainRequest(BaseModel):
     score_output: dict = Field(..., description="Output from /score/provider or /score/trial")
 
+
 @app.post("/explain")
 def explain(body: ExplainRequest):
-    from evaluate_care.explainability import explain_score
-    return explain_score(body.score_output)
+    return explain_graph.invoke({"request": body.model_dump()})["response"]
 
-# ── Evaluate Providers (stub — FindCare handoff) ──────────
+
+# ── Evaluate Providers (FindCare handoff) ──────────
+
 
 class EvaluateProvidersRequest(BaseModel):
     providers: list[dict] = Field(..., description="List of provider records from FindCare")
@@ -319,90 +415,20 @@ class EvaluateProvidersRequest(BaseModel):
     session_token: dict | None = Field(default=None, description="Signed session token from FindCare")
     question_summary: str = Field(default="", description="Why the user needs evaluation")
 
-_last_evaluation = {"providers": [], "question": ""}
 
 @app.post("/evaluate/providers")
 def evaluate_providers(body: EvaluateProvidersRequest):
     """Accepts provider list from FindCare and displays them."""
-    # Verify session token
-    token_valid = False
-    token_origin = "unknown"
-    if body.session_token:
-        try:
-            import sys as _sys
-            _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Shared"))
-            os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
-            from session_token import verify_session_token
-            token_valid = verify_session_token(body.session_token, "FindCare")
-            token_origin = body.session_token.get("origin", "unknown")
-            _log.info("Session token: origin=%s valid=%s token=%s",
-                      token_origin, token_valid, body.session_token.get("token", "?")[:20])
-        except Exception as e:
-            _log.warning("Session token verification failed: %s", e)
+    return evaluate_providers_graph.invoke({"request": body.model_dump()})["response"]
 
-    results = []
-    for p in body.providers:
-        results.append({
-            "name": p.get("name", "Unknown"),
-            "specialty": p.get("specialty", p.get("primary_specialty", "Unknown")),
-            "npi": p.get("npi", "Unknown"),
-        })
-    _last_evaluation["providers"] = results
-    _last_evaluation["question"] = body.question_summary or "Provider evaluation"
-    _log.info("Received %d providers from FindCare (token_valid=%s): %s",
-              len(results), token_valid, _last_evaluation["question"])
-    return {
-        "status": "received",
-        "evaluated_providers": results,
-        "question_summary": _last_evaluation["question"],
-        "session_token": {
-            "token_received": body.session_token.get("token", "") if body.session_token else "",
-            "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
-            "origin": body.session_token.get("origin", "") if body.session_token else "",
-            "verified": token_valid,
-        },
-    }
 
 @app.get("/evaluate/view")
 def evaluate_view():
     """HTML page showing the last evaluation received from FindCare."""
     from fastapi.responses import HTMLResponse
-    providers = _last_evaluation.get("providers", [])
-    question = _last_evaluation.get("question", "No evaluation received yet")
-    rows = ""
-    for i, p in enumerate(providers):
-        rows += f"<tr><td>{i+1}</td><td>{p['name']}</td><td>{p['specialty']}</td><td>{p['npi']}</td></tr>"
-    if not rows:
-        rows = "<tr><td colspan='4' style='text-align:center;color:#999;'>No providers received yet. Click 'Evaluate These Providers' in FindCare.</td></tr>"
-    html = f"""<!DOCTYPE html>
-<html><head><title>EvaluateCare — Provider Evaluation</title>
-<style>
-body {{ font-family: system-ui, sans-serif; margin: 40px; background: #f8fffe; }}
-h1 {{ color: #0b7a75; }}
-h2 {{ color: #374151; font-size: 16px; }}
-table {{ border-collapse: collapse; width: 100%; margin-top: 16px; }}
-th {{ background: #0b7a75; color: white; padding: 10px; text-align: left; }}
-td {{ padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }}
-tr:hover {{ background: #f0fffe; }}
-.badge {{ background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 4px; font-size: 12px; }}
-.header {{ display: flex; justify-content: space-between; align-items: center; }}
-</style></head><body>
-<div class="header">
-    <h1>EvaluateCare — Provider Evaluation</h1>
-    <span class="badge">Service: localhost:8001 (separate from FindCare)</span>
-</div>
-<h2>Query: {question}</h2>
-<p>{len(providers)} providers received from FindCare via handoff</p>
-<table>
-<tr><th>#</th><th>Provider</th><th>Specialty</th><th>NPI</th></tr>
-{rows}
-</table>
-<p style="color:#999;font-size:12px;margin-top:24px;">
-    This page proves the FindCare → EvaluateCare handoff. Providers were sent from FindCare (:8000) to EvaluateCare (:8001) as a separate service.
-    In production, this communication uses mTLS with x509 certificates.
-</p>
-</body></html>"""
-    return HTMLResponse(content=html)
+    result = evaluate_view_graph.invoke({})["response"]
+    return HTMLResponse(content=result["html"])
+
 
 # ── Run ─────────────────────────────────────────────────────
 

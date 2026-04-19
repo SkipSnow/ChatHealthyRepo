@@ -1,7 +1,34 @@
 {
-  "dependencies": ["./Code/ConversationalUX/FindCareChat/backend"],
+  "dependencies": [
+    "./Code/ConversationalUX/FindCareChat/backend",
+    "./Code/evaluate_care",
+    "./Code/shared_services"
+  ],
   "graphs": {
-    "find_care_chat": "./Code/ConversationalUX/FindCareChat/backend/application/_langgraph_studio_entry.py:_chat_graph"
+    "find_care_chat": "./Code/ConversationalUX/FindCareChat/backend/main.py:_chat_graph",
+    "find_care_search": "./Code/ConversationalUX/FindCareChat/backend/main.py:search_graph",
+    "find_care_classify": "./Code/ConversationalUX/FindCareChat/backend/main.py:classify_graph",
+    "find_care_qa_report": "./Code/ConversationalUX/FindCareChat/backend/main.py:qa_report_graph",
+    "find_care_qa_report_submit": "./Code/ConversationalUX/FindCareChat/backend/main.py:qa_report_submit_graph",
+    "find_care_welcome": "./Code/ConversationalUX/FindCareChat/backend/main.py:welcome_graph",
+
+    "evaluate_care_health": "./Code/evaluate_care/app.py:health_graph",
+    "evaluate_care_splash": "./Code/evaluate_care/app.py:splash_graph",
+    "evaluate_care_transfer_to_findcare": "./Code/evaluate_care/app.py:transfer_to_findcare_graph",
+    "evaluate_care_verify_token": "./Code/evaluate_care/app.py:verify_token_graph",
+    "evaluate_care_debug_verify_live": "./Code/evaluate_care/app.py:debug_verify_live_graph",
+    "evaluate_care_debug_bootstrap": "./Code/evaluate_care/app.py:debug_bootstrap_graph",
+    "evaluate_care_score_provider": "./Code/evaluate_care/app.py:score_provider_graph",
+    "evaluate_care_score_trial": "./Code/evaluate_care/app.py:score_trial_graph",
+    "evaluate_care_explain": "./Code/evaluate_care/app.py:explain_graph",
+    "evaluate_care_evaluate_providers": "./Code/evaluate_care/app.py:evaluate_providers_graph",
+    "evaluate_care_evaluate_view": "./Code/evaluate_care/app.py:evaluate_view_graph",
+
+    "shared_services_health": "./Code/shared_services/app.py:health_graph",
+    "shared_services_splash": "./Code/shared_services/app.py:splash_graph",
+    "shared_services_transfer_to_findcare": "./Code/shared_services/app.py:transfer_to_findcare_graph",
+    "shared_services_verify_token": "./Code/shared_services/app.py:verify_token_graph",
+    "shared_services_get_secret": "./Code/shared_services/app.py:get_secret_graph"
   },
   "env": "Code/.env"
 }

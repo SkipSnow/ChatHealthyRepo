@@ -86,3 +86,4 @@ Code/CSharp/**/bin/
 Code/CSharp/**/obj/
 Code/CSharp/**/build/
 brain/machine_artifacts/.iteration_cache/
+.langgraph_api/
