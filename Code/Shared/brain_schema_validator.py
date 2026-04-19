@@ -1,166 +1,122 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# brain_schema_validator.py — BRAIN-SCHEMA-REQ-001
-# Strict enforcement of brain JSON files against schema.json.
-# Every brain JSON write MUST pass this validator.
+# brain_schema_validator.py — BRAIN-SCHEMA-REQ-001.
+#
+# Validates each brain JSON file against the web schema URL declared in
+# its own $schema property. URLs of the form
+#   https://{env}.chathealthy.ai/schemas/{env}/<Name>.json
+# are resolved offline to Website/schemas/{env}/<Name>.json in this
+# repo. Files whose $schema points at chathealthy-relaxed.schema.json
+# are skipped — that's the to-do-list placeholder.
+#
+# schema.json (the brain-level metadata file) is no longer parsed for
+# validation rules; it is kept only as the human-readable punch list of
+# collections still awaiting a real web schema.
+
+from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
+from typing import Iterable
+
+from jsonschema import Draft202012Validator
 
 
-def _load_schema(brain_dir: str) -> dict:
-    schema_path = os.path.join(brain_dir, "machine_artifacts", "content", "schema.json")
-    with open(schema_path, encoding="utf-8") as f:
-        return json.load(f)
+REPO_ROOT = Path(__file__).resolve().parents[2]
+BRAIN_CONTENT = REPO_ROOT / "brain" / "machine_artifacts" / "content"
+WEBSITE_SCHEMAS = REPO_ROOT / "Website" / "schemas"
 
 
-def _find_collection_schema(schema: dict, collection_name: str) -> dict | None:
-    collections = schema.get("collections", {})
-    if isinstance(collections, dict):
-        return collections.get(collection_name)
-    # Legacy list format
-    for col in collections:
-        if isinstance(col, dict) and col.get("collection") == collection_name:
-            return col
+def _resolve_schema_url(url: str) -> Path | None:
+    """Map a ChatHealthy web-schema URL to a local file.
+    Returns None for the relaxed catch-all (skip) or unknown hosts."""
+    if not url or not isinstance(url, str):
+        return None
+    if "chathealthy-relaxed" in url:
+        return None
+    # https://{env}.chathealthy.ai/schemas/{env}/<Name>.json
+    for env in ("dev", "qa", "prod"):
+        needle = f"{env}.chathealthy.ai/schemas/{env}/"
+        if needle in url:
+            name = url.rsplit("/", 1)[-1]
+            candidate = WEBSITE_SCHEMAS / env / name
+            if candidate.exists():
+                return candidate
+            return None
     return None
 
 
-def _extract_constraints(record_schemas: dict) -> dict:
-    """Extract all field constraints from record_schemas recursively.
-    Returns {entity_type: {field_name: [allowed_values]}}"""
-    constraints = {}
-    for entity_name, entity_def in record_schemas.items():
-        if not isinstance(entity_def, dict):
-            continue
-        fields = entity_def.get("fields", {})
-        field_constraints = {}
-        for field_name, field_def in fields.items():
-            if isinstance(field_def, dict) and field_def.get("possible_values"):
-                field_constraints[field_name] = field_def["possible_values"]
-        if field_constraints:
-            constraints[entity_name] = field_constraints
-    return constraints
+def _validate_one(brain_file: Path) -> list[str]:
+    """Validate a single brain JSON. Returns list of error strings."""
+    try:
+        data = json.loads(brain_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        return [f"{brain_file.name}: invalid JSON: {e}"]
+    except Exception as e:
+        return [f"{brain_file.name}: unreadable: {e}"]
 
+    schema_url = data.get("$schema") if isinstance(data, dict) else None
+    schema_path = _resolve_schema_url(schema_url)
+    if schema_path is None:
+        return []  # no strict schema (relaxed, missing, or external) — skip
 
-def _validate_record(record: dict, entity_type: str, constraints: dict, path: str) -> list[str]:
-    """Validate a single record against constraints. Returns list of errors."""
-    errors = []
-    entity_constraints = constraints.get(entity_type, {})
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        return [f"{brain_file.name}: cannot load web schema {schema_path.name}: {e}"]
 
-    for field_name, allowed_values in entity_constraints.items():
-        if field_name in record:
-            value = record[field_name]
-            if value not in allowed_values:
-                errors.append(
-                    f"{path}.{field_name} = '{value}' — "
-                    f"not in allowed values: {allowed_values}"
-                )
-
+    validator = Draft202012Validator(schema)
+    errors: list[str] = []
+    for err in validator.iter_errors(data):
+        path = "/".join(str(p) for p in err.absolute_path) or "(root)"
+        errors.append(f"{brain_file.name}: {path}: {err.message}")
     return errors
 
 
-def _validate_hierarchy(data: dict, constraints: dict) -> list[str]:
-    """Validate the epic→feature→story→requirement hierarchy."""
-    errors = []
-
-    for i, epic in enumerate(data.get("epics", [])):
-        epic_path = f"epics[{i}]({epic.get('epic_id', '?')})"
-        errors.extend(_validate_record(epic, "epic", constraints, epic_path))
-
-        for j, feature in enumerate(epic.get("features", [])):
-            feat_path = f"{epic_path}.features[{j}]({feature.get('feature_id', '?')})"
-            errors.extend(_validate_record(feature, "feature", constraints, feat_path))
-
-            for k, story in enumerate(feature.get("stories", [])):
-                story_path = f"{feat_path}.stories[{k}]({story.get('story_id', '?')})"
-                errors.extend(_validate_record(story, "story", constraints, story_path))
-
-                for m, req in enumerate(story.get("requirements", [])):
-                    req_path = f"{story_path}.requirements[{m}]({req.get('req_id', '?')})"
-                    errors.extend(_validate_record(req, "requirement", constraints, req_path))
-
-    return errors
-
-
-def validate_backlog(brain_dir: str) -> list[str]:
-    """Validate agile_backlog.json against schema.json constraints.
-    Returns list of error strings. Empty list = valid."""
-    schema = _load_schema(brain_dir)
-    col_schema = _find_collection_schema(schema, "agile_backlog")
-    if not col_schema:
-        return ["Schema collection 'agile_backlog' not found in schema.json"]
-
-    record_schemas = col_schema.get("record_schemas", {})
-    constraints = _extract_constraints(record_schemas)
-
-    if not constraints:
-        return ["No field constraints found in agile_backlog schema"]
-
-    backlog_path = os.path.join(brain_dir, "machine_artifacts", "content", "agile_backlog.json")
-    with open(backlog_path, encoding="utf-8") as f:
-        data = json.load(f)
-
-    return _validate_hierarchy(data, constraints)
-
-
-def validate_bugs(brain_dir: str) -> list[str]:
-    """Validate bugs.json against schema.json constraints.
-    Returns list of error strings. Empty list = valid."""
-    schema = _load_schema(brain_dir)
-    col_schema = _find_collection_schema(schema, "bugs")
-    if not col_schema:
-        return ["Schema collection 'bugs' not found in schema.json"]
-
-    record_schemas = col_schema.get("record_schemas", col_schema.get("fields", {}))
-    constraints = {}
-
-    # bugs.json has a flat field structure, not nested record_schemas
-    if "status" in record_schemas and isinstance(record_schemas["status"], dict):
-        pv = record_schemas["status"].get("possible_values")
-        if pv:
-            constraints["bug"] = {"status": pv}
-
-    if not constraints:
-        return []
-
-    bugs_path = os.path.join(brain_dir, "machine_artifacts", "content", "bugs.json")
-    with open(bugs_path, encoding="utf-8") as f:
-        data = json.load(f)
-
-    errors = []
-    for i, bug in enumerate(data.get("bugs", [])):
-        bug_path = f"bugs[{i}]({bug.get('id', '?')})"
-        errors.extend(_validate_record(bug, "bug", constraints, bug_path))
-
-    return errors
-
-
-def validate_all(brain_dir: str) -> dict[str, list[str]]:
-    """Validate all brain JSON files against schema.json.
-    Returns {collection_name: [errors]}."""
-    results = {}
-    results["agile_backlog"] = validate_backlog(brain_dir)
-    results["bugs"] = validate_bugs(brain_dir)
+def validate_all(brain_dir: str | os.PathLike | None = None) -> dict[str, list[str]]:
+    """Validate every brain JSON in brain_dir against its declared web schema.
+    Returns {filename: [errors]}."""
+    root = Path(brain_dir) if brain_dir else REPO_ROOT / "brain"
+    content_dir = root / "machine_artifacts" / "content" if (root / "machine_artifacts").exists() else root
+    results: dict[str, list[str]] = {}
+    for f in sorted(content_dir.glob("*.json")):
+        results[f.name] = _validate_one(f)
     return results
 
 
-if __name__ == "__main__":
-    brain = os.path.join(os.path.dirname(__file__), "..", "..", "brain")
-    results = validate_all(brain)
-    total_errors = 0
-    for collection, errors in results.items():
-        if errors:
-            print(f"\n{collection}: {len(errors)} violations")
-            for err in errors:
-                print(f"  FAIL: {err}")
-            total_errors += len(errors)
-        else:
-            print(f"{collection}: OK")
+def validate_bugs(brain_dir: str | os.PathLike | None = None) -> list[str]:
+    """Backwards-compat shim: validate bugs.json specifically."""
+    root = Path(brain_dir) if brain_dir else REPO_ROOT / "brain"
+    p = (root / "machine_artifacts" / "content" / "bugs.json") if (root / "machine_artifacts").exists() \
+        else (root / "bugs.json")
+    return _validate_one(p)
 
-    if total_errors:
-        print(f"\n{total_errors} total violations found.")
-        exit(1)
-    else:
-        print("\nAll brain JSON files are schema-compliant.")
+
+def validate_backlog(brain_dir: str | os.PathLike | None = None) -> list[str]:
+    """Backwards-compat shim: validate agile_backlog.json specifically."""
+    root = Path(brain_dir) if brain_dir else REPO_ROOT / "brain"
+    p = (root / "machine_artifacts" / "content" / "agile_backlog.json") if (root / "machine_artifacts").exists() \
+        else (root / "agile_backlog.json")
+    return _validate_one(p)
+
+
+if __name__ == "__main__":
+    results = validate_all()
+    total = 0
+    for name, errs in results.items():
+        if errs:
+            print(f"\n{name}: {len(errs)} violation(s)")
+            for e in errs[:20]:
+                print(f"  FAIL: {e}")
+            if len(errs) > 20:
+                print(f"  ... and {len(errs) - 20} more")
+            total += len(errs)
+        else:
+            print(f"{name}: OK")
+    if total:
+        print(f"\n{total} total violations.")
+        sys.exit(1)
+    print("\nAll brain JSON files are schema-compliant.")

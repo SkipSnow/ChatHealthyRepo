@@ -159,7 +159,7 @@ class TestREQ004_InformClaude:
         boot.brain = {"version": {"current": {}}, "governance_matrix": {"matrix": {}}}
         boot._constraints = []
         boot._state = {}
-        orphans = [{"id": "BUG-TEST-001", "type": "medium", "rule": "test rule", "date": "2026-01-01"}]
+        orphans = [{"bugid": "BUG-TEST-001", "severity": "medium", "title": "test rule", "discovery_date": "2026-01-01"}]
         result = boot.inform_claude({"orphan_bugs": orphans})
         assert "BUG-TEST-001" in result
         assert "ORPHAN BUG TRIAGE" in result
@@ -411,7 +411,7 @@ class TestREQ011_OrphanTablePresentation:
         boot.brain = {"version": {"current": {}}, "governance_matrix": {"matrix": {}}}
         boot._constraints = []
         boot._state = {}
-        orphans = [{"id": "BUG-001", "type": "high", "rule": "something broke", "date": "2026-04-01"}]
+        orphans = [{"bugid": "BUG-001", "severity": "high", "title": "something broke", "discovery_date": "2026-04-01"}]
         result = boot.inform_claude({"orphan_bugs": orphans})
         assert "| ID |" in result or "| id |" in result.lower()
         assert "| Type |" in result or "| type |" in result.lower()
@@ -423,8 +423,8 @@ class TestREQ011_OrphanTablePresentation:
         boot._constraints = []
         boot._state = {}
         orphans = [
-            {"id": "BUG-X-001", "type": "medium", "rule": "orphan rule text", "date": "2026-03-15"},
-            {"id": "BUG-X-002", "type": "high", "rule": "second orphan", "date": "2026-03-20"},
+            {"bugid": "BUG-X-001", "severity": "medium", "title": "orphan rule text", "discovery_date": "2026-03-15"},
+            {"bugid": "BUG-X-002", "severity": "high", "title": "second orphan", "discovery_date": "2026-03-20"},
         ]
         result = boot.inform_claude({"orphan_bugs": orphans})
         assert "BUG-X-001" in result
@@ -437,7 +437,7 @@ class TestREQ011_OrphanTablePresentation:
         boot.brain = {"version": {"current": {}}, "governance_matrix": {"matrix": {}}}
         boot._constraints = []
         boot._state = {}
-        orphans = [{"id": "BUG-001", "type": "high", "rule": "test", "date": "2026-01-01"}]
+        orphans = [{"bugid": "BUG-001", "severity": "high", "title": "test", "discovery_date": "2026-01-01"}]
         result = boot.inform_claude({"orphan_bugs": orphans})
         assert "triage" in result.lower()
         assert "Do NOT proceed" in result or "do not proceed" in result.lower()
@@ -455,10 +455,10 @@ class TestREQ001_OrphanBugScan:
         """_scan_orphans returns list of orphan bugs from bugs.json."""
         boot = _fresh_boot_instance(load_full=False)
         bugs_data = {
-            "bugs": [
-                {"id": "BUG-001", "type": "high", "rule": "test rule", "date": "2026-01-01", "orphan": True},
-                {"id": "BUG-002", "type": "low", "rule": "normal bug", "date": "2026-01-02", "orphan": False},
-                {"id": "BUG-003", "type": "medium", "rule": "another orphan", "date": "2026-01-03", "orphan": True},
+            "bug": [
+                {"bugid": "BUG-001", "severity": "high", "title": "test rule", "discovery_date": "2026-01-01", "orphan": True},
+                {"bugid": "BUG-002", "severity": "low", "title": "normal bug", "discovery_date": "2026-01-02", "orphan": False},
+                {"bugid": "BUG-003", "severity": "medium", "title": "another orphan", "discovery_date": "2026-01-03", "orphan": True},
             ]
         }
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tf:
@@ -486,8 +486,8 @@ class TestREQ001_OrphanBugScan:
         """Each orphan entry must have id, type, rule (truncated), date."""
         boot = _fresh_boot_instance(load_full=False)
         bugs_data = {
-            "bugs": [
-                {"id": "BUG-T-001", "type": "critical", "rule": "x" * 200, "date": "2026-04-15", "orphan": True},
+            "bug": [
+                {"bugid": "BUG-T-001", "severity": "critical", "title": "x" * 200, "discovery_date": "2026-04-15", "orphan": True},
             ]
         }
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, dir=tempfile.gettempdir()) as tf:
@@ -521,10 +521,10 @@ class TestREQ001_OrphanBugScan:
                     with patch.object(boot, "_verify_coverage"):
                         with patch.object(boot, "_extract_constraints"):
                             with patch.object(boot, "_save_digest"):
-                                with patch.object(boot, "_scan_orphans", return_value=[{"id": "BUG-MOCK"}]) as mock_scan:
+                                with patch.object(boot, "_scan_orphans", return_value=[{"bugid": "BUG-MOCK"}]) as mock_scan:
                                     result = boot.boot()
         mock_scan.assert_called_once()
-        assert result["orphan_bugs"] == [{"id": "BUG-MOCK"}]
+        assert result["orphan_bugs"] == [{"bugid": "BUG-MOCK"}]
 
 
 # ============================================================================
@@ -611,9 +611,9 @@ class TestScanJsonREQ002_CVConstrainedFields:
             }
         }
         bugs_data = {
-            "bugs": [
+            "bug": [
                 {
-                    "id": "BUG-TEST-001",
+                    "bugid": "BUG-TEST-001",
                     "status": "INVALID_STATUS",
                     "resolution_status": "BOGUS_VALUE",
                 }
@@ -688,7 +688,7 @@ class TestScanJsonREQ002_CVConstrainedFields:
                 }
             }
         }
-        bugs_data = {"bugs": [{"id": "BUG-OK-001", "status": "open"}]}
+        bugs_data = {"bug": [{"bugid": "BUG-OK-001", "status": "open"}]}
         cv_data = {"vocabularies": []}
 
         with tempfile.TemporaryDirectory() as td:
@@ -727,7 +727,7 @@ class TestScanJsonREQ002_CVConstrainedFields:
                 }
             }
         }
-        bugs_data = {"bugs": [{"id": "BUG-BAD", "type": "TOTALLY_INVALID_TYPE"}]}
+        bugs_data = {"bug": [{"bugid": "BUG-BAD", "severity": "TOTALLY_INVALID_TYPE"}]}
         cv_data = {
             "vocabularies": [
                 {
