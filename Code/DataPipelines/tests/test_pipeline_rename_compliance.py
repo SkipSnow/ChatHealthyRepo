@@ -10,9 +10,7 @@ SCAN_DIRS = [
     os.path.join(REPO_ROOT, "Code", "DataPipelines"),
     os.path.join(REPO_ROOT, "brain", "machine_artifacts", "content"),
 ]
-SKIP_FILES = {"conversation_log.json", "pipeline_v3_compliance_log.json",
-              "pipeline_v3_iteration_log.json", "pipeline_v4_design_iterations.json",
-              "test_pipeline_rename_compliance.py"}
+SKIP_FILES = {"conversation_log.json", "test_pipeline_rename_compliance.py"}
 
 
 def _scan_for_old_name():

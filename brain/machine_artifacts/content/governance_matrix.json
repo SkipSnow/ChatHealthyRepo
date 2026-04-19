@@ -197,27 +197,6 @@
       "post_tool_use": "allow",
       "stop": "allow"
     },
-    "pipeline_v3_compliance_log": {
-      "session_start": "allow",
-      "user_prompt_submit": "allow",
-      "pre_tool_use": "allow",
-      "post_tool_use": "allow",
-      "stop": "allow"
-    },
-    "pipeline_v3_iteration_log": {
-      "session_start": "allow",
-      "user_prompt_submit": "allow",
-      "pre_tool_use": "allow",
-      "post_tool_use": "allow",
-      "stop": "allow"
-    },
-    "pipeline_v4_design_iterations": {
-      "session_start": "allow",
-      "user_prompt_submit": "allow",
-      "pre_tool_use": "allow",
-      "post_tool_use": "allow",
-      "stop": "allow"
-    },
     "engineering_rules": {
       "session_start": "session_warning",
       "user_prompt_submit": "code_controlled",
