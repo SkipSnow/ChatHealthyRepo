@@ -2,15 +2,6 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/riskWaiver_gate.py\""
-          }
-        ]
-      },
-      {
         "hooks": [
           {
             "type": "command",
