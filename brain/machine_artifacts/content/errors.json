@@ -81,6 +81,11 @@
       "timestamp": "2026-04-16T18:21:27.419808+00:00",
       "source": "ConversationLogConsumer",
       "error": "MongoDB batch write failed: No replica set members match selector \"Primary()\", Timeout: 10.0s, Topology Description: <TopologyDescription id: 69e1289c6c71b4aaaaedaaea, topology_type: ReplicaSetNoPrimary, servers: [<ServerDescription ('chathealthyfrontend-shard-00-00.mdwahg.mongodb.net', 27017) server_type: RSSecondary, rtt: 0.09400000000023284>, <ServerDescription ('chathealthyfrontend-shard-00-01.mdwahg.mongodb.net', 27017) server_type: Unknown, rtt: None>, <ServerDescription ('chathealthyfront"
+    },
+    {
+      "timestamp": "2026-04-20T04:21:06.488306+00:00",
+      "source": "post-commit-hook",
+      "error": "MongoDB unreachable from .git/hooks/post-commit — build counter ({ENV_PREFIX}_System.version._id='current'.build) was NOT incremented for this commit. Counter will drift behind actual commit count until mongo is reachable on a future commit, at which point $inc resumes from the lagged value (no catch-up). Per Skip directive 2026-04-19, drift is accepted; this entry exists so silent skip is not invisible."
     }
   ]
 }
