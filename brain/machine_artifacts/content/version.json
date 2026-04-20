@@ -17,7 +17,46 @@
                   }
                 ]
               },
-              "files_touched": ["brain/machine_artifacts/content/version.json"]
+              "files_touched": [
+                "brain/machine_artifacts/content/version.json"
+              ]
+            },
+            {
+              "build_number": 994,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "requirement_id",
+                    "identifier": "ARCH-SCAN-JSON-REQ-002"
+                  }
+                ]
+              },
+              "files_touched": [
+                "brain/machine_artifacts/content/ai_operations.json",
+                "brain/machine_artifacts/content/architecture.json",
+                "brain/machine_artifacts/content/business_plan.json",
+                "brain/machine_artifacts/content/controlled_vocabularies.json",
+                "brain/machine_artifacts/content/conversation_log.json",
+                "brain/machine_artifacts/content/daily_punch_list_with_results_and_accomplishments.json",
+                "brain/machine_artifacts/content/design.json",
+                "brain/machine_artifacts/content/emergency_keywords.json",
+                "brain/machine_artifacts/content/external_audits.json",
+                "brain/machine_artifacts/content/governance.json",
+                "brain/machine_artifacts/content/governance_matrix.json",
+                "brain/machine_artifacts/content/legal.json",
+                "brain/machine_artifacts/content/project_manifest.json",
+                "brain/machine_artifacts/content/prompts.json",
+                "brain/machine_artifacts/content/regression_report.json",
+                "brain/machine_artifacts/content/schema.json",
+                "brain/machine_artifacts/content/security.json",
+                "brain/machine_artifacts/content/SecurityAuditControls.json",
+                "brain/machine_artifacts/content/sprint_plan.json",
+                "brain/machine_artifacts/content/token_usage.json",
+                "brain/machine_artifacts/content/traceability_matrix.json",
+                "brain/machine_artifacts/content/unrealized_ideas.json",
+                "brain/machine_artifacts/content/work_log.json",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }
