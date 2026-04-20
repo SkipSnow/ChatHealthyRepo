@@ -416,7 +416,12 @@ EXECUTORS = {
     "file_present": enforce_file_present,
     "json_check": enforce_json_check,
     "no_pattern": enforce_no_pattern,
-    "graph_entry_check": enforce_graph_entry_check,
+    # graph_entry_check: DISABLED 2026-04-20 per Skip directive — LangGraph
+    # was removed from runtime code (build 1007). Rule-061 in
+    # engineering_rules.json is now orphan; this executor would fire on every
+    # route handler and block all pushes. Re-enable only if LangGraph
+    # orchestration is reintroduced. Mirrors disable in pre_deploy_rule_check.py.
+    # "graph_entry_check": enforce_graph_entry_check,
 }
 if enforce_bugs_schema:
     EXECUTORS.update({
