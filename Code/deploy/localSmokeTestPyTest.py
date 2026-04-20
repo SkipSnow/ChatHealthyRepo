@@ -319,10 +319,12 @@ class TestStep03:
     def test_shared_services_button(self, env):
         page = env["page"]
         # BUG-UX-021: Must be a <button> inside #envBanner, not a link in header nav
-        _verify_button_in_parent(page, "#sharedServicesNav", "#envBanner", "Shared Services")
-        btn = page.locator("#sharedServicesNav")
+        # Banner button rendered by renderBannerButtons uses data-service="sharedservices",
+        # text label "SharedServices" (PascalCase, no space). Per Skip directive 2026-04-19.
+        _verify_button_in_parent(page, "[data-service='sharedservices']", "#envBanner", "SharedServices")
+        btn = page.locator("[data-service='sharedservices']")
         expect(btn).to_be_visible()
-        expect(btn).to_contain_text("Shared Services")
+        expect(btn).to_contain_text("SharedServices")
         _screenshot(page, "03")
 
 
@@ -675,8 +677,8 @@ class TestStep23:
         frame = env.get("chat_frame", env["page"])
         chat_input = frame.locator("input[placeholder*='Type a message'], textarea").first
         expect(chat_input).to_be_visible()
-        # Cursor MUST be automatically focused — do NOT click first
-        expect(chat_input).to_be_focused()
+        # Auto-focus assertion removed per Skip directive 2026-04-19 — the input is
+        # available and usable after return; auto-focus is not a hard requirement.
         _screenshot(env["page"], "23")
 
 
@@ -694,10 +696,12 @@ class TestStep24:
 class TestStep25:
     def test_push_shared_services(self, env):
         page = env["page"]
-        btn = page.locator("#sharedServicesNav")
-        assert btn.count() > 0 and btn.is_visible(), "Shared Services button missing"
-        btn.click()
-        page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=15000)
+        # TestStep03 already verified the button exists + is visible.
+        # This step's job is to ACT — click and confirm SharedServices took the right panel.
+        # Banner button uses data-service="sharedservices", panel text is "SharedServices"
+        # (PascalCase, no space). Per Skip directive 2026-04-19.
+        page.locator("[data-service='sharedservices']").click()
+        page.locator("#rightPanel:has-text('SharedServices')").wait_for(state="visible", timeout=15000)
         page.wait_for_timeout(3000)
         _screenshot(page, "25")
 
@@ -733,7 +737,8 @@ class TestStep28:
         splash = page.locator("#sharedSplash")
         assert splash.count() > 0 and splash.is_visible(), "SharedServices splash not visible"
         text = splash.inner_text()
-        assert "Shared Services" in text, f"Missing Shared Services: {text}"
+        # Banner/splash uses PascalCase "SharedServices", not "Shared Services" (Skip 2026-04-19).
+        assert "SharedServices" in text, f"Missing SharedServices: {text}"
         assert "is still unimplemented" in text, f"Missing unimplemented: {text}"
         _screenshot(page, "28")
 
@@ -743,7 +748,8 @@ class TestStep29:
     def test_shared_services_token_auth(self, env):
         page = env["page"]
         right = page.locator("#rightPanel").inner_text()
-        assert "SHARED SERVICES" in right.upper(), f"Not SharedServices context: {right[:400]}"
+        # PascalCase "SharedServices" — uppercased = "SHAREDSERVICES" (no space). Skip 2026-04-19.
+        assert "SHAREDSERVICES" in right.upper(), f"Not SharedServices context: {right[:400]}"
         # Handoff 3 of 6: FindCare → SharedServices
         nonce, guid = _verify_session_identity(page, env, "FindCare→SharedServices")
         env["shared_nonce"] = nonce
@@ -800,11 +806,10 @@ class TestStep32:
         assert eval_btn.count() > 0, "Evaluate button not found for handoff 5"
         eval_btn.first.click()
         page.wait_for_timeout(5000)
-        # Now in EvaluateCare — click Shared Services
-        btn = page.locator("#sharedServicesNav")
-        assert btn.count() > 0 and btn.is_visible(), "Shared Services button missing from EvaluateCare"
-        btn.click()
-        page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=15000)
+        # Now in EvaluateCare — click SharedServices (banner button uses
+        # data-service="sharedservices", panel text PascalCase. Skip 2026-04-19.)
+        page.locator("[data-service='sharedservices']").click()
+        page.locator("#rightPanel:has-text('SharedServices')").wait_for(state="visible", timeout=15000)
         page.wait_for_timeout(3000)
         # Handoff 5 of 6: EvaluateCare → SharedServices
         nonce, guid = _verify_session_identity(page, env, "EvaluateCare→SharedServices")
