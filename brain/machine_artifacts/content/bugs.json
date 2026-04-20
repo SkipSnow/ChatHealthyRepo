@@ -3879,6 +3879,71 @@
       "next_action": [
         "preCommitScan.py 'all' mode: derive changed-file list via 'git diff origin/<branch>..HEAD --name-only', then scope each rule executor to operate only on files in that list."
       ]
+    },
+    {
+      "bugid": "BUG-SCANNER-NOT-SINGLE-GATE-001",
+      "title": "preCommitScan does not enforce the 61 engineering rules at pre-commit (split with pre-push)",
+      "description": "Per ARCH-SCAN-JSON-REQ-005 the pre-commit scanner MUST run every engineering rule with an executor at pre-commit time. Today only schema validation + HTTP scan run at pre-commit; the 61 rules' executors run at pre-push. This split creates a 'commit passed but push fails' trap. Closes when preCommitScan.py 'staged' mode runs the full rule set scoped to staged files AND pre-push reduces to network-op only.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "high",
+      "req_id": "ARCH-SCAN-JSON-REQ-005",
+      "story_id": "ARCH-SCAN-JSON",
+      "pytest_id": "TBD-single-gate-test",
+      "pytest_success_criteria": [
+        "Pre-commit scan of a staged file with a v4-043 violation blocks the commit (rule executor runs at pre-commit time)",
+        "Pre-push runs no rule executor; only the git push network operation",
+        "A commit that passes pre-commit always passes pre-push (no trap)"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-04-26",
+      "fix": "",
+      "reproduction": "Stage a file with a v4-043 violation (e.g. a FastAPI handler without graph.invoke). Run git commit -m 'test'. Today this passes pre-commit (only schema + HTTP run there). Run git push. Pre-push blocks on graph_entry_check. Trap demonstrated.",
+      "orphan": false,
+      "next_action": [
+        "Refactor preCommitScan.py: --staged mode runs the full rule executor loop scoped to staged files.",
+        ".git/hooks/pre-push: drop the rule check call; reduce to a no-op or just the push."
+      ]
+    },
+    {
+      "bugid": "BUG-AGILE-BACKLOG-UNIQUENESS-DISABLED-001",
+      "title": "Cross-record uniqueness check disabled in pre_deploy_rule_check.py - 4 ID fields unenforced (also: bugs.json bugid uniqueness unenforced)",
+      "description": "Per Skip directive 2026-04-19, the cross-record uniqueness check in enforce_backlog_schema (Code/Shared/ops/tools/pre_deploy_rule_check.py) was commented out because it was orphan code (no requirement authorized it) and was blocking commits on pre-existing duplicate IDs that pre-date today's session. Fields no longer enforced for uniqueness within agile_backlog.json: (1) epic_id, (2) feature_id, (3) story_id, (4) req_id. Today these IDs reuse: EPIC-008 was used by 2 epics (Architecture and UX) before today's rename; EVAL-REQ-001..018 reused 7-24 times each across EvaluateCare measure variants; EVAL-WEIGHTS-REQ-*, EVAL-CACHE-REQ-*, EVAL-NORM-REQ-*, EVAL-DATA-PROV-REQ-*, EVAL-REQ-FAILSAFE-*, EVAL-CONF-REQ-*, EVAL-REQ-CTM4-* families all carry duplicates. Closes when (a) a requirement is filed and approved authorizing scanner ID-uniqueness enforcement, (b) the existing duplicates are deduplicated, and (c) the commented block in pre_deploy_rule_check.py is restored.\n\nADDITIONAL: bugs.json itself also lacks bugid uniqueness enforcement. 4 duplicate bugids found: BUG-LANGCHAIN-CONTAINER-APP-HEALTH, BUG-LANGCHAIN-CONTAINER-APP-SPLASH, BUG-LANGCHAIN-CONTAINER-APP-TRANSFER-TO-FINDCARE, BUG-LANGCHAIN-CONTAINER-APP-VERIFY-TOKEN (each appears twice). No scanner check currently enforces bugid uniqueness; the absence of this check is a sibling of the disabled agile_backlog uniqueness check.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "high",
+      "req_id": "Orphan",
+      "story_id": "ARCH-SCAN-GENERAL",
+      "pytest_id": "TBD-uniqueness-enforcement-test",
+      "pytest_success_criteria": [
+        "pre_deploy_rule_check.py contains an active (uncommented) cross-record uniqueness check for epic_id, feature_id, story_id, req_id",
+        "Adding a duplicate epic_id to agile_backlog.json blocks the next commit",
+        "Adding a duplicate req_id to agile_backlog.json blocks the next commit",
+        "Adding a duplicate story_id to agile_backlog.json blocks the next commit",
+        "Adding a duplicate feature_id to agile_backlog.json blocks the next commit",
+        "Adding a duplicate bugid to bugs.json blocks the next commit"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-04-26",
+      "fix": "",
+      "reproduction": "Open Code/Shared/ops/tools/pre_deploy_rule_check.py at the comment block 'Cross-record uniqueness check - DISABLED' (around line 345). Confirm the seen={...} block and the for kind, m in seen.items() loop are commented out. Run python preCommitScan.py all - duplicate IDs in agile_backlog.json are NOT reported as violations.",
+      "orphan": false,
+      "next_action": [
+        "File a requirement under ARCH-SCAN-GENERAL story (or another scanning story) authorizing scanner ID-uniqueness enforcement.",
+        "Deduplicate the existing duplicate IDs in agile_backlog.json (EPIC-008 already fixed; EVAL-* families remain).",
+        "Uncomment the cross-record uniqueness check block in pre_deploy_rule_check.py and verify scanner reports zero violations.",
+        "Also: dedup the 4 duplicate bugids in bugs.json (BUG-LANGCHAIN-CONTAINER-APP-HEALTH, -SPLASH, -TRANSFER-TO-FINDCARE, -VERIFY-TOKEN)."
+      ]
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
