@@ -279,8 +279,10 @@ def env():
 # apples-to-oranges and produce meaningless signals.
 class TestStep00BuildGate:
     def test_local_and_dev_have_identical_build(self):
-        local_url = "https://localhost:7860/health"
-        dev_url = "https://skipsnow-dev-chathealthyspace.hf.space/health"
+        # URLs pulled from _ENV_CONFIG — no hardcodes. Real cross-env
+        # comparison: local build must match dev build before smoke proceeds.
+        local_url = f"{_ENV_CONFIG['local']['findcare_url']}/health"
+        dev_url = f"{_ENV_CONFIG['dev']['findcare_url']}/health"
         c = httpx.Client(verify=False, timeout=15)
         try:
             local = c.get(local_url).json()

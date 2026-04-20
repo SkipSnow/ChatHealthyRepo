@@ -94,6 +94,25 @@ def _screenshot(page, name):
     page.screenshot(path=os.path.join(SCREENSHOT_DIR, f"{name}.png"), full_page=True)
 
 
+def _retry(label, attempts, sleep_ms, action):
+    """Retry `action` (zero-arg callable) up to `attempts` times. Sleep
+    `sleep_ms` ms between tries. Print '[retry] LABEL: attempt N/M' on each.
+    Re-raise the last exception if all attempts fail. Per Skip directive
+    2026-04-20 — Playwright's internal polling is opaque; explicit retry
+    + per-attempt log makes failures diagnosable."""
+    import time as _t
+    last_exc = None
+    for n in range(1, attempts + 1):
+        print(f"  [retry] {label}: attempt {n}/{attempts}", flush=True)
+        try:
+            return action()
+        except Exception as e:
+            last_exc = e
+            if n < attempts:
+                _t.sleep(sleep_ms / 1000.0)
+    raise last_exc
+
+
 def _get_health():
     c = httpx.Client(verify=False, timeout=10)
     try:
@@ -260,11 +279,11 @@ def env():
 # apples-to-oranges and produce meaningless signals.
 class TestStep00BuildGate:
     def test_local_and_dev_have_identical_build(self):
-        # DEV-ONLY: was local-vs-dev. Dev smoke targets dev only — replaced
-        # with self-check that dev's /health returns a build number sanely.
-        # Per Skip directive 2026-04-20.
-        local_url = f"{FINDCARE_URL}/health"
-        dev_url = "https://skipsnow-dev-chathealthyspace.hf.space/health"
+        # Both URLs pulled from _ENV_CONFIG (no hardcodes). In dev smoke this
+        # becomes a self-check (local_url and dev_url both resolve to the
+        # active env); in local smoke it's the real cross-env check.
+        local_url = f"{_ENV_CONFIG['local']['findcare_url']}/health"
+        dev_url = f"{_ENV_CONFIG['dev']['findcare_url']}/health"
         c = httpx.Client(verify=False, timeout=15)
         try:
             local = c.get(local_url).json()
@@ -641,8 +660,12 @@ class TestStep20:
 class TestStep21:
     def test_change_filter(self, env):
         page = env["page"]
-        checkbox = page.locator("#leftPanel input[type='checkbox']").first
-        assert checkbox.count() > 0, "No checkboxes to change"
+        # MUST be a specialty filter-toggle, NOT a filter-provider-type. The
+        # provider-type handler (Website/index.html:1280) returns ownership to
+        # FindCare immediately when EvaluateCare owns, which would skip the
+        # gui:reset path TestStep22 depends on. Per Skip 2026-04-20.
+        checkbox = page.locator("#leftPanel input[data-gui-action='filter-toggle']").first
+        assert checkbox.count() > 0, "No specialty filter-toggle checkboxes found"
         checkbox.click()
         page.wait_for_timeout(3000)
         _screenshot(page, "21")
@@ -666,10 +689,32 @@ class TestStep22:
         sh_splash = page.locator("#sharedSplash")
         if sh_splash.count() > 0:
             assert not sh_splash.is_visible(), "SharedServices splash still visible after return"
-        # Welcome-words re-display assertion removed per Skip UAT 2026-04-19 —
-        # returning to FindCare keeps the search-results context (the input is
-        # focused, the chat iframe is visible, splashes are hidden); re-painting
-        # the welcome message is not a hard requirement.
+        # Welcome repaints async after postMessage gui:reset → React re-render.
+        # Re-fetch the chat_frame fresh (the iframe element may have re-mounted
+        # since TestStep04 captured the original frame reference). Then poll.
+        chat_frame = None
+        for f in page.frames:
+            if ":7860" in f.url or "hf.space" in f.url:
+                chat_frame = f
+                break
+        assert chat_frame is not None, "Chat iframe not found at TestStep22"
+        env["chat_frame"] = chat_frame  # update env for later steps
+        welcome_words = _get_welcome_words()
+        seen_dump = {"body": ""}
+
+        def _check_welcome():
+            body_text = chat_frame.locator("body").inner_text()
+            seen_dump["body"] = body_text
+            matches = sum(1 for w in welcome_words[:25] if w in body_text)
+            if matches < 20:
+                raise AssertionError(f"only {matches}/25 welcome words present")
+            return matches
+
+        try:
+            _retry("test22_welcome_repaint", 30, 500, _check_welcome)
+        except Exception:
+            print(f"  [diag22] chat_frame.body inner_text (first 500 chars): {seen_dump['body'][:500]}", flush=True)
+            raise
         _screenshot(page, "22")
 
 
@@ -678,9 +723,10 @@ class TestStep23:
     def test_input_focused_after_return(self, env):
         frame = env.get("chat_frame", env["page"])
         chat_input = frame.locator("input[placeholder*='Type a message'], textarea").first
-        expect(chat_input).to_be_visible()
-        # Auto-focus assertion removed per Skip directive 2026-04-19 — the input is
-        # available and usable after return; auto-focus is not a hard requirement.
+        _retry("test23_input_visible", 10, 500,
+               lambda: expect(chat_input).to_be_visible(timeout=400))
+        _retry("test23_input_focused", 15, 1000,
+               lambda: expect(chat_input).to_be_focused(timeout=800))
         _screenshot(env["page"], "23")
 
 
@@ -698,15 +744,13 @@ class TestStep24:
 class TestStep25:
     def test_push_shared_services(self, env):
         page = env["page"]
-        # TestStep03 already verified the button exists + is visible.
-        # Banner-button click intercept fails in test context even with force=True
-        # (per Skip UAT 2026-04-19, the button works manually). Call the JS handler
-        # directly — same code path the onclick attribute invokes.
-        # DEV HARDCODE: wait for #sharedSplash element only (always rendered by
-        # openSharedServices, success or catch path). rightPanel does not update
-        # on dev because /shared/verify-token via FindCare proxy fails to complete.
-        page.evaluate("window.gotoSharedServices()")
-        page.locator("#sharedSplash").wait_for(state="visible", timeout=30000)
+        btn = page.locator("[data-service='sharedservices']").first
+        _retry("test25_btn_visible", 10, 500,
+               lambda: expect(btn).to_be_visible(timeout=400))
+        _retry("test25_btn_click", 10, 1500,
+               lambda: btn.click(timeout=2000))
+        _retry("test25_rightPanel_SS", 15, 1000,
+               lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=800))
         page.wait_for_timeout(3000)
         _screenshot(page, "25")
 
@@ -748,12 +792,10 @@ class TestStep28:
         splash = page.locator("#sharedSplash")
         assert splash.count() > 0 and splash.is_visible(), "SharedServices splash not visible"
         text = splash.inner_text()
-        # DEV HARDCODE: splash text contains "Shared Services" in both paths —
-        # success path adds "is still unimplemented", catch path adds "Service
-        # unavailable". Either is accepted on dev.
+        # /shared/splash JSON renders "Shared Services" (with space) per
+        # the response body. The PascalCase form is only the banner button label.
         assert "Shared Services" in text, f"Missing Shared Services: {text}"
-        assert ("is still unimplemented" in text) or ("Service unavailable" in text), \
-            f"Splash neither implemented placeholder nor unavailable fallback: {text}"
+        assert "is still unimplemented" in text, f"Missing unimplemented: {text}"
         _screenshot(page, "28")
 
 
@@ -761,18 +803,12 @@ class TestStep28:
 class TestStep29:
     def test_shared_services_token_auth(self, env):
         page = env["page"]
-        # DEV HARDCODE: rightPanel does not get the SS header on dev because the
-        # openSharedServices verify-token chain (fetch /session → fetch /shared/verify-token)
-        # fails through the FindCare proxy. Check the splash element instead — it
-        # always renders "Shared Services" in either success or catch path.
-        splash_text = page.locator("#sharedSplash").inner_text()
-        assert "Shared Services" in splash_text, f"Not SharedServices context: {splash_text[:400]}"
-        # Handoff 3 of 6: FindCare → SharedServices — capture if rightPanel updated;
-        # otherwise use sentinel values so cascade tests (30) don't crash.
-        try:
-            nonce, guid = _verify_session_identity(page, env, "FindCare→SharedServices")
-        except Exception:
-            nonce, guid = "dev-skip-no-rightpanel-update", "dev-skip-no-rightpanel-update"
+        right = page.locator("#rightPanel").inner_text()
+        # rightPanel header text is "Shared Services" (with space) per
+        # openSharedServices line 936. Uppercased = "SHARED SERVICES".
+        assert "SHARED SERVICES" in right.upper(), f"Not SharedServices context: {right[:400]}"
+        # Handoff 3 of 6: FindCare → SharedServices
+        nonce, guid = _verify_session_identity(page, env, "FindCare→SharedServices")
         env["shared_nonce"] = nonce
         env["shared_guid"] = guid
         _screenshot(page, "29")
@@ -781,14 +817,11 @@ class TestStep29:
 # Step 30 [SEC-HTTPS-001-REQ-012]
 class TestStep30:
     def test_nonce_changed_shared_services(self, env):
-        # DEV HARDCODE: nonce/guid may be sentinel values from step 29 if the
-        # rightPanel did not update via the proxy chain. Accept presence of any
-        # value (sentinel or real); skip the strict GUID-continuity check on dev.
+        # Nonce uniqueness already verified by _verify_session_identity in step 29
         assert env.get("shared_nonce"), "SharedServices nonce not stored from step 29"
         assert env.get("shared_guid"), "SharedServices GUID not stored from step 29"
-        if not env["shared_guid"].startswith("dev-skip"):
-            assert env["shared_guid"] == env["original_guid"], \
-                f"GUID changed: shared={env['shared_guid']} orig={env['original_guid']}"
+        assert env["shared_guid"] == env["original_guid"], \
+            f"GUID changed: shared={env['shared_guid']} orig={env['original_guid']}"
         _screenshot(env["page"], "30")
 
 
@@ -830,11 +863,14 @@ class TestStep32:
         assert eval_btn.count() > 0, "Evaluate button not found for handoff 5"
         eval_btn.first.click()
         page.wait_for_timeout(5000)
-        # Now in EvaluateCare — call gotoSharedServices() directly.
-        # DEV HARDCODE: wait for #sharedSplash element only (rightPanel does
-        # not update on dev because verify-token chain via proxy fails).
-        page.evaluate("window.gotoSharedServices()")
-        page.locator("#sharedSplash").wait_for(state="visible", timeout=30000)
+        # Now in EvaluateCare — click SharedServices banner button.
+        sh_btn = page.locator("[data-service='sharedservices']").first
+        _retry("test32_btn_visible", 10, 500,
+               lambda: expect(sh_btn).to_be_visible(timeout=400))
+        _retry("test32_btn_click", 10, 1500,
+               lambda: sh_btn.click(timeout=2000))
+        _retry("test32_rightPanel_SS", 15, 1000,
+               lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=800))
         page.wait_for_timeout(3000)
         # Handoff 5 of 6: EvaluateCare → SharedServices
         nonce, guid = _verify_session_identity(page, env, "EvaluateCare→SharedServices")
