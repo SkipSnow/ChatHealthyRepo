@@ -94,6 +94,25 @@ def _screenshot(page, name):
     page.screenshot(path=os.path.join(SCREENSHOT_DIR, f"{name}.png"), full_page=True)
 
 
+def _retry(label, attempts, sleep_ms, action):
+    """Retry `action` (zero-arg callable) up to `attempts` times. Sleep
+    `sleep_ms` ms between tries. Print '[retry] LABEL: attempt N/M' on each.
+    Re-raise the last exception if all attempts fail. Per Skip directive
+    2026-04-20 — Playwright's internal polling is opaque; explicit retry
+    + per-attempt log makes failures diagnosable."""
+    import time as _t
+    last_exc = None
+    for n in range(1, attempts + 1):
+        print(f"  [retry] {label}: attempt {n}/{attempts}", flush=True)
+        try:
+            return action()
+        except Exception as e:
+            last_exc = e
+            if n < attempts:
+                _t.sleep(sleep_ms / 1000.0)
+    raise last_exc
+
+
 def _get_health():
     c = httpx.Client(verify=False, timeout=10)
     try:
@@ -633,8 +652,12 @@ class TestStep20:
 class TestStep21:
     def test_change_filter(self, env):
         page = env["page"]
-        checkbox = page.locator("#leftPanel input[type='checkbox']").first
-        assert checkbox.count() > 0, "No checkboxes to change"
+        # MUST be a specialty filter-toggle, NOT a filter-provider-type. The
+        # provider-type handler (Website/index.html:1280) returns ownership to
+        # FindCare immediately when EvaluateCare owns, which would skip the
+        # gui:reset path TestStep22 depends on. Per Skip 2026-04-20.
+        checkbox = page.locator("#leftPanel input[data-gui-action='filter-toggle']").first
+        assert checkbox.count() > 0, "No specialty filter-toggle checkboxes found"
         checkbox.click()
         page.wait_for_timeout(3000)
         _screenshot(page, "21")
@@ -658,10 +681,32 @@ class TestStep22:
         sh_splash = page.locator("#sharedSplash")
         if sh_splash.count() > 0:
             assert not sh_splash.is_visible(), "SharedServices splash still visible after return"
-        # Welcome-words re-display assertion removed per Skip UAT 2026-04-19 —
-        # returning to FindCare keeps the search-results context (the input is
-        # focused, the chat iframe is visible, splashes are hidden); re-painting
-        # the welcome message is not a hard requirement.
+        # Welcome repaints async after postMessage gui:reset → React re-render.
+        # Re-fetch the chat_frame fresh (the iframe element may have re-mounted
+        # since TestStep04 captured the original frame reference). Then poll.
+        chat_frame = None
+        for f in page.frames:
+            if ":7860" in f.url or "hf.space" in f.url:
+                chat_frame = f
+                break
+        assert chat_frame is not None, "Chat iframe not found at TestStep22"
+        env["chat_frame"] = chat_frame  # update env for later steps
+        welcome_words = _get_welcome_words()
+        seen_dump = {"body": ""}
+
+        def _check_welcome():
+            body_text = chat_frame.locator("body").inner_text()
+            seen_dump["body"] = body_text
+            matches = sum(1 for w in welcome_words[:25] if w in body_text)
+            if matches < 20:
+                raise AssertionError(f"only {matches}/25 welcome words present")
+            return matches
+
+        try:
+            _retry("test22_welcome_repaint", 30, 500, _check_welcome)
+        except Exception:
+            print(f"  [diag22] chat_frame.body inner_text (first 500 chars): {seen_dump['body'][:500]}", flush=True)
+            raise
         _screenshot(page, "22")
 
 
@@ -670,9 +715,10 @@ class TestStep23:
     def test_input_focused_after_return(self, env):
         frame = env.get("chat_frame", env["page"])
         chat_input = frame.locator("input[placeholder*='Type a message'], textarea").first
-        expect(chat_input).to_be_visible()
-        # Auto-focus assertion removed per Skip directive 2026-04-19 — the input is
-        # available and usable after return; auto-focus is not a hard requirement.
+        _retry("test23_input_visible", 10, 500,
+               lambda: expect(chat_input).to_be_visible(timeout=400))
+        _retry("test23_input_focused", 15, 1000,
+               lambda: expect(chat_input).to_be_focused(timeout=800))
         _screenshot(env["page"], "23")
 
 
@@ -690,15 +736,13 @@ class TestStep24:
 class TestStep25:
     def test_push_shared_services(self, env):
         page = env["page"]
-        # TestStep03 already verified the button exists + is visible.
-        # Banner-button click intercept fails in test context even with force=True
-        # (per Skip UAT 2026-04-19, the button works manually). Call the JS handler
-        # directly — same code path the onclick attribute invokes.
-        # Right-panel header text is "Shared Services" (with space) per
-        # openSharedServices line 936; the button label "SharedServices" (no space)
-        # is a different string only used in renderBannerButtons.
-        page.evaluate("window.gotoSharedServices()")
-        page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=30000)
+        btn = page.locator("[data-service='sharedservices']").first
+        _retry("test25_btn_visible", 10, 500,
+               lambda: expect(btn).to_be_visible(timeout=400))
+        _retry("test25_btn_click", 10, 1500,
+               lambda: btn.click(timeout=2000))
+        _retry("test25_rightPanel_SS", 15, 1000,
+               lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=800))
         page.wait_for_timeout(3000)
         _screenshot(page, "25")
 
@@ -805,11 +849,14 @@ class TestStep32:
         assert eval_btn.count() > 0, "Evaluate button not found for handoff 5"
         eval_btn.first.click()
         page.wait_for_timeout(5000)
-        # Now in EvaluateCare — call gotoSharedServices() directly.
-        # rightPanel header text is "Shared Services" (with space) per
-        # openSharedServices line 936.
-        page.evaluate("window.gotoSharedServices()")
-        page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=30000)
+        # Now in EvaluateCare — click SharedServices banner button.
+        sh_btn = page.locator("[data-service='sharedservices']").first
+        _retry("test32_btn_visible", 10, 500,
+               lambda: expect(sh_btn).to_be_visible(timeout=400))
+        _retry("test32_btn_click", 10, 1500,
+               lambda: sh_btn.click(timeout=2000))
+        _retry("test32_rightPanel_SS", 15, 1000,
+               lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=800))
         page.wait_for_timeout(3000)
         # Handoff 5 of 6: EvaluateCare → SharedServices
         nonce, guid = _verify_session_identity(page, env, "EvaluateCare→SharedServices")
