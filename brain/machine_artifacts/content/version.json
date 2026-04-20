@@ -181,6 +181,22 @@
                 "brain/machine_artifacts/content/bugs.json",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 1001,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "bug_id",
+                    "identifier": "BUG-EVALCARE-GRAPH-WRAPPER-001"
+                  }
+                ]
+              },
+              "files_touched": [
+                "Code/evaluate_care/app.py",
+                "brain/machine_artifacts/content/bugs.json",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }

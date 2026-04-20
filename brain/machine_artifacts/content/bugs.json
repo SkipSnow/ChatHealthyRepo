@@ -3981,6 +3981,40 @@
         "Tear down local, redeploy local, run localSmokeTestPyTest.py to confirm the token-cluster failures (steps 17, 19, 31, 32, 33, 34) are gone or reduced.",
         "If smoke still fails on token cluster, investigate the React frontend's session_token plumbing (separate root cause)."
       ]
+    },
+    {
+      "bugid": "BUG-EVALCARE-GRAPH-WRAPPER-001",
+      "title": "evaluate_providers dispatcher wraps body in {request: ...} but EvaluateProvidersState TypedDict expects fields at top level",
+      "description": "Code/evaluate_care/app.py:423 calls evaluate_providers_graph.invoke({\"request\": body.model_dump()})[\"response\"]. The compiled graph's state TypedDict (Code/evaluate_care/graphs/evaluate_providers_graph.py:28-36 EvaluateProvidersState) declares session_token, providers, question_summary, chat_history at the TOP level, not nested under request. The _verify_token_node (line 39) does state.get('session_token') which always returns None because the actual structure is state.get('request').get('session_token'). Result: every /evaluate/providers call returns verified=false with empty origin/token/signature, even when FindCare sent a valid signed token. Surfaced by the 13 local Playwright failures on 2026-04-19: TestStep17 test_token_same_sent_received and TestStep19 test_nonce_changed_evaluatecare both fail because the right panel Verified state is FAILED. Other graphs in the same file (verify_token_graph at line 369) call invoke({\"session_token\": body.session_token}) which correctly passes a top-level field — only evaluate_providers wraps in 'request'.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "fixing",
+      "severity": "high",
+      "req_id": "SEC-HTTPS-001-REQ-009",
+      "story_id": "SEC-HTTPS-001",
+      "pytest_id": "TBD-evalcare-graph-state-test",
+      "pytest_success_criteria": [
+        "POST /evaluate/providers with a valid signed FindCare token returns response.session_token.verified == true",
+        "POST /evaluate/providers with a valid signed FindCare token returns response.session_token.origin == 'FindCare'",
+        "POST /evaluate/providers with a valid signed FindCare token returns response.session_token.signature_received != 'none'",
+        "Code/deploy/localSmokeTestPyTest.py TestStep17 (test_token_same_sent_received) passes",
+        "Code/deploy/localSmokeTestPyTest.py TestStep19 (test_nonce_changed_evaluatecare) passes"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-04-26",
+      "fix": "Code/evaluate_care/app.py:423: change evaluate_providers_graph.invoke({\"request\": body.model_dump()})[\"response\"] to evaluate_providers_graph.invoke(body.model_dump())[\"response\"] so request fields land at the top of the state where the TypedDict declares them.",
+      "reproduction": "curl -sk -X POST https://localhost:8001/evaluate/providers -H 'Content-Type: application/json' -d '{\"providers\":[{\"npi\":\"x\"}],\"session_token\":<valid-FindCare-token>,\"question_summary\":\"t\"}' — pre-fix returns session_token={token_received: '', signature_received: 'none', origin: '', verified: false}; post-fix returns verified=true with the populated FindCare token fields.",
+      "orphan": false,
+      "next_action": [
+        "Apply the 1-line fix to Code/evaluate_care/app.py:423.",
+        "Restart the EvalCare service locally and re-run the curl reproduction to confirm verified=true.",
+        "Re-run localSmokeTestPyTest.py — TestStep17 and TestStep19 should pass.",
+        "Audit the other LangGraph dispatcher calls in app.py (and shared_services/app.py + main.py) for the same wrapping mistake — there may be siblings."
+      ]
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

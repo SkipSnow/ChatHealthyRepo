@@ -420,7 +420,7 @@ class EvaluateProvidersRequest(BaseModel):
 @app.post("/evaluate/providers")
 def evaluate_providers(body: EvaluateProvidersRequest):
     """Accepts provider list from FindCare and displays them."""
-    return evaluate_providers_graph.invoke({"request": body.model_dump()})["response"]
+    return evaluate_providers_graph.invoke(body.model_dump())["response"]
 
 
 @app.get("/evaluate/view")
