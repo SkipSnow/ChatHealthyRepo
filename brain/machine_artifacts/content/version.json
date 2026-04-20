@@ -75,6 +75,21 @@
                 "brain/machine_artifacts/content/engineering_rules.json",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 996,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "requirement_id",
+                    "identifier": "ARCH-SCAN-JSON-REQ-003"
+                  }
+                ]
+              },
+              "files_touched": [
+                "brain/machine_artifacts/content/agile_backlog.json",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }
