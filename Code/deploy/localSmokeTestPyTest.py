@@ -741,11 +741,31 @@ class TestStep25:
         btn = page.locator("[data-service='sharedservices']").first
         _retry("test25_btn_visible", 10, 500,
                lambda: expect(btn).to_be_visible(timeout=400))
-        _retry("test25_btn_click", 10, 1500,
-               lambda: btn.click(timeout=2000))
-        _retry("test25_rightPanel_SS", 15, 1000,
-               lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=800))
-        page.wait_for_timeout(3000)
+
+        # SEC-HTTPS-001-REQ-019 — capture network calls during the SS push to
+        # verify /verify-token is sent DIRECTLY to the cold-button service
+        # (SharedServices), NOT proxied through FindCare's /shared/verify-token.
+        seen_posts = []
+        def _on_request(req):
+            if req.method == "POST" and "verify-token" in req.url:
+                seen_posts.append(req.url)
+        page.on("request", _on_request)
+        try:
+            _retry("test25_btn_click", 10, 1500,
+                   lambda: btn.click(timeout=2000))
+            _retry("test25_rightPanel_SS", 15, 1000,
+                   lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=800))
+            page.wait_for_timeout(3000)  # let any deferred POSTs flush
+        finally:
+            page.remove_listener("request", _on_request)
+
+        expected_direct = SHARED_URL + "/verify-token"
+        direct = [u for u in seen_posts if u == expected_direct]
+        proxied = [u for u in seen_posts if u.endswith("/shared/verify-token")]
+        assert direct, \
+            f"REQ-019: expected direct POST to {expected_direct}; saw posts: {seen_posts}"
+        assert not proxied, \
+            f"REQ-019: /verify-token MUST NOT be proxied through FindCare; proxied calls: {proxied}"
         _screenshot(page, "25")
 
 

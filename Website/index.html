@@ -830,10 +830,13 @@
             splashDiv.innerHTML = d.html || '';
           })
           .catch(function() {});
+        // SEC-HTTPS-001-REQ-019: /verify-token called directly on EvaluateCare,
+        // not proxied through FindCare. /session stays on FindCare.
+        var evalDirectUrl = (window._envServiceUrls || {}).evaluatecare || 'https://localhost:8001';
         fetch(apiBase + '/session')
           .then(function(r) { return r.json(); })
           .then(function(token) {
-            return fetch(apiBase + '/evaluate/verify-token', {
+            return fetch(evalDirectUrl + '/verify-token', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({session_token: token})
@@ -939,11 +942,14 @@
             splashDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7280;">Shared Services unavailable</div>';
           });
 
-        // Send session token to SharedServices for mutual auth verification
+        // SEC-HTTPS-001-REQ-019: /verify-token MUST be called directly on the
+        // cold-button service (SharedServices), not proxied through FindCare.
+        // /session stays on FindCare (sole token issuer).
+        var sharedDirectUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
         fetch(apiBase + '/session')
           .then(function(r) { return r.json(); })
           .then(function(token) {
-            return fetch(apiBase + '/shared/verify-token', {
+            return fetch(sharedDirectUrl + '/verify-token', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({session_token: token})
