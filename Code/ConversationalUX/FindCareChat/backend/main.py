@@ -37,13 +37,6 @@ from domain.shared.content.about_service import AboutService
 from application.tool_models.provider_search_models import ProviderSearchInput, SpecialtyInput
 from application.tool_models.clinical_trials_models import ClinicalTrialsInput, ProviderDetailInput
 from application.tool_models.consent_models import LeadInput, UnknownInput
-from application.graphs import (
-    build_search_graph,
-    build_classify_graph,
-    build_qa_report_graph,
-    build_qa_report_submit_graph,
-    build_welcome_graph,
-)
 from infrastructure.embeddings.embedding_client import EmbeddingClient
 from infrastructure.debug_logger import DebugLogger
 
@@ -375,9 +368,10 @@ class SearchRequest(BaseModel):
 
 @app.post("/search")
 async def search(body: SearchRequest):
-    """v4-043: routes through search_graph (single-node thin wrapper)."""
-    return search_graph.invoke(
-        {"params": body.model_dump(exclude_none=True)})["response"]
+    """Direct provider search — for pagination. No LLM involved."""
+    params = body.model_dump(exclude_none=True)
+    result = _find_care.search_providers(**params)
+    return result
 
 
 class ClassifyRequest(BaseModel):
@@ -387,11 +381,80 @@ class ClassifyRequest(BaseModel):
 
 @app.post("/classify")
 async def classify(body: ClassifyRequest, request: Request):
-    """v4-043: routes through classify_graph (safety gate → vector search →
-    location extraction → homeopathic generalists)."""
+    """FC-FILT-001-REQ-001: AI vector search for specialties.
+    Replaces the GPT classify call with embedding + vector search.
+    Returns specialty codes ranked by cosine similarity + location extracted by simple parsing."""
+
+    # BUG-SAFETY-001: Safety gate — emergency detection must run on every user input,
+    # regardless of which endpoint the frontend calls.
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
-    return classify_graph.invoke({"message": body.message, "ip": ip})["response"]
+    if _safety_service.is_ip_locked(ip):
+        return {"emergency": True, "response": EMERGENCY_RESPONSE}
+    if _safety_service.is_emergency(body.message):
+        full_history = [{"role": "user", "content": body.message}]
+        _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
+        return {"emergency": True, "response": EMERGENCY_RESPONSE}
+
+    # Vector search for specialties
+    result = _specialty_service.find_specialty_codes(body.message)
+
+    if "error" in result:
+        return {"specialties": [], "error": result["error"]}
+
+    # Map to the format the frontend expects
+    specialties = [
+        {"code": s["Code"], "name": s["Display Name"],
+         "can_prescribe": s.get("can_prescribe", False),
+         "homeopathic": s.get("homeopathic", False),
+         "rank": s.get("rank", 0)}
+        for s in result.get("specialties", [])
+    ]
+
+    # Simple location extraction — no LLM needed
+    msg = body.message.lower()
+    state = None
+    city = None
+    county = None
+    # State codes
+    for code in ["DE", "MS", "VA", "IN"]:
+        if f" {code.lower()} " in f" {msg} " or msg.endswith(f" {code.lower()}"):
+            state = code
+            break
+    # Full state names
+    state_names = {"delaware": "DE", "mississippi": "MS", "virginia": "VA", "indiana": "IN"}
+    for name, code in state_names.items():
+        if name in msg:
+            state = code
+            break
+
+    # Load homeopathic generalists for client-side cache
+    homeo_generalists = []
+    try:
+        db = _get_db()
+        if db:
+            for doc in db[f"{_ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"].find(
+                {"homeopathic_general": True, "Section": "Individual"},
+                {"_id": 0, "Code": 1, "Display Name": 1, "can_prescribe": 1, "homeopathic": 1}
+            ):
+                homeo_generalists.append({
+                    "code": doc.get("Code", ""),
+                    "name": doc.get("Display Name", ""),
+                    "can_prescribe": doc.get("can_prescribe", False),
+                    "homeopathic": True,
+                    "homeopathic_general": True,
+                })
+    except Exception:
+        pass
+
+    return {
+        "specialties": specialties,
+        "homeopathic_generalists": homeo_generalists,
+        "state": state,
+        "city": city,
+        "county": county,
+        "model": "text-embedding-3-large (vector search)",
+    }
 
 def _get_qa_report():
     """Load QA report from MongoDB (source of truth), fall back to file for bootstrap."""
@@ -417,29 +480,94 @@ def _get_qa_report():
 
 @app.get("/qa-report")
 def qa_report():
-    """v4-043: routes through qa_report_graph (loads report → renders HTML)."""
+    """DEVOPS-QA-001: Render QA report from MongoDB. Dev/QA only."""
+    if _ENV_PREFIX == "prod":
+        return {"error": "QA report not available in production"}
+    report = _get_qa_report()
+    if not report:
+        return {"error": "QA report not found"}
+    features = report.get("features", [])
+    # Build HTML with editable dropdowns (DEVOPS-QA-005)
+    options = "".join(f'<option value="{s}">{s}</option>' for s in
+                      ["", "PASS", "FAIL", "DEFERRED", "NOT_STARTED", "IN_PROGRESS", "TO_TEST", "UNTESTED", "RELEASE_BLOCKER"])
+    rows = ""
+    for feat in features:
+        status = feat.get("status", "NOT_STARTED")
+        color = {"PASS": "#059669", "IN_PROGRESS": "#2563eb", "NOT_STARTED": "#9ca3af",
+                 "UNTESTED": "#d97706", "RELEASE_BLOCKER": "#dc2626", "TO_TEST": "#7c3aed"}.get(status, "#6b7280")
+        tc_count = len(feat.get("test_cases", []))
+        tc_pass = sum(1 for tc in feat.get("test_cases", []) if tc.get("status") == "PASS")
+        rows += f'<tr style="background:#f9fafb"><td>{feat.get("id","")}</td><td><b>{feat.get("feature_id","")}</b></td>'
+        rows += f'<td><b>{feat.get("name","")}</b></td><td>{feat.get("epic","")}</td>'
+        rows += f'<td style="color:{color};font-weight:600">{status}</td>'
+        rows += f'<td>{tc_pass}/{tc_count}</td></tr>\n'
+        for tc in feat.get("test_cases", []):
+            tc_id = tc.get("tc", "")
+            tc_status = tc.get("status", "")
+            sel_options = options.replace(f'value="{tc_status}"', f'value="{tc_status}" selected')
+            rows += f'<tr style="font-size:12px"><td></td><td></td>'
+            rows += f'<td style="padding-left:24px">{tc_id}: {tc.get("test","")}</td>'
+            rows += f'<td></td><td><select name="{tc_id}" style="font-size:11px;padding:2px">{sel_options}</select></td><td></td></tr>\n'
+    summary = report.get("summary", {})
     from starlette.responses import HTMLResponse
-    result = qa_report_graph.invoke({"env_prefix": _ENV_PREFIX})["response"]
-    if "html" in result:
-        return HTMLResponse(content=result["html"])
-    return result
+    html = f"""<!DOCTYPE html><html><head><title>QA Report — {report.get('version','')}</title>
+<style>body{{font-family:system-ui,sans-serif;max-width:1000px;margin:40px auto;padding:0 20px}}
+table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #e5e7eb;padding:8px 12px;text-align:left}}
+th{{background:#f3f4f6;font-size:13px}}tr:hover{{background:#f9fafb}}
+h1{{font-size:24px}}h2{{font-size:16px;color:#6b7280}}
+select{{border:1px solid #d1d5db;border-radius:4px}}
+.submit-btn{{background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;border:none;padding:10px 24px;
+border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin-top:16px}}
+.submit-btn:hover{{opacity:0.9}}</style></head><body>
+<form method="POST" action="/qa-report">
+<h1>QA Report — {report.get('version','')} Dev→SIT</h1>
+<h2>{report.get('scope','')}</h2>
+<p>Date: {report.get('date','')} | Target: {report.get('target','')} | Status: {report.get('status','')}</p>
+<p><b>Features:</b> {summary.get('total_features',0)} | <b>Test Cases:</b> {summary.get('total_test_cases',0)} |
+<b style="color:#059669">Pass:</b> {summary.get('pass',0)} |
+<b style="color:#2563eb">In Progress:</b> {summary.get('in_progress',0)} |
+<b style="color:#9ca3af">Not Started:</b> {summary.get('not_started',0)}</p>
+<table><tr><th>#</th><th>Feature ID</th><th>Name</th><th>Epic</th><th>Status</th><th>Tests</th></tr>
+{rows}</table>
+<button type="submit" class="submit-btn">Save QA Report</button>
+</form>
+<p style="font-size:11px;color:#9ca3af;margin-top:24px">&copy; 2026 Skip Snow. All rights reserved.</p>
+</body></html>"""
+    return HTMLResponse(content=html)
 
 @app.post("/qa-report")
 async def qa_report_submit(request: Request):
-    """v4-043: routes through qa_report_submit_graph (parse form → persist → redirect)."""
+    """DEVOPS-QA-005: Save QA report edits to MongoDB."""
+    if _ENV_PREFIX == "prod":
+        return {"error": "QA report not available in production"}
+    report = _get_qa_report()
+    if not report:
+        return {"error": "QA report not found"}
     form = await request.form()
-    form_dict = {k: v for k, v in form.items()}
-    result = qa_report_submit_graph.invoke(
-        {"env_prefix": _ENV_PREFIX, "form": form_dict})["response"]
-    if "redirect" in result:
-        from starlette.responses import RedirectResponse
-        return RedirectResponse(url=result["redirect"], status_code=303)
-    return result
+    updated = 0
+    for feat in report.get("features", []):
+        for tc in feat.get("test_cases", []):
+            tc_id = tc.get("tc", "")
+            if tc_id in form and form[tc_id]:
+                tc["status"] = form[tc_id]
+                updated += 1
+    # Recompute summary
+    all_tc = [tc for f in report["features"] for tc in f.get("test_cases", [])]
+    report["summary"]["pass"] = sum(1 for tc in all_tc if tc.get("status") == "PASS")
+    report["summary"]["in_progress"] = sum(1 for tc in all_tc if tc.get("status") == "IN_PROGRESS")
+    report["summary"]["not_started"] = sum(1 for tc in all_tc if tc.get("status") in ("NOT_STARTED", ""))
+    # Write to MongoDB
+    db = _get_db()
+    if db:
+        db[f"{_ENV_PREFIX}_System"]["bugs"].replace_one(
+            {"_record_id": "qa_report_v014_sit"}, report, upsert=True)
+    _log.info("QA report saved to MongoDB: %d test cases updated", updated)
+    from starlette.responses import RedirectResponse
+    return RedirectResponse(url="/qa-report", status_code=303)
 
 @app.get("/welcome")
 def welcome():
-    """v4-043: routes through welcome_graph (single-node, returns welcome message)."""
-    return welcome_graph.invoke({})["response"]
+    return {"message": WELCOME_MESSAGE}
 
 _REQUIRED_INDEXES = {
     "providers": ["provider_vector_index"],
@@ -774,85 +902,135 @@ def _strip_redundant_summary(text: str, total_count: int, page_count: int) -> st
 
 
 # ---------------------------------------------------------------------------
-# LangGraph chat orchestration — replaces the sequential chat loop
+# Chat handler — sequential implementation (LangGraph removed 2026-04-20)
 # ---------------------------------------------------------------------------
 import sys as _sys
 _sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
 from llm_client import chat as llm_chat
-from domain.find_care.provider_search_service import FindCareService as _FindCareServiceRef
-
-from application.chat_graph import build_graph
-
-_CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
-
-# ── v4-043 module-level business-logic graphs ─────────────────
-# Each graph wraps an existing service call(s) so the FastAPI handler can
-# invoke through the graph instead of calling services directly. Studio
-# renders these; LangSmith traces every invocation.
-
-search_graph = build_search_graph(_find_care)
-classify_graph = build_classify_graph(
-    safety_service=_safety_service,
-    specialty_service=_specialty_service,
-    get_db_fn=_get_db,
-    env_prefix=_ENV_PREFIX,
-    emergency_response=EMERGENCY_RESPONSE,
-)
-qa_report_graph = build_qa_report_graph(get_qa_report_fn=_get_qa_report)
-qa_report_submit_graph = build_qa_report_submit_graph(
-    get_qa_report_fn=_get_qa_report,
-    get_db_fn=_get_db,
-)
-welcome_graph = build_welcome_graph(welcome_message=WELCOME_MESSAGE)
-
-
-_chat_graph = build_graph(
-    safety_service=_safety_service,
-    url_guardian=_url_guardian,
-    prompt_maker=_prompt_maker,
-    tool_router=_tool_router,
-    anthropic_tools=anthropic_tools,
-    llm_chat_fn=llm_chat,
-    extract_search_term_fn=_extract_user_search_term,
-    strip_redundant_summary_fn=_strip_redundant_summary,
-    build_summary_message_fn=_FindCareServiceRef._build_summary_message,
-    format_chat_history_fn=_format_chat_history,
-    debug_logger=_debug_logger,
-    emergency_response=EMERGENCY_RESPONSE,
-    chat_model=_CHAT_MODEL,
-)
 
 async def _chat_inner(body: ChatRequest, request: Request):
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
 
-    result = _chat_graph.invoke({
-        "user_message": body.message,
-        "history": body.history,
-        "ip": ip,
-    })
+    if _safety_service.try_admin_unlock(body.message, ip):
+        return ChatResponse(response="Session unlocked.")
+    if _safety_service.is_ip_locked(ip):
+        return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
+    if _safety_service.is_emergency(body.message):
+        full_history = list(body.history) + [{"role": "user", "content": body.message}]
+        _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
+        return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
 
-    final = result.get("final_response", {})
+    _CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
 
-    # Build typed response models from graph output
+    user_msg_count = sum(1 for m in body.history if m.get("role") == "user")
+    system = _system_prompt(follow_up_check=user_msg_count > 0 and user_msg_count % 5 == 0)
+    messages = list(body.history) + [{"role": "user", "content": body.message}]
+    total_in = total_out = 0
+
+    _log.info("CHAT model=%s call=initial msgs=%d", _CHAT_MODEL, len(messages))
+    response = llm_chat(_CHAT_MODEL, messages, tools=anthropic_tools, system=system, max_tokens=4096)
+    total_in  += response.get("usage", {}).get("input_tokens", 0)
+    total_out += response.get("usage", {}).get("output_tokens", 0)
+
+    loop_iter = 0
+    last_provider_result = None
+    last_trials_result = None
+
+    while response.get("stop_reason") in ("tool_calls", "tool_use"):
+        tool_calls = response.get("tool_calls", [])
+        if not tool_calls:
+            break
+        tool_results = _tool_router.handle_normalized_tool_calls(tool_calls, messages, _format_chat_history)
+
+        for i, tc in enumerate(tool_calls):
+            tc_name = tc["function"]["name"]
+            if tc_name == "find_providers":
+                try:
+                    last_provider_result = json.loads(tool_results[i]["content"])
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    pass
+            elif tc_name == "search_clinical_trials":
+                try:
+                    last_trials_result = json.loads(tool_results[i]["content"])
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    pass
+
+        assistant_msg = {"role": "assistant", "content": response.get("content", "")}
+        if tool_calls:
+            assistant_msg["tool_calls"] = [
+                {"id": tc["id"], "type": "function", "function": tc["function"]}
+                for tc in tool_calls
+            ]
+        messages.append(assistant_msg)
+        for tr in tool_results:
+            messages.append(tr)
+
+        loop_iter += 1
+        _log.info("CHAT tool_loop iter=%d tools=%s", loop_iter, [tc["function"]["name"] for tc in tool_calls])
+        response = llm_chat(_CHAT_MODEL, messages, tools=anthropic_tools, system=system, max_tokens=4096)
+        total_in  += response.get("usage", {}).get("input_tokens", 0)
+        total_out += response.get("usage", {}).get("output_tokens", 0)
+
+    text = response.get("content", "")
+    text = _url_guardian.guard_text(text)
+    text = re.sub(r'(?<!\[)Skip Snow on LinkedIn(?!\])',
+                  '[Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow)', text)
+
     pagination = None
-    if final.get("pagination"):
-        p = final["pagination"]
-        pagination = PaginationMeta(**p)
+    if last_provider_result and isinstance(last_provider_result, dict):
+        total_count = last_provider_result.get("total_count", 0)
+        if total_count > 0:
+            from domain.find_care.provider_search_service import FindCareService
+            user_term = _extract_user_search_term(body.message)
+            user_summary = FindCareService._build_summary_message(
+                has_more=last_provider_result.get("has_more", False),
+                total_count=total_count,
+                page_count=last_provider_result.get("count", 0),
+                specialty_searched=user_term,
+                specialization_options=last_provider_result.get("specialization_options"),
+                state=last_provider_result.get("state", ""),
+                city=(last_provider_result.get("search_params") or {}).get("city", ""),
+                county=(last_provider_result.get("search_params") or {}).get("county", ""),
+            )
+            pagination = PaginationMeta(
+                has_more=last_provider_result.get("has_more", False),
+                first_npi=last_provider_result.get("first_npi"),
+                last_npi=last_provider_result.get("last_npi"),
+                count=last_provider_result.get("count", 0),
+                total_count=total_count,
+                page_start=last_provider_result.get("page_start", 1),
+                page_end=last_provider_result.get("page_end", 0),
+                search_params=last_provider_result.get("search_params"),
+                specialization_options=last_provider_result.get("specialization_options"),
+                summary_message=user_summary,
+            )
 
     trials_meta = None
-    if final.get("trials"):
-        t = final["trials"]
-        trials_meta = TrialsMeta(**t)
+    if last_trials_result and isinstance(last_trials_result, dict):
+        trial_list = last_trials_result.get("trials", [])
+        if trial_list:
+            trial_count = len(trial_list)
+            has_travel = any(t.get("travel_info") for t in trial_list)
+            user_msg = _extract_user_search_term(body.message)
+            parts = [f"Found {trial_count} recruiting trial{'s' if trial_count != 1 else ''} for '{user_msg}'."]
+            if has_travel:
+                parts.append(" Travel times included.")
+            parts.append(f" [View all on ClinicalTrials.gov](https://clinicaltrials.gov/search?cond={_requests_lib.utils.quote(user_msg)}&aggFilters=status:rec)")
+            trials_meta = TrialsMeta(
+                trial_count=trial_count,
+                condition=user_msg,
+                summary_message="".join(parts),
+            )
 
-    return ChatResponse(
-        response=final.get("response"),
-        emergency=final.get("emergency", False),
-        tokens_in=final.get("tokens_in"),
-        tokens_out=final.get("tokens_out"),
-        pagination=pagination,
-        trials=trials_meta,
-    )
+    if pagination and pagination.summary_message and text:
+        text = _strip_redundant_summary(text, pagination.total_count, pagination.count)
+
+    _log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s trials=%s",
+              total_in, total_out, bool(pagination), bool(trials_meta))
+    _debug_logger.log_chat(ip, body.message, len(body.history), loop_iter, total_in, total_out, text, None)
+    return ChatResponse(response=text, tokens_in=total_in, tokens_out=total_out,
+                        pagination=pagination, trials=trials_meta)
 
 # ---------------------------------------------------------------------------
 # Static files

@@ -8,11 +8,6 @@
 #
 # GOV-005: This is infrastructure, not a 5th business application.
 # EPIC-4: mTLS required for all callers (FindCare, EvaluateCare).
-#
-# v4-043: every route handler routes business logic through a LangGraph
-# StateGraph (compiled once at module load, invoked from the handler body).
-# This file's graphs are registered in langgraph.json so Studio renders
-# them and LangSmith traces every invocation.
 
 import os
 import sys
@@ -21,10 +16,6 @@ import time
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from typing_extensions import TypedDict
-from typing import Optional as _Optional
-from pydantic import BaseModel as _BaseModel
-from langgraph.graph import StateGraph, START, END
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 _log = logging.getLogger("shared_services")
@@ -84,8 +75,8 @@ async def log_requests(request: Request, call_next):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://localhost", "https://localhost:443", "https://localhost:7860",
-                   "https://localhost:8001", "https://localhost:8002",
+    allow_origins=["https://localhost", "https://localhost:443", "https://localhost:3000",
+                   "https://localhost:8080", "https://localhost:8081",
                    "https://chathealthy.ai", "https://dev.chathealthy.ai"],
     allow_origin_regex=r"https://localhost(:\d+)?$|https://[a-zA-Z0-9-]+\.chathealthy\.ai$",
     allow_credentials=True,
@@ -93,11 +84,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Module-level service helpers ────────────────────────────
+# ── Health ──────────────────────────────────────────────────
 
 _ENV_PREFIX = os.getenv("ENV_PREFIX", "dev")
 _MONGO_CLIENT = None
-
 
 def _mongo():
     global _MONGO_CLIENT
@@ -114,33 +104,11 @@ def _mongo():
         _log.warning("shared_services /health: MongoClient init failed: %s", e)
         return None
 
-
-# ──────────────────────────────────────────────────────────────────────
-# v4-043 LangGraph wrappers — one StateGraph per FastAPI route handler.
-# Each graph compiles at module load and is registered in langgraph.json
-# so LangGraph Studio renders it and LangSmith traces every invocation.
-# ──────────────────────────────────────────────────────────────────────
-
-
-def _make_single_node_graph(node_name, fn, state_class):
-    """Compile a one-node StateGraph: START → <node_name> → END."""
-    g = StateGraph(state_class)
-    g.add_node(node_name, fn)
-    g.add_edge(START, node_name)
-    g.add_edge(node_name, END)
-    return g.compile()
-
-
-# ── /health ──────────────────────────────────────────────────────────
-
-
-class HealthState(TypedDict, total=False):
-    response: dict
-
-
-def _health_node(state: HealthState) -> dict:
-    """DEVOPS-DEPLOY-001-REQ-016: read build/version/framework from
-    {ENV_PREFIX}_System.version._id='current'."""
+# graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
+@app.get("/health")
+def health():
+    # DEVOPS-DEPLOY-001-REQ-016: read build/version/framework from
+    # {ENV_PREFIX}_System.version._id='current'.
     _build = "?"; _version_str = "?"; _framework_str = "?"
     db_status = "unavailable"
     c = _mongo()
@@ -153,143 +121,70 @@ def _health_node(state: HealthState) -> dict:
             db_status = "connected"
         except Exception as e:
             _log.warning("shared_services /health: MongoDB read failed: %s", e)
-    return {"response": {
-        "status": "ok", "service": "shared_services",
-        "db": db_status, "env": _ENV_PREFIX,
-        "build": _build, "version": _version_str, "framework": _framework_str,
-    }}
+    return {"status": "ok", "service": "shared_services",
+            "db": db_status, "env": _ENV_PREFIX,
+            "build": _build, "version": _version_str, "framework": _framework_str}
 
-
-health_graph = _make_single_node_graph("health_check", _health_node, HealthState)
-
-
-@app.get("/health")
-def health():
-    return health_graph.invoke({})["response"]
-
-
-# ── /splash ──────────────────────────────────────────────────────────
-
-
-class SplashState(TypedDict, total=False):
-    response: dict
-
-
-def _splash_node(state: SplashState) -> dict:
-    _log.info("CONTROL TRANSFER: SharedServices has taken ownership of the page")
-    return {"response": {
-        "html": ('<div style="text-align:center;padding:20px;">'
-                 '<div style="font-size:24px;font-weight:700;color:#1f2937;">Shared Services</div>'
-                 '<div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">is still unimplemented.</div>'
-                 '</div>')
-    }}
-
-
-splash_graph = _make_single_node_graph("render_splash", _splash_node, SplashState)
-
-
+# ── Splash + Control Transfer (mirrors EvaluateCare pattern) ──
+# graph-exempt: static page render — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/splash")
 def splash():
-    return splash_graph.invoke({})["response"]
+    _log.info("CONTROL TRANSFER: SharedServices has taken ownership of the page")
+    return {"html": '<div style="text-align:center;padding:20px;">'
+            '<div style="font-size:24px;font-weight:700;color:#1f2937;">Shared Services</div>'
+            '<div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">is still unimplemented.</div>'
+            '</div>'}
 
-
-# ── /transfer/to-findcare ────────────────────────────────────────────
-
-
-class TransferState(TypedDict, total=False):
-    response: dict
-
-
-def _transfer_to_findcare_node(state: TransferState) -> dict:
-    """SharedServices releases page ownership back to FindCare."""
-    _log.info("CONTROL TRANSFER: SharedServices → FindCare")
-    return {"response": {"owner": "findcare", "reason": "filter_interaction"}}
-
-
-transfer_to_findcare_graph = _make_single_node_graph(
-    "transfer_to_findcare", _transfer_to_findcare_node, TransferState)
-
-
+# graph-exempt: proxy/redirect — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/transfer/to-findcare")
 def transfer_to_findcare():
-    return transfer_to_findcare_graph.invoke({})["response"]
+    """SharedServices releases page ownership back to FindCare."""
+    _log.info("CONTROL TRANSFER: SharedServices → FindCare")
+    return {"owner": "findcare", "reason": "filter_interaction"}
 
-
-# ── /verify-token ────────────────────────────────────────────────────
-
+# ── Token Verification (mirrors EvaluateCare pattern) ──────
+from pydantic import BaseModel as _BaseModel
+from typing import Optional as _Optional
 
 class VerifyTokenRequest(_BaseModel):
     session_token: _Optional[dict] = None
 
-
-class VerifyTokenState(TypedDict, total=False):
-    session_token: _Optional[dict]
-    response: dict
-
-
-def _verify_token_node(state: VerifyTokenState) -> dict:
+# graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
+@app.post("/verify-token")
+def verify_token(body: VerifyTokenRequest):
     """Verify a session token from FindCare. Proves mutual authentication."""
-    body_token = state.get("session_token")
     token_valid = False
     token_origin = "unknown"
-    if body_token:
+    if body.session_token:
         try:
             sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Shared"))
-            os.environ.setdefault(
-                "CERTS_DIR",
-                os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
+            os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
             from session_token import verify_session_token
-            token_valid = verify_session_token(body_token, "FindCare")
-            token_origin = body_token.get("origin", "unknown")
+            token_valid = verify_session_token(body.session_token, "FindCare")
+            token_origin = body.session_token.get("origin", "unknown")
             _log.info("Token verification: origin=%s valid=%s", token_origin, token_valid)
         except Exception as e:
             _log.warning("Token verification failed: %s", e)
-    return {"response": {
+    return {
         "status": "verified" if token_valid else "failed",
         "session_token": {
-            "token_received": (body_token.get("token", "") if body_token else ""),
-            "signature_received": ((body_token.get("signature", "") or "")[:40] + "...") if body_token and body_token.get("signature") else "none",
-            "origin": (body_token.get("origin", "") if body_token else ""),
+            "token_received": body.session_token.get("token", "") if body.session_token else "",
+            "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
+            "origin": body.session_token.get("origin", "") if body.session_token else "",
             "verified": token_valid,
         },
-    }}
+    }
 
-
-verify_token_graph = _make_single_node_graph(
-    "verify_session_token", _verify_token_node, VerifyTokenState)
-
-
-@app.post("/verify-token")
-def verify_token(body: VerifyTokenRequest):
-    return verify_token_graph.invoke({"session_token": body.session_token})["response"]
-
-
-# ── /secrets/{key} ───────────────────────────────────────────────────
-
-
-class GetSecretState(TypedDict, total=False):
-    key: str
-    response: dict
-
-
-def _get_secret_node(state: GetSecretState) -> dict:
-    """Stub — returns environment variable value. Production: reads from Azure
-    Key Vault via x509 cert."""
-    key = state.get("key", "")
-    value = os.getenv(key)
-    if value:
-        return {"response": {"key": key, "found": True}}
-    return {"response": {"key": key, "found": False, "error": "Secret not found"}}
-
-
-get_secret_graph = _make_single_node_graph(
-    "lookup_secret", _get_secret_node, GetSecretState)
-
-
+# ── SecretManager (local mode) ─────────────────────────────
+# graph-exempt: Key Vault security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/secrets/{key}")
 def get_secret(key: str):
-    return get_secret_graph.invoke({"key": key})["response"]
-
+    """Stub — returns environment variable value.
+    Production: reads from Azure Key Vault via x509 cert."""
+    value = os.getenv(key)
+    if value:
+        return {"key": key, "found": True}
+    return {"key": key, "found": False, "error": "Secret not found"}
 
 # ── Run ─────────────────────────────────────────────────────
 if __name__ == "__main__":
