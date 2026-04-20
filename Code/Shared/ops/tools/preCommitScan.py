@@ -62,8 +62,6 @@ SCHEMA_EXEMPT_PATTERNS = [
     r"__pycache__",
     r"\.iteration_cache/",
     r"brain/BusinessArtifacts/Audits/",
-    r"^langgraph\.json$",  # LangGraph CLI config; not a brain content file
-    r"/langgraph\.json$",
 ]
 
 SKIP_PATTERNS = [r"__pycache__", r"\.pyc$", r"node_modules", r"\.venv"]
