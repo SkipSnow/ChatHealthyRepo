@@ -243,6 +243,22 @@
                 "Code/deploy/deploy_app_dev.sh",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 1005,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "requirement_id",
+                    "identifier": "DEVOPS-DEPLOY-001-REQ-016"
+                  }
+                ]
+              },
+              "files_touched": [
+                "Code/evaluate_care/requirements.txt",
+                "Code/shared_services/requirements.txt",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }
