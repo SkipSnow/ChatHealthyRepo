@@ -60,6 +60,13 @@ jobs:
           SHARED_URL="https://skipsnow-${PREFIX}sharedservicesspace.hf.space"
           set_var() {
             K="$1"; V="$2"
+            # Delete any pre-existing secret with the same name — HF rejects
+            # collision between a variable and a secret, causing CONFIG_ERROR.
+            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
+              -H "Authorization: Bearer $HF_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${K}\"}" -o /dev/null
+            # Now set the variable (authoritative per-env value from this workflow).
             curl -sf -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
               -H "Authorization: Bearer $HF_TOKEN" \
               -H "Content-Type: application/json" \
