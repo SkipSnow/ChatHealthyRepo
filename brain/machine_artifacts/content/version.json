@@ -197,6 +197,21 @@
                 "brain/machine_artifacts/content/bugs.json",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 1002,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "requirement_id",
+                    "identifier": "DEVOPS-DEPLOY-001-REQ-016"
+                  }
+                ]
+              },
+              "files_touched": [
+                "Code/deploy/deploy_app_dev.sh",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }

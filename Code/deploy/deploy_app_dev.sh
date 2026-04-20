@@ -386,13 +386,24 @@ fi
 STATE[phase_current]="verify"
 log "Verifying endpoints (after)..."
 
-# Give HF container time to switch over (CI step completes before container restart finishes)
-sleep 20
+# HF Spaces cold-start can take 30-120s after CI completes; retry per endpoint
+# until 200 or until 12*10s = 120s elapses. Per Skip directive 2026-04-19 — single
+# probe was treating cold-start as endpoint_verify_fail.
+wait_for_endpoint() {
+    local url="$1"
+    local code=""
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+        code=$(probe_endpoint "$url")
+        [ "$code" = "200" ] && break
+        sleep 10
+    done
+    echo "$code"
+}
 
-STATE[website_after]=$(probe_endpoint "$WEBSITE_URL/")
-STATE[findcare_after]=$(probe_endpoint "$FINDCARE_URL/health")
-STATE[evalcare_after]=$(probe_endpoint "$EVALCARE_URL/health")
-STATE[shared_after]=$(probe_endpoint "$SHARED_URL/health")
+STATE[website_after]=$(wait_for_endpoint "$WEBSITE_URL/")
+STATE[findcare_after]=$(wait_for_endpoint "$FINDCARE_URL/health")
+STATE[evalcare_after]=$(wait_for_endpoint "$EVALCARE_URL/health")
+STATE[shared_after]=$(wait_for_endpoint "$SHARED_URL/health")
 STATE[new_build]=$(probe_findcare_build)
 STATE[findcare_db]=$(probe_findcare_db)   # REQ-005
 
