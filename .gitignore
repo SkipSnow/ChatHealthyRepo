@@ -58,8 +58,8 @@ Code/ConversationalUX/FindCareChat/backend/static/
 # Runtime logs
 *.log
 
-# Business artifacts — confidential, local only
-# brain/BusinessArtifacts/ — tracked, contains audit reports
+# Business artifacts — confidential, local only (Skip directive 2026-04-20)
+brain/BusinessArtifacts/
 
 # Local SSL certs — never commit
 Code/Shared/ops/certs/
