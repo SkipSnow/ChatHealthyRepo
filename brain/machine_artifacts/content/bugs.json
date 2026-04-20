@@ -3883,7 +3883,7 @@
     {
       "bugid": "BUG-SCANNER-NOT-SINGLE-GATE-001",
       "title": "preCommitScan does not enforce the 61 engineering rules at pre-commit (split with pre-push)",
-      "description": "Per ARCH-SCAN-JSON-REQ-005 the pre-commit scanner MUST run every engineering rule with an executor at pre-commit time. Today only schema validation + HTTP scan run at pre-commit; the 61 rules' executors run at pre-push. This split creates a 'commit passed but push fails' trap. Closes when preCommitScan.py 'staged' mode runs the full rule set scoped to staged files AND pre-push reduces to network-op only.",
+      "description": "Per ARCH-SCAN-JSON-REQ-005 the pre-commit scanner MUST run every engineering rule with an executor at pre-commit time. Today only schema validation + HTTP scan run at pre-commit; the 61 rules' executors run at pre-push. This split creates a 'commit passed but push fails' trap. Closes when preCommitScan.py 'staged' mode runs the full rule set scoped to staged files AND pre-push reduces to network-op only.\n\nADDITIONAL (2026-04-19): Rule-002 statement 3 (Pipeline discipline - 'Every workflow fix commit must include a meaningful Code/DataPipelines/ file change') is also enforced in the WRONG place. The check lives at .git/hooks/pre-commit:63-70 (an untracked, local-only bash hook) instead of preCommitScan.py. The hook output prints the stale label 'v4-001A' even though the rules were renamed to Rule-NNN earlier today (Rule-002 is the canonical id). Same root cause as the parent bug: enforcement is split across multiple gates (preCommitScan.py + .git/hooks/pre-commit + pre_deploy_rule_check.py) and untracked local hooks drift independently. Rule-002 enforcement must move into preCommitScan.py's rule-executor loop (driven by engineering_rules.json), and the .git/hooks/pre-commit check must be retired so the canonical rule label is the only one users ever see.",
       "environments": [
         "local",
         "dev",
@@ -3898,22 +3898,25 @@
       "pytest_success_criteria": [
         "Pre-commit scan of a staged file with a v4-043 violation blocks the commit (rule executor runs at pre-commit time)",
         "Pre-push runs no rule executor; only the git push network operation",
-        "A commit that passes pre-commit always passes pre-push (no trap)"
+        "A commit that passes pre-commit always passes pre-push (no trap)",
+        "Staging only .github/workflows/deploy-pipelines.yml (no Code/DataPipelines/ file) blocks the commit via preCommitScan.py citing 'Rule-002' (NOT the stale 'v4-001A' label, NOT from .git/hooks/pre-commit)",
+        ".git/hooks/pre-commit no longer contains any Rule-002 / v4-001A check (retired in favor of preCommitScan.py executor)"
       ],
       "discovery_date": "2026-04-19",
       "due_date": "2026-04-26",
       "fix": "",
-      "reproduction": "Stage a file with a v4-043 violation (e.g. a FastAPI handler without graph.invoke). Run git commit -m 'test'. Today this passes pre-commit (only schema + HTTP run there). Run git push. Pre-push blocks on graph_entry_check. Trap demonstrated.",
+      "reproduction": "Stage a file with a v4-043 violation (e.g. a FastAPI handler without graph.invoke). Run git commit -m 'test'. Today this passes pre-commit (only schema + HTTP run there). Run git push. Pre-push blocks on graph_entry_check. Trap demonstrated. Also: stage only .github/workflows/deploy-pipelines.yml and run git commit -m 'test'; .git/hooks/pre-commit:63-70 fires citing the stale label 'v4-001A' (Rule-002 after rename) — proving the check lives in the untracked local hook, not in preCommitScan.py's canonical rule executor.",
       "orphan": false,
       "next_action": [
         "Refactor preCommitScan.py: --staged mode runs the full rule executor loop scoped to staged files.",
-        ".git/hooks/pre-push: drop the rule check call; reduce to a no-op or just the push."
+        ".git/hooks/pre-push: drop the rule check call; reduce to a no-op or just the push.",
+        "Move Rule-002 statement 3 enforcement (workflow-without-DataPipelines) from .git/hooks/pre-commit:63-70 into preCommitScan.py as a Rule-002 executor driven by engineering_rules.json. Then delete those lines from .git/hooks/pre-commit. Output must cite the canonical 'Rule-002' label, not the stale 'v4-001A'."
       ]
     },
     {
       "bugid": "BUG-AGILE-BACKLOG-UNIQUENESS-DISABLED-001",
       "title": "Cross-record uniqueness check disabled in pre_deploy_rule_check.py - 4 ID fields unenforced (also: bugs.json bugid uniqueness unenforced)",
-      "description": "Per Skip directive 2026-04-19, the cross-record uniqueness check in enforce_backlog_schema (Code/Shared/ops/tools/pre_deploy_rule_check.py) was commented out because it was orphan code (no requirement authorized it) and was blocking commits on pre-existing duplicate IDs that pre-date today's session. Fields no longer enforced for uniqueness within agile_backlog.json: (1) epic_id, (2) feature_id, (3) story_id, (4) req_id. Today these IDs reuse: EPIC-008 was used by 2 epics (Architecture and UX) before today's rename; EVAL-REQ-001..018 reused 7-24 times each across EvaluateCare measure variants; EVAL-WEIGHTS-REQ-*, EVAL-CACHE-REQ-*, EVAL-NORM-REQ-*, EVAL-DATA-PROV-REQ-*, EVAL-REQ-FAILSAFE-*, EVAL-CONF-REQ-*, EVAL-REQ-CTM4-* families all carry duplicates. Closes when (a) a requirement is filed and approved authorizing scanner ID-uniqueness enforcement, (b) the existing duplicates are deduplicated, and (c) the commented block in pre_deploy_rule_check.py is restored.\n\nADDITIONAL: bugs.json itself also lacks bugid uniqueness enforcement. 4 duplicate bugids found: BUG-LANGCHAIN-CONTAINER-APP-HEALTH, BUG-LANGCHAIN-CONTAINER-APP-SPLASH, BUG-LANGCHAIN-CONTAINER-APP-TRANSFER-TO-FINDCARE, BUG-LANGCHAIN-CONTAINER-APP-VERIFY-TOKEN (each appears twice). No scanner check currently enforces bugid uniqueness; the absence of this check is a sibling of the disabled agile_backlog uniqueness check.",
+      "description": "Per Skip directive 2026-04-19, the cross-record uniqueness check in enforce_backlog_schema (Code/Shared/ops/tools/pre_deploy_rule_check.py) was commented out because it was orphan code (no requirement authorized it) and was blocking commits on pre-existing duplicate IDs that pre-date today's session. Fields no longer enforced for uniqueness within agile_backlog.json: (1) epic_id, (2) feature_id, (3) story_id, (4) req_id. Today these IDs reuse: EPIC-008 was used by 2 epics (Architecture and UX) before today's rename; EVAL-REQ-001..018 reused 7-24 times each across EvaluateCare measure variants; EVAL-WEIGHTS-REQ-*, EVAL-CACHE-REQ-*, EVAL-NORM-REQ-*, EVAL-DATA-PROV-REQ-*, EVAL-REQ-FAILSAFE-*, EVAL-CONF-REQ-*, EVAL-REQ-CTM4-* families all carry duplicates. Closes when (a) a requirement is filed and approved authorizing scanner ID-uniqueness enforcement, (b) the existing duplicates are deduplicated, and (c) the commented block in pre_deploy_rule_check.py is restored.\n\nADDITIONAL: bugs.json itself also lacks bugid uniqueness enforcement. 4 duplicate bugids found: BUG-LANGCHAIN-CONTAINER-APP-HEALTH, BUG-LANGCHAIN-CONTAINER-APP-SPLASH, BUG-LANGCHAIN-CONTAINER-APP-TRANSFER-TO-FINDCARE, BUG-LANGCHAIN-CONTAINER-APP-VERIFY-TOKEN (each appears twice). No scanner check currently enforces bugid uniqueness; the absence of this check is a sibling of the disabled agile_backlog uniqueness check.\n\nADDITIONAL (2026-04-19): preCommitScan.py also carries an orphan hardcoded check at lines 140-141 that rejects any staged JSON whose top-level is not a dict, citing 'BRAIN-SCHEMA-REQ-001'. The check has no Rule-NNN trace in engineering_rules.json (it directly cites a requirement_id, bypassing the rules->enforcements framework) and no path-based opt-out, so it blocks legitimate non-conforming files such as Code/_pending/engineering_rules_redesign/output/id_mapping.json (a top-level array used as a migration intermediate). Same pattern as the uniqueness check: orphan scanner code with no rule authorization and no scope discipline.",
       "environments": [
         "local",
         "dev",
@@ -3931,18 +3934,20 @@
         "Adding a duplicate req_id to agile_backlog.json blocks the next commit",
         "Adding a duplicate story_id to agile_backlog.json blocks the next commit",
         "Adding a duplicate feature_id to agile_backlog.json blocks the next commit",
-        "Adding a duplicate bugid to bugs.json blocks the next commit"
+        "Adding a duplicate bugid to bugs.json blocks the next commit",
+        "Staging Code/_pending/engineering_rules_redesign/output/id_mapping.json (top-level array migration intermediate) does NOT block the commit on the dict-only check (either via path-based opt-out or via the rule being properly traced and authorized)"
       ],
       "discovery_date": "2026-04-19",
       "due_date": "2026-04-26",
       "fix": "",
-      "reproduction": "Open Code/Shared/ops/tools/pre_deploy_rule_check.py at the comment block 'Cross-record uniqueness check - DISABLED' (around line 345). Confirm the seen={...} block and the for kind, m in seen.items() loop are commented out. Run python preCommitScan.py all - duplicate IDs in agile_backlog.json are NOT reported as violations.",
+      "reproduction": "Open Code/Shared/ops/tools/pre_deploy_rule_check.py at the comment block 'Cross-record uniqueness check - DISABLED' (around line 345). Confirm the seen={...} block and the for kind, m in seen.items() loop are commented out. Run python preCommitScan.py all - duplicate IDs in agile_backlog.json are NOT reported as violations. Also: stage any JSON with a top-level array (e.g. Code/_pending/engineering_rules_redesign/output/id_mapping.json) and attempt to commit; preCommitScan.py:140-141 will reject it citing BRAIN-SCHEMA-REQ-001 even though no Rule-NNN authorizes that check.",
       "orphan": false,
       "next_action": [
         "File a requirement under ARCH-SCAN-GENERAL story (or another scanning story) authorizing scanner ID-uniqueness enforcement.",
         "Deduplicate the existing duplicate IDs in agile_backlog.json (EPIC-008 already fixed; EVAL-* families remain).",
         "Uncomment the cross-record uniqueness check block in pre_deploy_rule_check.py and verify scanner reports zero violations.",
-        "Also: dedup the 4 duplicate bugids in bugs.json (BUG-LANGCHAIN-CONTAINER-APP-HEALTH, -SPLASH, -TRANSFER-TO-FINDCARE, -VERIFY-TOKEN)."
+        "Also: dedup the 4 duplicate bugids in bugs.json (BUG-LANGCHAIN-CONTAINER-APP-HEALTH, -SPLASH, -TRANSFER-TO-FINDCARE, -VERIFY-TOKEN).",
+        "File a Rule-NNN entry in engineering_rules.json for the JSON-top-level-must-be-dict check (or move the check behind a path filter so Code/_pending/ migration intermediates are exempt), then either re-trace preCommitScan.py:140-141 to that rule or move the check into the rule executor framework."
       ]
     }
   ],

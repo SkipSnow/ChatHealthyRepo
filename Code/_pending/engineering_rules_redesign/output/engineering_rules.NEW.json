@@ -1,0 +1,2875 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/dev/EngineeringRulesSchema.json",
+  "rules": {
+    "rule": [
+      {
+        "id": "Rule-001",
+        "name": "Rules apply to all Claude and runtime project actions",
+        "description": "All actions taken by Claude or at runtime in this project must comply with all project rules.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every action taken by Claude within this project must obey all rules.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Every action taken at runtime by Claude within this project must obey all rules.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-002",
+        "name": "Pipeline discipline",
+        "description": "Defines discipline rules for deploy triggers, pipeline execution, source downloads, and stage sequencing in data pipelines.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "The deploy-pipelines.yml workflow only triggers on pushes that include changes to Code/DataPipelines/**.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Changes to workflow files alone will not trigger a deploy-pipelines.yml workflow run.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Every workflow fix commit must include a meaningful Code/DataPipelines/ file change.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "The Azure deploy command (az functionapp deployment source config-zip) must not be changed without verifying it is actually broken.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "No commit or deploy of Code/DataPipelines/** may occur while an Azure pipeline job is running.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "The restriction on mid-run commits or deploys applies only to DataPipelines directories, not Website/ directories.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Website/ (Cloudflare static pages) may be committed and deployed regardless of Azure pipeline state.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "All pipeline workloads must execute on cloud infrastructure (Azure Functions), not on developer machines.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "Developer/local machines may only be used for development and testing, not for pipeline batch processing, overnight runs, or data migration.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 10,
+              "statement_body": "All pipeline workloads must run via the pipeline framework (PipelineWorkerBase, DataFetcherBase, orchestrators) as the execution surface.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 11,
+              "statement_body": "If a workload cannot run through the pipeline framework, the framework must be fixed to support it and no ad-hoc scripts on local machines may be used as a bypass.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 12,
+              "statement_body": "All source file downloads must use DataFetcherBase with ETag/SHA-256 verification and Azure Blob Storage caching.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 13,
+              "statement_body": "Each source file must be downloaded only once and reused until the source publishes a new version.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 14,
+              "statement_body": "Pipeline code must never download source files directly with raw HTTP requests.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 15,
+              "statement_body": "Pipeline code must never load an entire source file into memory; files must be streamed and processed in chunks.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 16,
+              "statement_body": "Processing of multiple states or partitions must use fan-out to parallel workers.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 17,
+              "statement_body": "Pipeline stages must execute in the following order: (1) Assemble (download in parallel); (2) Process (load/parse/classify, fan-out per state/partition); (3) Enrich (crosswalks, normalization, cost measures); (4) Embed (vector embeddings on the pipeline cluster only, see DR-022); (5) Ship (copy to frontend cluster with parity verification).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 18,
+              "statement_body": "Each pipeline stage must complete before the next stage begins, with no interleaving of stages.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "type": "file_scan",
+              "scan_dirs": [
+                "Code/DataPipelines"
+              ],
+              "pattern": "requests\\.get\\(.*stream\\s*=\\s*True",
+              "exclude_comments": true,
+              "exempt_patterns": [
+                "data_fetcher_base",
+                "DataFetcherBase"
+              ],
+              "_note": "v4-001D targets streaming file downloads, not API calls. Streaming requests.get (stream=True) outside DataFetcherBase is the violation. Small GETs for URL discovery and API calls are permitted.",
+              "exempt_files": [
+                "data_fetcher_base.py"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-003",
+        "name": "Update api-tests.http after every relaunch",
+        "description": "Ensures api-tests.http is updated after each deploy/relaunch, and enforces rules on API inclusion and separation.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "After every deploy and pipeline relaunch, a POST request is made and the instance ID is captured.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "After every deploy and pipeline relaunch, Code/DataPipelines/api-tests.http is updated.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Only human status APIs are included in Code/DataPipelines/api-tests.http.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Humans cannot affect code or process via API; they can only check on status.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "If Claude requires system APIs, those APIs are present only in a separate HTTP file, not in api-tests.http.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-004",
+        "name": "Architecture and design compliance",
+        "description": "Ensure code changes follow authoritative architecture and design artifacts, reference relevant documentation before coding, address violations, and keep documentation updated with code changes.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Architecture and design artifacts are treated as authoritative sources for implementation guidance.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Before writing or modifying code, the relevant design document is checked for applicable requirements or patterns.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "If proposed code would violate a documented pattern (such as app boundary rules, PipelineWorkerBase contract, or exception handling framework), the code is either brought into compliance or the violation is raised before proceeding.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "If the design changes, the design documentation is updated in the same commit as the code change.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-005",
+        "name": "Operating modes",
+        "description": "Defines three operating modes for Claude, each with specific behaviors and obligations. Sets rules for rule violations and risk acceptance, including logging and authorization processes, and describes how blanket risk acceptance cascades to child actions.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Claude operates in one of three modes set explicitly by Skip Snow at session start.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "If no mode is set, Claude operates in Normal mode by default.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "In Unattended mode, Claude completes the task autonomously.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "In Unattended mode, Claude does not embed credentials or secrets unless explicitly instructed.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "In Unattended mode, Claude MAY terminate obviously hung jobs (where lastUpdatedTime is stale more than 2x expected duration, there is no status change, and no fan-out).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Before killing a job in Unattended mode, Claude logs the reason and instance_id.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "After killing a job in Unattended mode, Claude notes the action in the next commit.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "In Normal mode, Claude uses best judgment and standard Claude Code behavior.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "In Normal mode, Claude never breaks a rule.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 10,
+              "statement_body": "In Normal mode, Claude never kills a running job without explicit confirmation.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 11,
+              "statement_body": "In Idiot Mode, if there is one unit of work, Claude proceeds.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 12,
+              "statement_body": "In Idiot Mode, if there are multiple units of work, Claude stops, lists them, and waits for confirmation before proceeding.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 13,
+              "statement_body": "In Idiot Mode, units of work are determined by meaning and intent, not punctuation.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 14,
+              "statement_body": "In Idiot Mode, after executing work, Claude reports: \"The work is done. Here is the status:\" followed by specifics.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 15,
+              "statement_body": "In Idiot Mode, after reporting status, Claude asks: \"What would you like me to do next?\"",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 16,
+              "statement_body": "In all modes, commit messages must be prefixed with [Normal Mode], [Unattended Mode], or [Idiot Mode], according to the operating mode.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 17,
+              "statement_body": "Unattended mode remains active (is sticky) until Skip Snow explicitly changes the mode.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 18,
+              "statement_body": "When about to break a rule in any mode, Claude must stop and state: \"This would violate: [rule name]. Do you grant one-time authority?\"",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 19,
+              "statement_body": "Claude accepts any unambiguous authorization from the human as granting one-time authority, including the canonical form \"I accept this risk because [reason]\" and any clear directive such as \"I authorize you to X\", \"go ahead\", \"do it\", \"fix it\", or \"debug this\".",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 20,
+              "statement_body": "Claude logs all accepted risks to risk_acceptance.json.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 21,
+              "statement_body": "Once a human accepts a risk for a task, the acceptance covers every child action clearly under its scope for the duration of that task.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 22,
+              "statement_body": "Claude must not re-ask for authorization for sub-steps obviously inside a blanket risk acceptance; to do so is itself a violation of this rule.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 23,
+              "statement_body": "If the scope of risk acceptance is genuinely ambiguous, Claude asks ONCE to clarify the scope, not to re-authorize.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 24,
+              "statement_body": "Claude is prohibited from language-lawyering the authorization form, including demanding humans repeat magic words or asking \"shall I proceed?\" for steps obviously inside the accepted task.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-006",
+        "name": "Deploy During Debug Sessions",
+        "description": "Guidelines for code commits and deployments during active debugging sessions.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "During active debugging sessions, every fix must be committed and pushed immediately after it is made.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "During UI, safety, or logic fix iterations, asking 'ready to deploy?' before committing or pushing is not required.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The build number must increment for every new change, regardless of how trivial the change is.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-007",
+        "name": "Deploy authority",
+        "description": "Deployments are controlled by environment, authorization, and specific sign-off requirements to ensure rigorous, safe promotion from development, through QA, to production.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Deployments and operations in the development environment do not require any sign-off.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Running pipeline jobs, creating indexes, and operating services in development is permitted without sign-off.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Deploying to QA environment requires Enterprise Architect (GPT) sign-off via brain assurance review.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Manually migrating data from dev pipeline to QA is permitted, but only this manual migration is permitted without further sign-off.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Production deployments (to master) require explicit Skip Snow sign-off, in accordance with GOV-007.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "The master branch on ChatHealthyRepo and ChatHealthyWebSite is READ-ONLY until production promotion is formally signed off.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Skip Snow, the human user, is the only entity authorized to sign off on any production change.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "No one may push directly to master on ChatHealthyRepo or ChatHealthyWebSite.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "No one may deploy to production without both QA sign-off and Skip Snow sign-off.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 10,
+              "statement_body": "Deploying from development directly to production is forbidden; deployments must follow the path dev -> QA -> prod.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 11,
+              "statement_body": "Deployments must never use --branch=main as a shortcut for promoting code.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 12,
+              "statement_body": "If tooling requires a branch name that does not match this process, the tooling must be fixed.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 13,
+              "statement_body": "Reading from master is allowed for reference purposes only.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 14,
+              "statement_body": "Skip Snow may grant an exception to these requirements, but a risk acceptance record must be recorded in the RiskAcceptance pseudo-collection (dedicated JSON file) for each and every exception.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-008",
+        "name": "System consistency",
+        "description": "Ensures hierarchical relationships, traceability, consistency, and timely updates across product artifacts, as well as integrated testing for requirements.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every requirement is a child of a story.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Every story is a child of a feature.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Every feature is a child of an epic.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Every feature has a place on the roadmap.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Every roadmap item exists in both Website/roadmap.html and a roadmap JSON.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Every requirement has a status.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Every story has a status.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "Every feature has a status.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "Every epic has a status.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 10,
+              "statement_body": "Every roadmap item has a status.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 11,
+              "statement_body": "Every requirement points to a test file where it can be tested as a boolean pass/fail.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 12,
+              "statement_body": "Every requirement MUST have a pytest that tests the boolean associated with it.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 13,
+              "statement_body": "The pytest used to test a requirement MUST be a child of that requirement.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 14,
+              "statement_body": "One pytest can satisfy more than one requirement.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 15,
+              "statement_body": "A pytest for a requirement cannot look at a single component but MUST use Playwright to test the entire UX, unless the requirement is for pipeline requirements.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 16,
+              "statement_body": "When a requirement refinement comes in, the relevant artifact must be updated immediately (same turn).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 17,
+              "statement_body": "When Skip Snow rejects or corrects an item, Claude MUST apply the correction.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 18,
+              "statement_body": "After a Skip Snow correction, Claude MUST scan all requirements for contradictions.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 19,
+              "statement_body": "After a Skip Snow correction, Claude MUST fix or reject contradicting requirements.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 20,
+              "statement_body": "After a Skip Snow correction, Claude MUST verify no duplicate requirements exist.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 21,
+              "statement_body": "After a Skip Snow correction, Claude MUST verify all parent-child relationships are intact.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 22,
+              "statement_body": "Every Skip Snow override triggers a full consistency check.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 23,
+              "statement_body": "Every design MUST exist in brain/machine_artifacts/content/design.json.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 24,
+              "statement_body": "When adding any backlog item, both roadmap and assignment MUST be updated in the same operation.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "type": "requirement_pytest",
+              "path": "brain/machine_artifacts/content/agile_backlog.json"
+            },
+            {
+              "type": "backlog_schema",
+              "path": "brain/machine_artifacts/content/agile_backlog.json"
+            },
+            {
+              "type": "bugs_schema"
+            },
+            {
+              "type": "ai_operations_schema"
+            },
+            {
+              "type": "conversation_log_schema",
+              "path": "brain/machine_artifacts/content/conversation_log.json"
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-009",
+        "name": "Bell notification before messages seeking Skip Snow input",
+        "description": "Always ring the bell before sending any message to Skip Snow that requests input, such as questions, approvals, decisions, or reviews. Use a specific PowerShell command for the bell. Err on the side of ringing if uncertain. Adjust bell behavior based on mode in collaboration with Skip Snow.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "The bell must ring before every message that asks Skip Snow for input, including questions, approvals, decisions, reviews, or any pause.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The bell-ringing must use only the specified PowerShell beep command.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The bell must ring before any question directed at Skip Snow, any approval request, any options presentation, or any 'ready for review' message.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "If there is uncertainty about whether to ring the bell, the bell must be rung.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Missing the required bell sound before such messages is not permitted, but false alarms (extra bell sounds) are acceptable.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Bell notification behavior must be refined per mode in collaboration with Skip Snow.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "type": "file_present",
+              "paths": [
+                "Code/DataPipelines/fatal_alert_bridge.py"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-010",
+        "name": "GPT prompts must include governance",
+        "description": "All GPT prompts must load and include governance policies from the specified JSON file in their system prompt or context.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every GPT prompt, including those in brain_runner.py, collaboration scripts, or ad-hoc use, loads corporate governance policies from brain/corporate_governance.json.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Every GPT prompt, including those in brain_runner.py, collaboration scripts, or ad-hoc use, includes the loaded governance policies in the system prompt or context.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "No GPT assignment skips inclusion of corporate governance policies in the system prompt or context.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-011",
+        "name": "UAT sign-off",
+        "description": "Skip Snow is the only authority for UAT, and all feature status changes require Skip Snow's explicit sign-off. Claude can document bugs, but only Skip Snow can change a feature's status.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Skip Snow is the sole authority permitted to authorize UAT.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Every feature status change requires explicit sign-off from Skip Snow as Pass, Fail, or Deferred.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The default state of any feature is Untested until Skip Snow provides an explicit status.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Claude may document bugs in notes.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Claude must not change a feature's status without explicit direction from Skip Snow.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-012",
+        "name": "Principal engineer discipline",
+        "description": "Claude must behave with rigor, follow governance, and avoid shortcuts as a principal engineer.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Claude enforces all applicable rules before taking action.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Claude does not propose any option that conflicts with documented governance.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Claude does not ask questions whose answers exist in governance, architecture, or brain documentation.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Claude follows documented answers from governance, architecture, or brain documentation when they exist.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "If instructed to violate a rule, Claude objects to the instruction before proceeding.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Claude complies with a rule-breaking instruction only if Skip Snow insists and accepts the risk.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Claude does not use hacker shortcuts.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "Claude ensures actions are clean, governed, and documented.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-013",
+        "name": "Pace and communication",
+        "description": "Handle rapid or corrective messages from Skip Snow by reviewing all before proceeding.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "When Skip Snow sends multiple rapid messages, the recipient stops action and reads all messages before acting.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Execution does not continue while Skip Snow is issuing course-correcting messages.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "When multiple messages from Skip Snow arrive during tool execution, all messages are addressed before taking the next action.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Messages from Skip Snow containing 'stop', 'no', 'wait', or corrections are addressed before proceeding to the next action.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-014",
+        "name": "Explicit authorization during refactoring",
+        "description": "Refactoring actions require explicit blanket authorization before task start. Authorization covers all file writes, moves, deletes, and renames within the refactoring scope. Claude must not request separate authorizations for each operation. Only specific human affirmations start the session.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Explicit authorization from a human is required before starting any refactoring session.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Authorization, once given for a refactoring task, is blanket for that task and covers all standard file writes, moves, deletes, and renames within the task's defined scope.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Claude must not request authorization for each individual file operation after blanket authorization has been received for the task.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "\"Can you...?\" from the human is interpreted as a question and does not constitute authorization to start a refactoring session.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Human affirmations including \"go\", \"do it\", \"yes\", or equivalent are treated as explicit authorization for the blanket refactoring task.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "File reads and analysis during refactoring do not require explicit authorization.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-015",
+        "name": "Iteration cache cleanup after epic planning cycle",
+        "description": "Ensure that the .iteration_cache/ directory is maintained as a temporary working document, with files deleted and deletions committed after each epic planning cycle is signed off.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "The brain/machine_artifacts/.iteration_cache/ directory is committed to git.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The brain/machine_artifacts/.iteration_cache/ directory is treated as a working document, not as a source of record.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "After each epic planning cycle completion (when Skip Snow signs off), all files in brain/machine_artifacts/.iteration_cache/ are deleted.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "After deleting files from brain/machine_artifacts/.iteration_cache/, the deletion is committed to git.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "No files in brain/machine_artifacts/.iteration_cache/ are allowed to accumulate between epic planning cycles.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-016",
+        "name": "Silent cost tracking",
+        "description": "Token usage and costs must be tracked in token_usage.json and not reported to Skip Snow unless requested. Each record must include required metadata.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "All token usage costs must be tracked in token_usage.json.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Each token use record in token_usage.json must include the related epic.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Each token use record in token_usage.json must include the model used.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Each token use record in token_usage.json must include the date of usage.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Token cost information must not be reported to Skip Snow unless Skip Snow explicitly asks.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "All token cost logging must be done silently without unsolicited reporting.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "When Skip Snow asks about token spend, spend must be reported by pulling data from token_usage.json.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-017",
+        "name": "Never expose stored user data through chat",
+        "description": "The chat interface must not disclose any stored user data in any form.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "The chat interface must not expose record counts, user records from AboutUs.lead, AboutUs.AboutSkip, Safety collections, aggregated or individual stored conversations, or de-identified data.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The system prompt must prohibit any exposure of stored user data.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "User Acceptance Testing (UAT) must include adversarial prompts that attempt to extract stored user data through chat.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "There must be a regression test for stored user data exposure on every release.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-018",
+        "name": "Pre-execution discipline",
+        "description": "Defines mandatory procedures to follow before executing any infrastructure command or writing code involving governed resources, including rule checks, authorizations, naming confirmations, and dependency verification.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Before executing any infrastructure command, engineering_rules.json and governance.json must be read.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The proposed infrastructure action must be checked against every rule in engineering_rules.json and policy in governance.json before execution.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "If any rule or policy would be violated by the action, execution must stop and Skip Snow must be notified.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "If explicit authorization is required by GOV-007, DR-002, or DR-005, it must be obtained before acting unless a prior blanket risk acceptance (as per v4-004) applies and the action is a child of an already accepted task.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "The exact cluster, database, and collection must be named before any database operation and confirmation must be obtained unless the specific target is already named in an accepted blanket authorization.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Before creating any database or environment, naming conventions in devops.json must be checked.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Pipeline software must be used for all actions; ad-hoc changes or hacks are not permitted. If the pipeline software cannot perform the needed action, it must be fixed rather than bypassed.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "For any instruction containing 'all', 'every', or referencing infrastructure, the complete set of relevant resources must be enumerated from the codebase before executing the instruction.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "The codebase must be searched (e.g., via grep) for all consumers of the referenced resource type before execution.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 10,
+              "statement_body": "A complete checklist of resources or operations to act upon must be built and execution must proceed using this checklist; it is not permitted to act on a partial or incomplete match.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 11,
+              "statement_body": "No code may be written that depends on infrastructure (index, collection, environment variable, or API endpoint) without also writing the code that creates or verifies its presence in the same commit.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 12,
+              "statement_body": "When code references $vectorSearch, a collection, or reads from an environment variable, verification code for its creation must exist. If not, such code must be written.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 13,
+              "statement_body": "At session start and after any interruption, governance.json and devops.json must be re-read before writing code.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 14,
+              "statement_body": "No exceptions to pre-execution gates are permitted unless Skip Snow grants memorialized authorization.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-019",
+        "name": "Output over process",
+        "description": "Emphasize producing working, testable output in every session and prioritize deliverables over process rules.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every session produces working, testable output.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Rules and process improvements are not considered deliverables.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Newly shipped features are testable.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Past mistakes are fixed promptly.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-020",
+        "name": "Contradiction and duplicate check before creation",
+        "description": "Require checks for contradictions and duplicates before creating new items, with escalation if found.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Before creating any new rule, requirement, story, feature, epic, or roadmap item, a search of all existing items for contradictions or duplicates must be performed.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "If a contradiction or duplicate is found during this search, the issue must be escalated to Skip Snow before proceeding.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "This contradiction and duplicate check must be performed when loading the brain.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "This contradiction and duplicate check must be performed when inserting or updating any rule.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "There must be a tool or function for rule insertion that enforces the contradiction and duplicate check gate.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-021",
+        "name": "Boot-time WhoAmI Reconciliation with Brain State",
+        "description": "At every boot, after loading the brain, ensure summary.txt in the me/ directory matches the current brain state, updating it as needed and reporting any drift. Always treat the brain as the source of truth and never modify the brain to match me/.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "At every boot, after loading the brain, the contents of Code/ConversationalUX/ChatHealthyWhoAmIChat/me/summary.txt are reconciled with the brain's current state.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The brain state is considered the source of truth over the me/summary.txt file.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The me/ directory is a consumer of brain state and does not act as a peer or alternative source of truth.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "If the brain's founder_profile (business_plan.json), founding principles (GOV-014 in policies.json), business plan, or company facts have changed, summary.txt is regenerated to reflect the current brain state.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Any drift between me/summary.txt and the brain's current state is reported to Skip Snow.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Brain records are never modified to match the contents of me/summary.txt; data flow is always from the brain to me/, not the reverse.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-022",
+        "name": "Website pages generated from brain \u2014 no hand-maintained HTML",
+        "description": "All website pages presenting brain content must be generated from the brain JSON via designated generators. No hand-editing of generated HTML is allowed, and each generated file must include a specific comment header. Only index.html is exempt.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every Website HTML page that presents brain content is generated by a Python script from the brain JSON source of truth.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The brain JSON is the authoritative record for brain content presented on the website.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "No hand-editing of HTML pages generated from brain JSON is permitted; instead, changes must be made to the brain JSON and the HTML must be regenerated.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Each generator script for website brain content lives in Code/Shared/ops/ and is named generate_<page>.py.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Each generated HTML file contains a comment header stating (1) GENERATED FILE \u2014 do not edit directly, (2) the source JSON(s), (3) the generator script path, and (4) the generation timestamp.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "When brain content changes, the affected HTML page is regenerated in the same commit as the change.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "index.html is exempt from this rule; it is application code, not brain content.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "All HTML pages presenting brain content, including privacy.html and terms.html, are generated from the brain JSON.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "privacy.html and terms.html are generated from brain content, which is sourced from policies.json and governance.json, respectively.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-023",
+        "name": "Alpha code freeze\u2014architecture work requires human-GPT override",
+        "description": "During the alpha freeze period, non-product architecture and related work is forbidden except via a specified approval process involving both a human and GPT (Enterprise Architect). All sessions must focus on working alpha product code.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "From 2026-04-07 until alpha launch (2026-05-01), no person or AI may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work unless an explicit override process is followed.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Every work session during the freeze period MUST produce working product code relevant to the scoring engine, measures, data loading, or end-to-end wiring.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "If a human requests to perform any otherwise-forbidden architecture or related work, Claude MUST object and require the human to justify the work as 'MUST-have for alpha.'",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "If justification is given, Claude MUST present the human's justification to GPT (Enterprise Architect) for approval.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Such work may only proceed if GPT (Enterprise Architect) explicitly agrees it is MUST-have for alpha.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "A human alone cannot authorize forbidden architecture or related work; GPT concurrence is required.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "type": "file_absent",
+              "paths": [
+                "Code/DataPipelines/overnight_pipeline.py"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-024",
+        "name": "HuggingFace Space creation standards",
+        "description": "Defines requirements for creation, naming, description, and deletion of HuggingFace Spaces.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "All HuggingFace Spaces are created on the lowest paid tier (cpu-upgrade, $0.03/hr).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "No HuggingFace Space is created on the free tier.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Each HuggingFace Space name follows the convention: {env}_{AppName}Space (e.g., dev_ChatHealthySpace, qa_ChatHealthySpace).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "The production HuggingFace Space has no env prefix in its name (e.g., ChatHealthySpace).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Every HuggingFace Space has a description matching its GOV-005 application boundary.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Unused, sleeping, or test HuggingFace Spaces are deleted immediately.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "No unused, sleeping, or test HuggingFace Spaces are allowed to accumulate.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-025",
+        "name": "No code commit without backlog traceability",
+        "description": "All code commits must be traceable to requirements tracked under the correct epic, feature, story, and requirement in the agile backlog, except for trivial fixes. This ensures the backlog is the definitive record for all implemented work.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No code is committed unless every requirement it implements is tracked in agile_backlog.json under the appropriate epic, feature, story, and requirement tree.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Before committing, Claude verifies that a story exists in the backlog for the work being committed.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Before committing, Claude verifies that all implemented requirements are listed in the backlog with unique req_ids.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Before committing, Claude verifies that each requirement in the backlog has a priority and status.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Before committing, Claude verifies that the story for the work is located under the correct feature and epic in the backlog.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "If any requirement being implemented is missing from the backlog, it is added before committing code.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "This rule applies to new features, bug fixes, and enrichment steps.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "Trivial fixes (such as typos or formatting changes) that do not change behavior are the only exception to this rule.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-026",
+        "name": "All pipelines are idempotent",
+        "description": "Every step in all pipelines must be safely re-runnable and must not cause unintended effects if executed multiple times with the same input.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every pipeline step is safely re-runnable.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Running a pipeline step twice with the same input produces the same output without data corruption, duplication, or loss.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "No pipeline step uses destructive operations (drop, delete_many) as a precondition unless the entire step is atomic.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "If a pipeline step uses drop-and-replace, the operation completes either fully or rolls back, and never leaves an empty collection.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Upsert on a unique key is used as the preferred write pattern in pipeline steps.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "insert_many with ordered=False and duplicate tolerance is acceptable in pipeline steps.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Any pipeline step that cannot be safely re-run is considered a design defect.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-027",
+        "name": "Governance matrix changes require human risk acceptance",
+        "description": "Any change to governance_matrix.json must have explicit and explained risk acceptance from Skip Snow, with no exceptions allowed.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No record in governance_matrix.json may be changed without explicit risk acceptance from Skip Snow.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Skip Snow must accept and explain any change to governance_matrix.json.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "A verbatim statement from Skip Snow, 'I accept this risk because [reason]', is always a valid form of acceptance for changes to governance_matrix.json.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Any clear human directive from Skip Snow to change the governance matrix, including directives that are explicit or children of an accepted blanket task, are valid forms of authorization for changes.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "There are no exceptions to this rule for environment, mode, or urgency.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "The governance matrix is the system's control plane, and unauthorized changes to it constitute a system-level violation.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-028",
+        "name": "Controlled vocabulary changes require human authorization",
+        "description": "Changes to controlled vocabularies must have explicit human authorization from Skip Snow before any addition, removal, or modification of entries.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Claude does not add any value to controlled_vocabularies.json without explicit authorization from Skip Snow.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Claude does not remove any value from controlled_vocabularies.json without explicit authorization from Skip Snow.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Claude does not modify any value in controlled_vocabularies.json without explicit authorization from Skip Snow.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Explicit authorization for controlled vocabulary changes is given by Skip Snow and applies to the specific change.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Authorization for a controlled vocabulary change can be any clear human directive, as permitted by v4-004.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "A blanket risk acceptance allows controlled vocabulary changes that are clearly child actions of an accepted task.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-029",
+        "name": "No Permission Prompts for Clear Directives",
+        "description": "When a user issues a clear directive to fix a bug or request a feature, Claude must not seek redundant authorization, must perform pre-flight duplicate checks silently, and only renegotiate if a semantic change is required.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "When a user issues a bug report or feature request, Claude must silently search the existing bugs and backlog for duplicates or contradictions before beginning any coding work.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "If a duplicate or contradiction is found during this pre-flight search, Claude must surface it so that it can be resolved by the human and Claude before coding begins.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The pre-flight duplicate and contradiction checks must be performed without asking the human for permission to proceed with the work already directed.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Any clear directive from the human (such as 'fix it', 'do it', 'implement it', 'rewrite it', 'change it', 'file the bug and fix it', or equivalent plain-English instructions) serves as sufficient authorization to proceed.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Claude must not ask the human for additional permission or use phrasing such as 'want me to...', 'shall I...', 'should I proceed...', 'authorize this...', or any other permission-seeking language for work already directed by the human.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Once a directive has been given, Claude's responsibilities are to file the bug if needed, silently check for duplicates, execute the directive, and report back only when either the work is complete or a genuine semantic ambiguity arises that changes the expected outcome.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Claude may only renegotiate with the human if executing the directive would change the semantics of the human's stated text (for example, by adding a constraint not included, dropping one that was, or reframing the intended outcome).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "When renegotiation is necessary due to a semantic delta, Claude must flag the specific semantic difference in a single sentence and proceed according to the human's answer, without requesting approval for a full rewrite.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "If the human has to remind Claude even once in a session that authorization was already granted, Claude must immediately recalibrate its behavior according to this rule.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 10,
+              "statement_body": "Repeated violations of this rule by Claude in a single session constitute a governance failure that should not require human policing.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-030",
+        "name": "Enforce HTTPS and Error Handling on REST Services",
+        "description": "REST services must require HTTPS, reject insecure requests, except index.html redirect, and fail clearly on errors.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "All REST services reject HTTP requests with a security error (status 403 or 426 Upgrade REQUIRED).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "REST services only accept requests over HTTPS, not plain HTTP.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The only allowed HTTP exception is the website index.html on port 80, which must redirect to HTTPS.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Every client call to any REST service checks the HTTP return code.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "On receiving a 4xx or 5xx HTTP return code, the client fails immediately with a clear error and does not continue silently.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-031",
+        "name": "Epic naming and taxonomy",
+        "description": "Ensures epics are business-focused, correctly named, properly classified, and not technical concerns.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every epic is named for the business component it realizes, not for the technology used.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Every epic must answer 'what does the user or business get?' and not 'what technology do we build?'.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Technical concerns such as security, infrastructure, testing, and deployment are cross-cutting shared services and must not be represented as epics.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Technical stories must belong under the business epic they serve.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Technical patterns and constraints must be captured as development rules (DR-*) or governance policies (GOV-*) and not as epics.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "If a technical story serves exactly one business epic, it must belong in that epic.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "If a technical story serves multiple business epics, it must belong in the primary consumer's epic with dependency links from the others.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "There is no 'Maintenance' epic; maintenance stories must be bugs or enhancements in the business epic that owns the affected component.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "Only a human can authorize the creation of a new epic.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 10,
+              "statement_body": "Claude may propose a new epic but must not create one without explicit human approval.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 11,
+              "statement_body": "Once approved by a human, Claude must assign the epic_id in the format EPIC-NNN (three-digit sequential, next available number) and the human-readable name.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 12,
+              "statement_body": "Epic_id and epic name must each be unique.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 13,
+              "statement_body": "Claude must verify the uniqueness of both epic_id and epic name before writing.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 14,
+              "statement_body": "Every epic must be classified as either 'operational' (user-facing product capability) or 'functional' (business function supporting operations).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 15,
+              "statement_body": "Epic type classification is mandatory per the agile_backlog schema.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 16,
+              "statement_body": "Any new epic must be a business component and not a technical concern.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 17,
+              "statement_body": "Claude must not create technical epics.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 18,
+              "statement_body": "Any existing technical epics must be redistributed to their business owners.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-032",
+        "name": "No dead code",
+        "description": "All code must be used; no unused code, including stubs or speculative code, may exist.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No function, class, or method exists in the codebase without at least one caller in production code or tests.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "If the dead code scanner finds a symbol that is defined but never referenced, and it is not invoked by a framework (FastAPI route, Azure trigger, or governance hook), that code must be deleted.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Stubs, speculative functions, and code built for future use are prohibited.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Public API functions serving external consumers must have at least one pytest that calls them.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-033",
+        "name": "Plural and singular naming for JSON arrays",
+        "description": "Ensures that plural property names in ChatHealthy JSON files correspond to arrays of items described by their singular form, and are reflected in JSON Schema definitions accordingly.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every property name in a ChatHealthy JSON file that is a plural noun has an array value whose elements are of the singular form of that noun.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "In the ChatHealthy JSON Schema (draft 2020-12), every property with a plural noun name is defined with type: array and items referencing the singular type.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-034",
+        "name": "No bug without a requirement",
+        "description": "Every bug in bugs.json must be linked to an existing requirement or marked as an orphan if the requirement is unknown.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every bug entry in bugs.json has a req_id field.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The req_id value for each bug in bugs.json corresponds to an existing requirement id in agile_backlog.json, unless Unattended Mode applies.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "In Unattended Mode, if Claude cannot absolutely and positively determine the requirement for a bug, the req_id field is set to ORPHAN_BUG.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-035",
+        "name": "Apply Established Pattern Consistently in Same Commit",
+        "description": "Ensure that once a design or code pattern is established in a code change, the same pattern is used everywhere relevant within that same commit.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "If a code or design pattern is established in a commit, the same pattern is applied consistently everywhere relevant within that same commit.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "No correct pattern is established in a commit and then omitted elsewhere in that same commit where it is applicable.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-036",
+        "name": "Reject State as Data Operation Partition Boundary",
+        "description": "Data operations must not use State as a partition boundary and should use record count or _id range instead.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No data operation uses State as a partition boundary.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Record count or _id range is used as the partition boundary for all data operations.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "type": "file_scan",
+              "scan_dirs": [
+                "Code/DataPipelines"
+              ],
+              "pattern": "for state in.*(states|ALL_STATES|state_list)",
+              "context_pattern": "stream_to_temp|copy_chunk|insert_many|sync_collection",
+              "context_lines": 5,
+              "exclude_comments": true
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-037",
+        "name": "No single operation may materialize over 10,000 documents in memory",
+        "description": "Ensures that no operation loads more than 10,000 documents into a Python variable at once.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No single operation may materialize more than 10,000 documents into a Python list, dict, or variable at once.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "If the source collection has more than 10,000 documents, a server-side cursor with batch_size, $bucketAuto, or streaming iteration must be used.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Using list(collection.find()) on a collection with more than 10,000 documents is prohibited.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "type": "file_scan",
+              "scan_dirs": [
+                "Code/DataPipelines"
+              ],
+              "pattern": "list\\(.*\\.find\\(",
+              "exclude_comments": true,
+              "exempt_patterns": [
+                "limit(",
+                "batch_size=",
+                "SAMPLE_SIZE",
+                ".limit("
+              ],
+              "_note": "Catches list(collection.find()) patterns. Exempt if cursor is limited."
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-038",
+        "name": "Kill Processes and Verify Ports Before Starting Local Server",
+        "description": "Ensure no dead or zombie processes occupy the target ports before starting a local server and verify that the port is clear for binding.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "All dead and zombie processes on the target ports are terminated before starting any local server.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The target port is verified to be clear before attempting to bind the local server.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-039",
+        "name": "Refer to LLM as code or system prompt, not by model name",
+        "description": "Ensure that code behavior is never attributed to LLMs by their model name; use 'the code' or 'the system prompt' instead.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No code comments, documentation, or discussions about code behavior refer to the LLM by its model name (e.g., 'Claude', 'GPT').",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "References to LLM behavior in code comments, documentation, or discussion use 'the code' or 'the system prompt' and not the model name.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The LLM is referred to as a component and not as an actor when discussing code behavior.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-040",
+        "name": "Parent page iframe defaults to localhost when running locally",
+        "description": "Ensures that when running locally, the parent page iframe uses localhost without manual intervention or query parameters.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "When running locally, the parent page iframe defaults to localhost automatically.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "No query parameters are required to default the parent page iframe to localhost when running locally.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "No workarounds are required to default the parent page iframe to localhost when running locally.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-041",
+        "name": "Never remove a requirement to improve performance",
+        "description": "Requirements must not be removed from the codebase for performance reasons; alternatives should be found, and waivers can only be granted by humans.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No requirement may be removed from the implementation solely for performance reasons.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "If a requirement is considered expensive to implement, a cheaper way to fulfill the requirement must be sought rather than removing it.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "A requirement may only be waived by a human.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-042",
+        "name": "Separation of AI, Database, and Vector Search Responsibilities",
+        "description": "Ensure AI, database, and vector search each fulfill only their intended roles in the provider data query pipeline.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "The AI resolves only taxonomy codes and does not return provider records to the user.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The database is responsible for returning data in response to deterministic taxonomy queries.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The vector search component must never return provider records directly to the user.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Vector search must only resolve taxonomy codes and not provide actual data records as results.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-043",
+        "name": "Vector search indexes must be verified on every environment",
+        "description": "Ensure required vector search indexes exist on all environments during promotion.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "On every environment promotion (dev\u2192qa, qa\u2192prod), all required vector search indexes must be verified to exist.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The provider_vector_index must exist on the providers table in the frontend cluster.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The specialty_vector_index must exist on the SpecialtyMetaData table in the frontend cluster.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Environment promotion must fail if any required vector search index is missing.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-044",
+        "name": "SIT testing targets full parent page, not iframe",
+        "description": "SIT testing should be performed on the full parent page, not on the iframe in isolation, to ensure correct product-level verification.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "All SIT tests are executed against the full parent page (dev.chathealthy.ai).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "No SIT tests are executed solely against the HF Space iframe in isolation.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The parent page is treated as the primary product under test during SIT testing.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "The HF Space iframe is treated as a component and not as the sole target for SIT testing.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-045",
+        "name": "Pipeline cluster stores zero administrative or devops state",
+        "description": "The pipeline cluster must not store administrative, devops, manifest, governance, or brain state; all such data is stored solely on the frontend cluster, and only the frontend is queried at session startup.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "The pipeline cluster (ChatHealthyDataPipelines) does not store any administrative state.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The pipeline cluster (ChatHealthyDataPipelines) does not store any devops state.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The pipeline cluster (ChatHealthyDataPipelines) does not store any manifest state.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "The pipeline cluster (ChatHealthyDataPipelines) does not store any governance state.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "The pipeline cluster (ChatHealthyDataPipelines) does not store any brain state.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "All administrative, devops, manifest, governance, and brain state is stored on the frontend cluster (ChatHealthyFrontEnd).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "At session startup, brain data is only queried from the frontend cluster (ChatHealthyFrontEnd).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "No code attempts to connect to the pipeline cluster (ChatHealthyDataPipelines) for brain, admin, or devops data, even when the pipeline cluster is running.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-046",
+        "name": "Manifest Includes All MongoDB Collections",
+        "description": "The admin.manifest must inventory all MongoDB collections, not just files, serving as the single source of truth for system contents.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "The admin.manifest includes every database and collection present on the frontend MongoDB cluster.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The admin.manifest inventories all files in addition to all MongoDB collections.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The admin.manifest is the only authoritative listing of what exists in the system.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-047",
+        "name": "Embedding generation not permitted on frontend cluster",
+        "description": "Embedding generation processes must not execute on the frontend cluster, and are instead handled by the pipeline cluster, with results copied to the frontend. The frontend cluster is reserved for serving user queries only.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Embedding generation jobs are not executed on the frontend cluster.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Embedding generation jobs are executed on the pipeline cluster.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Embedding generation results are copied to the frontend cluster using CopyToFrontEnd.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "The frontend cluster is used only for serving user queries.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Expensive batch operations are not performed on the frontend cluster.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "type": "file_scan",
+              "scan_dirs": [
+                "Code/DataPipelines"
+              ],
+              "pattern": "FRONTEND.*embed|embed.*FRONTEND",
+              "file_filter": "embed",
+              "exclude_comments": true
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-048",
+        "name": "Design Is Complete Only With Epic To Passing Tests Mapping",
+        "description": "A design is only considered complete when the entire chain from epic to requirements to passing boolean test cases is present and each incident, rule, requirement, and test is properly traced.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No design is marked complete until all of the following are present: (a) an epic, (b) features under the epic, (c) stories under the features, (d) requirements under the stories, and (e) boolean pytestable test cases under the requirements, with all tests passing (green).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "There are no exceptions to the requirement that all completed designs have a full epic-to-test mapping chain as described.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Every bug or audit finding must trace to at least one specific rule violation or to the absence of a required rule.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Every rule must result in at least one boolean (pass/fail) test covering that rule.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Every test must be traced to a requirement.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Every requirement must have at least one passing (green) pytest before the associated work is marked as done.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "type": "json_check",
+              "path": "brain/machine_artifacts/content/traceability_matrix.json",
+              "required_fields": [
+                "_record_id",
+                "entries"
+              ],
+              "entries_field": "entries",
+              "min_entries": 1
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-049",
+        "name": "Pytest Must Test All Forms and Assert Testable Outcomes",
+        "description": "Pytest test cases must cover all representations relevant to the feature being tested, including multiple content forms and all affected code surfaces. Requirements must be written as testable outcomes, not as mandates of specific mechanisms.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every pytest must test every form of the thing being tested.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "A rename test must check the string of the identifier being renamed.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "A rename test must check the filename(s) related to the identifier being renamed.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "A rename test must check imports referencing the identifier.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "A rename test must check comments referencing the identifier.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "A rename test must check brain references to the identifier.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "A memory fix test must assert bounded memory usage resulting from the fix.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "A memory fix test must not only assert API substitution but must also validate memory bounds.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "A compliance test must scan every file affected by the rule or standard, not just one file.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 10,
+              "statement_body": "Requirements must describe outcomes that can be tested (e.g., \"must never hold more than 64KB in memory\").",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 11,
+              "statement_body": "Requirements must not prescribe specific mechanisms (e.g., \"use streaming\") instead of testable outcomes.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-050",
+        "name": "Do Not Deploy If Deployment Would Kill Running Code",
+        "description": "Deployments must not interrupt running jobs; terminate faulty jobs before redeploying. Deployment rules apply independently per frontend and pipeline targets.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "A deployment must not proceed if it would terminate any currently running code on the target.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "If a pipeline job is running as designed, the deployment must wait until the job finishes.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "If a bug is discovered in the running code, the job must be terminated before deploying the fix.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "The fix must be deployed before rerunning the previously failed job.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Deployment rules are applied independently to frontend (Cloudflare + HuggingFace) and pipeline (Azure Functions) targets.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "A deployment to one target must not kill running code in an independent target.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-051",
+        "name": "HuggingFace Space Creation Only Via create_hf_space.py",
+        "description": "Ensure all HuggingFace Spaces are created exclusively using the designated script with a hardcoded tier and only the space name as a parameter.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "All HuggingFace Spaces must be created by invoking Code/Shared/ops/tools/create_hf_space.py.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "The tier used for newly created HuggingFace Spaces must match the one hardcoded in create_hf_space.py (cpu-upgrade, 8 vCPU, 32 GB RAM, $0.03/hr).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Only the space name may be passed as a parameter to create_hf_space.py when creating a HuggingFace Space.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "No HuggingFace Space may be created by any method other than invoking create_hf_space.py.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "type": "file_present",
+              "paths": [
+                "Code/Shared/ops/tools/create_hf_space.py"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-052",
+        "name": "AI-native intent classification",
+        "description": "All semantic and intent-based decisions must be made solely by a language model, with deterministic string methods only allowed for structured data validation after model output.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No system component uses keyword lists, regex patterns, string parsing, or deterministic text matching to determine user intent, classify content, detect emergencies, or make decisions requiring understanding of user meaning.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "All semantic decisions, including emergency detection, topic routing, specialty identification, safety classification, and intent-based decisions, are made by a language model.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "If model accuracy is insufficient for making a semantic decision, the remedy is to use a better model or a better prompt, not to use deterministic string matching.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "String matching is only used for validating structured data that the model has already produced, such as confirming a value is in a supported list or validating code formats.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Existing keyword lists and regex-based classifiers are replaced with model-based classifications as each component using them is modified or updated.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-053",
+        "name": "Story Requirements Separation with B- and T-Prefixes",
+        "description": "Stories must separate requirements into business (B-prefix) and technical (T-prefix) categories, with rules for how each is written and maintained.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every story separates its requirements into Business requirements (B-prefix) and Technical requirements (T-prefix).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Business requirements describe what the system must do from the user or business perspective.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Business requirements do not reference specific technologies, frameworks, file formats, APIs, or implementation patterns.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Technical requirements describe how the system realizes the business requirements.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Technical requirements reference specific technologies, architectures, and implementation decisions.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "When technical architecture changes, only Technical requirements (T-requirements) are rewritten.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Business requirements (B-requirements) remain stable across implementation changes and serve as the contract with the business.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-054",
+        "name": "No scanner bypass without explicit human risk acceptance",
+        "description": "Prohibits bypassing commit/push scanners unless explicit human risk acceptance is obtained and recorded.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Claude does not use --no-verify or any mechanism to bypass the pre-commit or pre-push scanner without explicit risk acceptance from a human.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "If the scanner blocks a commit, Claude either fixes the violation or escalates the situation to a human.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Authorization for scanner bypass follows v4-004: any clear human directive (including a blanket risk acceptance whose scope covers a scanner bypass for the specific accepted task) suffices.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "A risk acceptance record is created for every scanner bypass, regardless of the authorization form.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-055",
+        "name": "Claude memory is ungoverned and not user concern",
+        "description": "Claude's personal memory directory is ungoverned, not reviewed by humans or users, and cannot be used as a source of governance or mandate, except CLAUDE.md which is governed and committed to git.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "The .md files Claude writes and reads under its personal memory directory are ungoverned.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "No human governs or reviews Claude's personal memory directory.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Claude's personal memory directory is not a concern for users.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Claude may freely use its personal memory as working notes, self-calibration, and context about the user for its own use.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Claude's personal memory directory must not inform governance, mandates, rules, policies, requirements, or enforceable behaviors.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "If Claude writes a memory entry that reads as a mandate (e.g., 'Claude MUST...', 'Do NOT...'), that entry is misplaced and does not belong in memory.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Memory entries that read as mandates must be placed in the brain, not in the memory directory.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "CLAUDE.md is the single exception: it is committed to git, governed, and carries authority.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-056",
+        "name": "Brain JSON governance mandates must always be obeyed by Claude Code",
+        "description": "Ensures that all mandates and constraints in brain JSON governance files are always authoritative and followed by Claude Code, overriding any conflicting internal state or memory.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "The JSON files under brain/machine_artifacts/content/ are governance artifacts.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Every fact, rule, requirement, policy, and constraint in the brain JSON files is authoritative.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Claude Code must obey every mandate from the brain JSON files at all times.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "No exceptions to brain JSON mandates are allowed for mode, urgency, convenience, or conflict with Claude's memory.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "When a mandate in brain JSON conflicts with anything in Claude's memory or working assumptions, the brain JSON takes precedence.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "When two mandates in the brain JSON appear to conflict, Claude must escalate the conflict to a human rather than choose between them unilaterally.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "The brain JSON is the single source of governance and Claude's memory is not a peer governance source.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-057",
+        "name": "Brain content SHALL NOT be stored in Markdown files",
+        "description": "ChatHealthy brain content, including derived views and indexes, must not be stored in Markdown files. Brain content must reside as JSON only, with specific Markdown exceptions allowed for non-brain-data documentation and notes.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No ChatHealthy brain content, including facts, rules, requirements, policies, schemas, indexes, derived views, or caches of brain data, is stored in Markdown (.md) files.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "All ChatHealthy brain content must be stored as JSON files under brain/machine_artifacts/content/.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Derived views, caches, and indexes containing brain content must be stored as JSON files.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Markdown files in the repository are reserved only for: CLAUDE.md, .claude/CLAUDE.md (harness instructions); CLAUDE.local.md (personal notes); README.md and other human-facing, non-brain documentation.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Any Markdown (.md) file within the brain/ directory is a v4-040 violation.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Any Markdown (.md) file containing structured brain content is a v4-040 violation, regardless of location.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Any derived index that accompanies a JSON source of truth for brain content must be stored as JSON.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "MEMORY.md and auto-memory topic files under ~/.claude/projects/<project>/memory/ are explicitly excluded from this rule, unless they contain brain content.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-058",
+        "name": "Blanket risk acceptance cascades to child actions",
+        "description": "Risk acceptance for a parent task is blanket and cascades to child actions. Claude must treat sub-steps obviously inside the accepted task as covered without re-authorization, log only one parent risk acceptance, and document actions taken under the blanket. If scope is ambiguous, clarify once, not re-authorize. The form of acceptance is less important than its substance. This rule overrides repeating authorization in related rules.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "When a human gives blanket risk acceptance for a task, the acceptance applies to all child actions clearly within its scope for the duration of the task.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Claude must treat the initial risk acceptance as covering every sub-step obviously inside the accepted task.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Claude must execute covered sub-steps without re-asking for authorization for each sub-step.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Claude must log the parent risk acceptance to risk_acceptance.json only once, not separately for each sub-step.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "If the scope of the risk acceptance is genuinely ambiguous, Claude must ask once for clarification rather than re-authorize.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "At task closure, Claude must note in the work record which child actions were performed under the blanket acceptance.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 7,
+              "statement_body": "Claude must not require the human to repeat the canonical acceptance phrase after an unambiguous authorization has occurred.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 8,
+              "statement_body": "Claude must not ask for authorization (such as 'shall I proceed?') for sub-steps obviously inside the accepted task.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 9,
+              "statement_body": "Claude must not require the authorization to be in a particular form as long as it is substantively clear.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 10,
+              "statement_body": "Claude must not file multiple risk_acceptance.json records for sub-steps when one parent record covers all affected sub-steps.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 11,
+              "statement_body": "Where other risk-acceptance rules prescribe an authorization form, this rule controls cascading behavior after parent authorization is granted.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 12,
+              "statement_body": "Violation of this cascading rule is itself considered a violation of v4-004.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-059",
+        "name": "Deferred work tracking pattern",
+        "description": "Units of deferred work must be tracked end-to-end, with requirements, bugs, and artifacts fulfilling specific conditions.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every unit of work that is deferred is tracked end-to-end.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Every unit of deferred work has at least one requirement in agile_backlog.json with status=deferred.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "For each deferred requirement in agile_backlog.json, an auto-tracking bug exists in bugs.json with resolution_status=deferred.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "For each auto-tracking bug corresponding to a deferred requirement, severity_by_environment is set to {dev: low, qa: critical, prod: show_stopper}.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Each deferred unit's input artifacts, output artifacts, source code, and README reside in a self-contained directory under Code/_pending/<unit_name>/.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "A tracking bug for deferred work can close only when the requirement is fulfilled and the work is moved out of Code/_pending/.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-060",
+        "name": "Assignment scope overrides ordinary engineering rule",
+        "description": "An active human-issued assignment takes precedence over ordinary engineering rules, except for specific exceptions and universally enforced rules. Assignment authority and its scope must be logged appropriately.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "If an active human-issued assignment exists, Claude must treat it as overriding any ordinary engineering rule whose enforcement would prevent completion of the assignment.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Assignment authority does not override rule GOV-007 (production sign-off).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Assignment authority does not override rule v4-006 (deploy authority \u2014 QA/prod sign-off).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Assignment authority does not override any rule explicitly marked as universally enforced (e.g., v4-026 governance matrix changes).",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "The scope of an assignment must be logged once in risk_acceptance.json at the start of the assignment.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Assignment scope must not be logged per child action, in accordance with v4-039 cascade.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
+        }
+      },
+      {
+        "id": "Rule-061",
+        "name": "Business-logic Entrypoints Route Through Graph Orchestrator",
+        "description": "All business-logic entry points must invoke business services through a graph orchestrator such as LangGraph StateGraph, rather than call them directly from endpoint handlers.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every business-logic entry point in the codebase invokes business logic by calling a graph orchestrator (such as LangGraph StateGraph) rather than by directly calling business services from the handler.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Business-logic entry points include: FastAPI/Flask/etc. route handlers, scheduled triggers, CLI command handlers, message/queue consumers, and any other operationally-invoked surface.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Pure utility libraries\u2014such as those handling data structures, serialization, string formatting, and math\u2014are exempt from this rule.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "Handlers that bypass the orchestrator by calling shared business services directly (e.g., endpoint handlers calling business services without routing through the graph) violate this rule.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "Any FastAPI/Flask route handler function body must include a call to graph.invoke() (or equivalent StateGraph entry) as its primary business-logic action, with any business work itself flowing through the graph orchestrator.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "Route handler code is permitted to perform request parsing, response shaping, and exception translation outside of the orchestrator call.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "type": "graph_entry_check",
+              "_executor_status": "NOT YET IMPLEMENTED \u2014 see BUG-ARCH-GRAPH-002",
+              "scan_dirs": [
+                "Code/ConversationalUX/FindCareChat/backend",
+                "Code/evaluate_care",
+                "Code/shared_services"
+              ],
+              "_note": "Detects FastAPI/Flask route handlers (functions decorated with @app.post/@app.get/@router.post/etc.) whose body does not contain a call matching <state_graph>.invoke(...). Permitted exceptions: handlers explicitly marked with a # graph-exempt comment AND a paired risk_acceptance entry."
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

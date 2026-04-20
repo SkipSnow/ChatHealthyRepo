@@ -5,11 +5,11 @@
   "record_count": 9,
   "records": [
     {
-      "title": "ChatHealthy.ai — Business Architecture",
+      "title": "ChatHealthy.ai \u2014 Business Architecture",
       "subtitle": "Find Care. Evaluate Care. Talk About Care.",
       "version": "1.0",
       "date": "2026-03-31",
-      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform structured around a simple but underbuilt reality: people must find care, evaluate options, and make decisions—often with others. Existing solutions fragment this journey across search engines, provider directories, ratings sites, and disconnected conversations. ChatHealthy integrates these steps into a single architecture designed for clarity, trust, and decision support.\n\nThe platform consists of three tightly coupled components. Find Care provides free, high-quality provider discovery. Evaluate Care builds trust through structured analysis of provider quality and clinical options. Talk About Care introduces a new category: multi-participant, AI-assisted healthcare decision-making. This final component transforms passive research into active collaboration, where families and caregivers make decisions together with AI support.\n\nThe business model aligns with governance constraints: no care-chain revenue. Instead, ChatHealthy monetizes through premium AI usage and AI vendor partnerships. AI companies pay to participate in high-value healthcare decision contexts, while users retain control and pay only for optional premium AI engagement. The result is a platform that owns the healthcare decision room without compromising neutrality.",
+      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform structured around a simple but underbuilt reality: people must find care, evaluate options, and make decisions\u2014often with others. Existing solutions fragment this journey across search engines, provider directories, ratings sites, and disconnected conversations. ChatHealthy integrates these steps into a single architecture designed for clarity, trust, and decision support.\n\nThe platform consists of three tightly coupled components. Find Care provides free, high-quality provider discovery. Evaluate Care builds trust through structured analysis of provider quality and clinical options. Talk About Care introduces a new category: multi-participant, AI-assisted healthcare decision-making. This final component transforms passive research into active collaboration, where families and caregivers make decisions together with AI support.\n\nThe business model aligns with governance constraints: no care-chain revenue. Instead, ChatHealthy monetizes through premium AI usage and AI vendor partnerships. AI companies pay to participate in high-value healthcare decision contexts, while users retain control and pay only for optional premium AI engagement. The result is a platform that owns the healthcare decision room without compromising neutrality.",
       "mission": "Help people make better healthcare decisions together.",
       "components": {
         "find_care": {
@@ -231,7 +231,7 @@
           },
           {
             "date": "2026-10-31",
-            "milestone": "Native mobile apps — Apple App Store and Google Play"
+            "milestone": "Native mobile apps \u2014 Apple App Store and Google Play"
           }
         ]
       },
@@ -619,7 +619,7 @@
     {
       "vision": "ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be, they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it. By presenting and evaluating care options but never giving medical advice, the platform allows families, individuals, and friends to collaborate with the most powerful AI models in order to choose the best provider they can have.",
       "mission": "Help people make better healthcare decisions together.",
-      "executive_summary": "Healthcare is the largest consumer market in the world, yet the individual remains the least empowered participant. Decisions are fragmented across search, opaque quality data, and isolated conversations with no coordination. The result is predictable: overpayment, underperformance, and preventable harm. ChatHealthy.ai exists because this gap is not a feature of the system — it is the system’s failure point.\n\nChatHealthy.ai unifies the healthcare decision process into a single consumer-controlled environment: find care, evaluate it with real quality signals, and decide collaboratively with people and AI. This is not another point solution. It is the decision layer sitting above the entire healthcare system, where choices are actually made. Once this layer exists, control shifts from institutions to individuals.\n\nThe business model follows the control point. We own the decision room. AI companies, not patients, pay to participate in it. As healthcare decisions become AI-assisted and collaborative by default, ChatHealthy.ai becomes the gateway through which those decisions flow. This is not a feature set. It is inevitable infrastructure.",
+      "executive_summary": "Healthcare is the largest consumer market in the world, yet the individual remains the least empowered participant. Decisions are fragmented across search, opaque quality data, and isolated conversations with no coordination. The result is predictable: overpayment, underperformance, and preventable harm. ChatHealthy.ai exists because this gap is not a feature of the system \u2014 it is the system\u2019s failure point.\n\nChatHealthy.ai unifies the healthcare decision process into a single consumer-controlled environment: find care, evaluate it with real quality signals, and decide collaboratively with people and AI. This is not another point solution. It is the decision layer sitting above the entire healthcare system, where choices are actually made. Once this layer exists, control shifts from institutions to individuals.\n\nThe business model follows the control point. We own the decision room. AI companies, not patients, pay to participate in it. As healthcare decisions become AI-assisted and collaborative by default, ChatHealthy.ai becomes the gateway through which those decisions flow. This is not a feature set. It is inevitable infrastructure.",
       "components": {
         "find_care": {
           "description": "The entry point to the healthcare system, redesigned for clarity and control. Users discover providers, specialties, and care pathways without friction or bias.",
@@ -830,7 +830,7 @@
           "ch_matrix_id": "3f4ac0d6-1bfb-40ca-a598-5c3f8b088261"
         }
       },
-      "value_chain": "The consumer orchestrates the entire experience. They move fluidly between finding care, evaluating options, and discussing decisions in a single environment. This is not a linear funnel but a dynamic loop, where discovery, analysis, and collaboration reinforce each other. ChatHealthy.ai does not replace providers — it positions the consumer above them, in control of the decision process.",
+      "value_chain": "The consumer orchestrates the entire experience. They move fluidly between finding care, evaluating options, and discussing decisions in a single environment. This is not a linear funnel but a dynamic loop, where discovery, analysis, and collaboration reinforce each other. ChatHealthy.ai does not replace providers \u2014 it positions the consumer above them, in control of the decision process.",
       "revenue_model": {
         "streams": [
           "AI token markup on premium model usage within Talk About Care",
@@ -902,7 +902,7 @@
         "headlines": [
           "We are not required to protect your data. We choose to.",
           "The healthcare platform that protects your data better than your hospital does",
-          "Make healthcare decisions like you make every other important decision — together"
+          "Make healthcare decisions like you make every other important decision \u2014 together"
         ],
         "uses": [
           "Consumer trust acquisition through transparency",
@@ -954,7 +954,7 @@
     },
     {
       "title": "Business Plan Cost Analysis Results",
-      "status": "placeholder — referenced by assignment_queue.json, not yet populated",
+      "status": "placeholder \u2014 referenced by assignment_queue.json, not yet populated",
       "created": "2026-03-29",
       "results": [],
       "_record_id": "bizplan_cost_analysis_results",
@@ -1011,24 +1011,24 @@
         "ch_matrix_id": "24e519e2-0864-4425-89bf-e0785e6a9478"
       },
       "technology": {
-        "architecture": "Four-application in two categories. PRODUCT: (1) Website (Cloudflare), (2) Chat (HuggingFace/Azure), (3) DataPipelines (Azure Functions). DEVOPS: (4) The Brain (local + Azure) — AI-native SDLC operating system.",
+        "architecture": "Four-application in two categories. PRODUCT: (1) Website (Cloudflare), (2) Chat (HuggingFace/Azure), (3) DataPipelines (Azure Functions). DEVOPS: (4) The Brain (local + Azure) \u2014 AI-native SDLC operating system.",
         "the_brain": {
-          "description": "End-to-end automated but attended native AI SDLC with gateways and governance. The Brain is the SDLC operating system — it stores governance, prompts, plans, assignments, audit trails, manifests, work logs, and all machine-generated artifacts.",
+          "description": "End-to-end automated but attended native AI SDLC with gateways and governance. The Brain is the SDLC operating system \u2014 it stores governance, prompts, plans, assignments, audit trails, manifests, work logs, and all machine-generated artifacts.",
           "category": "DevOps (not product)",
           "public": true,
           "components": {
             "governance": "Corporate policies (GOV-001 through GOV-009), AI governance, risk register",
-            "prompts": "All AI agent system and user prompts — cached, versioned, loaded at runtime",
+            "prompts": "All AI agent system and user prompts \u2014 cached, versioned, loaded at runtime",
             "plans": "Sprint plans, epic plans, feature/story/requirement breakdowns",
-            "assignments": "Work queue for GPT and Claude — structured JSON, schema-validated",
+            "assignments": "Work queue for GPT and Claude \u2014 structured JSON, schema-validated",
             "audit": "Execution logs, SIT reports, QA reports, UAT sign-offs",
-            "manifest": "Project manifest — every code file catalogued with capabilities",
-            "artifacts": "Business artifacts — QA PDFs, IP agreements, investor docs"
+            "manifest": "Project manifest \u2014 every code file catalogued with capabilities",
+            "artifacts": "Business artifacts \u2014 QA PDFs, IP agreements, investor docs"
           },
           "roles": {
             "human": "Directs, attends, holds all gate authority",
-            "gpt": "Enterprise Architect — plans, reviews, gates (gpt-5.3-chat-latest)",
-            "claude": "Engineer — executes code, tests, deploys, drives workflows (claude-opus-4-6)"
+            "gpt": "Enterprise Architect \u2014 plans, reviews, gates (gpt-5.3-chat-latest)",
+            "claude": "Engineer \u2014 executes code, tests, deploys, drives workflows (claude-opus-4-6)"
           },
           "hosting": "brain/ directory in monorepo (local source of truth), synced to MongoDB (Brain collections) and Azure Blob (binary artifacts)",
           "integration": "GPTReader API on Azure Functions (read-only broker for GPT access to Brain data)",
@@ -1315,7 +1315,7 @@
       "ch_matrix_id": "11813941-c8fb-4bfc-ab9a-bfa954ce75b4"
     },
     {
-      "title": "Staffing & Cost Analysis — ChatHealthy.ai Development Equivalency",
+      "title": "Staffing & Cost Analysis \u2014 ChatHealthy.ai Development Equivalency",
       "record_type": "cost_analysis",
       "collection": "business_plan",
       "date": "2026-03-30",
@@ -1393,7 +1393,7 @@
           {
             "collection": "sprint_plan",
             "record_id": "sprint_plan_v013",
-            "value": "Seed Funding Close — $1.5M on 2026-07-31",
+            "value": "Seed Funding Close \u2014 $1.5M on 2026-07-31",
             "ch_matrix_id": "d3dfbb39-f666-400b-9bef-64b0bd1f689a"
           },
           {
@@ -1429,7 +1429,7 @@
     },
     {
       "_record_id": "founder_profile",
-      "title": "Founder Profile — Skip Snow",
+      "title": "Founder Profile \u2014 Skip Snow",
       "description": "Structured founder identity, career timeline, and personal context. Source of truth for all 'about the founder' content across the system.",
       "publish": false,
       "identity": {
@@ -1453,9 +1453,9 @@
       ],
       "personal": {
         "relationship_status": "Single",
-        "prior_salary": "$350K — left to pursue AI executive path",
+        "prior_salary": "$350K \u2014 left to pursue AI executive path",
         "food": "Loves all foods; not fond of Indian desserts ('pasty and bland')",
-        "art": "Outsider artist — oil on linen, exhibited work. Studio assistant to Jean-Michel Basquiat and other well-known artists."
+        "art": "Outsider artist \u2014 oil on linen, exhibited work. Studio assistant to Jean-Michel Basquiat and other well-known artists."
       },
       "founding_narrative": "chatHealthy.ai is based on the assumption that one can use public data and questions about the healthcare system, and even biology, and add value for consumers and companies by building solutions that together allow consumers to navigate and deal with their health in a more holistic manner, despite the systemic brokenness of the way the American culture deals with healthcare.",
       "company": {
@@ -1550,7 +1550,7 @@
           "dates": "2003 to 2004",
           "duration": "1 year",
           "domain": "consulting",
-          "work": "Managed 60-person team on two continents. Multi-million dollar JP Morgan Chase project — chase.com migration and Documentum CM implementation. On time, within budget.",
+          "work": "Managed 60-person team on two continents. Multi-million dollar JP Morgan Chase project \u2014 chase.com migration and Documentum CM implementation. On time, within budget.",
           "ch_matrix_id": "f55a1ca6-92e5-4f62-89e8-b6fa5cb12db7"
         },
         {
@@ -1616,6 +1616,90 @@
       ],
       "why_this_founder": "Has sat inside the payer system (Humana, Anthem), run provider architecture (Prospect, Kaiser), written the research (Forrester), built and failed a healthcare startup (HIPAA Box), and worked at the intersection of enterprise tech and finance (Citigroup, Lehman). Understands from the inside why the system withholds quality information, how the data is structured, where it is publicly available, and what it takes to assemble it for consumers.",
       "ch_matrix_id": "a3a39e04-8eff-4ea7-a964-1d2bad4f57f5"
+    },
+    {
+      "title": "ChatHealthy Cost Model and Unit Economics",
+      "version": "2.0",
+      "date": "2026-04-19",
+      "approved_by": "Skip Snow",
+      "supersedes": "v1.0 (2026-03-28) record in this same file",
+      "scenario": {
+        "users": 1000000,
+        "annual_revenue_per_user": 60.0,
+        "annual_revenue": 60000000
+      },
+      "tech_costs": {
+        "llm_tokens_blended": {
+          "annual": 4800000,
+          "per_user": 4.8,
+          "assumption": "Equal mix OpenAI / Google / Anthropic mid-tier; 15 chat turns/user/month; ~6K input + 1.5K output tokens per turn"
+        },
+        "langsmith_deployment": {
+          "annual": 1620000,
+          "per_user": 1.62,
+          "assumption": "$0.005/run x 15M runs/month + 3x subgraph multiplier; ~50% enterprise discount"
+        },
+        "mongodb_atlas": {
+          "annual": 120000,
+          "per_user": 0.12,
+          "assumption": "M50 + vector search + replicas, x3 redundancy"
+        },
+        "azure": {
+          "annual": 37000,
+          "per_user": 0.037,
+          "assumption": "Compute (D8s v5 x6) + 10TB blob + 150TB egress + Function App pipelines"
+        },
+        "cloudflare": {
+          "annual": 1000,
+          "per_user": 0.001,
+          "assumption": "Static site"
+        },
+        "tech_subtotal": {
+          "annual": 6578000,
+          "per_user": 6.58
+        }
+      },
+      "labor_costs": {
+        "founders": {
+          "annual": 1260000,
+          "per_user": 1.26,
+          "assumption": "3 founders @ $420K fully loaded"
+        },
+        "call_center": {
+          "annual": 1000000,
+          "per_user": 1.0,
+          "assumption": "40 offshore agents in shifts, 24x7 coverage"
+        },
+        "labor_subtotal": {
+          "annual": 2260000,
+          "per_user": 2.26
+        }
+      },
+      "service_costs": {
+        "compliance_legal_insurance_data_vendor": {
+          "annual": 1250000,
+          "per_user": 1.25,
+          "assumption": "HIPAA / NIST / HITRUST audits + legal + E&O / cyber insurance + data subscriptions (NPI, clinical trials, payer) + vendor support"
+        }
+      },
+      "summary": {
+        "total_operating_cost": {
+          "annual": 10088000,
+          "per_user": 10.09
+        },
+        "operating_profit": {
+          "annual": 49912000,
+          "per_user": 49.91
+        },
+        "net_margin_percent": 83.2,
+        "gross_margin_percent": 89.0
+      },
+      "caveats": [
+        "Per-user usage assumption: 15 LangChain runs / user / month",
+        "LangChain subgraph multiplier estimated at 3x; actual depends on chat -> safety -> search -> evaluate routing",
+        "Enterprise discount estimated at ~50% off retail; actual depends on negotiation",
+        "Excludes one-time / capex; excludes marketing / sales (per founding thesis)"
+      ]
     }
   ]
 }
