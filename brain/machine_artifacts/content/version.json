@@ -212,6 +212,21 @@
                 "Code/deploy/deploy_app_dev.sh",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 1003,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "bug_id",
+                    "identifier": "BUG-EVALCARE-GRAPH-WRAPPER-001"
+                  }
+                ]
+              },
+              "files_touched": [
+                "Code/deploy/localSmokeTestPyTest.py",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }
