@@ -580,13 +580,14 @@ def transfer_to_findcare():
 def evaluate_proxy(body: EvaluateRequest):
     """Proxy evaluate call through FindCare → EvaluateCare.
     Uses mTLS: FindCare presents its client cert, verifies against CA.
-    EVALCARE_URL defaults to Caddy mTLS port (:8081) locally, HF space in dev/prod."""
+    EVALCARE_URL defaults to https://localhost:8001 (DEVOPS-DEPLOY-001-REQ-015 standard
+    EvaluateCare port), HF space in dev/prod."""
     import requests as _req
 
     # EVALCARE_URL must be set in environment. No HTTP default.
-    # Local: HTTPS via Caddy mTLS :8081
+    # Local: HTTPS direct to EvaluateCare on standard port 8001 (REQ-015)
     # HF: HTTPS via HF space URL (set as HF Secret)
-    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8081")
+    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8001")
     certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
 
     req_kwargs = {"timeout": 15}
