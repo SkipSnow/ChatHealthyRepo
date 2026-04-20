@@ -41857,6 +41857,25 @@
                           },
                           "ch_matrix_id": "a7c3e8d2-6f1b-4c9a-8e5d-9b4f2c1e0d3a",
                           "name": "Session token must include and display service origin, signed and verified per-s"
+                        },
+                        {
+                          "req_id": "SEC-HTTPS-001-REQ-018",
+                          "requirement": "The session-verification panel rendered in the left (specialty search / guiSessionCell) and right panels MUST include two additional rows below the existing fields: (1) `Env: <ENV>` where ENV is the environment label (LOCAL, DEV, QA, or PROD) of the service that issued the token, derived from the active deployment context; (2) `Time: PST <YYYY-MM-DD HH:MM:SS>` where the value is the token's `created_at` timestamp reformatted to America/Los_Angeles timezone (Pacific Time, observing daylight saving). Both rows MUST appear in both the left and right panel renderings so a human operator can verify which environment served the token and at what time without consulting external tools.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "b8d4e9f3-7a2c-4d0b-9f6e-0c5a3d2f1e4b",
+                          "name": "Session token display must include Env and PST Time rows in both panels"
                         }
                       ]
                     },
@@ -57639,6 +57658,24 @@
                             ]
                           },
                           "name": "Environment banner with 3 service buttons and contextual tooltips"
+                        },
+                        {
+                          "req_id": "DEVOPS-BANNER-B007",
+                          "requirement": "The environment banner MUST display the build, version, and framework values reported by /health on the service that currently owns the page (FindCare, EvaluateCare, or SharedServices). When ownership transfers (FindCare \u2192 EvaluateCare, FindCare \u2192 SharedServices, EvaluateCare \u2192 SharedServices, or return to FindCare), the banner MUST re-fetch from the new owner's /health and update inline. The banner MUST display the active service name in brackets (e.g., [evaluatecare]) so the operator can tell at a glance which container produced the displayed values. This requirement closes the gap left by DEVOPS-BANNER-B002 which did not specify which backend's /health the banner reads.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "playwright",
+                                "orphan": true
+                              }
+                            ]
+                          },
+                          "name": "Banner build/version/framework reflect the service that currently owns the page"
                         }
                       ]
                     },
