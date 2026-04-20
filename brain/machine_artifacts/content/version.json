@@ -122,6 +122,47 @@
                 "brain/machine_artifacts/content/errors.json",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 999,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "requirement_id",
+                    "identifier": "ARCH-SCAN-JSON-REQ-003"
+                  }
+                ]
+              },
+              "files_touched": [
+                ".claude/chathealthy_brain_digest.json",
+                ".claude/settings.local.jsonbak",
+                ".github/workflows/deploy-pipelines.yml",
+                "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/findcare-code-package.json",
+                "Code/ConversationalUX/FindCareChat/backend/brain_data/qa_report_v014_sit.json",
+                "Code/Shared/ops/tools/build_backlog_story_view.py",
+                "Code/Shared/ops/tools/capture_brain_hashes.py",
+                "Code/Shared/ops/tools/log_instructions_loaded.py",
+                "Code/Shared/ops/tools/pre_deploy_rule_check.py",
+                "Code/_pending/compliance_crosswalk/src/_build_uat_handoff_doc.py",
+                "Code/_pending/engineering_rules_redesign/output/agile_backlog.NEW.json",
+                "Code/_pending/engineering_rules_redesign/output/engineering_rules.NEW.json",
+                "Code/_pending/engineering_rules_redesign/output/id_mapping.json",
+                "Code/_pending/engineering_rules_redesign/src/migrate_agile_backlog_names.py",
+                "Code/_pending/engineering_rules_redesign/src/migrate_rules_via_gpt41.py",
+                "Website/schemas/qa/ChatHealthyErrorsSchema.json",
+                "brain/BusinessArtifacts.lnk",
+                "brain/BusinessArtifacts/CorporateContent/ChatHealthy_Cost_Model_v2_2026-04-19.docx",
+                "brain/BusinessArtifacts/Plans/ConversationLogServiceRefactor_Plan_2026-04-17.docx",
+                "brain/BusinessArtifacts/Plans/generate_log_refactor_plan.py",
+                "brain/BusinessArtifacts/bugs_attribute_audit.xlsx",
+                "brain/BusinessArtifacts/bugs_status_vs_resolution_status.xlsx",
+                "brain/BusinessArtifacts/governance/all_engineering_rules_review.docx",
+                "brain/BusinessArtifacts/governance/all_engineering_rules_review_V2.docx",
+                "brain/BusinessArtifacts/governance/uat_handoff_2026_04_19_langgraph.docx",
+                "brain/machine_artifacts/content/agile_backlog.json",
+                "brain/machine_artifacts/content/business_plan.json",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }

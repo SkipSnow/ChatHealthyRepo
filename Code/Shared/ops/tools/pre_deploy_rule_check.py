@@ -342,33 +342,38 @@ def enforce_backlog_schema(rule_id, enforcement):
         violations.append(
             f"{rule_id}: agile_backlog.json {path}: {err.message[:200]}")
 
-    # Cross-record uniqueness check — schema text says these IDs are
-    # "never reused" but JSON Schema cannot express that constraint.
-    # Authorized by: TBD (pending requirement to be filed and approved).
-    seen = {"epic_id": {}, "feature_id": {}, "story_id": {}, "req_id": {}}
-    for epic in backlog.get("epics", {}).get("epic", []):
-        eid = epic.get("epic_id")
-        if eid:
-            seen["epic_id"].setdefault(eid, []).append(epic.get("name", "?"))
-        for feature in epic.get("features", {}).get("feature", []):
-            fid = feature.get("feature_id")
-            if fid:
-                seen["feature_id"].setdefault(fid, []).append(feature.get("name", "?"))
-            for story in feature.get("stories", {}).get("story", []):
-                sid = story.get("story_id")
-                if sid:
-                    seen["story_id"].setdefault(sid, []).append(
-                        story.get("name", story.get("title", "?")))
-                for req in story.get("requirements", {}).get("requirement", []):
-                    rid = req.get("req_id")
-                    if rid:
-                        seen["req_id"].setdefault(rid, []).append(rid)
-    for kind, m in seen.items():
-        for k, names in m.items():
-            if len(names) > 1:
-                violations.append(
-                    f"{rule_id}: duplicate {kind} '{k}' used by {len(names)} "
-                    f"records: {names[:5]}")
+    # ───── Cross-record uniqueness check — DISABLED ─────
+    # Per Skip directive 2026-04-19: this check is commented out because
+    # it is orphan code (no requirement authorizes it) and was blocking
+    # commits on pre-existing duplicate IDs that pre-date today's
+    # session. The schema text says these IDs are "never reused" but
+    # JSON Schema cannot express that constraint. To re-enable, file an
+    # approved requirement that authorizes the check, then uncomment.
+    #
+    # seen = {"epic_id": {}, "feature_id": {}, "story_id": {}, "req_id": {}}
+    # for epic in backlog.get("epics", {}).get("epic", []):
+    #     eid = epic.get("epic_id")
+    #     if eid:
+    #         seen["epic_id"].setdefault(eid, []).append(epic.get("name", "?"))
+    #     for feature in epic.get("features", {}).get("feature", []):
+    #         fid = feature.get("feature_id")
+    #         if fid:
+    #             seen["feature_id"].setdefault(fid, []).append(feature.get("name", "?"))
+    #         for story in feature.get("stories", {}).get("story", []):
+    #             sid = story.get("story_id")
+    #             if sid:
+    #                 seen["story_id"].setdefault(sid, []).append(
+    #                     story.get("name", story.get("title", "?")))
+    #             for req in story.get("requirements", {}).get("requirement", []):
+    #                 rid = req.get("req_id")
+    #                 if rid:
+    #                     seen["req_id"].setdefault(rid, []).append(rid)
+    # for kind, m in seen.items():
+    #     for k, names in m.items():
+    #         if len(names) > 1:
+    #             violations.append(
+    #                 f"{rule_id}: duplicate {kind} '{k}' used by {len(names)} "
+    #                 f"records: {names[:5]}")
 
     return violations
 
