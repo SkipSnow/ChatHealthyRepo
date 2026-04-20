@@ -227,6 +227,22 @@
                 "Code/deploy/localSmokeTestPyTest.py",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 1004,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "requirement_id",
+                    "identifier": "DEVOPS-DEV-B002"
+                  }
+                ]
+              },
+              "files_touched": [
+                "Code/deploy/devSmokeTestPyTest.py",
+                "Code/deploy/deploy_app_dev.sh",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }
