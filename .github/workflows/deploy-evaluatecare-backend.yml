@@ -49,6 +49,27 @@ jobs:
           pip install -r Code/Shared/ops/tools/requirements.txt
           python Code/Shared/ops/tools/pre_deploy_rule_check.py evaluatecare
 
+      - name: Set HF Space variables (peer URLs, env)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ steps.space.outputs.name }}
+          ENV: ${{ steps.space.outputs.env }}
+        run: |
+          if [ "$ENV" = "prod" ]; then PREFIX=""; else PREFIX="${ENV}-"; fi
+          FINDCARE_URL="https://skipsnow-${PREFIX}chathealthyspace.hf.space"
+          SHARED_URL="https://skipsnow-${PREFIX}sharedservicesspace.hf.space"
+          set_var() {
+            K="$1"; V="$2"
+            curl -sf -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
+              -H "Authorization: Bearer $HF_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${K}\",\"value\":\"${V}\",\"description\":\"Set by deploy workflow\"}" \
+              -o /dev/null && echo "  set ${K}=${V}"
+          }
+          set_var "ENV_PREFIX"          "${ENV}"
+          set_var "FINDCARE_URL"        "${FINDCARE_URL}"
+          set_var "SHARED_SERVICES_URL" "${SHARED_URL}"
+
       - name: Push to HuggingFace Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
