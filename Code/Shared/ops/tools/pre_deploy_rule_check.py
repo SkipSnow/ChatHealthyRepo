@@ -523,7 +523,12 @@ EXECUTORS = {
     "backlog_schema": enforce_backlog_schema,
     "ai_operations_schema": enforce_ai_operations_schema,
     "conversation_log_schema": enforce_conversation_log_schema,
-    "graph_entry_check": enforce_graph_entry_check,
+    # graph_entry_check: DISABLED 2026-04-20 per Skip directive — LangGraph
+    # was removed from runtime code (build 1007). Rule-061 in
+    # engineering_rules.json is now orphan; this executor would fire on every
+    # route handler and block all deploys. Re-enable only if LangGraph
+    # orchestration is reintroduced.
+    # "graph_entry_check": enforce_graph_entry_check,
 }
 
 
