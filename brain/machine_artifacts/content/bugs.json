@@ -4015,6 +4015,39 @@
         "Re-run localSmokeTestPyTest.py — TestStep17 and TestStep19 should pass.",
         "Audit the other LangGraph dispatcher calls in app.py (and shared_services/app.py + main.py) for the same wrapping mistake — there may be siblings."
       ]
+    },
+    {
+      "bugid": "BUG-VERIFY-TOKEN-PROXY-001",
+      "title": "Right-panel /verify-token call goes to FindCare (proxy), not directly to the cold-button service",
+      "description": "Per SEC-HTTPS-001-REQ-019 the browser MUST call the cold-button service's /verify-token endpoint directly. Today Website/index.html openSharedServices() and openEvaluateCare() both POST /shared/verify-token and /evaluate/verify-token to FindCare (apiBase + '/shared/verify-token' and apiBase + '/evaluate/verify-token'). FindCare then proxies the call server-side via requests.post to the peer service. The right panel renders the result, but the operator cannot independently verify (via DevTools Network tab or smoke test) that the cold-button service actually verified the token — all visible HTTP traffic terminates at FindCare. This is a validation gap as well as an architectural mismatch with the per-owner banner refresh (DEVOPS-BANNER-B007) and the Env/Time token rows (SEC-HTTPS-001-REQ-018) which already report the active service.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "fixing",
+      "severity": "high",
+      "req_id": "SEC-HTTPS-001-REQ-019",
+      "story_id": "SEC-HTTPS-001",
+      "pytest_id": "TestStep25.test_push_shared_services",
+      "pytest_success_criteria": [
+        "TestStep25 in localSmokeTestPyTest.py and devSmokeTestPyTest.py registers a network listener BEFORE clicking the SharedServices banner button.",
+        "After the click, the listener captures at least one POST whose URL == SHARED_URL + '/verify-token' (direct call to cold service).",
+        "After the click, the listener captures ZERO POSTs ending in '/shared/verify-token' (no FindCare proxy).",
+        "Equivalent assertions for EvaluateCare: at least one direct POST to EVALCARE_URL + '/verify-token', zero proxy POSTs to '/evaluate/verify-token'.",
+        "DevTools Network tab on a manual run shows the same direct call when SS or EC owns the page."
+      ],
+      "discovery_date": "2026-04-20",
+      "due_date": "2026-04-22",
+      "fix": "Website/index.html openSharedServices() and openEvaluateCare(): replace fetch(apiBase + '/shared/verify-token') with fetch(window._envServiceUrls.sharedservices + '/verify-token') and same for evaluatecare. /session call stays on FindCare (sole token issuer). CORS on EvaluateCare and SharedServices already allows wrapper origins (built earlier). TestStep25 in both smoke files asserts direct POST and absence of proxy POST.",
+      "reproduction": "Pre-fix: Open https://localhost in DevTools Network tab. Click SharedServices banner button. Network tab shows POST to https://localhost:7860/shared/verify-token (FindCare proxy). No direct POST to https://localhost:8002/verify-token. Same on dev with skipsnow-dev URLs. Post-fix: Network tab shows direct POST to https://localhost:8002/verify-token (or skipsnow-dev-sharedservicesspace.hf.space/verify-token on dev) and no /shared/verify-token POST.",
+      "orphan": false,
+      "next_action": [
+        "Apply Website/index.html fix (3 lines per service: read peer URL from window._envServiceUrls and POST to it).",
+        "Run local smoke + dev smoke; TestStep25 must pass with new direct-call assertions.",
+        "Manually verify via DevTools Network tab on dev that the direct call appears."
+      ]
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"

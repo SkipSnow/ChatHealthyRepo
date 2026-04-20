@@ -41876,6 +41876,25 @@
                           },
                           "ch_matrix_id": "b8d4e9f3-7a2c-4d0b-9f6e-0c5a3d2f1e4b",
                           "name": "Session token display must include Env and PST Time rows in both panels"
+                        },
+                        {
+                          "req_id": "SEC-HTTPS-001-REQ-019",
+                          "requirement": "When the user transfers page ownership to EvaluateCare or SharedServices, the right-panel mutual-authentication request (/verify-token) MUST be issued by the browser directly to the cold-button service (the new owner) and MUST NOT be proxied through FindCare. The browser MUST use the cold service's environment-specific URL (HF Space URL for dev/qa/prod, https://localhost:PORT for local) as the request target. The cold service's /verify-token response \u2014 including the verified session token \u2014 MUST be the source of the data rendered in the right panel. This ensures the right panel reflects the actual active service's verification, not FindCare's proxied view of it, and is independently verifiable by inspecting the browser DevTools Network tab. CORS on EvaluateCare and SharedServices MUST allow the wrapper origins (localhost, dev.chathealthy.ai, qa.chathealthy.ai, chathealthy.ai). The /session call (token issuance) MUST continue to target FindCare since FindCare is the sole token issuer. Verification: Code/deploy/localSmokeTestPyTest.py and Code/deploy/devSmokeTestPyTest.py TestStep25.test_push_shared_services MUST register a network listener before the SharedServices banner button click and assert (a) at least one POST to SHARED_URL+'/verify-token' (direct call) and (b) zero POSTs ending in '/shared/verify-token' (no proxy). See BUG-VERIFY-TOKEN-PROXY-001.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TestStep25.test_push_shared_services",
+                                "pytest_type": "playwright",
+                                "orphan": false
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "c9e5f0a4-8b3d-4e1c-af7f-1d6b4e3a2f5c",
+                          "name": "Browser must call cold-button service directly for verify-token (no FindCare proxy)"
                         }
                       ]
                     },
