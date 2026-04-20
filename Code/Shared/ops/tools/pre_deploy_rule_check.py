@@ -671,9 +671,88 @@ def comment_out_dead_code(repo_root, dead_list):
             f.writelines(lines)
 
 
+_IMPLICIT_TARGET_FILES = {
+    "bugs_schema": ["brain/machine_artifacts/content/bugs.json"],
+    "backlog_schema": ["brain/machine_artifacts/content/agile_backlog.json"],
+    "ai_operations_schema": ["brain/machine_artifacts/content/ai_operations.json"],
+    "conversation_log_schema": ["brain/machine_artifacts/content/schema.json"],
+}
+
+
+def _changed_files_for_deploy():
+    """Return the set of file paths that this deploy is delivering.
+    On GH Actions push: derived from the event payload (before..after).
+    Locally: derived from `git diff @{upstream}..HEAD`.
+    Returns None if the set cannot be determined (caller falls back to
+    full scan, never silently under-validates)."""
+    import subprocess as _sp
+    # GH Actions push event: GITHUB_EVENT_PATH + GITHUB_SHA give us the range.
+    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    if event_path and os.path.exists(event_path):
+        try:
+            with open(event_path, "r", encoding="utf-8") as f:
+                ev = json.load(f)
+            before = ev.get("before") or ""
+            after = ev.get("after") or os.environ.get("GITHUB_SHA", "HEAD")
+            if before and before != "0000000000000000000000000000000000000000":
+                r = _sp.run(["git", "diff", "--name-only", f"{before}..{after}"],
+                            capture_output=True, text=True, timeout=10, cwd=REPO_ROOT)
+                if r.returncode == 0:
+                    return {ln.strip() for ln in r.stdout.splitlines() if ln.strip()}
+        except Exception:
+            pass
+    # Local fallback: diff against upstream.
+    try:
+        up = _sp.run(["git", "rev-parse", "--abbrev-ref", "@{upstream}"],
+                     capture_output=True, text=True, timeout=5, cwd=REPO_ROOT)
+        if up.returncode == 0:
+            r = _sp.run(["git", "diff", "--name-only", f"{up.stdout.strip()}..HEAD"],
+                        capture_output=True, text=True, timeout=10, cwd=REPO_ROOT)
+            if r.returncode == 0:
+                return {ln.strip() for ln in r.stdout.splitlines() if ln.strip()}
+    except Exception:
+        pass
+    return None
+
+
+def _enforcement_in_scope(enf: dict, changed_files: set) -> bool:
+    """True if the enforcement entry's scope intersects with the changed
+    files. Path comes from explicit fields OR the implicit-target mapping.
+    If neither is known, run conservatively."""
+    if not changed_files:
+        return False
+    paths = []
+    for k in ("scan_dir", "path"):
+        v = enf.get(k)
+        if isinstance(v, str):
+            paths.append(v)
+    for k in ("scan_dirs", "paths"):
+        v = enf.get(k)
+        if isinstance(v, list):
+            paths.extend(p for p in v if isinstance(p, str))
+    enf_type = enf.get("type", "")
+    if not paths and enf_type in _IMPLICIT_TARGET_FILES:
+        paths.extend(_IMPLICIT_TARGET_FILES[enf_type])
+    if not paths:
+        return True
+    for cf in changed_files:
+        for p in paths:
+            if cf == p or cf.startswith(p.rstrip("/") + "/"):
+                return True
+    return False
+
+
 def main(target: str) -> int:
     print(f"Pre-deploy rule check for: {target}")
     print("=" * 60)
+
+    changed_files = _changed_files_for_deploy()
+    if changed_files is None:
+        print("WARN: could not determine changed-file set; running full scan (conservative).")
+        scope_filter_active = False
+    else:
+        print(f"Deploy scope: {len(changed_files)} changed file(s)")
+        scope_filter_active = True
 
     # Load all rules from brain (new shape: rules.rule[]; backward-compat
     # path also accepts old shape: rules[] for transition safety).
@@ -697,6 +776,7 @@ def main(target: str) -> int:
     all_violations = []
     checked = 0
     skipped = 0
+    out_of_scope = 0
 
     for rule in all_rules:
         rule_id = rule.get("id", "unknown")
@@ -731,6 +811,12 @@ def main(target: str) -> int:
                 skipped += 1
                 continue
 
+            # Skip executor if its scope doesn't intersect with the
+            # files this deploy is delivering.
+            if scope_filter_active and not _enforcement_in_scope(enf, changed_files):
+                out_of_scope += 1
+                continue
+
             violations = executor(rule_id, enf)
             checked += 1
 
@@ -741,6 +827,8 @@ def main(target: str) -> int:
                 all_violations.extend(violations)
             else:
                 print(f"PASS: {rule_id} ({enf_type})")
+    if scope_filter_active:
+        print(f"Out-of-scope (not validated, deploy doesn't touch them): {out_of_scope}")
 
     # SEC-HTTPS-001-REQ-006: Run scan_http.py on staged files
     import subprocess as _sp
