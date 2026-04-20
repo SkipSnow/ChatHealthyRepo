@@ -480,7 +480,7 @@ if [ "$SKIP_SMOKE" -eq 0 ]; then
     fi
 
     if SMOKE_TEST_ENV="dev" \
-           python -m pytest Code/deploy/localSmokeTestPyTest.py -v 2>&1 \
+           python -m pytest Code/deploy/devSmokeTestPyTest.py -v 2>&1 \
            | tee "$OUT_DIR/dev-$TS-smoke.log" >/dev/null; then
         :  # keep going so the summary-line parser below produces the tally either way
     fi
