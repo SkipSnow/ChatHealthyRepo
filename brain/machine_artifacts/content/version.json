@@ -57,6 +57,24 @@
                 "brain/machine_artifacts/content/work_log.json",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 995,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "requirement_id",
+                    "identifier": "BRAIN-VERSION-REQ-001"
+                  }
+                ]
+              },
+              "files_touched": [
+                "brain/machine_artifacts/content/bugs.json",
+                "brain/machine_artifacts/content/errors.json",
+                "brain/machine_artifacts/content/risk_acceptance.json",
+                "brain/machine_artifacts/content/engineering_rules.json",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }
