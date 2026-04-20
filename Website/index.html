@@ -623,30 +623,51 @@
         : host.indexOf('dev.') === 0 ? 'DEV'
         : host.indexOf('qa.') === 0 ? 'QA'
         : '';
-      if (env) {
-        var banner = document.getElementById('envBanner');
-        banner.textContent = env;
-        banner.style.display = 'block';
-        if (env !== 'LOCAL') banner.style.background = '#dc2626';
-        // Fetch build/version from backend (same URL as iframe)
-        var healthUrl;
+      if (!env) return;
+      var banner = document.getElementById('envBanner');
+      banner.textContent = env;
+      banner.style.display = 'block';
+      if (env !== 'LOCAL') banner.style.background = '#dc2626';
+
+      // Per-env service URL roots — exposed for refreshBanner + token enrichment.
+      // Uses REQ-015 standard ports for local; HF Space pattern for non-local.
+      window._envLabel = env;
+      window._envServiceUrls = (function() {
         if (isLocal) {
-          healthUrl = '/health';  // Website server proxies to FindCare :7860
-        } else {
-          var org = 'skipsnow';
-          var base = 'chathealthyspace';
-          var sn = env === 'prod' ? base : env + '-' + base;
-          healthUrl = 'https://' + org + '-' + sn + '.hf.space/health';
+          return {
+            findcare: '',  // same-origin (website server proxies /health to :7860)
+            evaluatecare: 'https://localhost:8001',
+            sharedservices: 'https://localhost:8002',
+          };
         }
+        var prefix = env === 'PROD' ? '' : env.toLowerCase() + '-';
+        return {
+          findcare:        'https://skipsnow-' + prefix + 'chathealthyspace.hf.space',
+          evaluatecare:    'https://skipsnow-' + prefix + 'evaluatecarespace.hf.space',
+          sharedservices:  'https://skipsnow-' + prefix + 'sharedservicesspace.hf.space',
+        };
+      })();
+
+      // Banner refresh: switches build/version/framework display to whichever
+      // service currently owns the page. Per Skip directive 2026-04-20 — fixes
+      // banner-only-from-FindCare bug. Service argument is one of:
+      //   'findcare' | 'evaluatecare' | 'sharedservices'
+      window.refreshBanner = function(serviceKey) {
+        var root = (window._envServiceUrls || {})[serviceKey || 'findcare'] || '';
+        var healthUrl = root + '/health';
         fetch(healthUrl).then(function(r) { return r.json(); }).then(function(d) {
           banner.innerHTML = '<span style="margin-right:12px;">' + env + '</span>'
             + '<span style="margin-right:12px;">Version: ' + (d.version || '?') + '</span>'
             + '<span style="margin-right:12px;">Framework: ' + (d.framework || '?') + '</span>'
             + '<span style="margin-right:12px;">Build: ' + (d.build || '?') + '</span>'
+            + '<span style="margin-right:12px;font-size:11px;opacity:0.85;">[' + (serviceKey || 'findcare') + ']</span>'
             + '<span id="serviceButtons"></span>';
           if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
         }).catch(function() {});
-      }
+      };
+
+      // Initial paint: FindCare owns the page on first load.
+      window.refreshBanner('findcare');
     })();
   </script>
 
@@ -787,6 +808,8 @@
         // Mirrors openSharedServices but hits /evaluate/* via FindCare proxy.
         window._pageOwner = 'evaluatecare';
         if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
+        // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
+        if (typeof window.refreshBanner === 'function') window.refreshBanner('evaluatecare');
         var chatFrame = document.getElementById('coreChatFrame');
         var apiBase = window._hfBaseUrl || '';
         fetch(apiBase + '/evaluate/splash')
@@ -844,6 +867,8 @@
         // is already findcare (covers stale-results cleanup).
         window._pageOwner = 'findcare';
         if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
+        // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
+        if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
         fetch(apiBase + '/transfer/to-findcare', { method: 'POST' })
           .then(function(r) { return r.json(); })
           .catch(function() { return {}; })
@@ -873,6 +898,8 @@
         // Transfer control to SharedServices (mirrors EvaluateCare pattern)
         window._pageOwner = 'sharedservices';
         if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
+        // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
+        if (typeof window.refreshBanner === 'function') window.refreshBanner('sharedservices');
         var chatFrame = document.getElementById('coreChatFrame');
         var apiBase = src;
 
@@ -979,6 +1006,24 @@
         // Token format: CH{nonce:17}{created:17}{guid:32} = 68 chars
         var nonce = token.length >= 36 ? token.substring(2, 36) : token;
         var guid = token.length >= 68 ? token.substring(36) : '';
+        // SEC-HTTPS-001-REQ-018 — Env + PST Time rows.
+        // Env comes from the website's environment label (set during banner init).
+        var envLabel = window._envLabel || 'UNKNOWN';
+        // Time: parse ISO created_at (or fall back to current); render in America/Los_Angeles.
+        var ts;
+        try {
+            ts = st.created_at ? new Date(st.created_at) : new Date();
+            if (isNaN(ts.getTime())) ts = new Date();
+        } catch (e) { ts = new Date(); }
+        var pstTime;
+        try {
+            pstTime = ts.toLocaleString('en-US', {
+                timeZone: 'America/Los_Angeles',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            });
+        } catch (e) { pstTime = ts.toISOString(); }
         return '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
           + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
           + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
@@ -990,6 +1035,10 @@
           + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
           + '<b>Origin:</b> ' + (st.origin || 'unknown')
           + ' &middot; <b>Verified:</b> <span style="color:' + (st.verified ? '#059669' : '#dc2626') + ';font-weight:700;">' + (st.verified ? 'YES ✓' : 'FAILED ✗') + '</span></div>'
+          + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+          + '<b>Env:</b> <span style="color:#7c3aed;font-weight:700;">' + envLabel + '</span></div>'
+          + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+          + '<b>Time:</b> PST <span style="color:#374151;">' + pstTime + '</span></div>'
           + '</div>';
       }
 
@@ -1097,6 +1146,8 @@
                 // Transfer control to EvaluateCare
                 window._pageOwner = 'evaluatecare';
                 if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
+                // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
+                if (typeof window.refreshBanner === 'function') window.refreshBanner('evaluatecare');
                 var chatSrc = chatFrame.src || '';
                 var apiBase = chatSrc.replace(/\/static\/.*$/, '').replace(/\/$/, '');
                 if (!apiBase) apiBase = '';
@@ -1175,6 +1226,8 @@
                   // If EvaluateCare or SharedServices owns the page, transfer back to FindCare
                   if (window._pageOwner === 'evaluatecare' || window._pageOwner === 'sharedservices') {
                     window._pageOwner = 'findcare';
+                    // DEVOPS-BANNER-B007: banner reflects new owner's /health.
+                    if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
                     var chatSrc2 = chatFrame.src || '';
                     var apiBase2 = chatSrc2.replace(/\/static\/.*$/, '').replace(/\/$/, '');
                     if (!apiBase2) apiBase2 = '';
@@ -1279,6 +1332,8 @@
                   // If EvaluateCare or SharedServices owns the page, transfer back to FindCare
                   if (window._pageOwner === 'evaluatecare' || window._pageOwner === 'sharedservices') {
                     window._pageOwner = 'findcare';
+                    // DEVOPS-BANNER-B007: banner reflects new owner's /health.
+                    if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
                     var chatSrc3 = chatFrame.src || '';
                     var apiBase3 = chatSrc3.replace(/\/static\/.*$/, '').replace(/\/$/, '');
                     if (!apiBase3) apiBase3 = '';
