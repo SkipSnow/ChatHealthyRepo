@@ -259,6 +259,21 @@
                 "Code/shared_services/requirements.txt",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 1006,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "requirement_id",
+                    "identifier": "DEVOPS-DEV-B002"
+                  }
+                ]
+              },
+              "files_touched": [
+                "Code/deploy/devSmokeTestPyTest.py",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }
