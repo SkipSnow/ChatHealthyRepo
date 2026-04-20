@@ -3949,6 +3949,38 @@
         "Also: dedup the 4 duplicate bugids in bugs.json (BUG-LANGCHAIN-CONTAINER-APP-HEALTH, -SPLASH, -TRANSFER-TO-FINDCARE, -VERIFY-TOKEN).",
         "File a Rule-NNN entry in engineering_rules.json for the JSON-top-level-must-be-dict check (or move the check behind a path filter so Code/_pending/ migration intermediates are exempt), then either re-trace preCommitScan.py:140-141 to that rule or move the check into the rule executor framework."
       ]
+    },
+    {
+      "bugid": "BUG-PORT-NONCOMPLIANCE-001",
+      "title": "3 backend files violate DEVOPS-DEPLOY-001-REQ-015 standard-ports rule",
+      "description": "DEVOPS-DEPLOY-001-REQ-015 requires standard ports 80, 443, 7860, 8001, 8002 across all environments. Three backend files reference non-standard ports as defaults or in CORS allow_origins: (1) Code/ConversationalUX/FindCareChat/backend/main.py:589 defaults EVALCARE_URL to https://localhost:8081 (Caddy mTLS port that does not exist in the local deploy and is not in the standard set); (2) Code/evaluate_care/app.py:89-90 lists https://localhost:3000 and https://localhost:8080 in CORS allow_origins; (3) Code/shared_services/app.py:87-88 lists https://localhost:3000, https://localhost:8080, https://localhost:8081. These ports are not in the REQ-015 standard set and they bias the system toward non-canonical local topology that does not match local/dev/qa/prod parity. Surfaced by the 13 local Playwright smoke failures on 2026-04-19: FindCare /evaluate/providers proxy timed out trying to reach :8081 because nothing was listening there.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "fixing",
+      "severity": "high",
+      "req_id": "DEVOPS-DEPLOY-001-REQ-015",
+      "story_id": "DEVOPS-DEPLOY-001",
+      "pytest_id": "TBD-port-compliance-test",
+      "pytest_success_criteria": [
+        "grep -rE ':(3000|8080|8081)' Code/ConversationalUX/FindCareChat/backend/main.py Code/evaluate_care/app.py Code/shared_services/app.py returns zero matches",
+        "Code/ConversationalUX/FindCareChat/backend/main.py default for EVALCARE_URL is https://localhost:8001 (REQ-015 standard EvaluateCare port)",
+        "All CORS allow_origins entries in evaluate_care/app.py and shared_services/app.py reference only ports in {443, 7860, 8001, 8002} or no port",
+        "Local deploy: clicking Evaluate in FindCare reaches EvaluateCare via :8001 (not :8081) and the right-panel session-verification panel shows Verified: YES"
+      ],
+      "discovery_date": "2026-04-19",
+      "due_date": "2026-04-26",
+      "fix": "main.py:589 EVALCARE_URL default changed from :8081 to :8001; evaluate_care/app.py:89-90 CORS allow_origins reset to {443, 7860, 8001, 8002}; shared_services/app.py:87-88 same. Verification by re-running localSmokeTestPyTest.py.",
+      "reproduction": "Tear down local. Run bash Code/deploy/deploy_localhost.sh. Open https://localhost in a browser, select 2 providers, click Evaluate. Pre-fix: right panel shows Verified: FAILED because /evaluate/providers proxy targets :8081 which is not listening. Post-fix: proxy targets :8001 (REQ-015 standard) and Verified: YES.",
+      "orphan": false,
+      "next_action": [
+        "Apply the 3-file fix.",
+        "Tear down local, redeploy local, run localSmokeTestPyTest.py to confirm the token-cluster failures (steps 17, 19, 31, 32, 33, 34) are gone or reduced.",
+        "If smoke still fails on token cluster, investigate the React frontend's session_token plumbing (separate root cause)."
+      ]
     }
   ],
   "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
