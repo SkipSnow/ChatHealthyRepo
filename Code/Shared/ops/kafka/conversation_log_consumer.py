@@ -49,7 +49,14 @@ ERRORS_PATH = Path(__file__).resolve().parents[4] / "brain" / "machine_artifacts
 def _read_version():
     try:
         with open(VERSION_PATH, encoding="utf-8") as f:
-            return json.load(f).get("current", {})
+            data = json.load(f)
+        latest_version = data["versions"]["version"][-1]
+        latest_build = latest_version["builds"]["build"][-1]
+        return {
+            "version": latest_version["version_number"],
+            "framework": latest_version["framework_version"],
+            "build": latest_build["build_number"],
+        }
     except Exception:
         return {"version": "?", "framework": "?", "build": 0}
 

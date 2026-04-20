@@ -105,6 +105,23 @@
                 "brain/machine_artifacts/content/bugs.json",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 998,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "requirement_id",
+                    "identifier": "DEVOPS-DEPLOY-001-REQ-016"
+                  }
+                ]
+              },
+              "files_touched": [
+                "Code/ConversationalUX/FindCareChat/backend/tests/test_post_commit_seed.py",
+                "Code/Shared/ops/kafka/conversation_log_consumer.py",
+                "brain/machine_artifacts/content/errors.json",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }
