@@ -41895,6 +41895,25 @@
                           },
                           "ch_matrix_id": "c9e5f0a4-8b3d-4e1c-af7f-1d6b4e3a2f5c",
                           "name": "Browser must call cold-button service directly for verify-token (no FindCare proxy)"
+                        },
+                        {
+                          "req_id": "SEC-HTTPS-001-REQ-020",
+                          "requirement": "The session_token.origin field returned by /verify-token (and any equivalent endpoint that returns a session_token object) MUST be set to the name of the RESPONDING service (e.g., \"EvaluateCare\" for EvaluateCare's /verify-token; \"SharedServices\" for SharedServices'). This origin field is the SELF-IDENTIFICATION of the service that produced THIS response object \u2014 it is distinct from the cryptographic token signer (REQ-017, which always identifies FindCare). One service MUST NOT assert another service's identity in any field rendered to the operator. The wrapper's session-verification panel MUST render this origin value as-is, treating it as the responding service's authoritative claim of its own identity. The display proves that the named component received the nonce and token and produced this verification result.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "TestStep25.test_push_shared_services",
+                                "pytest_type": "playwright",
+                                "orphan": false
+                              }
+                            ]
+                          },
+                          "ch_matrix_id": "d0f6a1b5-9c4e-4f2d-b08e-2e7c5b4a3f6d",
+                          "name": "verify-token response origin field self-identifies the responding service"
                         }
                       ]
                     },
