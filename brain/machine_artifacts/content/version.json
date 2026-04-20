@@ -90,6 +90,21 @@
                 "brain/machine_artifacts/content/agile_backlog.json",
                 "brain/machine_artifacts/content/version.json"
               ]
+            },
+            {
+              "build_number": 997,
+              "causes": {
+                "cause": [
+                  {
+                    "identifier_type": "bug_id",
+                    "identifier": "BUG-AGILE-BACKLOG-UNIQUENESS-DISABLED-001"
+                  }
+                ]
+              },
+              "files_touched": [
+                "brain/machine_artifacts/content/bugs.json",
+                "brain/machine_artifacts/content/version.json"
+              ]
             }
           ]
         }
