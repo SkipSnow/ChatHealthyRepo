@@ -240,7 +240,10 @@ def verify_token(body: _VerifyTokenRequest):
         "session_token": {
             "token_received": body.session_token.get("token", "") if body.session_token else "",
             "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
-            "origin": body.session_token.get("origin", "") if body.session_token else "",
+            # SEC-HTTPS-001-REQ-020: origin self-identifies the responding service.
+            # Cryptographic verification still ran against FindCare (REQ-017);
+            # this origin is who PRODUCED this response object.
+            "origin": "EvaluateCare",
             "verified": token_valid,
         },
     }

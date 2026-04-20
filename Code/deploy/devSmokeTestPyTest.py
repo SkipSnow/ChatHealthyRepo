@@ -772,6 +772,12 @@ class TestStep25:
             f"REQ-019: expected direct POST to {expected_direct}; saw posts: {seen_posts}"
         assert not proxied, \
             f"REQ-019: /verify-token MUST NOT be proxied through FindCare; proxied calls: {proxied}"
+
+        # SEC-HTTPS-001-REQ-020: right panel origin field MUST self-identify the
+        # responding service ("SharedServices"), not the token signer (FindCare).
+        right_text = page.locator("#rightPanel").inner_text()
+        assert "Origin: SharedServices" in right_text, \
+            f"REQ-020: right panel must show 'Origin: SharedServices' (not the token signer). Got: {right_text[:400]}"
         _screenshot(page, "25")
 
 
