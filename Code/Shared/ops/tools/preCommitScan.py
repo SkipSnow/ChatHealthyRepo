@@ -58,6 +58,7 @@ SCHEMA_EXEMPT_PATTERNS = [
     r"host\.json$",
     r"appsettings.*\.json$",
     r"launchSettings\.json$",
+    r"langgraph\.json$",
     r"node_modules",
     r"__pycache__",
     r"\.iteration_cache/",
