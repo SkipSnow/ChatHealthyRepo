@@ -8,7 +8,7 @@
     {
       "bugid": "BUG-FILTER-001",
       "next_action": [
-        "Infrastructure: vector search indexes (provider_vector_index, specialty_vector_index) must be created on frontend cluster. Cannot fix in code alone \u00e2\u20ac\u201d requires pipeline/infra work."
+        "Infrastructure: vector search indexes (provider_vector_index, specialty_vector_index) must be created on frontend cluster. Cannot fix in code alone â€” requires pipeline/infra work."
       ],
       "req_id": "IDX-001-REQ-002",
       "status": "in_analysis",
@@ -537,25 +537,6 @@
       "title": "ORPHAN"
     },
     {
-      "bugid": "BUG-SEC-001",
-      "req_id": "SEC-CERT-R-002-REQ-001",
-      "status": "in_analysis",
-      "story_id": "SEC-CERT-R-002",
-      "orphan": true,
-      "description": "ORPHAN\n\nh",
-      "discovery_date": "2026-04-18",
-      "due_date": "2026-05-01",
-      "pytest_id": "ORPHAN_PYTEST",
-      "environments": [
-        "local",
-        "dev",
-        "qa",
-        "prod"
-      ],
-      "reproduction": "TBD",
-      "title": "ORPHAN"
-    },
-    {
       "bugid": "BUG-CLASSIFY-001",
       "description": "Factual health questions misclassified as medical advice. Example: 'What is the most common form of breast cancer?' was declined as medical advice when it should be answered as general health knowledge.",
       "fix": "Prompt tuning: distinguish factual health questions from personal medical advice.",
@@ -711,7 +692,7 @@
       "discovery_date": "2026-04-09",
       "due_date": "2026-05-01",
       "next_action": [
-        "Low priority, in analysis. Claude Code renderer limitation \u00e2\u20ac\u201d not a FindCare code issue."
+        "Low priority, in analysis. Claude Code renderer limitation â€” not a FindCare code issue."
       ],
       "req_id": "ORPHAN_BUG",
       "story_id": "ORPHAN",
@@ -797,25 +778,6 @@
       "environments": [
         "local",
         "dev"
-      ],
-      "reproduction": "TBD",
-      "title": "ORPHAN"
-    },
-    {
-      "bugid": "BUG-SEC-002",
-      "req_id": "SEC-MTLS-001-REQ-001",
-      "status": "in_analysis",
-      "story_id": "SEC-MTLS-001",
-      "orphan": true,
-      "description": "ORPHAN",
-      "discovery_date": "2026-04-18",
-      "due_date": "2026-05-01",
-      "pytest_id": "ORPHAN_PYTEST",
-      "environments": [
-        "local",
-        "dev",
-        "qa",
-        "prod"
       ],
       "reproduction": "TBD",
       "title": "ORPHAN"
@@ -1149,7 +1111,7 @@
       "status": "fixing",
       "pytest_id": "test_filter_panel.py::test_filter_header_labels_not_truncated",
       "pytest_success_criteria": [
-        "Playwright test (only Playwright \u00e2\u20ac\u201d no unit test substitute) verifies all filter header labels are fully visible, not clipped, and properly spaced."
+        "Playwright test (only Playwright â€” no unit test substitute) verifies all filter header labels are fully visible, not clipped, and properly spaced."
       ],
       "next_action": [
         "Fixed tonight, in testing. Needs Playwright test to confirm labels are no longer truncated."
@@ -1817,7 +1779,7 @@
     {
       "bugid": "BUG-AUTH-001",
       "req_id": "ORPHAN_BUG",
-      "description": "The batch file authenticates via claude /login which opens a browser for OAuth and requires interactive input. This is not demo-ready. A headless authentication method is needed \u00e2\u20ac\u201d either a long-lived token, a cached credential check, or a silent refresh.\n\non-interactively.",
+      "description": "The batch file authenticates via claude /login which opens a browser for OAuth and requires interactive input. This is not demo-ready. A headless authentication method is needed â€” either a long-lived token, a cached credential check, or a silent refresh.\n\non-interactively.",
       "discovery_date": "2026-04-11",
       "status": "in_analysis",
       "next_action": [
@@ -2226,7 +2188,7 @@
     {
       "bugid": "BUG-SEC-003",
       "req_id": "SEC-HTTPS-001-REQ-009",
-      "description": "FindCare proxy to EvaluateCare did not use mTLS \u00e2\u20ac\u201d security finding under NIST 800-53 SC-8 and HITRUST 09.m.",
+      "description": "FindCare proxy to EvaluateCare did not use mTLS â€” security finding under NIST 800-53 SC-8 and HITRUST 09.m.",
       "discovery_date": "2026-04-16",
       "status": "fixed",
       "next_action": [
@@ -2243,7 +2205,7 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "FindCare proxy to EvaluateCare did not use mTLS \u00e2\u20ac\u201d security finding under NIST"
+      "title": "FindCare proxy to EvaluateCare did not use mTLS â€” security finding under NIST"
     },
     {
       "bugid": "BUG-DEVOPS-005",
@@ -2291,7 +2253,7 @@
       "story_id": "DEVOPS-BANNER-001",
       "status": "new",
       "discovery_date": "2026-04-16",
-      "title": "Shared Services button in wrong location \u2014 header nav instead of banner",
+      "title": "Shared Services button in wrong location — header nav instead of banner",
       "description": "The Shared Services test button, which must be rendered as a button and not a link, is in the header navigation bar which appears in all environments. It must be in the orange environment banner (#envBanner) so that when the banner is removed in production, the button goes away too. This is not a production control.",
       "fix": "Move from header nav to inside #envBanner. Render as a <button> element, not a link or anchor tag. Must retain id=\"sharedServicesNav\" for Playwright test targeting.",
       "next_action": [
@@ -2312,7 +2274,7 @@
       "status": "new",
       "discovery_date": "2026-04-17",
       "title": "Cursor not focused on dialogue box after return to FindCare",
-      "description": "When control returns to FindCare from EvaluateCare or SharedServices, the cursor is not automatically placed in the chat input dialogue box. The user must manually click the input to type. This is governed by the RestoreState API field in the handoff \u2014 when RestoreState is false (default), FindCare resets to splash screen with cursor auto-focused.",
+      "description": "When control returns to FindCare from EvaluateCare or SharedServices, the cursor is not automatically placed in the chat input dialogue box. The user must manually click the input to type. This is governed by the RestoreState API field in the handoff — when RestoreState is false (default), FindCare resets to splash screen with cursor auto-focused.",
       "fix": "Add RestoreState boolean (default false) to the /transfer/to-findcare API. When false, FindCare resets to welcome phase and auto-focuses the chat input. The iframe must receive a postMessage to reset state and focus the input.",
       "next_action": [
         "fix Playwright step 23 then fix code"
@@ -2332,7 +2294,7 @@
       "status": "new",
       "discovery_date": "2026-04-17",
       "title": "Splash screen not displayed on return to FindCare",
-      "description": "When control returns to FindCare from EvaluateCare or SharedServices, the welcome/splash screen does not display. The chat iframe shows stale search results from the previous query instead of resetting to the welcome state. This applies only to FindCare. Governed by the RestoreState API field \u2014 when RestoreState is false (default), FindCare must show the splash screen.",
+      "description": "When control returns to FindCare from EvaluateCare or SharedServices, the welcome/splash screen does not display. The chat iframe shows stale search results from the previous query instead of resetting to the welcome state. This applies only to FindCare. Governed by the RestoreState API field — when RestoreState is false (default), FindCare must show the splash screen.",
       "fix": "Add RestoreState boolean (default false) to the /transfer/to-findcare API. When false, send a postMessage to the FindCare iframe to reset to the welcome phase. The default behavior of false is to go to the splash screen.",
       "next_action": [
         "fix Playwright step 22 then fix code"
@@ -2355,7 +2317,7 @@
       "discovery_date": "2026-04-18",
       "due_date": "2026-05-01",
       "pytest_id": "ORPHAN_PYTEST",
-      "reproduction": "Open Code/deploy/localSmokeTestPyTest.py, read TestStep15.test_mtls_evaluatecare_tls12 and TestStep27.test_mtls_shared_services_tls12.\nObserve the only assertion is `assert tls_ver in ('TLSv1.2', 'TLSv1.3')` \u2014 TLS version check.\nRemove the `ctx.load_cert_chain(...)` line temporarily and rerun against local; the test still passes if the server doesn't require the cert, proving the test does not verify enforcement.\nRoll back the test change.",
+      "reproduction": "Open Code/deploy/localSmokeTestPyTest.py, read TestStep15.test_mtls_evaluatecare_tls12 and TestStep27.test_mtls_shared_services_tls12.\nObserve the only assertion is `assert tls_ver in ('TLSv1.2', 'TLSv1.3')` — TLS version check.\nRemove the `ctx.load_cert_chain(...)` line temporarily and rerun against local; the test still passes if the server doesn't require the cert, proving the test does not verify enforcement.\nRoll back the test change.",
       "environments": [
         "local",
         "dev"
@@ -2372,7 +2334,7 @@
       "discovery_date": "2026-04-18",
       "due_date": "2026-05-01",
       "pytest_id": "ORPHAN_PYTEST",
-      "reproduction": "bash Code/deploy/deploy_app_dev.sh  (ensures dev is on current HEAD)\nOpen https://dev.chathealthy.ai in a browser.\nSearch 'find me a bone doctor in DE', press Send; wait for provider list.\nClick a provider's select \u2193 and then Evaluate.\nObserve right-panel SESSION VERIFICATION: Signed token = none; Nonce field shows a 32-hex-char GUID-format value; GUID field is empty; Verified: FAILED.\nReturn to FindCare by changing a left-panel filter; same mislabel on the return token.\nClick the banner Shared Services button; same mislabel on the SharedServices handoff.",
+      "reproduction": "bash Code/deploy/deploy_app_dev.sh  (ensures dev is on current HEAD)\nOpen https://dev.chathealthy.ai in a browser.\nSearch 'find me a bone doctor in DE', press Send; wait for provider list.\nClick a provider's select ↓ and then Evaluate.\nObserve right-panel SESSION VERIFICATION: Signed token = none; Nonce field shows a 32-hex-char GUID-format value; GUID field is empty; Verified: FAILED.\nReturn to FindCare by changing a left-panel filter; same mislabel on the return token.\nClick the banner Shared Services button; same mislabel on the SharedServices handoff.",
       "environments": [
         "dev"
       ],
@@ -2380,7 +2342,7 @@
     },
     {
       "bugid": "BUG-DEVOPS-008",
-      "reproduction": "(1) note current build in version.json; (2) push any change to origin/dev; (3) observe workflow runs; (4) re-read version.json \u2014 build has increased.",
+      "reproduction": "(1) note current build in version.json; (2) push any change to origin/dev; (3) observe workflow runs; (4) re-read version.json — build has increased.",
       "next_action": [
         "Commit the workflow edits (already in staged working tree)."
       ],
@@ -2419,7 +2381,7 @@
     },
     {
       "bugid": "BUG-DEVOPS-010",
-      "reproduction": "(1) install a package into the local venv but omit it from a backend's requirements.txt; (2) run deploy_localhost.sh \u2014 local works; (3) push and deploy to HF \u2014 HF fails ImportError at startup.",
+      "reproduction": "(1) install a package into the local venv but omit it from a backend's requirements.txt; (2) run deploy_localhost.sh — local works; (3) push and deploy to HF — HF fails ImportError at startup.",
       "next_action": [
         "deploy_localhost_docker.sh is staged; needs smoke-test integration (TLS terminator)."
       ],
@@ -2471,25 +2433,6 @@
       "pytest_id": "ORPHAN_PYTEST",
       "environments": [
         "local",
-        "dev"
-      ],
-      "title": "ORPHAN"
-    },
-    {
-      "bugid": "BUG-SEC-008",
-      "reproduction": "(1) deploy current FindCare code to HF dev without setting the HF secret; (2) startup check abends exit 78 with 'missing_key'; (3) /session is unreachable.",
-      "next_action": [
-        "HF secret set, FindCare redeployed. Bootstrap reads FINDCARE_SIGNING_KEY_PEM from HF Space Secret per SEC-CERT-R-002-REQ-004."
-      ],
-      "req_id": "SEC-CERT-R-002-REQ-004",
-      "status": "tested_passed",
-      "story_id": "SEC-HTTPS-001",
-      "orphan": true,
-      "description": "ORPHAN",
-      "discovery_date": "2026-04-18",
-      "due_date": "2026-05-01",
-      "pytest_id": "ORPHAN_PYTEST",
-      "environments": [
         "dev"
       ],
       "title": "ORPHAN"
@@ -2597,8 +2540,8 @@
     {
       "bugid": "BUG-UX-025",
       "req_id": "DEVOPS-BANNER-B002",
-      "title": "Banner is painted once from FindCare only \u2014 hides build-mismatch across services",
-      "reproduction": "(1) Cause FindCare to deploy a new build while EvaluateCare or SharedServices fails to deploy (or is still cold); (2) open the site; (3) note the banner displays FindCare's build; (4) click the EvaluateCare or SharedServices banner button; (5) observe the banner still reports FindCare's build while a stale peer is serving the page \u2014 no visible divergence warning anywhere in the UI.",
+      "title": "Banner is painted once from FindCare only — hides build-mismatch across services",
+      "reproduction": "(1) Cause FindCare to deploy a new build while EvaluateCare or SharedServices fails to deploy (or is still cold); (2) open the site; (3) note the banner displays FindCare's build; (4) click the EvaluateCare or SharedServices banner button; (5) observe the banner still reports FindCare's build while a stale peer is serving the page — no visible divergence warning anywhere in the UI.",
       "status": "new",
       "story_id": "DEVOPS-BANNER-001",
       "orphan": true,
@@ -2618,7 +2561,7 @@
       "discovery_date": "2026-04-18",
       "status": "testing",
       "next_action": [
-        "human must verify on a FRESH Cursor restart: (1) boot still fires \u2014 mode-selection prompt (REQ-010) and orphan-triage prompt (REQ-011) both present in order; (2) asking Claude for the verbatim content of any req_id is answered without a disk Read/Grep of agile_backlog.json. If either check fails, revert the CLAUDE.md @-import line and the _write_req_index call in _load_brain and re-open this bug with the failure mode captured."
+        "human must verify on a FRESH Cursor restart: (1) boot still fires — mode-selection prompt (REQ-010) and orphan-triage prompt (REQ-011) both present in order; (2) asking Claude for the verbatim content of any req_id is answered without a disk Read/Grep of agile_backlog.json. If either check fails, revert the CLAUDE.md @-import line and the _write_req_index call in _load_brain and re-open this bug with the failure mode captured."
       ],
       "orphan": true,
       "description": "ORPHAN\n\nithout breaking boot.",
@@ -2659,7 +2602,7 @@
     {
       "bugid": "BUG-GOV-009",
       "req_id": "ARCH-DEVOPS-BOOT-001-REQ-007",
-      "description": "UAT 2026-04-18 (human typed 'test' on fresh boot): hook emitted both BOOT DIRECTIVE sections correctly (verified at lines 211 and 222 of the additionalContext file). Claude responded with a paraphrased 'REQ-010 \u2014 Mode: Unattended / Normal / Idiot?' instead of the verbatim numbered prompt the directive demanded. Human's finding: requirements say the flow is deterministic; a flow that depends on the LLM following a text instruction is non-deterministic by construction. The fix landed in the prior iteration (SessionStart hook clearing the booted flag) closed the lifecycle-gap symptom but not the underlying enforcement gap.\n\nopen because the flow has not yet been made non-circumventable.",
+      "description": "UAT 2026-04-18 (human typed 'test' on fresh boot): hook emitted both BOOT DIRECTIVE sections correctly (verified at lines 211 and 222 of the additionalContext file). Claude responded with a paraphrased 'REQ-010 — Mode: Unattended / Normal / Idiot?' instead of the verbatim numbered prompt the directive demanded. Human's finding: requirements say the flow is deterministic; a flow that depends on the LLM following a text instruction is non-deterministic by construction. The fix landed in the prior iteration (SessionStart hook clearing the booted flag) closed the lifecycle-gap symptom but not the underlying enforcement gap.\n\nopen because the flow has not yet been made non-circumventable.",
       "discovery_date": "2026-04-18",
       "status": "testing",
       "next_action": [
@@ -2694,7 +2637,7 @@
       "discovery_date": "2026-04-19",
       "due_date": "2026-05-15",
       "fix": "",
-      "reproduction": "N/A \u2014 tracking bug, not a defect.",
+      "reproduction": "N/A — tracking bug, not a defect.",
       "orphan": false,
       "next_action": [
         "Approve and complete ARCH-COMPLIANCE-CROSSWALK-001-REQ-T001"
@@ -2716,7 +2659,7 @@
       "discovery_date": "2026-04-19",
       "due_date": "2026-05-15",
       "fix": "",
-      "reproduction": "N/A \u2014 tracking bug, not a defect.",
+      "reproduction": "N/A — tracking bug, not a defect.",
       "orphan": false,
       "next_action": [
         "Approve and complete BRAIN-ENGINEERING-RULES-REQ-T001"
@@ -2738,7 +2681,7 @@
       "discovery_date": "2026-04-19",
       "due_date": "2026-05-15",
       "fix": "",
-      "reproduction": "N/A \u2014 tracking bug, not a defect.",
+      "reproduction": "N/A — tracking bug, not a defect.",
       "orphan": false,
       "next_action": [
         "Approve and complete ARCH-COMPLIANCE-CROSSWALK-002-REQ-T001"
@@ -2760,7 +2703,7 @@
       "discovery_date": "2026-04-19",
       "due_date": "2026-05-15",
       "fix": "",
-      "reproduction": "N/A \u2014 tracking bug, not a defect.",
+      "reproduction": "N/A — tracking bug, not a defect.",
       "orphan": false,
       "next_action": [
         "Approve and complete BRAIN-DEFERRED-WORK-001-REQ-T001"
@@ -2833,7 +2776,7 @@
       "reproduction": "1. Human issues a multi-step assignment naming both step A and step B (e.g., 'run local + dev deploy scripts'). 2. Claude completes step A. 3. Before step B, Claude asks 'Want me to do step B now?' instead of just executing. Expected: Claude executes step B without asking.",
       "orphan": false,
       "next_action": [
-        "UAT during the next 3 multi-step assignments \u2014 verify no unprompted permission-asks for clearly in-scope steps."
+        "UAT during the next 3 multi-step assignments — verify no unprompted permission-asks for clearly in-scope steps."
       ]
     },
     {
@@ -2891,7 +2834,7 @@
     {
       "bugid": "BUG-ARCH-GRAPH-EXEMPT-001",
       "title": "Tracking: 20 FastAPI handlers exempted from v4-043 graph-orchestration rule (mechanical exemptions for health/splash/proxy/debug/security primitives)",
-      "description": "Bookkeeping bug \u2014 not a defect. Tracks the 20 FastAPI route handlers that were marked `# graph-exempt` to clear the v4-043 pre-push scanner. The exemptions are mechanical: each handler carries no business logic that v4-043 is meant to gate (health checks, static splash pages, transfer/proxy redirects, debug endpoints, mTLS/session/Key Vault security primitives). Paired with risk_acceptance entry RA-ARCH-GRAPH-EXEMPT-001 (accepted 2026-04-19, expires 2026-12-31). Real v4-043 violations remain blocking under BUG-ARCH-GRAPH-001 (/classify and EvaluateCare scoring endpoints).\n\nExempted handlers:\n- Code/ConversationalUX/FindCareChat/backend/main.py: health, get_session, evaluate_splash, transfer_to_findcare, evaluate_proxy, shared_splash, shared_verify_token, evaluate_verify_token, serve_index\n- Code/evaluate_care/app.py: debug_verify_live, debug_bootstrap, health, splash, transfer_to_findcare, verify_token\n- Code/shared_services/app.py: health, splash, transfer_to_findcare, verify_token, get_secret\n\nWork the bug tracks: revisit each exemption when the broader graph-orchestration refactor is scheduled. For each handler, decide one of: (a) leave exempt permanently because the handler genuinely has no shared-concern surface; (b) route through a thin graph wrapper if any shared concern (audit, auth gating) becomes relevant; (c) delete the handler if it has been superseded.",
+      "description": "Bookkeeping bug — not a defect. Tracks the 20 FastAPI route handlers that were marked `# graph-exempt` to clear the v4-043 pre-push scanner. The exemptions are mechanical: each handler carries no business logic that v4-043 is meant to gate (health checks, static splash pages, transfer/proxy redirects, debug endpoints, mTLS/session/Key Vault security primitives). Paired with risk_acceptance entry RA-ARCH-GRAPH-EXEMPT-001 (accepted 2026-04-19, expires 2026-12-31). Real v4-043 violations remain blocking under BUG-ARCH-GRAPH-001 (/classify and EvaluateCare scoring endpoints).\n\nExempted handlers:\n- Code/ConversationalUX/FindCareChat/backend/main.py: health, get_session, evaluate_splash, transfer_to_findcare, evaluate_proxy, shared_splash, shared_verify_token, evaluate_verify_token, serve_index\n- Code/evaluate_care/app.py: debug_verify_live, debug_bootstrap, health, splash, transfer_to_findcare, verify_token\n- Code/shared_services/app.py: health, splash, transfer_to_findcare, verify_token, get_secret\n\nWork the bug tracks: revisit each exemption when the broader graph-orchestration refactor is scheduled. For each handler, decide one of: (a) leave exempt permanently because the handler genuinely has no shared-concern surface; (b) route through a thin graph wrapper if any shared concern (audit, auth gating) becomes relevant; (c) delete the handler if it has been superseded.",
       "environments": [
         "dev",
         "qa",
@@ -2918,8 +2861,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-HEALTH",
-      "title": "Empty LangChain container: health() in main.py:595 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'health' at Code/ConversationalUX/FindCareChat/backend/main.py:595 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: health() in main.py:595 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'health' at Code/ConversationalUX/FindCareChat/backend/main.py:595 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -2944,8 +2887,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-GET-SESSION",
-      "title": "Empty LangChain container: get_session() in main.py:625 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'get_session' at Code/ConversationalUX/FindCareChat/backend/main.py:625 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: get_session() in main.py:625 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'get_session' at Code/ConversationalUX/FindCareChat/backend/main.py:625 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -2970,8 +2913,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-EVALUATE-SPLASH",
-      "title": "Empty LangChain container: evaluate_splash() in main.py:656 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'evaluate_splash' at Code/ConversationalUX/FindCareChat/backend/main.py:656 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: evaluate_splash() in main.py:656 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'evaluate_splash' at Code/ConversationalUX/FindCareChat/backend/main.py:656 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -2996,8 +2939,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-TRANSFER-TO-FINDCARE",
-      "title": "Empty LangChain container: transfer_to_findcare() in main.py:679 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'transfer_to_findcare' at Code/ConversationalUX/FindCareChat/backend/main.py:679 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: transfer_to_findcare() in main.py:679 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'transfer_to_findcare' at Code/ConversationalUX/FindCareChat/backend/main.py:679 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3022,8 +2965,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-EVALUATE-PROXY",
-      "title": "Empty LangChain container: evaluate_proxy() in main.py:703 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'evaluate_proxy' at Code/ConversationalUX/FindCareChat/backend/main.py:703 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: evaluate_proxy() in main.py:703 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'evaluate_proxy' at Code/ConversationalUX/FindCareChat/backend/main.py:703 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3048,8 +2991,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-SHARED-SPLASH",
-      "title": "Empty LangChain container: shared_splash() in main.py:742 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'shared_splash' at Code/ConversationalUX/FindCareChat/backend/main.py:742 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: shared_splash() in main.py:742 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'shared_splash' at Code/ConversationalUX/FindCareChat/backend/main.py:742 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3074,8 +3017,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-SHARED-VERIFY-TOKEN",
-      "title": "Empty LangChain container: shared_verify_token() in main.py:765 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'shared_verify_token' at Code/ConversationalUX/FindCareChat/backend/main.py:765 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: shared_verify_token() in main.py:765 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'shared_verify_token' at Code/ConversationalUX/FindCareChat/backend/main.py:765 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3100,8 +3043,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-EVALUATE-VERIFY-TOKEN",
-      "title": "Empty LangChain container: evaluate_verify_token() in main.py:789 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'evaluate_verify_token' at Code/ConversationalUX/FindCareChat/backend/main.py:789 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: evaluate_verify_token() in main.py:789 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'evaluate_verify_token' at Code/ConversationalUX/FindCareChat/backend/main.py:789 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3126,8 +3069,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-SERVE-INDEX",
-      "title": "Empty LangChain container: serve_index() in main.py:964 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'serve_index' at Code/ConversationalUX/FindCareChat/backend/main.py:964 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: serve_index() in main.py:964 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'serve_index' at Code/ConversationalUX/FindCareChat/backend/main.py:964 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3152,8 +3095,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-SEARCH",
-      "title": "Empty LangChain container: search() in main.py:370 bypasses graph orchestrator (v4-043) \u2014 business-logic",
-      "description": "FastAPI route handler 'search' at Code/ConversationalUX/FindCareChat/backend/main.py:370 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: search() in main.py:370 bypasses graph orchestrator (v4-043) — business-logic",
+      "description": "FastAPI route handler 'search' at Code/ConversationalUX/FindCareChat/backend/main.py:370 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3178,8 +3121,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-CLASSIFY",
-      "title": "Empty LangChain container: classify() in main.py:383 bypasses graph orchestrator (v4-043) \u2014 business-logic",
-      "description": "FastAPI route handler 'classify' at Code/ConversationalUX/FindCareChat/backend/main.py:383 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: classify() in main.py:383 bypasses graph orchestrator (v4-043) — business-logic",
+      "description": "FastAPI route handler 'classify' at Code/ConversationalUX/FindCareChat/backend/main.py:383 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3204,8 +3147,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-QA-REPORT",
-      "title": "Empty LangChain container: qa_report() in main.py:482 bypasses graph orchestrator (v4-043) \u2014 business-logic",
-      "description": "FastAPI route handler 'qa_report' at Code/ConversationalUX/FindCareChat/backend/main.py:482 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: qa_report() in main.py:482 bypasses graph orchestrator (v4-043) — business-logic",
+      "description": "FastAPI route handler 'qa_report' at Code/ConversationalUX/FindCareChat/backend/main.py:482 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3230,8 +3173,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-QA-REPORT-SUBMIT",
-      "title": "Empty LangChain container: qa_report_submit() in main.py:539 bypasses graph orchestrator (v4-043) \u2014 business-logic",
-      "description": "FastAPI route handler 'qa_report_submit' at Code/ConversationalUX/FindCareChat/backend/main.py:539 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: qa_report_submit() in main.py:539 bypasses graph orchestrator (v4-043) — business-logic",
+      "description": "FastAPI route handler 'qa_report_submit' at Code/ConversationalUX/FindCareChat/backend/main.py:539 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3256,8 +3199,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-MAIN-WELCOME",
-      "title": "Empty LangChain container: welcome() in main.py:569 bypasses graph orchestrator (v4-043) \u2014 business-logic",
-      "description": "FastAPI route handler 'welcome' at Code/ConversationalUX/FindCareChat/backend/main.py:569 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: welcome() in main.py:569 bypasses graph orchestrator (v4-043) — business-logic",
+      "description": "FastAPI route handler 'welcome' at Code/ConversationalUX/FindCareChat/backend/main.py:569 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3282,8 +3225,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-DEBUG-VERIFY-LIVE",
-      "title": "Empty LangChain container: debug_verify_live() in app.py:94 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'debug_verify_live' at Code/evaluate_care/app.py:94 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: debug_verify_live() in app.py:94 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'debug_verify_live' at Code/evaluate_care/app.py:94 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3308,8 +3251,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-DEBUG-BOOTSTRAP",
-      "title": "Empty LangChain container: debug_bootstrap() in app.py:127 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'debug_bootstrap' at Code/evaluate_care/app.py:127 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: debug_bootstrap() in app.py:127 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'debug_bootstrap' at Code/evaluate_care/app.py:127 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3334,8 +3277,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-HEALTH",
-      "title": "Empty LangChain container: health() in app.py:172 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'health' at Code/evaluate_care/app.py:172 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: health() in app.py:172 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'health' at Code/evaluate_care/app.py:172 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3360,8 +3303,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-SPLASH",
-      "title": "Empty LangChain container: splash() in app.py:192 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'splash' at Code/evaluate_care/app.py:192 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: splash() in app.py:192 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'splash' at Code/evaluate_care/app.py:192 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3386,8 +3329,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-TRANSFER-TO-FINDCARE",
-      "title": "Empty LangChain container: transfer_to_findcare() in app.py:200 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'transfer_to_findcare' at Code/evaluate_care/app.py:200 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: transfer_to_findcare() in app.py:200 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'transfer_to_findcare' at Code/evaluate_care/app.py:200 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3412,8 +3355,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-VERIFY-TOKEN",
-      "title": "Empty LangChain container: verify_token() in app.py:214 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'verify_token' at Code/evaluate_care/app.py:214 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: verify_token() in app.py:214 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'verify_token' at Code/evaluate_care/app.py:214 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3438,8 +3381,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-SCORE-PROVIDER",
-      "title": "Empty LangChain container: score_provider() in app.py:251 bypasses graph orchestrator (v4-043) \u2014 business-logic",
-      "description": "FastAPI route handler 'score_provider' at Code/evaluate_care/app.py:251 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: score_provider() in app.py:251 bypasses graph orchestrator (v4-043) — business-logic",
+      "description": "FastAPI route handler 'score_provider' at Code/evaluate_care/app.py:251 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3464,8 +3407,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-SCORE-TRIAL",
-      "title": "Empty LangChain container: score_trial() in app.py:271 bypasses graph orchestrator (v4-043) \u2014 business-logic",
-      "description": "FastAPI route handler 'score_trial' at Code/evaluate_care/app.py:271 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: score_trial() in app.py:271 bypasses graph orchestrator (v4-043) — business-logic",
+      "description": "FastAPI route handler 'score_trial' at Code/evaluate_care/app.py:271 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3490,8 +3433,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-EXPLAIN",
-      "title": "Empty LangChain container: explain() in app.py:289 bypasses graph orchestrator (v4-043) \u2014 business-logic",
-      "description": "FastAPI route handler 'explain' at Code/evaluate_care/app.py:289 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: explain() in app.py:289 bypasses graph orchestrator (v4-043) — business-logic",
+      "description": "FastAPI route handler 'explain' at Code/evaluate_care/app.py:289 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3516,8 +3459,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-EVALUATE-PROVIDERS",
-      "title": "Empty LangChain container: evaluate_providers() in app.py:304 bypasses graph orchestrator (v4-043) \u2014 business-logic",
-      "description": "FastAPI route handler 'evaluate_providers' at Code/evaluate_care/app.py:304 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: evaluate_providers() in app.py:304 bypasses graph orchestrator (v4-043) — business-logic",
+      "description": "FastAPI route handler 'evaluate_providers' at Code/evaluate_care/app.py:304 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3542,8 +3485,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-EVALUATE-VIEW",
-      "title": "Empty LangChain container: evaluate_view() in app.py:346 bypasses graph orchestrator (v4-043) \u2014 business-logic",
-      "description": "FastAPI route handler 'evaluate_view' at Code/evaluate_care/app.py:346 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: evaluate_view() in app.py:346 bypasses graph orchestrator (v4-043) — business-logic",
+      "description": "FastAPI route handler 'evaluate_view' at Code/evaluate_care/app.py:346 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: business-logic. Per v4-041 severity_by_environment intent: dev=high, qa=critical, prod=show_stopper. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3568,8 +3511,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-HEALTH",
-      "title": "Empty LangChain container: health() in app.py:108 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'health' at Code/shared_services/app.py:108 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: health() in app.py:108 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'health' at Code/shared_services/app.py:108 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3594,8 +3537,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-SPLASH",
-      "title": "Empty LangChain container: splash() in app.py:129 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'splash' at Code/shared_services/app.py:129 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: splash() in app.py:129 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'splash' at Code/shared_services/app.py:129 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3620,8 +3563,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-TRANSFER-TO-FINDCARE",
-      "title": "Empty LangChain container: transfer_to_findcare() in app.py:137 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'transfer_to_findcare' at Code/shared_services/app.py:137 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: transfer_to_findcare() in app.py:137 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'transfer_to_findcare' at Code/shared_services/app.py:137 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3646,8 +3589,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-VERIFY-TOKEN",
-      "title": "Empty LangChain container: verify_token() in app.py:150 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'verify_token' at Code/shared_services/app.py:150 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: verify_token() in app.py:150 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'verify_token' at Code/shared_services/app.py:150 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3672,8 +3615,8 @@
     },
     {
       "bugid": "BUG-LANGCHAIN-CONTAINER-APP-GET-SECRET",
-      "title": "Empty LangChain container: get_secret() in app.py:176 bypasses graph orchestrator (v4-043) \u2014 mechanical",
-      "description": "FastAPI route handler 'get_secret' at Code/shared_services/app.py:176 does not route business logic through a LangGraph StateGraph \u2014 it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
+      "title": "Empty LangChain container: get_secret() in app.py:176 bypasses graph orchestrator (v4-043) — mechanical",
+      "description": "FastAPI route handler 'get_secret' at Code/shared_services/app.py:176 does not route business logic through a LangGraph StateGraph — it is an empty LangChain container with no graph content. Detected by v4-043 graph_entry_check executor in preCommitScan.py / pre_deploy_rule_check.py. Classification: mechanical. Per v4-041 severity_by_environment intent: dev=low, qa=medium, prod=high. Closes only when the handler invokes a real graph (graph.invoke()) or is replaced by a graph-routed equivalent. Tracks one container; the umbrella refactor work plan lives in BUG-ARCH-GRAPH-001 (business-logic) / BUG-ARCH-GRAPH-EXEMPT-001 (mechanical exemptions, transitional).",
       "environments": [
         "dev"
       ],
@@ -3722,7 +3665,7 @@
       "discovery_date": "2026-04-19",
       "due_date": "2026-04-26",
       "fix": "",
-      "reproduction": "1) grep 'misrepresent' brain/machine_artifacts/content/engineering_rules.json \u2014 currently returns no matches. 2) grep 'misrepresent' CLAUDE.md \u2014 returns the preamble. 3) Inspect .claude/settings.json hook commands \u2014 none reference a prime-rule executor.",
+      "reproduction": "1) grep 'misrepresent' brain/machine_artifacts/content/engineering_rules.json — currently returns no matches. 2) grep 'misrepresent' CLAUDE.md — returns the preamble. 3) Inspect .claude/settings.json hook commands — none reference a prime-rule executor.",
       "orphan": false,
       "next_action": [
         "Draft + approve requirements (ARCH-PRIME-RULE-ENFORCEMENT-001-REQ-B001 / -T001).",

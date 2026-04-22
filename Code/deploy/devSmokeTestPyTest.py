@@ -776,8 +776,8 @@ class TestStep25:
         # SEC-HTTPS-001-REQ-020: right panel origin field MUST self-identify the
         # responding service ("SharedServices"), not the token signer (FindCare).
         right_text = page.locator("#rightPanel").inner_text()
-        assert "Origin: SharedServices" in right_text, \
-            f"REQ-020: right panel must show 'Origin: SharedServices' (not the token signer). Got: {right_text[:400]}"
+        assert "Server, serving security token: SharedServices" in right_text, \
+            f"REQ-020: right panel must show 'Server, serving security token: SharedServices' (responding service self-identification, not the token signer). Got: {right_text[:400]}"
         _screenshot(page, "25")
 
 

@@ -93,6 +93,16 @@ jobs:
           set_var "EVALCARE_URL"        "${EVALCARE_URL}"
           set_var "SHARED_SERVICES_URL" "${SHARED_URL}"
 
+          # SEC-HTTPS-001-REQ-021: FindCare must verify tokens minted by peer
+          # services (SharedServices, EvaluateCare). Bootstrap their public
+          # certs from the repo so /verify-token resolves shared.crt and
+          # evalcare.crt at runtime. .crt files are public (gitignore excludes
+          # only .key); base64-encoded for env-var transport per REQ-016.
+          SHARED_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/shared.crt)
+          EVALCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/evalcare.crt)
+          set_var "SHARED_CERT_PEM"   "${SHARED_CERT_PEM_B64}"
+          set_var "EVALCARE_CERT_PEM" "${EVALCARE_CERT_PEM_B64}"
+
       - name: Push to HuggingFace Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}

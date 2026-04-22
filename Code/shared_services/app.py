@@ -142,6 +142,29 @@ def transfer_to_findcare():
     _log.info("CONTROL TRANSFER: SharedServices → FindCare")
     return {"owner": "findcare", "reason": "filter_interaction"}
 
+# ── Session Token — minted by SharedServices ───────────────
+# SEC-HTTPS-001-REQ-021: when SharedServices owns the page, the right-panel
+# token MUST be minted by SharedServices (not relayed from FindCare). The
+# token is signed with shared.key; FindCare verifies with shared.crt.
+# graph-exempt: session token issuance, no LLM — security primitive; per BUG-ARCH-GRAPH-EXEMPT-001
+@app.get("/session")
+def get_session():
+    """Generate a SharedServices-signed session token.
+
+    NO FALLBACK. If shared.key is missing or generation fails, propagate the
+    error so the caller halts rather than running with a placeholder.
+    See feedback_no_security_fallbacks.
+    """
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Shared"))
+    os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
+    from session_token import generate_session_token
+    token = generate_session_token("SharedServices")
+    # SEC-HTTPS-001-REQ-020: server-asserted env from this container's _ENV_PREFIX.
+    token["server_env"] = _ENV_PREFIX
+    _log.info("Minted SharedServices session token: env=%s nonce_len=%d",
+              _ENV_PREFIX, len(token.get("token", "")))
+    return token
+
 # ── Token Verification (mirrors EvaluateCare pattern) ──────
 from pydantic import BaseModel as _BaseModel
 from typing import Optional as _Optional
@@ -170,9 +193,9 @@ def verify_token(body: VerifyTokenRequest):
         "session_token": {
             "token_received": body.session_token.get("token", "") if body.session_token else "",
             "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
-            # SEC-HTTPS-001-REQ-020: origin field self-identifies the responding
-            # service. The cryptographic check still ran against FindCare
-            # (REQ-017); this origin is who PRODUCED this response object.
+            # SEC-HTTPS-001-REQ-020: origin field is the name of the
+            # RESPONDING service (self-identification). Distinct from
+            # the cryptographic signer (REQ-017, always FindCare).
             "origin": "SharedServices",
             "verified": token_valid,
         },

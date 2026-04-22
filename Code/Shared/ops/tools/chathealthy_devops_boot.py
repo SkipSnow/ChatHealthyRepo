@@ -622,6 +622,7 @@ class chathealthy_devops_boot:
         "risk_acceptance": "check_risk_acceptance",
         "schema": "check_schema",
         "security": "check_security",
+        "SecurityAuditControls": None,  # NIST/HITRUST control catalog — data artifact, not a constraint source
         "sprint_plan": "check_sprint_plan",
         "token_usage": "check_token_usage",
         "traceability_matrix": "check_traceability_matrix",
@@ -770,9 +771,23 @@ class chathealthy_devops_boot:
         if not data:
             return []
 
-        # Rules-based JSONs
+        # Rules-based JSONs — tolerant of both new shape (rules.rule[] with
+        # rule_statements) and legacy (rules[] with prose 'rule' field).
         if json_stem == "engineering_rules":
-            return [r["rule"] for r in data.get("rules", []) if r.get("rule")]
+            rules_blob = data.get("rules", [])
+            rules_iter = rules_blob.get("rule", []) if isinstance(rules_blob, dict) else rules_blob
+            out = []
+            for r in rules_iter:
+                if not isinstance(r, dict):
+                    continue
+                rs = r.get("rule_statements")
+                if isinstance(rs, dict):
+                    text = " ".join(s.get("statement_body", "") for s in rs.get("rule_statement", []))
+                else:
+                    text = r.get("rule", "") or r.get("description", "")
+                if text:
+                    out.append(f"[{r.get('id', '?')}] {text}")
+            return out
 
         # Policies
         if json_stem == "policies":

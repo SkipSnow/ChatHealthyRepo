@@ -212,6 +212,29 @@ def transfer_to_findcare():
     _log.info("CONTROL TRANSFER: EvaluateCare → FindCare (user touched filter)")
     return {"owner": "findcare", "reason": "filter_interaction"}
 
+# ── Session Token — minted by EvaluateCare ─────────────────
+# SEC-HTTPS-001-REQ-021: when EvaluateCare owns the page, the right-panel
+# token MUST be minted by EvaluateCare (not relayed from FindCare). The
+# token is signed with evalcare.key; FindCare verifies with evalcare.crt.
+# graph-exempt: session token issuance, no LLM — security primitive; per BUG-ARCH-GRAPH-EXEMPT-001
+@app.get("/session")
+def get_session():
+    """Generate an EvaluateCare-signed session token.
+
+    NO FALLBACK. If evalcare.key is missing or generation fails, propagate
+    so the caller halts rather than running with a placeholder.
+    See feedback_no_security_fallbacks.
+    """
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "Shared"))
+    os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
+    from session_token import generate_session_token
+    token = generate_session_token("EvaluateCare")
+    # SEC-HTTPS-001-REQ-020: server-asserted env from this container's _ENV_PREFIX.
+    token["server_env"] = _ENV_PREFIX
+    _log.info("Minted EvaluateCare session token: env=%s nonce_len=%d",
+              _ENV_PREFIX, len(token.get("token", "")))
+    return token
+
 # ── Token Verification (DEVOPS-BANNER-B006 / SEC-HTTPS-001-REQ-013) ─────
 from pydantic import BaseModel as _BaseModel
 from typing import Optional as _Optional
@@ -240,9 +263,9 @@ def verify_token(body: _VerifyTokenRequest):
         "session_token": {
             "token_received": body.session_token.get("token", "") if body.session_token else "",
             "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
-            # SEC-HTTPS-001-REQ-020: origin self-identifies the responding service.
-            # Cryptographic verification still ran against FindCare (REQ-017);
-            # this origin is who PRODUCED this response object.
+            # SEC-HTTPS-001-REQ-020: origin field is the name of the
+            # RESPONDING service (self-identification). Distinct from
+            # the cryptographic signer (REQ-017, always FindCare).
             "origin": "EvaluateCare",
             "verified": token_valid,
         },
