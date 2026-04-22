@@ -31,6 +31,28 @@ CERTS_DIR = os.environ.get("CERTS_DIR",
 _session_guid: str | None = None
 
 
+# SEC-HTTPS-001-REQ-017: the origin field in a session token MUST be the
+# canonical service name ("FindCare", "EvaluateCare", "SharedServices").
+# Cert files on disk use shorter historical names. This map is the single
+# source of truth for service-name → cert-file-basename.
+_SERVICE_TO_CERT_NAME = {
+    "FindCare":       "findcare",
+    "EvaluateCare":   "evalcare",
+    "SharedServices": "shared",
+}
+
+def _cert_basename(origin: str) -> str:
+    """Map a REQ-017 origin (service name) to its cert filename basename.
+    Raises ValueError for any origin not in the canonical set —
+    security primitives MUST fail loud (feedback_no_security_fallbacks)."""
+    if origin not in _SERVICE_TO_CERT_NAME:
+        raise ValueError(
+            f"Invalid token origin {origin!r}. Per SEC-HTTPS-001-REQ-017 "
+            f"origin MUST be one of {sorted(_SERVICE_TO_CERT_NAME)}."
+        )
+    return _SERVICE_TO_CERT_NAME[origin]
+
+
 def generate_session_token(origin: str = "FindCare") -> dict:
     """Generate a new session token and sign it with the origin's private key.
 
@@ -54,7 +76,7 @@ def generate_session_token(origin: str = "FindCare") -> dict:
     token = f"CH{created_stamp}{created_stamp}{guid}"
     created = datetime.now(timezone.utc).isoformat()
 
-    key_path = os.path.join(CERTS_DIR, f"{origin.lower()}.key")
+    key_path = os.path.join(CERTS_DIR, f"{_cert_basename(origin)}.key")
     if not os.path.exists(key_path):
         raise FileNotFoundError(
             f"session-token signing key not found: {key_path}. "
@@ -125,7 +147,7 @@ def verify_session_token(session: dict, expected_origin: str = "FindCare") -> bo
     # Load public cert — CERTS_DIR resolved at import; if bootstrap changes it
     # after import, re-read from env at call time.
     certs_dir = os.environ.get("CERTS_DIR", CERTS_DIR)
-    cert_path = os.path.join(certs_dir, f"{origin.lower()}.crt")
+    cert_path = os.path.join(certs_dir, f"{_cert_basename(origin)}.crt")
     if not os.path.exists(cert_path):
         _log.warning(
             "verify: cert file missing at %s (CERTS_DIR=%s). "

@@ -770,6 +770,77 @@
       window.openQAReport = function() {
         openPanel(src + '/qa-report', 'QA Report — v0.1.4');
       };
+
+      // SEC-HTTPS-001-REQ-021/022: refresh BOTH token panels on every
+      // page-ownership change.
+      //   • LEFT panel always shows FindCare's own /session token (FC's
+      //     permanent territory, REQ-022). Verified by SharedServices so
+      //     the panel honestly reports verified-state with each rotation.
+      //   • RIGHT panel shows the page-owning service's own /session token
+      //     (REQ-021). Verified by an independent third party so mutual
+      //     authentication is meaningful (FC verifies SS/EC tokens; SS
+      //     verifies FC tokens when FC owns the page).
+      // owner: 'findcare' | 'evaluatecare' | 'sharedservices'
+      window.refreshTokenPanels = function(owner) {
+        var apiBase = window._hfBaseUrl || '';
+        var urls = window._envServiceUrls || {};
+        var sharedUrl = urls.sharedservices || 'https://localhost:8002';
+        var evalUrl   = urls.evaluatecare   || 'https://localhost:8001';
+
+        function mintAndVerify(minterUrl, verifierUrl) {
+          return fetch(minterUrl + '/session')
+            .then(function(r) { return r.json(); })
+            .then(function(token) {
+              return fetch(verifierUrl + '/verify-token', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({session_token: token})
+              });
+            })
+            .then(function(r) { return r.json(); });
+        }
+
+        // LEFT — FC mints, SS verifies. Always.
+        mintAndVerify(apiBase, sharedUrl)
+          .then(function(result) {
+            if (!result || !result.session_token) return;
+            var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
+            if (sessionEl) sessionEl.innerHTML = window.buildTokenDisplayHtml(result.session_token);
+          })
+          .catch(function(e) { console.error('LEFT panel refresh failed:', e); });
+
+        // RIGHT — owner mints, independent verifier checks signature.
+        var minterUrl, verifierUrl, color, label, bg;
+        if (owner === 'sharedservices') {
+          minterUrl = sharedUrl; verifierUrl = apiBase;
+          color = '#0b7a75'; label = 'Shared Services'; bg = '#f0fffe';
+        } else if (owner === 'evaluatecare') {
+          minterUrl = evalUrl;   verifierUrl = apiBase;
+          color = '#d97706'; label = 'EvaluateCare'; bg = '#fff7ed';
+        } else {
+          // findcare owns
+          minterUrl = apiBase;   verifierUrl = sharedUrl;
+          color = '#0b7a75'; label = 'FindCare'; bg = '#f0fffe';
+        }
+
+        mintAndVerify(minterUrl, verifierUrl)
+          .then(function(result) {
+            var rightPanel = document.getElementById('rightPanel');
+            if (!rightPanel || !result || !result.session_token) return;
+            var st = result.session_token;
+            rightPanel.style.alignItems = 'stretch';
+            rightPanel.style.justifyContent = 'flex-start';
+            rightPanel.style.flexDirection = 'column';
+            rightPanel.style.overflow = 'auto';
+            rightPanel.innerHTML =
+                '<div style="padding:8px 10px;border-bottom:2px solid ' + color + ';background:' + bg + ';">'
+              + '<div style="font-size:11px;font-weight:700;color:' + color + ';text-transform:uppercase;">' + label + '</div>'
+              + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
+              + '</div>'
+              + window.buildTokenDisplayHtml(st);
+          })
+          .catch(function(e) { console.error('RIGHT panel refresh failed (owner=' + owner + '):', e); });
+      };
       // DEVOPS-BANNER-B006: 3-button banner with hot/cold states.
       // The service that owns the page renders cold (disabled + tooltip).
       // Called after window._pageOwner changes, and once on initial paint.
@@ -830,37 +901,10 @@
             splashDiv.innerHTML = d.html || '';
           })
           .catch(function() {});
-        // SEC-HTTPS-001-REQ-019: /verify-token called directly on EvaluateCare,
-        // not proxied through FindCare. /session stays on FindCare.
-        var evalDirectUrl = (window._envServiceUrls || {}).evaluatecare || 'https://localhost:8001';
-        fetch(apiBase + '/session')
-          .then(function(r) { return r.json(); })
-          .then(function(token) {
-            return fetch(evalDirectUrl + '/verify-token', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({session_token: token})
-            });
-          })
-          .then(function(r) { return r.json(); })
-          .then(function(result) {
-            var rightPanel = document.getElementById('rightPanel');
-            if (rightPanel && result && result.session_token) {
-              var st = result.session_token;
-              rightPanel.style.alignItems = 'stretch';
-              rightPanel.style.justifyContent = 'flex-start';
-              rightPanel.style.flexDirection = 'column';
-              rightPanel.style.overflow = 'auto';
-              rightPanel.innerHTML = '<div style="padding:8px 10px;border-bottom:2px solid #d97706;background:#fff7ed;">'
-                + '<div style="font-size:11px;font-weight:700;color:#d97706;text-transform:uppercase;">EvaluateCare</div>'
-                + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
-                + '</div>'
-                + window.buildTokenDisplayHtml(st);
-              var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
-              if (sessionEl) sessionEl.innerHTML = window.buildTokenDisplayHtml(st);
-            }
-          })
-          .catch(function(e) { console.error('EvaluateCare banner handoff failed:', e); });
+        // SEC-HTTPS-001-REQ-021: token MUST come from page-owning service.
+        // EvaluateCare mints with evalcare.key; FindCare verifies with evalcare.crt.
+        // refreshTokenPanels also rotates the LEFT panel (FC /session) per REQ-022.
+        window.refreshTokenPanels('evaluatecare');
       };
 
       window.returnToFindCare = function() {
@@ -882,18 +926,9 @@
             if (shSplash) shSplash.style.display = 'none';
             chatFrame.style.display = '';
             chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*');
-            // Fetch fresh token and repaint both panels
-            return fetch(apiBase + '/session');
-          })
-          .then(function(r) { return r && r.json ? r.json() : null; })
-          .then(function(token) {
-            if (!token) return;
-            var st = {token_received: token.token, origin: 'FindCare', verified: true};
-            var html = window.buildTokenDisplayHtml(st);
-            var rightPanel = document.getElementById('rightPanel');
-            if (rightPanel) rightPanel.innerHTML = html;
-            var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
-            if (sessionEl) sessionEl.innerHTML = html;
+            // SEC-HTTPS-001-REQ-021: FindCare mints, SharedServices verifies.
+            // Both panels refresh on every ownership change (REQ-022).
+            window.refreshTokenPanels('findcare');
           });
       };
 
@@ -942,42 +977,10 @@
             splashDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7280;">Shared Services unavailable</div>';
           });
 
-        // SEC-HTTPS-001-REQ-019: /verify-token MUST be called directly on the
-        // cold-button service (SharedServices), not proxied through FindCare.
-        // /session stays on FindCare (sole token issuer).
-        var sharedDirectUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
-        fetch(apiBase + '/session')
-          .then(function(r) { return r.json(); })
-          .then(function(token) {
-            return fetch(sharedDirectUrl + '/verify-token', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({session_token: token})
-            });
-          })
-          .then(function(r) { return r.json(); })
-          .then(function(result) {
-            // Paint result in right panel via postMessage to parent
-            var rightPanel = document.getElementById('rightPanel');
-            if (rightPanel && result.session_token) {
-              var st = result.session_token;
-              rightPanel.style.alignItems = 'stretch';
-              rightPanel.style.justifyContent = 'flex-start';
-              rightPanel.style.flexDirection = 'column';
-              rightPanel.style.overflow = 'auto';
-              rightPanel.innerHTML = '<div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f0fffe;">'
-                + '<div style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Shared Services</div>'
-                + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
-                + '</div>'
-                + window.buildTokenDisplayHtml(st);
-              // BUG-UX-020: Update left panel with identical session verification
-              var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
-              if (sessionEl) {
-                sessionEl.innerHTML = window.buildTokenDisplayHtml(st);
-              }
-            }
-          })
-          .catch(function(e) { console.error('SharedServices token verify failed:', e); });
+        // SEC-HTTPS-001-REQ-021: token MUST come from page-owning service.
+        // SharedServices mints with shared.key; FindCare verifies with shared.crt.
+        // refreshTokenPanels also rotates the LEFT panel (FC /session) per REQ-022.
+        window.refreshTokenPanels('sharedservices');
       };
 
       // Retry loading iframe — wait 3s between attempts, max 10 tries
@@ -1039,7 +1042,7 @@
           + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
           + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + guid + '</span></div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-          + '<b>Origin:</b> ' + (st.origin || 'unknown')
+          + '<b>Server, serving security token:</b> ' + (st.origin || 'unknown')
           + ' &middot; <b>Verified:</b> <span style="color:' + (st.verified ? '#059669' : '#dc2626') + ';font-weight:700;">' + (st.verified ? 'YES ✓' : 'FAILED ✗') + '</span></div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
           + '<b>Env:</b> <span style="color:#7c3aed;font-weight:700;">' + envLabel + '</span></div>'
@@ -1249,17 +1252,9 @@
                         chatFrame.style.display = '';
                         // BUG-UX-022/023: RestoreState=false — reset FindCare to welcome, focus input
                         chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*');
-                        // BUG-UX-020: Fetch fresh token and update both panels identically
-                        fetch(apiBase2 + '/session')
-                          .then(function(r2) { return r2.json(); })
-                          .then(function(token) {
-                            var st = {token_received: token.token, origin: 'FindCare', verified: true};
-                            var html = window.buildTokenDisplayHtml(st);
-                            var rightPanel2 = document.getElementById('rightPanel');
-                            if (rightPanel2) rightPanel2.innerHTML = html;
-                            var sessionEl2 = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
-                            if (sessionEl2) sessionEl2.innerHTML = html;
-                          });
+                        // SEC-HTTPS-001-REQ-021/022: refresh BOTH panels.
+                        // FC mints, SS verifies; left panel re-fetches FC /session.
+                        window.refreshTokenPanels('findcare');
                       });
                     return;
                   }
@@ -1353,17 +1348,9 @@
                         chatFrame.style.display = '';
                         // BUG-UX-022/023: RestoreState=false — reset FindCare to welcome, focus input
                         chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*');
-                        // BUG-UX-020: Fetch fresh token and update both panels identically
-                        fetch(apiBase3 + '/session')
-                          .then(function(r2) { return r2.json(); })
-                          .then(function(token) {
-                            var st = {token_received: token.token, origin: 'FindCare', verified: true};
-                            var html = window.buildTokenDisplayHtml(st);
-                            var rightPanel3 = document.getElementById('rightPanel');
-                            if (rightPanel3) rightPanel3.innerHTML = html;
-                            var sessionEl3 = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
-                            if (sessionEl3) sessionEl3.innerHTML = html;
-                          });
+                        // SEC-HTTPS-001-REQ-021/022: refresh BOTH panels.
+                        // FC mints, SS verifies; left panel re-fetches FC /session.
+                        window.refreshTokenPanels('findcare');
                       });
                     return;
                   }

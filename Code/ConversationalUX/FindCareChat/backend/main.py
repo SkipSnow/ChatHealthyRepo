@@ -244,6 +244,10 @@ def _bootstrap_certs_from_env():
     mapping = {
         "FINDCARE_SIGNING_KEY_PEM":  "findcare.key",
         "FINDCARE_CERT_PEM":         "findcare.crt",
+        # SEC-HTTPS-001-REQ-021: FindCare verifies tokens minted by peers
+        # (page-owning service mints; FindCare verifies for mutual auth).
+        "SHARED_CERT_PEM":           "shared.crt",
+        "EVALCARE_CERT_PEM":         "evalcare.crt",
         "CA_CERT_PEM":               "ca.crt",
     }
     wrote = []
@@ -646,7 +650,12 @@ def get_session():
         _sys.path.insert(0, _local_shared)
     os.environ.setdefault("CERTS_DIR", os.path.join(_local_shared, "ops", "certs"))
     from session_token import generate_session_token
-    return generate_session_token("FindCare")
+    token = generate_session_token("FindCare")
+    # SEC-HTTPS-001-REQ-020: server-asserted env (FindCare's deployment env).
+    # `origin` field stays "FindCare" for cryptographic signature verification
+    # (REQ-017); this added `server_env` carries the display-semantic value.
+    token["server_env"] = _ENV_PREFIX
+    return token
 
 # ── Evaluate proxy — FindCare backend → EvaluateCare over mTLS ──
 class EvaluateRequest(BaseModel):
@@ -767,6 +776,51 @@ def shared_splash():
     except Exception:
         _log.error("CONTROL TRANSFER FAILED: SharedServices unreachable at %s", shared_url)
         return {"html": '<div style="text-align:center;padding:20px;"><div style="font-size:24px;font-weight:700;color:#1f2937;">Shared Services</div><div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">Service unavailable</div></div>'}
+
+# SEC-HTTPS-001-REQ-021: FindCare verifies tokens minted by peer services.
+# When SharedServices or EvaluateCare owns the page, the browser fetches
+# /session from THAT service (so the token is signed with the page-owning
+# service's key), then sends the signed token here for FindCare to verify
+# with the corresponding peer cert. Acts as the independent third-party
+# verifier — preserves mutual authentication when the minter is a peer.
+# graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
+@app.post("/verify-token")
+def verify_token(body: EvaluateRequest):
+    """Verify a session token signed by FindCare, SharedServices, or EvaluateCare.
+
+    The expected origin is read from the token itself; the cert lookup in
+    session_token resolves `{origin.lower()}.crt` from CERTS_DIR. If the
+    signature doesn't match the cert for the claimed origin, verification
+    fails — so a caller can't lie about origin.
+    """
+    import sys as _sys
+    _local_shared = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared")
+    if _local_shared not in _sys.path:
+        _sys.path.insert(0, _local_shared)
+    os.environ.setdefault("CERTS_DIR", os.path.join(_local_shared, "ops", "certs"))
+    token_valid = False
+    token_origin = "unknown"
+    if body.session_token:
+        try:
+            from session_token import verify_session_token
+            token_origin = body.session_token.get("origin", "unknown")
+            token_valid = verify_session_token(body.session_token, token_origin)
+            _log.info("FindCare verify-token: origin=%s valid=%s",
+                      token_origin, token_valid)
+        except Exception as e:
+            _log.warning("FindCare verify-token failed: %s", e)
+    return {
+        "status": "verified" if token_valid else "failed",
+        "session_token": {
+            "token_received": body.session_token.get("token", "") if body.session_token else "",
+            "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
+            # SEC-HTTPS-001-REQ-020: origin field is the name of the
+            # RESPONDING service (self-identification). Distinct from
+            # the cryptographic signer (REQ-017, always FindCare).
+            "origin": "FindCare",
+            "verified": token_valid,
+        },
+    }
 
 # graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/shared/verify-token")
