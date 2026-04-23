@@ -40,8 +40,8 @@
               "name": {
                 "type": "string",
                 "minLength": 1,
-                "maxLength": 80,
-                "description": "Unique, human-readable label, <= 80 characters."
+                "maxLength": 101,
+                "description": "Unique, human-readable label, <= 101 characters."
               },
               "description": {
                 "type": "string",
