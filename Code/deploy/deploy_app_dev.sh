@@ -36,6 +36,18 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
 
+# Activate project venv — script requires venv packages (pymongo, httpx, etc.)
+# Self-sufficient: does not assume the caller's shell has the venv on PATH.
+if [ -f "$REPO_ROOT/.venv/Scripts/activate" ]; then
+    source "$REPO_ROOT/.venv/Scripts/activate"
+elif [ -f "$REPO_ROOT/.venv/bin/activate" ]; then
+    source "$REPO_ROOT/.venv/bin/activate"
+else
+    echo "ERROR: .venv not found at $REPO_ROOT/.venv"
+    echo "Create one:  python -m venv .venv && source .venv/Scripts/activate && pip install -r Code/ConversationalUX/FindCareChat/backend/requirements.txt"
+    exit 1
+fi
+
 # .env not sourced: git and gh use their own auth on Human's machine; curl hits public endpoints.
 # If we later need env-driven values (HF_TOKEN for direct HF API calls, etc.), load them
 # selectively via python rather than sourcing the whole file (the file contains comment-like
