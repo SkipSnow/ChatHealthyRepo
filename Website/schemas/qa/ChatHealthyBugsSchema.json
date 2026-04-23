@@ -23,9 +23,6 @@
     "description": {
       "type": "string"
     },
-    "ch_matrix_id": {
-      "type": "string"
-    },
     "bug": {
       "type": "array",
       "items": {
@@ -101,7 +98,7 @@
               "not_a_bug",
               "resolved"
             ],
-            "description": "Legacy field \u2014 use type instead"
+            "description": "Legacy field — use type instead"
           },
           "req_id": {
             "type": "string",
@@ -120,7 +117,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Success criteria from the pytest record \u2014 mandatory, not freetext"
+            "description": "Success criteria from the pytest record — mandatory, not freetext"
           },
           "discovery_date": {
             "type": "string",
@@ -155,5 +152,6 @@
         "additionalProperties": false
       }
     }
-  }
+  },
+  "additionalProperties": false
 }

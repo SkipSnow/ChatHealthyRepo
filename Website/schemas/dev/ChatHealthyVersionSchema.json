@@ -4,14 +4,19 @@
   "title": "ChatHealthy Version + Build Manifest",
   "description": "Product versions and the builds that produced them. Each build records its causes (bug or requirement IDs that drove the work) and the files it touched.",
   "type": "object",
-  "required": ["$schema", "versions"],
+  "required": [
+    "$schema",
+    "versions"
+  ],
   "properties": {
     "$schema": {
       "type": "string"
     },
     "versions": {
       "type": "object",
-      "required": ["version"],
+      "required": [
+        "version"
+      ],
       "properties": {
         "version": {
           "type": "array",
@@ -19,7 +24,11 @@
           "description": "Ordered list of product versions. Last entry is current.",
           "items": {
             "type": "object",
-            "required": ["version_number", "framework_version", "builds"],
+            "required": [
+              "version_number",
+              "framework_version",
+              "builds"
+            ],
             "properties": {
               "version_number": {
                 "type": "string",
@@ -31,7 +40,9 @@
               },
               "builds": {
                 "type": "object",
-                "required": ["build"],
+                "required": [
+                  "build"
+                ],
                 "properties": {
                   "build": {
                     "type": "array",
@@ -39,7 +50,11 @@
                     "description": "Ordered list of builds that produced this version. Last entry is most recent.",
                     "items": {
                       "type": "object",
-                      "required": ["build_number", "causes", "files_touched"],
+                      "required": [
+                        "build_number",
+                        "causes",
+                        "files_touched"
+                      ],
                       "properties": {
                         "build_number": {
                           "type": "integer",
@@ -48,7 +63,9 @@
                         },
                         "causes": {
                           "type": "object",
-                          "required": ["cause"],
+                          "required": [
+                            "cause"
+                          ],
                           "properties": {
                             "cause": {
                               "type": "array",
@@ -56,11 +73,17 @@
                               "description": "One or more typed identifiers explaining why this build happened.",
                               "items": {
                                 "type": "object",
-                                "required": ["identifier_type", "identifier"],
+                                "required": [
+                                  "identifier_type",
+                                  "identifier"
+                                ],
                                 "properties": {
                                   "identifier_type": {
                                     "type": "string",
-                                    "enum": ["bug_id", "requirement_id"],
+                                    "enum": [
+                                      "bug_id",
+                                      "requirement_id"
+                                    ],
                                     "description": "Which kind of identifier the cause references."
                                   },
                                   "identifier": {
@@ -68,10 +91,12 @@
                                     "minLength": 1,
                                     "description": "The actual ID, e.g. BUG-... or ARCH-...-REQ-..."
                                   }
-                                }
+                                },
+                                "additionalProperties": false
                               }
                             }
-                          }
+                          },
+                          "additionalProperties": false
                         },
                         "files_touched": {
                           "type": "array",
@@ -82,15 +107,20 @@
                             "minLength": 1
                           }
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
                   }
-                }
+                },
+                "additionalProperties": false
               }
-            }
+            },
+            "additionalProperties": false
           }
         }
-      }
+      },
+      "additionalProperties": false
     }
-  }
+  },
+  "additionalProperties": false
 }
