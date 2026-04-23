@@ -1,7 +1,6 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "architecture",
-  "governance_attribute_id": "ch_governance_record_id_f11027a5-0beb-49a5-b8b4-792809bf72ee",
   "record_count": 14,
   "records": [
     {
@@ -21,74 +20,62 @@
         {
           "id": "DC-01",
           "feature": "Shared Chat Session",
-          "description": "Multiple humans in one conversation with AI assistance",
-          "ch_matrix_id": "40190e35-34e7-491c-a686-c846f4e162fc"
+          "description": "Multiple humans in one conversation with AI assistance"
         },
         {
           "id": "DC-02",
           "feature": "Invite System",
-          "description": "User sends invite link to friends, family, caregivers. No account required.",
-          "ch_matrix_id": "325ee941-5b62-4d3e-a9d4-7a2e5f9fa72c"
+          "description": "User sends invite link to friends, family, caregivers. No account required."
         },
         {
           "id": "DC-03",
           "feature": "Multi-Model AI",
-          "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools",
-          "ch_matrix_id": "fea9f279-1f2e-4622-9619-c39a27621308"
+          "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"
         },
         {
           "id": "DC-04",
           "feature": "Shared Tool Access",
-          "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail",
-          "ch_matrix_id": "05fbe9d8-6661-4752-ac05-e7e43b2543b9"
+          "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"
         },
         {
           "id": "DC-05",
           "feature": "Healthcare Guardrails",
-          "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules.",
-          "ch_matrix_id": "0d2c4c52-4ec8-4cc3-920b-dc1d5fc736dc"
+          "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."
         },
         {
           "id": "DC-06",
           "feature": "Session Transcript",
-          "description": "Exportable transcript for sharing with doctors, care teams",
-          "ch_matrix_id": "83f96b13-58ce-48db-ad5a-40277e4f6a96"
+          "description": "Exportable transcript for sharing with doctors, care teams"
         },
         {
           "id": "DC-07",
           "feature": "Consent per Participant",
-          "description": "Each participant manages their own consent tier independently",
-          "ch_matrix_id": "efcb7197-c553-4ca3-9514-ccbc089df80d"
+          "description": "Each participant manages their own consent tier independently"
         },
         {
           "id": "DC-08",
           "feature": "Participant Roles",
-          "description": "Session creator (host), invited participant (peer). No admin/enterprise roles.",
-          "ch_matrix_id": "ef1de774-2bd2-4b70-961c-16d440e608d8"
+          "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."
         },
         {
           "id": "DC-09",
           "feature": "Real-Time Collaboration",
-          "description": "All participants see messages and AI responses live",
-          "ch_matrix_id": "600fa13e-2f82-4f61-8060-80f0bb1c05e9"
+          "description": "All participants see messages and AI responses live"
         },
         {
           "id": "DC-10",
           "feature": "Session Persistence",
-          "description": "Sessions survive disconnects, resumable by invite link",
-          "ch_matrix_id": "2eed24f6-f8fb-407f-81a1-eaf33f6f2d1a"
+          "description": "Sessions survive disconnects, resumable by invite link"
         },
         {
           "id": "DC-14",
           "feature": "Shared Research Bot",
-          "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee.",
-          "ch_matrix_id": "542f1d5c-7c71-4bfd-9452-de5fc826a491"
+          "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee."
         },
         {
           "id": "DC-15",
           "feature": "Licensed Provider Detection and Compliance Disclosure",
-          "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed.",
-          "ch_matrix_id": "2b8987cc-4258-491f-8585-e7bdca9c9acd"
+          "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
         }
       ],
       "architectural_implications": [
@@ -112,8 +99,7 @@
         "gov_001_compliance": "AI vendors are TECHNOLOGY partners, not care-chain entities. No payer, no provider, no pharma revenue. GOV-001 preserved.",
         "pitch": "Your model is in the room when a family decides where Mom gets cancer treatment. What's that worth?",
         "user_experience": "User selects which AI models participate in their session. Models compete on helpfulness. User pays nothing.",
-        "series_a_story": "We own the healthcare decision room. AI companies pay to be in it.",
-        "ch_matrix_id": "a0f8559c-a1f3-485e-8642-6e5d124e2f08"
+        "series_a_story": "We own the healthcare decision room. AI companies pay to be in it."
       },
       "moat": {
         "regulatory_willingness": "AI vendors avoid healthcare regulation like the plague. FDA clinical decision support classification and HIPAA compliance are existential risks for companies valued on growth. They NEED someone else to own the healthcare room.",
@@ -135,8 +121,7 @@
           "Stage 4: Partners underwrite Series A. They've seen the data."
         ],
         "gov_001_note": "Token revenue is from technology consumption, not care-chain entities. GOV-001 preserved.",
-        "publish": true,
-        "ch_matrix_id": "b6f33440-40f6-4d9f-ae39-e4bee807a730"
+        "publish": true
       },
       "patent_concept": {
         "claim": "Method for synthesizing healthcare provider quality signals using large language models to produce consumer-comprehensible provider assessments",
@@ -178,8 +163,7 @@
             "Returns structured findings to requesting session or pipeline"
           ],
           "billing": "All bot research incurs token fees — premium revenue stream",
-          "architectural_note": "Shared service, not inside any facade. Accessible via all three facades and pipeline orchestrator.",
-          "ch_matrix_id": "f475eba5-bf64-42e4-801f-36830ec98f67"
+          "architectural_note": "Shared service, not inside any facade. Accessible via all three facades and pipeline orchestrator."
         }
       },
       "governance_rules_ref": "Policies DC-GOV-01 and DC-GOV-02 moved to policies.json.",
@@ -247,14 +231,12 @@
           "component": "Evaluate Care (extends provider + payer knowledge)",
           "status": "concept",
           "target": "post-funding",
-          "gov_001_note": "Revenue from consumer for service rendered. Not from payer or provider. GOV-001 clean.",
-          "ch_matrix_id": "43b3bb57-7135-4b9b-9276-6c8ed25dc7b3"
+          "gov_001_note": "Revenue from consumer for service rendered. Not from payer or provider. GOV-001 clean."
         }
       ],
       "_record_id": "component_discuss_care",
       "_source_file": "component_discuss_care.json",
-      "description": "Talk About Care business component: 15 features, floor control, revenue model, moat, patent, governance rules.",
-      "ch_matrix_id": "f4606862-2d06-4a51-ba93-f16814f9cc07"
+      "description": "Talk About Care business component: 15 features, floor control, revenue model, moat, patent, governance rules."
     },
     {
       "report": "FindCare Backend Portability Refactoring — Design Report",
@@ -479,8 +461,7 @@
             ],
             "host_specific": false
           }
-        ],
-        "ch_matrix_id": "b48a262f-7d0a-460f-ba7b-1028be671032"
+        ]
       },
       "decisions": [
         {
@@ -489,8 +470,7 @@
           "gpt_proposed": "11 modules — separate files for DatabaseHelpers, NotificationService, ProviderTools, ClinicalTrialsSearch, ExternalProviderLookup, ContextLoader, ToolDefinitions, etc.",
           "claude_decided": "5 modules + HostConfig dataclass. Single-function concerns stay as private methods inside FindCareApp.",
           "rationale": "Over-fragmentation adds import complexity for no testability gain. ClinicalTrialsSearch is one function. NotificationService is one function. These don't justify their own files.",
-          "risk_of_this_decision": "findcare_app.py is ~800 lines — still large. Acceptable because it's cohesive (all business logic) and can be further split in a future sprint if needed.",
-          "ch_matrix_id": "a2c28eb2-d89d-4696-b60f-8bf364ce693e"
+          "risk_of_this_decision": "findcare_app.py is ~800 lines — still large. Acceptable because it's cohesive (all business logic) and can be further split in a future sprint if needed."
         },
         {
           "id": "D-002",
@@ -498,8 +478,7 @@
           "gpt_proposed": "Inject DatabaseManager and NotificationService into FindCareApp constructor for testability.",
           "claude_decided": "FindCareApp creates its own MongoDB connection and SparkPost notifier internally. NOT injected.",
           "rationale": "human rule: e2e tests use real systems (MongoDB, Anthropic, SparkPost) — no mocks. DI for testability is pointless when you don't mock. Injecting adds constructor complexity for zero practical benefit.",
-          "risk_of_this_decision": "Harder to unit test FindCareApp in isolation. Mitigated by the fact that this project's testing strategy is e2e with real systems.",
-          "ch_matrix_id": "93b45afa-b665-40fb-a8f8-3a14f76c567c"
+          "risk_of_this_decision": "Harder to unit test FindCareApp in isolation. Mitigated by the fact that this project's testing strategy is e2e with real systems."
         },
         {
           "id": "D-003",
@@ -507,8 +486,7 @@
           "gpt_proposed": "_handle_tool_calls lives in PromptFactory alongside tool schemas.",
           "claude_decided": "Tool dispatch stays in FindCareApp. PromptFactory holds only the registry (name -> callable map) and tool schemas.",
           "rationale": "Tool functions (find_providers, record_user_details, etc.) live in FindCareApp and need access to FindCareApp state (DB connection, chat history, IP locks). Dispatch must be in the same class. The registry pattern decouples schema definition from implementation.",
-          "risk_of_this_decision": "FindCareApp has a dependency on PromptFactory for the registry. Acceptable — they're always used together.",
-          "ch_matrix_id": "a7c1ab28-d200-4d4e-9aca-aa4a3303c8c3"
+          "risk_of_this_decision": "FindCareApp has a dependency on PromptFactory for the registry. Acceptable — they're always used together."
         },
         {
           "id": "D-004",
@@ -516,32 +494,28 @@
           "gpt_proposed": "Validate URLs in the final LLM text response only.",
           "claude_decided": "Dual-mode: validate both tool results (guard_tool_result) and LLM text (guard_text).",
           "rationale": "Tool-constructed URLs are the higher-priority fix — we build them deterministically (e.g., Delaware board search). If we know the URL template is broken, we should catch it before the LLM even sees it. Text validation catches anything the LLM generates or hallucinates.",
-          "risk_of_this_decision": "Two validation points means two places to maintain. Acceptable — both use the same URLGuardian instance and cache.",
-          "ch_matrix_id": "8134e7c1-0517-479f-966a-c2a9bbf18915"
+          "risk_of_this_decision": "Two validation points means two places to maintain. Acceptable — both use the same URLGuardian instance and cache."
         },
         {
           "id": "D-005",
           "topic": "Trusted domain whitelist",
           "claude_decided": "Healthgrades and Zocdoc are whitelisted — their search URLs skip validation.",
           "rationale": "Both sites aggressively block server-side requests (bot protection). Our constructed search URLs (e.g., healthgrades.com/search?what=smith) are valid browser URLs but return 403/blocking pages to HEAD/GET from a server. Whitelisting prevents false negatives.",
-          "risk_of_this_decision": "If Healthgrades or Zocdoc change their URL patterns, broken links would not be caught. Mitigated by the fact that we construct these URLs ourselves with known patterns.",
-          "ch_matrix_id": "3daef737-eb62-46ef-b58c-33e92d6f632e"
+          "risk_of_this_decision": "If Healthgrades or Zocdoc change their URL patterns, broken links would not be caught. Mitigated by the fact that we construct these URLs ourselves with known patterns."
         },
         {
           "id": "D-006",
           "topic": "Anthropic client ownership",
           "claude_decided": "FindCareApp owns a single Anthropic client instance, created in __init__.",
           "rationale": "Currently the Anthropic client is created fresh in _chat_inner and _safety_check on every call. A single shared instance avoids repeated initialization and is the standard pattern for API clients.",
-          "risk_of_this_decision": "None — Anthropic SDK client is thread-safe.",
-          "ch_matrix_id": "d33bd002-cd5d-4396-abf3-170bab992740"
+          "risk_of_this_decision": "None — Anthropic SDK client is thread-safe."
         },
         {
           "id": "D-007",
           "topic": "Sprint timing — defer refactoring to Sprint 2",
           "boss_decided": "Do not refactor before the Tuesday 2026-03-31 release. Ship URLGuardian now, refactoring in Sprint 2.",
           "rationale": "App is release-ready. Refactoring 1,323 lines of working code 3 days before deadline is risk with no user-facing payoff. Quality over velocity.",
-          "risk_of_this_decision": "main.py stays monolithic through Sprint 1 release. Acceptable — it works, and URLGuardian is the only new capability needed now.",
-          "ch_matrix_id": "6b9db959-fa8c-43e8-98ec-65e657d7834e"
+          "risk_of_this_decision": "main.py stays monolithic through Sprint 1 release. Acceptable — it works, and URLGuardian is the only new capability needed now."
         }
       ],
       "risks": [
@@ -550,40 +524,35 @@
           "risk": "Refactoring may introduce subtle bugs in tool dispatch or chat conversation loop",
           "likelihood": "Medium",
           "impact": "High — broken chat is a showstopper",
-          "mitigation": "Each migration step produces a working app. Full e2e test after each step. Stop at any step if tests fail.",
-          "ch_matrix_id": "7f0ba66f-7d21-4e49-9cf5-8b1ca52997c7"
+          "mitigation": "Each migration step produces a working app. Full e2e test after each step. Stop at any step if tests fail."
         },
         {
           "id": "R-002",
           "risk": "URL validation adds latency to chat responses",
           "likelihood": "Low",
           "impact": "Medium — user waits longer for responses",
-          "mitigation": "Concurrent HEAD requests (ThreadPoolExecutor). TTL cache avoids repeated checks. Trusted domain whitelist skips bot-protected sites. Timeout of 5 seconds per URL.",
-          "ch_matrix_id": "0b272938-5fb0-44c4-8a5f-5327a7b4f342"
+          "mitigation": "Concurrent HEAD requests (ThreadPoolExecutor). TTL cache avoids repeated checks. Trusted domain whitelist skips bot-protected sites. Timeout of 5 seconds per URL."
         },
         {
           "id": "R-003",
           "risk": "Large PR — 1,300 lines moved across 5 files",
           "likelihood": "High",
           "impact": "Medium — hard to review, merge conflicts with any parallel work",
-          "mitigation": "Incremental migration steps. Each step is a separate commit. Can stop after any step with a working app.",
-          "ch_matrix_id": "b4dce8d2-8da7-4368-b79f-f07de125597d"
+          "mitigation": "Incremental migration steps. Each step is a separate commit. Can stop after any step with a working app."
         },
         {
           "id": "R-004",
           "risk": "Trusted domain whitelist becomes stale — Healthgrades/Zocdoc change URL patterns",
           "likelihood": "Low",
           "impact": "Low — worst case is a working but outdated search URL",
-          "mitigation": "We construct these URLs ourselves. If patterns change, update the URL construction in lookup_provider_external.",
-          "ch_matrix_id": "6f1e5943-e2f8-4f06-8bef-1d3838787023"
+          "mitigation": "We construct these URLs ourselves. If patterns change, update the URL construction in lookup_provider_external."
         },
         {
           "id": "R-005",
           "risk": "findcare_app.py at ~800 lines is still large",
           "likelihood": "Certain",
           "impact": "Low — it's cohesive (all business logic), just long",
-          "mitigation": "Can further split in a future sprint if needed. Provider tools and safety system are natural extraction candidates.",
-          "ch_matrix_id": "4567b633-ab7d-471d-bb95-e16ff1e7d462"
+          "mitigation": "Can further split in a future sprint if needed. Provider tools and safety system are natural extraction candidates."
         }
       ],
       "migration_plan": [
@@ -591,43 +560,37 @@
           "step": 1,
           "action": "Create host_config.py with HostConfig dataclass and from_env() factory",
           "test": "Import in main.py, verify all env vars load correctly",
-          "rollback": "Delete host_config.py, revert main.py import",
-          "ch_matrix_id": "eb84aaba-5986-4c0d-88d4-fb462b563177"
+          "rollback": "Delete host_config.py, revert main.py import"
         },
         {
           "step": 2,
           "action": "Extract prompt_factory.py — system prompt, tool schemas, context loading, tool registry",
           "test": "main.py imports PromptFactory, system prompt output matches current",
-          "rollback": "Delete prompt_factory.py, revert main.py",
-          "ch_matrix_id": "17b93aa2-e639-43aa-9e14-af844a4d03ba"
+          "rollback": "Delete prompt_factory.py, revert main.py"
         },
         {
           "step": 3,
           "action": "url_guardian.py already implemented — no action needed",
           "test": "Already passing smoke tests",
-          "rollback": "N/A",
-          "ch_matrix_id": "aa7c99c1-1004-43f3-918a-28121cd8a885"
+          "rollback": "N/A"
         },
         {
           "step": 4,
           "action": "Extract gui_helper.py — FastAPI app creation, CORS, endpoints, static mount",
           "test": "/health, /welcome, /chat endpoints respond identically to pre-refactoring",
-          "rollback": "Delete gui_helper.py, revert main.py",
-          "ch_matrix_id": "a74390a9-714e-4e85-84f3-e44cdd6d1ae6"
+          "rollback": "Delete gui_helper.py, revert main.py"
         },
         {
           "step": 5,
           "action": "Extract findcare_app.py — all remaining business logic",
           "test": "Full e2e: provider search, safety trigger, lead capture, clinical trials, About Us",
-          "rollback": "Delete findcare_app.py, revert main.py",
-          "ch_matrix_id": "d6706d39-992a-4b67-ba3e-9249b0129ee3"
+          "rollback": "Delete findcare_app.py, revert main.py"
         },
         {
           "step": 6,
           "action": "Thin main.py to ~30 lines — entry point only",
           "test": "Full regression. App behaves identically to pre-refactoring.",
-          "rollback": "Revert main.py from git",
-          "ch_matrix_id": "8421e603-b7e4-41b3-8d45-ab5fea9e9a75"
+          "rollback": "Revert main.py from git"
         }
       ],
       "portability_matrix": {
@@ -661,8 +624,7 @@
       },
       "_record_id": "portability_refactoring_report",
       "_source_file": "portability_refactoring_report.json",
-      "description": "Legacy: pre-ARCH-001 portability analysis. Superseded by refactor_design_arch001.",
-      "ch_matrix_id": "def85eee-58cb-4db9-a93e-c3915de2176e"
+      "description": "Legacy: pre-ARCH-001 portability analysis. Superseded by refactor_design_arch001."
     },
     {
       "title": "ChatHealthy.ai — ARCH-001 Refactor Design",
@@ -709,8 +671,7 @@
             "search_providers(criteria: ProviderSearchInput) -> ProviderSearchOutput",
             "identify_specialty(input: SpecialtyInput) -> SpecialtyOutput",
             "get_provider_location(npi: str) -> dict"
-          ],
-          "ch_matrix_id": "7702c056-0eb3-4963-b088-4b14078e2aeb"
+          ]
         },
         "evaluate_care_quality": {
           "facade": "EvaluateCareFacade",
@@ -735,8 +696,7 @@
           ],
           "cross_calls": [
             "EvaluateCareFacade calls FindCareFacade.get_provider_location() for travel calculations"
-          ],
-          "ch_matrix_id": "0c5a87ce-4b30-4eb5-88a8-d8c9c428298b"
+          ]
         }
       },
       "shared_infrastructure": {
@@ -803,8 +763,7 @@
               "stored": "Full chat_history (PII intact), email, name, notes, reason_for_contact",
               "evidence": "Consent exchange itself is included in the stored transcript"
             },
-            "if_no": "Proceed to Tier 2",
-            "ch_matrix_id": "96ea58cd-2fbd-4183-bf7f-9f440a605caf"
+            "if_no": "Proceed to Tier 2"
           },
           {
             "tier": 2,
@@ -820,8 +779,7 @@
               "consent_verbatim": false,
               "consent_summary": false,
               "stored": "Contact fields only (email, name). No history, no summary."
-            },
-            "ch_matrix_id": "c515c530-a5c7-4fcb-a05c-7405fe28d838"
+            }
           }
         ],
         "data_streams": [
@@ -847,8 +805,7 @@
           "consent_summary": "boolean or null",
           "chat_history": "array (present ONLY if consent_verbatim=true)",
           "datetime": "ISO string",
-          "testdata": "boolean",
-          "ch_matrix_id": "5620714b-0eda-4a6b-a965-70b14329d430"
+          "testdata": "boolean"
         },
         "methods": [
           "request_consent(session_id) -> ConsentState",
@@ -889,8 +846,7 @@
           "VerbatimConsentInput: session_id, chat_history, contact_info",
           "SummaryConsentInput: session_id, summary_text, contact_info",
           "ConsentAuditEntry: session_id, action, tier, timestamp, evidence_hash"
-        ],
-        "ch_matrix_id": "2db007be-14bd-4e9a-bd5b-330329aa6e70"
+        ]
       },
       "huggingface_surface": {
         "allowed_files": [
@@ -1135,8 +1091,7 @@
             ],
             "result": "App compiles, behavior unchanged, routing no longer uses globals().get",
             "risk": "LOW",
-            "build": "B-187",
-            "ch_matrix_id": "420c4fbd-889d-48f6-ae62-1b73a35bdbca"
+            "build": "B-187"
           },
           {
             "phase": 2,
@@ -1148,8 +1103,7 @@
             ],
             "result": "One feature fully migrated, validates pattern",
             "risk": "LOW",
-            "build": "B-190",
-            "ch_matrix_id": "bccbb661-668e-4c25-a59a-dd6e21cb42d9"
+            "build": "B-190"
           },
           {
             "phase": 3,
@@ -1160,8 +1114,7 @@
               "Remove corresponding logic from main.py"
             ],
             "risk": "LOW-MEDIUM",
-            "build": "B-191",
-            "ch_matrix_id": "66d50e3e-628a-4492-afdb-ccf80dfacd35"
+            "build": "B-191"
           },
           {
             "phase": 4,
@@ -1173,8 +1126,7 @@
               "Wire facade-to-facade for travel calculations"
             ],
             "risk": "MEDIUM",
-            "build": "B-193",
-            "ch_matrix_id": "a42d260b-9fcb-43bc-8300-d039ff54b38b"
+            "build": "B-193"
           },
           {
             "phase": 5,
@@ -1188,8 +1140,7 @@
               "URLGuardian relocation"
             ],
             "risk": "MEDIUM",
-            "build": "B-194",
-            "ch_matrix_id": "d399d056-56a0-4a10-ba5f-3ad093bd0fb1"
+            "build": "B-194"
           },
           {
             "phase": 6,
@@ -1200,8 +1151,7 @@
               "Gradually enforce typing per tool"
             ],
             "risk": "MEDIUM",
-            "build": "B-195",
-            "ch_matrix_id": "936f4b2a-f9db-4269-9440-62539a9eee8f"
+            "build": "B-195"
           },
           {
             "phase": 7,
@@ -1213,8 +1163,7 @@
               "Zero business logic in HuggingFace surface"
             ],
             "risk": "LOW (if prior phases complete)",
-            "build": "B-196",
-            "ch_matrix_id": "3a51179a-28e2-45d6-8a93-b5b554a2a6d7"
+            "build": "B-196"
           }
         ],
         "safety_mechanisms": [
@@ -1324,127 +1273,109 @@
             "id": "F-01",
             "title": "Three-application separation is clean and well-reasoned",
             "status": "STRENGTH",
-            "response": "Three-application boundary rules preserved. GOV-005 enforced throughout refactor.",
-            "ch_matrix_id": "72fe2427-f013-4eee-84fc-9e3702f20810"
+            "response": "Three-application boundary rules preserved. GOV-005 enforced throughout refactor."
           },
           {
             "id": "F-02",
             "title": "Production-grade pipeline engineering",
             "status": "STRENGTH",
-            "response": "DataPipelines remains independent. No structural changes. GOV-005 alignment confirmed.",
-            "ch_matrix_id": "6fee70f5-ea4f-465e-8789-3905e6d8e047"
+            "response": "DataPipelines remains independent. No structural changes. GOV-005 alignment confirmed."
           },
           {
             "id": "F-03",
             "title": "Safety system is well-designed for a health application",
             "status": "STRENGTH",
-            "response": "Safety system preserved in SafetyService + EmergencyDetector. FDA legal review recommended (before Alpha, not code).",
-            "ch_matrix_id": "671d5f07-a2a5-4920-a101-2254013f2b53"
+            "response": "Safety system preserved in SafetyService + EmergencyDetector. FDA legal review recommended (before Alpha, not code)."
           },
           {
             "id": "F-04",
             "title": "Pipeline framework is correctly designed for AI-operated company",
             "status": "STRENGTH",
-            "response": "Pipeline framework unchanged. Correct for Claude-as-developer model.",
-            "ch_matrix_id": "3dc91de7-2ed6-483a-b48d-a3d1f2627e17"
+            "response": "Pipeline framework unchanged. Correct for Claude-as-developer model."
           },
           {
             "id": "F-05",
             "title": "globals().get(name) tool dispatch is a security surface",
             "status": "RESOLVED",
-            "response": "ToolRouter allowlist replaces globals() dispatch. Phase 1 (B-187).",
-            "ch_matrix_id": "2ae7d1d3-ecbf-4d80-86f8-2802c2c39b27"
+            "response": "ToolRouter allowlist replaces globals() dispatch. Phase 1 (B-187)."
           },
           {
             "id": "F-06",
             "title": "Durable Functions status URL exposes orchestration state",
             "status": "DEFERRED",
-            "response": "Add APIKeyMiddleware to DataPipelines status endpoint. Pipeline concern, not chat refactor. Deferred to next sprint.",
-            "ch_matrix_id": "22742ce9-1b7a-48ef-b58a-7e7d0eff63cd"
+            "response": "Add APIKeyMiddleware to DataPipelines status endpoint. Pipeline concern, not chat refactor. Deferred to next sprint."
           },
           {
             "id": "F-07",
             "title": "main.py monolith is a velocity blocker",
             "status": "RESOLVED",
-            "response": "main.py eliminated in Phase 7 (B-196). Replaced by modular domain architecture.",
-            "ch_matrix_id": "559c99e5-41bf-438f-ad07-9fb8fcd7e4c8"
+            "response": "main.py eliminated in Phase 7 (B-196). Replaced by modular domain architecture."
           },
           {
             "id": "F-08",
             "title": "Three-state coverage is thin but rationale is sound",
             "status": "DEFERRED",
-            "response": "Pipeline data run, not code change. Deferred to next sprint.",
-            "ch_matrix_id": "ee46b721-33f4-483e-a595-29b124aaa2a4"
+            "response": "Pipeline data run, not code change. Deferred to next sprint."
           },
           {
             "id": "F-09",
             "title": "Emergency keyword list has coverage gaps",
             "status": "RESOLVED",
-            "response": "EmergencyDetector with config-driven keywords from brain/machine_artifacts/emergency_keywords.json. Phase 5 + B-189.",
-            "ch_matrix_id": "32bcba01-502f-4c5d-b9b5-8d57249ba0b4"
+            "response": "EmergencyDetector with config-driven keywords from brain/machine_artifacts/emergency_keywords.json. Phase 5 + B-189."
           },
           {
             "id": "F-10",
             "title": "Vector search hard cap of 10 results is too restrictive",
             "status": "RESOLVED",
-            "response": "Configurable limit in ProviderSearchService (default 25). B-192.",
-            "ch_matrix_id": "7d90567f-a0f7-4a1d-89fa-1d08c63ee1ff"
+            "response": "Configurable limit in ProviderSearchService (default 25). B-192."
           },
           {
             "id": "F-11",
             "title": "FIPS hack should be resolved in next pipeline run",
             "status": "DEFERRED",
-            "response": "Pipeline re-run required. Deferred to next sprint.",
-            "ch_matrix_id": "c12eb06c-ff75-474b-8037-238fa8479053"
+            "response": "Pipeline re-run required. Deferred to next sprint."
           },
           {
             "id": "F-12",
             "title": "DeepSeek disclosure in privacy policy is incomplete",
             "status": "DEFERRED",
-            "response": "Legal/copy concern. Deferred to next sprint.",
-            "ch_matrix_id": "60a02419-17db-4c7a-9e57-430700410903"
+            "response": "Legal/copy concern. Deferred to next sprint."
           },
           {
             "id": "F-13",
             "title": "Architecture documentation is publicly accessible",
             "status": "DEFERRED",
-            "response": "human decision required on access gate before Alpha.",
-            "ch_matrix_id": "b3462baf-a479-42ec-b493-f0a05b909c63"
+            "response": "human decision required on access gate before Alpha."
           },
           {
             "id": "F-14",
             "title": "Documentation inconsistencies",
             "status": "DEFERRED",
-            "response": "Copyright year, broken links, nav button. Low priority, deferred.",
-            "ch_matrix_id": "a1838a59-613d-4fe6-a140-c8a7654f2d84"
+            "response": "Copyright year, broken links, nav button. Low priority, deferred."
           },
           {
             "id": "F-15",
             "title": "Brain governance system is an effective SDLC",
             "status": "STRENGTH",
-            "response": "Brain governance preserved and strengthened. GPT Reader service extends GPT's independent audit capability.",
-            "ch_matrix_id": "3e67ef19-fe85-4e81-8615-2d1d45508fce"
+            "response": "Brain governance preserved and strengthened. GPT Reader service extends GPT's independent audit capability."
           },
           {
             "id": "F-16",
             "title": "Brain lock has no deadlock recovery",
             "status": "ACKNOWLEDGED",
-            "response": "BrainLockManager with TTL design documented. Implementation deferred to v0.1.4 (BL-003).",
-            "ch_matrix_id": "9cd1cd67-d1c3-4779-bbef-88115947d955"
+            "response": "BrainLockManager with TTL design documented. Implementation deferred to v0.1.4 (BL-003)."
           },
           {
             "id": "F-17",
             "title": "Server-side scope enforcement must be independent of Claude",
             "status": "RESOLVED",
-            "response": "ToolRouter + Pydantic validation enforces server-side. No tool can be called without being in the allowlist.",
-            "ch_matrix_id": "85aeaea6-22f4-4090-bd84-1eeb79f46779"
+            "response": "ToolRouter + Pydantic validation enforces server-side. No tool can be called without being in the allowlist."
           },
           {
             "id": "F-18",
             "title": "Audit should cover Claude's actions too",
             "status": "ACKNOWLEDGED",
-            "response": "Central structured logging planned in Code/Shared/logging/. Claude audit trail deferred to v0.1.4 (BL-004).",
-            "ch_matrix_id": "5dfdcebf-1f70-4b42-832b-a2596a63cb23"
+            "response": "Central structured logging planned in Code/Shared/logging/. Claude audit trail deferred to v0.1.4 (BL-004)."
           }
         ],
         "summary": {
@@ -1467,22 +1398,19 @@
                 "id": "B-187",
                 "task": "ARCH-001 Phase 1: Skeleton Architecture + ToolRouter",
                 "risk": "LOW",
-                "deploy": "dev",
-                "ch_matrix_id": "559d04cb-a2f2-45da-aa8a-217ede6b4710"
+                "deploy": "dev"
               },
               {
                 "id": "B-188",
                 "task": "Maps: Provider search results on map",
                 "risk": "LOW-MEDIUM",
-                "deploy": "dev",
-                "ch_matrix_id": "79e91adb-e05f-4ed9-90f9-20441b0e9af9"
+                "deploy": "dev"
               },
               {
                 "id": "B-189",
                 "task": "F-09: Expand emergency keyword list",
                 "risk": "LOW",
-                "deploy": "dev",
-                "ch_matrix_id": "c5d86eba-bedb-41eb-b3e3-5702916b88ea"
+                "deploy": "dev"
               }
             ]
           },
@@ -1494,22 +1422,19 @@
                 "id": "B-190",
                 "task": "ARCH-001 Phase 2: Extract ProviderSearchService",
                 "risk": "LOW",
-                "deploy": "dev",
-                "ch_matrix_id": "ab13bc6c-cf9d-4380-a283-b037217528a9"
+                "deploy": "dev"
               },
               {
                 "id": "B-191",
                 "task": "ARCH-001 Phase 3: Extract SpecialtyService",
                 "risk": "LOW-MEDIUM",
-                "deploy": "dev",
-                "ch_matrix_id": "b355c493-ff10-4b48-91a2-1f1f01b5ffc6"
+                "deploy": "dev"
               },
               {
                 "id": "B-192",
                 "task": "F-10: Raise provider search result cap to 25",
                 "risk": "LOW",
-                "deploy": "dev",
-                "ch_matrix_id": "75e624bf-d739-442d-8e63-e05f7d1afad2"
+                "deploy": "dev"
               }
             ]
           },
@@ -1521,15 +1446,13 @@
                 "id": "B-193",
                 "task": "ARCH-001 Phase 4: Extract ClinicalTrialsService + ProviderDetailService",
                 "risk": "MEDIUM",
-                "deploy": "dev",
-                "ch_matrix_id": "f95cec7f-295d-4c7d-a131-8aa84fd75923"
+                "deploy": "dev"
               },
               {
                 "id": "B-194",
                 "task": "ARCH-001 Phase 5: Extract Shared Services",
                 "risk": "MEDIUM",
-                "deploy": "dev",
-                "ch_matrix_id": "d859d06a-66c8-45a8-a182-4eae2ab37a9c"
+                "deploy": "dev"
               }
             ]
           },
@@ -1541,22 +1464,19 @@
                 "id": "B-195",
                 "task": "ARCH-001 Phase 6: Pydantic tool models",
                 "risk": "MEDIUM",
-                "deploy": "dev",
-                "ch_matrix_id": "33c04ea1-4693-402f-8e6e-44b7ea854188"
+                "deploy": "dev"
               },
               {
                 "id": "B-196",
                 "task": "ARCH-001 Phase 7: Delete main.py",
                 "risk": "LOW",
-                "deploy": "dev",
-                "ch_matrix_id": "2d33aca4-cdba-4055-8002-af63387cb586"
+                "deploy": "dev"
               },
               {
                 "id": "B-197",
                 "task": "Full regression test + SIT",
                 "risk": "LOW",
-                "deploy": "dev",
-                "ch_matrix_id": "e427a242-a3de-43b8-840e-5bc9a7a38e61"
+                "deploy": "dev"
               }
             ]
           },
@@ -1568,15 +1488,13 @@
                 "id": "B-198",
                 "task": "Promote to QA",
                 "risk": "LOW",
-                "deploy": "qa",
-                "ch_matrix_id": "e6b9be52-0221-45be-acc2-662978b8b004"
+                "deploy": "qa"
               },
               {
                 "id": "B-199",
                 "task": "human UAT on QA",
                 "risk": "N/A",
-                "deploy": "qa",
-                "ch_matrix_id": "7fa108e4-2e55-4099-9943-2069ac3a70f9"
+                "deploy": "qa"
               }
             ]
           },
@@ -1588,15 +1506,13 @@
                 "id": "B-200",
                 "task": "Fix any UAT bugs",
                 "risk": "VARIES",
-                "deploy": "qa",
-                "ch_matrix_id": "71b1edd3-0d7f-49ce-9aff-f0e6e631b0e5"
+                "deploy": "qa"
               },
               {
                 "id": "B-201",
                 "task": "Promote to Production",
                 "risk": "LOW (if QA passed)",
-                "deploy": "prod",
-                "ch_matrix_id": "9817304e-2271-4101-a90a-f6aedf99cd2f"
+                "deploy": "prod"
               }
             ]
           }
@@ -1605,26 +1521,22 @@
           {
             "id": "F-05",
             "title": "ToolRouter replaces globals() dispatch",
-            "day": "Tuesday (Phase 1)",
-            "ch_matrix_id": "12abadaa-7909-4bb7-b8c7-473a17481372"
+            "day": "Tuesday (Phase 1)"
           },
           {
             "id": "F-09",
             "title": "Emergency keyword expansion",
-            "day": "Tuesday",
-            "ch_matrix_id": "0a3a37e6-d49a-464b-a1eb-27baa88cfbbb"
+            "day": "Tuesday"
           },
           {
             "id": "F-10",
             "title": "Provider search cap raised to 25",
-            "day": "Wednesday",
-            "ch_matrix_id": "7b45cab0-f4e7-437c-82b8-64e74bf1c0ed"
+            "day": "Wednesday"
           },
           {
             "id": "MAPS",
             "title": "Interactive map for provider search results",
-            "day": "Tuesday",
-            "ch_matrix_id": "7365f56f-9815-425e-877c-1fafba6edcf3"
+            "day": "Tuesday"
           }
         ],
         "deferred_to_next_sprint": [
@@ -1823,8 +1735,7 @@
             "model": "text-embedding-3-large",
             "why": "3072-dim embeddings for high-quality vector search. OpenAI's best embedding model. Used for both runtime queries and batch pipeline."
           }
-        ],
-        "ch_matrix_id": "491ed22a-265a-4d54-a37e-24ca8d2893f8"
+        ]
       },
       "appendix_traceability": {
         "title": "Appendix B: PDF-to-JSON Traceability Matrix",
@@ -1943,8 +1854,7 @@
             "json_class": "ProviderSearchService",
             "json_path": "business_components.find_care.services[0]",
             "tool": "find_providers",
-            "test": "test_provider_search_service.py",
-            "ch_matrix_id": "cdfa629f-a88a-4684-b3f9-15aaf2bdc849"
+            "test": "test_provider_search_service.py"
           },
           {
             "uat_feature": 2,
@@ -1952,8 +1862,7 @@
             "json_class": "SpecialtyService",
             "json_path": "business_components.find_care.services[1]",
             "tool": "find_specialty_codes",
-            "test": "test_specialty_service.py",
-            "ch_matrix_id": "dc03e273-5f30-4b00-9bc9-68f9f5694a79"
+            "test": "test_specialty_service.py"
           },
           {
             "uat_feature": 3,
@@ -1961,8 +1870,7 @@
             "json_class": "ClinicalTrialsService",
             "json_path": "business_components.evaluate_care_quality.services[0]",
             "tool": "search_clinical_trials",
-            "test": "test_clinical_trials_service.py",
-            "ch_matrix_id": "4cc95d85-daf8-435d-8318-9afce4a1e46e"
+            "test": "test_clinical_trials_service.py"
           },
           {
             "uat_feature": 4,
@@ -1970,8 +1878,7 @@
             "json_class": "AboutService",
             "json_path": "shared_infrastructure.services[4]",
             "tool": "get_skip_snow_context / get_chathealthy_context",
-            "test": "N/A (static content)",
-            "ch_matrix_id": "717d56b9-136f-4a5f-b1f4-0ebd6b94f9c8"
+            "test": "N/A (static content)"
           },
           {
             "uat_feature": 5,
@@ -1979,8 +1886,7 @@
             "json_class": "SafetyService + EmergencyDetector",
             "json_path": "shared_infrastructure.services[0-1]",
             "tool": "N/A (pre-tool gating)",
-            "test": "test_safety_service.py + test_emergency_detector.py",
-            "ch_matrix_id": "23636b9f-8bf0-498a-b15c-187378ccd9fe"
+            "test": "test_safety_service.py + test_emergency_detector.py"
           },
           {
             "uat_feature": 6,
@@ -1988,8 +1894,7 @@
             "json_class": "LeadService",
             "json_path": "shared_infrastructure.services[3]",
             "tool": "record_user_details",
-            "test": "test_lead_service.py",
-            "ch_matrix_id": "54ec4339-3938-4280-8434-63e7e275f48c"
+            "test": "test_lead_service.py"
           },
           {
             "uat_feature": 7,
@@ -1997,8 +1902,7 @@
             "json_class": "ConsentService",
             "json_path": "shared_infrastructure.services[2] + consent_flow",
             "tool": "request_consent / record_verbatim_consent / record_summary_consent",
-            "test": "test_consent_service.py",
-            "ch_matrix_id": "2cdc578a-baed-4f1f-a06a-d323be123be4"
+            "test": "test_consent_service.py"
           },
           {
             "uat_feature": 8,
@@ -2006,8 +1910,7 @@
             "json_class": "ProviderDetailService",
             "json_path": "business_components.evaluate_care_quality.services[1]",
             "tool": "lookup_provider_external",
-            "test": "test_provider_detail_service.py",
-            "ch_matrix_id": "0512d9c3-d8e8-426d-a692-2ac805dff060"
+            "test": "test_provider_detail_service.py"
           },
           {
             "uat_feature": 9,
@@ -2015,8 +1918,7 @@
             "json_class": "URLGuardian",
             "json_path": "shared_infrastructure.services[6]",
             "tool": "N/A (post-response filter)",
-            "test": "N/A (existing tests)",
-            "ch_matrix_id": "1300c758-d940-4d0e-a030-5de7b005b450"
+            "test": "N/A (existing tests)"
           },
           {
             "uat_feature": 10,
@@ -2024,8 +1926,7 @@
             "json_class": "SessionManager",
             "json_path": "repo_structure...application/session_manager.py",
             "tool": "N/A (application layer)",
-            "test": "test_chat_orchestrator.py",
-            "ch_matrix_id": "2be30928-acbf-4a50-8bfd-14a20ad8c046"
+            "test": "test_chat_orchestrator.py"
           },
           {
             "uat_feature": 11,
@@ -2033,8 +1934,7 @@
             "json_class": "BlobStorageClient",
             "json_path": "Code/DataPipelines/ (unchanged)",
             "tool": "N/A (infrastructure)",
-            "test": "N/A (pipeline concern)",
-            "ch_matrix_id": "739fd9f5-fb95-4758-9e93-7702f44dc3b8"
+            "test": "N/A (pipeline concern)"
           },
           {
             "uat_feature": 12,
@@ -2042,8 +1942,7 @@
             "json_class": "UnknownQuestionService",
             "json_path": "shared_infrastructure.services[5]",
             "tool": "record_unknown_question",
-            "test": "test_unknown_question_service.py",
-            "ch_matrix_id": "36343707-acc5-47e3-abf0-993f7ede04c4"
+            "test": "test_unknown_question_service.py"
           },
           {
             "uat_feature": 13,
@@ -2051,8 +1950,7 @@
             "json_class": "N/A",
             "json_path": "frontend_architecture.structure.rendering",
             "tool": "N/A (frontend only)",
-            "test": "N/A (frontend)",
-            "ch_matrix_id": "746d2c3f-73c1-414f-aec7-9a7062d3afbf"
+            "test": "N/A (frontend)"
           }
         ],
         "perplexity_finding_traceability": [
@@ -2147,14 +2045,12 @@
             "status": "TRACED"
           }
         ],
-        "compliance_result": "ALL TRACED — 21 PDF sections map to JSON keys. 13 UAT features traced to classes, tools, and tests. 18 Perplexity findings traced to JSON responses. Zero orphans.",
-        "ch_matrix_id": "33c8ec5d-5d27-408a-ba7b-66e464f76e56"
+        "compliance_result": "ALL TRACED — 21 PDF sections map to JSON keys. 13 UAT features traced to classes, tools, and tests. 18 Perplexity findings traced to JSON responses. Zero orphans."
       },
       "_record_id": "refactor_design_arch001",
       "_source_file": "refactor_design_arch001.json",
       "description": "ARCH-001 approved design: 4-layer modular monolith, 2 facades, 9 services, 7-phase migration.",
-      "business_artifact": "brain/BusinessArtifacts/refactor_design_arch001.pdf",
-      "ch_matrix_id": "1ef5f7c6-6a17-4352-a536-bdc7e19c5d15"
+      "business_artifact": "brain/BusinessArtifacts/refactor_design_arch001.pdf"
     },
     {
       "title": "FindCare Backend Portability Refactoring — Sprint 2 Design",
@@ -2376,38 +2272,32 @@
         {
           "step": 1,
           "action": "Create host_config.py with HostConfig dataclass and from_env() factory",
-          "test": "Import in main.py, verify all env vars load correctly",
-          "ch_matrix_id": "92db5550-4f45-4c70-9c03-9fe9dde52400"
+          "test": "Import in main.py, verify all env vars load correctly"
         },
         {
           "step": 2,
           "action": "Extract prompt_factory.py — system prompt, tool schemas, context loading, tool registry",
-          "test": "main.py imports PromptFactory, system prompt matches current output",
-          "ch_matrix_id": "3e6580c8-ef04-4c63-9d53-09ead50fb510"
+          "test": "main.py imports PromptFactory, system prompt matches current output"
         },
         {
           "step": 3,
           "action": "url_guardian.py already exists — no action needed",
-          "test": "Already passing smoke tests",
-          "ch_matrix_id": "b81c4993-fe21-41dd-b166-520c54658498"
+          "test": "Already passing smoke tests"
         },
         {
           "step": 4,
           "action": "Extract gui_helper.py — FastAPI app, CORS, endpoints, static mount",
-          "test": "/health, /welcome, /chat endpoints respond identically",
-          "ch_matrix_id": "8bb1b44e-cbc7-434d-ad0c-2820baebcfcf"
+          "test": "/health, /welcome, /chat endpoints respond identically"
         },
         {
           "step": 5,
           "action": "Extract findcare_app.py — all business logic",
-          "test": "Full e2e test: provider search, safety, lead capture, clinical trials",
-          "ch_matrix_id": "8b7061fe-1ea7-4e11-b6ca-0bb7d1a37eb7"
+          "test": "Full e2e test: provider search, safety, lead capture, clinical trials"
         },
         {
           "step": 6,
           "action": "Thin main.py to ~30 lines",
-          "test": "Full regression — app behaves identically to pre-refactoring",
-          "ch_matrix_id": "8ec6bf16-e523-4ae1-8e62-e02ebdf67779"
+          "test": "Full regression — app behaves identically to pre-refactoring"
         }
       ],
       "prescreen_design": {
@@ -2437,8 +2327,7 @@
         "cost": "Zero additional API calls - replaces existing safety check, adds answerability to same prompt",
         "status": "Sprint 2 - part of portability refactoring",
         "proposed_by": "Claude Opus 4.6",
-        "boss_approval": "Not yet reviewed. Skip has neither agreed nor disagreed with this approach.",
-        "ch_matrix_id": "700ce0e7-3853-4713-8271-0a3f6061c517"
+        "boss_approval": "Not yet reviewed. Skip has neither agreed nor disagreed with this approach."
       },
       "portability_matrix": {
         "huggingface_docker": {
@@ -2476,15 +2365,13 @@
       ],
       "_record_id": "refactor_design_final",
       "_source_file": "refactor_design_final.json",
-      "description": "Legacy: Sprint 2 portability design. Superseded by refactor_design_arch001.",
-      "ch_matrix_id": "d381db68-7674-40ac-92d2-abf8a3c935c9"
+      "description": "Legacy: Sprint 2 portability design. Superseded by refactor_design_arch001."
     },
     {
       "_record_id": "refactor_proposal_iteration1",
       "_source_file": "refactor_proposal_iteration1.json",
       "content": "{\n  \"iteration\": 1,\n  \"summary\": \"Modular monolith refactor with strict host adapter boundary. Two business domains (FindCare, EvaluateCareQuality) with explicit service classes per UAT feature. HuggingFace reduced to entrypoint + adapter only.\",\n  \"top_level_architecture\": {\n    \"pattern\": \"Modular Monolith (single process, domain-separated)\",\n    \"layers\": [\n      \"Host Adapter (HuggingFace only)\",\n      \"Application Layer (use cases / orchestration)\",\n      \"Domain Layer (business logic)\",\n      \"Infrastructure Layer (external APIs, DB, embeddings)\"\n    ],\n    \"dependency_direction\": \"Host -> Application -> Domain -> Infrastructure (no upward imports)\"\n  },\n  \"huggingface_surface\": {\n    \"allowed_files\": [\n      \"app.py\",\n      \"requirements.txt\",\n      \"static/\"\n    ],\n    \"responsibilities\": [\n      \"HTTP routing\",\n      \"request/response translation\",\n      \"stream relay\",\n      \"no business logic\"\n    ],\n    \"adapter_class\": \"HostChatAdapter\"\n  },\n  \"proposed_repo_structure\": {\n    \"Code/ConversationalUX/FindCareChat/\": {\n      \"app.py\": \"HuggingFace entrypoint only\",\n      \"adapter/host_chat_adapter.py\": \"Translates HTTP <-> Application\",\n      \"application/\": {\n        \"chat_orchestrator.py\": \"Main orchestrator replacing main.py\",\n        \"tool_router.py\": \"Safe tool dispatch (replaces globals().get)\",\n        \"session_manager.py\": \"Chat state + timer\"\n      },\n      \"domain/\": {\n        \"find_care/\": {\n          \"provider_search_service.py\": \"Feature 1\",\n          \"specialty_service.py\": \"Feature 2\",\n          \"provider_detail_service.py\": \"Feature 8\"\n        },\n        \"evaluate_care_quality/\": {\n          \"clinical_trials_service.py\": \"Feature 3\"\n        },\n        \"shared/\": {\n          \"safety/\": {\n            \"safety_service.py\": \"Feature 5\",\n            \"emergency_detector.py\": \"F-09 fix\"\n          },\n          \"consent/\": {\n            \"consent_service.py\": \"Feature 7\"\n          },\n          \"lead_capture/\": {\n            \"lead_service.py\": \"Feature 6\"\n          },\n          \"content/\": {\n            \"about_service.py\": \"Feature 4\"\n          },\n          \"unknowns/\": {\n            \"unknown_question_service.py\": \"Feature 12\"\n          },\n          \"url/\": {\n            \"url_guardian.py\": \"Feature 9 (existing, moved)\"\n          }\n        }\n      },\n      \"infrastructure/\": {\n        \"mongo/\": {\n          \"provider_repository.py\": \"read-only queries\"\n        },\n        \"external_apis/\": {\n          \"npi_client.py\",\n          \"clinical_trials_client.py\",\n          \"google_routes_client.py\"\n        },\n        \"embeddings/\": {\n          \"embedding_client.py\"\n        }\n      }\n    },\n    \"Code/DataPipelines/\": {\n      \"no_change\": \"Acknowledged (F-02 strength)\",\n      \"security_patch\": \"Add auth to status endpoint (F-06)\"\n    },\n    \"Code/Shared/\": {\n      \"logging/\": \"central logger\",\n      \"config/\": \"env config loader\"\n    }\n  },\n  \"tooling_design\": {\n    \"tool_router_class\": \"ToolRouter\",\n    \"registration_pattern\": \"explicit dict mapping tool_name -> callable\",\n    \"example\": {\n      \"provider_search\": \"ProviderSearchService.search()\",\n      \"clinical_trials\": \"ClinicalTrialsService.search()\"\n    },\n    \"fixes\": [\n      \"F-05 eliminate globals().get\",\n      \"F-17 server-side enforcement via router allowlist\"\n    ]\n  },\n  \"application_layer\": {\n    \"chat_orchestrator_class\": \"ChatOrchestrator\",\n    \"methods\": [\n      \"handle_user_message(session_id, message)\",\n      \"invoke_tool(tool_name, args)\",\n      \"build_system_prompt()\"\n    ],\n    \"responsibilities\": [\n      \"LLM interaction\",\n      \"tool selection loop\",\n      \"safety gating before/after tool calls\"\n    ]\n  },\n  \"uat_feature_mapping\": [\n    {\n      \"feature\": \"Provider Search\",\n      \"class\": \"ProviderSearchService\",\n      \"justification\": \"Core FindCare domain logic\"\n    },\n    {\n      \"feature\": \"Specialty Identification\",\n      \"class\": \"SpecialtyService\",\n      \"justification\": \"Distinct NLP + taxonomy mapping\"\n    },\n    {\n      \"feature\": \"Clinical Trials Search\",\n      \"class\": \"ClinicalTrialsService\",\n      \"justification\": \"EvaluateCareQuality domain separation\"\n    },\n    {\n      \"feature\": \"About ChatHealthy\",\n      \"class\": \"AboutService\",\n      \"justification\": \"Static content but tool-exposed\"\n    },\n    {\n      \"feature\": \"Safety Filter\",\n      \"class\": \"SafetyService\",\n      \"justification\": \"Cross-cutting, must be centralized\"\n    },\n    {\n      \"feature\": \"Lead Capture\",\n      \"class\": \"LeadService\",\n      \"justification\": \"Separate consent + storage boundary\"\n    },\n    {\n      \"feature\": \"Consent Framework\",\n      \"class\": \"ConsentService\",\n      \"justification\": \"Regulatory separation required\"\n    },\n    {\n      \"feature\": \"Provider Detail\",\n      \"class\": \"ProviderDetailService\",\n      \"justification\": \"Distinct NPI lookup logic\"\n    },\n    {\n      \"feature\": \"URL Guardian\",\n      \"class\": \"URLGuardian\",\n      \"justification\": \"Already isolated, reused\"\n    },\n    {\n      \"feature\": \"Chat UX\",\n      \"class\": \"SessionManager\",\n      \"justification\": \"Application-level state, not domain\"\n    },\n    {\n      \"feature\": \"Blob Storage Infrastructure\",\n      \"class\": \"BlobStorageClient\",\n      \"justification\": \"Infrastructure concern\"\n    },\n    {\n      \"feature\": \"Unanswerable Question Handling\",\n      \"class\": \"UnknownQuestionService\",\n      \"justification\": \"Distinct fallback pathway\"\n    },\n    {\n      \"feature\": \"Markdown Table Rendering\",\n      \"class\": \"FrontendOnly\",\n      \"justification\": \"Pure React concern\"\n    }\n  ],\n  \"security_fixes\": {\n    \"F-05\": \"ToolRouter allowlist replaces globals dispatch\",\n    \"F-06\": \"Add API key validation middleware to pipeline status endpoint\",\n    \"F-09\": \"EmergencyDetector with configurable keyword + embedding similarity\",\n    \"F-17\": \"All tool access enforced server-side via router\",\n    \"F-16\": \"Add BrainLockManager with TTL (design only, not implemented)\"\n  },\n  \"performance_fixes\": {\n    \"F-10\": \"Configurable result limit (default 25, adaptive based on query intent)\"\n  },\n  \"governance_alignment\": {\n    \"GOV-001\": \"No provider prioritization logic in services\",\n    \"GOV-002\": \"Single-tenant config enforced in Config\",\n    \"GOV-004\": \"LLM suggests, ToolRouter enforces execution\",\n    \"GOV-005\": \"Strict separation preserved\"\n  },\n  \"open_questions\": [\n    \"Should ChatOrchestrator own system prompt or move to PromptBuilder class?\",\n    \"Do we unify FindCare + EvaluateCareQuality under a single facade service?\",\n    \"How strict should tool input validation be (pydantic vs lightweight)?\"\n  ]\n}",
-      "description": "GPT-5.3 initial design proposal. Input to ARCH-001 iteration process.",
-      "ch_matrix_id": "3c4382ca-e2b5-485e-870b-c5f9feb9d32b"
+      "description": "GPT-5.3 initial design proposal. Input to ARCH-001 iteration process."
     },
     {
       "iteration": 2,
@@ -2712,8 +2599,7 @@
       },
       "_record_id": "refactor_proposal_iteration3",
       "_source_file": "refactor_proposal_iteration3.json",
-      "description": "GPT-5.3 revised proposal after human sign-off on 3 open questions.",
-      "ch_matrix_id": "70798fbc-31dd-48ea-b1d7-3dafb0ab6ec1"
+      "description": "GPT-5.3 revised proposal after human sign-off on 3 open questions."
     },
     {
       "iteration": 3,
@@ -2731,8 +2617,7 @@
               "Wrap existing functions with adapter methods (no logic moved yet)"
             ],
             "result": "App compiles, behavior unchanged, routing no longer uses globals().get",
-            "risk": "LOW",
-            "ch_matrix_id": "937693a8-910a-4069-928b-88d41dbbe5f1"
+            "risk": "LOW"
           },
           {
             "phase": 2,
@@ -2743,8 +2628,7 @@
               "Update ToolRouter to call facade instead of main.py"
             ],
             "result": "One feature fully migrated, validates pattern",
-            "risk": "LOW",
-            "ch_matrix_id": "be967943-156f-4c93-bc82-045ff7932194"
+            "risk": "LOW"
           },
           {
             "phase": 3,
@@ -2754,8 +2638,7 @@
               "Wire through FindCareFacade",
               "Remove corresponding logic from main.py"
             ],
-            "risk": "LOW-MEDIUM",
-            "ch_matrix_id": "7977061f-7832-4d11-be4e-9957e6aa8f50"
+            "risk": "LOW-MEDIUM"
           },
           {
             "phase": 4,
@@ -2765,8 +2648,7 @@
               "Move ProviderDetailService",
               "Introduce EvaluateCareFacade"
             ],
-            "risk": "MEDIUM",
-            "ch_matrix_id": "c4ead86f-6188-4423-a8a3-e2e48af15e6c"
+            "risk": "MEDIUM"
           },
           {
             "phase": 5,
@@ -2779,8 +2661,7 @@
               "AboutService",
               "URLGuardian relocation"
             ],
-            "risk": "MEDIUM (cross-cutting concerns)",
-            "ch_matrix_id": "ffa4df39-ef99-4de8-8d4e-5cce1bcbac99"
+            "risk": "MEDIUM (cross-cutting concerns)"
           },
           {
             "phase": 6,
@@ -2790,8 +2671,7 @@
               "Wrap ToolRouter validation layer",
               "Gradually enforce typing per tool"
             ],
-            "risk": "MEDIUM (schema mismatches)",
-            "ch_matrix_id": "b37558a6-7154-447e-9620-7d6c2dcc1009"
+            "risk": "MEDIUM (schema mismatches)"
           },
           {
             "phase": 7,
@@ -2801,8 +2681,7 @@
               "Ensure all calls go through orchestrator + services",
               "Rename app entrypoint"
             ],
-            "risk": "LOW (if prior phases complete)",
-            "ch_matrix_id": "2e8db4d7-92c7-41d9-baaa-57d4e9215b04"
+            "risk": "LOW (if prior phases complete)"
           }
         ],
         "safety_mechanism": [
@@ -2901,8 +2780,7 @@
       ],
       "_record_id": "refactor_proposal_iteration5",
       "_source_file": "refactor_proposal_iteration5.json",
-      "description": "GPT-5.3 final proposal: migration plan, frontend, testing, entrypoint.",
-      "ch_matrix_id": "c41d334c-48c0-4dbd-8c62-6d654039128a"
+      "description": "GPT-5.3 final proposal: migration plan, frontend, testing, entrypoint."
     },
     {
       "title": "Portability Refactoring Results",
@@ -2911,8 +2789,7 @@
       "results": [],
       "_record_id": "refactor_results",
       "_source_file": "refactor_results.json",
-      "description": "Legacy: portability refactoring execution results. Superseded.",
-      "ch_matrix_id": "0e4d3424-1719-43e9-b82f-f4503abc3c7a"
+      "description": "Legacy: portability refactoring execution results. Superseded."
     },
     {
       "_record_id": "business_diagrams",
@@ -2929,8 +2806,7 @@
         "moat_diagram.png",
         "revenue_flow.png",
         "value_chain.png"
-      ],
-      "ch_matrix_id": "ddfe2a27-a9f4-483a-bb0c-cada3a64e206"
+      ]
     },
     {
       "title": "DevOps Build Numbering and Promotion",
@@ -2969,8 +2845,7 @@
           "ENV_PREFIX is set per deployment (dev, qa, prod) and routes all DB access",
           "Pipeline cluster stores ZERO admin/devops state — all state on frontend cluster (DR-020)",
           "admin.manifest must include all MongoDB collections, not just files (DR-021)"
-        ],
-        "ch_matrix_id": "c5256e78-d811-460a-825f-3ebfe3364bda"
+        ]
       },
       "build_number": {
         "description": "System-wide atomic counter. One number tracks all changes across all components.",
@@ -2983,8 +2858,7 @@
           "Promotion DOES increment — every promotion (code or data) bumps the target environment's build counter",
           "The number is the audit trail: what was tested is what shipped",
           "A promotion (code or data) is a build — always bumps target environment counter"
-        ],
-        "ch_matrix_id": "d864a4a6-c34a-4d89-9697-33d4d8b592f9"
+        ]
       },
       "promotion_flow": {
         "dev_to_qa": {
@@ -3004,8 +2878,7 @@
         "description": "Manual semantic version (e.g., v0.1.2). Set in APP_VERSION env var.",
         "managed_by": "human",
         "storage": ".env file + HF Space secrets",
-        "increment_rule": "human decides when to bump version. Build number is automatic.",
-        "ch_matrix_id": "4a7e1718-9583-44f9-a897-50c96814f464"
+        "increment_rule": "human decides when to bump version. Build number is automatic."
       },
       "components": {
         "website": {
@@ -3042,8 +2915,7 @@
           "root_cause": "RULE 2 too aggressive — 'You know NOTHING else' blocks factual health knowledge that aids navigation.",
           "fix": "Prompt tuning: distinguish factual health questions from personal medical advice.",
           "status": "open",
-          "source": "architecture.json",
-          "ch_matrix_id": "b3fa3a67-458f-49ec-bcae-40984b5752b4"
+          "source": "architecture.json"
         },
         {
           "id": "BUG-PERF-001",
@@ -3052,15 +2924,13 @@
           "root_cause": "PromoteData copied provider data without creating the vector search index. Fixed in build 168 — index creation is now automatic. Residual risk: index build time on Atlas (1-2 minutes after creation) during which queries are slow.",
           "fix": "Index creation added to PromoteData. Monitor for any remaining slow queries after index is confirmed ready.",
           "status": "open",
-          "source": "architecture.json",
-          "ch_matrix_id": "c90afe7a-90a7-4465-893a-6578c5ba83f7"
+          "source": "architecture.json"
         }
       ],
       "_record_id": "devops_build_promotion",
       "_source_file": "devops_build_promotion.json",
       "description": "Build numbering, env-prefix routing, promotion pipeline (dev to qa to prod).",
-      "publish": false,
-      "ch_matrix_id": "bf8a49c4-f817-4eb8-9fef-a5070d01817d"
+      "publish": false
     },
     {
       "title": "ChatHealthyBIZOperations Infrastructure",
@@ -3074,18 +2944,15 @@
           "name": "TBD",
           "runtime": "python",
           "plan": "Consumption",
-          "purpose": "BizOps long-running agent — grooms chatLog, accepts heartbeats, sends alerts",
-          "ch_matrix_id": "59f711eb-0206-42ed-9715-1e24397a082b"
+          "purpose": "BizOps long-running agent — grooms chatLog, accepts heartbeats, sends alerts"
         },
         "storage_account": {
           "name": "TBD",
-          "purpose": "Required by Function App",
-          "ch_matrix_id": "5c017f58-5192-4676-9730-f8e22cf939d3"
+          "purpose": "Required by Function App"
         },
         "application_insights": {
           "name": "TBD",
-          "purpose": "Monitoring for BizOps agent",
-          "ch_matrix_id": "bc418aab-0a03-4f00-8365-7d485c978aba"
+          "purpose": "Monitoring for BizOps agent"
         }
       },
       "local_resources": {
@@ -3100,8 +2967,7 @@
       },
       "_record_id": "bizops_infrastructure",
       "_source_file": "bizops_infrastructure.json",
-      "publish": false,
-      "ch_matrix_id": "3ed55b19-32c7-4882-86da-bb63204870b4"
+      "publish": false
     },
     {
       "_record_id": "pipeline_architecture_v2",
@@ -3129,8 +2995,7 @@
           "description": "Two independent pipelines sharing infrastructure",
           "provider_pipeline": "NPPES download -> partition -> load -> county enrichment (6 passes) -> embed -> ship",
           "prescriber_evaluate_care_pipeline": "CMS Part D download -> load -> crosswalk enrichment -> OIG/SAM flags -> specialty normalization -> embed",
-          "shared_ship_step": "CopyToFrontEnd with parity verification",
-          "ch_matrix_id": "54b7c3a4-9379-4068-9b2c-ebc715a4144f"
+          "shared_ship_step": "CopyToFrontEnd with parity verification"
         },
         "2_orchestration": {
           "pattern": "Azure Durable Functions -- orchestrator/activity separation",
@@ -3341,8 +3206,7 @@
         "iterations_11_15": "Debated external vector DB vs Atlas (parked). Added distributed tracing (OpenTelemetry), known-good/known-bad test records, anomaly detection, stratified sampling.",
         "iterations_16_20": "Debated Parquet canonical format (parked). Added commit log concept, two-phase commit for multi-destination. Claude pushed back on complexity; adopted pragmatic compromise.",
         "iterations_21_25": "Final refinements. GPT flagged operational complexity as top concern. Agreed to defer enterprise-scale patterns to 50-state milestone. Finalized parked items list."
-      },
-      "ch_matrix_id": "a11037e7-447f-4451-a915-a3d314c2f5d1"
+      }
     },
     {
       "_record_id": "pipeline_architecture_v3",
@@ -3371,8 +3235,7 @@
           "description": "Two independent pipelines sharing infrastructure",
           "provider_pipeline": "NPPES download -> partition -> Parquet conversion -> load -> county enrichment (6 passes) -> embed -> ship",
           "prescriber_evaluate_care_pipeline": "CMS Part D download -> Parquet conversion -> load -> crosswalk enrichment -> OIG/SAM flags -> specialty normalization -> embed",
-          "shared_ship_step": "CopyToFrontEnd with parity verification",
-          "ch_matrix_id": "405e677c-5e59-4b40-a3bc-3b350e02d106"
+          "shared_ship_step": "CopyToFrontEnd with parity verification"
         },
         "2_orchestration": {
           "pattern": "Azure Durable Functions -- orchestrator/activity separation",
@@ -3498,26 +3361,22 @@
                   "row_group_size_bytes: int = 128_000_000",
                   "row_group_size_rows: int = 500_000"
                 ],
-                "description": "Initialize writer with output path, schema, and config.",
-                "ch_matrix_id": "c6aebf4e-d557-4b6f-ab48-d118b83a1eca"
+                "description": "Initialize writer with output path, schema, and config."
               },
               "write_batch": {
                 "params": [
                   "records: List[dict]"
                 ],
-                "description": "Append a batch of records. Splits into row groups as needed.",
-                "ch_matrix_id": "b0be0e32-332c-4f0b-a834-2aa95f8a2b14"
+                "description": "Append a batch of records. Splits into row groups as needed."
               },
               "finalize": {
                 "params": [],
-                "description": "Flush all buffers, close the Parquet file, and write manifest/metadata.",
-                "ch_matrix_id": "41bbc557-28e0-43cc-80c6-ffc67faec8f2"
+                "description": "Flush all buffers, close the Parquet file, and write manifest/metadata."
               },
               "get_schema_fingerprint": {
                 "params": [],
                 "returns": "str (SHA-256 of normalized schema)",
-                "description": "Return the schema fingerprint for this file.",
-                "ch_matrix_id": "ec3f7ca8-c1d0-4f48-b10c-c4e0982b1265"
+                "description": "Return the schema fingerprint for this file."
               }
             },
             "error_handling": {
@@ -3936,8 +3795,7 @@
               "2. Query admin.DataLoadMetadata for documents with matching pipeline_run_id and chunk_id, state='complete'.",
               "3. Return all (pipeline_run_id, chunk_id) pairs present in the commit log but missing in MongoDB."
             ],
-            "pseudo_sql": "SELECT c.pipeline_run_id, c.chunk_id FROM commit_log c WHERE c.event_type = 'chunk_complete' AND NOT EXISTS (SELECT 1 FROM admin.DataLoadMetadata m WHERE m.pipeline_run_id = c.pipeline_run_id AND m.chunk_id = c.chunk_id AND m.state = 'complete')",
-            "ch_matrix_id": "3d773554-eadd-44c6-bd4b-1fe6e36ea2db"
+            "pseudo_sql": "SELECT c.pipeline_run_id, c.chunk_id FROM commit_log c WHERE c.event_type = 'chunk_complete' AND NOT EXISTS (SELECT 1 FROM admin.DataLoadMetadata m WHERE m.pipeline_run_id = c.pipeline_run_id AND m.chunk_id = c.chunk_id AND m.state = 'complete')"
           },
           "sync_strategy_detail": {
             "write_order": [
@@ -3962,8 +3820,7 @@
               "3. If commit log entry exists but no checkpoint, attempt to re-apply the checkpoint using the commit log details.",
               "4. If checkpoint exists but no commit log entry, flag as 'commit_log_missing' in admin.CheckpointPending and alert ops.",
               "5. All reconciliation actions are logged to admin.ReconciliationLog."
-            ],
-            "ch_matrix_id": "21a8f36f-ba08-4c3c-92fa-a015af4c6534"
+            ]
           },
           "recovery_procedure": {
             "commit_log_missing": {
@@ -3972,16 +3829,14 @@
                 "1. Attempt to reconstruct the missing commit log entry from checkpoint and pipeline context.",
                 "2. Write reconstructed entry to commit log with a 'recovered' flag.",
                 "3. Alert ops for manual review if reconstruction is ambiguous."
-              ],
-              "ch_matrix_id": "814acbdc-af54-4a5a-b663-48c07ce9f83c"
+              ]
             },
             "checkpoint_missing": {
               "description": "Commit log entry exists but no MongoDB checkpoint.",
               "action": [
                 "1. Attempt to re-apply the checkpoint to MongoDB using commit log details.",
                 "2. If re-apply fails, alert ops and mark chunk as 'checkpoint_recovery_failed' in admin.CheckpointPending."
-              ],
-              "ch_matrix_id": "c000889b-ab15-4bd5-ab78-c03194cf5bde"
+              ]
             }
           }
         },
@@ -4718,8 +4573,7 @@
           "total_tokens": 918674,
           "estimated_cost_usd": 2.15
         }
-      },
-      "ch_matrix_id": "20dffea6-dbc5-4196-a0d3-019023c2bdf3"
+      }
     },
     {
       "_record_id": "pipeline_architecture_v4",
@@ -4753,8 +4607,7 @@
       ],
       "changes_from_v3": {
         "summary": "v4 resolves all 11 outstanding gaps from v3. No architectural redesign.",
-        "principle": "v3 architecture is the platform. v4 makes code conform to the brain.",
-        "ch_matrix_id": "27d9f3fa-ee05-44d9-9bf3-0aef11e9e799"
+        "principle": "v3 architecture is the platform. v4 makes code conform to the brain."
       },
       "resolved_issues": [
         {
@@ -4767,8 +4620,7 @@
             "function_app.py"
           ],
           "test": "POST payload to Azure, verify completion.",
-          "rollback": "Revert orchestrator code",
-          "ch_matrix_id": "d898a12e-4cf5-4dba-9b6a-9bf9d9ab290b"
+          "rollback": "Revert orchestrator code"
         },
         {
           "issue": 2,
@@ -4777,8 +4629,7 @@
           "fix": "QualityGate class: min_rows, required_columns, max_null_frac, schema_fingerprint. Gate after each stage.",
           "new_file": "quality_gate.py",
           "test": "Bad data triggers gate. Valid data passes.",
-          "rollback": "Remove gate calls",
-          "ch_matrix_id": "b466e373-edd9-41a7-8b36-dad756292173"
+          "rollback": "Remove gate calls"
         },
         {
           "issue": 3,
@@ -4789,8 +4640,7 @@
             "pipeline_worker_base.py"
           ],
           "test": "Run twice, second is no-op.",
-          "rollback": "Remove idempotency checks",
-          "ch_matrix_id": "b7df94a4-2635-46dd-bf31-748c0207aac9"
+          "rollback": "Remove idempotency checks"
         },
         {
           "issue": 4,
@@ -4807,8 +4657,7 @@
             "schema fingerprint"
           ],
           "test": "Full copy, verify parity. Simulate failure, verify rollback.",
-          "rollback": "Drop staging; live unaffected",
-          "ch_matrix_id": "0c33843f-b4b9-4ece-aca6-868e465cc6c8"
+          "rollback": "Drop staging; live unaffected"
         },
         {
           "issue": 5,
@@ -4819,8 +4668,7 @@
             "prescriber_evaluate_care_pipeline.py"
           ],
           "test": "Pipeline completes via DataFetcherBase. Grep: no raw HTTP.",
-          "rollback": "Revert file",
-          "ch_matrix_id": "76449519-bec0-4756-bb24-ff222f96afe8"
+          "rollback": "Revert file"
         },
         {
           "issue": 6,
@@ -4832,8 +4680,7 @@
             "provider_load_manager.py"
           ],
           "test": "Large file without OOM. Constant memory.",
-          "rollback": "Revert to .readall()",
-          "ch_matrix_id": "d213ee4d-3eb3-4310-ba62-f0b7771022fc"
+          "rollback": "Revert to .readall()"
         },
         {
           "issue": 7,
@@ -4844,8 +4691,7 @@
             "provider_load_manager.py"
           ],
           "test": "Pipeline runs with config override. Default discovery works.",
-          "rollback": "Revert to hardcoded",
-          "ch_matrix_id": "6e5ed01b-1673-47e1-80ab-467f7bda8373"
+          "rollback": "Revert to hardcoded"
         },
         {
           "issue": 8,
@@ -4854,8 +4700,7 @@
           "fix": "Auto-resolves when issues 5,6,7,11 fixed. Tests validate no raw HTTP, no .readall(), DataFetcherBase, no local exec.",
           "dependency": "Issues 5,6,7,11",
           "test": "pytest test_pipeline_compliance.py all pass",
-          "rollback": "N/A",
-          "ch_matrix_id": "f61b6ea5-51e4-4e8c-9f86-b266794d64ac"
+          "rollback": "N/A"
         },
         {
           "issue": 9,
@@ -4865,8 +4710,7 @@
           "new_file": "schema_drift_detector.py",
           "integration": "Called at start of Process stage",
           "test": "Alter CSV headers triggers abort. Valid passes.",
-          "rollback": "Remove detection",
-          "ch_matrix_id": "f9b27f42-91db-4e76-85de-ba23db43b9d0"
+          "rollback": "Remove detection"
         },
         {
           "issue": 10,
@@ -4877,8 +4721,7 @@
           "local_cmd": "powershell -c while($true){[console]::beep(800,500); Start-Sleep -Seconds 5}",
           "cloud": "Azure Function -> Pushover API -> Skip PC -> local listener -> bell",
           "test": "Inject fatal, verify bell event logged. CI: mock bell.",
-          "rollback": "Remove bell trigger",
-          "ch_matrix_id": "aedd0bea-c2e5-4516-baae-8c5380edbcb0"
+          "rollback": "Remove bell trigger"
         },
         {
           "issue": 11,
@@ -4892,8 +4735,7 @@
           ],
           "ci_gate": "No if __name__ in DataPipelines except tests",
           "test": "Deploy to Azure, pipeline via HTTP trigger. Local blocked.",
-          "rollback": "Re-enable local",
-          "ch_matrix_id": "37df5bdb-a666-4957-8bd6-24b1036cedb4"
+          "rollback": "Re-enable local"
         }
       ],
       "new_components": {
@@ -4923,8 +4765,7 @@
             1,
             11
           ],
-          "title": "Orchestrator Cloud Wiring",
-          "ch_matrix_id": "590749d3-44d7-4926-b13d-0026dfb00bac"
+          "title": "Orchestrator Cloud Wiring"
         },
         {
           "step": 2,
@@ -4932,16 +4773,14 @@
             5,
             6
           ],
-          "title": "Data Fetcher and Streaming Compliance",
-          "ch_matrix_id": "b67f9e43-60e7-43eb-82d7-b70a390946eb"
+          "title": "Data Fetcher and Streaming Compliance"
         },
         {
           "step": 3,
           "issues": [
             7
           ],
-          "title": "Configurable URLs",
-          "ch_matrix_id": "8788cdf5-773b-4016-9e55-1f23922bbcf5"
+          "title": "Configurable URLs"
         },
         {
           "step": 4,
@@ -4949,52 +4788,45 @@
             2,
             3
           ],
-          "title": "Quality Gates and Idempotency",
-          "ch_matrix_id": "2512cdea-243b-4b5f-b222-8e5658e86ed0"
+          "title": "Quality Gates and Idempotency"
         },
         {
           "step": 5,
           "issues": [
             9
           ],
-          "title": "Schema Drift Detection",
-          "ch_matrix_id": "f1cca992-5897-412f-a343-86e1cb942ed3"
+          "title": "Schema Drift Detection"
         },
         {
           "step": 6,
           "issues": [
             4
           ],
-          "title": "CopyToFrontEnd Parity Fix",
-          "ch_matrix_id": "fc5693f7-b183-4b4e-bd13-a5e05ebfd756"
+          "title": "CopyToFrontEnd Parity Fix"
         },
         {
           "step": 7,
           "issues": [
             8
           ],
-          "title": "Compliance Test Fixes",
-          "ch_matrix_id": "5d95cc96-5b74-4b50-b932-4e5f7c0b7fe7"
+          "title": "Compliance Test Fixes"
         },
         {
           "step": 8,
           "issues": [
             10
           ],
-          "title": "Fatal Bell Bridge",
-          "ch_matrix_id": "bdaa0187-96aa-44e7-834e-bde7155987f6"
+          "title": "Fatal Bell Bridge"
         },
         {
           "step": 9,
           "issues": [],
-          "title": "95 pct Success Metric",
-          "ch_matrix_id": "3e5a597a-d78a-402c-ac42-a7d9833b2111"
+          "title": "95 pct Success Metric"
         },
         {
           "step": 10,
           "issues": [],
-          "title": "Final Regression",
-          "ch_matrix_id": "ea6faa29-7272-4ee2-9f75-629b8414bcf3"
+          "title": "Final Regression"
         }
       ],
       "v3_retained": [
@@ -5026,9 +4858,7 @@
         "phase_4": "Integration: bell bridge, 95 pct metric, conflict analysis.",
         "phase_5": "Final: rules verified. Consensus iteration 21."
       },
-      "parked_items": [],
-      "ch_matrix_id": "f00d8665-172f-4094-b92d-b2c01e219cbf"
+      "parked_items": []
     }
   ]
 }
-

@@ -1,7 +1,6 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "title": "Emergency Detection Keywords",
-  "governance_attribute_id": "ch_governance_record_id_0b0fdfd2-43f5-49ad-babd-9f3c4b93ee54",
   "version": "2.0",
   "date": "2026-03-30",
   "description": "Config-driven keyword list for SafetyService EmergencyDetector. Dual-trigger OR logic: keyword match OR semantic classifier. F-09 fix: expanded from v1.0.",
@@ -93,6 +92,5 @@
       "giving birth",
       "premature labor"
     ]
-  },
-  "ch_matrix_id": "8e73b5bd-34e1-426d-ab24-f55774e30020"
+  }
 }

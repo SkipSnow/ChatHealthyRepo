@@ -1,7 +1,6 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "unrealized_ideas",
-  "governance_attribute_id": "ch_governance_record_id_e85047f3-d6e4-4be6-8578-0ddc8793ff65",
   "description": "Ideas captured from human that are not yet in the backlog. Every idea gets tracked here first, then promoted to a story when prioritized.",
   "ideas": [
     {
@@ -13,8 +12,7 @@
       "recommended_roadmap": {
         "epic": "EPIC-3 Pipeline Management",
         "date_of_delivery": "Before Beta end (2026-08-25)"
-      },
-      "ch_matrix_id": "cb7491e9-2475-49ad-ba17-496a902259a9"
+      }
     },
     {
       "id": "IDEA-002",
@@ -25,8 +23,7 @@
       "recommended_roadmap": {
         "epic": "EPIC-3 Pipeline Management",
         "date_of_delivery": "2026-04-18"
-      },
-      "ch_matrix_id": "cb0aba9e-ef70-4e65-a633-ecac8b808997"
+      }
     },
     {
       "id": "IDEA-003",
@@ -37,8 +34,7 @@
       "recommended_roadmap": {
         "epic": "EPIC-3 Pipeline Management",
         "date_of_delivery": "2026-04-25"
-      },
-      "ch_matrix_id": "5ae5a590-1d0d-4f66-97a4-2778c2de7ee0"
+      }
     },
     {
       "id": "IDEA-004",
@@ -240,8 +236,7 @@
       "recommended_roadmap": {
         "epic": "Continuous — not an epic, a practice",
         "date_of_delivery": "Ongoing"
-      },
-      "ch_matrix_id": "8eb0417b-6677-4dcc-a874-36191a39f670"
+      }
     },
     {
       "id": "IDEA-006",
@@ -277,8 +272,7 @@
           "chief_of_staff": "Ashley Liu",
           "head_of_design": "JiaJia Kong",
           "gtm_lead": "Richard Wang"
-        },
-        "ch_matrix_id": "f1650063-35f6-42ca-bb92-daedefc2b1db"
+        }
       },
       "funding": {
         "total_raised": "$17.5M",
@@ -335,8 +329,7 @@
       "recommended_roadmap": {
         "epic": "Competitive Intelligence — no action required",
         "date_of_delivery": "N/A — monitoring only"
-      },
-      "ch_matrix_id": "58aacfd9-1c34-47f7-a23c-3c9bdf507ace"
+      }
     },
     {
       "id": "IDEA-005",
@@ -347,8 +340,7 @@
       "recommended_roadmap": {
         "epic": "Cross-cutting — applies to all epics",
         "date_of_delivery": "Iterative — no end date, continuous improvement"
-      },
-      "ch_matrix_id": "b9cdeba8-ca24-42c8-908a-39166423a316"
+      }
     },
     {
       "id": "IDEA-007",
@@ -359,9 +351,7 @@
       "recommended_roadmap": {
         "epic": "EPIC-4 Security",
         "date_of_delivery": "Before beta launch — must be in place for first external security audit"
-      },
-      "ch_matrix_id": "0397fa46-c4ac-42d3-bf08-5a758596526e"
+      }
     }
-  ],
-  "ch_matrix_id": "8321f4c1-7c86-4e72-946d-6731544cb5b5"
+  ]
 }

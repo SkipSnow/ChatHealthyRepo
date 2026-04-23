@@ -1,7 +1,6 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "_record_id": "traceability_matrix",
-  "governance_attribute_id": "ch_governance_record_id_fd48f1eb-8943-4070-bbb7-293a00628dfc",
   "title": "Pipeline v4 Requirement-to-Test Traceability Matrix",
   "version": "1.0",
   "date": "2026-04-08",
@@ -271,6 +270,5 @@
         "verified_by": "Claude Opus 4.6"
       }
     }
-  },
-  "ch_matrix_id": "35a68270-d5bd-419a-bcd9-0779887a53ed"
+  }
 }

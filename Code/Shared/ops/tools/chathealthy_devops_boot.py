@@ -84,7 +84,6 @@ class governance_worker_base(BaseModel if BaseModel is not object else object):
     BUG-GOV-002: Human prompt instructions take precedence over all other rules."""
 
     risk_acceptance_id: str = None
-    ch_matrix_id: str = ""
 
     def check_boss_constraint(self, transcript_path: str = "") -> dict:
         """Check if human has an active constraint against state changes.

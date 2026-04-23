@@ -1,7 +1,6 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "external_audits",
-  "governance_attribute_id": "ch_governance_record_id_4dce5512-474b-4c0f-bb4f-fe76a07155de",
   "record_count": 5,
   "records": [
     {
@@ -30,8 +29,7 @@
             "backlog_items": "brain/machine_artifacts/backlog_0_1_4_perplexity.json"
           },
           "overall_assessment": "Architecturally sound, engineering quality exceeds expectations for pre-alpha. Primary risks are strategic and legal, not technical. Three highest-priority items: (1) tool registry to close globals() security gap, (2) legal counsel on FDA/clinical decision support boundary, (3) lock architecture docs behind NDA before Alpha.",
-          "status": "received",
-          "ch_matrix_id": "f4e3c30c-fcc1-4061-878d-cd721b12f07b"
+          "status": "received"
         },
         {
           "audit_id": "EXT-AUDIT-002",
@@ -50,8 +48,7 @@
             "total": 12
           },
           "overall_assessment": "Plausible and generally sound design. Moderate clarity and governance gaps to address in Phase 2 GPT review.",
-          "status": "received",
-          "ch_matrix_id": "9bf1699f-bacc-47e5-a4aa-8fe721bcf578"
+          "status": "received"
         },
         {
           "audit_id": "EXT-AUDIT-003",
@@ -71,14 +68,12 @@
             "design_response_md": "brain/BusinessArtifacts/externalAudits/pipeline_v4_design.md"
           },
           "overall_assessment": "The v4 design materially improves audit posture but remains design-stage remediation. Most findings are closed in design but open pending implementation evidence. The most important missed requirement is requirement-to-test traceability (v4-007/v4-023).",
-          "status": "received",
-          "ch_matrix_id": "cc912a61-689d-4a5f-8838-030b7c559e85"
+          "status": "received"
         }
       ],
       "_record_id": "external_audit_registry",
       "_source_file": "external_audit_registry.json",
-      "publish": false,
-      "ch_matrix_id": "56de5b7e-607d-4a98-9878-cfa6b9c4a818"
+      "publish": false
     },
     {
       "audit_id": "EXT-AUDIT-002",
@@ -105,8 +100,7 @@
           "severity": "strength",
           "title": "Problem statement is strong and well scoped",
           "detail": "The problem statement clearly articulates the current defect: Claude sessions are ephemeral, conversation history is not persisted, and there is no audit trail or substrate for downstream grooming, summarization, or automation. The proposed solution is directly responsive and matches common audit-log patterns.",
-          "action_required": false,
-          "ch_matrix_id": "7a260121-446f-4e12-b895-8cec47d48807"
+          "action_required": false
         },
         {
           "id": "PL-F02",
@@ -115,8 +109,7 @@
           "title": "Efficacy depends on 24-hour horizon being sufficient",
           "detail": "For compliance, incident reconstruction, or longitudinal model-behavior analysis, 24 hours is short by typical audit-log norms. For ChatHealthy's current stage, this is an accepted risk.",
           "recommendation": "Document that prompt_log is a short-term operational log, not a regulatory audit log. Plan a follow-on story for long-horizon archival.",
-          "action_required": false,
-          "ch_matrix_id": "08afba05-390d-49f9-84c0-48023c992e40"
+          "action_required": false
         },
         {
           "id": "PL-F03",
@@ -126,8 +119,7 @@
           "detail": "The spec lists actor and role fields but does not define allowed values, casing rules, or a registry process. Inconsistent actor/role strings reduce usefulness for analytics.",
           "recommendation": "Add a requirement that actor values must be drawn from a documented registry or canonical naming convention.",
           "action_required": true,
-          "priority": "phase_2",
-          "ch_matrix_id": "086b4be8-7e15-4fcc-8f1f-3dc8de3161b1"
+          "priority": "phase_2"
         },
         {
           "id": "PL-F04",
@@ -137,8 +129,7 @@
           "detail": "The spec does not state which timestamp field is used for grooming, how daylight savings time is handled, or whether 'older than 24 hours' is inclusive or exclusive at the boundary.",
           "recommendation": "Amend TR12-TR15 to state explicitly that grooming is based on timestamp_utc, with a precise rule ('delete utterances where timestamp_utc < now_utc - 24h'), and treat timestamp_pst as convenience rendering only.",
           "action_required": true,
-          "priority": "phase_2",
-          "ch_matrix_id": "0e1148bc-74cf-4d0e-bcbe-51e46ad66bd9"
+          "priority": "phase_2"
         },
         {
           "id": "PL-F05",
@@ -148,8 +139,7 @@
           "detail": "TR8 and TR14 specify append-only, but requirements do not describe any control that enforces immutability at the store level nor how drift would be detected.",
           "recommendation": "Add a technical requirement stating the underlying collection must either be technically append-only or support a separate corrections record while preserving originals.",
           "action_required": true,
-          "priority": "phase_2",
-          "ch_matrix_id": "dae98e9f-d1b1-41ef-916f-967c7726a8a9"
+          "priority": "phase_2"
         },
         {
           "id": "PL-F06",
@@ -159,8 +149,7 @@
           "detail": "Silent discarding creates a risk that interactions referencing attachments are partially represented with no indication that key context was missing.",
           "recommendation": "Refine TR9/TR11 to allow a short marker such as '[binary content omitted]' alongside textual content.",
           "action_required": true,
-          "priority": "phase_2",
-          "ch_matrix_id": "8f7dcb50-f934-4d92-9475-96a2c4419040"
+          "priority": "phase_2"
         },
         {
           "id": "PL-F07",
@@ -170,8 +159,7 @@
           "detail": "TR10 states credentials are redacted, but human clarified security is handled in a separate epic. Leaving TR10 in the spec while treating credential handling as out-of-scope will confuse future reviewers.",
           "recommendation": "Either remove TR10 and reference the security epic, or keep TR10 with a cross-reference that credential redaction is enforced via shared middleware owned by the security epic.",
           "action_required": true,
-          "priority": "phase_2",
-          "ch_matrix_id": "ed8127fd-c272-4373-b314-32cb6f42cab8"
+          "priority": "phase_2"
         },
         {
           "id": "PL-F08",
@@ -181,8 +169,7 @@
           "detail": "TR11 does not state whether the first 500 characters are kept, whether summaries can replace full content, or whether both retained prefix and length of omission must be logged.",
           "recommendation": "Clarify TR11: (a) truncation is strictly by prefix, (b) summaries are not permitted, (c) logged message must include standard marker.",
           "action_required": true,
-          "priority": "phase_2",
-          "ch_matrix_id": "fc16f82c-9149-4cc6-b000-0ebd2dc0e1c5"
+          "priority": "phase_2"
         },
         {
           "id": "PL-F09",
@@ -192,8 +179,7 @@
           "detail": "The spec does not clearly distinguish between internal non-visible system reminders and user-visible system messages.",
           "recommendation": "Refine TR16 to specify that only system-reminder content not rendered to any actor UI is excluded.",
           "action_required": true,
-          "priority": "phase_2",
-          "ch_matrix_id": "63f8cc82-f19a-4d5d-9521-e91c0e4d9068"
+          "priority": "phase_2"
         },
         {
           "id": "PL-F10",
@@ -203,8 +189,7 @@
           "detail": "TR17 and TR18 are vague about where and how metadata lives. Without stricter documentation, future contributors may fail to keep schema and operational behavior synchronized.",
           "recommendation": "Expand TR17/TR18 to require specific path/location for schema.json, explicit mapping between retention and Azure Function schedule, and a short prompt log protocol document.",
           "action_required": true,
-          "priority": "phase_2",
-          "ch_matrix_id": "e6041b92-76ea-4bb9-987e-64ed5eac5fcf"
+          "priority": "phase_2"
         },
         {
           "id": "PL-F11",
@@ -213,8 +198,7 @@
           "title": "Current brain implementation (Mongo + JSON + scripts) is a known but material architecture risk",
           "detail": "The hybrid 'one collection plus files' arrangement is common in very early-stage projects but does not represent a clean data architecture for a scaling product.",
           "recommendation": "Record as known architecture debt. Plan a separate 'Brain Data Architecture' initiative once BIZOPS-CHATLOG-001 is stable.",
-          "action_required": false,
-          "ch_matrix_id": "f95d6ef8-9b08-4970-9b7a-ee399f97b3b3"
+          "action_required": false
         },
         {
           "id": "PL-F12",
@@ -224,8 +208,7 @@
           "detail": "There is no explicit requirement that grooming failures or communication gaps be logged. Without a trace, it is difficult to distinguish 'no conversations in last 24 hours' from 'grooming silently misbehaved.'",
           "recommendation": "Add a requirement that the grooming Azure Function write a minimal operational summary to prompt_log (as an OpsAgent actor) or a sibling collection, including counts of deleted utterances and any errors encountered.",
           "action_required": true,
-          "priority": "phase_2",
-          "ch_matrix_id": "bd784d83-c6dd-4acc-aad4-2b69ab879b5f"
+          "priority": "phase_2"
         }
       ],
       "clarification_record": [
@@ -287,8 +270,7 @@
       "_record_id": "external_audit_prompt_log_v1",
       "_source_file": "external_audit_prompt_log_v1.json",
       "description": "Perplexity design audit of BIZOPS-CHATLOG-001 prompt_log: 12 findings, 0 critical, 4 moderate gaps, 5 minor gaps, 1 strength. Design validated with gaps to address in Phase 2.",
-      "publish": false,
-      "ch_matrix_id": "dc4f4ecf-6dd1-4a2f-b5fb-f41fc44f07ea"
+      "publish": false
     },
     {
       "title": "External Audit — ChatHealthy.ai Platform Review",
@@ -300,43 +282,35 @@
       "documents_reviewed": [
         {
           "name": "Architecture Overview",
-          "url": "https://chathealthy.ai/architecture.html",
-          "ch_matrix_id": "e8b70ea4-4f6b-4b7c-bd9e-397421fbd2ac"
+          "url": "https://chathealthy.ai/architecture.html"
         },
         {
           "name": "Chat App Design",
-          "url": "https://chathealthy.ai/chat-app-design.html",
-          "ch_matrix_id": "62a4bec8-6145-42be-9775-55b1159a5df8"
+          "url": "https://chathealthy.ai/chat-app-design.html"
         },
         {
           "name": "Provider Data Load Design",
-          "url": "https://chathealthy.ai/provider-data-load.html",
-          "ch_matrix_id": "835cbc61-deea-4d84-88e8-8caedd255c27"
+          "url": "https://chathealthy.ai/provider-data-load.html"
         },
         {
           "name": "Product Roadmap",
-          "url": "https://chathealthy.ai/roadmap",
-          "ch_matrix_id": "a44da4ee-c9a6-4cb3-b064-69221f555917"
+          "url": "https://chathealthy.ai/roadmap"
         },
         {
           "name": "Privacy Policy",
-          "url": "https://chathealthy.ai/privacy.html",
-          "ch_matrix_id": "353ff025-8ed3-40f1-a889-48a7ca5ebd0e"
+          "url": "https://chathealthy.ai/privacy.html"
         },
         {
           "name": "Terms of Use",
-          "url": "https://chathealthy.ai/terms.html",
-          "ch_matrix_id": "935beaa5-a0a4-46b3-b363-39007bf1b0ca"
+          "url": "https://chathealthy.ai/terms.html"
         },
         {
           "name": "GPT Read-Only Query Service v6.1",
-          "source": "brain_v0.1.3_design.json",
-          "ch_matrix_id": "9ce43b02-cd32-4dae-8f6d-bf8b77958516"
+          "source": "brain_v0.1.3_design.json"
         },
         {
           "name": "Live Chat Interface",
-          "url": "https://chathealthy.ai",
-          "ch_matrix_id": "3c9c44f5-7a57-4ae2-95dc-7d4da5dbea31"
+          "url": "https://chathealthy.ai"
         }
       ],
       "executive_summary": "ChatHealthy.ai demonstrates unusually coherent architecture and production-grade data engineering for a pre-alpha solo founder project. The three-app separation (Cloudflare static / HuggingFace chat / Azure pipelines) is clean and independently scalable. The Brain governance system (Claude engineer + GPT architect + human tiebreaker) is a novel and effective SDLC for an AI-native company with no human developers. The primary risks are strategic (IP exposure, state coverage, regulatory positioning) rather than architectural. The platform is ready to proceed to Alpha with the caveats documented below.",
@@ -347,8 +321,7 @@
           "severity": "strength",
           "title": "Three-application separation is clean and well-reasoned",
           "detail": "App 1 (Cloudflare static), App 2 (HuggingFace chat — React + FastAPI), App 3 (Azure Durable Functions pipelines) each scale and deploy independently. No business logic leaks between layers. The static site costs nothing at rest.",
-          "action_required": false,
-          "ch_matrix_id": "85f0f328-a6b7-435a-a82d-8e785624ce15"
+          "action_required": false
         },
         {
           "id": "F-02",
@@ -356,8 +329,7 @@
           "severity": "strength",
           "title": "Production-grade pipeline engineering",
           "detail": "8.9M NPI records in 35 minutes with 32 workers. Idempotent upserts on (load_id, record_id), byte-aligned partitions, multi-pass county enrichment with provenance tagging, Template Method worker hierarchy, discrepancy reporter.",
-          "action_required": false,
-          "ch_matrix_id": "53bba4d5-a71e-4ad6-b9fc-3e464f810051"
+          "action_required": false
         },
         {
           "id": "F-03",
@@ -367,8 +339,7 @@
           "detail": "Dual-trigger OR logic (keyword + Haiku semantic classifier) with fail-safe default. IP-based lockout with DB persistence and audit trail preservation on unlock.",
           "recommendation": "Get legal review of whether the emergency detection system could classify you as a clinical decision support tool under FDA guidance. Estimated cost: $5K consultation.",
           "action_required": true,
-          "priority": "before_alpha",
-          "ch_matrix_id": "9627dd2e-fd71-43e3-a78b-f8f202d1cdc9"
+          "priority": "before_alpha"
         },
         {
           "id": "F-04",
@@ -376,8 +347,7 @@
           "severity": "strength",
           "title": "Pipeline framework is correctly designed for AI-operated company",
           "detail": "The bespoke Durable Functions orchestrator with PipelineWorkerBase Template Method pattern is the right choice for a company where Claude is the developer.",
-          "action_required": false,
-          "ch_matrix_id": "724787f2-33f9-4182-8b3d-0ae796400076"
+          "action_required": false
         },
         {
           "id": "F-05",
@@ -387,8 +357,7 @@
           "detail": "Chat app _handle_tool_calls() looks up functions by name in globals(). If Claude hallucinates a tool name that matches any global function, it executes.",
           "recommendation": "Implement a simple allowlist registry: TOOL_REGISTRY = {'find_providers': find_providers, ...}. One-hour fix.",
           "action_required": true,
-          "priority": "current_sprint",
-          "ch_matrix_id": "7a060c3a-7d9f-4de5-8cef-e239d7de0b2f"
+          "priority": "current_sprint"
         },
         {
           "id": "F-06",
@@ -398,8 +367,7 @@
           "detail": "The 202 Accepted response includes a statusQueryGetUri with an Azure-generated webhook code. Anyone with that URL can poll load_id, record counts, and worker details without authentication.",
           "recommendation": "Proxy the status check through /api/Router (authenticated), strip statusQueryGetUri from the 202 response.",
           "action_required": true,
-          "priority": "before_alpha",
-          "ch_matrix_id": "96da0a08-7813-4de3-9a8c-3b0e262bfc2b"
+          "priority": "before_alpha"
         },
         {
           "id": "F-07",
@@ -409,8 +377,7 @@
           "detail": "Router logic, safety system, provider search, tool definitions, context loading, consent flow, and error handling all in one file.",
           "recommendation": "Correctly prioritized for current sprint. The FindCare/EvaluateCare component separation requires this decomposition.",
           "action_required": true,
-          "priority": "current_sprint",
-          "ch_matrix_id": "cba0a069-6350-4d3e-b16c-7c4ce64c0f6c"
+          "priority": "current_sprint"
         },
         {
           "id": "F-08",
@@ -420,8 +387,7 @@
           "detail": "Delaware, Mississippi, and Virginia cover less than 2% of US population. Pipeline architecture can handle all states.",
           "recommendation": "All states should be live by Alpha (April 30).",
           "action_required": true,
-          "priority": "before_alpha",
-          "ch_matrix_id": "0163f726-7662-4cb5-97d3-831d93f6bbe0"
+          "priority": "before_alpha"
         },
         {
           "id": "F-09",
@@ -431,8 +397,7 @@
           "detail": "Missing: burns, drowning, trauma (car accident, gunshot, stabbing), diabetic emergency, childbirth.",
           "recommendation": "Expand keyword list before Alpha.",
           "action_required": true,
-          "priority": "before_alpha",
-          "ch_matrix_id": "c606a290-de2c-4a81-83ff-3655390e8984"
+          "priority": "before_alpha"
         },
         {
           "id": "F-10",
@@ -442,8 +407,7 @@
           "detail": "Provider search caps at safe_limit = min(int(limit), 10). County-level searches in common specialties will hit this immediately.",
           "recommendation": "Raise to 20-25 for Alpha.",
           "action_required": true,
-          "priority": "before_alpha",
-          "ch_matrix_id": "17d3ac03-ada4-4912-a6de-b3e5b0f6478a"
+          "priority": "before_alpha"
         },
         {
           "id": "F-11",
@@ -452,8 +416,7 @@
           "title": "FIPS hack (ASN-4AFBDA) should be resolved in next pipeline run",
           "detail": "2,579 providers have county.fips set but county.name blank. Root cause fix committed but not re-run.",
           "action_required": true,
-          "priority": "next_pipeline_run",
-          "ch_matrix_id": "b8321497-4a58-45a0-b020-712a51f8c1d4"
+          "priority": "next_pipeline_run"
         },
         {
           "id": "F-12",
@@ -463,8 +426,7 @@
           "detail": "Privacy policy discloses DeepSeek AI is headquartered in PRC but does not specify what data flows to DeepSeek.",
           "recommendation": "Clarify whether user conversation data is ever processed by DeepSeek.",
           "action_required": true,
-          "priority": "before_alpha",
-          "ch_matrix_id": "06ca51aa-6332-4660-a6b3-b3497c02bba1"
+          "priority": "before_alpha"
         },
         {
           "id": "F-13",
@@ -474,8 +436,7 @@
           "detail": "Architecture, chat app design, and pipeline design docs are published on the public site. Detailed enough to save a competitor months.",
           "recommendation": "Lock architecture docs behind access gate before Alpha. Keep chat demo public.",
           "action_required": true,
-          "priority": "before_alpha",
-          "ch_matrix_id": "00c7008f-9f1b-420f-9adb-968426927e31"
+          "priority": "before_alpha"
         },
         {
           "id": "F-14",
@@ -484,8 +445,7 @@
           "title": "Documentation inconsistencies",
           "detail": "Copyright year mismatch, VA listed in chat but not design doc, broken anchor link, non-functional nav button.",
           "action_required": true,
-          "priority": "low",
-          "ch_matrix_id": "b52eb428-24c3-4b20-a37e-203f65688bd9"
+          "priority": "low"
         },
         {
           "id": "F-15",
@@ -493,8 +453,7 @@
           "severity": "strength",
           "title": "Brain governance system is an effective SDLC for AI-native company",
           "detail": "The Claude-GPT-human triangle functions as a complete development organization. The adversarial review process on the GPT Reader design spec produced a disciplined, zero-open-disputes result.",
-          "action_required": false,
-          "ch_matrix_id": "5a0b0940-e90c-468b-8a05-150fb0502f81"
+          "action_required": false
         },
         {
           "id": "F-16",
@@ -504,8 +463,7 @@
           "detail": "R32 Brain lock prevents concurrent modification but has no TTL, no deadlock recovery if Claude crashes mid-write.",
           "recommendation": "Add TTL (10 minutes) and human-override release. Address before GPT Reader production.",
           "action_required": true,
-          "priority": "before_gpt_reader_production",
-          "ch_matrix_id": "da0be294-eee9-4ce7-a80c-7a24cb09462a"
+          "priority": "before_gpt_reader_production"
         },
         {
           "id": "F-17",
@@ -514,8 +472,7 @@
           "title": "Server-side scope enforcement must be independent of Claude",
           "detail": "GPT Reader security relies on Claude faithfully proxying calls. Azure Function must independently validate every request against allowlist.",
           "action_required": true,
-          "priority": "before_gpt_reader_production",
-          "ch_matrix_id": "826d534a-6b41-4f22-8179-b3a8c1f8f6c4"
+          "priority": "before_gpt_reader_production"
         },
         {
           "id": "F-18",
@@ -524,8 +481,7 @@
           "title": "Audit should cover Claude's actions too",
           "detail": "R26 audits GPT reads but Claude — the most privileged actor — has no audit trail for sync operations and manifest modifications.",
           "action_required": true,
-          "priority": "before_gpt_reader_production",
-          "ch_matrix_id": "e589aff6-b3f1-4527-9f23-e284642410cb"
+          "priority": "before_gpt_reader_production"
         }
       ],
       "risk_summary": {
@@ -545,8 +501,7 @@
       "_source_file": "external_audit_v1.json",
       "description": "Perplexity full platform review: 18 findings, 0 critical, 3 high, 9 medium. Architecture validated.",
       "business_artifact": "brain/BusinessArtifacts/external_audit_v1.docx",
-      "publish": false,
-      "ch_matrix_id": "6deb0474-3a37-463f-af76-1fec9bfcfc6f"
+      "publish": false
     },
     {
       "_record_id": "gov011_audit",
@@ -574,8 +529,7 @@
           "line": 222,
           "title": "System prompt identifies AI as a person, not a translator",
           "violation": "RULE 0 in build_system_prompt says 'You are acting as Skip Snow on ChatHealthy.AI's website. Represent Skip Snow faithfully.' This frames the AI as an identity with authority rather than a translation layer. GOV-011 requires the AI role to be translation only.",
-          "footnote": "The AI should be identified as a navigation assistant that translates user intent into system queries, not as a representation of the founder. Identity framing invites the AI to answer from persona knowledge.",
-          "ch_matrix_id": "2dae54a0-197c-41f8-b203-72ca91f9b7b0"
+          "footnote": "The AI should be identified as a navigation assistant that translates user intent into system queries, not as a representation of the founder. Identity framing invites the AI to answer from persona knowledge."
         },
         {
           "id": "GOV011-V002",
@@ -584,8 +538,7 @@
           "line": 229,
           "title": "RULE 1 allows AI to 'Answer ONLY from tool results' but does not constrain HOW it answers",
           "violation": "RULE 1 says 'Answer ONLY from tool results' for context tools, but the AI receives full tool payloads (linkedin text, business_plan text) and is free to paraphrase, editorialize, or selectively quote. No instruction requires verbatim or bounded output from data-layer content.",
-          "footnote": "GOV-011 requires answers to trace to the data layer. Unconstrained paraphrasing of source documents means the AI's editorial choices — not the data — shape the answer the user sees.",
-          "ch_matrix_id": "c1abc4ce-3be2-4d70-8e10-fd6b9bb4c783"
+          "footnote": "GOV-011 requires answers to trace to the data layer. Unconstrained paraphrasing of source documents means the AI's editorial choices — not the data — shape the answer the user sees."
         },
         {
           "id": "GOV011-V003",
@@ -594,8 +547,7 @@
           "line": 235,
           "title": "RULE 2 gap: no enforcement that AI refuses non-tool answers",
           "violation": "RULE 2 says the AI knows 'ONLY' certain topics and must call record_unknown_question for anything else. But this is a prompt instruction only — there is no system-level enforcement. The LLM can ignore RULE 2 and answer from training data. No post-response validation checks whether the AI used a tool or generated from its own knowledge.",
-          "footnote": "GOV-011 requires the system to answer, not the AI. Prompt-only guardrails are probabilistic. Without server-side detection of tool-less responses to factual questions, the AI can confabulate answers.",
-          "ch_matrix_id": "54ff3f5b-4c00-41e7-b9a9-2a1c9131b942"
+          "footnote": "GOV-011 requires the system to answer, not the AI. Prompt-only guardrails are probabilistic. Without server-side detection of tool-less responses to factual questions, the AI can confabulate answers."
         },
         {
           "id": "GOV011-V004",
@@ -604,8 +556,7 @@
           "line": 456,
           "title": "Final response text is unvalidated LLM output",
           "violation": "Line 456 extracts the LLM's text response and returns it to the user with only URL validation (guard_text). No system-level check verifies the text is grounded in tool results. If the LLM answered without calling a tool, the raw LLM text goes straight to the user.",
-          "footnote": "GOV-011 says 'only facts found in ChatHealthy.ai's data can give an answer.' The chat loop has no gate between LLM output and user delivery to verify data-layer grounding.",
-          "ch_matrix_id": "1e9a613e-2ebd-490b-b56f-ecfbb74f8b3b"
+          "footnote": "GOV-011 says 'only facts found in ChatHealthy.ai's data can give an answer.' The chat loop has no gate between LLM output and user delivery to verify data-layer grounding."
         },
         {
           "id": "GOV011-V005",
@@ -614,8 +565,7 @@
           "line": 340,
           "title": "_extract_user_search_term uses LLM to interpret user intent without disambiguation",
           "violation": "GPT-4.1-mini extracts a search term from the user's message (e.g., 'bone doc' from 'find me a bone doc in VA'). The extracted term is used in summary_message without user confirmation. GOV-011 Statement 1 requires user disambiguation of system inferences.",
-          "footnote": "If the LLM misinterprets the user's intent (e.g., extracts 'bone docs' when user meant 'bone cancer docs'), the system proceeds with the wrong term. No mechanism lets the user correct the extraction.",
-          "ch_matrix_id": "a46f1a70-7324-4826-b28f-c5f758d779a2"
+          "footnote": "If the LLM misinterprets the user's intent (e.g., extracts 'bone docs' when user meant 'bone cancer docs'), the system proceeds with the wrong term. No mechanism lets the user correct the extraction."
         },
         {
           "id": "GOV011-V006",
@@ -624,8 +574,7 @@
           "line": 49,
           "title": "AI query expansion generates search terms from LLM knowledge, not system data",
           "violation": "expand_query_terms uses Claude Haiku to generate keyword stems for specialty search. The LLM invents search terms (e.g., 'pediatric', 'child' for 'pediatrician') from its training data, not from the NUCC taxonomy. These AI-generated terms drive the database query.",
-          "footnote": "GOV-011 says the AI translates, the system answers. Here the AI is generating query terms from its own medical knowledge. The terms should come from the taxonomy data itself (e.g., synonym table in SpecialtyMetaData).",
-          "ch_matrix_id": "8b1d5e5a-062e-46f8-b245-1fcc9fadb859"
+          "footnote": "GOV-011 says the AI translates, the system answers. Here the AI is generating query terms from its own medical knowledge. The terms should come from the taxonomy data itself (e.g., synonym table in SpecialtyMetaData)."
         },
         {
           "id": "GOV011-V007",
@@ -634,8 +583,7 @@
           "line": 58,
           "title": "Specialty resolution returns up to 70 codes without user disambiguation",
           "violation": "find_specialty_codes merges regex + vector results and returns up to 70 NUCC codes. All codes are sent to the provider query. The user never sees or confirms which specialty codes were selected. GOV-011 Statement 1 requires the user to disambiguate system inferences.",
-          "footnote": "A query like 'heart doctor' may resolve to 15+ cardiology sub-specialties. The system silently picks all of them. The user should see the resolved specialties and confirm or narrow.",
-          "ch_matrix_id": "328d8eaf-cc59-4692-bf93-be35022bcf4a"
+          "footnote": "A query like 'heart doctor' may resolve to 15+ cardiology sub-specialties. The system silently picks all of them. The user should see the resolved specialties and confirm or narrow."
         },
         {
           "id": "GOV011-V008",
@@ -644,8 +592,7 @@
           "line": 365,
           "title": "_strip_redundant_summary uses LLM to edit LLM output — AI deciding what to show",
           "violation": "GPT-4.1-mini is used to strip 'redundant' content from Claude's response. The second LLM decides which parts of the first LLM's output to keep or remove. This is AI deciding what the user sees, not the system deciding.",
-          "footnote": "GOV-011-STD-001 is correctly motivated but the implementation uses an LLM to make editorial decisions. A deterministic regex or template approach would keep the system in control.",
-          "ch_matrix_id": "05ed4568-6362-4f6e-a441-4e2ae25bc0d3"
+          "footnote": "GOV-011-STD-001 is correctly motivated but the implementation uses an LLM to make editorial decisions. A deterministic regex or template approach would keep the system in control."
         },
         {
           "id": "GOV011-V009",
@@ -654,8 +601,7 @@
           "line": 66,
           "title": "Research site guidance text is hardcoded editorial content, not data-layer sourced",
           "violation": "The 'guidance' strings for Healthgrades, NPI Registry, and state medical boards are hardcoded opinions ('most reliable source', 'may show similar names'). These editorial judgments are not sourced from the data layer — they are developer-authored text presented as system output.",
-          "footnote": "GOV-011 requires all outputs to trace to the data layer. Guidance text should be stored in brain artifacts or MongoDB where it can be reviewed, versioned, and audited.",
-          "ch_matrix_id": "8c3e6fd8-c9d5-4126-a747-04feae005e3a"
+          "footnote": "GOV-011 requires all outputs to trace to the data layer. Guidance text should be stored in brain artifacts or MongoDB where it can be reviewed, versioned, and audited."
         },
         {
           "id": "GOV011-V010",
@@ -664,8 +610,7 @@
           "line": 238,
           "title": "URLGuardian AI content verification makes a factual judgment call",
           "violation": "_ai_verify_content uses Claude Haiku to decide whether a web page's content is 'relevant to the expected context.' This is an AI making a factual determination (is this the right page?) that affects what the user sees. On failure, it defaults to trusting the URL (line 264).",
-          "footnote": "The AI is making a decision about URL validity that affects user-visible output. GOV-011 says the system must decide. A deterministic HTTP status check is sufficient; AI content judgment violates decision authority.",
-          "ch_matrix_id": "e53dca22-7461-4572-b544-0255a7eaaf3b"
+          "footnote": "The AI is making a decision about URL validity that affects user-visible output. GOV-011 says the system must decide. A deterministic HTTP status check is sufficient; AI content judgment violates decision authority."
         },
         {
           "id": "GOV011-V011",
@@ -674,8 +619,7 @@
           "line": 266,
           "title": "URLGuardian AI selects replacement URL from Google search results",
           "violation": "_find_correct_url asks Claude Haiku to pick the 'correct replacement' URL from Google search results. The AI is making a selection decision — choosing which URL to show the user — which is a system decision per GOV-011.",
-          "footnote": "When a URL is broken, the AI picks a replacement from search results. This is AI deciding, not system deciding. The system should either show no link or present candidates for the user to choose.",
-          "ch_matrix_id": "198d2852-a8dd-4968-bc61-ed2e56a50ac1"
+          "footnote": "When a URL is broken, the AI picks a replacement from search results. This is AI deciding, not system deciding. The system should either show no link or present candidates for the user to choose."
         },
         {
           "id": "GOV011-V012",
@@ -684,8 +628,7 @@
           "line": 253,
           "title": "RULE 6 tells AI to ask about travel but does not constrain AI's follow-up phrasing",
           "violation": "RULE 6 instructs the AI to ask about travel distance after clinical trial results. The AI composes the follow-up question itself, which could introduce framing bias or assumptions. The system should provide the follow-up question template.",
-          "footnote": "GOV-011 requires the system to control user-facing output. Follow-up prompts should be system-authored templates, not AI-composed questions that may vary in tone or implication.",
-          "ch_matrix_id": "e8c55a70-e3d1-4cd7-b582-cd5cd8a5a28b"
+          "footnote": "GOV-011 requires the system to control user-facing output. Follow-up prompts should be system-authored templates, not AI-composed questions that may vary in tone or implication."
         }
       ],
       "compliant_patterns": [
@@ -726,8 +669,7 @@
         }
       ],
       "summary": "12 violations found. 2 CRITICAL, 4 HIGH, 5 MEDIUM, 1 LOW. The most significant gap is the absence of server-side enforcement that LLM responses are grounded in tool results (V003, V004). The system has strong data-layer patterns (provider search, clinical trials, pagination) but the final LLM-to-user text path has no validation gate. Secondary concerns: AI-driven decisions in URLGuardian (V010, V011), missing user disambiguation on specialty resolution (V005, V007), and LLM-generated query expansion terms (V006).",
-      "publish": false,
-      "ch_matrix_id": "cffc6cef-0ec3-4648-afc5-d9f25496225f"
+      "publish": false
     },
     {
       "_record_id": "external_audit_pipeline_v4_design",
@@ -807,8 +749,7 @@
       ],
       "iteration_method": "GPT-4.1 Architect vs GPT-4.1 Reviewer, 11 iterations to convergence",
       "iteration_cost_usd": 2.18,
-      "publish": false,
-      "ch_matrix_id": "90872ddf-1735-4534-99f2-4c7d2a3eb756"
+      "publish": false
     }
   ]
 }

@@ -1,7 +1,6 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "daily_punch_list",
-  "governance_attribute_id": "ch_governance_record_id_e86ce8bc-0ba5-48ca-9252-bf8bd474f0e3",
   "description": "Daily punch lists with results. Tracks what was planned, what was done, and what carried over. Source of truth for daily velocity and accountability.",
   "entries": [
     {
@@ -13,20 +12,17 @@
           {
             "id": 1,
             "task": "Run quality pipeline on MS and VA (can_prescribe, Part D drugs, crosswalk, specialty normalization)",
-            "status": "IN_PROGRESS",
-            "ch_matrix_id": "4cb42562-bef6-4830-a92f-dabf4c35f705"
+            "status": "IN_PROGRESS"
           },
           {
             "id": 2,
-            "task": "CopyToFrontEnd \u2014 providers, SpecialtyMetaData, and provider_quality for DE, MS, CA, VA to frontend cluster",
-            "status": "IN_PROGRESS",
-            "ch_matrix_id": "761e1c1a-ef46-4444-bfcb-29cae77f7416"
+            "task": "CopyToFrontEnd — providers, SpecialtyMetaData, and provider_quality for DE, MS, CA, VA to frontend cluster",
+            "status": "IN_PROGRESS"
           },
           {
             "id": 3,
             "task": "Verify parity on all three collections across all four states",
-            "status": "PENDING",
-            "ch_matrix_id": "63a7ae1c-4ba9-45c3-9d5e-16bbc3a4e21b"
+            "status": "PENDING"
           }
         ]
       },
@@ -36,44 +32,37 @@
           {
             "id": 1,
             "task": "Deploy to dev.chathealthy.ai + configure PKI with Azure Key Vault",
-            "status": "PENDING",
-            "ch_matrix_id": "b47d2a99-6539-4ed3-8333-fbc1a383474e"
+            "status": "PENDING"
           },
           {
             "id": 2,
             "task": "Test homeopathic resolver",
-            "status": "PENDING",
-            "ch_matrix_id": "ac29a999-3cb4-4934-bfa5-bfaf4e03c53c"
+            "status": "PENDING"
           },
           {
             "id": 3,
             "task": "Enhance Select providers to evaluate UX on FindCare (non-trivial)",
-            "status": "PENDING",
-            "ch_matrix_id": "08367000-a948-4d26-a631-f3c120d9281c"
+            "status": "PENDING"
           },
           {
             "id": 4,
             "task": "Design and implement state handoff from FindCare to EvaluateCare",
-            "status": "PENDING",
-            "ch_matrix_id": "d44530b6-0551-41cc-a048-1dbbe209cb55"
+            "status": "PENDING"
           },
           {
             "id": 5,
-            "task": "EvaluateCare scoring engine \u2014 wire real measures",
-            "status": "PENDING",
-            "ch_matrix_id": "9ccba2e3-50e4-4182-a102-1718b536c9da"
+            "task": "EvaluateCare scoring engine — wire real measures",
+            "status": "PENDING"
           },
           {
             "id": 6,
             "task": "SECURITY: mTLS on FindCare to EvaluateCare proxy + close HTTP port 80",
-            "status": "PENDING",
-            "ch_matrix_id": "706783fb-1d24-46a3-994c-28ed6f24c2c6"
+            "status": "PENDING"
           },
           {
             "id": 7,
             "task": "End-to-end test: search, filter, evaluate, score, display",
-            "status": "PENDING",
-            "ch_matrix_id": "51275c39-a56e-49a4-a13c-7db07f1d81e7"
+            "status": "PENDING"
           }
         ]
       },
@@ -119,7 +108,7 @@
         "BUG-LEGAL-001: CPT codes cannot be consumer-facing",
         "DR-022: Never embed on frontend cluster",
         "DR-023: No code without backlog traceability",
-        "BUG-GOV-001: Claude Code governance hooks crash Cursor plugin \u2014 dialog box appears, entire plugin dies, requires logout/login via command palette. No known reproduction steps. Feature: Brain governance (EPIC-10). Fix: add try/finally with stack trace logging to all four lifecycle methods."
+        "BUG-GOV-001: Claude Code governance hooks crash Cursor plugin — dialog box appears, entire plugin dies, requires logout/login via command palette. No known reproduction steps. Feature: Brain governance (EPIC-10). Fix: add try/finally with stack trace logging to all four lifecycle methods."
       ],
       "sign_offs": [
         "UAT-UX-001: Timer + Stop button (human approved)",
@@ -128,7 +117,7 @@
     },
     {
       "date": "2026-04-19",
-      "title": "Production-grade LangGraph implementation \u2014 local + dev",
+      "title": "Production-grade LangGraph implementation — local + dev",
       "description": "Implement LangGraph into ChatHealthy.ai infrastructure today, production-grade, running on HuggingFace and locally, monitored by LangSmith. Per Human directive 2026-04-19. Local + dev only for monitoring; QA/prod deferred. 30 BUG-LANGCHAIN-CONTAINER-* bugs are the basis of work; each closes when its handler routes through a real LangGraph StateGraph and the v4-043 scanner reports clean for that handler.",
       "items": [
         {
@@ -155,22 +144,22 @@
         {
           "text": "1 bug per non-graph container",
           "needs_human": false,
-          "status": "done \u2014 30 BUG-LANGCHAIN-CONTAINER-* filed"
+          "status": "done — 30 BUG-LANGCHAIN-CONTAINER-* filed"
         },
         {
-          "text": "Give Studio our graphs \u2014 Studio renders / UATs / monitors them",
+          "text": "Give Studio our graphs — Studio renders / UATs / monitors them",
           "needs_human": false,
           "status": "pending"
         },
         {
-          "text": "Production-grade execution \u2014 nodes run against real services",
+          "text": "Production-grade execution — nodes run against real services",
           "needs_human": false,
           "status": "pending"
         },
         {
           "text": "Create story (or cite existing) + create all necessary bugs",
           "needs_human": false,
-          "status": "done \u2014 ARCH-GRAPH-ORCHESTRATION-001 + 30 bugs filed"
+          "status": "done — ARCH-GRAPH-ORCHESTRATION-001 + 30 bugs filed"
         },
         {
           "text": "Smoke test proving all bugs",
@@ -178,7 +167,7 @@
           "status": "pending"
         },
         {
-          "text": "Fix all bugs \u2014 refactor each handler to LangGraph",
+          "text": "Fix all bugs — refactor each handler to LangGraph",
           "needs_human": false,
           "status": "pending"
         },
@@ -219,6 +208,5 @@
         }
       ]
     }
-  ],
-  "ch_matrix_id": "999e7c3a-1864-4615-a39b-b6168a9691d9"
+  ]
 }

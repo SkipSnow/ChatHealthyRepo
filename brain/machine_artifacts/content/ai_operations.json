@@ -1,7 +1,6 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "ai_operations",
-  "governance_attribute_id": "ch_governance_record_id_26314ed1-0186-4d1e-acc6-38c2746254bf",
   "record_count": 11,
   "legacy_records": [
     {
@@ -69,8 +68,7 @@
       "_record_id": "ai_model_decisions",
       "_source_file": "ai_model_decisions.json",
       "description": "Model selection history: GPT-4o to o3 to GPT-5.3. Rationale, SIT findings, retirement reasons.",
-      "publish": false,
-      "ch_matrix_id": "49ee6a1a-d3db-4afd-976b-df9df26a6293"
+      "publish": false
     },
     {
       "limits": {
@@ -109,8 +107,7 @@
       "_record_id": "budget_config",
       "_source_file": "budget_config.json",
       "description": "Token budget limits and cost thresholds for AI operations.",
-      "publish": false,
-      "ch_matrix_id": "88b35d55-b75c-4a89-8163-84700ad5c6ca"
+      "publish": false
     },
     {
       "verdict": "GO",
@@ -119,8 +116,7 @@
       "_record_id": "gpt_qa_release_approval",
       "_source_file": "gpt_qa_release_approval.json",
       "description": "GPT formal GO/NO-GO verdict for production release. Conditions and risk assessment.",
-      "publish": false,
-      "ch_matrix_id": "066997ba-17d2-49b8-a344-c677e82c0c05"
+      "publish": false
     },
     {
       "title": "GPT Reader SIT Report",
@@ -141,8 +137,7 @@
           "status": "PASS",
           "details": "Status: 200",
           "elapsed_ms": 1789,
-          "timestamp": "2026-03-30T20:55:21.083548+00:00",
-          "ch_matrix_id": "bb85768b-424c-4ee8-ad52-9e3b7d0fc237"
+          "timestamp": "2026-03-30T20:55:21.083548+00:00"
         },
         {
           "requirement_id": "R4",
@@ -150,8 +145,7 @@
           "status": "PASS",
           "details": "Status: 401",
           "elapsed_ms": 0,
-          "timestamp": "2026-03-30T20:55:21.083548+00:00",
-          "ch_matrix_id": "59ec7b16-71c4-4128-b492-d71a824658b8"
+          "timestamp": "2026-03-30T20:55:21.083548+00:00"
         },
         {
           "requirement_id": "R1",
@@ -159,8 +153,7 @@
           "status": "PASS",
           "details": "Status: 200, encoding: text",
           "elapsed_ms": 1316,
-          "timestamp": "2026-03-30T20:55:22.400339+00:00",
-          "ch_matrix_id": "793eea3d-bb38-46c9-9c10-3323e2ce05f0"
+          "timestamp": "2026-03-30T20:55:22.400339+00:00"
         },
         {
           "requirement_id": "R1",
@@ -168,8 +161,7 @@
           "status": "PASS",
           "details": "Status: 200",
           "elapsed_ms": 1350,
-          "timestamp": "2026-03-30T20:55:23.751174+00:00",
-          "ch_matrix_id": "105ea817-aed9-4582-acbc-f8a0e2687ca3"
+          "timestamp": "2026-03-30T20:55:23.751174+00:00"
         },
         {
           "requirement_id": "R5",
@@ -177,8 +169,7 @@
           "status": "PASS",
           "details": "Status: 200, encoding: base64",
           "elapsed_ms": 1291,
-          "timestamp": "2026-03-30T20:55:25.042935+00:00",
-          "ch_matrix_id": "47c907e2-599c-471e-bf3a-bd06da565575"
+          "timestamp": "2026-03-30T20:55:25.042935+00:00"
         },
         {
           "requirement_id": "R2",
@@ -186,8 +177,7 @@
           "status": "PASS",
           "details": "Status: 200, count: 5",
           "elapsed_ms": 2130,
-          "timestamp": "2026-03-30T20:55:27.173168+00:00",
-          "ch_matrix_id": "0a1decc9-0e38-4e06-a3f1-a95e7a525464"
+          "timestamp": "2026-03-30T20:55:27.173168+00:00"
         },
         {
           "requirement_id": "R2",
@@ -195,8 +185,7 @@
           "status": "PASS",
           "details": "Status: 200",
           "elapsed_ms": 1355,
-          "timestamp": "2026-03-30T20:55:28.528218+00:00",
-          "ch_matrix_id": "7a26a1c2-1832-447c-93e8-d95fb67ecb4c"
+          "timestamp": "2026-03-30T20:55:28.528218+00:00"
         },
         {
           "requirement_id": "R2",
@@ -204,8 +193,7 @@
           "status": "PASS",
           "details": "Status: 403",
           "elapsed_ms": 973,
-          "timestamp": "2026-03-30T20:55:29.501918+00:00",
-          "ch_matrix_id": "2a384e0c-a36d-4e4d-950f-d504542d2589"
+          "timestamp": "2026-03-30T20:55:29.501918+00:00"
         },
         {
           "requirement_id": "R3",
@@ -213,8 +201,7 @@
           "status": "PASS",
           "details": "Status: 400",
           "elapsed_ms": 1136,
-          "timestamp": "2026-03-30T20:55:30.638186+00:00",
-          "ch_matrix_id": "e9f8a608-36b7-49f0-95e2-31ea7de4296d"
+          "timestamp": "2026-03-30T20:55:30.638186+00:00"
         },
         {
           "requirement_id": "R6",
@@ -222,8 +209,7 @@
           "status": "PASS",
           "details": "All fields present",
           "elapsed_ms": 0,
-          "timestamp": "2026-03-30T20:55:31.930420+00:00",
-          "ch_matrix_id": "99e94c57-c065-4988-9c11-72d8ba7f1fb4"
+          "timestamp": "2026-03-30T20:55:31.930420+00:00"
         },
         {
           "requirement_id": "R7",
@@ -231,8 +217,7 @@
           "status": "PASS",
           "details": "Status: 200",
           "elapsed_ms": 1575,
-          "timestamp": "2026-03-30T20:55:33.505615+00:00",
-          "ch_matrix_id": "43541cf6-de4c-49d3-9082-538086a33a65"
+          "timestamp": "2026-03-30T20:55:33.505615+00:00"
         },
         {
           "requirement_id": "R8",
@@ -240,8 +225,7 @@
           "status": "PASS",
           "details": "Status: 200, count: 10",
           "elapsed_ms": 2044,
-          "timestamp": "2026-03-30T20:55:35.550316+00:00",
-          "ch_matrix_id": "b053bb09-97bf-41f6-9437-ee0e5ef1d8a3"
+          "timestamp": "2026-03-30T20:55:35.550316+00:00"
         },
         {
           "requirement_id": "R13",
@@ -249,8 +233,7 @@
           "status": "PASS",
           "details": "Status: 403",
           "elapsed_ms": 1150,
-          "timestamp": "2026-03-30T20:55:36.700569+00:00",
-          "ch_matrix_id": "6fa14dae-ce6c-4f22-8850-f53acd2fa16c"
+          "timestamp": "2026-03-30T20:55:36.700569+00:00"
         },
         {
           "requirement_id": "R13",
@@ -258,8 +241,7 @@
           "status": "PASS",
           "details": "Status: 403",
           "elapsed_ms": 958,
-          "timestamp": "2026-03-30T20:55:37.658724+00:00",
-          "ch_matrix_id": "895996a1-b27d-4f83-958d-5341f4a69f58"
+          "timestamp": "2026-03-30T20:55:37.658724+00:00"
         },
         {
           "requirement_id": "R14",
@@ -267,8 +249,7 @@
           "status": "PASS",
           "details": "Status: 507, keys: ['error', 'message', 'max_documents', 'estimated_result', 'suggestion']",
           "elapsed_ms": 1271,
-          "timestamp": "2026-03-30T20:55:38.929780+00:00",
-          "ch_matrix_id": "f993cb2f-1571-42d6-b476-976cc87ac985"
+          "timestamp": "2026-03-30T20:55:38.929780+00:00"
         },
         {
           "requirement_id": "R19",
@@ -276,8 +257,7 @@
           "status": "PASS",
           "details": "Elapsed: 1354ms",
           "elapsed_ms": 1354,
-          "timestamp": "2026-03-30T20:55:40.284238+00:00",
-          "ch_matrix_id": "208e8627-8357-4d5c-b335-ca71ee09b591"
+          "timestamp": "2026-03-30T20:55:40.284238+00:00"
         },
         {
           "requirement_id": "R26",
@@ -285,8 +265,7 @@
           "status": "PASS",
           "details": "Before: 156, after: 157",
           "elapsed_ms": 0,
-          "timestamp": "2026-03-30T20:55:41.746773+00:00",
-          "ch_matrix_id": "d56be92c-2bdd-42b8-be4e-449a3cadce2a"
+          "timestamp": "2026-03-30T20:55:41.746773+00:00"
         },
         {
           "requirement_id": "R26",
@@ -294,8 +273,7 @@
           "status": "PASS",
           "details": "All fields present",
           "elapsed_ms": 0,
-          "timestamp": "2026-03-30T20:55:41.915325+00:00",
-          "ch_matrix_id": "89057a80-8217-4d73-b9aa-75be31d8afbb"
+          "timestamp": "2026-03-30T20:55:41.915325+00:00"
         },
         {
           "requirement_id": "R27",
@@ -303,8 +281,7 @@
           "status": "PASS",
           "details": "Snapshot: snapshot_20260330_192601_40ecfd06",
           "elapsed_ms": 0,
-          "timestamp": "2026-03-30T20:55:41.915325+00:00",
-          "ch_matrix_id": "fc91a0c2-4ece-44df-bf23-173cd45c470a"
+          "timestamp": "2026-03-30T20:55:41.915325+00:00"
         },
         {
           "requirement_id": "R27",
@@ -312,8 +289,7 @@
           "status": "PASS",
           "details": "Status: 409",
           "elapsed_ms": 1520,
-          "timestamp": "2026-03-30T20:55:43.436209+00:00",
-          "ch_matrix_id": "f883d31b-671d-469b-ac9e-8ecab245e326"
+          "timestamp": "2026-03-30T20:55:43.436209+00:00"
         },
         {
           "requirement_id": "R29",
@@ -321,8 +297,7 @@
           "status": "PASS",
           "details": "Checked first 5 entries",
           "elapsed_ms": 0,
-          "timestamp": "2026-03-30T20:55:43.436209+00:00",
-          "ch_matrix_id": "5fb3ba77-bb5e-4b6b-bf4f-1cba81b20edf"
+          "timestamp": "2026-03-30T20:55:43.436209+00:00"
         },
         {
           "requirement_id": "R14",
@@ -330,8 +305,7 @@
           "status": "PASS",
           "details": "Metrics: ['matched_estimate', 'returned_count', 'response_bytes', 'elapsed_ms']",
           "elapsed_ms": 1878,
-          "timestamp": "2026-03-30T20:55:45.314834+00:00",
-          "ch_matrix_id": "985a6848-5d39-4f77-a3c3-6fa1600169d4"
+          "timestamp": "2026-03-30T20:55:45.314834+00:00"
         },
         {
           "requirement_id": "R33",
@@ -339,8 +313,7 @@
           "status": "PASS",
           "details": "Status: 200",
           "elapsed_ms": 1621,
-          "timestamp": "2026-03-30T20:55:46.936463+00:00",
-          "ch_matrix_id": "2334adf9-e40c-43e9-87fe-02c12e04d29f"
+          "timestamp": "2026-03-30T20:55:46.936463+00:00"
         },
         {
           "requirement_id": "R33",
@@ -348,8 +321,7 @@
           "status": "PASS",
           "details": "Write correctly blocked: OperationFailure",
           "elapsed_ms": 984,
-          "timestamp": "2026-03-30T20:55:47.921080+00:00",
-          "ch_matrix_id": "a8e80ffb-14cc-4385-b65e-923334df8579"
+          "timestamp": "2026-03-30T20:55:47.921080+00:00"
         },
         {
           "requirement_id": "R34",
@@ -357,8 +329,7 @@
           "status": "PASS",
           "details": "MONGO_READONLY_PIPELINE present",
           "elapsed_ms": 0,
-          "timestamp": "2026-03-30T20:55:47.921080+00:00",
-          "ch_matrix_id": "b7a75e46-fb63-4561-80b4-fd32423a1b26"
+          "timestamp": "2026-03-30T20:55:47.921080+00:00"
         },
         {
           "requirement_id": "R34",
@@ -366,8 +337,7 @@
           "status": "PASS",
           "details": "Cluster unavailable (expected if paused): ServerSelectionTimeoutError",
           "elapsed_ms": 15258,
-          "timestamp": "2026-03-30T20:56:03.180029+00:00",
-          "ch_matrix_id": "56aacfc7-2ca5-42d1-a058-1a4f86bb2d71"
+          "timestamp": "2026-03-30T20:56:03.180029+00:00"
         },
         {
           "requirement_id": "WORKFLOW",
@@ -375,16 +345,14 @@
           "status": "PASS",
           "details": "Steps: manifest=200, governance=200, query=200",
           "elapsed_ms": 4981,
-          "timestamp": "2026-03-30T20:56:08.161788+00:00",
-          "ch_matrix_id": "171d02f4-d35e-40b7-a15a-4098797f0382"
+          "timestamp": "2026-03-30T20:56:08.161788+00:00"
         }
       ],
       "_record_id": "gpt_reader_qa_report",
       "_source_file": "gpt_reader_qa_report.json",
       "description": "GPT Reader service SIT results. 27 tests, all requirements mapped.",
       "business_artifact": "brain/BusinessArtifacts/gpt_reader_qa_report.pdf",
-      "publish": false,
-      "ch_matrix_id": "9b0cb732-3310-44ab-bf3b-fc453c207288"
+      "publish": false
     },
     {
       "title": "GPT-4o Cannot Drive an SIT Autonomously",
@@ -472,32 +440,27 @@
         {
           "id": "F1",
           "finding": "GPT-4o cannot self-correct in a tool-use loop. When a command fails, it retries the identical command indefinitely rather than analyzing the error and adjusting.",
-          "evidence": "Attempts 1 and 2: 100 identical failing commands across 100 iterations.",
-          "ch_matrix_id": "04a2d2e9-5541-46bd-b715-f00f87bcf702"
+          "evidence": "Attempts 1 and 2: 100 identical failing commands across 100 iterations."
         },
         {
           "id": "F2",
           "finding": "GPT-4o cannot drive comprehensive testing. When given freedom to design its own test plan, it tests a small subset and declares success.",
-          "evidence": "Attempt 3: tested 7/35 requirements (20%) and submitted PASS verdict.",
-          "ch_matrix_id": "a64d9843-369f-4c00-a0e2-ef3360829ce4"
+          "evidence": "Attempt 3: tested 7/35 requirements (20%) and submitted PASS verdict."
         },
         {
           "id": "F3",
           "finding": "GPT-4o does not follow 'test ALL requirements' instructions. The system prompt explicitly stated 'You must test ALL 35 requirements' and 'Do NOT pass any requirement you did not actually test.' GPT violated both.",
-          "evidence": "28 requirements marked NOT_TESTABLE without any attempt to test them.",
-          "ch_matrix_id": "d86d8c10-e5c1-456f-b10b-a40c4b24520c"
+          "evidence": "28 requirements marked NOT_TESTABLE without any attempt to test them."
         },
         {
           "id": "F4",
           "finding": "GPT-4o is cost-inefficient in iterative loops. Context accumulation causes token consumption to grow geometrically per iteration.",
-          "evidence": "Attempt 3: 572K input tokens for 9 iterations (average 63K tokens per GPT call).",
-          "ch_matrix_id": "c4317270-5eac-4fbe-b4b5-bbe80b448c6a"
+          "evidence": "Attempt 3: 572K input tokens for 9 iterations (average 63K tokens per GPT call)."
         },
         {
           "id": "F5",
           "finding": "GPT-4o's code review (non-interactive) was more thorough than its interactive SIT. When given source code to review, GPT evaluated all 34 requirements. When asked to execute tests, it gave up after 7.",
-          "evidence": "Code review attempt: 31 PASS, 3 NOT_TESTABLE, 0 FAIL across all 34 requirements. Interactive SIT: 7 PASS, 28 NOT_TESTABLE.",
-          "ch_matrix_id": "ab3d05c0-9d77-4102-89d4-6915792fe50e"
+          "evidence": "Code review attempt: 31 PASS, 3 NOT_TESTABLE, 0 FAIL across all 34 requirements. Interactive SIT: 7 PASS, 28 NOT_TESTABLE."
         }
       ],
       "recommendation": "GPT should be used as a code reviewer and design critic, not as an autonomous test executor. For SIT, Claude should execute the tests and GPT should evaluate the results — which is the model that succeeded (code review pass on all 34 requirements).",
@@ -507,8 +470,7 @@
       "_record_id": "gpt_sit_finding",
       "_source_file": "gpt_sit_finding.json",
       "description": "FIND-SIT-001: GPT-4o cannot drive autonomous SIT. 3 attempts, 1M+ tokens, documented failure.",
-      "publish": false,
-      "ch_matrix_id": "34c56598-cf24-4dfd-8a20-adce03e95277"
+      "publish": false
     },
     {
       "report_title": "GPT SIT Report — Round 2 (Remaining)",
@@ -559,8 +521,7 @@
           "impact": "Timeout handling may be missing or unverified, risking long-running queries without safeguards",
           "reproduction": "{\"action\":\"Query\",\"database\":\"dev_PublicHealthData\",\"collection\":\"SpecialtyMetaData\",\"query\":{}}",
           "id": "BUG-001",
-          "source": "ai_operations.json",
-          "ch_matrix_id": "ac5748e5-331e-4712-a04b-58dbd32c5436"
+          "source": "ai_operations.json"
         },
         {
           "bug_id": "BUG-002",
@@ -572,8 +533,7 @@
           "impact": "Violates UAT requirement; cluster availability control or error handling is incorrect",
           "reproduction": "{\"action\":\"Query\",\"database\":\"dev_PublicHealthData\",\"collection\":\"SpecialtyMetaData\",\"query\":{},\"connection\":\"MONGO_READONLY_PIPELINE\"}",
           "id": "BUG-002",
-          "source": "ai_operations.json",
-          "ch_matrix_id": "0ecec598-2c5e-4a50-bf12-0d4ecd76768e"
+          "source": "ai_operations.json"
         }
       ],
       "sign_off": "Round 2 complete. Tested R7, R14, R19, R35. Results: 2 PASS, 2 FAIL.",
@@ -16178,8 +16138,7 @@
       "_source_file": "gpt_sit_report.json",
       "description": "GPT-5.3 SIT execution report. Live test results, bugs found, per-requirement verdicts.",
       "business_artifact": "brain/BusinessArtifacts/gpt_sit_report.pdf",
-      "publish": false,
-      "ch_matrix_id": "b7efbc2c-7dd9-42e9-b70a-150e23671dbb"
+      "publish": false
     },
     {
       "description": "Prompt templates for different GPT task types (architecture, QA, design).",
@@ -16202,8 +16161,7 @@
                 "risk": "Low|Medium|High",
                 "rationale": "string",
                 "accepted": "boolean",
-                "suggested_adjustments": "string|null",
-                "ch_matrix_id": "d6938e32-ac4e-47ea-95d0-32970c21ce3c"
+                "suggested_adjustments": "string|null"
               }
             ],
             "feature_set_assessment": "string",
@@ -16257,8 +16215,7 @@
                 "id": "string",
                 "feature": "string",
                 "criterion": "string",
-                "risk": "string",
-                "ch_matrix_id": "9a684a55-11d2-447f-bd56-2fcaeef4eeec"
+                "risk": "string"
               }
             ],
             "uat_scenarios": [
@@ -16267,8 +16224,7 @@
                 "feature": "string",
                 "test_cases": [
                   "object"
-                ],
-                "ch_matrix_id": "f7972958-51f1-4556-a348-7a9cb1a646d9"
+                ]
               }
             ],
             "test_schedule": [
@@ -16276,8 +16232,7 @@
                 "phase": "string",
                 "timing": "string",
                 "owner": "string",
-                "description": "string",
-                "ch_matrix_id": "40b5eb13-d5b1-4c82-b210-f16386a713b2"
+                "description": "string"
               }
             ],
             "methodology_notes": "string"
@@ -16311,8 +16266,7 @@
       },
       "_record_id": "task_based_system_prompts",
       "_source_file": "task_based_system_prompts.json",
-      "publish": false,
-      "ch_matrix_id": "537e982e-7eba-422e-81f7-255e7b1ae24a"
+      "publish": false
     },
     {
       "entries": [
@@ -16410,8 +16364,7 @@
       "_record_id": "usage_log",
       "_source_file": "usage_log.json",
       "description": "Token consumption log across all GPT/Claude API calls.",
-      "publish": false,
-      "ch_matrix_id": "024a841d-a8ef-40b8-a6ad-0d136aad3c72"
+      "publish": false
     },
     {
       "_record_id": "gpt_assignment_system_prompt",
@@ -16456,8 +16409,7 @@
               "feature": "string",
               "requirement": "The system must...",
               "source": "code:<fn> | assignment | architecture constraint",
-              "priority": "must-have | should-have | nice-to-have",
-              "ch_matrix_id": "10b7599a-6a4a-44cd-ae3e-f68e7ac19a53"
+              "priority": "must-have | should-have | nice-to-have"
             }
           },
           "feature_set": {
@@ -16466,8 +16418,7 @@
               "_each": {
                 "feature": "string",
                 "description": "string",
-                "risk": "Low|Moderate|High",
-                "ch_matrix_id": "47795144-c11a-4097-8143-e656c4d9490c"
+                "risk": "Low|Moderate|High"
               }
             },
             "deferred": {
@@ -16503,8 +16454,7 @@
                   "expected": "boolean true | false",
                   "rationale": "why this result"
                 }
-              },
-              "ch_matrix_id": "4b930dc9-a2b0-4b67-95f2-d1024e5ea539"
+              }
             }
           },
           "usage": {
@@ -16627,8 +16577,7 @@
                 "session_2026_03_28_mind_dump"
               ]
             }
-          },
-          "ch_matrix_id": "abf0aab6-6e6a-420d-83b7-8a1bbd028039"
+          }
         },
         "rules": [
           "If you find conflicting data across brain collections, flag all values with sources to human.",
@@ -16638,8 +16587,7 @@
         ]
       },
       "description": "Static system prompt for GPT assignments. Prompt-cacheable. Includes brain manifest and output schema.",
-      "publish": false,
-      "ch_matrix_id": "76601d57-c0bb-4acf-a00f-5e6034ee23f8"
+      "publish": false
     },
     {
       "_record_id": "epic_planning_user_prompt_v014",
@@ -16655,8 +16603,7 @@
         "note": "Claude increments on each submission"
       },
       "description": "Epic planning user prompt for v0.1.4. Two epics: Evaluate Care (80%) and Maintenance (20%). Produces Word doc + JSON.",
-      "publish": false,
-      "ch_matrix_id": "378d4285-0a83-4529-bf3c-d78138fde3aa"
+      "publish": false
     },
     {
       "_record_id": "gpt_code_review_epic3_result",
@@ -16666,8 +16613,7 @@
       "tokens_in": 50383,
       "tokens_out": 2420,
       "result": "**Table 1 — Requirements Compliance (requirements to code)**\n\n| Component         | Req ID               | Requirement (summary)                                                               | File:Line                                  | Status               | Reason |\n|-------------------|----------------------|-------------------------------------------------------------------------------------|--------------------------------------------|----------------------|--------|\n| Provider Pipeline | PIPE-LC-001-REQ-001  | Every enrichment pass accepts states and filters by states                            | provider_worker.py:127, county_enrichment_job.py:466 | MET                  |        |\n| Provider Pipeline | PIPE-LC-001-REQ-002  | Missing states raises error, not default to all                                      | provider_worker.py:69                      | MET                  |        |\n| Provider Pipeline | PIPE-LC-002-REQ-001  | Orchestrator wraps all steps in try/finally, releases reservation on failure          | provider_load_manager.py:156               | MET                  |        |\n| Provider Pipeline | PIPE-LC-002-REQ-002  | Each step reports completed_success or completed_fail                                | provider_load_manager.py:265-356           | MET                  |        |\n| Provider Pipeline | PIPE-LC-002-REQ-003  | On abend, orchestrator withdraws reservation and shuts down cluster                   | provider_load_manager.py:272-331           | MET                  |        |\n| Provider Pipeline | PIPE-LC-003-REQ-001  | Router API accepts incremental parameter                                             | provider_load_manager.py:223               | MET                  |        |\n| Provider Pipeline | PIPE-LC-003-REQ-002  | If incremental false/absent, collection must be dropped before loading                | provider_load_manager.py:124-126           | MET                  |        |\n| Provider Pipeline | PIPE-LC-003-REQ-003  | If incremental true, collection not dropped, load uses incremental code path          | provider_worker.py:141                     | MET                  |        |\n| Provider Pipeline | PIPE-DM-001-REQ-001  | All enrichment uses updateOne/updateMany on providers, no separate collection         | county_enrichment_job.py:579               | MET                  |        |\n| Provider Pipeline | PIPE-INC-001-REQ-001 | When incremental=true, each record fully replaced (replaceOne)                        | provider_worker.py:141                     | MET                  |        |\n| Provider Pipeline | PIPE-INC-001-REQ-002 | On incremental replace, county set to null                                            | provider_worker.py:161, 533                | MET                  |        |\n| Provider Pipeline | PIPE-INC-001-REQ-003 | New records not in collection must be inserted                                        | provider_worker.py:206                     | MET                  |        |\n| Provider Pipeline | PIPE-INC-002-REQ-002 | Deactivated NPI numbers logged for audit trail                                        | provider_worker.py:152                     | MET                  |        |\n| Provider Pipeline | PIPE-DQ-001-REQ-001  | Provider record has bad_data.flagged and bad_data.reason from controlled vocabulary   | county_enrichment_job.py:586               | MET                  |        |\n| Provider Pipeline | PIPE-DQ-001-REQ-002  | Controlled reasons: no_address, bad_address, zip_state_mismatch, zip_state_mismatch_multiple_licenses, zip_state_mismatch_no_license | county_enrichment_job.py:588, controlled_vocabularies.json | MET                  |        |\n| Provider Pipeline | PIPE-DQ-001-REQ-003  | Downstream queries include/exclude bad records by reason                              | county_enrichment_job.py:273               | MET                  |        |\n| Provider Pipeline | PIPE-DQ-002-REQ-001  | Provider record has out_of_scope.flagged and out_of_scope.reason from controlled vocabulary | county_enrichment_job.py:615, controlled_vocabularies.json | MET                  |        |\n| Provider Pipeline | PIPE-DQ-002-REQ-002  | Controlled reasons: deactivated, foreign_provider                                     | county_enrichment_job.py:619, controlled_vocabularies.json | MET                  |        |\n| Provider Pipeline | PIPE-DQ-002-REQ-003  | out_of_scope records not enriched or embedded but not deleted                         | No specific code reviewing out_of_scope for deletion | POTENTIALLY NOT MET  | Unclear how out_of_scope records are being omitted from processes |\n| Provider Pipeline | PIPE-DQ-003-REQ-001  | On zip/state mismatch, check license states                                           | county_enrichment_job.py:629               | MET                  |        |\n| Provider Pipeline | PIPE-DQ-003-REQ-002  | One license match — repair practice_address.state, clear bad_data                     | county_enrichment_job.py:646               | MET                  |        |\n| Provider Pipeline | PIPE-DQ-003-REQ-003  | Multiple licenses — bad_data.reason=zip_state_mismatch_multiple_licenses              | county_enrichment_job.py:654               | MET                  |        |\n| Provider Pipeline | PIPE-DQ-003-REQ-004  | No license — bad_data.reason=zip_state_mismatch_no_license                            | county_enrichment_job.py:662               | MET                  |        |\n| Provider Pipeline | PIPE-DQ-003-REQ-005  | License doesn't resolve — bad_data.reason=zip_state_mismatch                           | county_enrichment_job.py:667               | MET                  |        |\n| DB Manager        | PIPE-DM-002-REQ-001  | Accept cluster reservations from pipeline jobs before any MongoDB access              | cluster_tool.py:22-36                      | MET                  |        |\n| DB Manager        | PIPE-DM-002-REQ-002  | Wake the pipeline cluster when a reservation is received                              | cluster_tool.py:51-64                      | MET                  |        |\n| DB Manager        | PIPE-DM-002-REQ-003  | Poll and wait for cluster to become IDLE before allowing work to proceed              | cluster_tool.py:73-83                      | MET                  |        |\n| DB Manager        | PIPE-DM-002-REQ-004  | Release reservations when jobs complete (success or failure)                          | cluster_tool.py:86-100                     | MET                  |        |\n| DB Manager        | PIPE-DM-002-REQ-005  | Auto-pause the cluster when zero reservations remain                                  | cluster_tool.py:105-108                    | MET                  |        |\n| DB Manager        | PIPE-DM-002-REQ-006  | Detect overdue reservations and alert human                                            | ops_agent.py:253-275                       | MET                  |        |\n| DB Manager        | PIPE-DM-002-REQ-007  | Detect stuck clusters (not IDLE, not PAUSED, zero reservations) and alert             | ops_agent.py:233-247                       | MET                  |        |\n| DB Manager        | PIPE-DM-002-REQ-008  | Self-repair infrastructure errors (retry up to 3 times before escalating)             | cluster_tool.py:122-126                    | MET                  |        |\n| DB Manager        | PIPE-DM-002-REQ-009  | Log all operations to an audit trail                                                  | audit_trail.py:4                           | MET                  |        |\n\n**Table 2 — Code Traceability (code to requirements)**\n\n| Component         | File:Line                              | What the code does                                                                                     | Linked Requirement          | Orphan | Reason (required if Orphan is YES) |\n|-------------------|----------------------------------------|--------------------------------------------------------------------------------------------------------|-----------------------------|--------|------------------------------------|\n| Provider Pipeline | provider_load_manager.py:72-73         | Fetches MongoDB client and sets a singleton instance for reuse                                          | PIPE-LC-001-REQ-001         | NO     |                                    |\n| Provider Pipeline | provider_load_manager.py:271-274       | Runs step activities and sets step status                                                              | PIPE-LC-002-REQ-002         | NO     |                                    |\n| Provider Pipeline | provider_worker.py:141                 | Replaces existing records with upsert operation in incremental mode                                    | PIPE-INC-001-REQ-001        | NO     |                                    |\n| Provider Pipeline | provider_worker.py:69                  | Raises error if states list is empty or not provided                                                   | PIPE-LC-001-REQ-002         | NO     |                                    |\n| Provider Pipeline | county_enrichment_job.py:466           | Defines the state filter mandatory for every enrichment task                                           | PIPE-LC-001-REQ-001         | NO     |                                    |\n| Provider Pipeline | county_enrichment_job.py:273           | Excludes out_of_scope and bad_data flagged records in enrichment task                                  | PIPE-DQ-003-REQ-003         | NO     |                                    |\n| Provider Pipeline | county_enrichment_job.py:586           | Flags no_address providers as bad_data                                                                 | PIPE-DQ-001-REQ-001         | NO     |                                    |\n| Provider Pipeline | county_enrichment_job.py:588           | Utilizes controlled vocabulary for bad_data reasons                                                    | PIPE-DQ-001-REQ-002         | NO     |                                    |\n| Provider Pipeline | county_enrichment_job.py:629           | Checks license states on zip/state mismatch                                                            | PIPE-DQ-003-REQ-001         | NO     |                                    |\n| Provider Pipeline | controlled_vocabularies.json           | Specifies controlled vocabularies                                                                      | PIPE-DQ-001-REQ-001, PIPE-DQ-002-REQ-001 | NO     |                                    |\n| DB Manager        | cluster_tool.py:51-64                  | Reserves and wakes the cluster for MongoDB operations                                                  | PIPE-DM-002-REQ-001, PIPE-DM-002-REQ-002 | NO     |                                    |\n| DB Manager        | cluster_tool.py:73-83                  | Verifies if the cluster is IDLE before job execution                                                   | PIPE-DM-002-REQ-003         | NO     |                                    |\n| DB Manager        | cluster_tool.py:96-109                 | Releases reservation and pauses cluster if no reservations persist                                     | PIPE-DM-002-REQ-004, PIPE-DM-002-REQ-005 | NO     |                                    |\n| DB Manager        | ops_agent.py:233-275                   | Alerts on cluster overdue and stuck states                                                             | PIPE-DM-002-REQ-006, PIPE-DM-002-REQ-007 | NO     |                                    |\n| DB Manager        | cluster_tool.py:120-128                | Performs retries on repairable errors related to infrastructure                                        | PIPE-DM-002-REQ-008         | NO     |                                    |\n| DB Manager        | audit_trail.py:10                      | Records all operations as an immutable audit trail                                                     | PIPE-DM-002-REQ-009         | NO     |                                    |\n\n**Conclusion — two parts:**\n1. Do the 24 requirements fully cover the 19 capabilities described above? If a capability has no requirement, identify the gap.\n   - The 24 requirements appear to cover all the listed 19 capabilities. However, for capability 8 (Attempt to repair zip/state mismatches using provider license data before flagging), the requirement PIPE-DQ-003-001 directly maps it. Capability 5 (Enrich each provider with county FIPS code via ZIP crosswalk, Census geocoder, Google Maps, and NPPES lookup) is thoroughly supported through requirements with code addressing each enrichment source.\n2. Does any code exist that is not traceable to a requirement? If so, should it be there or should it be removed?\n   - There is no code currently identified as orphaned from the requirement list provided. All functions and code blocks appear to fulfill mapped or relevant requirements within the defined scope.",
-      "publish": false,
-      "ch_matrix_id": "90d080b4-5c96-49d8-a794-d067e7299f41"
+      "publish": false
     }
   ],
   "dead_code_records": [
