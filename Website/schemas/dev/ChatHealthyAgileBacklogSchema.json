@@ -123,7 +123,9 @@
                         "status",
                         "stories",
                         "orphan",
-                        "approval"
+                        "approval",
+                        "due_date",
+                        "delivery_date"
                       ],
                       "properties": {
                         "feature_id": {
@@ -336,7 +338,8 @@
                                                   "reason": {
                                                     "type": "string"
                                                   }
-                                                }
+                                                },
+                                                "additionalProperties": false
                                               }
                                             },
                                             "orphan": {
@@ -357,9 +360,6 @@
                                               "type": "string"
                                             },
                                             "resolution_status": {
-                                              "type": "string"
-                                            },
-                                            "ch_matrix_id": {
                                               "type": "string"
                                             },
                                             "pytests": {
@@ -402,30 +402,47 @@
                                                       "orphan": {
                                                         "type": "boolean"
                                                       }
-                                                    }
+                                                    },
+                                                    "additionalProperties": false
                                                   }
                                                 }
-                                              }
+                                              },
+                                              "additionalProperties": false
                                             }
-                                          }
+                                          },
+                                          "additionalProperties": false
                                         }
                                       }
-                                    }
+                                    },
+                                    "additionalProperties": false
                                   }
-                                }
+                                },
+                                "additionalProperties": false
                               }
                             }
-                          }
+                          },
+                          "additionalProperties": false
+                        },
+                        "due_date": {
+                          "type": "string"
+                        },
+                        "delivery_date": {
+                          "type": "string"
                         }
-                      }
+                      },
+                      "additionalProperties": false
                     }
                   }
-                }
+                },
+                "additionalProperties": false
               }
-            }
+            },
+            "additionalProperties": false
           }
         }
-      }
+      },
+      "additionalProperties": false
     }
-  }
+  },
+  "additionalProperties": false
 }

@@ -20,9 +20,6 @@
     "description": {
       "type": "string"
     },
-    "ch_matrix_id": {
-      "type": "string"
-    },
     "entries": {
       "type": "array",
       "items": {
@@ -76,5 +73,6 @@
         }
       }
     }
-  }
+  },
+  "additionalProperties": false
 }
