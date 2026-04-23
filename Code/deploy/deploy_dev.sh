@@ -18,6 +18,19 @@
 set -e
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+# Activate project venv — script requires venv packages (pymongo for bump_build, etc.)
+# Self-sufficient: does not assume the caller's shell has the venv on PATH.
+if [ -f "$REPO_ROOT/.venv/Scripts/activate" ]; then
+    source "$REPO_ROOT/.venv/Scripts/activate"
+elif [ -f "$REPO_ROOT/.venv/bin/activate" ]; then
+    source "$REPO_ROOT/.venv/bin/activate"
+else
+    echo "ERROR: .venv not found at $REPO_ROOT/.venv"
+    echo "Create one:  python -m venv .venv && source .venv/Scripts/activate && pip install -r Code/ConversationalUX/FindCareChat/backend/requirements.txt"
+    exit 1
+fi
+
 BACKEND_DIR="$REPO_ROOT/Code/ConversationalUX/FindCareChat/backend"
 HF_HEALTH="https://skipsnow-dev-chathealthyspace.hf.space/health"
 
