@@ -1154,7 +1154,7 @@
       },
       {
         "id": "Rule-022",
-        "name": "Website pages generated from brain \u2014 no hand-maintained HTML",
+        "name": "Website pages generated from brain — no hand-maintained HTML",
         "description": "All website pages presenting brain content must be generated from the brain JSON via designated generators. No hand-editing of generated HTML is allowed, and each generated file must include a specific comment header. Only index.html is exempt.",
         "rule_statements": {
           "rule_statement": [
@@ -1180,7 +1180,7 @@
             },
             {
               "statement_number": 5,
-              "statement_body": "Each generated HTML file contains a comment header stating (1) GENERATED FILE \u2014 do not edit directly, (2) the source JSON(s), (3) the generator script path, and (4) the generation timestamp.",
+              "statement_body": "Each generated HTML file contains a comment header stating (1) GENERATED FILE — do not edit directly, (2) the source JSON(s), (3) the generator script path, and (4) the generation timestamp.",
               "req_id": "Orphan"
             },
             {
@@ -1211,7 +1211,7 @@
       },
       {
         "id": "Rule-023",
-        "name": "Alpha code freeze\u2014architecture work requires human-GPT override",
+        "name": "Alpha code freeze—architecture work requires human-GPT override",
         "description": "During the alpha freeze period, non-product architecture and related work is forbidden except via a specified approval process involving both a human and GPT (Enterprise Architect). All sessions must focus on working alpha product code.",
         "rule_statements": {
           "rule_statement": [
@@ -2011,7 +2011,7 @@
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "On every environment promotion (dev\u2192qa, qa\u2192prod), all required vector search indexes must be verified to exist.",
+              "statement_body": "On every environment promotion (dev→qa, qa→prod), all required vector search indexes must be verified to exist.",
               "req_id": "Orphan"
             },
             {
@@ -2793,7 +2793,7 @@
             },
             {
               "statement_number": 3,
-              "statement_body": "Assignment authority does not override rule v4-006 (deploy authority \u2014 QA/prod sign-off).",
+              "statement_body": "Assignment authority does not override rule v4-006 (deploy authority — QA/prod sign-off).",
               "req_id": "Orphan"
             },
             {
@@ -2835,7 +2835,7 @@
             },
             {
               "statement_number": 3,
-              "statement_body": "Pure utility libraries\u2014such as those handling data structures, serialization, string formatting, and math\u2014are exempt from this rule.",
+              "statement_body": "Pure utility libraries—such as those handling data structures, serialization, string formatting, and math—are exempt from this rule.",
               "req_id": "Orphan"
             },
             {
@@ -2859,7 +2859,7 @@
           "enforcement": [
             {
               "type": "graph_entry_check",
-              "_executor_status": "NOT YET IMPLEMENTED \u2014 see BUG-ARCH-GRAPH-002",
+              "_executor_status": "NOT YET IMPLEMENTED — see BUG-ARCH-GRAPH-002",
               "scan_dirs": [
                 "Code/ConversationalUX/FindCareChat/backend",
                 "Code/evaluate_care",
@@ -2868,6 +2868,28 @@
               "_note": "Detects FastAPI/Flask route handlers (functions decorated with @app.post/@app.get/@router.post/etc.) whose body does not contain a call matching <state_graph>.invoke(...). Permitted exceptions: handlers explicitly marked with a # graph-exempt comment AND a paired risk_acceptance entry."
             }
           ]
+        }
+      },
+      {
+        "id": "Rule-062",
+        "name": "Sub-threshold consequences of reversible or analytical actions must be suppressed outside production",
+        "description": "In any environment other than production, when the human operator asks Claude Code to perform an analysis task or a reversible state-changing action, Claude Code must not surface to the operator a possible consequence of that action whose estimated probability of occurring is below 2%. Claude Code must estimate the probability before surfacing the consequence.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "In all non-production environments, Claude Code MUST NOT surface to the human operator a possible consequence to an action the human operator has asked Claude Code to perform - either as an analysis task or as an action that will change state in a reversible way - when Claude Code's best-estimate probability that the consequence will occur is below 2%.",
+              "req_id": "ARCH-CONSTRAINTS-PRIME-RULE-001-REQ-B002"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "Before surfacing any possible consequence of the actions described in statement 1, Claude Code MUST first compute a best-estimate probability that the consequence will occur and silently drop from its response every candidate whose estimated probability is below the 2% threshold.",
+              "req_id": "ARCH-CONSTRAINTS-PRIME-RULE-001-REQ-B002"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": []
         }
       }
     ]
