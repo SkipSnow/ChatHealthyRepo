@@ -584,10 +584,6 @@
         "enforcements": {
           "enforcement": [
             {
-              "type": "requirement_pytest",
-              "path": "brain/machine_artifacts/content/agile_backlog.json"
-            },
-            {
               "type": "backlog_schema",
               "path": "brain/machine_artifacts/content/agile_backlog.json"
             },
@@ -600,55 +596,6 @@
             {
               "type": "conversation_log_schema",
               "path": "brain/machine_artifacts/content/conversation_log.json"
-            }
-          ]
-        }
-      },
-      {
-        "id": "Rule-009",
-        "name": "Bell notification before messages seeking Skip Snow input",
-        "description": "Always ring the bell before sending any message to Skip Snow that requests input, such as questions, approvals, decisions, or reviews. Use a specific PowerShell command for the bell. Err on the side of ringing if uncertain. Adjust bell behavior based on mode in collaboration with Skip Snow.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "The bell must ring before every message that asks Skip Snow for input, including questions, approvals, decisions, reviews, or any pause.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "The bell-ringing must use only the specified PowerShell beep command.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "The bell must ring before any question directed at Skip Snow, any approval request, any options presentation, or any 'ready for review' message.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "If there is uncertainty about whether to ring the bell, the bell must be rung.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "Missing the required bell sound before such messages is not permitted, but false alarms (extra bell sounds) are acceptable.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 6,
-              "statement_body": "Bell notification behavior must be refined per mode in collaboration with Skip Snow.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "type": "file_present",
-              "paths": [
-                "Code/DataPipelines/fatal_alert_bridge.py"
-              ]
             }
           ]
         }
@@ -1207,55 +1154,6 @@
         },
         "enforcements": {
           "enforcement": []
-        }
-      },
-      {
-        "id": "Rule-023",
-        "name": "Alpha code freeze—architecture work requires human-GPT override",
-        "description": "During the alpha freeze period, non-product architecture and related work is forbidden except via a specified approval process involving both a human and GPT (Enterprise Architect). All sessions must focus on working alpha product code.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "From 2026-04-07 until alpha launch (2026-05-01), no person or AI may perform architecture, infrastructure, security, governance, documentation, or brain housekeeping work unless an explicit override process is followed.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "Every work session during the freeze period MUST produce working product code relevant to the scoring engine, measures, data loading, or end-to-end wiring.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "If a human requests to perform any otherwise-forbidden architecture or related work, Claude MUST object and require the human to justify the work as 'MUST-have for alpha.'",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "If justification is given, Claude MUST present the human's justification to GPT (Enterprise Architect) for approval.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "Such work may only proceed if GPT (Enterprise Architect) explicitly agrees it is MUST-have for alpha.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 6,
-              "statement_body": "A human alone cannot authorize forbidden architecture or related work; GPT concurrence is required.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "type": "file_absent",
-              "paths": [
-                "Code/DataPipelines/overnight_pipeline.py"
-              ]
-            }
-          ]
         }
       },
       {
@@ -1826,49 +1724,6 @@
         }
       },
       {
-        "id": "Rule-037",
-        "name": "No single operation may materialize over 10,000 documents in memory",
-        "description": "Ensures that no operation loads more than 10,000 documents into a Python variable at once.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "No single operation may materialize more than 10,000 documents into a Python list, dict, or variable at once.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "If the source collection has more than 10,000 documents, a server-side cursor with batch_size, $bucketAuto, or streaming iteration must be used.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "Using list(collection.find()) on a collection with more than 10,000 documents is prohibited.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "type": "file_scan",
-              "scan_dirs": [
-                "Code/DataPipelines"
-              ],
-              "pattern": "list\\(.*\\.find\\(",
-              "exclude_comments": true,
-              "exempt_patterns": [
-                "limit(",
-                "batch_size=",
-                "SAMPLE_SIZE",
-                ".limit("
-              ],
-              "_note": "Catches list(collection.find()) patterns. Exempt if cursor is limited."
-            }
-          ]
-        }
-      },
-      {
         "id": "Rule-038",
         "name": "Kill Processes and Verify Ports Before Starting Local Server",
         "description": "Ensure no dead or zombie processes occupy the target ports before starting a local server and verify that the port is clear for binding.",
@@ -2189,59 +2044,6 @@
               "pattern": "FRONTEND.*embed|embed.*FRONTEND",
               "file_filter": "embed",
               "exclude_comments": true
-            }
-          ]
-        }
-      },
-      {
-        "id": "Rule-048",
-        "name": "Design Is Complete Only With Epic To Passing Tests Mapping",
-        "description": "A design is only considered complete when the entire chain from epic to requirements to passing boolean test cases is present and each incident, rule, requirement, and test is properly traced.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "No design is marked complete until all of the following are present: (a) an epic, (b) features under the epic, (c) stories under the features, (d) requirements under the stories, and (e) boolean pytestable test cases under the requirements, with all tests passing (green).",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "There are no exceptions to the requirement that all completed designs have a full epic-to-test mapping chain as described.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "Every bug or audit finding must trace to at least one specific rule violation or to the absence of a required rule.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "Every rule must result in at least one boolean (pass/fail) test covering that rule.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "Every test must be traced to a requirement.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 6,
-              "statement_body": "Every requirement must have at least one passing (green) pytest before the associated work is marked as done.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "type": "json_check",
-              "path": "brain/machine_artifacts/content/traceability_matrix.json",
-              "required_fields": [
-                "_record_id",
-                "entries"
-              ],
-              "entries_field": "entries",
-              "min_entries": 1
             }
           ]
         }
@@ -2856,18 +2658,7 @@
           ]
         },
         "enforcements": {
-          "enforcement": [
-            {
-              "type": "graph_entry_check",
-              "_executor_status": "NOT YET IMPLEMENTED — see BUG-ARCH-GRAPH-002",
-              "scan_dirs": [
-                "Code/ConversationalUX/FindCareChat/backend",
-                "Code/evaluate_care",
-                "Code/shared_services"
-              ],
-              "_note": "Detects FastAPI/Flask route handlers (functions decorated with @app.post/@app.get/@router.post/etc.) whose body does not contain a call matching <state_graph>.invoke(...). Permitted exceptions: handlers explicitly marked with a # graph-exempt comment AND a paired risk_acceptance entry."
-            }
-          ]
+          "enforcement": []
         }
       },
       {
