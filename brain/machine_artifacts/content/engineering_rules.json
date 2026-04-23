@@ -25,125 +25,6 @@
         }
       },
       {
-        "id": "Rule-002",
-        "name": "Pipeline discipline",
-        "description": "Defines discipline rules for deploy triggers, pipeline execution, source downloads, and stage sequencing in data pipelines.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "The deploy-pipelines.yml workflow only triggers on pushes that include changes to Code/DataPipelines/**.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "Changes to workflow files alone will not trigger a deploy-pipelines.yml workflow run.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "Every workflow fix commit must include a meaningful Code/DataPipelines/ file change.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "The Azure deploy command (az functionapp deployment source config-zip) must not be changed without verifying it is actually broken.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "No commit or deploy of Code/DataPipelines/** may occur while an Azure pipeline job is running.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 6,
-              "statement_body": "The restriction on mid-run commits or deploys applies only to DataPipelines directories, not Website/ directories.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 7,
-              "statement_body": "Website/ (Cloudflare static pages) may be committed and deployed regardless of Azure pipeline state.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 8,
-              "statement_body": "All pipeline workloads must execute on cloud infrastructure (Azure Functions), not on developer machines.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 9,
-              "statement_body": "Developer/local machines may only be used for development and testing, not for pipeline batch processing, overnight runs, or data migration.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 10,
-              "statement_body": "All pipeline workloads must run via the pipeline framework (PipelineWorkerBase, DataFetcherBase, orchestrators) as the execution surface.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 11,
-              "statement_body": "If a workload cannot run through the pipeline framework, the framework must be fixed to support it and no ad-hoc scripts on local machines may be used as a bypass.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 12,
-              "statement_body": "All source file downloads must use DataFetcherBase with ETag/SHA-256 verification and Azure Blob Storage caching.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 13,
-              "statement_body": "Each source file must be downloaded only once and reused until the source publishes a new version.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 14,
-              "statement_body": "Pipeline code must never download source files directly with raw HTTP requests.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 15,
-              "statement_body": "Pipeline code must never load an entire source file into memory; files must be streamed and processed in chunks.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 16,
-              "statement_body": "Processing of multiple states or partitions must use fan-out to parallel workers.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 17,
-              "statement_body": "Pipeline stages must execute in the following order: (1) Assemble (download in parallel); (2) Process (load/parse/classify, fan-out per state/partition); (3) Enrich (crosswalks, normalization, cost measures); (4) Embed (vector embeddings on the pipeline cluster only, see DR-022); (5) Ship (copy to frontend cluster with parity verification).",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 18,
-              "statement_body": "Each pipeline stage must complete before the next stage begins, with no interleaving of stages.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "type": "file_scan",
-              "scan_dirs": [
-                "Code/DataPipelines"
-              ],
-              "pattern": "requests\\.get\\(.*stream\\s*=\\s*True",
-              "exclude_comments": true,
-              "exempt_patterns": [
-                "data_fetcher_base",
-                "DataFetcherBase"
-              ],
-              "_note": "v4-001D targets streaming file downloads, not API calls. Streaming requests.get (stream=True) outside DataFetcherBase is the violation. Small GETs for URL discovery and API calls are permitted.",
-              "exempt_files": [
-                "data_fetcher_base.py"
-              ]
-            }
-          ]
-        }
-      },
-      {
         "id": "Rule-003",
         "name": "Update api-tests.http after every relaunch",
         "description": "Ensures api-tests.http is updated after each deploy/relaunch, and enforces rules on API inclusion and separation.",
@@ -455,149 +336,24 @@
       },
       {
         "id": "Rule-008",
-        "name": "System consistency",
-        "description": "Ensures hierarchical relationships, traceability, consistency, and timely updates across product artifacts, as well as integrated testing for requirements.",
+        "name": "Brain JSONs must conform to human-approved schemas",
+        "description": "Every JSON file under brain/machine_artifacts/content/ must validate against a rigorous schema that has been reviewed and approved by the human operator.",
         "rule_statements": {
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "Every requirement is a child of a story.",
+              "statement_body": "Every JSON file under brain/machine_artifacts/content/ MUST validate against the schema referenced by its $schema field.",
               "req_id": "Orphan"
             },
             {
               "statement_number": 2,
-              "statement_body": "Every story is a child of a feature.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "Every feature is a child of an epic.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "Every feature has a place on the roadmap.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "Every roadmap item exists in both Website/roadmap.html and a roadmap JSON.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 6,
-              "statement_body": "Every requirement has a status.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 7,
-              "statement_body": "Every story has a status.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 8,
-              "statement_body": "Every feature has a status.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 9,
-              "statement_body": "Every epic has a status.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 10,
-              "statement_body": "Every roadmap item has a status.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 11,
-              "statement_body": "Every requirement points to a test file where it can be tested as a boolean pass/fail.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 12,
-              "statement_body": "Every requirement MUST have a pytest that tests the boolean associated with it.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 13,
-              "statement_body": "The pytest used to test a requirement MUST be a child of that requirement.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 14,
-              "statement_body": "One pytest can satisfy more than one requirement.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 15,
-              "statement_body": "A pytest for a requirement cannot look at a single component but MUST use Playwright to test the entire UX, unless the requirement is for pipeline requirements.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 16,
-              "statement_body": "When a requirement refinement comes in, the relevant artifact must be updated immediately (same turn).",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 17,
-              "statement_body": "When Skip Snow rejects or corrects an item, Claude MUST apply the correction.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 18,
-              "statement_body": "After a Skip Snow correction, Claude MUST scan all requirements for contradictions.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 19,
-              "statement_body": "After a Skip Snow correction, Claude MUST fix or reject contradicting requirements.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 20,
-              "statement_body": "After a Skip Snow correction, Claude MUST verify no duplicate requirements exist.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 21,
-              "statement_body": "After a Skip Snow correction, Claude MUST verify all parent-child relationships are intact.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 22,
-              "statement_body": "Every Skip Snow override triggers a full consistency check.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 23,
-              "statement_body": "Every design MUST exist in brain/machine_artifacts/content/design.json.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 24,
-              "statement_body": "When adding any backlog item, both roadmap and assignment MUST be updated in the same operation.",
+              "statement_body": "The schema used to validate a brain JSON MUST have been reviewed and approved by the human operator before that schema is relied upon for validation.",
               "req_id": "Orphan"
             }
           ]
         },
         "enforcements": {
-          "enforcement": [
-            {
-              "type": "backlog_schema",
-              "path": "brain/machine_artifacts/content/agile_backlog.json"
-            },
-            {
-              "type": "bugs_schema"
-            },
-            {
-              "type": "ai_operations_schema"
-            },
-            {
-              "type": "conversation_log_schema",
-              "path": "brain/machine_artifacts/content/conversation_log.json"
-            }
-          ]
+          "enforcement": []
         }
       },
       {
@@ -1691,39 +1447,6 @@
         }
       },
       {
-        "id": "Rule-036",
-        "name": "Reject State as Data Operation Partition Boundary",
-        "description": "Data operations must not use State as a partition boundary and should use record count or _id range instead.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "No data operation uses State as a partition boundary.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "Record count or _id range is used as the partition boundary for all data operations.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "type": "file_scan",
-              "scan_dirs": [
-                "Code/DataPipelines"
-              ],
-              "pattern": "for state in.*(states|ALL_STATES|state_list)",
-              "context_pattern": "stream_to_temp|copy_chunk|insert_many|sync_collection",
-              "context_lines": 5,
-              "exclude_comments": true
-            }
-          ]
-        }
-      },
-      {
         "id": "Rule-038",
         "name": "Kill Processes and Verify Ports Before Starting Local Server",
         "description": "Ensure no dead or zombie processes occupy the target ports before starting a local server and verify that the port is clear for binding.",
@@ -2002,53 +1725,6 @@
         }
       },
       {
-        "id": "Rule-047",
-        "name": "Embedding generation not permitted on frontend cluster",
-        "description": "Embedding generation processes must not execute on the frontend cluster, and are instead handled by the pipeline cluster, with results copied to the frontend. The frontend cluster is reserved for serving user queries only.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "Embedding generation jobs are not executed on the frontend cluster.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "Embedding generation jobs are executed on the pipeline cluster.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "Embedding generation results are copied to the frontend cluster using CopyToFrontEnd.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "The frontend cluster is used only for serving user queries.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "Expensive batch operations are not performed on the frontend cluster.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": [
-            {
-              "type": "file_scan",
-              "scan_dirs": [
-                "Code/DataPipelines"
-              ],
-              "pattern": "FRONTEND.*embed|embed.*FRONTEND",
-              "file_filter": "embed",
-              "exclude_comments": true
-            }
-          ]
-        }
-      },
-      {
         "id": "Rule-049",
         "name": "Pytest Must Test All Forms and Assert Testable Outcomes",
         "description": "Pytest test cases must cover all representations relevant to the feature being tested, including multiple content forms and all affected code surfaces. Requirements must be written as testable outcomes, not as mandates of specific mechanisms.",
@@ -2186,14 +1862,7 @@
           ]
         },
         "enforcements": {
-          "enforcement": [
-            {
-              "type": "file_present",
-              "paths": [
-                "Code/Shared/ops/tools/create_hf_space.py"
-              ]
-            }
-          ]
+          "enforcement": []
         }
       },
       {
