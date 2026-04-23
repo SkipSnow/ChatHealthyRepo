@@ -49213,6 +49213,25 @@
                             ]
                           },
                           "name": "Prime rule enforced via runtime hooks: verify directive, claim audit, rule id in"
+                        },
+                        {
+                          "req_id": "ARCH-CONSTRAINTS-PRIME-RULE-001-REQ-B002",
+                          "name": "Materiality threshold for Claude's communication in non-production",
+                          "requirement": "In all non-production environments, a possible consequence to an action a human user asks Claude Code to do - either as an analysis task or as one that will change state in a reversible way - must not be surfaced to the human operator when that possible analytical or factual potential has less than a 2% probability of occurring.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "proposed",
+                          "story_id": "ARCH-CONSTRAINTS-PRIME-RULE-001",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "ORPHAN",
+                                "pytest_type": "ORPHAN",
+                                "orphan": true
+                              }
+                            ]
+                          }
                         }
                       ]
                     },

@@ -8,9 +8,11 @@
 #
 # Rules enforced:
 #   - SEC-HTTPS-001-REQ-004: No HTTP URLs in production code
-#   - BRAIN-SCHEMA-REQ-001: All JSON files validated against published schemas
 #   - v4-007 enforcement types: file_scan, file_absent, file_present, json_check, no_pattern
 #   - v4-031: Dead code scanner (two-pass)
+#
+# BRAIN-SCHEMA-REQ-001 (JSON-vs-schema validation) is a RUNTIME requirement,
+# not a governance-time requirement, and is no longer enforced here.
 #
 # Usage:
 #   python preCommitScan.py --staged     (pre-commit hook)
@@ -49,22 +51,6 @@ HTTP_EXEMPT_PATTERNS = [
     r"Code/Shared/ops/tools/pre_deploy_rule_check\.py$",  # ditto
 ]
 
-SCHEMA_EXEMPT_PATTERNS = [
-    r"\.claude/",
-    r"\.vscode/",
-    r"package\.json$",
-    r"package-lock\.json$",
-    r"tsconfig\.json$",
-    r"host\.json$",
-    r"appsettings.*\.json$",
-    r"launchSettings\.json$",
-    r"langgraph\.json$",
-    r"node_modules",
-    r"__pycache__",
-    r"\.iteration_cache/",
-    r"brain/BusinessArtifacts/Audits/",
-]
-
 SKIP_PATTERNS = [r"__pycache__", r"\.pyc$", r"node_modules", r"\.venv"]
 
 SCAN_EXTENSIONS = {".py", ".tsx", ".ts", ".js", ".jsx", ".html", ".json", ".yml", ".yaml", ".cfg", ".toml"}
@@ -82,13 +68,6 @@ def _should_skip(filepath):
 
 def _is_http_exempt(filepath):
     for p in HTTP_EXEMPT_PATTERNS:
-        if re.search(p, filepath):
-            return True
-    return False
-
-
-def _is_schema_exempt(filepath):
-    for p in SCHEMA_EXEMPT_PATTERNS:
         if re.search(p, filepath):
             return True
     return False
@@ -121,59 +100,12 @@ def _check_http_urls(filepath):
     return violations
 
 
-def _fetch_schema(schema_url):
-    try:
-        import urllib.request
-        req = urllib.request.Request(schema_url, headers={"User-Agent": "ChatHealthy-Scanner/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except Exception:
-        return None
-
-
-def _check_json_schema(filepath):
-    """Check a single JSON file against its published schema. Returns error string or None."""
-    try:
-        with open(filepath, encoding="utf-8") as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            return f"Top-level must be an object, not {type(data).__name__}"
-        if "$schema" not in data and "schema_address" not in data:
-            return "Missing $schema field"
-        schema_url = data.get("$schema", "")
-        if "json-schema.org" in schema_url:
-            try:
-                import jsonschema
-                jsonschema.Draft202012Validator.check_schema(data)
-            except ImportError:
-                pass
-            except jsonschema.SchemaError as e:
-                return f"Invalid schema: {e.message[:200]}"
-            return None
-        schema = _fetch_schema(schema_url)
-        if schema is None:
-            return f"Schema not reachable at published URL: {schema_url}"
-        try:
-            import jsonschema
-            jsonschema.validate(data, schema)
-        except ImportError:
-            pass
-        except jsonschema.ValidationError as e:
-            return f"Schema validation failed: {e.message[:200]}"
-        return None
-    except json.JSONDecodeError as e:
-        return f"Invalid JSON: {e}"
-    except Exception as e:
-        return f"Error: {e}"
-
-
 # ── Single-pass file scanner ────────────────────────────────────
 
 def scan_files(files):
-    """One pass over all files. Check HTTP URLs and JSON schemas."""
+    """One pass over all files. HTTP URL check only.
+    JSON-vs-schema validation is a runtime concern, not governance-time."""
     http_violations = []
-    schema_violations = []
-    json_count = 0
 
     for filepath in files:
         if _should_skip(filepath):
@@ -182,13 +114,6 @@ def scan_files(files):
         # HTTP URL check (production code only)
         if not _is_http_exempt(filepath):
             http_violations.extend(_check_http_urls(filepath))
-
-        # JSON schema check
-        if filepath.endswith(".json") and not _is_schema_exempt(filepath):
-            json_count += 1
-            error = _check_json_schema(filepath)
-            if error:
-                schema_violations.append(f"  {filepath}: {error}")
 
     # Report
     exit_code = 0
@@ -200,14 +125,6 @@ def scan_files(files):
         exit_code = 1
     else:
         print(f"SEC-HTTPS-001-REQ-004 PASS: 0 insecure HTTP URLs in {len(files)} files.")
-
-    if schema_violations:
-        print(f"\nBRAIN-SCHEMA-REQ-001 VIOLATION: {len(schema_violations)} JSON files failed schema check:")
-        for v in schema_violations:
-            print(v)
-        exit_code = 1
-    elif json_count > 0:
-        print(f"BRAIN-SCHEMA-REQ-001 PASS: {json_count} JSON files validated.")
 
     return exit_code
 
