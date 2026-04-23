@@ -1,7 +1,6 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "title": "Brain Collection Schema — v0.1.5",
-  "governance_attribute_id": "ch_governance_record_id_79ed0be7-6301-421b-9ae8-46c7dbcc1474",
   "version": "0.1.5",
   "date": "2026-04-06",
   "description": "Defines all brain collections in brain/machine_artifacts/content/, their record types, and artifact generation rules. All brain content is JSON. Diagrams live in brain/machine_artifacts/diagrams/.",
@@ -431,13 +430,11 @@
         "field": "funding_amount",
         "value": "1500000",
         "publish": false,
-        "reason": "Dollar amount is internal. Date is public.",
-        "ch_matrix_id": "47984795-21c9-4774-bb45-9ead80a4c7b0"
+        "reason": "Dollar amount is internal. Date is public."
       }
     ],
     "default_publish": true,
-    "note": "All roadmap milestones are publish=true unless explicitly marked. Only the funding amount is internal.",
-    "ch_matrix_id": "6e877de4-c91e-4fd0-949f-eb5042f1b6b6"
+    "note": "All roadmap milestones are publish=true unless explicitly marked. Only the funding amount is internal."
   },
   "protocols": {
     "prompt_log": {
@@ -489,10 +486,7 @@
           "timestamp_pst format: %-m/%-d/%Y %-H:%M:%S.%f (microsecond precision per B003, no leading zeros)"
         ]
       },
-      "publish": false,
-      "ch_matrix_id": "23c39627-b645-456f-b5af-4ca59019fc4d"
+      "publish": false
     }
-  },
-  "ch_matrix_id": "d485d63c-1de6-4dbb-b45c-d09fbe038d5c"
+  }
 }
-

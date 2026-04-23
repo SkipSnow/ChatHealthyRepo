@@ -116,7 +116,6 @@ def main():
         ("rule.date", "Empty values must be filled with the redesign date (today)"),
         ("rule.type", "Keep ('standard' | 'incident-driven')"),
         ("rule.source", "Keep"),
-        ("rule.ch_matrix_id", "Already eliminated (2026-04-18)"),
     ])
 
     doc.add_heading("3.2 Proposed B+T requirement pair (for human approval)", level=2)

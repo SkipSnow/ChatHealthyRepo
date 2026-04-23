@@ -1,7 +1,6 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "token_usage",
-  "governance_attribute_id": "ch_governance_record_id_865d0332-f56e-4f2c-a38b-79310290fb92",
   "record_count": 2,
   "records": [
     {
@@ -55,8 +54,7 @@
           "output_per_1m": 0.0,
           "vendor": "OpenAI"
         }
-      },
-      "ch_matrix_id": "d98aff21-2e87-48fe-8524-800fef4b35a6"
+      }
     },
     {
       "_record_id": "usage_log",
@@ -19037,8 +19035,7 @@
           "assignment_id": "epic_planning_v014",
           "vendor": "Anthropic"
         }
-      ],
-      "ch_matrix_id": "3052268c-d60d-4d7c-9303-f05bfc2c4295"
+      ]
     },
     {
       "date": "2026-04-08",
@@ -19051,4 +19048,3 @@
     }
   ]
 }
-

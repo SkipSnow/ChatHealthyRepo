@@ -2,7 +2,6 @@
   "$schema": "https://dev.chathealthy.ai/schemas/dev/ChatHealthyBugsSchema.json",
   "collection": "bugs",
   "schema_address": "brain/machine_artifacts/content/schema.json",
-  "governance_attribute_id": "ch_governance_record_id_570038fb-6902-436d-9666-9081d0bf9b85",
   "description": "All system bugs. Each bug has its own environment and status attributes. Environments constrained to local/dev/qa/prod. Source of truth for defect tracking.",
   "bug": [
     {
@@ -29,7 +28,7 @@
     },
     {
       "bugid": "BUG-MSG-001",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "FC-SEARCH-001-REQ-006",
       "story_id": "FC-SEARCH-001",
       "orphan": true,
@@ -67,7 +66,7 @@
     },
     {
       "bugid": "BUG-MSG-002",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "FC-MSG-001-REQ-001",
       "story_id": "FC-MSG-001",
       "orphan": true,
@@ -150,7 +149,7 @@
     {
       "bugid": "BUG-PIPE-002",
       "req_id": "PIPE-LC-002-REQ-001",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "PIPE-LC-002",
       "orphan": true,
       "description": "ORPHAN",
@@ -462,7 +461,7 @@
     },
     {
       "bugid": "UAT-UX-001",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "UX-FRAME-001-REQ-004",
       "story_id": "UX-FRAME-001",
       "orphan": true,
@@ -481,7 +480,7 @@
     },
     {
       "bugid": "BUG-UX-003",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "UX-FRAME-001-REQ-004",
       "story_id": "UX-FRAME-001",
       "orphan": true,
@@ -729,7 +728,7 @@
     },
     {
       "bugid": "BUG-UX-006",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "FC-EVAL-001-REQ-005",
       "story_id": "FC-EVAL-001",
       "orphan": true,
@@ -805,7 +804,7 @@
         "Needs UX design spec from human for banner content and formatting."
       ],
       "req_id": "TEST-SIM-001-REQ-002",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "TEST-SIM-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -841,7 +840,7 @@
     },
     {
       "bugid": "BUG-CODE-001",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "ORPHAN_BUG",
       "story_id": "ORPHAN",
       "orphan": true,
@@ -860,7 +859,7 @@
     },
     {
       "bugid": "BUG-EVAL-002",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "FC-SELECT-001-REQ-007",
       "story_id": "FC-SELECT-001",
       "orphan": true,
@@ -896,7 +895,7 @@
     },
     {
       "bugid": "BUG-COMM-001",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "FC-EVAL-001-REQ-005",
       "pytest_success_criteria": [
         "All 3 acceptance criteria must pass via Playwright end-to-end test."
@@ -915,7 +914,7 @@
     },
     {
       "bugid": "BUG-EVAL-003",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "FC-SELECT-001-REQ-007",
       "story_id": "FC-SELECT-001",
       "orphan": true,
@@ -931,7 +930,7 @@
     },
     {
       "bugid": "BUG-UX-010",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "FC-SEARCH-001-REQ-006",
       "story_id": "FC-SEARCH-001",
       "orphan": true,
@@ -947,7 +946,7 @@
     },
     {
       "bugid": "BUG-MODEL-001",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "req_id": "FC-SEARCH-001-REQ-004",
       "story_id": "FC-SEARCH-001",
       "orphan": true,
@@ -1042,7 +1041,7 @@
     {
       "bugid": "BUG-UX-012",
       "req_id": "FC-SELECT-001-REQ-002",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "pytest_id": "FC-SELECT-001-REQ-002",
       "pytest_success_criteria": [
         "Playwright test: user drags a provider card from the top candidate list and drops it into the bottom evaluate container. Provider appears in selected list. Max 5 enforced."
@@ -1067,7 +1066,7 @@
     {
       "bugid": "BUG-UX-013",
       "req_id": "FC-SEARCH-001-REQ-001",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "FC-SEARCH-001",
       "orphan": true,
       "description": "ORPHAN\n\nte",
@@ -2347,7 +2346,7 @@
         "Commit the workflow edits (already in staged working tree)."
       ],
       "req_id": "DEVOPS-DEPLOY-001-REQ-016",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -2386,7 +2385,7 @@
         "deploy_localhost_docker.sh is staged; needs smoke-test integration (TLS terminator)."
       ],
       "req_id": "DEVOPS-LOCAL-B014",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "DEVOPS-DEPLOY-LOCAL",
       "orphan": true,
       "description": "ORPHAN",
@@ -2405,7 +2404,7 @@
         "Workflow edit already staged in working tree."
       ],
       "req_id": "DEVOPS-DEPLOY-001-REQ-019",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -2424,7 +2423,7 @@
         "Smoke SHA-gate to be written once DEVOPS-DEPLOY-001-REQ-018 is approved."
       ],
       "req_id": "DEVOPS-DEPLOY-001-REQ-018",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -2442,7 +2441,7 @@
       "req_id": "SEC-HTTPS-001-REQ-009",
       "title": "Smoke does not assert Verified == VERIFIED in session panel",
       "reproduction": "Run SMOKE_TEST_ENV=dev pytest; step 17 passes despite Verified: FAILED in UI.",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "SEC-HTTPS-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -2459,7 +2458,7 @@
       "req_id": "FINDCARE-UX-002",
       "title": "Smoke does not assert 4-cell reactive-percentage layout of left panel",
       "reproduction": "Run smoke; step 8 passes even though the left panel is not a 4-cell 18/40/20/22 table.",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "FC-FILT-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -2476,7 +2475,7 @@
       "req_id": "FC-FILT-001-REQ-013",
       "title": "Smoke does not assert Uncheck All placement inside cell 1 (green header)",
       "reproduction": "Open local or dev; inspect left-panel DOM; toggle-all button is outside the green-header td.",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "FC-FILT-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -2493,7 +2492,7 @@
       "req_id": "SEC-HTTPS-001-REQ-013",
       "title": "Smoke does not assert all 5 SESSION VERIFICATION fields present",
       "reproduction": "Open https://localhost, do a search, observe SV panel lacks 'Signed token:' and 'Origin:' lines.",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "SEC-HTTPS-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -2509,7 +2508,7 @@
       "req_id": "SEC-HTTPS-001-REQ-015",
       "title": "Smoke does not assert Fatal Error splash on 30s verification timeout",
       "reproduction": "Stop EvaluateCare verify path; observe UI shows Pending forever with no Fatal Error splash.",
-      "status": "tested_passed",
+      "status": "uat_testing",
       "story_id": "SEC-HTTPS-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -3100,7 +3099,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "high",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3126,7 +3125,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "high",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3152,7 +3151,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "high",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3178,7 +3177,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "high",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3204,7 +3203,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "high",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3230,7 +3229,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3256,7 +3255,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3282,7 +3281,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3308,7 +3307,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3334,7 +3333,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3360,7 +3359,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3386,7 +3385,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "high",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3412,7 +3411,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "high",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3438,7 +3437,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "high",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3464,7 +3463,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "high",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3490,7 +3489,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "high",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3516,7 +3515,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3542,7 +3541,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3568,7 +3567,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3594,7 +3593,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3620,7 +3619,7 @@
       "environments": [
         "dev"
       ],
-      "status": "tested_passed",
+      "status": "uat_testing",
       "severity": "low",
       "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
@@ -3992,6 +3991,5 @@
         "Manually verify via DevTools Network tab on dev that the direct call appears."
       ]
     }
-  ],
-  "ch_matrix_id": "fe9b555d-9b72-446e-9cef-86ce1efedb8b"
+  ]
 }

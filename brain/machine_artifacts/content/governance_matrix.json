@@ -17,8 +17,7 @@
       "children": [
         "policies"
       ],
-      "rule": "Child inherits parent propensity by default. Child may escalate but never relax.",
-      "ch_matrix_id": "59bb31da-bfca-43ee-a137-78e638d40fe8"
+      "rule": "Child inherits parent propensity by default. Child may escalate but never relax."
     }
   },
   "matrix": {
@@ -204,7 +203,5 @@
       "post_tool_use": "session_abend",
       "stop": "session_warning"
     }
-  },
-  "ch_matrix_id": "33fc1888-2d8f-4a00-8598-a7a3d9f2d507"
+  }
 }
-

@@ -1,15 +1,14 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
   "collection": "business_plan",
-  "governance_attribute_id": "ch_governance_record_id_4c52933b-da77-442d-8c75-924a00ec4eeb",
   "record_count": 9,
   "records": [
     {
-      "title": "ChatHealthy.ai \u2014 Business Architecture",
+      "title": "ChatHealthy.ai — Business Architecture",
       "subtitle": "Find Care. Evaluate Care. Talk About Care.",
       "version": "1.0",
       "date": "2026-03-31",
-      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform structured around a simple but underbuilt reality: people must find care, evaluate options, and make decisions\u2014often with others. Existing solutions fragment this journey across search engines, provider directories, ratings sites, and disconnected conversations. ChatHealthy integrates these steps into a single architecture designed for clarity, trust, and decision support.\n\nThe platform consists of three tightly coupled components. Find Care provides free, high-quality provider discovery. Evaluate Care builds trust through structured analysis of provider quality and clinical options. Talk About Care introduces a new category: multi-participant, AI-assisted healthcare decision-making. This final component transforms passive research into active collaboration, where families and caregivers make decisions together with AI support.\n\nThe business model aligns with governance constraints: no care-chain revenue. Instead, ChatHealthy monetizes through premium AI usage and AI vendor partnerships. AI companies pay to participate in high-value healthcare decision contexts, while users retain control and pay only for optional premium AI engagement. The result is a platform that owns the healthcare decision room without compromising neutrality.",
+      "executive_summary": "ChatHealthy.ai is a consumer-first healthcare navigation platform structured around a simple but underbuilt reality: people must find care, evaluate options, and make decisions—often with others. Existing solutions fragment this journey across search engines, provider directories, ratings sites, and disconnected conversations. ChatHealthy integrates these steps into a single architecture designed for clarity, trust, and decision support.\n\nThe platform consists of three tightly coupled components. Find Care provides free, high-quality provider discovery. Evaluate Care builds trust through structured analysis of provider quality and clinical options. Talk About Care introduces a new category: multi-participant, AI-assisted healthcare decision-making. This final component transforms passive research into active collaboration, where families and caregivers make decisions together with AI support.\n\nThe business model aligns with governance constraints: no care-chain revenue. Instead, ChatHealthy monetizes through premium AI usage and AI vendor partnerships. AI companies pay to participate in high-value healthcare decision contexts, while users retain control and pay only for optional premium AI engagement. The result is a platform that owns the healthcare decision room without compromising neutrality.",
       "mission": "Help people make better healthcare decisions together.",
       "components": {
         "find_care": {
@@ -29,8 +28,7 @@
             "Internal taxonomy and vector embeddings"
           ],
           "pricing": "free forever",
-          "role_in_value_chain": "the funnel",
-          "ch_matrix_id": "cb3aaf09-adfb-44d1-ad4f-eca523d2636c"
+          "role_in_value_chain": "the funnel"
         },
         "evaluate_care": {
           "name": "Evaluate Care",
@@ -67,8 +65,7 @@
             "innovation": "Structured synthesis of heterogeneous public healthcare quality signals into explainable consumer-facing assessments using LLMs",
             "status": "pre-provisional"
           },
-          "role_in_value_chain": "trust builder",
-          "ch_matrix_id": "c9b4f770-395d-472e-875f-48e952c9663f"
+          "role_in_value_chain": "trust builder"
         },
         "discuss_care": {
           "name": "Talk About Care",
@@ -78,62 +75,52 @@
             {
               "id": "DC-01",
               "name": "Shared Chat Session",
-              "description": "Multiple humans collaborate in a single AI-assisted conversation",
-              "ch_matrix_id": "22bad43b-7594-4b58-b20f-bbc26a32d938"
+              "description": "Multiple humans collaborate in a single AI-assisted conversation"
             },
             {
               "id": "DC-02",
               "name": "Invite System",
-              "description": "Link-based access for participants without requiring accounts",
-              "ch_matrix_id": "afa556d0-a30f-4f74-8091-154d1a945f5d"
+              "description": "Link-based access for participants without requiring accounts"
             },
             {
               "id": "DC-03",
               "name": "Multi-Model AI",
-              "description": "Multiple AI systems participate simultaneously in the same session",
-              "ch_matrix_id": "2cefe44f-7b41-482e-af36-5e827b4160ab"
+              "description": "Multiple AI systems participate simultaneously in the same session"
             },
             {
               "id": "DC-04",
               "name": "Shared Tool Access",
-              "description": "All participants can invoke healthcare tools within the session",
-              "ch_matrix_id": "7d223859-9250-43bf-99cc-8c8d9d99a7c4"
+              "description": "All participants can invoke healthcare tools within the session"
             },
             {
               "id": "DC-05",
               "name": "Healthcare Guardrails",
-              "description": "Conversations constrained to healthcare navigation with safety enforcement",
-              "ch_matrix_id": "9a338908-3955-47f8-a51e-561fa3f79a42"
+              "description": "Conversations constrained to healthcare navigation with safety enforcement"
             },
             {
               "id": "DC-06",
               "name": "Session Transcript",
-              "description": "Exportable record for sharing with providers and care teams",
-              "ch_matrix_id": "ae83a401-1981-423f-84e9-7bdcd9ca371e"
+              "description": "Exportable record for sharing with providers and care teams"
             },
             {
               "id": "DC-07",
               "name": "Consent per Participant",
-              "description": "Each participant controls their own data sharing and permissions",
-              "ch_matrix_id": "3e669d05-d613-4015-b003-0a3413af0914"
+              "description": "Each participant controls their own data sharing and permissions"
             },
             {
               "id": "DC-08",
               "name": "Participant Roles",
-              "description": "Host and peer roles with equal access to tools",
-              "ch_matrix_id": "be676b60-c34e-4062-a9bd-7255e4c98197"
+              "description": "Host and peer roles with equal access to tools"
             },
             {
               "id": "DC-09",
               "name": "Real-Time Collaboration",
-              "description": "Live synchronized interaction across all participants",
-              "ch_matrix_id": "69a0a9d8-b644-43d6-8400-e73d39b937fe"
+              "description": "Live synchronized interaction across all participants"
             },
             {
               "id": "DC-10",
               "name": "Session Persistence",
-              "description": "Sessions persist and can be resumed via invite link",
-              "ch_matrix_id": "319cb8d8-ca46-477e-bd92-0ec1dbb07392"
+              "description": "Sessions persist and can be resumed via invite link"
             }
           ],
           "floor_control": {
@@ -157,34 +144,29 @@
             "user_experience": "Transparent AI participation with visible model identities"
           },
           "pricing": "premium tokens + vendor partnerships",
-          "role_in_value_chain": "revenue engine",
-          "ch_matrix_id": "7127a6af-910c-4730-abee-3dad41a4eea9"
+          "role_in_value_chain": "revenue engine"
         }
       },
       "value_chain": {
         "flow": "Find -> Evaluate -> Discuss",
-        "description": "Users begin by discovering providers (Find Care), build confidence through structured evaluation (Evaluate Care), and then move into collaborative decision-making with others and AI (Talk About Care). Each step increases engagement, trust, and context depth, culminating in high-value decision sessions.",
-        "ch_matrix_id": "3a747786-1773-4524-a056-e6b763ce2fb0"
+        "description": "Users begin by discovering providers (Find Care), build confidence through structured evaluation (Evaluate Care), and then move into collaborative decision-making with others and AI (Talk About Care). Each step increases engagement, trust, and context depth, culminating in high-value decision sessions."
       },
       "revenue_model": {
         "streams": [
           {
             "name": "AI Token Markup",
             "description": "Users pay for premium AI usage within Talk About Care sessions",
-            "driver": "High-value, multi-participant decision contexts",
-            "ch_matrix_id": "fe8f73ee-bdf1-4c9b-a17f-df9d39e73b45"
+            "driver": "High-value, multi-participant decision contexts"
           },
           {
             "name": "AI Vendor Partnerships",
             "description": "AI providers pay for access to participate in healthcare decision sessions",
-            "driver": "Distribution and presence in critical decision environments",
-            "ch_matrix_id": "eeb5888e-e07b-4461-bb59-80bc1cdc7669"
+            "driver": "Distribution and presence in critical decision environments"
           },
           {
             "name": "Evaluate Care Premium (Future)",
             "description": "Advanced provider quality insights and comparative analytics behind paywall",
-            "driver": "Established trust and demand for deeper analysis",
-            "ch_matrix_id": "5330c240-8351-4e59-9d91-b086fc368643"
+            "driver": "Established trust and demand for deeper analysis"
           }
         ],
         "gov_001_compliance": "All revenue originates from technology usage and AI vendors, not from providers, payers, or pharmaceutical companies. This preserves neutrality and aligns with Apple-style platform economics."
@@ -231,7 +213,7 @@
           },
           {
             "date": "2026-10-31",
-            "milestone": "Native mobile apps \u2014 Apple App Store and Google Play"
+            "milestone": "Native mobile apps — Apple App Store and Google Play"
           }
         ]
       },
@@ -246,8 +228,7 @@
             "Arrow: Evaluate Care -> Talk About Care",
             "Layer below: Data + AI Infrastructure",
             "Layer above: Governance Layer"
-          ],
-          "ch_matrix_id": "b6feccd7-a230-44af-890f-cf1e4343e8c4"
+          ]
         },
         "value_chain_diagram": {
           "description": "Linear flow with three stages: Discover, Assess, Decide. Each stage maps to Find Care, Evaluate Care, Talk About Care respectively. Increasing user engagement and value density shown as upward gradient.",
@@ -257,8 +238,7 @@
             "Stage 3: Decide (Talk About Care)",
             "Arrow progression left to right",
             "Value gradient increasing"
-          ],
-          "ch_matrix_id": "05e6841c-bde9-46ac-b76e-046e3a4c0703"
+          ]
         },
         "revenue_flow_diagram": {
           "description": "Users on left, AI vendors on right, platform in center. Users send token payments to platform. AI vendors send partnership fees to platform. No arrows from providers/payers.",
@@ -267,8 +247,7 @@
             "Entity: AI Vendors -> Platform (partnership fees)",
             "Platform: ChatHealthy",
             "No connection to care-chain entities"
-          ],
-          "ch_matrix_id": "1ae53621-80c3-40a3-8a45-8c78c12e3d24"
+          ]
         },
         "participant_model_diagram": {
           "description": "Central session box with multiple human participants and multiple AI agents connected. Moderator sits above enforcing rules. All participants connected to shared tool layer.",
@@ -278,8 +257,7 @@
             "Nodes: AI models",
             "Node: Moderator",
             "Shared tool layer connection"
-          ],
-          "ch_matrix_id": "36254af4-33d2-4cb6-9f05-f990bf8c5c76"
+          ]
         },
         "care_decision_lifecycle": {
           "description": "Circular loop: Identify need -> Find providers -> Evaluate options -> Discuss with stakeholders -> Decide -> Re-engage if needed.",
@@ -290,8 +268,7 @@
             "Step: Discuss",
             "Step: Decide",
             "Loop back arrow"
-          ],
-          "ch_matrix_id": "a75cdbd9-7e5f-46e4-9c17-c52b1ac2ab87"
+          ]
         }
       },
       "competitive_landscape": "Search engines provide discovery but lack healthcare-specific evaluation. Provider directories offer listings without synthesis. Ratings platforms lack clinical depth and trust. Telehealth platforms focus on service delivery, not decision-making. AI companies provide general reasoning but avoid regulated healthcare contexts. None integrate multi-party collaboration, structured evaluation, and neutral governance in a single system.",
@@ -300,8 +277,7 @@
       "_record_id": "biz_arch_draft_v1",
       "_source_file": "biz_arch_draft_v1.json",
       "description": "Legacy: first GPT draft of business architecture. Superseded by v2.",
-      "publish": true,
-      "ch_matrix_id": "25a92ab3-2db2-418d-8247-96dbde24534b"
+      "publish": true
     },
     {
       "title": "ChatHealthy.ai -- Business Architecture",
@@ -328,8 +304,7 @@
             "Internal taxonomy and vector embeddings"
           ],
           "pricing": "free forever",
-          "role_in_value_chain": "the funnel",
-          "ch_matrix_id": "820d13e2-89e7-4b42-a36f-687c585677bf"
+          "role_in_value_chain": "the funnel"
         },
         "evaluate_care": {
           "name": "Evaluate Care",
@@ -366,8 +341,7 @@
             "innovation": "Combining heterogeneous public healthcare signals into structured, explainable, consumer-facing assessments using LLM orchestration",
             "status": "pre-provisional"
           },
-          "role_in_value_chain": "trust builder",
-          "ch_matrix_id": "22fd9410-d3f1-4ff4-b3c5-1cebebf99153"
+          "role_in_value_chain": "trust builder"
         },
         "discuss_care": {
           "name": "Talk About Care",
@@ -377,80 +351,67 @@
             {
               "id": "DC-01",
               "name": "Shared Chat Session",
-              "description": "Multiple humans collaborate in one AI-assisted session",
-              "ch_matrix_id": "a8a0890f-c7b1-4c3c-826d-73b7427f482f"
+              "description": "Multiple humans collaborate in one AI-assisted session"
             },
             {
               "id": "DC-02",
               "name": "Invite System",
-              "description": "Link-based access with no account required",
-              "ch_matrix_id": "7c6c7e5e-bb2d-4a5f-9d6f-e5198824f7a2"
+              "description": "Link-based access with no account required"
             },
             {
               "id": "DC-03",
               "name": "Multi-Model AI",
-              "description": "Multiple AI models participate simultaneously",
-              "ch_matrix_id": "6799cb87-dd76-4f9f-88d8-9801fe361594"
+              "description": "Multiple AI models participate simultaneously"
             },
             {
               "id": "DC-04",
               "name": "Shared Tool Access",
-              "description": "All participants can invoke healthcare tools",
-              "ch_matrix_id": "752fc65d-e113-4f80-b292-f5a0ac1c7677"
+              "description": "All participants can invoke healthcare tools"
             },
             {
               "id": "DC-05",
               "name": "Healthcare Guardrails",
-              "description": "Scope enforcement, safety filters, emergency detection",
-              "ch_matrix_id": "8f152f28-fdc9-40f5-8c8c-a6604c9a6967"
+              "description": "Scope enforcement, safety filters, emergency detection"
             },
             {
               "id": "DC-06",
               "name": "Session Transcript",
-              "description": "Exportable transcript for care teams",
-              "ch_matrix_id": "06052a28-94a0-4276-b93e-a79aaa750e33"
+              "description": "Exportable transcript for care teams"
             },
             {
               "id": "DC-07",
               "name": "Consent per Participant",
-              "description": "Independent consent control per user",
-              "ch_matrix_id": "b85ce5d7-b199-4829-8d58-be403726538d"
+              "description": "Independent consent control per user"
             },
             {
               "id": "DC-08",
               "name": "Participant Roles",
-              "description": "Host and peer roles",
-              "ch_matrix_id": "a77c328e-40ea-479f-b7a6-bf9af90e5287"
+              "description": "Host and peer roles"
             },
             {
               "id": "DC-09",
               "name": "Real-Time Collaboration",
-              "description": "Live synchronized interaction",
-              "ch_matrix_id": "daffb673-20fc-436a-adc8-f80bedb13dde"
+              "description": "Live synchronized interaction"
             },
             {
               "id": "DC-10",
               "name": "Session Persistence",
-              "description": "Sessions resumable via link",
-              "ch_matrix_id": "fdf687ff-ae48-40a9-9288-2d84891d9702"
+              "description": "Sessions resumable via link"
             },
             {
               "id": "DC-11",
               "name": "Floor Control",
-              "description": "Moderated turn-taking with human precedence and dynamic ranking",
-              "ch_matrix_id": "ae6cb4fa-cec4-464b-bace-437bc65b4c4a"
+              "description": "Moderated turn-taking with human precedence and dynamic ranking"
             },
             {
               "id": "DC-12",
               "name": "Presence Layer",
-              "description": "Humans use camera or image; AI uses brand avatars (non-human)",
-              "ch_matrix_id": "6523e53c-f5c3-4a09-ba1a-abbd4bba0675"
+              "description": "Humans use camera or image; AI uses brand avatars (non-human)"
             },
             {
               "id": "DC-13",
               "name": "Voice Mode",
-              "description": "Speech-to-text interaction with full floor control support",
-              "ch_matrix_id": "d15948a4-4374-4c41-9cd6-74271fc72430"
+              "description": "Speech-to-text interaction with full floor control support"
             }
           ],
           "floor_control": {
@@ -475,31 +436,26 @@
             "user_experience": "Transparent AI identity and performance comparison within session"
           },
           "pricing": "premium tokens + vendor partnerships",
-          "role_in_value_chain": "revenue engine",
-          "ch_matrix_id": "2500ec98-d5df-4cf5-b436-f0b51150dc30"
+          "role_in_value_chain": "revenue engine"
         }
       },
       "value_chain": {
         "flow": "Find -> Evaluate -> Discuss",
-        "description": "Users move from discovering providers (Find Care), to understanding and comparing options (Evaluate Care), to making decisions collaboratively (Talk About Care). Each stage increases context, trust, and engagement, culminating in high-value decision sessions.",
-        "ch_matrix_id": "4daca856-a18c-46f0-acd5-2ecbb8a0c0de"
+        "description": "Users move from discovering providers (Find Care), to understanding and comparing options (Evaluate Care), to making decisions collaboratively (Talk About Care). Each stage increases context, trust, and engagement, culminating in high-value decision sessions."
       },
       "revenue_model": {
         "streams": [
           {
             "name": "AI Token Markup",
-            "description": "Users pay for premium AI participation in Talk About Care sessions",
-            "ch_matrix_id": "689a73f7-1335-4ffa-bf24-106f02bb92e8"
+            "description": "Users pay for premium AI participation in Talk About Care sessions"
           },
           {
             "name": "AI Vendor Access Fees",
-            "description": "AI vendors pay for distribution into healthcare decision sessions",
-            "ch_matrix_id": "5bd95dd8-0918-400c-bd95-32252e2effe3"
+            "description": "AI vendors pay for distribution into healthcare decision sessions"
           },
           {
             "name": "Evaluate Care Premium",
-            "description": "Advanced provider insights and analytics behind paywall",
-            "ch_matrix_id": "81f7a7b6-85ce-4fb8-a731-876425cc150c"
+            "description": "Advanced provider insights and analytics behind paywall"
           }
         ],
         "gov_001_compliance": "No revenue is derived from providers, payers, or pharmaceutical companies. The model follows an Apple-style platform approach where both users and technology providers pay, preserving neutrality and avoiding care-chain conflicts."
@@ -557,8 +513,7 @@
             "Arrow: Evaluate -> Discuss",
             "Bottom layer gray: Data + AI Infrastructure",
             "Top layer red: Governance Layer"
-          ],
-          "ch_matrix_id": "e366dbb5-fb4d-4c24-a3f4-5b2c00ecce7f"
+          ]
         },
         "value_chain_diagram": {
           "description": "Horizontal flow 1000x400. Three labeled stages with increasing height bars: left 'Discover (Find Care)' light blue, middle 'Assess (Evaluate Care)' green, right 'Decide (Talk About Care)' purple. Arrow connecting each. Background gradient increases in intensity left to right to indicate rising value.",
@@ -568,8 +523,7 @@
             "Stage 3: Decide",
             "Directional arrows",
             "Increasing value gradient"
-          ],
-          "ch_matrix_id": "9522d6c9-1056-42af-922f-a9c4b83f718b"
+          ]
         },
         "revenue_flow_diagram": {
           "description": "Canvas 1000x500. Center box 'ChatHealthy Platform'. Left side circle 'Users' with arrow to center labeled 'Token Payments'. Right side circle 'AI Vendors' with arrow to center labeled 'Access Fees'. No other entities shown. Clean white background.",
@@ -579,8 +533,7 @@
             "Center: Platform",
             "Arrow Users -> Platform",
             "Arrow Vendors -> Platform"
-          ],
-          "ch_matrix_id": "f1e3af97-2f30-46ca-86be-04dfe50fe3c2"
+          ]
         },
         "participant_model_diagram": {
           "description": "Canvas 1000x600. Central box 'Session'. Surrounding nodes: multiple circles labeled 'Human' (with camera icon) and squares labeled 'AI Model' (with brand avatar icon). Above session, triangle labeled 'Moderator'. Below session, rectangle 'Shared Tools'. Lines connect all participants to session and tools.",
@@ -590,8 +543,7 @@
             "AI models (squares)",
             "Moderator (top)",
             "Shared tools (bottom)"
-          ],
-          "ch_matrix_id": "980054cb-a90b-480a-86b2-561bbf271e93"
+          ]
         },
         "care_decision_lifecycle": {
           "description": "Circular diagram 800x800. Five nodes clockwise: 'Identify Need' -> 'Find Care' -> 'Evaluate Care' -> 'Talk About Care' -> 'Decision'. Arrow loops back to Identify Need. Each node color-coded (blue, green, purple progression).",
@@ -602,8 +554,7 @@
             "Step 4: Talk About Care",
             "Step 5: Decision",
             "Loop arrow"
-          ],
-          "ch_matrix_id": "af1ae824-07e0-4f90-ad25-fb13c3490642"
+          ]
         }
       },
       "competitive_landscape": "No existing platform provides multi-human, multi-AI healthcare collaboration with shared tools, structured evaluation, floor control, consent management, and governance. Search engines, directories, ratings platforms, and AI tools operate in isolation and do not support real decision-making contexts. This category does not currently exist.",
@@ -613,13 +564,12 @@
       "_source_file": "biz_arch_investor.json",
       "description": "Legacy: first investor doc. Superseded by biz_arch_investor_v2.",
       "business_artifact": "brain/BusinessArtifacts/biz_arch_investor_v2.pdf",
-      "publish": false,
-      "ch_matrix_id": "4a273403-a594-4a3f-b424-1c49a592677c"
+      "publish": false
     },
     {
       "vision": "ChatHealthy.ai provides the data, tools, and an AI-enlightened space to empower regular people to prevail over the broken healthcare system. Whatever a person's circumstances might be, they deserve the best possible care, at the best value. ChatHealthy.ai gives them the platform to get it. By presenting and evaluating care options but never giving medical advice, the platform allows families, individuals, and friends to collaborate with the most powerful AI models in order to choose the best provider they can have.",
       "mission": "Help people make better healthcare decisions together.",
-      "executive_summary": "Healthcare is the largest consumer market in the world, yet the individual remains the least empowered participant. Decisions are fragmented across search, opaque quality data, and isolated conversations with no coordination. The result is predictable: overpayment, underperformance, and preventable harm. ChatHealthy.ai exists because this gap is not a feature of the system \u2014 it is the system\u2019s failure point.\n\nChatHealthy.ai unifies the healthcare decision process into a single consumer-controlled environment: find care, evaluate it with real quality signals, and decide collaboratively with people and AI. This is not another point solution. It is the decision layer sitting above the entire healthcare system, where choices are actually made. Once this layer exists, control shifts from institutions to individuals.\n\nThe business model follows the control point. We own the decision room. AI companies, not patients, pay to participate in it. As healthcare decisions become AI-assisted and collaborative by default, ChatHealthy.ai becomes the gateway through which those decisions flow. This is not a feature set. It is inevitable infrastructure.",
+      "executive_summary": "Healthcare is the largest consumer market in the world, yet the individual remains the least empowered participant. Decisions are fragmented across search, opaque quality data, and isolated conversations with no coordination. The result is predictable: overpayment, underperformance, and preventable harm. ChatHealthy.ai exists because this gap is not a feature of the system — it is the system’s failure point.\n\nChatHealthy.ai unifies the healthcare decision process into a single consumer-controlled environment: find care, evaluate it with real quality signals, and decide collaboratively with people and AI. This is not another point solution. It is the decision layer sitting above the entire healthcare system, where choices are actually made. Once this layer exists, control shifts from institutions to individuals.\n\nThe business model follows the control point. We own the decision room. AI companies, not patients, pay to participate in it. As healthcare decisions become AI-assisted and collaborative by default, ChatHealthy.ai becomes the gateway through which those decisions flow. This is not a feature set. It is inevitable infrastructure.",
       "components": {
         "find_care": {
           "description": "The entry point to the healthcare system, redesigned for clarity and control. Users discover providers, specialties, and care pathways without friction or bias.",
@@ -630,8 +580,7 @@
             "Integrated entry into evaluation and discussion"
           ],
           "pricing": "Free forever",
-          "role": "Top-of-funnel acquisition and trust layer. Establishes ChatHealthy.ai as the default starting point for any healthcare decision.",
-          "ch_matrix_id": "5b338be8-f64d-47aa-866e-c59d7bc6fc35"
+          "role": "Top-of-funnel acquisition and trust layer. Establishes ChatHealthy.ai as the default starting point for any healthcare decision."
         },
         "evaluate_care": {
           "description": "Transforms fragmented public and clinical data into clear, consumer-comprehensible quality signals using proprietary AI synthesis.",
@@ -663,8 +612,7 @@
               "Patent attorney files and negotiates"
             ],
             "first_use_case_for_discuss_care": "Drafting the provisional patent IS the beta test of the product."
-          },
-          "ch_matrix_id": "9e881cd4-c05c-4e5a-9cbe-fcf981326e6a"
+          }
         },
         "discuss_care": {
           "description": "A real-time, multi-participant decision environment where individuals bring family, caregivers, and multiple AI models into a single structured conversation.",
@@ -683,154 +631,129 @@
             {
               "id": "DC-01",
               "feature": "Shared Chat Session",
-              "description": "Multiple humans in one conversation with AI assistance",
-              "ch_matrix_id": "28a547d8-95fa-42b8-b08f-c540b1c6e846"
+              "description": "Multiple humans in one conversation with AI assistance"
             },
             {
               "id": "DC-02",
               "feature": "Invite System",
-              "description": "User sends invite link to friends, family, caregivers. No account required.",
-              "ch_matrix_id": "c5667898-5682-44bc-b521-92d4ba30e351"
+              "description": "User sends invite link to friends, family, caregivers. No account required."
             },
             {
               "id": "DC-03",
               "feature": "Multi-Model AI",
-              "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools",
-              "ch_matrix_id": "6ea31ad6-39b3-4f8d-91e2-3964e7da8628"
+              "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"
             },
             {
               "id": "DC-04",
               "feature": "Shared Tool Access",
-              "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail",
-              "ch_matrix_id": "3065d365-d3ae-4d00-87b5-ccf0c7ab0f5d"
+              "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"
             },
             {
               "id": "DC-05",
               "feature": "Healthcare Guardrails",
-              "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules.",
-              "ch_matrix_id": "1d0f8e84-3796-44fb-8755-fbe475d3ca5f"
+              "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."
             },
             {
               "id": "DC-06",
               "feature": "Session Transcript",
-              "description": "Exportable transcript for sharing with doctors, care teams",
-              "ch_matrix_id": "b160df87-50c0-4a96-85b9-9cc575f7a9d0"
+              "description": "Exportable transcript for sharing with doctors, care teams"
             },
             {
               "id": "DC-07",
               "feature": "Consent per Participant",
-              "description": "Each participant manages their own consent tier independently",
-              "ch_matrix_id": "a2051220-af2d-4f90-ad57-0558181ffb03"
+              "description": "Each participant manages their own consent tier independently"
             },
             {
               "id": "DC-08",
               "feature": "Participant Roles",
-              "description": "Session creator (host), invited participant (peer). No admin/enterprise roles.",
-              "ch_matrix_id": "cd789faa-6ab5-442f-acd3-36ce66f42dfd"
+              "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."
             },
             {
               "id": "DC-09",
               "feature": "Real-Time Collaboration",
-              "description": "All participants see messages and AI responses live",
-              "ch_matrix_id": "da307de7-0c1c-44f3-9973-5b5974b9e9ac"
+              "description": "All participants see messages and AI responses live"
             },
             {
               "id": "DC-10",
               "feature": "Session Persistence",
-              "description": "Sessions survive disconnects, resumable by invite link",
-              "ch_matrix_id": "8ef1aeea-4a8b-4d09-aead-764dd5569614"
+              "description": "Sessions survive disconnects, resumable by invite link"
             },
             {
               "id": "DC-14",
               "feature": "Shared Research Bot",
-              "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee.",
-              "ch_matrix_id": "d0b51306-8082-4b62-8fe7-57178be99a63"
+              "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee."
             },
             {
               "id": "DC-15",
               "feature": "Licensed Provider Detection and Compliance Disclosure",
-              "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed.",
-              "ch_matrix_id": "0fedce1e-d866-433e-8b96-8fc1c26308a2"
+              "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
             }
           ],
           "floor_control": [
             {
               "id": "DC-01",
               "feature": "Shared Chat Session",
-              "description": "Multiple humans in one conversation with AI assistance",
-              "ch_matrix_id": "e22a3c83-aad8-406f-bef9-e3b510d18526"
+              "description": "Multiple humans in one conversation with AI assistance"
             },
             {
               "id": "DC-02",
               "feature": "Invite System",
-              "description": "User sends invite link to friends, family, caregivers. No account required.",
-              "ch_matrix_id": "9771a421-94ec-4485-8680-f546aba7251e"
+              "description": "User sends invite link to friends, family, caregivers. No account required."
             },
             {
               "id": "DC-03",
               "feature": "Multi-Model AI",
-              "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools",
-              "ch_matrix_id": "0372f6d8-4dbf-43cb-9e48-71ae5cd683bc"
+              "description": "Multiple AI models participate in the same session (Claude, GPT, etc.), each with access to all tools"
             },
             {
               "id": "DC-04",
               "feature": "Shared Tool Access",
-              "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail",
-              "ch_matrix_id": "8315b92e-94c5-43b4-bcb9-02800d8eda38"
+              "description": "All participants (human and AI) can trigger provider search, clinical trials, specialty identification, provider detail"
             },
             {
               "id": "DC-05",
               "feature": "Healthcare Guardrails",
-              "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules.",
-              "ch_matrix_id": "493c938c-c9f6-4040-95e8-fad7152cfe6b"
+              "description": "Conversations constrained to healthcare navigation. Same safety filter, emergency detection, scope rules."
             },
             {
               "id": "DC-06",
               "feature": "Session Transcript",
-              "description": "Exportable transcript for sharing with doctors, care teams",
-              "ch_matrix_id": "94fdc409-8959-49fe-9137-a6cab692bcad"
+              "description": "Exportable transcript for sharing with doctors, care teams"
             },
             {
               "id": "DC-07",
               "feature": "Consent per Participant",
-              "description": "Each participant manages their own consent tier independently",
-              "ch_matrix_id": "5fd42d21-7414-4350-a942-75baa79c13c5"
+              "description": "Each participant manages their own consent tier independently"
             },
             {
               "id": "DC-08",
               "feature": "Participant Roles",
-              "description": "Session creator (host), invited participant (peer). No admin/enterprise roles.",
-              "ch_matrix_id": "53a4db2d-ebe7-4580-8a13-d3d9f265a45c"
+              "description": "Session creator (host), invited participant (peer). No admin/enterprise roles."
             },
             {
               "id": "DC-09",
               "feature": "Real-Time Collaboration",
-              "description": "All participants see messages and AI responses live",
-              "ch_matrix_id": "c28d2afe-9d9f-4d74-bedf-8ddd7203c398"
+              "description": "All participants see messages and AI responses live"
             },
             {
               "id": "DC-10",
               "feature": "Session Persistence",
-              "description": "Sessions survive disconnects, resumable by invite link",
-              "ch_matrix_id": "b3dd2061-b32b-4fda-ac24-fecaa534c684"
+              "description": "Sessions survive disconnects, resumable by invite link"
             },
             {
               "id": "DC-14",
               "feature": "Shared Research Bot",
-              "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee.",
-              "ch_matrix_id": "fbcb6559-b4bd-4696-9a47-36ad20279aa1"
+              "description": "Any participant or component can dispatch a research bot to gather information. Shared object across all three components and pipelines. Bot runs autonomously, returns findings to the session. Dispatched by consensus or individual request. All bot work incurs a fee."
             },
             {
               "id": "DC-15",
               "feature": "Licensed Provider Detection and Compliance Disclosure",
-              "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed.",
-              "ch_matrix_id": "95fb9460-a823-463b-a05d-3bec925f5a78"
+              "description": "If a participant identifies as or is detected as a licensed healthcare provider, the system triggers automatic compliance disclosure: (1) ChatHealthy.ai is not subject to HIPAA, (2) This session does not create a provider-patient relationship, (3) Security standards disclosed (HITRUST/DOD/SOC2). All participants must acknowledge before session continues. Consent re-confirmed."
             }
-          ],
-          "ch_matrix_id": "3f4ac0d6-1bfb-40ca-a598-5c3f8b088261"
+          ]
         }
       },
-      "value_chain": "The consumer orchestrates the entire experience. They move fluidly between finding care, evaluating options, and discussing decisions in a single environment. This is not a linear funnel but a dynamic loop, where discovery, analysis, and collaboration reinforce each other. ChatHealthy.ai does not replace providers \u2014 it positions the consumer above them, in control of the decision process.",
+      "value_chain": "The consumer orchestrates the entire experience. They move fluidly between finding care, evaluating options, and discussing decisions in a single environment. This is not a linear funnel but a dynamic loop, where discovery, analysis, and collaboration reinforce each other. ChatHealthy.ai does not replace providers — it positions the consumer above them, in control of the decision process.",
       "revenue_model": {
         "streams": [
           "AI token markup on premium model usage within Talk About Care",
@@ -844,33 +767,27 @@
         "barriers": [
           {
             "name": "Regulatory Willingness",
-            "description": "AI vendors avoid FDA classification and HIPAA compliance. They need someone else to own the healthcare room.",
-            "ch_matrix_id": "53906ec1-f9a0-41cd-a48a-1f26445c1699"
+            "description": "AI vendors avoid FDA classification and HIPAA compliance. They need someone else to own the healthcare room."
           },
           {
             "name": "Governance Framework",
-            "description": "Multi-AI safety, consent, floor control, moderation. Nobody else has this.",
-            "ch_matrix_id": "da41000d-13de-4db4-b8a7-859cf40b9277"
+            "description": "Multi-AI safety, consent, floor control, moderation. Nobody else has this."
           },
           {
             "name": "Data + Network",
-            "description": "Provider, trial, and quality signals compound over time. Takes years to build.",
-            "ch_matrix_id": "6506a789-6719-427b-b226-a23e46fd2699"
+            "description": "Provider, trial, and quality signals compound over time. Takes years to build."
           },
           {
             "name": "Consumer Trust",
-            "description": "Years to build, seconds to lose. Trust is the ultimate barrier.",
-            "ch_matrix_id": "997a7ca5-b741-4f90-a0bd-2713bde1c786"
+            "description": "Years to build, seconds to lose. Trust is the ultimate barrier."
           },
           {
             "name": "Patent",
-            "description": "LLM-based synthesis of provider quality signals. Method patent pending.",
-            "ch_matrix_id": "f30408f5-ea0d-4ae1-8d5e-a61da7f77e24"
+            "description": "LLM-based synthesis of provider quality signals. Method patent pending."
           },
           {
             "name": "IP Protection & Trade Secrets",
-            "description": "Proprietary algorithms, data processing methods, and governance frameworks.",
-            "ch_matrix_id": "1d4b0273-6ebd-411b-887f-2986647c122e"
+            "description": "Proprietary algorithms, data processing methods, and governance frameworks."
           }
         ]
       },
@@ -883,8 +800,7 @@
           "NIST SP 800-171 alignment",
           "Annual third-party penetration testing with published results"
         ],
-        "differentiation": "Healthcare incumbents are frequently breached despite regulatory requirements. ChatHealthy.ai positions voluntary, transparent security as a competitive advantage.",
-        "ch_matrix_id": "71c00738-9e11-4334-961d-6f5b0af58908"
+        "differentiation": "Healthcare incumbents are frequently breached despite regulatory requirements. ChatHealthy.ai positions voluntary, transparent security as a competitive advantage."
       },
       "governance": {
         "rules": [
@@ -902,7 +818,7 @@
         "headlines": [
           "We are not required to protect your data. We choose to.",
           "The healthcare platform that protects your data better than your hospital does",
-          "Make healthcare decisions like you make every other important decision \u2014 together"
+          "Make healthcare decisions like you make every other important decision — together"
         ],
         "uses": [
           "Consumer trust acquisition through transparency",
@@ -916,23 +832,19 @@
         "incumbents": [
           {
             "name": "Yelp Health",
-            "problem": "Earns revenue from sponsored listings. Providers who pay appear first. Consumer trust is the product being sold.",
-            "ch_matrix_id": "da3d66a7-758b-47fd-9a2a-74d7fbdeca04"
+            "problem": "Earns revenue from sponsored listings. Providers who pay appear first. Consumer trust is the product being sold."
           },
           {
             "name": "ZocDoc",
-            "problem": "Charges providers for patient bookings. The platform is a referral engine disguised as a search tool.",
-            "ch_matrix_id": "352bb4f8-40e3-433e-ae87-964f1bb53c95"
+            "problem": "Charges providers for patient bookings. The platform is a referral engine disguised as a search tool."
           },
           {
             "name": "Healthgrades",
-            "problem": "Revenue from provider advertising and hospital partnerships. Ratings influenced by who pays.",
-            "ch_matrix_id": "8faa6ed9-8634-470b-89f2-6b6973220bdf"
+            "problem": "Revenue from provider advertising and hospital partnerships. Ratings influenced by who pays."
           },
           {
             "name": "Angies List",
-            "problem": "Merged with HomeAdvisor. Lead generation model. Providers pay for leads. Consumer is the product.",
-            "ch_matrix_id": "ebc4321c-5bc1-48f9-a480-e86a8b1ce470"
+            "problem": "Merged with HomeAdvisor. Lead generation model. Providers pay for leads. Consumer is the product."
           }
         ],
         "the_gap": "Every incumbent earns money from the care chain -- providers, hospitals, or payers. This creates a structural conflict of interest. The consumer cannot trust a platform that is paid by the people it is supposed to evaluate.",
@@ -949,19 +861,17 @@
       "_record_id": "biz_arch_investor_v2",
       "_source_file": "biz_arch_investor_v2.json",
       "description": "Active investor business architecture. 4 components (3 product + 1 DevOps: The Brain), revenue, moat, timeline. Funding pitch: biz_arch_investor_v2.pdf. Operational: ChatHealthyOperationalBusinessArchitecture.docx.",
-      "publish": false,
-      "ch_matrix_id": "9f624de4-d1e0-431c-8171-b6429f4a3331"
+      "publish": false
     },
     {
       "title": "Business Plan Cost Analysis Results",
-      "status": "placeholder \u2014 referenced by assignment_queue.json, not yet populated",
+      "status": "placeholder — referenced by assignment_queue.json, not yet populated",
       "created": "2026-03-29",
       "results": [],
       "_record_id": "bizplan_cost_analysis_results",
       "_source_file": "bizplan_cost_analysis_results.json",
       "description": "GPT cost analysis output for business plan scenarios.",
-      "publish": true,
-      "ch_matrix_id": "e34478a3-d880-4f95-b813-b7e0acba3434"
+      "publish": true
     },
     {
       "title": "ChatHealthy FindCare - Business Model",
@@ -977,8 +887,7 @@
         "entity_type": "Sole proprietorship (IP licensing pending - LEG Q4)",
         "website": "chathealthy.ai",
         "repo": "github.com/SkipSnow/ChatHealthyRepo",
-        "public_by_default": true,
-        "ch_matrix_id": "1c4beee9-b675-491e-9a7e-8fb47ce8146f"
+        "public_by_default": true
       },
       "product": {
         "description": "AI-native consumer healthcare navigation chatbot. Users describe needs in natural language, system finds providers, identifies specialties, discovers clinical trials, and handles lead capture with HIPAA-compliant consent.",
@@ -1007,32 +916,30 @@
           "Validated Provider Web Research (NPI API lookup + link validation)",
           "Unanswerable Question Handling (record + de-identify)",
           "Markdown Table Rendering (GFM tables in chat)"
-        ],
-        "ch_matrix_id": "24e519e2-0864-4425-89bf-e0785e6a9478"
+        ]
       },
       "technology": {
-        "architecture": "Four-application in two categories. PRODUCT: (1) Website (Cloudflare), (2) Chat (HuggingFace/Azure), (3) DataPipelines (Azure Functions). DEVOPS: (4) The Brain (local + Azure) \u2014 AI-native SDLC operating system.",
+        "architecture": "Four-application in two categories. PRODUCT: (1) Website (Cloudflare), (2) Chat (HuggingFace/Azure), (3) DataPipelines (Azure Functions). DEVOPS: (4) The Brain (local + Azure) — AI-native SDLC operating system.",
         "the_brain": {
-          "description": "End-to-end automated but attended native AI SDLC with gateways and governance. The Brain is the SDLC operating system \u2014 it stores governance, prompts, plans, assignments, audit trails, manifests, work logs, and all machine-generated artifacts.",
+          "description": "End-to-end automated but attended native AI SDLC with gateways and governance. The Brain is the SDLC operating system — it stores governance, prompts, plans, assignments, audit trails, manifests, work logs, and all machine-generated artifacts.",
           "category": "DevOps (not product)",
           "public": true,
           "components": {
             "governance": "Corporate policies (GOV-001 through GOV-009), AI governance, risk register",
-            "prompts": "All AI agent system and user prompts \u2014 cached, versioned, loaded at runtime",
+            "prompts": "All AI agent system and user prompts — cached, versioned, loaded at runtime",
             "plans": "Sprint plans, epic plans, feature/story/requirement breakdowns",
-            "assignments": "Work queue for GPT and Claude \u2014 structured JSON, schema-validated",
+            "assignments": "Work queue for GPT and Claude — structured JSON, schema-validated",
             "audit": "Execution logs, SIT reports, QA reports, UAT sign-offs",
-            "manifest": "Project manifest \u2014 every code file catalogued with capabilities",
-            "artifacts": "Business artifacts \u2014 QA PDFs, IP agreements, investor docs"
+            "manifest": "Project manifest — every code file catalogued with capabilities",
+            "artifacts": "Business artifacts — QA PDFs, IP agreements, investor docs"
           },
           "roles": {
             "human": "Directs, attends, holds all gate authority",
-            "gpt": "Enterprise Architect \u2014 plans, reviews, gates (gpt-5.3-chat-latest)",
-            "claude": "Engineer \u2014 executes code, tests, deploys, drives workflows (claude-opus-4-6)"
+            "gpt": "Enterprise Architect — plans, reviews, gates (gpt-5.3-chat-latest)",
+            "claude": "Engineer — executes code, tests, deploys, drives workflows (claude-opus-4-6)"
           },
           "hosting": "brain/ directory in monorepo (local source of truth), synced to MongoDB (Brain collections) and Azure Blob (binary artifacts)",
-          "integration": "GPTReader API on Azure Functions (read-only broker for GPT access to Brain data)",
-          "ch_matrix_id": "3a11b179-87fd-43ae-85ea-ecf74d95e972"
+          "integration": "GPTReader API on Azure Functions (read-only broker for GPT access to Brain data)"
         },
         "frontend": "React + TypeScript (Cloudflare Pages, free)",
         "backend": "FastAPI on Python",
@@ -1162,20 +1069,17 @@
                 "price": 14.99,
                 "gross_margin_incl_staff": 95.0
               }
-            ],
-            "ch_matrix_id": "4c8beafd-05c4-4412-a425-eb58a6cd6af5"
+            ]
           },
           {
             "stream": "Healthcare SaaS Vendor Licensing",
             "description": "License ChatHealthy navigation engine to healthcare technology vendors who serve health plans, providers, PBMs. The SaaS vendor pays ChatHealthy. ChatHealthy has no direct financial relationship with care-chain entities.",
-            "compliance": "GOV-001 compliant - revenue from technology partner, not care-chain entity",
-            "ch_matrix_id": "1684d014-6df8-4864-883f-b92ec48d2b04"
+            "compliance": "GOV-001 compliant - revenue from technology partner, not care-chain entity"
           },
           {
             "stream": "Freemium",
             "description": "Free tier for user acquisition, premium features for subscribers",
-            "purpose": "Lower barrier to entry, build user base, convert to paid",
-            "ch_matrix_id": "d7bf53d6-3a49-4281-9186-fd1f91b5f227"
+            "purpose": "Lower barrier to entry, build user base, convert to paid"
           }
         ],
         "prohibited_revenue_sources": [
@@ -1199,8 +1103,7 @@
             "De-identified aggregate health navigation dataset",
             "Brain Loop AI collaboration framework",
             "Trust-based brand (neutrality)"
-          ],
-          "ch_matrix_id": "67e62070-9698-47e1-b35d-52e976389e0d"
+          ]
         }
       },
       "competitive_analysis": {
@@ -1213,29 +1116,24 @@
             "De-identified aggregate health navigation data (unique dataset)",
             "Brain Loop AI collaboration framework (development methodology advantage)",
             "First-mover in AI-native healthcare navigation (vs AI bolted onto existing platforms)"
-          ],
-          "ch_matrix_id": "809436bc-9444-48f0-a26b-9aedb47342ff"
+          ]
         },
         "competitors": [
           {
             "name": "Zocdoc",
-            "differentiator": "Provider-paid marketplace. ChatHealthy is neutral.",
-            "ch_matrix_id": "dcc70736-6409-4d41-8090-c6f816710c74"
+            "differentiator": "Provider-paid marketplace. ChatHealthy is neutral."
           },
           {
             "name": "Healthgrades",
-            "differentiator": "Advertising-driven. ChatHealthy has no ads.",
-            "ch_matrix_id": "4ef8c0e5-725a-4f54-82d7-b1128b94a1c2"
+            "differentiator": "Advertising-driven. ChatHealthy has no ads."
           },
           {
             "name": "Doctor on Demand",
-            "differentiator": "Telemedicine, not navigation. Different segment.",
-            "ch_matrix_id": "3da766e7-923a-471a-9d8f-fed8814651e5"
+            "differentiator": "Telemedicine, not navigation. Different segment."
           },
           {
             "name": "Google Health",
-            "differentiator": "General search, not specialized. No HIPAA consent flow.",
-            "ch_matrix_id": "5ccba183-757c-400c-beae-d4ef4d1d4014"
+            "differentiator": "General search, not specialized. No HIPAA consent flow."
           }
         ]
       },
@@ -1311,11 +1209,10 @@
       "_source_file": "business_model.json",
       "description": "Core business model: Find Care (free) + Evaluate Care (paywall) + Talk About Care (premium tokens).",
       "business_artifact": "brain/BusinessArtifacts/business_model_v1.pdf",
-      "publish": true,
-      "ch_matrix_id": "11813941-c8fb-4bfc-ab9a-bfa954ce75b4"
+      "publish": true
     },
     {
-      "title": "Staffing & Cost Analysis \u2014 ChatHealthy.ai Development Equivalency",
+      "title": "Staffing & Cost Analysis — ChatHealthy.ai Development Equivalency",
       "record_type": "cost_analysis",
       "collection": "business_plan",
       "date": "2026-03-30",
@@ -1346,8 +1243,7 @@
       "_record_id": "staffing_cost_analysis",
       "_source_file": "staffing_cost_analysis.json",
       "description": "Perplexity: staffing equivalency. Startup=$1.5M/9mo, Enterprise=$7M/18mo, AI-native=2wks. Maps to staffing_cost_comparison.docx.",
-      "publish": false,
-      "ch_matrix_id": "9b62a494-f601-4a12-980e-d7b7d17cc23e"
+      "publish": false
     },
     {
       "_record_id": "valuation_pre_money",
@@ -1379,8 +1275,7 @@
       ],
       "pitch_line": "We are valuing the company at $10M pre-money based on a working system. I am offering $5K in equity for advisory participation.",
       "description": "Pre-money valuation $10M. Advisor equity 0.05% per $5K. Working system justification.",
-      "publish": false,
-      "ch_matrix_id": "cadd1d3c-6cc4-4e07-8405-1991412936b6"
+      "publish": false
     },
     {
       "_record_id": "funding_test_result",
@@ -1393,43 +1288,37 @@
           {
             "collection": "sprint_plan",
             "record_id": "sprint_plan_v013",
-            "value": "Seed Funding Close \u2014 $1.5M on 2026-07-31",
-            "ch_matrix_id": "d3dfbb39-f666-400b-9bef-64b0bd1f689a"
+            "value": "Seed Funding Close — $1.5M on 2026-07-31"
           },
           {
             "collection": "architecture",
             "record_id": "component_discuss_care",
-            "value": "AI vendors contribute capital ($1.5M seed)",
-            "ch_matrix_id": "5ffa0810-06be-414c-a839-1ce08f3cb8aa"
+            "value": "AI vendors contribute capital ($1.5M seed)"
           },
           {
             "collection": "business_plan",
             "record_id": "staffing_cost_analysis",
-            "value": "Startup=$1.5M/9mo; Enterprise=$7M/18mo",
-            "ch_matrix_id": "00470a10-c391-40ed-8674-e970c24436b0"
+            "value": "Startup=$1.5M/9mo; Enterprise=$7M/18mo"
           }
         ],
         "conflicts": [
           {
             "value": "$7,000,000 over 18 months",
             "source": "business_plan.staffing_cost_analysis",
-            "note": "Enterprise scenario differs from $1.5M seed target",
-            "ch_matrix_id": "5d9ff945-c0fa-489c-9e55-ff0732630009"
+            "note": "Enterprise scenario differs from $1.5M seed target"
           },
           {
             "value": "$1,500,000 over 9 months",
             "source": "business_plan.staffing_cost_analysis",
-            "note": "Timeline differs; not explicitly tied to funding milestone date",
-            "ch_matrix_id": "93cf044b-3029-4e9f-aee0-a284bb321dc6"
+            "note": "Timeline differs; not explicitly tied to funding milestone date"
           }
         ]
       },
-      "system_prompt_token_count": null,
-      "ch_matrix_id": "057dc55e-e49e-40cc-96ea-b54c9b4516ca"
+      "system_prompt_token_count": null
     },
     {
       "_record_id": "founder_profile",
-      "title": "Founder Profile \u2014 Skip Snow",
+      "title": "Founder Profile — Skip Snow",
       "description": "Structured founder identity, career timeline, and personal context. Source of truth for all 'about the founder' content across the system.",
       "publish": false,
       "identity": {
@@ -1453,16 +1342,15 @@
       ],
       "personal": {
         "relationship_status": "Single",
-        "prior_salary": "$350K \u2014 left to pursue AI executive path",
+        "prior_salary": "$350K — left to pursue AI executive path",
         "food": "Loves all foods; not fond of Indian desserts ('pasty and bland')",
-        "art": "Outsider artist \u2014 oil on linen, exhibited work. Studio assistant to Jean-Michel Basquiat and other well-known artists."
+        "art": "Outsider artist — oil on linen, exhibited work. Studio assistant to Jean-Michel Basquiat and other well-known artists."
       },
       "founding_narrative": "chatHealthy.ai is based on the assumption that one can use public data and questions about the healthcare system, and even biology, and add value for consumers and companies by building solutions that together allow consumers to navigate and deal with their health in a more holistic manner, despite the systemic brokenness of the way the American culture deals with healthcare.",
       "company": {
         "name": "ChatHealthy.ai LLC",
         "state_of_incorporation": "Delaware",
-        "founded": "2026-03-26",
-        "ch_matrix_id": "ff0d118c-46f8-4955-92a3-a92396436577"
+        "founded": "2026-03-26"
       },
       "career": [
         {
@@ -1472,8 +1360,7 @@
           "duration": "3 years 7 months",
           "domain": "payer",
           "scale": "$117B org, $9B business units, $250MM IT programs",
-          "work": "Re-architected IAM infrastructure. Led enterprise-wide data quality initiatives across Medicare, Commercial, and Specialty lines. Managed portfolio architecture for Group, Specialty, and Producer business units.",
-          "ch_matrix_id": "a73713dc-3914-4b83-a5db-30bb727f4c19"
+          "work": "Re-architected IAM infrastructure. Led enterprise-wide data quality initiatives across Medicare, Commercial, and Specialty lines. Managed portfolio architecture for Group, Specialty, and Producer business units."
         },
         {
           "org": "Anthem, Inc.",
@@ -1482,8 +1369,7 @@
           "duration": "2 years 5 months",
           "domain": "payer",
           "scale": "60-person organization",
-          "work": "Directed organization eliminating $1.2B of compliance risk. Contributed to enterprise AI strategy. Coordinated IT-to-business value delivery for Anthem California IT portfolio.",
-          "ch_matrix_id": "1c9fc604-734e-4628-8267-a443217a9279"
+          "work": "Directed organization eliminating $1.2B of compliance risk. Contributed to enterprise AI strategy. Coordinated IT-to-business value delivery for Anthem California IT portfolio."
         },
         {
           "org": "Prospect Medical Holdings, Inc.",
@@ -1492,8 +1378,7 @@
           "duration": "10 months",
           "domain": "provider",
           "scale": "$3B healthcare system, 5 states, 30K doctors",
-          "work": "Acting chief architect for system owning hospitals, care management company, and health insurance company. Led application portfolio management using Ardoq.",
-          "ch_matrix_id": "b8602859-a534-48a4-80a3-7e8ed2ff33c0"
+          "work": "Acting chief architect for system owning hospitals, care management company, and health insurance company. Led application portfolio management using Ardoq."
         },
         {
           "org": "HIPAA Box Inc.",
@@ -1504,8 +1389,7 @@
           "scale": "Raised $275K, team of 20",
           "work": "Next-generation HIPAA compliance solution for healthcare data safety and security. Won hospital and clinic market mind share. Also consulted for IMS Health, LexisNexis, Johnson & Johnson, Zappos.com, Edmunds.com, SICK Inc.",
           "outcome": "Failed. Misjudged the storage market. Over-focused on technology innovation. Faulty leadership.",
-          "lesson": "Many lessons learned. This failure directly informs ChatHealthy.ai's governance-first, market-first approach.",
-          "ch_matrix_id": "204719f2-4dfb-4162-a5f0-f234755a247e"
+          "lesson": "Many lessons learned. This failure directly informs ChatHealthy.ai's governance-first, market-first approach."
         },
         {
           "org": "Forrester Research",
@@ -1513,8 +1397,7 @@
           "dates": "2013-10 to 2015-03",
           "duration": "1 year 6 months",
           "domain": "research",
-          "work": "Published syndicated research on telehealth, cognitive computing, insurance industry capabilities, big data, IoT, security. Advised clients on strategy. Interfaced with journalists. Conducted research on population management and global health market. Helped triple healthcare research revenue.",
-          "ch_matrix_id": "aa0897be-d73d-4992-b933-ffb18b127c14"
+          "work": "Published syndicated research on telehealth, cognitive computing, insurance industry capabilities, big data, IoT, security. Advised clients on strategy. Interfaced with journalists. Conducted research on population management and global health market. Helped triple healthcare research revenue."
         },
         {
           "org": "Alliance Global Services",
@@ -1522,8 +1405,7 @@
           "dates": "2011-01 to 2013-05",
           "duration": "2 years 5 months",
           "domain": "consulting",
-          "work": "Independent contractor.",
-          "ch_matrix_id": "0b1dd977-11fb-443f-8ef1-5389b31ddccc"
+          "work": "Independent contractor."
         },
         {
           "org": "Kaiser Permanente",
@@ -1532,8 +1414,7 @@
           "duration": "2 years",
           "domain": "provider",
           "scale": "Multi-billion dollar infrastructure upgrade",
-          "work": "Managed care delivery, infrastructure, facilities, remote monitoring, and security architecture domains. Managed three executive directors and staff. Formulated architecture strategy. Advocated for cloud adoption. Voting member of Application Portfolio Management steering committee.",
-          "ch_matrix_id": "32c0f525-fdc9-4c1d-858f-ce821edac8c9"
+          "work": "Managed care delivery, infrastructure, facilities, remote monitoring, and security architecture domains. Managed three executive directors and staff. Formulated architecture strategy. Advocated for cloud adoption. Voting member of Application Portfolio Management steering committee."
         },
         {
           "org": "Citigroup",
@@ -1541,8 +1422,7 @@
           "dates": "2004-02 to 2007-02",
           "duration": "3 years 1 month",
           "domain": "financial services",
-          "work": "Chief architect for SOA. Accelerated SOAP and REST adoption via Technology Leadership Counsel. Introduced machine learning to global KYC database project (Patriot Act). Chaired Architecture Round Table.",
-          "ch_matrix_id": "0d08785c-3e57-4546-b580-765990fc05fb"
+          "work": "Chief architect for SOA. Accelerated SOAP and REST adoption via Technology Leadership Counsel. Introduced machine learning to global KYC database project (Patriot Act). Chaired Architecture Round Table."
         },
         {
           "org": "Mphasis",
@@ -1550,8 +1430,7 @@
           "dates": "2003 to 2004",
           "duration": "1 year",
           "domain": "consulting",
-          "work": "Managed 60-person team on two continents. Multi-million dollar JP Morgan Chase project \u2014 chase.com migration and Documentum CM implementation. On time, within budget.",
-          "ch_matrix_id": "f55a1ca6-92e5-4f62-89e8-b6fa5cb12db7"
+          "work": "Managed 60-person team on two continents. Multi-million dollar JP Morgan Chase project — chase.com migration and Documentum CM implementation. On time, within budget."
         },
         {
           "org": "Citibank Online",
@@ -1559,8 +1438,7 @@
           "dates": "1999 to 2003",
           "duration": "4 years",
           "domain": "financial services",
-          "work": "Managed global Portal Infrastructure and Architecture group. Designed global portal for Citigroup Consumer Portals. Legacy back-end integrations. J2EE strategic vision. Vendor contract negotiation. Large offshore team management.",
-          "ch_matrix_id": "42be6e19-a0cf-44e3-9192-fa9c4253a1d5"
+          "work": "Managed global Portal Infrastructure and Architecture group. Designed global portal for Citigroup Consumer Portals. Legacy back-end integrations. J2EE strategic vision. Vendor contract negotiation. Large offshore team management."
         },
         {
           "org": "Lehman Brothers",
@@ -1568,8 +1446,7 @@
           "dates": "1998 to 1999",
           "duration": "1 year",
           "domain": "financial services",
-          "work": "Designed and developed online brokerage application for high net worth customers.",
-          "ch_matrix_id": "2b53ec61-9f9d-47a9-bab4-ecad88e36cd8"
+          "work": "Designed and developed online brokerage application for high net worth customers."
         },
         {
           "org": "GSCC",
@@ -1577,8 +1454,7 @@
           "dates": "1996 to 1997",
           "duration": "1 year",
           "domain": "financial services",
-          "work": "Transitioned org from VAX/Pascal to Oracle/C++/CORBA. Built billing system. Defined communications framework between legacy environment, Oracle, and data feeds using CORBA.",
-          "ch_matrix_id": "c087ae80-bb30-4fea-bcfb-6e5f8021f674"
+          "work": "Transitioned org from VAX/Pascal to Oracle/C++/CORBA. Built billing system. Defined communications framework between legacy environment, Oracle, and data feeds using CORBA."
         }
       ],
       "education": [
@@ -1614,8 +1490,7 @@
         "AI/ML engineering and agentic automation",
         "Large-scale data quality and modernization programs"
       ],
-      "why_this_founder": "Has sat inside the payer system (Humana, Anthem), run provider architecture (Prospect, Kaiser), written the research (Forrester), built and failed a healthcare startup (HIPAA Box), and worked at the intersection of enterprise tech and finance (Citigroup, Lehman). Understands from the inside why the system withholds quality information, how the data is structured, where it is publicly available, and what it takes to assemble it for consumers.",
-      "ch_matrix_id": "a3a39e04-8eff-4ea7-a964-1d2bad4f57f5"
+      "why_this_founder": "Has sat inside the payer system (Humana, Anthem), run provider architecture (Prospect, Kaiser), written the research (Forrester), built and failed a healthcare startup (HIPAA Box), and worked at the intersection of enterprise tech and finance (Citigroup, Lehman). Understands from the inside why the system withholds quality information, how the data is structured, where it is publicly available, and what it takes to assemble it for consumers."
     },
     {
       "title": "ChatHealthy Cost Model and Unit Economics",

@@ -1,7 +1,6 @@
 {
   "$schema": "https://dev.chathealthy.ai/schemas/dev/ChatHealthyRiskAcceptanceSchema.json",
   "collection": "risk_acceptance",
-  "governance_attribute_id": "ch_governance_record_id_c9cd5c58-a51a-4708-a1f2-6abd2a103fcf",
   "description": "Formal risk acceptance register. Every deviation from policy or operating rules requires a signed risk acceptance from Skip Snow recorded here. Referenced by GOV-007 (Engineering Rules Are Standards), v4-004 (Operating Modes), and v4-006 (Deploy Authority).",
   "entries": [
     {
@@ -149,18 +148,6 @@
       "claude_stipulation": "Chief Engineer stipulation: pre-dates the current session; no live engineering context available. Historic acceptance retained as-is."
     },
     {
-      "id": "RISK-013",
-      "date": "2026-04-18",
-      "title": "Bulk bugs.json schema change: mandate description/discovery_date/pytest_id; delete status/ch_matrix_id/risk_acceptance_id fields",
-      "risk": "Deleting ch_matrix_id from all bug records severs the governance-matrix linkage across the full bug register. Deleting risk_acceptance_id removes the structural placeholder that flagged bugs needing acceptance (human determined bugs should not carry that field). Mass sentinel backfill for description/discovery_date/pytest_id obscures true provenance of missing data. Schema/data misalignment until the schema is updated in a follow-up step. Commit is deferred per human directive 'do not commit'.",
-      "status": "accepted",
-      "mitigation": "(a) no commit in this step, per human directive; (b) schema update required as a follow-on to restore schema/data alignment; (c) RISK-013 is scoped to bugs.json only and does not sanction similar field deletions from other brain collections; (d) original session-start working-tree state cannot be byte-exactly restored — 4 bug records were reconstructed from session context and may differ from the original uncommitted versions.",
-      "description": "human directed a seven-rule backfill of bugs.json: (1) description required, null->'ORPHAN'; (2) discovery_date required, null->today 2026-04-18; (3) due_date optional, null->2026-05-01; (4) move status values into resolution_status (only if rs empty), delete status key from all records; (5) pytest_id required, null->'ORPHAN_PYTEST' with orphan=true forced; (6) delete ch_matrix_id from all records; (7) delete risk_acceptance_id from all records. Executed against 137 bug records. Schema file (brain/machine_artifacts/content/schema.json collections.bugs.record_schema) is NOT yet updated, so the data will be out of alignment with the declared schema until the schema is revised.",
-      "version": "0.1.4",
-      "framework": "0.1.3",
-      "claude_stipulation": "Chief Engineer stipulation: pre-dates the current session; no live engineering context available. Historic acceptance retained as-is."
-    },
-    {
       "id": "RISK-014",
       "date": "2026-04-18",
       "title": "Roll back mandated because of a failure to enhance the boot sequence",
@@ -184,7 +171,5 @@
       "framework": "0.1.3",
       "claude_stipulation": "Chief Engineer stipulation: the acceptance is justified. v4-043's intent is to centralize cross-cutting concerns (safety, auth, audit, classify) on a single graph orchestration surface so a change to any shared concern propagates to every business entry point automatically. The 20 handlers in this exemption do not exercise those cross-cutting concerns: health/splash/serve_index produce static or reflective responses with no LLM/safety/audit involvement; transfer_to_findcare/evaluate_proxy/shared_splash are HTTP proxies whose downstream service runs its own graph; debug_verify_live/debug_bootstrap are gated debug endpoints; *_verify_token and get_secret are mTLS/Key Vault security primitives that MUST fail loud rather than route through an LLM-bearing graph (per the no-silent-security-fallbacks rule). Mechanical exemption is therefore the right disposition; the real v4-043 work is the BUG-ARCH-GRAPH-001 refactor of /classify and the EvaluateCare scoring endpoints, which remain blocking. Pairing this acceptance with BUG-ARCH-GRAPH-EXEMPT-001 (deferred) ensures each exemption is revisited during the scheduled graph refactor rather than becoming permanent by inattention."
     }
-  ],
-  "ch_matrix_id": "1001cdca-db77-40c2-ab15-5c0441f5ab2b"
+  ]
 }
-
