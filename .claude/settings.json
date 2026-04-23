@@ -15,6 +15,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/boot_probe.py\" --event UserPromptSubmit"
+          },
+          {
+            "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode prompt"
           }
         ]
@@ -43,6 +47,10 @@
     "SessionStart": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/boot_probe.py\" --event SessionStart"
+          },
           {
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode session_start"

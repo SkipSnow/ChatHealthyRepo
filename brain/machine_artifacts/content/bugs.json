@@ -2581,9 +2581,10 @@
       "story_id": "ARCH-DEVOPS-BOOT-001",
       "fix": "inform_claude() emits only the mode-selection directive at boot. prompt() detects when the user's reply (token 1/2/3) completes REQ-010 and emits the orphan-triage directive in that turn's additionalContext. Orphan list is re-scanned from bugs.json at mode-reply time so it is always current.",
       "discovery_date": "2026-04-18",
-      "status": "fixing",
+      "status": "testing",
       "next_action": [
-        "Edit inform_claude() and prompt() in chathealthy_devops_boot.py per fix plan above. Add pytest for sequential emission. Human retests on fresh Cursor restart."
+        "Human retest on FRESH Cursor restart: (1) first assistant turn after boot contains ONLY the mode-selection prompt (no 60KB singleton dump, no orphan list); (2) after human replies 1/2/3, next assistant turn contains the orphan-triage directive. If either check fails, revert the chathealthy_devops_boot.py edits and re-open with failure mode captured.",
+        "Add pytest for sequential emission (deferred — not blocking human retest)."
       ],
       "orphan": true,
       "description": "ORPHAN",

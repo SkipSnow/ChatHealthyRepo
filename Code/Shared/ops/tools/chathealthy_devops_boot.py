@@ -3,13 +3,12 @@
 #
 # ChatHealthy DevOps Boot — governance entry point for Claude Code.
 #
-# Four modes, mapped to Claude Code lifecycle hooks:
-#   --mode prompt        → UserPromptSubmit: boot on first call, then predict governance path
+# Five modes, mapped to Claude Code lifecycle hooks:
+#   --mode session_start → SessionStart: load brain, run boot, emit additionalContext
+#   --mode prompt        → UserPromptSubmit: dispatch code_controlled workers
 #   --mode tool_call     → PreToolUse: gate Bash/Edit/Write
 #   --mode prompt_result → Stop: audit Claude's output
-#   --mode session_end   → SessionEnd: clear booted flag for next session
-#
-# No SessionStart hook — Anthropic fires it before OAuth completes.
+#   --mode session_end   → SessionEnd: no-op (kept for hook config compatibility)
 #
 # Each brain JSON has a compliance function that returns:
 #   {"comply": True}                              — pass
@@ -1119,6 +1118,7 @@ class chathealthy_devops_boot:
         self._booted = True
         settings = self._read_settings()
         settings["booted"] = True
+        settings["mode_selected"] = False  # BUG-GOV-011: reset per session
         self._write_settings(settings)
         self._state["boot_complete"] = True
 
@@ -1192,42 +1192,37 @@ class chathealthy_devops_boot:
         }
 
     def inform_claude(self, boot_result: dict) -> str:
-        """ARCH-ORPHAN-001-REQ-004/010/011: Build additionalContext for Claude.
-        Serializes singleton state, mode selection directive, and orphan triage."""
-        lines = []
+        """ARCH-DEVOPS-BOOT-001-REQ-011 (BUG-GOV-011): Emit ONLY the mode-selection
+        directive at boot. Orphan-triage directive is emitted in prompt() on the
+        turn the user replies 1/2/3 — keeps SessionStart additionalContext small
+        enough to survive the preview-truncation window."""
+        return "\n".join([
+            "BOOT DIRECTIVE — MODE SELECTION (ARCH-ORPHAN-001-REQ-010):",
+            "You MUST ask the user to select an operating mode before doing anything else.",
+            "Present exactly this prompt:",
+            "",
+            "  Select operating mode:",
+            "  1 = Unattended (Claude works independently, orphan bugs are deferred)",
+            "  2 = Normal (Claude works with human, decisions require approval)",
+            "  3 = Idiot (human reviews every action, Claude explains everything)",
+            "",
+            "Do NOT proceed until the user replies with 1, 2, or 3.",
+        ])
 
-        # Serialize singleton state
-        singleton_state = self._serialize_singleton()
-        lines.append("GOVERNANCE SINGLETON STATE (serialized at boot):")
-        lines.append(json.dumps(singleton_state, indent=2, default=str))
-        lines.append("")
-
-        # REQ-010: Mode selection directive
-        lines.append("BOOT DIRECTIVE — MODE SELECTION (ARCH-ORPHAN-001-REQ-010):")
-        lines.append("You MUST ask the user to select an operating mode before doing anything else.")
-        lines.append("Present exactly this prompt:")
-        lines.append("")
-        lines.append("  Select operating mode:")
-        lines.append("  1 = Unattended (Claude works independently, orphan bugs are deferred)")
-        lines.append("  2 = Normal (Claude works with human, decisions require approval)")
-        lines.append("  3 = Idiot (human reviews every action, Claude explains everything)")
-        lines.append("")
-        lines.append("Do NOT proceed until the user replies with 1, 2, or 3.")
-        lines.append("")
-
-        # REQ-011: Orphan bug triage directive
-        orphans = boot_result.get("orphan_bugs", [])
-        if orphans:
-            lines.append(f"BOOT DIRECTIVE — ORPHAN BUG TRIAGE (ARCH-ORPHAN-001-REQ-011):")
-            lines.append(f"After mode selection, you MUST present the {len(orphans)} orphan bugs below")
-            lines.append("and ask the user to triage each one by assigning a req_id or closing it.")
-            lines.append("Do NOT proceed to other work until triage is complete or the user explicitly defers.")
-            lines.append("")
-            lines.append("| bugid | severity | title | discovery_date |")
-            lines.append("|---|---|---|---|")
-            for o in orphans:
-                lines.append(f"| {o['bugid']} | {o['severity']} | {o['title']} | {o['discovery_date']} |")
-            lines.append("")
+    def _build_orphan_triage_context(self, orphans: list) -> str:
+        """BUG-GOV-011: Render orphan-triage directive emitted from prompt()
+        after the user's mode reply. Re-scanned from bugs.json so always current."""
+        lines = [
+            "BOOT DIRECTIVE — ORPHAN BUG TRIAGE (ARCH-ORPHAN-001-REQ-011):",
+            f"Mode selected. You MUST now present the {len(orphans)} orphan bugs below",
+            "and ask the user to triage each one by assigning a req_id or closing it.",
+            "Do NOT proceed to other work until triage is complete or the user explicitly defers.",
+            "",
+            "| bugid | severity | title | discovery_date |",
+            "|---|---|---|---|",
+        ]
+        for o in orphans:
+            lines.append(f"| {o['bugid']} | {o['severity']} | {o['title']} | {o['discovery_date']} |")
         return "\n".join(lines)
 
     def dispatch_code_controlled(self, hook_input: dict, action_event: str) -> dict:
@@ -1256,45 +1251,29 @@ class chathealthy_devops_boot:
         return {"comply": True, "workers": results}
 
     def prompt(self, user_message: str, hook_input: dict = None) -> dict:
-        """UserPromptSubmit — boot on first call, then dispatch code_controlled workers.
-        Boot moved here from SessionStart to avoid OAuth race condition."""
+        """UserPromptSubmit — dispatch code_controlled workers. Boot runs on SessionStart.
+
+        BUG-GOV-011: When the user's reply is '1', '2', or '3' and mode has not yet
+        been selected this session, emit the orphan-triage directive as
+        additionalContext on this turn. Orphans are re-scanned from bugs.json so the
+        list is always current."""
         self._announce("prompt", "user_prompt_submit", f"user_message[:{min(50, len(user_message))}]")
         self._state["last_prompt"] = user_message
+        result = self.dispatch_code_controlled(hook_input or {}, "user_prompt_submit")
 
-        # Check boot flag — None means settings file/flag missing (error state)
-        boot_state = self.booted()
-        if boot_state is None:
-            return {
-                "comply": True,
-                "_boot_context": (
-                    "ERROR: .claude/ChatHealthySettings.json or boot flag not found. "
-                    "No boot attempted. SessionEnd may not have run on the previous session. "
-                    "To fix: ensure .claude/ChatHealthySettings.json exists with {\"booted\": false}."
-                ),
-            }
-
-        # First prompt triggers boot — singleton flag prevents re-boot
-        if not boot_state:
-            self._load_brain()
-            self._verify_coverage()
-            self._extract_constraints()
-            boot_result = self.boot()
-            claude_context = self.inform_claude(boot_result)
-            # Dispatch workers as normal, then merge boot context
-            worker_result = self.dispatch_code_controlled(hook_input or {}, "user_prompt_submit")
-            # Merge any worker additionalContext with boot context
-            worker_additional = ""
-            for w in worker_result.get("workers", []):
-                if w.get("additionalContext"):
-                    worker_additional += w["additionalContext"] + "\n"
-            combined_context = claude_context
-            if worker_additional:
-                combined_context += "\n" + worker_additional.strip()
-            worker_result["_boot_context"] = combined_context
-            worker_result["_booted"] = True
-            return worker_result
-
-        return self.dispatch_code_controlled(hook_input or {}, "user_prompt_submit")
+        settings = self._read_settings()
+        if settings.get("booted") and not settings.get("mode_selected"):
+            if (user_message or "").strip() in ("1", "2", "3"):
+                settings["mode_selected"] = True
+                self._write_settings(settings)
+                orphans = self._scan_orphans()
+                if orphans:
+                    result.setdefault("workers", []).append({
+                        "json": "orphan_triage",
+                        "comply": True,
+                        "additionalContext": self._build_orphan_triage_context(orphans),
+                    })
+        return result
 
     def tool_call(self, tool_name: str, tool_input: dict, transcript_path: str = "") -> dict:
         """PreToolUse — dispatch to code_controlled workers via the grid.
@@ -1370,7 +1349,7 @@ LOG_PATH = Path(tempfile.gettempdir()) / "chathealthy_guard.log"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", required=True, choices=["prompt", "tool_call", "prompt_result", "session_end"])
+    parser.add_argument("--mode", required=True, choices=["prompt", "tool_call", "prompt_result", "session_end", "session_start"])
     args = parser.parse_args()
 
     try:
@@ -1380,13 +1359,27 @@ def main():
 
     exit_code = 0
     try:
-        if args.mode == "prompt":
+        if args.mode == "session_start":
+            boot = chathealthy_devops_boot(load_full=True)
+            boot._load_brain()
+            boot._verify_coverage()
+            boot._extract_constraints()
+            boot_result = boot.boot()
+            claude_context = boot.inform_claude(boot_result)
+            output = {
+                "hookSpecificOutput": {
+                    "hookEventName": "SessionStart",
+                    "additionalContext": claude_context,
+                }
+            }
+            json.dump(output, sys.stdout)
+
+        elif args.mode == "prompt":
             boot = chathealthy_devops_boot(load_full=False)
             user_msg = data.get("prompt", data.get("content", data.get("message", "")))
             result = boot.prompt(user_msg, hook_input=data)
 
-            # Build additionalContext — includes boot context on first prompt
-            additional = result.pop("_boot_context", "")
+            additional = ""
             for w in result.get("workers", []):
                 if w.get("additionalContext"):
                     if additional:
@@ -1425,9 +1418,10 @@ def main():
                 json.dump(result, sys.stdout)
 
         elif args.mode == "session_end":
-            # Clear booted flag so next session gets a fresh boot.
+            # Clear booted + mode_selected so next session gets a fresh boot.
             settings = chathealthy_devops_boot._read_settings()
             settings["booted"] = False
+            settings["mode_selected"] = False
             chathealthy_devops_boot._write_settings(settings)
             json.dump({"status": "session_ended", "booted_cleared": True}, sys.stdout)
 
