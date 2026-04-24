@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/EngineeringRulesSchema.json",
+  "title": "ChatHealthy Engineering Rules",
+  "description": "Engineering rules with binding statements and runtime enforcements.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "rules"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "rules": {
+      "type": "object",
+      "required": [
+        "rule"
+      ],
+      "properties": {
+        "rule": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Each rule.id and rule.name MUST be unique across the array. JSON Schema does not natively express cross-record uniqueness; the validator enforces it.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "description",
+              "rule_statements",
+              "enforcements"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^Rule-\\d{3}$",
+                "description": "Sequential, never reused. Format Rule-NNN."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 101,
+                "description": "Unique, human-readable label, <= 101 characters."
+              },
+              "description": {
+                "type": "string",
+                "description": "Non-binding prose description of the rule."
+              },
+              "rule_statements": {
+                "type": "object",
+                "required": [
+                  "rule_statement"
+                ],
+                "properties": {
+                  "rule_statement": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "statement_number",
+                        "statement_body",
+                        "req_id"
+                      ],
+                      "properties": {
+                        "statement_number": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "Sequential integer starting at 1 within the rule."
+                        },
+                        "statement_body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Boolean-testable assertion. The binding rule text."
+                        },
+                        "req_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Reference to the agile_backlog requirement that authorizes this statement."
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              "enforcements": {
+                "type": "object",
+                "required": [
+                  "enforcement"
+                ],
+                "properties": {
+                  "enforcement": {
+                    "type": "array",
+                    "description": "May be empty when no runtime enforcement is wired yet.",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "type"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "description": "Enforcement-type discriminator (e.g. file_scan, graph_entry_check, published_schema_validation)."
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
