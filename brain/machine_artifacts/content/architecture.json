@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
   "collection": "architecture",
   "record_count": 14,
   "records": [

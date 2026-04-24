@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
   "collection": "controlled_vocabularies",
   "description": "Governed controlled vocabularies used across the ChatHealthy.ai system. Each vocabulary has a definition, members with definitions, and implementation traceability. Engineering rules (engineering_rules.json, Version 5) are the authoritative standard per GOV-007 (Engineering Rules Are Standards). Vocabularies that duplicate v4 rules have been removed.",
   "vocabularies": [

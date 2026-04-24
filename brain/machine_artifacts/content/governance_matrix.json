@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
   "collection": "governance_matrix",
   "version": "5.0",
   "created": "2026-04-09T08:00:00Z",

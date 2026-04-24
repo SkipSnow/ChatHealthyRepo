@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
   "_record_id": "traceability_matrix",
   "title": "Pipeline v4 Requirement-to-Test Traceability Matrix",
   "version": "1.0",

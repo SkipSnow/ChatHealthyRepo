@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
   "collection": "controls",
   "description": "Master compliance control catalog and crosswalk: NIST SP 800-53 Rev 5 + HITRUST CSF v11. Each control entry binds to backlog requirements and code blocks that implement it. Maintained by compliance_crosswalk_agent.py.",
   "version": "1",
@@ -15,7 +15,7 @@
       "name": "HITRUST CSF v11",
       "source": "Seeded from brain/security.json compliance_mapping.hitrust_csf",
       "control_count": 13,
-      "gap": "Full HITRUST CSF v11 catalog requires a HITRUST license. Until then, only the controls already mapped in security.json are present plus the NIST\u2192HITRUST seed crosswalk in this agent."
+      "gap": "Full HITRUST CSF v11 catalog requires a HITRUST license. Until then, only the controls already mapped in security.json are present plus the NIST→HITRUST seed crosswalk in this agent."
     }
   },
   "crosswalk_seed_size": 18,
@@ -151,7 +151,7 @@
             {
               "start_line": 732,
               "end_line": 738,
-              "summary": "session_end clears booted flag \u2014 session lifecycle auditing"
+              "summary": "session_end clears booted flag — session lifecycle auditing"
             }
           ],
           "evidence": "The boot() method evaluates all brain JSONs including bugs and governance records, logging governance actions. The prompt() method audits tool actions on every UserPromptSubmit. Session start/end state changes are recorded in ChatHealthySettings.json.",
@@ -404,7 +404,7 @@
               "summary": "Verifies Worker.cs has no OpenAI/MongoDB/redaction logic (separation of access)"
             }
           ],
-          "evidence": "Tests verify that the consumer reads MongoDB connection string from environment (.env), not hardcoded, and that Worker.cs has no business logic \u2014 enforcing access control boundaries between components.",
+          "evidence": "Tests verify that the consumer reads MongoDB connection string from environment (.env), not hardcoded, and that Worker.cs has no business logic — enforcing access control boundaries between components.",
           "confidence": "low",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -541,7 +541,7 @@
             {
               "start_line": 55,
               "end_line": 63,
-              "summary": "Rejects unregistered tool calls \u2014 allowlist-based access enforcement"
+              "summary": "Rejects unregistered tool calls — allowlist-based access enforcement"
             }
           ],
           "evidence": "The ToolRouter enforces an explicit allowlist: only registered tools can be dispatched. Unregistered tool names are blocked outright with a logged warning, implementing logical access enforcement on system resources (tool functions).",
@@ -833,7 +833,7 @@
         "id": "AC-3.4",
         "family": "AC Access Control",
         "title": "Discretionary Access Control",
-        "control_text": "Enforce {{ insert: param, ac-3.4_prm_1 }} over the set of covered subjects and objects specified in the policy, and where the policy specifies that a subject that has been granted access to information can do one or more of the following:\nPass the information to any other subjects or objects;\nGrant its privileges to other subjects;\nChange security attributes on subjects, objects, the system, or the system\u2019s components;\nChoose the security attributes to be associated with newly created or revised objects; or\nChange the rules governing access control."
+        "control_text": "Enforce {{ insert: param, ac-3.4_prm_1 }} over the set of covered subjects and objects specified in the policy, and where the policy specifies that a subject that has been granted access to information can do one or more of the following:\nPass the information to any other subjects or objects;\nGrant its privileges to other subjects;\nChange security attributes on subjects, objects, the system, or the system’s components;\nChoose the security attributes to be associated with newly created or revised objects; or\nChange the rules governing access control."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -1126,7 +1126,7 @@
               "summary": "Runs scan_http.py on staged files; blocks deploy if insecure HTTP URLs are found"
             }
           ],
-          "evidence": "The script enforces a check (SEC-HTTPS-001-REQ-006) that scans staged files for insecure HTTP URLs using scan_http.py, blocking deployment if insecure (non-HTTPS) URLs are found in code \u2014 directly controlling information flow to prevent use of unencrypted channels.",
+          "evidence": "The script enforces a check (SEC-HTTPS-001-REQ-006) that scans staged files for insecure HTTP URLs using scan_http.py, blocking deployment if insecure (non-HTTPS) URLs are found in code — directly controlling information flow to prevent use of unencrypted channels.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -1836,7 +1836,7 @@
             {
               "start_line": 420,
               "end_line": 445,
-              "summary": "Risk acceptance check gates external state changes \u2014 least privilege enforcement"
+              "summary": "Risk acceptance check gates external state changes — least privilege enforcement"
             }
           ],
           "evidence": "The engineering_rules_worker explicitly checks risk acceptances and human-authorized patterns before allowing tool calls. Read-only tools always pass; state-changing operations require explicit authorization. The pattern list distinguishes read vs. write operations.",
@@ -1871,7 +1871,7 @@
             {
               "start_line": 46,
               "end_line": 50,
-              "summary": "Verifies dangerous builtins are blocked \u2014 enforces least-privilege tool execution"
+              "summary": "Verifies dangerous builtins are blocked — enforces least-privilege tool execution"
             }
           ],
           "evidence": "Tests confirm that only explicitly registered/authorized tools can be invoked, implementing least-privilege dispatch by blocking access to system-level builtins (exec, eval, __import__, compile, open).",
@@ -1906,12 +1906,12 @@
             {
               "start_line": 75,
               "end_line": 132,
-              "summary": "_read_artifact() uses find_one only \u2014 no write operations"
+              "summary": "_read_artifact() uses find_one only — no write operations"
             },
             {
               "start_line": 135,
               "end_line": 213,
-              "summary": "_query() uses find/count_documents only \u2014 read-only"
+              "summary": "_query() uses find/count_documents only — read-only"
             },
             {
               "start_line": 27,
@@ -1949,7 +1949,7 @@
               "summary": "Least-privilege test: read-only user write attempt must be blocked"
             }
           ],
-          "evidence": "The test validates that the read-only user cannot write to the database, directly testing least-privilege enforcement \u2014 the user has only the access necessary (read) and no more.",
+          "evidence": "The test validates that the read-only user cannot write to the database, directly testing least-privilege enforcement — the user has only the access necessary (read) and no more.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -1966,7 +1966,7 @@
             {
               "start_line": 120,
               "end_line": 140,
-              "summary": "Path traversal and absolute paths blocked \u2014 least privilege on file access"
+              "summary": "Path traversal and absolute paths blocked — least privilege on file access"
             }
           ],
           "evidence": "Database allowlist enforcement (TestDbAllowlist) and blocking of path traversal / absolute paths implement least-privilege by restricting access to only explicitly permitted databases and file paths.",
@@ -2021,7 +2021,7 @@
             {
               "start_line": 275,
               "end_line": 278,
-              "summary": "SharedServicesFacade exposes only defined methods \u2014 least privilege on API surface"
+              "summary": "SharedServicesFacade exposes only defined methods — least privilege on API surface"
             }
           ],
           "evidence": "Documents least-privilege via Key Vault access policies restricted to registered certificates and Managed Identities, ToolRouter allowlist restricting tool execution, and SharedServicesFacade exposing only defined methods.",
@@ -2251,7 +2251,7 @@
               "summary": "merge_router halts flow if IP locked or emergency flagged"
             }
           ],
-          "evidence": "The safety_check node calls safety_service.is_ip_locked() and safety_service.lock_ip() after emergency detection, implementing account/IP lockout after triggering conditions \u2014 analogous to lockout after failed/dangerous access attempts.",
+          "evidence": "The safety_check node calls safety_service.is_ip_locked() and safety_service.lock_ip() after emergency detection, implementing account/IP lockout after triggering conditions — analogous to lockout after failed/dangerous access attempts.",
           "confidence": "low",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -2286,7 +2286,7 @@
               "summary": "OTP exchange fails with 401 + warning log on bad/used/expired code"
             }
           ],
-          "evidence": "The OTP exchange returns 401 and logs a warning on invalid/expired/used OTP, and OTPs are single-use with a 30-minute expiry \u2014 providing failed-attempt detection and credential invalidation.",
+          "evidence": "The OTP exchange returns 401 and logs a warning on invalid/expired/used OTP, and OTPs are single-use with a 30-minute expiry — providing failed-attempt detection and credential invalidation.",
           "confidence": "low",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -2611,7 +2611,7 @@
       "nist_800_53": {
         "id": "AC-13",
         "family": "AC Access Control",
-        "title": "Supervision and Review \u2014 Access Control",
+        "title": "Supervision and Review — Access Control",
         "control_text": ""
       },
       "hitrust_csf": null,
@@ -2660,7 +2660,7 @@
               "summary": "Chat iframe embedded with no auth gate; accessible to any visitor"
             }
           ],
-          "evidence": "The chat iframe loads without requiring user identification or authentication \u2014 the page permits unauthenticated access to the Find Care AI chat function as its primary intended action.",
+          "evidence": "The chat iframe loads without requiring user identification or authentication — the page permits unauthenticated access to the Find Care AI chat function as its primary intended action.",
           "confidence": "low",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -2830,7 +2830,7 @@
       "nist_800_53": {
         "id": "AC-16.9",
         "family": "AC Access Control",
-        "title": "Attribute Reassignment \u2014 Regrading Mechanisms",
+        "title": "Attribute Reassignment — Regrading Mechanisms",
         "control_text": "Change security and privacy attributes associated with information only via regrading mechanisms validated using {{ insert: param, ac-16.9_prm_1 }}."
       },
       "hitrust_csf": null,
@@ -2890,7 +2890,7 @@
               "summary": "mTLS cert/key/CA configuration for SharedServices proxy calls"
             }
           ],
-          "evidence": "mTLS is implemented for inter-service communication (FindCare\u2192EvaluateCare, FindCare\u2192SharedServices) using client certificates and CA verification, controlling and protecting remote access between services.",
+          "evidence": "mTLS is implemented for inter-service communication (FindCare→EvaluateCare, FindCare→SharedServices) using client certificates and CA verification, controlling and protecting remote access between services.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -3122,7 +3122,7 @@
             {
               "start_line": 230,
               "end_line": 233,
-              "summary": "Asserts page URL starts with 'https://' \u2014 verifies TLS/HTTPS enforcement"
+              "summary": "Asserts page URL starts with 'https://' — verifies TLS/HTTPS enforcement"
             },
             {
               "start_line": 25,
@@ -3232,7 +3232,7 @@
             {
               "start_line": 371,
               "end_line": 383,
-              "summary": "Step 15: mTLS cert+key loaded, TLS version asserted \u22651.2 for EvaluateCare"
+              "summary": "Step 15: mTLS cert+key loaded, TLS version asserted ≥1.2 for EvaluateCare"
             },
             {
               "start_line": 449,
@@ -3292,7 +3292,7 @@
             {
               "start_line": 366,
               "end_line": 370,
-              "summary": "HITRUST 06.d: mTLS TLS1.2+, AES-256, FIPS 140-2 L2 HSM, x509 \u2014 no custom crypto"
+              "summary": "HITRUST 06.d: mTLS TLS1.2+, AES-256, FIPS 140-2 L2 HSM, x509 — no custom crypto"
             }
           ],
           "evidence": "Explicitly documents cryptographic mechanisms (mTLS TLS 1.2+, x509 cert auth) protecting confidentiality and integrity of all remote/inter-service sessions, mapped directly to NIST 3.1.13.",
@@ -3606,7 +3606,7 @@
         "id": "AC-20.1",
         "family": "AC Access Control",
         "title": "Limits on Authorized Use",
-        "control_text": "Permit authorized individuals to use an external system to access the system or to process, store, or transmit organization-controlled information only after:\nVerification of the implementation of controls on the external system as specified in the organization\u2019s security and privacy policies and security and privacy plans; or\nRetention of approved system connection or processing agreements with the organizational entity hosting the external system."
+        "control_text": "Permit authorized individuals to use an external system to access the system or to process, store, or transmit organization-controlled information only after:\nVerification of the implementation of controls on the external system as specified in the organization’s security and privacy policies and security and privacy plans; or\nRetention of approved system connection or processing agreements with the organizational entity hosting the external system."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -3619,7 +3619,7 @@
       "nist_800_53": {
         "id": "AC-20.2",
         "family": "AC Access Control",
-        "title": "Portable Storage Devices \u2014 Restricted Use",
+        "title": "Portable Storage Devices — Restricted Use",
         "control_text": "Restrict the use of organization-controlled portable storage devices by authorized individuals on external systems using {{ insert: param, ac-20.02_odp }}."
       },
       "hitrust_csf": null,
@@ -3633,7 +3633,7 @@
       "nist_800_53": {
         "id": "AC-20.3",
         "family": "AC Access Control",
-        "title": "Non-organizationally Owned Systems \u2014 Restricted Use",
+        "title": "Non-organizationally Owned Systems — Restricted Use",
         "control_text": "Restrict the use of non-organizationally owned systems or system components to process, store, or transmit organizational information using {{ insert: param, ac-20.03_odp }}."
       },
       "hitrust_csf": null,
@@ -3647,7 +3647,7 @@
       "nist_800_53": {
         "id": "AC-20.4",
         "family": "AC Access Control",
-        "title": "Network Accessible Storage Devices \u2014 Prohibited Use",
+        "title": "Network Accessible Storage Devices — Prohibited Use",
         "control_text": "Prohibit the use of {{ insert: param, ac-20.04_odp }} in external systems."
       },
       "hitrust_csf": null,
@@ -3661,7 +3661,7 @@
       "nist_800_53": {
         "id": "AC-20.5",
         "family": "AC Access Control",
-        "title": "Portable Storage Devices \u2014 Prohibited Use",
+        "title": "Portable Storage Devices — Prohibited Use",
         "control_text": "Prohibit the use of organization-controlled portable storage devices by authorized individuals on external systems."
       },
       "hitrust_csf": null,
@@ -3676,7 +3676,7 @@
         "id": "AC-21",
         "family": "AC Access Control",
         "title": "Information Sharing",
-        "control_text": "Enable authorized users to determine whether access authorizations assigned to a sharing partner match the information\u2019s access and use restrictions for {{ insert: param, ac-21_odp.01 }} ; and\nEmploy {{ insert: param, ac-21_odp.02 }} to assist users in making information sharing and collaboration decisions."
+        "control_text": "Enable authorized users to determine whether access authorizations assigned to a sharing partner match the information’s access and use restrictions for {{ insert: param, ac-21_odp.01 }} ; and\nEmploy {{ insert: param, ac-21_odp.02 }} to assist users in making information sharing and collaboration decisions."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -4143,7 +4143,7 @@
               "summary": "CatalogLoader.load_nist_oscal() ingests NIST controls including AU-2"
             }
           ],
-          "evidence": "The crosswalk builder includes AU-2 in its NIST_TO_HITRUST_SEED mapping and the agent ingests the full NIST OSCAL catalog including AU-2 event logging controls, then tracks which code implements them \u2014 demonstrating awareness and cataloging of audit event types.",
+          "evidence": "The crosswalk builder includes AU-2 in its NIST_TO_HITRUST_SEED mapping and the agent ingests the full NIST OSCAL catalog including AU-2 event logging controls, then tracks which code implements them — demonstrating awareness and cataloging of audit event types.",
           "confidence": "low",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4303,7 +4303,7 @@
               "summary": "Per-state parity events logged with PASS/FAIL outcome"
             }
           ],
-          "evidence": "The code systematically logs gate check outcomes, streaming progress, atomic swap results, per-state parity results, and promotion status \u2014 identifying and recording event types relevant to data integrity and system operations.",
+          "evidence": "The code systematically logs gate check outcomes, streaming progress, atomic swap results, per-state parity results, and promotion status — identifying and recording event types relevant to data integrity and system operations.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4403,7 +4403,7 @@
               "summary": "Verifies AuditTrail is append-only with no update/delete methods"
             }
           ],
-          "evidence": "The test_audit_trail_append_only test verifies that the AuditTrail class has no update or delete methods, confirming that audit records are immutable and only appended \u2014 consistent with identifying and supporting event logging requirements.",
+          "evidence": "The test_audit_trail_append_only test verifies that the AuditTrail class has no update or delete methods, confirming that audit records are immutable and only appended — consistent with identifying and supporting event logging requirements.",
           "confidence": "low",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4529,7 +4529,7 @@
               "summary": "Logs cryptographic failure with cert path, payload length, and signature length"
             }
           ],
-          "evidence": "The verify function logs detailed diagnostic information on every negative verification path, including origin mismatch, missing signature, missing cert, and cryptographic failure \u2014 capturing what failed, where, and why.",
+          "evidence": "The verify function logs detailed diagnostic information on every negative verification path, including origin mismatch, missing signature, missing cert, and cryptographic failure — capturing what failed, where, and why.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4579,7 +4579,7 @@
               "summary": "make_timestamps generates PST and UTC timestamps for each record"
             }
           ],
-          "evidence": "Each audit record includes: event type (actor/role), timestamps (PST and UTC), content of the event, and a sequential utterance number \u2014 establishing what, when, who, and content for each logged event.",
+          "evidence": "Each audit record includes: event type (actor/role), timestamps (PST and UTC), content of the event, and a sequential utterance number — establishing what, when, who, and content for each logged event.",
           "confidence": "high",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4634,7 +4634,7 @@
               "summary": "Verifies every record has timestamp_pst, timestamp_utc, and ch_key"
             }
           ],
-          "evidence": "Tests assert that every MongoDB record contains timestamp_pst, timestamp_utc, ch_key, _version, _framework, _build, and content fields \u2014 verifying audit records contain required structured information.",
+          "evidence": "Tests assert that every MongoDB record contains timestamp_pst, timestamp_utc, ch_key, _version, _framework, _build, and content fields — verifying audit records contain required structured information.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4669,7 +4669,7 @@
               "summary": "Log entry with original/retained/archived counts and error count"
             }
           ],
-          "evidence": "Audit/log records contain structured fields: job ID, actor, role, timestamp (PST and UTC), content describing the action, counts, and error details \u2014 establishing what, when, who, and outcome.",
+          "evidence": "Audit/log records contain structured fields: job ID, actor, role, timestamp (PST and UTC), content describing the action, counts, and error details — establishing what, when, who, and outcome.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4779,7 +4779,7 @@
               "summary": "Lead record constructed with identity, timestamp, and consent fields"
             }
           ],
-          "evidence": "The lead record includes timestamp (datetime.now().isoformat()), email, name, reason for contact, and consent metadata \u2014 providing who, when, and what context for each contact record creation event.",
+          "evidence": "The lead record includes timestamp (datetime.now().isoformat()), email, name, reason for contact, and consent metadata — providing who, when, and what context for each contact record creation event.",
           "confidence": "low",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4819,7 +4819,7 @@
               "summary": "TestSchemaValidation: validates required fields, role, actor, timestamp formats"
             }
           ],
-          "evidence": "Tests enforce that each audit/log record contains required fields: actor, role, content, timestamp_utc, timestamp_pst, utterance number \u2014 directly mapping to AU-3's requirement for what/when/where/who/outcome.",
+          "evidence": "Tests enforce that each audit/log record contains required fields: actor, role, content, timestamp_utc, timestamp_pst, utterance number — directly mapping to AU-3's requirement for what/when/where/who/outcome.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4929,7 +4929,7 @@
               "summary": "log_notification captures event_type, recipient, notification_type, title, sent status"
             }
           ],
-          "evidence": "Each audit record captures event type, timestamp (when), source/job_id (where/source), outcome, and a summary \u2014 satisfying the 'what, when, where, source, outcome, who' requirements of AU-3.",
+          "evidence": "Each audit record captures event type, timestamp (when), source/job_id (where/source), outcome, and a summary — satisfying the 'what, when, where, source, outcome, who' requirements of AU-3.",
           "confidence": "high",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4954,7 +4954,7 @@
               "summary": "log_escalation captures routing target and evidence package"
             }
           ],
-          "evidence": "Audit records include structured fields: error_code, classification, confidence, source, reasoning, job_id, requester, cluster_state_before/after, attempt_number, outcome \u2014 satisfying what/when/where/who/outcome requirements.",
+          "evidence": "Audit records include structured fields: error_code, classification, confidence, source, reasoning, job_id, requester, cluster_state_before/after, attempt_number, outcome — satisfying what/when/where/who/outcome requirements.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4969,7 +4969,7 @@
               "summary": "Test: audit entry has actor, action, target, timestamp, status_code fields"
             }
           ],
-          "evidence": "The test verifies that audit log entries contain required fields: actor, action, target, timestamp, and status_code \u2014 directly validating audit record content requirements.",
+          "evidence": "The test verifies that audit log entries contain required fields: actor, action, target, timestamp, and status_code — directly validating audit record content requirements.",
           "confidence": "high",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -5699,7 +5699,7 @@
               "summary": "TestTR12: tests UTC and PST timestamp format and presence in written entries"
             }
           ],
-          "evidence": "TestTR12 explicitly tests that make_timestamps() produces valid ISO-8601 UTC and PST timestamps, and that written log entries contain both timestamps \u2014 directly implementing AU-8's requirement for time stamps on audit records.",
+          "evidence": "TestTR12 explicitly tests that make_timestamps() produces valid ISO-8601 UTC and PST timestamps, and that written log entries contain both timestamps — directly implementing AU-8's requirement for time stamps on audit records.",
           "confidence": "high",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -5857,7 +5857,7 @@
               "summary": "TestTR14: source inspection confirms no delete/remove/pop in hook"
             }
           ],
-          "evidence": "TestTR8 and TestTR14 verify append-only behavior: no existing utterance is modified after insertion, and the hook source contains no delete/remove/pop operations \u2014 protecting audit log integrity from unauthorized modification.",
+          "evidence": "TestTR8 and TestTR14 verify append-only behavior: no existing utterance is modified after insertion, and the hook source contains no delete/remove/pop operations — protecting audit log integrity from unauthorized modification.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -5889,7 +5889,7 @@
             {
               "start_line": 14,
               "end_line": 18,
-              "summary": "Class docstring reinforces immutability \u2014 no updates, no deletes"
+              "summary": "Class docstring reinforces immutability — no updates, no deletes"
             },
             {
               "start_line": 30,
@@ -5909,7 +5909,7 @@
             {
               "start_line": 131,
               "end_line": 139,
-              "summary": "Asserts audit trail has no update/delete methods \u2014 protects audit integrity"
+              "summary": "Asserts audit trail has no update/delete methods — protects audit integrity"
             }
           ],
           "evidence": "The test_audit_trail_append_only test enforces that the AuditTrail class exposes no update or delete methods, substantively verifying that audit information is protected from modification and deletion.",
@@ -6040,7 +6040,7 @@
               "summary": "RSA-SHA256 signs origin+created_stamp+guid to bind identity to the session token"
             }
           ],
-          "evidence": "The token binds a session GUID and timestamp to a cryptographic signature over origin+nonce+guid using RSA-SHA256, providing irrefutable evidence that a specific FindCare instance (identified by its private key) issued the token \u2014 supporting non-repudiation of the originating component.",
+          "evidence": "The token binds a session GUID and timestamp to a cryptographic signature over origin+nonce+guid using RSA-SHA256, providing irrefutable evidence that a specific FindCare instance (identified by its private key) issued the token — supporting non-repudiation of the originating component.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -6057,7 +6057,7 @@
             {
               "start_line": 422,
               "end_line": 436,
-              "summary": "Verifies ch_key values are globally unique \u2014 no duplicates"
+              "summary": "Verifies ch_key values are globally unique — no duplicates"
             }
           ],
           "evidence": "Tests verify that every record has a globally unique CH_KEY_ identifier binding the logged event to a specific record, supporting non-repudiation of conversation log entries.",
@@ -6082,7 +6082,7 @@
             {
               "start_line": 396,
               "end_line": 419,
-              "summary": "Step 17: Handoff 1 FindCare\u2192EvaluateCare session identity verified"
+              "summary": "Step 17: Handoff 1 FindCare→EvaluateCare session identity verified"
             }
           ],
           "evidence": "The smoke test verifies non-repudiation of session handoffs by asserting that each transition carries a cryptographically signed token with a unique nonce and a stable GUID, and that the Verified field reaches a positive state. The _verify_session_identity function is called for all 6 handoff permutations, providing irrefutable evidence of session identity across component boundaries.",
@@ -6440,7 +6440,7 @@
               "summary": "Verifies message produced to sidecar appears in Kafka topic (offset advance)"
             }
           ],
-          "evidence": "Tests verify that the hook generates audit records for defined events (UserPromptSubmit, stop), the sidecar enqueues them to Kafka, and the consumer writes them to MongoDB \u2014 confirming end-to-end audit record generation.",
+          "evidence": "Tests verify that the hook generates audit records for defined events (UserPromptSubmit, stop), the sidecar enqueues them to Kafka, and the consumer writes them to MongoDB — confirming end-to-end audit record generation.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -6567,7 +6567,7 @@
             {
               "start_line": 284,
               "end_line": 296,
-              "summary": "TestTR13: write is synchronous \u2014 data on disk after call returns"
+              "summary": "TestTR13: write is synchronous — data on disk after call returns"
             }
           ],
           "evidence": "Tests verify the real conversation_log_hook generates audit records on every user/assistant message and that records are persisted synchronously before API response returns (TR13), satisfying AU-12's audit record generation requirement.",
@@ -6620,7 +6620,7 @@
               "summary": "log_notification generates audit record for notification events"
             }
           ],
-          "evidence": "The AuditTrail class provides audit record generation for triage decisions, repair actions, escalations, and notifications \u2014 generating records for pipeline operation event types.",
+          "evidence": "The AuditTrail class provides audit record generation for triage decisions, repair actions, escalations, and notifications — generating records for pipeline operation event types.",
           "confidence": "high",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -7116,7 +7116,7 @@
             {
               "start_line": 222,
               "end_line": 290,
-              "summary": "promote() orchestrates gate \u2192 lock \u2192 sync \u2192 swap \u2192 verify for cross-cluster transfer"
+              "summary": "promote() orchestrates gate → lock → sync → swap → verify for cross-cluster transfer"
             }
           ],
           "evidence": "The agent explicitly manages and controls the exchange of information between two distinct system clusters (pipeline cluster and frontend cluster) via documented interface characteristics, gate checks, and exchange agreements enforced programmatically (sync lock, version check, parity verification, promotion log).",
@@ -7326,7 +7326,7 @@
       "nist_800_53": {
         "id": "CA-6.1",
         "family": "CA Assessment, Authorization, and Monitoring",
-        "title": "Joint Authorization \u2014 Intra-organization",
+        "title": "Joint Authorization — Intra-organization",
         "control_text": "Employ a joint authorization process for the system that includes multiple authorizing officials from the same organization conducting the authorization."
       },
       "hitrust_csf": null,
@@ -7340,7 +7340,7 @@
       "nist_800_53": {
         "id": "CA-6.2",
         "family": "CA Assessment, Authorization, and Monitoring",
-        "title": "Joint Authorization \u2014 Inter-organization",
+        "title": "Joint Authorization — Inter-organization",
         "control_text": "Employ a joint authorization process for the system that includes multiple authorizing officials with at least one authorizing official from an organization external to the organization conducting the authorization."
       },
       "hitrust_csf": null,
@@ -7379,7 +7379,7 @@
               "summary": "SemanticClassifier.classify_file() invokes LLM to assess control implementations"
             }
           ],
-          "evidence": "The agent performs continuous/ongoing monitoring of the codebase by semantically classifying source files against the compliance control catalog (Pass 2), updating control implementation mappings, and tracking which controls are implemented in which files \u2014 constituting an automated continuous monitoring capability.",
+          "evidence": "The agent performs continuous/ongoing monitoring of the codebase by semantically classifying source files against the compliance control catalog (Pass 2), updating control implementation mappings, and tracking which controls are implemented in which files — constituting an automated continuous monitoring capability.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -8083,7 +8083,7 @@
               "summary": "Allowlist restricts to minimum necessary commands"
             }
           ],
-          "evidence": "The script restricts available functionality to a minimal set of explicitly permitted commands and file locations, blocking execution of pipeline code locally, direct HF API manipulation, and system-level destructive commands \u2014 implementing least functionality.",
+          "evidence": "The script restricts available functionality to a minimal set of explicitly permitted commands and file locations, blocking execution of pipeline code locally, direct HF API manipulation, and system-level destructive commands — implementing least functionality.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -8141,7 +8141,7 @@
       "nist_800_53": {
         "id": "CM-7.4",
         "family": "CM Configuration Management",
-        "title": "Unauthorized Software \u2014 Deny-by-exception",
+        "title": "Unauthorized Software — Deny-by-exception",
         "control_text": "Identify {{ insert: param, cm-07.04_odp.01 }};\nEmploy an allow-all, deny-by-exception policy to prohibit the execution of unauthorized software programs on the system; and\nReview and update the list of unauthorized software programs {{ insert: param, cm-07.04_odp.02 }}."
       },
       "hitrust_csf": null,
@@ -8155,7 +8155,7 @@
       "nist_800_53": {
         "id": "CM-7.5",
         "family": "CM Configuration Management",
-        "title": "Authorized Software \u2014 Allow-by-exception",
+        "title": "Authorized Software — Allow-by-exception",
         "control_text": "Identify {{ insert: param, cm-07.05_odp.01 }};\nEmploy a deny-all, permit-by-exception policy to allow the execution of authorized software programs on the system; and\nReview and update the list of authorized software programs {{ insert: param, cm-07.05_odp.02 }}."
       },
       "hitrust_csf": null,
@@ -9415,7 +9415,7 @@
       "nist_800_53": {
         "id": "IA-2.6",
         "family": "IA Identification and Authentication",
-        "title": "Access to Accounts \u2014separate Device",
+        "title": "Access to Accounts —separate Device",
         "control_text": "Implement multi-factor authentication for {{ insert: param, ia-02.06_odp.01 }} access to {{ insert: param, ia-02.06_odp.02 }} such that:\nOne of the factors is provided by a device separate from the system gaining access; and\nThe device meets {{ insert: param, ia-02.06_odp.03 }}."
       },
       "hitrust_csf": null,
@@ -9429,7 +9429,7 @@
       "nist_800_53": {
         "id": "IA-2.7",
         "family": "IA Identification and Authentication",
-        "title": "Network Access to Non-privileged Accounts \u2014 Separate Device",
+        "title": "Network Access to Non-privileged Accounts — Separate Device",
         "control_text": ""
       },
       "hitrust_csf": null,
@@ -9443,7 +9443,7 @@
       "nist_800_53": {
         "id": "IA-2.8",
         "family": "IA Identification and Authentication",
-        "title": "Access to Accounts \u2014 Replay Resistant",
+        "title": "Access to Accounts — Replay Resistant",
         "control_text": "Implement replay-resistant authentication mechanisms for access to {{ insert: param, ia-02.08_odp }}."
       },
       "hitrust_csf": null,
@@ -9457,7 +9457,7 @@
       "nist_800_53": {
         "id": "IA-2.9",
         "family": "IA Identification and Authentication",
-        "title": "Network Access to Non-privileged Accounts \u2014 Replay Resistant",
+        "title": "Network Access to Non-privileged Accounts — Replay Resistant",
         "control_text": ""
       },
       "hitrust_csf": null,
@@ -9485,7 +9485,7 @@
       "nist_800_53": {
         "id": "IA-2.11",
         "family": "IA Identification and Authentication",
-        "title": "Remote Access \u2014 Separate Device",
+        "title": "Remote Access — Separate Device",
         "control_text": ""
       },
       "hitrust_csf": null,
@@ -9835,7 +9835,7 @@
               "summary": "/session endpoint generates a signed session token; no fallback allowed"
             }
           ],
-          "evidence": "Startup security verification generates and validates a signed session token (CH-prefixed, \u226568 chars, no underscores, with nonce and signature). The server aborts (sys.exit) if the token primitive fails, enforcing authenticator management correctness.",
+          "evidence": "Startup security verification generates and validates a signed session token (CH-prefixed, ≥68 chars, no underscores, with nonce and signature). The server aborts (sys.exit) if the token primitive fails, enforcing authenticator management correctness.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -10510,7 +10510,7 @@
         "id": "IR-2.3",
         "family": "IR Incident Response",
         "title": "Breach",
-        "control_text": "Provide incident response training on how to identify and respond to a breach, including the organization\u2019s process for reporting a breach."
+        "control_text": "Provide incident response training on how to identify and respond to a breach, including the organization’s process for reporting a breach."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -10708,7 +10708,7 @@
       "nist_800_53": {
         "id": "IR-4.7",
         "family": "IR Incident Response",
-        "title": "Insider Threats \u2014 Intra-organization Coordination",
+        "title": "Insider Threats — Intra-organization Coordination",
         "control_text": "Coordinate an incident handling capability for insider threats that includes the following organizational entities {{ insert: param, ir-04.07_odp }}."
       },
       "hitrust_csf": null,
@@ -12428,7 +12428,7 @@
       "nist_800_53": {
         "id": "PE-11.1",
         "family": "PE Physical and Environmental Protection",
-        "title": "Alternate Power Supply \u2014 Minimal Operational Capability",
+        "title": "Alternate Power Supply — Minimal Operational Capability",
         "control_text": "Provide an alternate power supply for the system that is activated {{ insert: param, pe-11.01_odp }} and that can maintain minimally required operational capability in the event of an extended loss of the primary power source."
       },
       "hitrust_csf": null,
@@ -12442,7 +12442,7 @@
       "nist_800_53": {
         "id": "PE-11.2",
         "family": "PE Physical and Environmental Protection",
-        "title": "Alternate Power Supply \u2014 Self-contained",
+        "title": "Alternate Power Supply — Self-contained",
         "control_text": "Provide an alternate power supply for the system that is activated {{ insert: param, pe-11.02_odp.01 }} and that is:\nSelf-contained;\nNot reliant on external power generation; and\nCapable of maintaining {{ insert: param, pe-11.02_odp.02 }} in the event of an extended loss of the primary power source."
       },
       "hitrust_csf": null,
@@ -12498,7 +12498,7 @@
       "nist_800_53": {
         "id": "PE-13.1",
         "family": "PE Physical and Environmental Protection",
-        "title": "Detection Systems \u2014 Automatic Activation and Notification",
+        "title": "Detection Systems — Automatic Activation and Notification",
         "control_text": "Employ fire detection systems that activate automatically and notify {{ insert: param, pe-13.01_odp.01 }} and {{ insert: param, pe-13.01_odp.02 }} in the event of a fire."
       },
       "hitrust_csf": null,
@@ -12512,7 +12512,7 @@
       "nist_800_53": {
         "id": "PE-13.2",
         "family": "PE Physical and Environmental Protection",
-        "title": "Suppression Systems \u2014 Automatic Activation and Notification",
+        "title": "Suppression Systems — Automatic Activation and Notification",
         "control_text": "Employ fire suppression systems that activate automatically and notify {{ insert: param, pe-13.02_odp.01 }} and {{ insert: param, pe-13.02_odp.02 }} ; and\nEmploy an automatic fire suppression capability when the facility is not staffed on a continuous basis."
       },
       "hitrust_csf": null,
@@ -12779,7 +12779,7 @@
         "id": "PL-2",
         "family": "PL Planning",
         "title": "System Security and Privacy Plans",
-        "control_text": "Develop security and privacy plans for the system that:\nAre consistent with the organization\u2019s enterprise architecture;\nExplicitly define the constituent system components;\nDescribe the operational context of the system in terms of mission and business processes;\nIdentify the individuals that fulfill system roles and responsibilities;\nIdentify the information types processed, stored, and transmitted by the system;\nProvide the security categorization of the system, including supporting rationale;\nDescribe any specific threats to the system that are of concern to the organization;\nProvide the results of a privacy risk assessment for systems processing personally identifiable information;\nDescribe the operational environment for the system and any dependencies on or connections to other systems or system components;\nProvide an overview of the security and privacy requirements for the system;\nIdentify any relevant control baselines or overlays, if applicable;\nDescribe the controls in place or planned for meeting the security and privacy requirements, including a rationale for any tailoring decisions;\nInclude risk determinations for security and privacy architecture and design decisions;\nInclude security- and privacy-related activities affecting the system that require planning and coordination with {{ insert: param, pl-02_odp.01 }} ; and\nAre reviewed and approved by the authorizing official or designated representative prior to plan implementation.\nDistribute copies of the plans and communicate subsequent changes to the plans to {{ insert: param, pl-02_odp.02 }};\nReview the plans {{ insert: param, pl-02_odp.03 }};\nUpdate the plans to address changes to the system and environment of operation or problems identified during plan implementation or control assessments; and\nProtect the plans from unauthorized disclosure and modification."
+        "control_text": "Develop security and privacy plans for the system that:\nAre consistent with the organization’s enterprise architecture;\nExplicitly define the constituent system components;\nDescribe the operational context of the system in terms of mission and business processes;\nIdentify the individuals that fulfill system roles and responsibilities;\nIdentify the information types processed, stored, and transmitted by the system;\nProvide the security categorization of the system, including supporting rationale;\nDescribe any specific threats to the system that are of concern to the organization;\nProvide the results of a privacy risk assessment for systems processing personally identifiable information;\nDescribe the operational environment for the system and any dependencies on or connections to other systems or system components;\nProvide an overview of the security and privacy requirements for the system;\nIdentify any relevant control baselines or overlays, if applicable;\nDescribe the controls in place or planned for meeting the security and privacy requirements, including a rationale for any tailoring decisions;\nInclude risk determinations for security and privacy architecture and design decisions;\nInclude security- and privacy-related activities affecting the system that require planning and coordination with {{ insert: param, pl-02_odp.01 }} ; and\nAre reviewed and approved by the authorizing official or designated representative prior to plan implementation.\nDistribute copies of the plans and communicate subsequent changes to the plans to {{ insert: param, pl-02_odp.02 }};\nReview the plans {{ insert: param, pl-02_odp.03 }};\nUpdate the plans to address changes to the system and environment of operation or problems identified during plan implementation or control assessments; and\nProtect the plans from unauthorized disclosure and modification."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -13283,7 +13283,7 @@
         "id": "PM-18",
         "family": "PM Program Management",
         "title": "Privacy Program Plan",
-        "control_text": "Develop and disseminate an organization-wide privacy program plan that provides an overview of the agency\u2019s privacy program, and:\nIncludes a description of the structure of the privacy program and the resources dedicated to the privacy program;\nProvides an overview of the requirements for the privacy program and a description of the privacy program management controls and common controls in place or planned for meeting those requirements;\nIncludes the role of the senior agency official for privacy and the identification and assignment of roles of other privacy officials and staff and their responsibilities;\nDescribes management commitment, compliance, and the strategic goals and objectives of the privacy program;\nReflects coordination among organizational entities responsible for the different aspects of privacy; and\nIs approved by a senior official with responsibility and accountability for the privacy risk being incurred to organizational operations (including mission, functions, image, and reputation), organizational assets, individuals, other organizations, and the Nation; and\nUpdate the plan {{ insert: param, pm-18_odp }} and to address changes in federal privacy laws and policy and organizational changes and problems identified during plan implementation or privacy control assessments."
+        "control_text": "Develop and disseminate an organization-wide privacy program plan that provides an overview of the agency’s privacy program, and:\nIncludes a description of the structure of the privacy program and the resources dedicated to the privacy program;\nProvides an overview of the requirements for the privacy program and a description of the privacy program management controls and common controls in place or planned for meeting those requirements;\nIncludes the role of the senior agency official for privacy and the identification and assignment of roles of other privacy officials and staff and their responsibilities;\nDescribes management commitment, compliance, and the strategic goals and objectives of the privacy program;\nReflects coordination among organizational entities responsible for the different aspects of privacy; and\nIs approved by a senior official with responsibility and accountability for the privacy risk being incurred to organizational operations (including mission, functions, image, and reputation), organizational assets, individuals, other organizations, and the Nation; and\nUpdate the plan {{ insert: param, pm-18_odp }} and to address changes in federal privacy laws and policy and organizational changes and problems identified during plan implementation or privacy control assessments."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -13311,7 +13311,7 @@
         "id": "PM-20",
         "family": "PM Program Management",
         "title": "Dissemination of Privacy Program Information",
-        "control_text": "Maintain a central resource webpage on the organization\u2019s principal public website that serves as a central source of information about the organization\u2019s privacy program and that:\nEnsures that the public has access to information about organizational privacy activities and can communicate with its senior agency official for privacy;\nEnsures that organizational privacy practices and reports are publicly available; and\nEmploys publicly facing email addresses and/or phone lines to enable the public to provide feedback and/or direct questions to privacy offices regarding privacy practices."
+        "control_text": "Maintain a central resource webpage on the organization’s principal public website that serves as a central source of information about the organization’s privacy program and that:\nEnsures that the public has access to information about organizational privacy activities and can communicate with its senior agency official for privacy;\nEnsures that organizational privacy practices and reports are publicly available; and\nEmploys publicly facing email addresses and/or phone lines to enable the public to provide feedback and/or direct questions to privacy offices regarding privacy practices."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -13871,7 +13871,7 @@
         "id": "PT-4",
         "family": "PT Personally Identifiable Information Processing and Transparency",
         "title": "Consent",
-        "control_text": "Implement {{ insert: param, pt-04_odp }} for individuals to consent to the processing of their personally identifiable information prior to its collection that facilitate individuals\u2019 informed decision-making."
+        "control_text": "Implement {{ insert: param, pt-04_odp }} for individuals to consent to the processing of their personally identifiable information prior to its collection that facilitate individuals’ informed decision-making."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -14025,7 +14025,7 @@
         "id": "PT-7.1",
         "family": "PT Personally Identifiable Information Processing and Transparency",
         "title": "Social Security Numbers",
-        "control_text": "When a system processes Social Security numbers:\nEliminate unnecessary collection, maintenance, and use of Social Security numbers, and explore alternatives to their use as a personal identifier;\nDo not deny any individual any right, benefit, or privilege provided by law because of such individual\u2019s refusal to disclose his or her Social Security number; and\nInform any individual who is asked to disclose his or her Social Security number whether that disclosure is mandatory or voluntary, by what statutory or other authority such number is solicited, and what uses will be made of it."
+        "control_text": "When a system processes Social Security numbers:\nEliminate unnecessary collection, maintenance, and use of Social Security numbers, and explore alternatives to their use as a personal identifier;\nDo not deny any individual any right, benefit, or privilege provided by law because of such individual’s refusal to disclose his or her Social Security number; and\nInform any individual who is asked to disclose his or her Social Security number whether that disclosure is mandatory or voluntary, by what statutory or other authority such number is solicited, and what uses will be made of it."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -14683,7 +14683,7 @@
         "id": "SA-4.12",
         "family": "SA System and Services Acquisition",
         "title": "Data Ownership",
-        "control_text": "Include organizational data ownership requirements in the acquisition contract; and\nRequire all data to be removed from the contractor\u2019s system and returned to the organization within {{ insert: param, sa-04.12_odp }}."
+        "control_text": "Include organizational data ownership requirements in the acquisition contract; and\nRequire all data to be removed from the contractor’s system and returned to the organization within {{ insert: param, sa-04.12_odp }}."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -15396,7 +15396,7 @@
       "nist_800_53": {
         "id": "SA-9.8",
         "family": "SA System and Services Acquisition",
-        "title": "Processing and Storage Location \u2014 U.S. Jurisdiction",
+        "title": "Processing and Storage Location — U.S. Jurisdiction",
         "control_text": "Restrict the geographic location of information processing and data storage to facilities located within in the legal jurisdictional boundary of the United States."
       },
       "hitrust_csf": null,
@@ -16172,7 +16172,7 @@
         "id": "SA-17",
         "family": "SA System and Services Acquisition",
         "title": "Developer Security and Privacy Architecture and Design",
-        "control_text": "Require the developer of the system, system component, or system service to produce a design specification and security and privacy architecture that:\nIs consistent with the organization\u2019s security and privacy architecture that is an integral part the organization\u2019s enterprise architecture;\nAccurately and completely describes the required security and privacy functionality, and the allocation of controls among physical and logical components; and\nExpresses how individual security and privacy functions, mechanisms, and services work together to provide required security and privacy capabilities and a unified approach to protection."
+        "control_text": "Require the developer of the system, system component, or system service to produce a design specification and security and privacy architecture that:\nIs consistent with the organization’s security and privacy architecture that is an integral part the organization’s enterprise architecture;\nAccurately and completely describes the required security and privacy functionality, and the allocation of controls among physical and logical components; and\nExpresses how individual security and privacy functions, mechanisms, and services work together to provide required security and privacy capabilities and a unified approach to protection."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -16864,7 +16864,7 @@
       "nist_800_53": {
         "id": "SC-7.5",
         "family": "SC System and Communications Protection",
-        "title": "Deny by Default \u2014 Allow by Exception",
+        "title": "Deny by Default — Allow by Exception",
         "control_text": "Deny network communications traffic by default and allow network communications traffic by exception {{ insert: param, sc-07.05_odp.01 }}."
       },
       "hitrust_csf": null,
@@ -17320,7 +17320,7 @@
             {
               "start_line": 471,
               "end_line": 497,
-              "summary": "mTLS cert/key/CA wired for EvaluateCare proxy \u2014 HTTPS with client cert"
+              "summary": "mTLS cert/key/CA wired for EvaluateCare proxy — HTTPS with client cert"
             },
             {
               "start_line": 686,
@@ -17368,7 +17368,7 @@
               "summary": "TestNoHTTPInCode: asserts zero http://localhost refs in production source"
             }
           ],
-          "evidence": "The test suite (SEC-HTTPS-001) verifies that all REST services reject plain HTTP with 403/426, that HTTP redirects to HTTPS (301), that mTLS is enforced on internal services (EvaluateCare :8081, SharedServices :8082), and that no http:// URLs appear in production code \u2014 collectively verifying that all communications use HTTPS/TLS for confidentiality and integrity in transit.",
+          "evidence": "The test suite (SEC-HTTPS-001) verifies that all REST services reject plain HTTP with 403/426, that HTTP redirects to HTTPS (301), that mTLS is enforced on internal services (EvaluateCare :8081, SharedServices :8082), and that no http:// URLs appear in production code — collectively verifying that all communications use HTTPS/TLS for confidentiality and integrity in transit.",
           "confidence": "high",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -17435,15 +17435,15 @@
             {
               "start_line": 152,
               "end_line": 158,
-              "summary": "Verifies HTTP\u2192HTTPS 301 redirect and HTTPS 200 on port 443"
+              "summary": "Verifies HTTP→HTTPS 301 redirect and HTTPS 200 on port 443"
             },
             {
               "start_line": 192,
               "end_line": 220,
-              "summary": "mTLS tests: FindCare\u2192EvaluateCare and FindCare\u2192CHShared with client cert+CA verification"
+              "summary": "mTLS tests: FindCare→EvaluateCare and FindCare→CHShared with client cert+CA verification"
             }
           ],
-          "evidence": "The script explicitly configures HTTPS on all service ports (443, 7860, 8001, 8002) with TLS certificates, enforces HTTP-to-HTTPS redirect on port 80, and validates mTLS between services using client certificates and a CA cert \u2014 all of which implement transmission confidentiality and integrity.",
+          "evidence": "The script explicitly configures HTTPS on all service ports (443, 7860, 8001, 8002) with TLS certificates, enforces HTTP-to-HTTPS redirect on port 80, and validates mTLS between services using client certificates and a CA cert — all of which implement transmission confidentiality and integrity.",
           "confidence": "high",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -17485,7 +17485,7 @@
             {
               "start_line": 271,
               "end_line": 281,
-              "summary": "Step 1: verifies HTTP\u2192HTTPS redirect (SEC-HTTPS-001-REQ-004)"
+              "summary": "Step 1: verifies HTTP→HTTPS redirect (SEC-HTTPS-001-REQ-004)"
             },
             {
               "start_line": 371,
@@ -17821,7 +17821,7 @@
             "id": "06.d",
             "domain": "06 Cryptography",
             "control": "Cryptographic controls",
-            "how_seed": "mTLS (TLS 1.2+), AES-256 cookie encryption, FIPS 140-2 L2 HSM in Key Vault, x509 certificate auth. No custom cryptography \u2014 all industry-standard."
+            "how_seed": "mTLS (TLS 1.2+), AES-256 cookie encryption, FIPS 140-2 L2 HSM in Key Vault, x509 certificate auth. No custom cryptography — all industry-standard."
           }
         ]
       },
@@ -18997,7 +18997,7 @@
         "id": "SC-42.4",
         "family": "SC System and Communications Protection",
         "title": "Notice of Collection",
-        "control_text": "Employ the following measures to facilitate an individual\u2019s awareness that personally identifiable information is being collected by {{ insert: param, sc-42.04_odp.02 }}: {{ insert: param, sc-42.04_odp.01 }}."
+        "control_text": "Employ the following measures to facilitate an individual’s awareness that personally identifiable information is being collected by {{ insert: param, sc-42.04_odp.02 }}: {{ insert: param, sc-42.04_odp.01 }}."
       },
       "hitrust_csf": null,
       "implementations": []
@@ -20551,7 +20551,7 @@
             {
               "start_line": 383,
               "end_line": 398,
-              "summary": "Verifies consumer does not truncate content \u2014 verbatim storage required"
+              "summary": "Verifies consumer does not truncate content — verbatim storage required"
             },
             {
               "start_line": 305,
@@ -20559,7 +20559,7 @@
               "summary": "Verifies consumer uses manual commit for at-least-once delivery"
             }
           ],
-          "evidence": "Tests verify verbatim (non-truncated) storage of all content (B001), at-least-once delivery via manual Kafka commit, and durable retention \u2014 ensuring information output and retention integrity.",
+          "evidence": "Tests verify verbatim (non-truncated) storage of all content (B001), at-least-once delivery via manual Kafka commit, and durable retention — ensuring information output and retention integrity.",
           "confidence": "low",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -21234,7 +21234,7 @@
       "nist_800_53": {
         "id": "SR-4.4",
         "family": "SR Supply Chain Risk Management",
-        "title": "Supply Chain Integrity \u2014 Pedigree",
+        "title": "Supply Chain Integrity — Pedigree",
         "control_text": "Employ {{ insert: param, sr-04.04_odp.01 }} and conduct {{ insert: param, sr-04.04_odp.02 }} to ensure the integrity of the system and system components by validating the internal composition and provenance of critical or mission-essential technologies, products, and services."
       },
       "hitrust_csf": null,
@@ -21465,7 +21465,7 @@
             "id": "01.a",
             "domain": "01 Information Security Management Program",
             "control": "Information Security Management Program",
-            "how_seed": "The Brain (App 4) functions as the ISMS \u2014 governance policies (GOV-001 through GOV-014), operating rules (v4-001 through v4-020), risk acceptance register, external audit registry, and continuous improvement KPIs (IDEA-004)."
+            "how_seed": "The Brain (App 4) functions as the ISMS — governance policies (GOV-001 through GOV-014), operating rules (v4-001 through v4-020), risk acceptance register, external audit registry, and continuous improvement KPIs (IDEA-004)."
           }
         ]
       },
