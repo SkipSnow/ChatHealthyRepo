@@ -243,7 +243,6 @@
                                             "priority",
                                             "status",
                                             "depends_on",
-                                            "source",
                                             "pytests",
                                             "orphan",
                                             "approval"
@@ -310,9 +309,6 @@
                                                 "proposed",
                                                 "rejected"
                                               ]
-                                            },
-                                            "source": {
-                                              "type": "string"
                                             },
                                             "pytests": {
                                               "type": "object",
