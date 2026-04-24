@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/ChatHealthyBugsSchema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyBugsSchema.json",
   "collection": "bugs",
   "schema_address": "brain/machine_artifacts/content/schema.json",
   "description": "All system bugs. Each bug has its own environment and status attributes. Environments constrained to local/dev/qa/prod. Source of truth for defect tracking.",

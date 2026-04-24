@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
   "collection": "unrealized_ideas",
   "description": "Ideas captured from human that are not yet in the backlog. Every idea gets tracked here first, then promoted to a story when prioritized.",
   "ideas": [

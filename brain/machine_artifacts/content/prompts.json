@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
   "collection": "prompts",
   "description": "All system and user prompts for GPT and Claude agent assignments. Registered per GOV-009 (Role In System Prompt).",
   "date": "2026-04-05",

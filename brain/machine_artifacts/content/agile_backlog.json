@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/ChatHealthyAgileBacklogSchema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyAgileBacklogSchema.json",
   "collection": "agile_backlog",
   "version": "1.0",
   "created": "2026-04-02T01:37:56.872058+00:00",

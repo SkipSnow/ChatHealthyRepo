@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/chathealthy-relaxed.schema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
   "collection": "security",
   "description": "Security architecture design, compliance control mappings, and CUI readiness assessment. Authoritative source for all security architecture decisions. Features and requirements are in agile_backlog.json under EPIC-4.",
   "record_count": 1,

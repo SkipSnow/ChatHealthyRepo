@@ -1,5 +1,5 @@
 {
-  "$schema": "https://dev.chathealthy.ai/schemas/dev/ChatHealthyErrorsSchema.json",
+  "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyErrorsSchema.json",
   "collection": "errors",
   "errors": [
     {
