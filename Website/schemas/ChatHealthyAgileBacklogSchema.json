@@ -61,7 +61,7 @@
                   "operational",
                   "functional"
                 ],
-                "description": "operational = user-facing product capability. functional = business function."
+                "description": "functional = user-facing product capability. operational = business function."
               },
               "status": {
                 "type": "string",
