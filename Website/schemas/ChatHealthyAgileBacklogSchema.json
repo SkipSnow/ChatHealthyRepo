@@ -6,13 +6,13 @@
   "type": "object",
   "required": [
     "$schema",
+    "version",
+    "created",
+    "description",
     "epics"
   ],
   "properties": {
     "$schema": {
-      "type": "string"
-    },
-    "collection": {
       "type": "string"
     },
     "version": {
@@ -23,12 +23,6 @@
     },
     "description": {
       "type": "string"
-    },
-    "sprint_map": {
-      "type": "array"
-    },
-    "orphan_catchall": {
-      "type": "object"
     },
     "epics": {
       "type": "object",
@@ -44,6 +38,7 @@
             "required": [
               "epic_id",
               "name",
+              "type",
               "status",
               "description",
               "features",
@@ -84,15 +79,6 @@
               "description": {
                 "type": "string"
               },
-              "capacity": {
-                "type": "string"
-              },
-              "goal": {
-                "type": "string"
-              },
-              "definition_of_done": {
-                "type": "string"
-              },
               "orphan": {
                 "type": "boolean",
                 "description": "True if this item does not yet have a proper home in the hierarchy."
@@ -121,11 +107,13 @@
                         "feature_id",
                         "name",
                         "status",
+                        "description",
+                        "priority",
+                        "realized_by",
                         "stories",
                         "orphan",
                         "approval",
-                        "due_date",
-                        "delivery_date"
+                        "due_date"
                       ],
                       "properties": {
                         "feature_id": {
@@ -133,15 +121,6 @@
                           "description": "Short uppercase identifier."
                         },
                         "name": {
-                          "type": "string"
-                        },
-                        "epic_id": {
-                          "type": "string"
-                        },
-                        "layer": {
-                          "type": "string"
-                        },
-                        "capability": {
                           "type": "string"
                         },
                         "status": {
@@ -160,17 +139,8 @@
                         "description": {
                           "type": "string"
                         },
-                        "evidence": {
-                          "type": "string"
-                        },
                         "priority": {
                           "type": "string"
-                        },
-                        "accepted_by": {
-                          "type": "string"
-                        },
-                        "backend_dependencies": {
-                          "type": "array"
                         },
                         "realized_by": {
                           "type": "array",
@@ -244,12 +214,6 @@
                                       "deferred"
                                     ]
                                   },
-                                  "code_controlled": {
-                                    "type": "boolean"
-                                  },
-                                  "code_references": {
-                                    "type": "array"
-                                  },
                                   "orphan": {
                                     "type": "boolean"
                                   },
@@ -278,6 +242,8 @@
                                             "requirement",
                                             "priority",
                                             "status",
+                                            "depends_on",
+                                            "source",
                                             "pytests",
                                             "orphan",
                                             "approval"
@@ -315,22 +281,14 @@
                                                 "deferred"
                                               ]
                                             },
-                                            "bug_ids": {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "string"
-                                              }
-                                            },
-                                            "realized_by": {
-                                              "type": "array",
-                                              "items": {
-                                                "type": "string"
-                                              }
-                                            },
                                             "depends_on": {
                                               "type": "array",
                                               "items": {
                                                 "type": "object",
+                                                "required": [
+                                                  "story_id",
+                                                  "reason"
+                                                ],
                                                 "properties": {
                                                   "story_id": {
                                                     "type": "string"
@@ -356,12 +314,6 @@
                                             "source": {
                                               "type": "string"
                                             },
-                                            "story_id": {
-                                              "type": "string"
-                                            },
-                                            "resolution_status": {
-                                              "type": "string"
-                                            },
                                             "pytests": {
                                               "type": "object",
                                               "required": [
@@ -378,6 +330,7 @@
                                                     "required": [
                                                       "pytest_id",
                                                       "pytest_type",
+                                                      "file",
                                                       "orphan"
                                                     ],
                                                     "properties": {
@@ -424,9 +377,6 @@
                           "additionalProperties": false
                         },
                         "due_date": {
-                          "type": "string"
-                        },
-                        "delivery_date": {
                           "type": "string"
                         }
                       },
