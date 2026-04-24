@@ -32,28 +32,31 @@
       "properties": {
         "epic": {
           "type": "array",
+          "x-unique-by": "epic_id",
           "items": {
             "type": "object",
-            "description": "Top-level business component. Contains features. Creation requires human authority.",
+            "description": "Top-level business component. Contains features.",
             "required": [
-              "epic_id",
+              "orphan",
               "name",
               "type",
               "status",
               "description",
               "features",
-              "orphan",
               "approval"
             ],
             "properties": {
               "epic_id": {
                 "type": "string",
                 "pattern": "^EPIC-\\d{3}$",
-                "description": "Sequential, assigned by Claude. Never reused."
+                "description": "Required when orphan=false; forbidden when orphan=true."
+              },
+              "orphan": {
+                "type": "boolean",
+                "description": "True => no canonical id; descendants also orphan."
               },
               "name": {
-                "type": "string",
-                "description": "Human-readable business component name (per v4-030)."
+                "type": "string"
               },
               "type": {
                 "type": "string",
@@ -73,15 +76,10 @@
                   "to_test",
                   "blocked",
                   "deferred"
-                ],
-                "description": "Work lifecycle status. Constrained by CV-005."
+                ]
               },
               "description": {
                 "type": "string"
-              },
-              "orphan": {
-                "type": "boolean",
-                "description": "True if this item does not yet have a proper home in the hierarchy."
               },
               "approval": {
                 "type": "string",
@@ -89,8 +87,7 @@
                   "approved",
                   "proposed",
                   "rejected"
-                ],
-                "description": "human approval status. Constrained by CV-011."
+                ]
               },
               "features": {
                 "type": "object",
@@ -100,25 +97,29 @@
                 "properties": {
                   "feature": {
                     "type": "array",
+                    "x-unique-by": "feature_id",
                     "items": {
                       "type": "object",
                       "description": "A capability within an epic. Contains stories.",
                       "required": [
-                        "feature_id",
+                        "orphan",
                         "name",
                         "status",
                         "description",
                         "priority",
                         "realized_by",
                         "stories",
-                        "orphan",
                         "approval",
                         "due_date"
                       ],
                       "properties": {
                         "feature_id": {
                           "type": "string",
-                          "description": "Short uppercase identifier."
+                          "pattern": "^EPIC-\\d{3}-F-\\d{3}$",
+                          "description": "Required when orphan=false; forbidden when orphan=true."
+                        },
+                        "orphan": {
+                          "type": "boolean"
                         },
                         "name": {
                           "type": "string"
@@ -133,8 +134,7 @@
                             "to_test",
                             "blocked",
                             "deferred"
-                          ],
-                          "description": "Constrained by CV-005."
+                          ]
                         },
                         "description": {
                           "type": "string"
@@ -148,9 +148,6 @@
                             "type": "string"
                           }
                         },
-                        "orphan": {
-                          "type": "boolean"
-                        },
                         "approval": {
                           "type": "string",
                           "enum": [
@@ -158,6 +155,9 @@
                             "proposed",
                             "rejected"
                           ]
+                        },
+                        "due_date": {
+                          "type": "string"
                         },
                         "stories": {
                           "type": "object",
@@ -167,28 +167,32 @@
                           "properties": {
                             "story": {
                               "type": "array",
+                              "x-unique-by": "story_id",
                               "items": {
                                 "type": "object",
                                 "description": "A unit of deliverable work within a feature. Contains requirements.",
                                 "required": [
-                                  "story_id",
+                                  "orphan",
                                   "name",
                                   "description",
                                   "size",
                                   "status",
                                   "requirements",
-                                  "orphan",
                                   "approval"
                                 ],
                                 "properties": {
                                   "story_id": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}$",
+                                    "description": "Required when orphan=false; forbidden when orphan=true."
+                                  },
+                                  "orphan": {
+                                    "type": "boolean"
                                   },
                                   "name": {
                                     "type": "string",
                                     "minLength": 1,
-                                    "maxLength": 200,
-                                    "description": "Human-readable label (single label across all hierarchy levels per ARCH-SCAN-JSON-REQ-003)."
+                                    "maxLength": 200
                                   },
                                   "description": {
                                     "type": "string"
@@ -214,9 +218,6 @@
                                       "deferred"
                                     ]
                                   },
-                                  "orphan": {
-                                    "type": "boolean"
-                                  },
                                   "approval": {
                                     "type": "string",
                                     "enum": [
@@ -233,29 +234,33 @@
                                     "properties": {
                                       "requirement": {
                                         "type": "array",
+                                        "x-unique-by": "req_id",
                                         "items": {
                                           "type": "object",
                                           "description": "A boolean-testable assertion. Contains pytest children.",
                                           "required": [
-                                            "req_id",
+                                            "orphan",
                                             "name",
                                             "requirement",
                                             "priority",
                                             "status",
                                             "depends_on",
                                             "pytests",
-                                            "orphan",
                                             "approval"
                                           ],
                                           "properties": {
                                             "req_id": {
-                                              "type": "string"
+                                              "type": "string",
+                                              "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}-REQ-[BT]-\\d{3}$",
+                                              "description": "Required when orphan=false; forbidden when orphan=true."
+                                            },
+                                            "orphan": {
+                                              "type": "boolean"
                                             },
                                             "name": {
                                               "type": "string",
                                               "minLength": 1,
-                                              "maxLength": 200,
-                                              "description": "Human-readable label (single label across all hierarchy levels per ARCH-SCAN-JSON-REQ-003)."
+                                              "maxLength": 200
                                             },
                                             "requirement": {
                                               "type": "string"
@@ -299,9 +304,6 @@
                                                 "additionalProperties": false
                                               }
                                             },
-                                            "orphan": {
-                                              "type": "boolean"
-                                            },
                                             "approval": {
                                               "type": "string",
                                               "enum": [
@@ -320,19 +322,23 @@
                                                   "type": "array",
                                                   "minItems": 1,
                                                   "maxItems": 2,
+                                                  "x-unique-by": "pytest_id",
                                                   "items": {
                                                     "type": "object",
                                                     "description": "A test that validates a requirement.",
                                                     "required": [
-                                                      "pytest_id",
+                                                      "orphan",
                                                       "pytest_type",
-                                                      "file",
-                                                      "orphan"
+                                                      "file"
                                                     ],
                                                     "properties": {
                                                       "pytest_id": {
                                                         "type": "string",
-                                                        "description": "Reference to the pytest function or file."
+                                                        "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}-REQ-[BT]-\\d{3}-PYTEST-[12]$",
+                                                        "description": "Required when orphan=false; forbidden when orphan=true."
+                                                      },
+                                                      "orphan": {
+                                                        "type": "boolean"
                                                       },
                                                       "pytest_type": {
                                                         "type": "string",
@@ -347,43 +353,157 @@
                                                       },
                                                       "file": {
                                                         "type": "string"
-                                                      },
-                                                      "orphan": {
-                                                        "type": "boolean"
                                                       }
                                                     },
-                                                    "additionalProperties": false
+                                                    "additionalProperties": false,
+                                                    "allOf": [
+                                                      {
+                                                        "if": {
+                                                          "properties": {
+                                                            "orphan": {
+                                                              "const": false
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "orphan"
+                                                          ]
+                                                        },
+                                                        "then": {
+                                                          "required": [
+                                                            "pytest_id"
+                                                          ]
+                                                        },
+                                                        "else": {
+                                                          "properties": {
+                                                            "pytest_id": false
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
                                                   }
                                                 }
                                               },
                                               "additionalProperties": false
                                             }
                                           },
-                                          "additionalProperties": false
+                                          "additionalProperties": false,
+                                          "allOf": [
+                                            {
+                                              "if": {
+                                                "properties": {
+                                                  "orphan": {
+                                                    "const": false
+                                                  }
+                                                },
+                                                "required": [
+                                                  "orphan"
+                                                ]
+                                              },
+                                              "then": {
+                                                "required": [
+                                                  "req_id"
+                                                ]
+                                              },
+                                              "else": {
+                                                "properties": {
+                                                  "req_id": false
+                                                }
+                                              }
+                                            }
+                                          ]
                                         }
                                       }
                                     },
                                     "additionalProperties": false
                                   }
                                 },
-                                "additionalProperties": false
+                                "additionalProperties": false,
+                                "allOf": [
+                                  {
+                                    "if": {
+                                      "properties": {
+                                        "orphan": {
+                                          "const": false
+                                        }
+                                      },
+                                      "required": [
+                                        "orphan"
+                                      ]
+                                    },
+                                    "then": {
+                                      "required": [
+                                        "story_id"
+                                      ]
+                                    },
+                                    "else": {
+                                      "properties": {
+                                        "story_id": false
+                                      }
+                                    }
+                                  }
+                                ]
                               }
                             }
                           },
                           "additionalProperties": false
-                        },
-                        "due_date": {
-                          "type": "string"
                         }
                       },
-                      "additionalProperties": false
+                      "additionalProperties": false,
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "orphan": {
+                                "const": false
+                              }
+                            },
+                            "required": [
+                              "orphan"
+                            ]
+                          },
+                          "then": {
+                            "required": [
+                              "feature_id"
+                            ]
+                          },
+                          "else": {
+                            "properties": {
+                              "feature_id": false
+                            }
+                          }
+                        }
+                      ]
                     }
                   }
                 },
                 "additionalProperties": false
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "orphan": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "orphan"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "epic_id"
+                  ]
+                },
+                "else": {
+                  "properties": {
+                    "epic_id": false
+                  }
+                }
+              }
+            ]
           }
         }
       },
