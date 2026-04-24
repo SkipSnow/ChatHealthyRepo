@@ -1,0 +1,461 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyProvidersSchema.json",
+  "title": "Provider",
+  "description": "A healthcare provider record in providers_staging / providers_enriched. Source: NPPES NPI Registry (CMS). Enriched by the FindCare DataPipelines county enrichment job. Draft 07 — the most contemporary JSON Schema version supported by MongoDB $jsonSchema validators. To use as a MongoDB collection validator, replace 'type' with 'bsonType' throughout (e.g. 'type: string' → 'bsonType: string', 'type: integer' → 'bsonType: int' or 'bsonType: long'). NOTE: All entity-type-specific fields (individual vs. organization) are declared in top-level 'properties' so that additionalProperties: false can evaluate them. The if/then/else block enforces which fields are *required* per entity type — it does not restrict which fields are *allowed*.",
+  "type": "object",
+  "required": [
+    "npi",
+    "entity_type_code",
+    "county",
+    "load_id",
+    "record_id"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "_id": {
+      "description": "MongoDB ObjectId — auto-assigned on insert. Omit on write; always present on read.",
+      "type": "object"
+    },
+    "npi": {
+      "description": "National Provider Identifier — 10-digit string, globally unique, issued by CMS. Never numeric; leading zeros are significant.",
+      "type": "string",
+      "pattern": "^[0-9]{10}$",
+      "examples": [
+        "1144247073",
+        "1215954557"
+      ]
+    },
+    "entity_type_code": {
+      "description": "NPI entity type. '1' = individual practitioner. '2' = organization (hospital, pharmacy, group practice, etc.).",
+      "type": "string",
+      "enum": [
+        "1",
+        "2"
+      ]
+    },
+    "provider_enumeration_date": {
+      "description": "Date the NPI was issued by CMS. Format: MM/DD/YYYY (as received from NPPES CSV; not converted to ISO 8601).",
+      "type": "string",
+      "pattern": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$",
+      "examples": [
+        "07/16/2006"
+      ]
+    },
+    "last_update_date": {
+      "description": "Date the NPI record was last updated in the NPPES registry. Format: MM/DD/YYYY.",
+      "type": "string",
+      "pattern": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$"
+    },
+    "certification_date": {
+      "description": "Date the provider last certified their NPI record with CMS. Format: MM/DD/YYYY.",
+      "type": "string",
+      "pattern": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$"
+    },
+    "npi_deactivation_date": {
+      "description": "Date the NPI was deactivated. Present only if the provider has been deactivated. Format: MM/DD/YYYY. If present without npi_reactivation_date, the provider is inactive and flagged as out_of_scope.",
+      "type": "string",
+      "pattern": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$"
+    },
+    "npi_reactivation_date": {
+      "description": "Date the NPI was reactivated after a prior deactivation. Present only if the provider was deactivated and then reactivated. Format: MM/DD/YYYY.",
+      "type": "string",
+      "pattern": "^[0-9]{2}/[0-9]{2}/[0-9]{4}$"
+    },
+    "practice_address": {
+      "$ref": "#/definitions/address",
+      "description": "Primary practice location address. Absent for providers with no listed practice address (these are flagged as out_of_scope with reason 'no_address')."
+    },
+    "mailing_address": {
+      "$ref": "#/definitions/address",
+      "description": "Mailing/billing address. May differ from practice_address. Used as fallback geocoding input in Pass 3 (billing retry). Optional — not all providers report a separate mailing address."
+    },
+    "taxonomies": {
+      "description": "Provider specialty taxonomy codes (NUCC Health Care Provider Taxonomy). At least one entry is typical; multiple entries represent additional specialties. Exactly one entry should have primary: true.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "primary"
+        ],
+        "properties": {
+          "code": {
+            "description": "NUCC taxonomy code. 10-character alphanumeric string.",
+            "type": "string",
+            "pattern": "^[A-Z0-9]{10}$",
+            "examples": [
+              "207R00000X",
+              "333600000X"
+            ]
+          },
+          "primary": {
+            "description": "True if this is the provider's primary specialty.",
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "licenses": {
+      "description": "Professional licenses held by the provider. Each entry is a state/number pair from the NPPES data. May be empty for some records.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "state",
+          "number"
+        ],
+        "properties": {
+          "state": {
+            "description": "US state abbreviation where the license was issued.",
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "number": {
+            "description": "License number as reported by the provider to CMS.",
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "other_identifiers": {
+      "description": "Legacy or alternate provider identifiers (e.g. UPIN, Medicaid, Medicare OSCAR). Parallel array with other_identifier_types and other_identifier_states.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "other_identifier_types": {
+      "description": "Type codes for other_identifiers. Common values: '01' = Other, '04' = Medicare UPIN, '05' = Medicaid.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "other_identifier_states": {
+      "description": "State associated with each entry in other_identifiers. May be shorter than other_identifiers if trailing entries have no state.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "other_identifier_issuers": {
+      "description": "Issuing organization for each entry in other_identifiers (e.g. 'PK' for a payer). Sparse — length may be less than other_identifiers.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "county": {
+      "$ref": "#/definitions/county",
+      "description": "County enrichment result. Always present after the load job completes. See county definition for source and reason enum values."
+    },
+    "load_id": {
+      "description": "Pipeline run identifier that wrote this record. Format: '<uuid>:<worker_num>' — allows tracing any record back to the exact pipeline run and worker that produced it.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:[0-9]+$",
+      "examples": [
+        "ea36237b-377c-4888-8fa9-5faab71e4820:0"
+      ]
+    },
+    "record_id": {
+      "description": "Sequential integer assigned by the load worker. Unique within a single pipeline run but NOT globally unique across runs — use npi as the stable identifier.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "worker_id": {
+      "description": "Index of the pipeline worker that loaded this record (0-based). Used for debugging load distribution.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "provider_last_name_legal_name": {
+      "description": "Provider's legal last name as registered with CMS. Required when entity_type_code = '1' (individual).",
+      "type": "string"
+    },
+    "provider_first_name": {
+      "description": "Provider's first name. Required when entity_type_code = '1' (individual).",
+      "type": "string"
+    },
+    "provider_middle_name": {
+      "description": "Provider's middle name or initial. Optional. Only present on individual records (entity_type_code = '1').",
+      "type": "string"
+    },
+    "provider_name_prefix_text": {
+      "description": "Name prefix (e.g. 'Dr.', 'Mr.'). Optional. Only present on individual records.",
+      "type": "string"
+    },
+    "provider_name_suffix_text": {
+      "description": "Name suffix (e.g. 'Jr.', 'III'). Optional. Only present on individual records.",
+      "type": "string"
+    },
+    "provider_credential_text": {
+      "description": "Professional credential suffix (e.g. 'M.D.', 'D.O.', 'R.N.'). Optional. Only present on individual records.",
+      "type": "string",
+      "examples": [
+        "M.D.",
+        "D.O.",
+        "R.N.",
+        "Ph.D."
+      ]
+    },
+    "provider_sex_code": {
+      "description": "Provider sex as reported to CMS. Optional — not required by NPPES. Only present on individual records.",
+      "type": "string",
+      "enum": [
+        "M",
+        "F"
+      ]
+    },
+    "is_sole_proprietor": {
+      "description": "Whether the individual provider operates as a sole proprietor ('Y'/'N'). Only present on individual records (entity_type_code = '1').",
+      "type": "string",
+      "enum": [
+        "Y",
+        "N"
+      ]
+    },
+    "provider_organization_name_legal_business_name": {
+      "description": "Legal business name of the organization. Required when entity_type_code = '2' (organization).",
+      "type": "string",
+      "examples": [
+        "WALMART INC.",
+        "MAYO CLINIC"
+      ]
+    },
+    "provider_other_organization_name": {
+      "description": "Alternate or DBA name for the organization. May be '<UNAVAIL>' if not provided. Only present on organization records.",
+      "type": "string"
+    },
+    "provider_other_organization_name_type_code": {
+      "description": "Type code for provider_other_organization_name. '3' = Former name, '4' = Professional name, '5' = Doing Business As, '6' = Former legal business name. Only present on organization records.",
+      "type": "string",
+      "enum": [
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    },
+    "employer_identification_number_ein": {
+      "description": "Federal EIN for the organization. May be '<UNAVAIL>' if CMS was unable to obtain it. Only present on organization records.",
+      "type": "string"
+    },
+    "is_organization_subpart": {
+      "description": "Whether this organization is a subpart of a larger organization ('Y'/'N'). Only present on organization records.",
+      "type": "string",
+      "enum": [
+        "Y",
+        "N"
+      ]
+    },
+    "parent_organization_lbn": {
+      "description": "Legal business name of the parent organization. Present only if is_organization_subpart = 'Y'.",
+      "type": "string"
+    },
+    "parent_organization_tin": {
+      "description": "Tax Identification Number of the parent organization. Present only if is_organization_subpart = 'Y'.",
+      "type": "string"
+    },
+    "authorized_official_last_name": {
+      "description": "Last name of the authorized official responsible for the NPI record. Only present on organization records.",
+      "type": "string"
+    },
+    "authorized_official_first_name": {
+      "description": "First name of the authorized official. Only present on organization records.",
+      "type": "string"
+    },
+    "authorized_official_middle_name": {
+      "description": "Middle name of the authorized official. Optional. Only present on organization records.",
+      "type": "string"
+    },
+    "authorized_official_title_or_position": {
+      "description": "Job title or position of the authorized official. Only present on organization records.",
+      "type": "string",
+      "examples": [
+        "DIRECTOR OF HEALTHCARE CONTRACTING",
+        "CEO",
+        "CHIEF MEDICAL OFFICER"
+      ]
+    },
+    "authorized_official_telephone_number": {
+      "description": "Phone number of the authorized official. Digits only, no formatting. Only present on organization records.",
+      "type": "string",
+      "pattern": "^[0-9]+$"
+    },
+    "authorized_official_credential_text": {
+      "description": "Professional credential of the authorized official. Optional. Only present on organization records.",
+      "type": "string"
+    }
+  },
+  "if": {
+    "properties": {
+      "entity_type_code": {
+        "const": "1"
+      }
+    },
+    "additionalProperties": false
+  },
+  "then": {
+    "description": "Individual provider (entity_type_code = '1'): last name and first name are required.",
+    "required": [
+      "provider_last_name_legal_name",
+      "provider_first_name"
+    ]
+  },
+  "else": {
+    "description": "Organization (entity_type_code = '2'): legal business name is required.",
+    "required": [
+      "provider_organization_name_legal_business_name"
+    ]
+  },
+  "definitions": {
+    "address": {
+      "title": "Address",
+      "description": "A US mailing or practice address as reported in the NPPES NPI registry.",
+      "type": "object",
+      "required": [
+        "line1",
+        "city",
+        "state",
+        "zip"
+      ],
+      "properties": {
+        "line1": {
+          "description": "Street address line 1.",
+          "type": "string"
+        },
+        "line2": {
+          "description": "Street address line 2 (suite, floor, etc.). Optional.",
+          "type": "string"
+        },
+        "city": {
+          "description": "City name.",
+          "type": "string"
+        },
+        "state": {
+          "description": "Two-letter US state or territory abbreviation.",
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "zip": {
+          "description": "ZIP code. May be 5-digit ('30024') or ZIP+4 ('30024-1234'). Always stored as a string to preserve leading zeros.",
+          "type": "string",
+          "pattern": "^[0-9]{5}(-[0-9]{4})?$"
+        },
+        "country": {
+          "description": "ISO 3166-1 alpha-2 country code. 'US' for domestic providers. Foreign values trigger out_of_scope with reason 'foreign_provider'.",
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "examples": [
+            "US"
+          ]
+        },
+        "phone": {
+          "description": "Phone number. Digits only, no formatting. Optional.",
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "fax": {
+          "description": "Fax number. Digits only, no formatting. Optional.",
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "county": {
+      "title": "CountyEnrichment",
+      "description": "Result of the county enrichment pipeline for this provider. Always written; fips is null when enrichment failed or provider is out of scope.",
+      "type": "object",
+      "required": [
+        "source"
+      ],
+      "properties": {
+        "fips": {
+          "description": "5-digit FIPS county code (2-digit state + 3-digit county). Null when enrichment failed (geocoder_failed) or provider is excluded (out_of_scope). Example: '30063' = Missoula County, MT.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{5}$"
+        },
+        "name": {
+          "description": "Human-readable county name (e.g. 'Missoula County'). Present when fips is set via crosswalk or Maps. Absent for geocoder_pass2_batch and geocoder_pass3_billing (Census geocoder does not return county name).",
+          "type": "string"
+        },
+        "source": {
+          "description": "Which enrichment pass assigned the county. Determines the reliability and method of the county assignment.",
+          "type": "string",
+          "enum": [
+            "crosswalk_pass1",
+            "crosswalk_zip_fixed",
+            "geocoder_pass2_batch",
+            "geocoder_pass3_billing",
+            "geocoder_pass4_maps",
+            "geocoder_pass5_maps_billing",
+            "geocoder_pass6_nppes",
+            "geocoder_failed",
+            "out_of_scope"
+          ],
+          "x-enum-descriptions": {
+            "crosswalk_pass1": "ZIP → county via ZipCountyCrosswalk (res_ratio >= 0.98). Fastest, ~82% of all providers.",
+            "crosswalk_zip_fixed": "ZIP crosswalk applied after zip_state_mismatch detection corrected the state.",
+            "geocoder_pass2_batch": "US Census Geocoder batch API using practice address. ~10% of providers.",
+            "geocoder_pass3_billing": "US Census Geocoder batch API using mailing/billing address (fallback for Pass 2 failures).",
+            "geocoder_pass4_maps": "Google Maps Geocoding API using practice address. Paid API — requires google_maps_enabled=true.",
+            "geocoder_pass5_maps_billing": "Google Maps Geocoding API using billing address. Paid API.",
+            "geocoder_pass6_nppes": "NPI looked up in NPPES registry; returned address tried against ZIP crosswalk. Rarely improves on NPI data since NPPES is the same source.",
+            "geocoder_failed": "All enrichment passes exhausted with no result. Provider has a US address that could not be geocoded.",
+            "out_of_scope": "Provider excluded from enrichment. See 'reason' field for the specific exclusion criterion."
+          }
+        },
+        "reason": {
+          "description": "Exclusion reason. Present only when source = 'out_of_scope'.",
+          "type": "string",
+          "enum": [
+            "no_address",
+            "foreign_provider",
+            "deactivated",
+            "zip_state_mismatch",
+            "legacy"
+          ],
+          "x-enum-descriptions": {
+            "no_address": "Provider has neither practice_address nor mailing_address.",
+            "foreign_provider": "practice_address.country is present and not 'US'.",
+            "deactivated": "npi_deactivation_date is set and npi_reactivation_date is absent — NPI is inactive.",
+            "zip_state_mismatch": "practice_address.zip maps to a different state in the ZipCountyCrosswalk than practice_address.state indicates. Address is internally inconsistent.",
+            "legacy": "Marked out_of_scope before the reason field was introduced (pre-migration records). Exact reason unknown."
+          }
+        },
+        "zip_ratio": {
+          "description": "Residential ratio of the ZIP code used for crosswalk assignment (0.0 – 1.0). Present only when source = 'crosswalk_pass1'. Values >= 0.98 indicate the ZIP is dominated by a single county. Lower values indicate a split ZIP, which uses the Census Geocoder instead.",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": {
+          "source": {
+            "const": "out_of_scope"
+          }
+        },
+        "additionalProperties": false
+      },
+      "then": {
+        "required": [
+          "reason"
+        ]
+      },
+      "else": {
+        "required": [
+          "fips"
+        ]
+      }
+    }
+  }
+}

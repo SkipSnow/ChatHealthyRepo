@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyBugsSchema.json",
+  "title": "ChatHealthy Bugs",
+  "description": "Bug records for ChatHealthy. bugid is the governance key. Each bug traces to an agile_backlog requirement (req_id) and story (story_id) unless orphan=true.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "collection",
+    "bug"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "collection": {
+      "type": "string",
+      "const": "bugs"
+    },
+    "schema_address": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "bug": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "bugid",
+          "title",
+          "description",
+          "environments",
+          "status",
+          "req_id",
+          "story_id",
+          "pytest_id",
+          "discovery_date",
+          "due_date",
+          "reproduction",
+          "orphan"
+        ],
+        "properties": {
+          "bugid": {
+            "type": "string",
+            "description": "Unique bug identifier (e.g. BUG-DATA-001)."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short title for the bug"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the bug"
+          },
+          "environments": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "local",
+                "dev",
+                "qa",
+                "prod"
+              ]
+            },
+            "description": "Environments where this bug exists; must contain at least one member (default 'dev')."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "in_analysis",
+              "fixing",
+              "ist_working",
+              "ist_testing",
+              "failed_ist_testing",
+              "uat_pending",
+              "uat_testing",
+              "failed_uat_testing",
+              "testing",
+              "tested_passed",
+              "fixed",
+              "deferred",
+              "removed",
+              "closed_reqs_reorganized"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "show_stopper",
+              "critical",
+              "high",
+              "medium",
+              "low",
+              "not_a_bug",
+              "resolved"
+            ],
+            "description": "Legacy field — use type instead"
+          },
+          "req_id": {
+            "type": "string",
+            "description": "Reference to the agile_backlog requirement this bug is associated with (e.g. FC-SELECT-001-REQ-002). Every bug must trace to a requirement."
+          },
+          "story_id": {
+            "type": "string",
+            "description": "Reference to the agile_backlog story this bug is associated with. Every bug must trace to a story."
+          },
+          "pytest_id": {
+            "type": "string",
+            "description": "Reference to the pytest that validates the fix"
+          },
+          "pytest_success_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Success criteria from the pytest record — mandatory, not freetext"
+          },
+          "discovery_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date bug was discovered"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date bug must be resolved by"
+          },
+          "fix": {
+            "type": "string",
+            "description": "Description of the fix applied"
+          },
+          "reproduction": {
+            "type": "string",
+            "description": "Steps to reproduce the bug"
+          },
+          "orphan": {
+            "type": "boolean",
+            "description": "True if this bug does not trace to a real story/requirement."
+          },
+          "next_action": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Next action to take"
+          },
+          "severity_by_environment": {
+            "type": "object",
+            "description": "Optional. Severity-per-environment for deferred-work tracking bugs (engineering rule v4-041 / BRAIN-DEFERRED-WORK-001). Lets a single bug encode that the same gap is low in dev, critical in qa, show_stopper in prod.",
+            "properties": {
+              "dev": {
+                "type": "string",
+                "enum": [
+                  "show_stopper",
+                  "critical",
+                  "high",
+                  "medium",
+                  "low",
+                  "not_a_bug",
+                  "resolved"
+                ]
+              },
+              "qa": {
+                "type": "string",
+                "enum": [
+                  "show_stopper",
+                  "critical",
+                  "high",
+                  "medium",
+                  "low",
+                  "not_a_bug",
+                  "resolved"
+                ]
+              },
+              "prod": {
+                "type": "string",
+                "enum": [
+                  "show_stopper",
+                  "critical",
+                  "high",
+                  "medium",
+                  "low",
+                  "not_a_bug",
+                  "resolved"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

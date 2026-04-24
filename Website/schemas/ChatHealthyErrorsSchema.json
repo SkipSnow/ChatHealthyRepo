@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyErrorsSchema.json",
+  "title": "ChatHealthy Errors",
+  "description": "Error log for ChatHealthy services. Each error has a timestamp, source service, and error message.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "collection",
+    "errors"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "collection": {
+      "type": "string",
+      "const": "errors"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "timestamp",
+          "source",
+          "error"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "ISO 8601 datetime"
+          },
+          "source": {
+            "type": "string",
+            "description": "Service that produced the error"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
