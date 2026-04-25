@@ -145,7 +145,7 @@ _prompt_maker = PromptSystemMaker(brain_dir=_brain_dir, env_prefix=_ENV_PREFIX)
 EMERGENCY_KEYWORDS = _prompt_maker.load_emergency_keywords()
 anthropic_tools = _prompt_maker.load_tool_definitions()
 WELCOME_MESSAGE = PromptSystemMaker.build_welcome_message()
-# Build/version/framework: live from MongoDB per DEVOPS-DEPLOY-001-REQ-016
+# Build/version/framework: live from MongoDB per EPIC-008-F-004-S-001-REQ-T-002
 
 _ME_DIR = os.getenv("ME_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "me")
 if not os.path.isdir(_ME_DIR):
@@ -218,7 +218,7 @@ import time as _time_mod
 
 app = FastAPI(title="ChatHealthy FindCare API")
 
-# ── SEC-HTTPS-001-REQ-014: startup security-primitive verification ──
+# ── EPIC-002-F-001-S-012-REQ-T-004: startup security-primitive verification ──
 # /session depends on session_token.generate_session_token producing a
 # well-formed (68-char, "CH"-prefixed) token. If the primitive cannot
 # initialize here, serving MUST NOT continue. Exit codes per sysexits.h:
@@ -237,7 +237,7 @@ def _bootstrap_certs_from_env():
     If none of the env vars are present (e.g. local dev, local Docker with a
     bind-mounted /certs), the function is a no-op — the caller's CERTS_DIR
     resolution remains in effect. Malformed PEM content raises, which the
-    startup check turns into an exit-78 abend per SEC-HTTPS-001-REQ-014.
+    startup check turns into an exit-78 abend per EPIC-002-F-001-S-012-REQ-T-004.
     """
     import base64
     runtime_dir = "/tmp/ch_certs"
@@ -385,7 +385,7 @@ class ClassifyRequest(BaseModel):
 
 @app.post("/classify")
 async def classify(body: ClassifyRequest, request: Request):
-    """FC-FILT-001-REQ-001: AI vector search for specialties.
+    """EPIC-006-F-002-S-001-REQ-T-001: AI vector search for specialties.
     Replaces the GPT classify call with embedding + vector search.
     Returns specialty codes ranked by cosine similarity + location extracted by simple parsing."""
 
@@ -601,7 +601,7 @@ def health():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     idx_check = _check_indexes()
     status = "ok" if idx_check["status"] == "ok" else "degraded"
-    # DEVOPS-DEPLOY-001-REQ-016: build, version, framework read from
+    # EPIC-008-F-004-S-001-REQ-T-002: build, version, framework read from
     # {ENV_PREFIX}_System.version._id='current' — single source of truth.
     _build = "?"
     _version_str = "?"
@@ -651,7 +651,7 @@ def get_session():
     os.environ.setdefault("CERTS_DIR", os.path.join(_local_shared, "ops", "certs"))
     from session_token import generate_session_token
     token = generate_session_token("FindCare")
-    # SEC-HTTPS-001-REQ-020: server-asserted env (FindCare's deployment env).
+    # EPIC-002-F-001-S-012-REQ-B-010: server-asserted env (FindCare's deployment env).
     # `origin` field stays "FindCare" for cryptographic signature verification
     # (REQ-017); this added `server_env` carries the display-semantic value.
     token["server_env"] = _ENV_PREFIX
@@ -717,7 +717,7 @@ def transfer_to_findcare():
 def evaluate_proxy(body: EvaluateRequest):
     """Proxy evaluate call through FindCare → EvaluateCare.
     Uses mTLS: FindCare presents its client cert, verifies against CA.
-    EVALCARE_URL defaults to https://localhost:8001 (DEVOPS-DEPLOY-001-REQ-015 standard
+    EVALCARE_URL defaults to https://localhost:8001 (EPIC-008-F-004-S-001-REQ-T-001 standard
     EvaluateCare port), HF space in dev/prod."""
     import requests as _req
 
@@ -814,7 +814,7 @@ def verify_token(body: EvaluateRequest):
         "session_token": {
             "token_received": body.session_token.get("token", "") if body.session_token else "",
             "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
-            # SEC-HTTPS-001-REQ-020: origin field is the name of the
+            # EPIC-002-F-001-S-012-REQ-B-010: origin field is the name of the
             # RESPONDING service (self-identification). Distinct from
             # the cryptographic signer (REQ-017, always FindCare).
             "origin": "FindCare",

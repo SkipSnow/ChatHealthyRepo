@@ -26,7 +26,7 @@ _log = logging.getLogger("evaluate_care")
 
 
 def _bootstrap_certs_from_env():
-    """SEC-HTTPS-001-REQ-016: decode PEM certs from HF Space Secrets into a
+    """EPIC-002-F-001-S-012-REQ-T-005: decode PEM certs from HF Space Secrets into a
     runtime directory so session_token.verify_session_token (which needs
     findcare.crt) can find them on HF. No-op locally where /certs is bind-
     mounted and CERTS_DIR is already set."""
@@ -177,7 +177,7 @@ def _mongo():
 # graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/health")
 def health():
-    # DEVOPS-DEPLOY-001-REQ-016: read build/version/framework from
+    # EPIC-008-F-004-S-001-REQ-T-002: read build/version/framework from
     # {ENV_PREFIX}_System.version._id='current'.
     _build = "?"; _version_str = "?"; _framework_str = "?"
     db_status = "unavailable"
@@ -229,13 +229,13 @@ def get_session():
     os.environ.setdefault("CERTS_DIR", os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs"))
     from session_token import generate_session_token
     token = generate_session_token("EvaluateCare")
-    # SEC-HTTPS-001-REQ-020: server-asserted env from this container's _ENV_PREFIX.
+    # EPIC-002-F-001-S-012-REQ-B-010: server-asserted env from this container's _ENV_PREFIX.
     token["server_env"] = _ENV_PREFIX
     _log.info("Minted EvaluateCare session token: env=%s nonce_len=%d",
               _ENV_PREFIX, len(token.get("token", "")))
     return token
 
-# ── Token Verification (DEVOPS-BANNER-B006 / SEC-HTTPS-001-REQ-013) ─────
+# ── Token Verification (EPIC-008-F-004-S-004-REQ-B-006 / EPIC-002-F-001-S-012-REQ-B-007) ─────
 from pydantic import BaseModel as _BaseModel
 from typing import Optional as _Optional
 
@@ -263,7 +263,7 @@ def verify_token(body: _VerifyTokenRequest):
         "session_token": {
             "token_received": body.session_token.get("token", "") if body.session_token else "",
             "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
-            # SEC-HTTPS-001-REQ-020: origin field is the name of the
+            # EPIC-002-F-001-S-012-REQ-B-010: origin field is the name of the
             # RESPONDING service (self-identification). Distinct from
             # the cryptographic signer (REQ-017, always FindCare).
             "origin": "EvaluateCare",

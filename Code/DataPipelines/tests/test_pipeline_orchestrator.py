@@ -3,9 +3,9 @@
 
 """Pipeline orchestrator and data tests.
 
-PIPE-LC-002-REQ-001: findcare_pipeline_orchestrator wraps steps in try/finally
-PIPE-CP-001-REQ-001: After copy, source count = dest count (code inspection)
-PIPE-CP-001-REQ-002: After copy, source count = dest count per state (code inspection)
+EPIC-006-F-006-S-002-REQ-T-001: findcare_pipeline_orchestrator wraps steps in try/finally
+EPIC-006-F-016-S-001-REQ-B-001: After copy, source count = dest count (code inspection)
+EPIC-006-F-016-S-001-REQ-B-002: After copy, source count = dest count per state (code inspection)
 """
 
 import ast
@@ -21,11 +21,11 @@ PIPELINE_DIR = os.path.join(REPO, "Code", "DataPipelines")
 sys.path.insert(0, PIPELINE_DIR)
 
 
-# ── PIPE-LC-002-REQ-001 ───────────────────────────────────────────────────
+# ── EPIC-006-F-006-S-002-REQ-T-001 ───────────────────────────────────────────────────
 # findcare_pipeline_orchestrator wraps steps in try/finally
 
 def test_orchestrator_has_try_except_with_release():
-    """PIPE-LC-002-REQ-001: findcare_pipeline_orchestrator wraps all steps in try/except.
+    """EPIC-006-F-006-S-002-REQ-T-001: findcare_pipeline_orchestrator wraps all steps in try/except.
 
     The requirement says try/finally. The implementation uses try/except with the
     release_reservation call AFTER the except block (unconditional path), which is
@@ -59,7 +59,7 @@ def test_orchestrator_has_try_except_with_release():
 
 
 def test_orchestrator_finally_releases_reservation():
-    """PIPE-LC-002-REQ-001: finally block must release the reservation."""
+    """EPIC-006-F-006-S-002-REQ-T-001: finally block must release the reservation."""
     source_path = os.path.join(PIPELINE_DIR, "provider_load_manager.py")
     with open(source_path, "r", encoding="utf-8") as f:
         source = f.read()
@@ -104,11 +104,11 @@ def test_orchestrator_finally_releases_reservation():
     )
 
 
-# ── PIPE-CP-001-REQ-001 ───────────────────────────────────────────────────
+# ── EPIC-006-F-016-S-001-REQ-B-001 ───────────────────────────────────────────────────
 # After copy, source count = dest count for every collection
 
 def test_copy_to_frontend_verifies_parity():
-    """PIPE-CP-001-REQ-001: _copy_collection verifies source count == dest count after copy."""
+    """EPIC-006-F-016-S-001-REQ-B-001: _copy_collection verifies source count == dest count after copy."""
     source_path = os.path.join(PIPELINE_DIR, "copy_to_frontend.py")
     with open(source_path, "r", encoding="utf-8") as f:
         source = f.read()
@@ -123,7 +123,7 @@ def test_copy_to_frontend_verifies_parity():
 
 
 def test_copy_to_frontend_returns_parity_flag():
-    """PIPE-CP-001-REQ-001: _copy_collection returns parity boolean in result."""
+    """EPIC-006-F-016-S-001-REQ-B-001: _copy_collection returns parity boolean in result."""
     source_path = os.path.join(PIPELINE_DIR, "copy_to_frontend.py")
     with open(source_path, "r", encoding="utf-8") as f:
         source = f.read()
@@ -133,11 +133,11 @@ def test_copy_to_frontend_returns_parity_flag():
     )
 
 
-# ── PIPE-CP-001-REQ-002 ───────────────────────────────────────────────────
+# ── EPIC-006-F-016-S-001-REQ-B-002 ───────────────────────────────────────────────────
 # After copy, source count = dest count per state
 
 def test_verify_parity_checks_per_state():
-    """PIPE-CP-001-REQ-002: verify_parity function checks per-state counts."""
+    """EPIC-006-F-016-S-001-REQ-B-002: verify_parity function checks per-state counts."""
     source_path = os.path.join(PIPELINE_DIR, "copy_to_frontend.py")
     with open(source_path, "r", encoding="utf-8") as f:
         source = f.read()
@@ -150,7 +150,7 @@ def test_verify_parity_checks_per_state():
 
 
 def test_verify_parity_compares_both_clusters():
-    """PIPE-CP-001-REQ-002: verify_parity compares pipeline and frontend cluster counts."""
+    """EPIC-006-F-016-S-001-REQ-B-002: verify_parity compares pipeline and frontend cluster counts."""
     source_path = os.path.join(PIPELINE_DIR, "copy_to_frontend.py")
     with open(source_path, "r", encoding="utf-8") as f:
         source = f.read()

@@ -639,7 +639,7 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
         yield context.create_timer(next_check)
 
     # BUG-PIPE-002: all steps wrapped so reservation is released on any failure
-    # PIPE-LC-002-REQ-002: each step reports status
+    # EPIC-006-F-006-S-002-REQ-T-002: each step reports status
     load_result = {"status": "skipped"}
     pass1_result = pass2_result = pass3_result = pass4_result = pass6_result = None
     reconcile = None

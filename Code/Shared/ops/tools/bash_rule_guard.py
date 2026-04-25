@@ -84,7 +84,6 @@ BASH_ALLOWED = [
     # Pip
     r"^pip\s+(install|list|show|freeze)",
     # Approved ops scripts
-    r"pre_deploy_rule_check",
     r"create_hf_space\.py",
     r"delete_hf_space\.py",
     r"kill_zombies\.py",

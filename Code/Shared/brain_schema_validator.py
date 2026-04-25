@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# brain_schema_validator.py — BRAIN-SCHEMA-REQ-001.
+# brain_schema_validator.py — EPIC-008-F-007-S-020-REQ-T-001.
 #
 # Validates each brain JSON file against the web schema URL declared in
 # its own $schema property. URLs of the form

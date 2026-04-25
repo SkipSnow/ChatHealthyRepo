@@ -11,7 +11,7 @@ import type { Provider } from '../types/provider'
 interface ProviderCardProps {
   provider: Provider
   mode: 'available' | 'selected'
-  compact?: boolean  // FC-SELECT-001-REQ-016: selected list shows name, specialty, NPI only
+  compact?: boolean  // EPIC-006-F-001-S-002-REQ-B-015: selected list shows name, specialty, NPI only
   isFilteredOut?: boolean
   onSelect?: (npi: string) => void
   onDeselect?: (npi: string) => void

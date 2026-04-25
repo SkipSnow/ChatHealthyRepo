@@ -386,7 +386,7 @@ class FindCareService:
         if specialty_query:
             codes = []
 
-            # FC-FILT-001-REQ-001: resolve codes via SpecialtyMetaData vector search only.
+            # EPIC-006-F-002-S-001-REQ-T-001: resolve codes via SpecialtyMetaData vector search only.
             # No regex, no classify call. SpecialtyService embeds the query and matches
             # against NUCC specialty embeddings via cosine similarity.
             spec_fn = find_specialty_fn or (self.identify_specialty if self._specialty else None)

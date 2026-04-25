@@ -12,12 +12,12 @@ def _read(filename):
         return f.read()
 
 def test_no_raw_requests_get():
-    """PIPE-CO-001-REQ-001: no requests.get in prescriber_evaluate_care_pipeline.py"""
+    """EPIC-006-F-015-S-001-REQ-T-001: no requests.get in prescriber_evaluate_care_pipeline.py"""
     content = _read("prescriber_evaluate_care_pipeline.py")
     assert "requests.get(" not in content
 
 def test_no_readall():
-    """PIPE-CO-001-REQ-002: no .readall() on full blob downloads in pipeline files.
+    """EPIC-006-F-015-S-001-REQ-T-002: no .readall() on full blob downloads in pipeline files.
     Bounded byte-range reads (offset+length) in partition logic are allowed."""
     EXEMPT_PATTERNS = ["download_blob(offset="]  # bounded reads are OK
     for fname in os.listdir(PIPELINE_DIR):
@@ -34,7 +34,7 @@ def test_no_readall():
                     pytest.fail(f".readall() found in {fname}:{i}: {line.strip()}")
 
 def test_no_hardcoded_urls():
-    """PIPE-CO-001-REQ-003: CMS URL loaded from env/config, not used as bare literal"""
+    """EPIC-006-F-015-S-001-REQ-T-003: CMS URL loaded from env/config, not used as bare literal"""
     content = _read("prescriber_evaluate_care_pipeline.py")
     # The URL must appear ONLY inside the CMS_PART_D_URL config assignment.
     # Verify: CMS_PART_D_URL is defined via os.environ.get, and the code uses
@@ -53,11 +53,11 @@ def test_no_hardcoded_urls():
             pytest.fail(f"Hardcoded CMS URL used outside config: {stripped}")
 
 def test_quality_gate_imported():
-    """PIPE-CO-001-REQ-004"""
+    """EPIC-006-F-015-S-001-REQ-T-004"""
     content = _read("prescriber_evaluate_care_pipeline.py")
     assert "from quality_gate import" in content or "import quality_gate" in content
 
 def test_fatal_alert_imported():
-    """PIPE-CO-001-REQ-005"""
+    """EPIC-006-F-015-S-001-REQ-T-005"""
     content = _read("prescriber_evaluate_care_pipeline.py")
     assert "from fatal_alert_bridge import" in content or "import fatal_alert_bridge" in content

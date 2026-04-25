@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# EPIC-8 Safety: SAFETY-UNLOCK-001 tests
+# EPIC-8 Safety: EPIC-004-F-001-S-001 tests
 # REQ-001: Admin unlock with shared secret
 # REQ-002: Unlock code is case-insensitive
 #
@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
 class TestAdminUnlock(unittest.TestCase):
-    """SAFETY-UNLOCK-001: Admin unlock with shared secret."""
+    """EPIC-004-F-001-S-001: Admin unlock with shared secret."""
 
     @classmethod
     def setUpClass(cls):

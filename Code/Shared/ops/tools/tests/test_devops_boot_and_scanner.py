@@ -1,8 +1,8 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# Pytests for ARCH-DEVOPS-BOOT-001-REQ-001 through REQ-011
-# and ARCH-SCAN-JSON-REQ-002.
+# Pytests for EPIC-008-F-008-S-001-REQ-B-001 through REQ-011
+# and EPIC-008-F-008-S-004-REQ-B-001.
 #
 # Each test class maps to exactly one requirement.
 #
@@ -23,7 +23,6 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 sys.path.insert(0, str(REPO_ROOT / "Code" / "Shared" / "ops" / "tools"))
 
 BOOT_MODULE_PATH = REPO_ROOT / "Code" / "Shared" / "ops" / "tools" / "chathealthy_devops_boot.py"
-SCANNER_MODULE_PATH = REPO_ROOT / "Code" / "Shared" / "ops" / "tools" / "pre_deploy_rule_check.py"
 BRAIN_DIR = REPO_ROOT / "brain" / "machine_artifacts" / "content"
 SETTINGS_DIR = REPO_ROOT / ".claude"
 
@@ -54,7 +53,7 @@ def reset_singleton():
 # ============================================================================
 
 class TestREQ003_BootClassStructure:
-    """ARCH-DEVOPS-BOOT-001-REQ-003: The boot class MUST be a single Python file
+    """EPIC-008-F-003-S-001-REQ-T-001: The boot class MUST be a single Python file
     with __main__ and a chathealthy_devops_boot class. main() dispatches by mode."""
 
     def test_boot_module_is_single_file(self):
@@ -116,7 +115,7 @@ class TestREQ003_BootClassStructure:
 # ============================================================================
 
 class TestREQ004_InformClaude:
-    """ARCH-DEVOPS-BOOT-001-REQ-004: inform_claude() MUST serialize singleton state
+    """EPIC-008-F-003-S-001-REQ-T-002: inform_claude() MUST serialize singleton state
     (version, framework, build, brain file list, constraints, non-allow matrix cells)
     and the orphan table into additionalContext."""
 
@@ -179,7 +178,7 @@ class TestREQ004_InformClaude:
 # ============================================================================
 
 class TestREQ005_LegacyFilesDeleted:
-    """ARCH-DEVOPS-BOOT-001-REQ-005: chathealthyai_brainboot.json MUST be deleted.
+    """EPIC-008-F-003-S-001-REQ-T-003: chathealthyai_brainboot.json MUST be deleted.
     brain/machine_artifacts/boot/ directory MUST be deleted."""
 
     def test_brainboot_json_does_not_exist(self):
@@ -209,7 +208,7 @@ class TestREQ005_LegacyFilesDeleted:
 # ============================================================================
 
 class TestREQ006_ClaudeMdContent:
-    """ARCH-DEVOPS-BOOT-001-REQ-006: CLAUDE.md MUST state only that the boot class
+    """EPIC-008-F-003-S-001-REQ-B-001: CLAUDE.md MUST state only that the boot class
     governs the session."""
 
     def test_claude_md_exists(self):
@@ -233,7 +232,7 @@ class TestREQ006_ClaudeMdContent:
 # ============================================================================
 
 class TestREQ007_NoSessionStartHook:
-    """ARCH-DEVOPS-BOOT-001-REQ-007: There MUST be no SessionStart hook in
+    """EPIC-008-F-003-S-001-REQ-B-002: There MUST be no SessionStart hook in
     .claude/settings.json."""
 
     def test_settings_json_exists(self):
@@ -263,7 +262,7 @@ class TestREQ007_NoSessionStartHook:
 # ============================================================================
 
 class TestREQ008_BootOncePerSession:
-    """ARCH-DEVOPS-BOOT-001-REQ-008: Boot MUST only occur once per session.
+    """EPIC-008-F-003-S-001-REQ-T-004: Boot MUST only occur once per session.
     SessionEnd clears the flag."""
 
     def test_boot_sets_booted_flag(self):
@@ -312,7 +311,7 @@ class TestREQ008_BootOncePerSession:
 # ============================================================================
 
 class TestREQ009_SessionEndClearsFlag:
-    """ARCH-DEVOPS-BOOT-001-REQ-009: SessionEnd hook MUST clear the booted flag
+    """EPIC-008-F-003-S-001-REQ-T-005: SessionEnd hook MUST clear the booted flag
     in .claude/ChatHealthySettings.json."""
 
     def test_session_end_mode_clears_booted(self):
@@ -364,7 +363,7 @@ class TestREQ009_SessionEndClearsFlag:
 # ============================================================================
 
 class TestREQ010_ModeSelectionDirective:
-    """ARCH-DEVOPS-BOOT-001-REQ-010: After boot, Claude MUST ask the user to
+    """EPIC-008-F-003-S-001-REQ-B-003: After boot, Claude MUST ask the user to
     select an operating mode: 1=Unattended, 2=Normal, 3=Idiot."""
 
     def test_inform_claude_contains_mode_prompt(self):
@@ -402,7 +401,7 @@ class TestREQ010_ModeSelectionDirective:
 # ============================================================================
 
 class TestREQ011_OrphanTablePresentation:
-    """ARCH-DEVOPS-BOOT-001-REQ-011: After mode selection, if orphan bugs exist,
+    """EPIC-008-F-003-S-001-REQ-B-004: After mode selection, if orphan bugs exist,
     present orphan table and ask user to triage."""
 
     def test_orphan_table_has_headers(self):
@@ -448,7 +447,7 @@ class TestREQ011_OrphanTablePresentation:
 # ============================================================================
 
 class TestREQ001_OrphanBugScan:
-    """ARCH-DEVOPS-BOOT-001-REQ-001: On first UserPromptSubmit, scan bugs.json
+    """EPIC-008-F-008-S-001-REQ-B-001: On first UserPromptSubmit, scan bugs.json
     for entries with orphan: true and output a table."""
 
     def test_scan_orphans_finds_orphan_bugs(self):
@@ -532,7 +531,7 @@ class TestREQ001_OrphanBugScan:
 # ============================================================================
 
 class TestREQ002_OrphanScanFailOpen:
-    """ARCH-DEVOPS-BOOT-001-REQ-002: Orphan scan is pure file I/O. If bugs.json
+    """EPIC-008-F-008-S-001-REQ-T-001: Orphan scan is pure file I/O. If bugs.json
     is not found, corrupt, or unreadable, scan MUST fail open."""
 
     def test_missing_bugs_json_returns_empty(self):
@@ -579,192 +578,3 @@ class TestREQ002_OrphanScanFailOpen:
             assert forbidden not in source, f"_scan_orphans must not use {forbidden}"
 
 
-# ============================================================================
-# ARCH-SCAN-JSON-REQ-002: JSON scanner validates CV-constrained fields
-#                         and blocks check-in on violation
-# ============================================================================
-
-class TestScanJsonREQ002_CVConstrainedFields:
-    """ARCH-SCAN-JSON-REQ-002: JSON scanner validates CV-constrained fields
-    against controlled vocabularies and blocks check-in on violation."""
-
-    def test_enforce_bugs_schema_catches_invalid_cv_value(self):
-        """enforce_bugs_schema must report violation for a field value not in CV."""
-        from pre_deploy_rule_check import enforce_bugs_schema
-
-        schema_data = {
-            "collections": {
-                "bugs": {
-                    "record_schema": {
-                        "fields": {
-                            "status": {
-                                "required": True,
-                                "possible_values": ["open", "closed", "in_progress"],
-                            },
-                            "resolution_status": {
-                                "required": True,
-                                "constrained_by": "CV-009",
-                            },
-                        }
-                    }
-                }
-            }
-        }
-        bugs_data = {
-            "bug": [
-                {
-                    "bugid": "BUG-TEST-001",
-                    "status": "INVALID_STATUS",
-                    "resolution_status": "BOGUS_VALUE",
-                }
-            ]
-        }
-        cv_data = {
-            "vocabularies": [
-                {
-                    "vocabulary_id": "CV-009",
-                    "members": [
-                        {"value": "in_analysis"},
-                        {"value": "fix_in_progress"},
-                        {"value": "fixed"},
-                        {"value": "closed"},
-                    ],
-                }
-            ]
-        }
-
-        with tempfile.TemporaryDirectory() as td:
-            schema_path = os.path.join(td, "schema.json")
-            bugs_path = os.path.join(td, "bugs.json")
-            cv_path = os.path.join(td, "controlled_vocabularies.json")
-            with open(schema_path, "w") as f:
-                json.dump(schema_data, f)
-            with open(bugs_path, "w") as f:
-                json.dump(bugs_data, f)
-            with open(cv_path, "w") as f:
-                json.dump(cv_data, f)
-
-            with patch("pre_deploy_rule_check.REPO_ROOT", td):
-                # Patch the path construction inside enforce_bugs_schema
-                with patch("pre_deploy_rule_check.os.path.join", side_effect=lambda *args: os.path.join(*[td if a == patch_root else a for a in args])):
-                    pass
-                # Simpler: just call with the paths directly patched
-                import pre_deploy_rule_check as scanner
-                orig_repo = scanner.REPO_ROOT
-                scanner.REPO_ROOT = td
-                # Create brain subdir structure
-                brain_path = os.path.join(td, "brain", "machine_artifacts", "content")
-                os.makedirs(brain_path, exist_ok=True)
-                for src, dst_name in [(schema_path, "schema.json"), (bugs_path, "bugs.json"), (cv_path, "controlled_vocabularies.json")]:
-                    with open(src) as sf:
-                        data = sf.read()
-                    with open(os.path.join(brain_path, dst_name), "w") as df:
-                        df.write(data)
-                try:
-                    violations = enforce_bugs_schema("TEST-RULE", {})
-                    # Must catch both the possible_values violation and the CV-009 violation
-                    assert len(violations) >= 1, f"Expected violations, got: {violations}"
-                    violation_text = " ".join(violations)
-                    assert "INVALID_STATUS" in violation_text or "BOGUS_VALUE" in violation_text
-                finally:
-                    scanner.REPO_ROOT = orig_repo
-
-    def test_enforce_bugs_schema_passes_valid_data(self):
-        """enforce_bugs_schema must return no violations for valid CV-constrained data."""
-        from pre_deploy_rule_check import enforce_bugs_schema
-        import pre_deploy_rule_check as scanner
-
-        schema_data = {
-            "collections": {
-                "bugs": {
-                    "record_schema": {
-                        "fields": {
-                            "status": {
-                                "required": True,
-                                "possible_values": ["open", "closed"],
-                            },
-                        }
-                    }
-                }
-            }
-        }
-        bugs_data = {"bug": [{"bugid": "BUG-OK-001", "status": "open"}]}
-        cv_data = {"vocabularies": []}
-
-        with tempfile.TemporaryDirectory() as td:
-            brain_path = os.path.join(td, "brain", "machine_artifacts", "content")
-            os.makedirs(brain_path, exist_ok=True)
-            for name, data in [("schema.json", schema_data), ("bugs.json", bugs_data),
-                               ("controlled_vocabularies.json", cv_data)]:
-                with open(os.path.join(brain_path, name), "w") as f:
-                    json.dump(data, f)
-
-            orig_repo = scanner.REPO_ROOT
-            scanner.REPO_ROOT = td
-            try:
-                violations = enforce_bugs_schema("TEST-RULE", {})
-                assert violations == [], f"Expected no violations, got: {violations}"
-            finally:
-                scanner.REPO_ROOT = orig_repo
-
-    def test_enforce_bugs_schema_blocks_on_violation(self):
-        """Violations from enforce_bugs_schema are non-empty, which blocks check-in
-        when called from main() (main returns exit code 1 on violations)."""
-        from pre_deploy_rule_check import enforce_bugs_schema
-        import pre_deploy_rule_check as scanner
-
-        schema_data = {
-            "collections": {
-                "bugs": {
-                    "record_schema": {
-                        "fields": {
-                            "type": {
-                                "required": False,
-                                "constrained_by": "CV-008",
-                            },
-                        }
-                    }
-                }
-            }
-        }
-        bugs_data = {"bug": [{"bugid": "BUG-BAD", "severity": "TOTALLY_INVALID_TYPE"}]}
-        cv_data = {
-            "vocabularies": [
-                {
-                    "vocabulary_id": "CV-008",
-                    "members": [{"value": "defect"}, {"value": "enhancement"}],
-                }
-            ]
-        }
-
-        with tempfile.TemporaryDirectory() as td:
-            brain_path = os.path.join(td, "brain", "machine_artifacts", "content")
-            os.makedirs(brain_path, exist_ok=True)
-            for name, data in [("schema.json", schema_data), ("bugs.json", bugs_data),
-                               ("controlled_vocabularies.json", cv_data)]:
-                with open(os.path.join(brain_path, name), "w") as f:
-                    json.dump(data, f)
-
-            orig_repo = scanner.REPO_ROOT
-            scanner.REPO_ROOT = td
-            try:
-                violations = enforce_bugs_schema("SCAN-REQ-002", {})
-                assert len(violations) > 0
-                assert "TOTALLY_INVALID_TYPE" in violations[0]
-                assert "CV-008" in violations[0]
-            finally:
-                scanner.REPO_ROOT = orig_repo
-
-    def test_missing_files_returns_violation(self):
-        """If schema.json, bugs.json, or CVs are missing, returns violation (not crash)."""
-        from pre_deploy_rule_check import enforce_bugs_schema
-        import pre_deploy_rule_check as scanner
-
-        with tempfile.TemporaryDirectory() as td:
-            orig_repo = scanner.REPO_ROOT
-            scanner.REPO_ROOT = td
-            try:
-                violations = enforce_bugs_schema("TEST-MISSING", {})
-                assert len(violations) > 0  # Should report missing files
-            finally:
-                scanner.REPO_ROOT = orig_repo

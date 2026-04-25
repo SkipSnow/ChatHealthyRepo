@@ -687,7 +687,7 @@ def enrich_providers_with_crosswalk(
 
 
 # ── Specialty Normalization ──────────────────────────────────────────────
-# PIPE-DQ-004-REQ-017, REQ-018: peer-normalized cost measures.
+# EPIC-006-F-010-S-004-REQ-T-014, REQ-018: peer-normalized cost measures.
 
 
 def compute_specialty_baselines(

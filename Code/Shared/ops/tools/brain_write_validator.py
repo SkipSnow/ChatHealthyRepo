@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# brain_write_validator.py — BRAIN-RUNTIME-REQ-002, BRAIN-RUNTIME-REQ-003.
+# brain_write_validator.py — EPIC-008-F-003-S-002-REQ-B-001, EPIC-008-F-003-S-002-REQ-B-002.
 #
 # Validates proposed writes to bugs.json and agile_backlog.json:
 #   - Semantic duplicate detection for bugs (before insert).
@@ -90,7 +90,7 @@ def find_duplicate_req(proposed_text: str, reqs_list: list,
 
 def validate_bug_insert(proposed: dict, mode: str,
                         bugs_list: list | None = None) -> dict:
-    """Validate a proposed bug record per BRAIN-RUNTIME-REQ-002.
+    """Validate a proposed bug record per EPIC-008-F-003-S-002-REQ-B-001.
 
     Returns:
         {

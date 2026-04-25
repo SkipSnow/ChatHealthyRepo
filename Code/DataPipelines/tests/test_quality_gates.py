@@ -64,21 +64,21 @@ class MockCollection:
         return [result]
 
 def test_min_row_count_fail():
-    """PIPE-QG-001-REQ-001: must raise when count < min_rows"""
+    """EPIC-006-F-011-S-001-REQ-T-001: must raise when count < min_rows"""
     coll = MockCollection([{"npi": "1"}])
     gate = QualityGate("test", min_rows=100)
     with pytest.raises(QualityGateFailure):
         gate.enforce(coll)
 
 def test_min_row_count_pass():
-    """PIPE-QG-001-REQ-002: must pass when count >= min_rows"""
+    """EPIC-006-F-011-S-001-REQ-T-002: must pass when count >= min_rows"""
     coll = MockCollection([{"npi": str(i)} for i in range(100)])
     gate = QualityGate("test", min_rows=100)
     result = gate.enforce(coll)
     assert result["row_count"]["passed"] is True
 
 def test_null_check_fail():
-    """PIPE-QG-001-REQ-003: detect nulls exceeding threshold"""
+    """EPIC-006-F-011-S-001-REQ-T-003: detect nulls exceeding threshold"""
     docs = [{"npi": str(i), "state": None} for i in range(100)]
     coll = MockCollection(docs)
     gate = QualityGate("test", min_rows=1, required_fields=["state"], max_null_fraction=0.05)
@@ -86,7 +86,7 @@ def test_null_check_fail():
         gate.enforce(coll)
 
 def test_null_check_pass():
-    """PIPE-QG-001-REQ-004: pass when nulls within threshold"""
+    """EPIC-006-F-011-S-001-REQ-T-004: pass when nulls within threshold"""
     docs = [{"npi": str(i), "state": "DE"} for i in range(100)]
     coll = MockCollection(docs)
     gate = QualityGate("test", min_rows=1, required_fields=["state"], max_null_fraction=0.05)

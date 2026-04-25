@@ -436,7 +436,7 @@ class TestPrescriberCoverage:
         print(f"  Prescriber ratio: {len(prescribers)/len(results):.1%}")
 
     def test_can_prescribe_flag_present(self, providers_coll):
-        """PIPE-DQ-004-REQ-001: All DE providers must have can_prescribe flag."""
+        """EPIC-006-F-010-S-004-REQ-T-001: All DE providers must have can_prescribe flag."""
         missing = providers_coll.count_documents({
             "practice_address.state": "DE",
             "can_prescribe": {"$exists": False},
@@ -444,7 +444,7 @@ class TestPrescriberCoverage:
         assert missing == 0, f"{missing} DE providers missing can_prescribe flag"
 
     def test_orgs_are_non_prescribers(self, providers_coll):
-        """PIPE-DQ-004-REQ-002: All organizations must be can_prescribe=false."""
+        """EPIC-006-F-010-S-004-REQ-T-002: All organizations must be can_prescribe=false."""
         org_prescribers = providers_coll.count_documents({
             "practice_address.state": "DE",
             "entity_type_code": "2",
@@ -455,7 +455,7 @@ class TestPrescriberCoverage:
         )
 
     def test_can_prescribe_has_method(self, providers_coll):
-        """PIPE-DQ-004-REQ-001: can_prescribe must include method field."""
+        """EPIC-006-F-010-S-004-REQ-T-001: can_prescribe must include method field."""
         samples = list(providers_coll.aggregate([
             {"$match": {"practice_address.state": "DE", "can_prescribe": {"$exists": True}}},
             {"$sample": {"size": 50}},

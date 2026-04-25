@@ -100,8 +100,8 @@ def main():
         PENDING / "compliance_crosswalk" / "README.docx",
         "Pending: Compliance Crosswalk Agent (NIST 800-53 + HITRUST CSF v11)",
         "deferred - built but not approved into prod",
-        ["ARCH-COMPLIANCE-CROSSWALK-001-REQ-B001 (business, must-have)",
-         "ARCH-COMPLIANCE-CROSSWALK-001-REQ-T001 (technical, must-have)"],
+        ["EPIC-002-F-002-S-002-REQ-B-001 (business, must-have)",
+         "EPIC-002-F-002-S-002-REQ-T-001 (technical, must-have)"],
         ["BUG-DEFER-001 - severity_by_environment={dev: low, qa: critical, prod: show_stopper}"],
         ["NIST OSCAL JSON catalog (downloaded by the agent at runtime)",
          "brain/machine_artifacts/content/security.json - HITRUST seed",
@@ -127,8 +127,8 @@ def main():
         PENDING / "compliance_crosswalk_third_framework" / "README.docx",
         "Pending: Compliance Crosswalk Agent - Third Framework (engineering rules)",
         "deferred - design captured, work not started",
-        ["ARCH-COMPLIANCE-CROSSWALK-002-REQ-B001 (business, should-have)",
-         "ARCH-COMPLIANCE-CROSSWALK-002-REQ-T001 (technical, should-have)"],
+        ["EPIC-002-F-003-S-002-REQ-B-001 (business, should-have)",
+         "EPIC-002-F-003-S-002-REQ-T-001 (technical, should-have)"],
         ["BUG-DEFER-003"],
         ["brain/machine_artifacts/content/engineering_rules.json (POST-redesign - "
          "depends on engineering_rules_redesign)"],
@@ -140,7 +140,7 @@ def main():
         "../compliance_crosswalk/src/compliance_crosswalk_agent.py to ingest "
         "engineering_rules.json as a third framework. Update the classifier prompt "
         "to include rule_statements as classification targets. Add tests.",
-        dependencies="Hard dependency on BRAIN-ENGINEERING-RULES-REQ-T001 "
+        dependencies="Hard dependency on EPIC-008-F-007-S-011-REQ-T-002 "
                      "(engineering rules schema redesign)."
     )
 
@@ -149,8 +149,8 @@ def main():
         PENDING / "engineering_rules_redesign" / "README.docx",
         "Pending: engineering_rules.json schema redesign",
         "deferred - design captured in V2 review .docx, migration not started",
-        ["BRAIN-ENGINEERING-RULES-REQ-B001 (business, must-have)",
-         "BRAIN-ENGINEERING-RULES-REQ-T001 (technical, must-have)",
+        ["EPIC-008-F-007-S-011-REQ-B-001 (business, must-have)",
+         "EPIC-008-F-007-S-011-REQ-T-002 (technical, must-have)",
          "(parent) BRAIN-ENGINEERING-RULES-REQ-001 - already in backlog as not_started"],
         ["BUG-DEFER-002"],
         ["brain/BusinessArtifacts/governance/all_engineering_rules_review_V2.docx - the design source",
@@ -172,8 +172,8 @@ def main():
         PENDING / "deferred_work_pattern" / "README.docx",
         "Pending: Deferred work as a first-class concept (incl. BugManagerAgent)",
         "deferred - pattern codified in v4-041; auto-escalation agent not built",
-        ["BRAIN-DEFERRED-WORK-001-REQ-B001 (business, must-have)",
-         "BRAIN-DEFERRED-WORK-001-REQ-T001 (technical, must-have)"],
+        ["EPIC-008-F-009-S-001-REQ-B-001 (business, must-have)",
+         "EPIC-008-F-009-S-001-REQ-T-001 (technical, must-have)"],
         ["BUG-DEFER-004"],
         ["brain/machine_artifacts/content/engineering_rules.json - v4-041 (this pattern) + v4-042 (assignment scope)",
          "brain/machine_artifacts/content/agile_backlog.json - every requirement with status=deferred",

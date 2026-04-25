@@ -37,7 +37,7 @@ class MockClient:
         return {"SchemaFingerprints": self.fp_coll}
 
 def test_drift_detected():
-    """PIPE-SD-001-REQ-001: raises SchemaDriftError on schema change"""
+    """EPIC-006-F-013-S-001-REQ-T-001: raises SchemaDriftError on schema change"""
     detector = SchemaDriftDetector()
     client = MockClient()
     # Store fingerprint for schema A
@@ -49,7 +49,7 @@ def test_drift_detected():
         detector.detect_and_alert(coll_b, "test_coll", client)
 
 def test_no_drift():
-    """PIPE-SD-001-REQ-002: passes when schema unchanged"""
+    """EPIC-006-F-013-S-001-REQ-T-002: passes when schema unchanged"""
     detector = SchemaDriftDetector()
     client = MockClient()
     coll = MockCollection([{"name": "John", "age": 30}])
@@ -58,7 +58,7 @@ def test_no_drift():
     assert result["passed"] is True
 
 def test_store_fingerprint():
-    """PIPE-SD-001-REQ-003: fingerprint stored in admin.SchemaFingerprints"""
+    """EPIC-006-F-013-S-001-REQ-T-003: fingerprint stored in admin.SchemaFingerprints"""
     detector = SchemaDriftDetector()
     client = MockClient()
     coll = MockCollection([{"npi": "123", "state": "DE"}])
@@ -70,7 +70,7 @@ def test_store_fingerprint():
     assert stored["fingerprint"] == fp
 
 def test_allow_drift_override():
-    """PIPE-SD-001-REQ-004: allow_drift=True suppresses error"""
+    """EPIC-006-F-013-S-001-REQ-T-004: allow_drift=True suppresses error"""
     detector = SchemaDriftDetector()
     client = MockClient()
     coll_a = MockCollection([{"name": "John"}])

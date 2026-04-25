@@ -102,7 +102,7 @@ def main():
             "environments": ["dev"],
             "status": "deferred",
             "severity": sev,
-            "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+            "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
             "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
             "pytest_id": "TBD-graph-routed-handler-test",
             "pytest_success_criteria": [

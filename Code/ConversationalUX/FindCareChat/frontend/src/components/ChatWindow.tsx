@@ -242,7 +242,7 @@ export default function ChatWindow() {
         ? selectedRef.current
         : lastProvidersRef.current
       if (!providers || providers.length === 0) {
-        // FC-SELECT-001-REQ-006: Popup if no providers selected
+        // EPIC-006-F-001-S-002-REQ-B-006: Popup if no providers selected
         setMessages(prev => [...prev, {
           role: 'assistant' as const,
           content: '**No providers selected.** Select at least one provider from the list above, then click Evaluate.',
@@ -638,7 +638,7 @@ export default function ChatWindow() {
       .map(m => ({ role: m.role, content: m.content }))
 
     welcomeLoadedRef.current = true  // first user message — switch to bottom-scroll mode
-    selection.flushGarbage()  // FC-SELECT-001-REQ-010: new question flushes garbage
+    selection.flushGarbage()  // EPIC-006-F-001-S-002-REQ-B-010: new question flushes garbage
     setMessages(prev => [...prev, { role: 'user', content: text }])
     setInput('')
     setIsLoading(true)

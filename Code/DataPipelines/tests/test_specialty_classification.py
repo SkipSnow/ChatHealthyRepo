@@ -6,7 +6,7 @@
 # Runs against live MongoDB (GOV-006: real system testing).
 #
 # Requirements tested:
-#   PIPE-DQ-004-REQ-001 through REQ-005: can_prescribe flag
+#   EPIC-006-F-010-S-004-REQ-T-001 through REQ-005: can_prescribe flag
 #   FINDCARE-UX-003: prescriber filter checkbox
 #   FINDCARE-UX-007: client-side cached filter list
 #   FINDCARE-PED-001: pediatric_applicability field (future)
@@ -61,7 +61,7 @@ class TestSpecialtyCompleteness:
         print(f"\n  Total specialties: {count}")
 
     def test_all_have_can_prescribe(self, all_specialties):
-        """Every specialty must have can_prescribe flag (PIPE-DQ-004-REQ-001)."""
+        """Every specialty must have can_prescribe flag (EPIC-006-F-010-S-004-REQ-T-001)."""
         missing = [s for s in all_specialties if "can_prescribe" not in s]
         assert len(missing) == 0, (
             f"{len(missing)} specialties missing can_prescribe: "

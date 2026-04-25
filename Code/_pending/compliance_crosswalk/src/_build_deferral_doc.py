@@ -120,7 +120,7 @@ def main():
 
     doc.add_heading("3.2 Proposed B+T requirement pair (for human approval)", level=2)
     _kv_table(doc, [
-        ("req_id", "BRAIN-ENGINEERING-RULES-REQ-B001"),
+        ("req_id", "EPIC-008-F-007-S-011-REQ-B-001"),
         ("type", "business"),
         ("priority", "must-have"),
         ("status", "proposed (awaiting human approval)"),
@@ -133,11 +133,11 @@ def main():
          "committed."),
     ])
     _kv_table(doc, [
-        ("req_id", "BRAIN-ENGINEERING-RULES-REQ-T001"),
+        ("req_id", "EPIC-008-F-007-S-011-REQ-T-002"),
         ("type", "technical"),
         ("priority", "must-have"),
         ("status", "proposed (awaiting human approval)"),
-        ("parent_req_id", "BRAIN-ENGINEERING-RULES-REQ-B001 + the existing "
+        ("parent_req_id", "EPIC-008-F-007-S-011-REQ-B-001 + the existing "
                           "BRAIN-ENGINEERING-RULES-REQ-001"),
         ("requirement",
          "Publish a strict JSON schema (Draft 2020-12) on chathealthy.ai/schemas "
@@ -149,8 +149,8 @@ def main():
          "the file to the new shape in one commit; in the same commit, "
          "rename every v4-NNN / DR-NNN identifier to Rule-NNN and update "
          "every reference in non-loose-schema brain JSONs and in bugs.json. "
-         "preCommitScan.py and pre_deploy_rule_check.py MUST be updated to "
-         "iterate rule_statements[] instead of the prose 'rule' body. "
+         "preCommitScan.py MUST be updated to iterate rule_statements[] "
+         "instead of the prose 'rule' body. "
          "Pytests cover schema validation, ID-rename completeness, and "
          "no-broken-references across all consumers."),
     ])
@@ -163,8 +163,8 @@ def main():
     _bullet(doc, "grep -r 'v4-' across the repo returns zero hits in active "
                  "JSONs and zero hits in bugs.json (legacy mentions in "
                  "human-language docs allowed but flagged).")
-    _bullet(doc, "preCommitScan.py / pre_deploy_rule_check.py exercise "
-                 "rule_statements[] when dispatching enforcement.")
+    _bullet(doc, "preCommitScan.py exercises rule_statements[] when "
+                 "dispatching enforcement.")
     _bullet(doc, "controls.json (now SecurityAuditControls.json) is "
                  "regenerated against the new rule IDs after the rename.")
 
@@ -177,7 +177,7 @@ def main():
     doc.add_heading("4.1 Proposed B+T requirement pair (for human approval)",
                     level=2)
     _kv_table(doc, [
-        ("req_id", "ARCH-COMPLIANCE-CROSSWALK-002-REQ-B001"),
+        ("req_id", "EPIC-002-F-003-S-002-REQ-B-001"),
         ("type", "business"),
         ("priority", "should-have"),
         ("status", "proposed (deferred — awaiting human approval and post-alpha)"),
@@ -188,7 +188,7 @@ def main():
          "single artifact, machine-readable, audit-presentable."),
     ])
     _kv_table(doc, [
-        ("req_id", "ARCH-COMPLIANCE-CROSSWALK-002-REQ-T001"),
+        ("req_id", "EPIC-002-F-003-S-002-REQ-T-001"),
         ("type", "technical"),
         ("priority", "should-have"),
         ("status", "proposed (deferred — awaiting human approval and post-alpha)"),

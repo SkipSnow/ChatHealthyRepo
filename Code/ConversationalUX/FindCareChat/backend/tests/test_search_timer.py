@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# FC-SEARCH-001-REQ-007: Search timer runs continuously until results displayed.
+# EPIC-006-F-001-S-001-REQ-B-006: Search timer runs continuously until results displayed.
 # BUG-UX-013: Timer must not stall between classify and DB search.
 #
 # Playwright SIT test against full parent page (DR-019).
@@ -32,7 +32,7 @@ def _get_chat_frame(page: Page):
 
 
 class TestSearchTimer:
-    """FC-SEARCH-001-REQ-007: Timer runs until results displayed."""
+    """EPIC-006-F-001-S-001-REQ-B-006: Timer runs until results displayed."""
 
     def test_timer_runs_until_results_displayed(self, page: Page):
         """Timer counts continuously from search submit to results render.

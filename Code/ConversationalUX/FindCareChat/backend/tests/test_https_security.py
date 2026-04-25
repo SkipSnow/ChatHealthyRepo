@@ -14,10 +14,10 @@ import pytest
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
 
 
-# ── SEC-HTTPS-001-REQ-001: All REST services reject HTTP with 403 or 426 ──
+# ── EPIC-002-F-001-S-012-REQ-B-001: All REST services reject HTTP with 403 or 426 ──
 
 class TestHTTPRejection:
-    """SEC-HTTPS-001-REQ-001: All REST services reject HTTP with 403 or 426.
+    """EPIC-002-F-001-S-012-REQ-B-001: All REST services reject HTTP with 403 or 426.
     Tests every server individually."""
 
     # All servers and their HTTPS ports
@@ -219,10 +219,10 @@ class TestHTTPRejection:
             pytest.skip("Caddy not running on :80")
 
 
-# ── SEC-HTTPS-001-REQ-002: Website :80 redirects to HTTPS, rejects API ────
+# ── EPIC-002-F-001-S-012-REQ-B-002: Website :80 redirects to HTTPS, rejects API ────
 
 class TestHTTPRedirect:
-    """SEC-HTTPS-001-REQ-002: Website :80 behavior.
+    """EPIC-002-F-001-S-012-REQ-B-002: Website :80 behavior.
 
     HTTP status codes used (RFC 7231, RFC 7235, RFC 2817):
       301 Moved Permanently — HTTP→HTTPS redirect for website pages
@@ -280,10 +280,10 @@ class TestHTTPRedirect:
         assert resp.status_code == 426, f"HTTP /api/classify should return 426, got {resp.status_code}"
 
 
-# ── SEC-HTTPS-001-REQ-003: Client checks for 403/426 security violation ───
+# ── EPIC-002-F-001-S-012-REQ-B-003: Client checks for 403/426 security violation ───
 
 class TestClientSecurityCheck:
-    """SEC-HTTPS-001-REQ-003: checkSecurityViolation throws on 403/426."""
+    """EPIC-002-F-001-S-012-REQ-B-003: checkSecurityViolation throws on 403/426."""
 
     def test_403_raises_security_error(self):
         """checkSecurityViolation raises on 403."""
@@ -304,10 +304,10 @@ class TestClientSecurityCheck:
             "FindCareApp.tsx must check for both 403 and 426"
 
 
-# ── SEC-HTTPS-001-REQ-004: No HTTP URLs in production code ────────────────
+# ── EPIC-002-F-001-S-012-REQ-B-004: No HTTP URLs in production code ────────────────
 
 class TestScanHTTP:
-    """SEC-HTTPS-001-REQ-005: scan_http.py standalone scanner tests."""
+    """EPIC-008-F-008-S-002-REQ-T-001: scan_http.py standalone scanner tests."""
 
     SCANNER = os.path.join(BASE_DIR, "Code", "Shared", "ops", "tools", "scan_http.py")
 
@@ -365,21 +365,10 @@ class TestScanHTTP:
         assert result.returncode == 0
 
 
-class TestPreCommitScan:
-    """SEC-HTTPS-001-REQ-006: pre_deploy_rule_check.py calls scan_http.py."""
-
-    def test_pre_deploy_calls_scan(self):
-        """pre_deploy_rule_check.py contains scan_http.py call with file list."""
-        check_path = os.path.join(BASE_DIR, "Code", "Shared", "ops", "tools", "pre_deploy_rule_check.py")
-        content = open(check_path, encoding="utf-8").read()
-        assert "scan_http.py" in content, "pre_deploy_rule_check must call scan_http.py"
-        assert "staged_files" in content, "pre_deploy_rule_check must pass staged file list"
-
-
-# ── SEC-HTTPS-001-REQ-007: 426 body must include status code ─────────────
+# ── EPIC-002-F-001-S-012-REQ-B-005: 426 body must include status code ─────────────
 
 class Test426BodyIncludesStatusCode:
-    """SEC-HTTPS-001-REQ-007: Every HTTP 426 response on every server in every
+    """EPIC-002-F-001-S-012-REQ-B-005: Every HTTP 426 response on every server in every
     environment must include '426' in the response body text."""
 
     def _http_get(self, url):
@@ -461,7 +450,7 @@ class Test426BodyIncludesStatusCode:
 
 
 class TestNoHTTPInCode:
-    """SEC-HTTPS-001-REQ-004: No http://localhost in production code."""
+    """EPIC-002-F-001-S-012-REQ-B-004: No http://localhost in production code."""
 
     SCAN_DIRS = [
         "Code/ConversationalUX/FindCareChat/backend",

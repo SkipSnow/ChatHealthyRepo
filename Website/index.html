@@ -1008,14 +1008,14 @@
       // Page ownership: 'findcare', 'evaluatecare', or 'sharedservices'
       if (!window._pageOwner) window._pageOwner = 'findcare';
 
-      // SEC-HTTPS-001-REQ-013: Parse token into nonce and GUID, build display HTML
+      // EPIC-002-F-001-S-012-REQ-B-007: Parse token into nonce and GUID, build display HTML
       // Defined on window so all IIFEs can access it
       window.buildTokenDisplayHtml = function(st) {
         var token = st.token_received || '';
         // Token format: CH{nonce:17}{created:17}{guid:32} = 68 chars
         var nonce = token.length >= 36 ? token.substring(2, 36) : token;
         var guid = token.length >= 68 ? token.substring(36) : '';
-        // SEC-HTTPS-001-REQ-018 — Env + PST Time rows.
+        // EPIC-002-F-001-S-012-REQ-B-009 — Env + PST Time rows.
         // Env comes from the website's environment label (set during banner init).
         var envLabel = window._envLabel || 'UNKNOWN';
         // Time: parse ISO created_at (or fall back to current); render in America/Los_Angeles.
@@ -1258,7 +1258,7 @@
                       });
                     return;
                   }
-                  // FC-FILT-001-REQ-007: Collect visible, checked specialty codes
+                  // EPIC-006-F-002-S-001-REQ-T-005: Collect visible, checked specialty codes
                   var checked = [];
                   leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
                     var row = cb.closest('[data-spec-code]');
@@ -1458,7 +1458,7 @@
                 + '<div style="font-size:10px;color:#9ca3af;">NPI: ' + (p.npi || '') + '</div>'
                 + '</div>';
             }).join('');
-            // Session token verification display — SEC-HTTPS-001-REQ-013
+            // Session token verification display — EPIC-002-F-001-S-012-REQ-B-007
             var tokenHtml = '';
             if (msg.session_token) {
               tokenHtml = buildTokenDisplayHtml(msg.session_token);
@@ -1487,7 +1487,7 @@
         if (msg.type === 'gui:shared-result') {
           var rightPanel = document.getElementById('rightPanel');
           if (rightPanel) {
-            // SEC-HTTPS-001-REQ-013: Use shared token display function
+            // EPIC-002-F-001-S-012-REQ-B-007: Use shared token display function
             var tokenHtml = '';
             if (msg.session_token) {
               tokenHtml = buildTokenDisplayHtml(msg.session_token);

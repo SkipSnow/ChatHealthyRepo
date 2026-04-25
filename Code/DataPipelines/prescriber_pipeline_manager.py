@@ -176,7 +176,7 @@ def _compute_on_label_bands(env_prefix: str, states: list):
       cost_measures.generic_ratio_band: "85-90%"   (set in Step 2)
       cost_measures.on_label_band: "80-85%"         (set here)
 
-    PIPE-DQ-004-REQ-015.
+    EPIC-006-F-010-S-004-REQ-T-012.
     """
     from collections import defaultdict
     from pymongo import UpdateOne

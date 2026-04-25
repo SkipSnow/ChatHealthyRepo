@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from fatal_alert_bridge import FatalAlertBridge
 
 def test_alert_on_fatal_error():
-    """PIPE-FA-001-REQ-001: send_alert must not crash on any error type"""
+    """EPIC-006-F-012-S-001-REQ-T-001: send_alert must not crash on any error type"""
     bridge = FatalAlertBridge(db_client=None)
     # Must not raise on any error type — if it does, pytest catches the exception
     for err in [RuntimeError("test"), ValueError("bad"), Exception("generic"), OSError("io")]:
@@ -15,7 +15,7 @@ def test_alert_on_fatal_error():
     assert True  # reached here without raising
 
 def test_alert_logs_to_mongodb():
-    """PIPE-FA-001-REQ-002: event written to admin.BellEvents"""
+    """EPIC-006-F-012-S-001-REQ-T-002: event written to admin.BellEvents"""
     # Mock a minimal MongoDB client
     class MockColl:
         def __init__(self):
@@ -40,6 +40,6 @@ def test_alert_logs_to_mongodb():
     assert client.db.bell.docs[0]["error_type"] == "RuntimeError"
 
 def test_bell_stop():
-    """PIPE-FA-001-REQ-003: stop_bell terminates loop without error"""
+    """EPIC-006-F-012-S-001-REQ-T-003: stop_bell terminates loop without error"""
     FatalAlertBridge.stop_bell()
     assert True  # reached here without raising

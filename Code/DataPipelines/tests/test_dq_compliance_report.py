@@ -107,27 +107,27 @@ def _count_actionable(items):
     )
 
 
-# ── DQ-COMPLIANCE-RPT-001-REQ-B001 ────────────────────────────────────────
+# ── EPIC-005-F-004-S-008-REQ-B-001 ────────────────────────────────────────
 # CTO needs a quality report for pipeline
 
 def test_backlog_file_exists_and_parses(backlog):
-    """DQ-COMPLIANCE-RPT-001-REQ-B001: backlog file exists and parses as valid JSON with epics."""
+    """EPIC-005-F-004-S-008-REQ-B-001: backlog file exists and parses as valid JSON with epics."""
     assert "epics" in backlog
     assert len(backlog["epics"]) > 0, "Backlog must contain at least one epic"
 
 
-# ── DQ-COMPLIANCE-RPT-001-REQ-T001 ────────────────────────────────────────
+# ── EPIC-005-F-004-S-008-REQ-T-001 ────────────────────────────────────────
 # Report walks full hierarchy: Epic, Feature, Story, Requirement, Pytest
 
 def test_hierarchy_walk_produces_all_levels(backlog):
-    """DQ-COMPLIANCE-RPT-001-REQ-T001: hierarchy walk covers Epic, Feature, Story, Requirement, Pytest."""
+    """EPIC-005-F-004-S-008-REQ-T-001: hierarchy walk covers Epic, Feature, Story, Requirement, Pytest."""
     levels = _walk_hierarchy(backlog)
     for level_name in ["Epic", "Feature", "Story", "Requirement", "Pytest"]:
         assert len(levels[level_name]) > 0, f"No {level_name} items found in backlog"
 
 
 def test_hierarchy_levels_have_counts(backlog):
-    """DQ-COMPLIANCE-RPT-001-REQ-T001: each level reports total, orphan, and actionable counts."""
+    """EPIC-005-F-004-S-008-REQ-T-001: each level reports total, orphan, and actionable counts."""
     levels = _walk_hierarchy(backlog)
     for level_name, items in levels.items():
         total = len(items)
@@ -142,11 +142,11 @@ def test_hierarchy_levels_have_counts(backlog):
         )
 
 
-# ── DQ-COMPLIANCE-RPT-001-REQ-T002 ────────────────────────────────────────
+# ── EPIC-005-F-004-S-008-REQ-T-002 ────────────────────────────────────────
 # Actionable orphan = orphan=true but parent orphan=false
 
 def test_actionable_orphan_definition(backlog):
-    """DQ-COMPLIANCE-RPT-001-REQ-T002: actionable orphan is orphan=true with parent orphan=false."""
+    """EPIC-005-F-004-S-008-REQ-T-002: actionable orphan is orphan=true with parent orphan=false."""
     levels = _walk_hierarchy(backlog)
     # Verify computation is correct by checking individual items
     for level_name in ["Feature", "Story", "Requirement", "Pytest"]:
@@ -157,11 +157,11 @@ def test_actionable_orphan_definition(backlog):
             assert isinstance(is_actionable, bool)
 
 
-# ── DQ-COMPLIANCE-RPT-001-REQ-T003 ────────────────────────────────────────
+# ── EPIC-005-F-004-S-008-REQ-T-003 ────────────────────────────────────────
 # EPIC-ORPHAN must be orphan=false (management container)
 
 def test_epic_orphan_is_management_container(backlog):
-    """DQ-COMPLIANCE-RPT-001-REQ-T003: EPIC-ORPHAN must have orphan=false."""
+    """EPIC-005-F-004-S-008-REQ-T-003: EPIC-ORPHAN must have orphan=false."""
     # EPIC-ORPHAN may be in epics array or in orphan_catchall
     orphan_epic = None
     for epic in backlog.get("epics", []):
@@ -183,7 +183,7 @@ def test_epic_orphan_is_management_container(backlog):
 
 
 def test_epic_orphan_features_treated_as_actionable(backlog):
-    """DQ-COMPLIANCE-RPT-001-REQ-T003: features under EPIC-ORPHAN with orphan=true are actionable."""
+    """EPIC-005-F-004-S-008-REQ-T-003: features under EPIC-ORPHAN with orphan=true are actionable."""
     levels = _walk_hierarchy(backlog)
     # Features under EPIC-ORPHAN should have parent_orphan=True for actionable counting
     # (even though EPIC-ORPHAN itself is orphan=false)
@@ -209,11 +209,11 @@ def test_epic_orphan_features_treated_as_actionable(backlog):
             pass  # Logic verified in _walk_hierarchy
 
 
-# ── DQ-COMPLIANCE-RPT-001-REQ-T004 ────────────────────────────────────────
+# ── EPIC-005-F-004-S-008-REQ-T-004 ────────────────────────────────────────
 # Report includes bugs with orphan boolean
 
 def test_bugs_have_orphan_boolean(bugs):
-    """DQ-COMPLIANCE-RPT-001-REQ-T004: each bug has an orphan boolean."""
+    """EPIC-005-F-004-S-008-REQ-T-004: each bug has an orphan boolean."""
     bug_list = bugs.get("bugs", [])
     assert len(bug_list) > 0, "bugs.json must have at least one bug"
     for bug in bug_list:
@@ -223,11 +223,11 @@ def test_bugs_have_orphan_boolean(bugs):
         )
 
 
-# ── DQ-COMPLIANCE-RPT-001-REQ-T005 ────────────────────────────────────────
+# ── EPIC-005-F-004-S-008-REQ-T-005 ────────────────────────────────────────
 # Every level must have orphan boolean attribute
 
 def test_every_level_has_orphan_boolean(backlog):
-    """DQ-COMPLIANCE-RPT-001-REQ-T005: every Epic, Feature, Story, Requirement, Pytest has orphan boolean."""
+    """EPIC-005-F-004-S-008-REQ-T-005: every Epic, Feature, Story, Requirement, Pytest has orphan boolean."""
     levels = _walk_hierarchy(backlog)
     for level_name, items in levels.items():
         for item in items:
@@ -240,11 +240,11 @@ def test_every_level_has_orphan_boolean(backlog):
             )
 
 
-# ── DQ-COMPLIANCE-RPT-001-REQ-T006 ────────────────────────────────────────
+# ── EPIC-005-F-004-S-008-REQ-T-006 ────────────────────────────────────────
 # Pytest must be child of Requirement, 1-2 pytest children each
 
 def test_pytest_is_child_of_requirement(backlog):
-    """DQ-COMPLIANCE-RPT-001-REQ-T006: pytest is nested under requirement, not a peer attribute."""
+    """EPIC-005-F-004-S-008-REQ-T-006: pytest is nested under requirement, not a peer attribute."""
     levels = _walk_hierarchy(backlog)
     for req_item in levels["Requirement"]:
         req = req_item["item"]
@@ -261,7 +261,7 @@ def test_pytest_is_child_of_requirement(backlog):
 
 
 def test_pytest_children_have_required_fields(backlog):
-    """DQ-COMPLIANCE-RPT-001-REQ-T006: each pytest child has pytest_id, pytest_type, orphan."""
+    """EPIC-005-F-004-S-008-REQ-T-006: each pytest child has pytest_id, pytest_type, orphan."""
     levels = _walk_hierarchy(backlog)
     for req_item in levels["Requirement"]:
         req = req_item["item"]
@@ -275,11 +275,11 @@ def test_pytest_children_have_required_fields(backlog):
             )
 
 
-# ── DQ-COMPLIANCE-RPT-001-REQ-T007 ────────────────────────────────────────
+# ── EPIC-005-F-004-S-008-REQ-T-007 ────────────────────────────────────────
 # Report validates against schemas before reporting
 
 def test_bugs_has_schema_address(bugs):
-    """DQ-COMPLIANCE-RPT-001-REQ-T007: bugs.json has schema_address pointing to schema.json."""
+    """EPIC-005-F-004-S-008-REQ-T-007: bugs.json has schema_address pointing to schema.json."""
     assert "schema_address" in bugs, "bugs.json missing schema_address field"
     assert "schema.json" in bugs["schema_address"], (
         f"bugs.json schema_address must point to schema.json, got: {bugs['schema_address']}"
@@ -287,12 +287,12 @@ def test_bugs_has_schema_address(bugs):
 
 
 def test_schema_file_exists(schema):
-    """DQ-COMPLIANCE-RPT-001-REQ-T007: schema.json exists and parses."""
+    """EPIC-005-F-004-S-008-REQ-T-007: schema.json exists and parses."""
     assert "collections" in schema or "title" in schema, "schema.json must have collections or title"
 
 
 def test_bugs_schema_defined_in_schema(schema):
-    """DQ-COMPLIANCE-RPT-001-REQ-T007: bugs collection schema is defined in schema.json."""
+    """EPIC-005-F-004-S-008-REQ-T-007: bugs collection schema is defined in schema.json."""
     collections = schema.get("collections", {})
     assert "bugs" in collections, "schema.json must define bugs collection"
     bugs_schema = collections["bugs"]
@@ -301,11 +301,11 @@ def test_bugs_schema_defined_in_schema(schema):
     )
 
 
-# ── DQ-COMPLIANCE-RPT-001-REQ-T008 ────────────────────────────────────────
+# ── EPIC-005-F-004-S-008-REQ-T-008 ────────────────────────────────────────
 # Report outputs table: Level, Total, Orphan, Actionable
 
 def test_report_table_can_be_generated(backlog, bugs):
-    """DQ-COMPLIANCE-RPT-001-REQ-T008: report table with Level, Total, Orphan, Actionable rows."""
+    """EPIC-005-F-004-S-008-REQ-T-008: report table with Level, Total, Orphan, Actionable rows."""
     levels = _walk_hierarchy(backlog)
     table_rows = []
     for level_name in ["Epic", "Feature", "Story", "Requirement", "Pytest"]:

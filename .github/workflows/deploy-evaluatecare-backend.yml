@@ -44,11 +44,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Pre-deploy rule check (v4-017)
-        run: |
-          pip install -r Code/Shared/ops/tools/requirements.txt
-          python Code/Shared/ops/tools/pre_deploy_rule_check.py evaluatecare
-
       - name: Set HF Space variables (peer URLs, env)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}

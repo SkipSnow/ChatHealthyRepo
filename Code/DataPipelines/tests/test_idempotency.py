@@ -23,16 +23,16 @@ class MockCollection:
         return self._count
 
 def test_output_exists():
-    """PIPE-ID-001-REQ-001: returns True when count >= min_count"""
+    """EPIC-006-F-014-S-001-REQ-T-001: returns True when count >= min_count"""
     worker = _TestWorker({})
     assert worker.output_exists_and_valid(MockCollection(100), min_count=50) is True
 
 def test_no_output():
-    """PIPE-ID-001-REQ-002: returns False when empty"""
+    """EPIC-006-F-014-S-001-REQ-T-002: returns False when empty"""
     worker = _TestWorker({})
     assert worker.output_exists_and_valid(MockCollection(0), min_count=1) is False
 
 def test_insufficient_count():
-    """PIPE-ID-001-REQ-003: returns False when count < min_count"""
+    """EPIC-006-F-014-S-001-REQ-T-003: returns False when count < min_count"""
     worker = _TestWorker({})
     assert worker.output_exists_and_valid(MockCollection(5), min_count=100) is False
