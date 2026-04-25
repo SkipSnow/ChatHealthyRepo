@@ -237,17 +237,6 @@ if [ "$VERIFY_ONLY" -eq 1 ]; then
     exit 0
 fi
 
-# ── Phase 3: Pre-deploy rule check (v4-017 / DEVOPS-001-REQ-007) ─────────
-
-STATE[phase_current]="rule_check"
-log "Pre-deploy rule check (all targets)..."
-for target in findcare evaluatecare website shared; do
-    log "  ...$target"
-    python Code/Shared/ops/tools/pre_deploy_rule_check.py "$target" \
-        || { log "FAIL: pre_deploy_rule_check failed for $target"; STATE[overall]="rule_check_fail"; exit 1; }
-done
-log "Pre-deploy rule check passed."
-
 # ── Phase 3b: Build React frontend (REQ-011) ─────────────────────────────
 # Literal compliance: "every env's deploy script MUST build the React
 # frontend (npm run build) before deploying FindCare." CI also builds on

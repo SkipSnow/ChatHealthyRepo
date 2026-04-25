@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# SEC-HTTPS-001-REQ-004: Scan files for insecure HTTP URLs.
+# EPIC-002-F-001-S-012-REQ-B-004: Scan files for insecure HTTP URLs.
 # v4-029: No HTTP URLs in production code.
 #
 # The ONLY allowed http:// pattern is a redirect to index.html on one
@@ -47,7 +47,7 @@ ALLOWED_PATTERNS = [
 # This file defines TARGET and regex patterns — excuse lines that are definitions
 SELF_PATTERN_LINE = "TARGET"
 
-# SEC-HTTPS-001-REQ-004 scope: production code only.
+# EPIC-002-F-001-S-012-REQ-B-004 scope: production code only.
 # Exempt from HTTP URL scanning:
 #   - All .json files (governance artifacts, config, schemas — not production code)
 #   - All pytest files (test_*, conftest.py — DevOps code, not production endpoints)
@@ -82,7 +82,7 @@ def should_skip(filepath):
 
 
 def is_http_exempt(filepath):
-    """SEC-HTTPS-001-REQ-004: HTTP URL rule only applies to production code.
+    """EPIC-002-F-001-S-012-REQ-B-004: HTTP URL rule only applies to production code.
     JSON files, pytests, and business documents are exempt."""
     for pattern in HTTP_EXEMPT_PATTERNS:
         if re.search(pattern, filepath):
@@ -149,7 +149,7 @@ def get_all_tracked_files():
         return []
 
 
-# BRAIN-SCHEMA-REQ-001: JSON files exempt from schema validation (third-party owned)
+# EPIC-008-F-007-S-020-REQ-T-001: JSON files exempt from schema validation (third-party owned)
 SCHEMA_EXEMPT_PATTERNS = [
     r"\.claude/",                         # Anthropic
     r"\.vscode/",                         # VS Code / Microsoft
@@ -167,7 +167,7 @@ SCHEMA_EXEMPT_PATTERNS = [
 
 
 def is_schema_exempt(filepath):
-    """BRAIN-SCHEMA-REQ-001: Third-party JSON files are exempt from schema validation."""
+    """EPIC-008-F-007-S-020-REQ-T-001: Third-party JSON files are exempt from schema validation."""
     for pattern in SCHEMA_EXEMPT_PATTERNS:
         if re.search(pattern, filepath):
             return True
@@ -186,7 +186,7 @@ def _fetch_schema(schema_url):
 
 
 def scan_json_schema(filepath):
-    """BRAIN-SCHEMA-REQ-001: Every ChatHealthy JSON file must have a $schema reference
+    """EPIC-008-F-007-S-020-REQ-T-001: Every ChatHealthy JSON file must have a $schema reference
     and must validate against the published schema."""
     try:
         with open(filepath, encoding="utf-8") as f:
@@ -238,7 +238,7 @@ def collect_files_from_dir(directory, recurse):
 
 
 def scan_files(files, label):
-    # SEC-HTTPS-001-REQ-004: HTTP URL scan
+    # EPIC-002-F-001-S-012-REQ-B-004: HTTP URL scan
     http_violations = 0
     http_details = []
 
@@ -252,7 +252,7 @@ def scan_files(files, label):
                 for line_num, url, line_text in violations:
                     http_details.append(f"  {filepath}:{line_num}: {url}")
 
-    # BRAIN-SCHEMA-REQ-001: JSON schema validation
+    # EPIC-008-F-007-S-020-REQ-T-001: JSON schema validation
     schema_violations = 0
     schema_details = []
 
@@ -269,14 +269,14 @@ def scan_files(files, label):
     # Report HTTP results
     exit_code = 0
     if http_violations > 0:
-        print(f"SEC-HTTPS-001-REQ-004 VIOLATION: {http_violations} insecure HTTP URLs in {label}:")
+        print(f"EPIC-002-F-001-S-012-REQ-B-004 VIOLATION: {http_violations} insecure HTTP URLs in {label}:")
         for d in http_details:
             print(d)
         print(f"\nv4-029: No HTTP URLs in production code.")
         print(f"Allowed: {', '.join(ALLOWED_HOSTS)} for /index.html redirect only.")
         exit_code = 1
     else:
-        print(f"SEC-HTTPS-001-REQ-004 PASS: 0 insecure HTTP URLs in {len(files)} {label} files.")
+        print(f"EPIC-002-F-001-S-012-REQ-B-004 PASS: 0 insecure HTTP URLs in {len(files)} {label} files.")
 
     # Report schema results
     if schema_violations > 0:
@@ -288,7 +288,7 @@ def scan_files(files, label):
     else:
         json_count = sum(1 for f in files if f.endswith(".json") and not is_schema_exempt(f))
         if json_count > 0:
-            print(f"BRAIN-SCHEMA-REQ-001 PASS: {json_count} JSON files have schema references.")
+            print(f"EPIC-008-F-007-S-020-REQ-T-001 PASS: {json_count} JSON files have schema references.")
 
     return exit_code
 

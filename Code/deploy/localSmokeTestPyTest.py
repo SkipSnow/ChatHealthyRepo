@@ -148,11 +148,11 @@ def _parse_token(token_str):
     return token_str, ""
 
 
-REQ_015_TIMEOUT_S = 30  # SEC-HTTPS-001-REQ-015 configurable timeout.
+REQ_015_TIMEOUT_S = 30  # EPIC-002-F-001-S-012-REQ-B-008 configurable timeout.
 
 
 def _wait_for_verified_resolution(page, handoff_label, timeout_s=REQ_015_TIMEOUT_S):
-    """BUG-TEST-036 (SEC-HTTPS-001-REQ-015): after a handoff, the Verified value
+    """BUG-TEST-036 (EPIC-002-F-001-S-012-REQ-B-008): after a handoff, the Verified value
     in the session verification panel MUST resolve to a definitive positive or
     negative state (YES / VERIFIED / FAILED) within `timeout_s`. If it does
     not, a Fatal Error splash MUST appear in the center panel. Indefinite
@@ -174,7 +174,7 @@ def _wait_for_verified_resolution(page, handoff_label, timeout_s=REQ_015_TIMEOUT
         _t.sleep(1)
     elapsed = round(_t.time() - t0)
     raise AssertionError(
-        f"[{handoff_label}] SEC-HTTPS-001-REQ-015 VIOLATION: "
+        f"[{handoff_label}] EPIC-002-F-001-S-012-REQ-B-008 VIOLATION: "
         f"Verified did not resolve to YES / FAILED within {elapsed}s and no "
         f"'Fatal Error' splash rendered. Indefinite Pending is an illegal state."
     )
@@ -187,9 +187,9 @@ def _verify_session_identity(page, env, handoff_label):
     Nonces must match between panels. GUID must match original.
     Nonce must differ from previous.
 
-    BUG-TEST-032 (SEC-HTTPS-001-REQ-009): assert Verified == VERIFIED.
-    BUG-TEST-035 (SEC-HTTPS-001-REQ-013): assert all 5 SV fields present.
-    BUG-TEST-036 (SEC-HTTPS-001-REQ-015): wait up to 30s for Verified to
+    BUG-TEST-032 (EPIC-002-F-001-S-012-REQ-T-002): assert Verified == VERIFIED.
+    BUG-TEST-035 (EPIC-002-F-001-S-012-REQ-B-007): assert all 5 SV fields present.
+    BUG-TEST-036 (EPIC-002-F-001-S-012-REQ-B-008): wait up to 30s for Verified to
       resolve out of Pending before asserting its value."""
     # BUG-TEST-036: bounded wait for Verified to leave the transient Pending state.
     _wait_for_verified_resolution(page, handoff_label)
@@ -205,7 +205,7 @@ def _verify_session_identity(page, env, handoff_label):
         assert label in right, f"[{handoff_label}] Right panel missing {label}: {right[:400]}"
         assert label in left, f"[{handoff_label}] Left panel missing {label}: {left[-400:]}"
     # BUG-TEST-032: Verified MUST be the positive value (UI renders "YES ✓").
-    # FAILED, Pending, and any other state is illegal per SEC-HTTPS-001-REQ-015.
+    # FAILED, Pending, and any other state is illegal per EPIC-002-F-001-S-012-REQ-B-008.
     # Positive-value set tolerates minor UI wording variations (YES/VERIFIED/TRUE).
     POSITIVE = {"YES", "VERIFIED", "TRUE", "OK"}
     for panel_name, txt in (("right", right), ("left", left)):
@@ -214,8 +214,8 @@ def _verify_session_identity(page, env, handoff_label):
         val = m.group(1).upper()
         assert val in POSITIVE, (
             f"[{handoff_label}] {panel_name} panel Verified == {val!r} "
-            f"(expected one of {sorted(POSITIVE)}). Per SEC-HTTPS-001-REQ-009 "
-            f"mutual-auth handshake MUST complete; per SEC-HTTPS-001-REQ-015 "
+            f"(expected one of {sorted(POSITIVE)}). Per EPIC-002-F-001-S-012-REQ-T-002 "
+            f"mutual-auth handshake MUST complete; per EPIC-002-F-001-S-012-REQ-B-008 "
             f"any non-positive runtime state (FAILED, PENDING) is fatal."
         )
     # Extract and compare nonces — must match between panels
@@ -272,7 +272,7 @@ def env():
         browser.close()
 
 
-# Step 0 [DEVOPS-DEPLOY-001-REQ-018]: cross-environment build-gate.
+# Step 0 [EPIC-008-F-004-S-001-REQ-T-003]: cross-environment build-gate.
 # Proves that local and dev are running the same code + configuration before
 # any further comparison is attempted. Independent of SMOKE_TEST_ENV — always
 # runs local-vs-dev. If builds differ, the rest of the smoke would compare
@@ -292,10 +292,10 @@ class TestStep00BuildGate:
         local_build = local.get("build")
         dev_build = dev.get("build")
         assert local_build == dev_build, (
-            f"DEVOPS-DEPLOY-001-REQ-018 VIOLATION: build mismatch across "
+            f"EPIC-008-F-004-S-001-REQ-T-003 VIOLATION: build mismatch across "
             f"environments.\n  local {local_url}: build={local_build}\n  "
             f"dev   {dev_url}: build={dev_build}\n"
-            f"Per DEVOPS-DEPLOY-001-REQ-016 two environments on the same "
+            f"Per EPIC-008-F-004-S-001-REQ-T-002 two environments on the same "
             f"build MUST be running identical code and configuration; "
             f"different builds means different code or configuration."
         )
@@ -308,7 +308,7 @@ class TestStep01:
         page = env["page"]
         host = HTTP_REDIRECT_HOST or BASE_URL.replace("https://", "").rstrip("/")
         # Deliberate insecure-scheme probe — this test exists to verify that
-        # HTTP redirects to HTTPS (SEC-HTTPS-001-REQ-004 positive-path test).
+        # HTTP redirects to HTTPS (EPIC-002-F-001-S-012-REQ-B-004 positive-path test).
         # Scheme assembled at runtime so pre_deploy_rule_check.py's substring
         # scan does not false-positive on a deliberate security test.
         insecure_scheme = "htt" + "p"
@@ -349,7 +349,7 @@ class TestStep03:
         _screenshot(page, "03")
 
 
-# Step 4 [TEST-SIM-001-REQ-003]
+# Step 4 [EPIC-005-F-001-S-001-REQ-B-003]
 class TestStep04:
     def test_splash_first_25_words(self, env):
         page = env["page"]
@@ -367,7 +367,7 @@ class TestStep04:
         _screenshot(page, "04")
 
 
-# Step 5 [TEST-SIM-001-REQ-004]
+# Step 5 [EPIC-005-F-001-S-001-REQ-B-004]
 class TestStep05:
     def test_input_focused(self, env):
         frame = env.get("chat_frame", env["page"])
@@ -381,7 +381,7 @@ class TestStep05:
         _screenshot(env["page"], "05")
 
 
-# Step 6 [TEST-SIM-001-REQ-005]
+# Step 6 [EPIC-005-F-001-S-001-REQ-B-005]
 class TestStep06:
     def test_search(self, env):
         frame = env.get("chat_frame", env["page"])
@@ -402,7 +402,7 @@ class TestStep06:
         _screenshot(env["page"], "06")
 
 
-# Step 7 [TEST-SIM-001-REQ-006]
+# Step 7 [EPIC-005-F-001-S-001-REQ-B-006]
 class TestStep07:
     def test_specialties_in_left_panel(self, env):
         page = env["page"]
@@ -442,12 +442,12 @@ class TestStep08:
                 f"FINDCARE-UX-002: cell {i+1} MUST NOT use pixel height/flex-basis. Got {style!r}"
             )
 
-        # BUG-TEST-034 (FC-FILT-001-REQ-013): Uncheck All MUST sit inside
+        # BUG-TEST-034 (EPIC-006-F-002-S-001-REQ-B-008): Uncheck All MUST sit inside
         # cell 1 (the 18% green header), to the left of Prescribers and
         # Homeopathic filter checkboxes.
         cell1_toggle = left.locator("[data-cell='1'] [data-gui-action='toggle-all']")
         assert cell1_toggle.count() > 0, (
-            "FC-FILT-001-REQ-013: Uncheck All/Check All toggle MUST be inside cell 1 "
+            "EPIC-006-F-002-S-001-REQ-B-008: Uncheck All/Check All toggle MUST be inside cell 1 "
             "(the green header), not in any other cell."
         )
 
@@ -480,7 +480,7 @@ class TestStep08:
         _screenshot(page, "08")
 
 
-# Step 9 [TEST-SIM-001-REQ-005]
+# Step 9 [EPIC-005-F-001-S-001-REQ-B-005]
 class TestStep09:
     def test_providers_in_center(self, env):
         frame = env.get("chat_frame", env["page"])
@@ -530,7 +530,7 @@ class TestStep12:
         _screenshot(env["page"], "12")
 
 
-# Step 13 [UX-CTRL-003-REQ-003]
+# Step 13 [EPIC-006-F-024-S-003-REQ-T-002]
 class TestStep13:
     def test_click_evaluate(self, env):
         page = env["page"]
@@ -555,7 +555,7 @@ class TestStep14:
         _screenshot(page, "14")
 
 
-# Step 15 [SEC-HTTPS-001-REQ-009]
+# Step 15 [EPIC-002-F-001-S-012-REQ-T-002]
 class TestStep15:
     def test_mtls_evaluatecare_tls12(self):
         ctx = ssl.create_default_context(cafile=os.path.join(CERTS_DIR, "ca.crt"))
@@ -570,7 +570,7 @@ class TestStep15:
         assert tls_ver in ("TLSv1.2", "TLSv1.3"), f"TLS version is {tls_ver}, need 1.2+"
 
 
-# Step 16 [TEST-SIM-001-REQ-010]
+# Step 16 [EPIC-005-F-001-S-001-REQ-B-010]
 class TestStep16:
     def test_right_panel_providers(self, env):
         page = env["page"]
@@ -580,7 +580,7 @@ class TestStep16:
         _screenshot(page, "16")
 
 
-# Step 17 [TEST-SIM-001-REQ-011]
+# Step 17 [EPIC-005-F-001-S-001-REQ-B-011]
 class TestStep17:
     def test_token_same_sent_received(self, env):
         page = env["page"]
@@ -609,7 +609,7 @@ class TestStep17:
         _screenshot(page, "17")
 
 
-# Step 18 [SEC-HTTPS-001-REQ-013]
+# Step 18 [EPIC-002-F-001-S-012-REQ-B-007]
 class TestStep18:
     def test_token_distinct_colors(self, env):
         page = env["page"]
@@ -625,7 +625,7 @@ class TestStep18:
         _screenshot(page, "18")
 
 
-# Step 19 [SEC-HTTPS-001-REQ-012]
+# Step 19 [EPIC-002-F-001-S-012-REQ-T-003]
 class TestStep19:
     def test_nonce_changed_evaluatecare(self, env):
         # Nonce uniqueness already verified by _verify_session_identity in step 17
@@ -638,7 +638,7 @@ class TestStep19:
         _screenshot(env["page"], "19")
 
 
-# Step 20 [UX-CTRL-003-REQ-004]
+# Step 20 [EPIC-006-F-024-S-003-REQ-B-002]
 class TestStep20:
     def test_evaluatecare_unimplemented(self, env):
         page = env["page"]
@@ -724,7 +724,7 @@ class TestStep23:
         _screenshot(env["page"], "23")
 
 
-# Step 24 [SEC-HTTPS-001-REQ-012]
+# Step 24 [EPIC-002-F-001-S-012-REQ-T-003]
 class TestStep24:
     def test_nonce_changed_return_findcare(self, env):
         page = env["page"]
@@ -742,7 +742,7 @@ class TestStep25:
         _retry("test25_btn_visible", 10, 500,
                lambda: expect(btn).to_be_visible(timeout=400))
 
-        # SEC-HTTPS-001-REQ-019 — capture network calls during the SS push to
+        # EPIC-002-F-001-S-012-REQ-T-007 — capture network calls during the SS push to
         # verify /verify-token is sent DIRECTLY to the cold-button service
         # (SharedServices), NOT proxied through FindCare's /shared/verify-token.
         seen_posts = []
@@ -767,7 +767,7 @@ class TestStep25:
         assert not proxied, \
             f"REQ-019: /verify-token MUST NOT be proxied through FindCare; proxied calls: {proxied}"
 
-        # SEC-HTTPS-001-REQ-020: right panel origin field MUST self-identify the
+        # EPIC-002-F-001-S-012-REQ-B-010: right panel origin field MUST self-identify the
         # responding service ("SharedServices"), not the token signer (FindCare).
         right_text = page.locator("#rightPanel").inner_text()
         assert "Server, serving security token: SharedServices" in right_text, \
@@ -785,7 +785,7 @@ class TestStep26:
         _screenshot(page, "26")
 
 
-# Step 27 [SEC-HTTPS-001-REQ-009]
+# Step 27 [EPIC-002-F-001-S-012-REQ-T-002]
 class TestStep27:
     def test_mtls_shared_services_tls12(self):
         ctx = ssl.create_default_context(cafile=os.path.join(CERTS_DIR, "ca.crt"))
@@ -813,7 +813,7 @@ class TestStep28:
         _screenshot(page, "28")
 
 
-# Step 29 [SEC-HTTPS-001-REQ-008]
+# Step 29 [EPIC-002-F-001-S-012-REQ-T-001]
 class TestStep29:
     def test_shared_services_token_auth(self, env):
         page = env["page"]
@@ -828,7 +828,7 @@ class TestStep29:
         _screenshot(page, "29")
 
 
-# Step 30 [SEC-HTTPS-001-REQ-012]
+# Step 30 [EPIC-002-F-001-S-012-REQ-T-003]
 class TestStep30:
     def test_nonce_changed_shared_services(self, env):
         # Nonce uniqueness already verified by _verify_session_identity in step 29
@@ -839,7 +839,7 @@ class TestStep30:
         _screenshot(env["page"], "30")
 
 
-# Step 31 [SEC-HTTPS-001-REQ-012] — Handoff 4: SharedServices → FindCare
+# Step 31 [EPIC-002-F-001-S-012-REQ-T-003] — Handoff 4: SharedServices → FindCare
 class TestStep31:
     def test_shared_to_findcare(self, env):
         page = env["page"]
@@ -859,7 +859,7 @@ class TestStep31:
         _screenshot(page, "31")
 
 
-# Step 32 [SEC-HTTPS-001-REQ-012] — Handoff 5: EvaluateCare → SharedServices
+# Step 32 [EPIC-002-F-001-S-012-REQ-T-003] — Handoff 5: EvaluateCare → SharedServices
 class TestStep32:
     def test_evalcare_to_shared(self, env):
         page = env["page"]
@@ -892,7 +892,7 @@ class TestStep32:
         _screenshot(page, "32")
 
 
-# Step 33 [SEC-HTTPS-001-REQ-012] — Handoff 6: SharedServices → EvaluateCare
+# Step 33 [EPIC-002-F-001-S-012-REQ-T-003] — Handoff 6: SharedServices → EvaluateCare
 class TestStep33:
     def test_shared_to_evalcare(self, env):
         page = env["page"]
@@ -925,7 +925,7 @@ class TestStep33:
         _screenshot(page, "33")
 
 
-# Step 34 [SEC-HTTPS-001-REQ-011]
+# Step 34 [EPIC-002-F-001-S-012-REQ-B-006]
 class TestStep34:
     def test_all_https_correct_servers(self):
         c = httpx.Client(verify=False, timeout=10)

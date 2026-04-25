@@ -177,7 +177,7 @@ class TestFilterPanelDisplay:
         page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_uncheck_all.png"))
 
     def test_prescribers_only_filters_to_prescriber_specialties(self, page: Page):
-        """FC-FILT-001-REQ-002: Prescribers only checkbox filters to prescriber specialties."""
+        """EPIC-006-F-002-S-001-REQ-B-001: Prescribers only checkbox filters to prescriber specialties."""
         frame = _get_chat_frame(page)
 
         input_el = frame.locator("input[placeholder='Type a message...']")
@@ -216,7 +216,7 @@ class TestFilterPanelDisplay:
         page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_prescribers_only.png"))
 
     def test_homeopathic_only_adds_homeopathic_specialties(self, page: Page):
-        """FC-FILT-001-REQ-003: Homeopathic only checkbox adds homeopathic specialties."""
+        """EPIC-006-F-002-S-001-REQ-T-002: Homeopathic only checkbox adds homeopathic specialties."""
         frame = _get_chat_frame(page)
 
         input_el = frame.locator("input[placeholder='Type a message...']")
@@ -250,7 +250,7 @@ class TestFilterPanelDisplay:
         page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_homeopathic.png"))
 
     def test_apply_filter_no_change_shows_message(self, page: Page):
-        """FC-FILT-001-REQ-007 (1): If no change, show 'no filter changes' message."""
+        """EPIC-006-F-002-S-001-REQ-T-005 (1): If no change, show 'no filter changes' message."""
         frame = _get_chat_frame(page)
 
         input_el = frame.locator("input[placeholder='Type a message...']")
@@ -280,7 +280,7 @@ class TestFilterPanelDisplay:
         page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_no_change_message.png"))
 
     def test_apply_filter_clears_and_requeries(self, page: Page):
-        """FC-FILT-001-REQ-007 (2-3): Clear providers, then re-query DB with new codes."""
+        """EPIC-006-F-002-S-001-REQ-T-005 (2-3): Clear providers, then re-query DB with new codes."""
         frame = _get_chat_frame(page)
 
         input_el = frame.locator("input[placeholder='Type a message...']")
@@ -328,7 +328,7 @@ class TestFilterPanelDisplay:
         page.wait_for_timeout(3000)
 
     def test_prescriber_toggle_affects_apply_filter(self, page: Page):
-        """FC-FILT-001-REQ-007: Unchecking Prescribers toggle then Apply changes results."""
+        """EPIC-006-F-002-S-001-REQ-T-005: Unchecking Prescribers toggle then Apply changes results."""
         frame = _get_chat_frame(page)
 
         input_el = frame.locator("input[placeholder='Type a message...']")
@@ -374,7 +374,7 @@ class TestFilterPanelDisplay:
         page.wait_for_timeout(3000)
 
     def test_apply_filter_providers_have_npi(self, page: Page):
-        """FC-FILT-001-REQ-007 (4): After Apply, providers have NPI (smoke test data quality)."""
+        """EPIC-006-F-002-S-001-REQ-T-005 (4): After Apply, providers have NPI (smoke test data quality)."""
         frame = _get_chat_frame(page)
 
         input_el = frame.locator("input[placeholder='Type a message...']")
@@ -389,7 +389,7 @@ class TestFilterPanelDisplay:
         page.screenshot(path=os.path.join(SCREENSHOT_DIR, "filter_apply_npi.png"))
 
     def test_apply_filter_provider_cards_have_actions(self, page: Page):
-        """FC-FILT-001-REQ-007 (5): After Apply, provider cards meet FC-SELECT-001 display (actions visible)."""
+        """EPIC-006-F-002-S-001-REQ-T-005 (5): After Apply, provider cards meet EPIC-006-F-001-S-002 display (actions visible)."""
         frame = _get_chat_frame(page)
 
         input_el = frame.locator("input[placeholder='Type a message...']")

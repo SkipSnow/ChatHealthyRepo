@@ -19,7 +19,7 @@ _log = logging.getLogger("findcare.specialty")
 class SpecialtyService:
     """Specialty identification via AI vector search.
 
-    FC-FILT-001-REQ-001: Embedding-only search against SpecialtyMetaData.
+    EPIC-006-F-002-S-001-REQ-T-001: Embedding-only search against SpecialtyMetaData.
     No regex, no string matching, no LLM classify call, no fallback.
     """
 
@@ -37,10 +37,10 @@ class SpecialtyService:
     def find_specialty_codes(self, query: str, chat_history: Optional[list[str]] = None) -> dict:
         """Find NUCC specialty codes matching a query via vector search.
 
-        FC-FILT-001-REQ-001: AI vector search using text-embedding-3-large.
-        FC-FILT-001-REQ-002: Returns NUCC codes, Display Name, can_prescribe,
+        EPIC-006-F-002-S-001-REQ-T-001: AI vector search using text-embedding-3-large.
+        EPIC-006-F-002-S-001-REQ-B-001: Returns NUCC codes, Display Name, can_prescribe,
                              homeopathic, and rank (1 = most likely).
-        FC-FILT-001-REQ-003: Query vector built from last 5 user prompts.
+        EPIC-006-F-002-S-001-REQ-T-002: Query vector built from last 5 user prompts.
 
         Args:
             query: The current user search query.

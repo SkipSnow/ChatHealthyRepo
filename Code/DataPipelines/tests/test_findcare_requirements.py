@@ -1,12 +1,12 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""FindCare requirement tests — FC-MSG-001, PIPE-DQ-004, BRAIN-CONVERSATION-LOG-REQ-012.
+"""FindCare requirement tests — EPIC-006-F-004-S-001, EPIC-006-F-010-S-004, EPIC-008-F-007-S-007-REQ-T-012.
 
-FC-MSG-001-REQ-001: Summary uses user's search term (specialty_searched)
-PIPE-DQ-004-REQ-006: Search results include can_prescribe flag
-PIPE-DQ-004-REQ-007: EvaluateCare uses can_prescribe flag
-BRAIN-CONVERSATION-LOG-REQ-012: Skip — not a testable requirement
+EPIC-006-F-004-S-001-REQ-001: Summary uses user's search term (specialty_searched)
+EPIC-006-F-010-S-004-REQ-006: Search results include can_prescribe flag
+EPIC-006-F-010-S-004-REQ-007: EvaluateCare uses can_prescribe flag
+EPIC-008-F-007-S-007-REQ-T-012: Skip — not a testable requirement
 """
 
 import ast
@@ -20,11 +20,11 @@ BACKEND_DIR = os.path.join(REPO, "Code", "ConversationalUX", "FindCareChat", "ba
 sys.path.insert(0, BACKEND_DIR)
 
 
-# ── FC-MSG-001-REQ-001 ────────────────────────────────────────────────────
+# ── EPIC-006-F-004-S-001-REQ-001 ────────────────────────────────────────────────────
 # Summary uses user's search term (specialty_searched), not generic 'providers'
 
 def test_summary_uses_specialty_searched():
-    """FC-MSG-001-REQ-001: _build_summary_message uses specialty_searched, not generic 'providers'."""
+    """EPIC-006-F-004-S-001-REQ-001: _build_summary_message uses specialty_searched, not generic 'providers'."""
     from domain.find_care.provider_search_service import FindCareService
 
     # Call _build_summary_message with a custom specialty_searched term
@@ -47,7 +47,7 @@ def test_summary_uses_specialty_searched():
 
 
 def test_summary_falls_back_to_results_without_specialty():
-    """FC-MSG-001-REQ-001: when specialty_searched is empty, uses 'results' as fallback."""
+    """EPIC-006-F-004-S-001-REQ-001: when specialty_searched is empty, uses 'results' as fallback."""
     from domain.find_care.provider_search_service import FindCareService
 
     msg = FindCareService._build_summary_message(
@@ -65,7 +65,7 @@ def test_summary_falls_back_to_results_without_specialty():
 
 
 def test_summary_empty_when_no_more():
-    """FC-MSG-001-REQ-001: summary is empty when has_more=False."""
+    """EPIC-006-F-004-S-001-REQ-001: summary is empty when has_more=False."""
     from domain.find_care.provider_search_service import FindCareService
 
     msg = FindCareService._build_summary_message(
@@ -77,11 +77,11 @@ def test_summary_empty_when_no_more():
     assert msg == "", "Summary must be empty when has_more is False"
 
 
-# ── PIPE-DQ-004-REQ-006 ───────────────────────────────────────────────────
+# ── EPIC-006-F-010-S-004-REQ-006 ───────────────────────────────────────────────────
 # Search results include can_prescribe flag
 
 def test_search_results_include_can_prescribe_in_specialty_options():
-    """PIPE-DQ-004-REQ-006: specialization_options includes can_prescribe flag."""
+    """EPIC-006-F-010-S-004-REQ-006: specialization_options includes can_prescribe flag."""
     # Verify by code inspection that the search service returns can_prescribe
     source_path = os.path.join(
         BACKEND_DIR, "domain", "find_care", "provider_search_service.py"
@@ -101,7 +101,7 @@ def test_search_results_include_can_prescribe_in_specialty_options():
 
 
 def test_classify_endpoint_returns_can_prescribe():
-    """PIPE-DQ-004-REQ-006: /classify endpoint maps can_prescribe to response."""
+    """EPIC-006-F-010-S-004-REQ-006: /classify endpoint maps can_prescribe to response."""
     source_path = os.path.join(BACKEND_DIR, "main.py")
     with open(source_path, "r", encoding="utf-8") as f:
         source = f.read()
@@ -111,11 +111,11 @@ def test_classify_endpoint_returns_can_prescribe():
     )
 
 
-# ── PIPE-DQ-004-REQ-007 ───────────────────────────────────────────────────
+# ── EPIC-006-F-010-S-004-REQ-007 ───────────────────────────────────────────────────
 # EvaluateCare uses can_prescribe flag
 
 def test_evaluate_care_facade_exists():
-    """PIPE-DQ-004-REQ-007: EvaluateCareFacade exists and has provider detail lookup."""
+    """EPIC-006-F-010-S-004-REQ-007: EvaluateCareFacade exists and has provider detail lookup."""
     source_path = os.path.join(
         BACKEND_DIR, "application", "facades", "evaluate_care_facade.py"
     )
@@ -129,7 +129,7 @@ def test_evaluate_care_facade_exists():
 
 
 def test_can_prescribe_available_for_evaluate_care():
-    """PIPE-DQ-004-REQ-007: can_prescribe flag flows through specialty data to evaluation.
+    """EPIC-006-F-010-S-004-REQ-007: can_prescribe flag flows through specialty data to evaluation.
 
     The specialization_options from FindCare include can_prescribe.
     The frontend sends selected providers (with specialty codes) to EvaluateCare.
@@ -157,11 +157,11 @@ def test_can_prescribe_available_for_evaluate_care():
     )
 
 
-# ── BRAIN-CONVERSATION-LOG-REQ-012 ────────────────────────────────────────
+# ── EPIC-008-F-007-S-007-REQ-T-012 ────────────────────────────────────────
 # Rationalization review — not a testable requirement
 
-@pytest.mark.skip(reason="BRAIN-CONVERSATION-LOG-REQ-012 is a process requirement "
+@pytest.mark.skip(reason="EPIC-008-F-007-S-007-REQ-T-012 is a process requirement "
                          "(rationalization review by human and Claude), not testable via pytest")
 def test_conversation_log_rationalization():
-    """BRAIN-CONVERSATION-LOG-REQ-012: conversation_log.json needs rationalization review."""
+    """EPIC-008-F-007-S-007-REQ-T-012: conversation_log.json needs rationalization review."""
     pass

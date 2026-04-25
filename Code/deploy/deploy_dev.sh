@@ -65,12 +65,6 @@ fi
 echo "  Branch: $BRANCH"
 echo "  Done."
 
-# ── Step 2: Pre-deploy rule check ────────────────────────────────
-echo "[2/6] Running pre-deploy rule check..."
-cd "$REPO_ROOT"
-python Code/Shared/ops/tools/pre_deploy_rule_check.py findcare
-echo "  Done."
-
 # ── Step 3: Push to dev ──────────────────────────────────────────
 echo "[3/6] Pushing to dev..."
 

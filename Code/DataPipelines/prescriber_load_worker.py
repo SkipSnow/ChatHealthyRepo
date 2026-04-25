@@ -314,8 +314,8 @@ def _group_drugs(raw_drugs):
     """Group raw CMS drug rows by molecule (generic name), aggregate claims.
 
     Splits claims into brand_claims and generic_claims per molecule
-    (PIPE-DQ-004-REQ-013). Also computes provider-level generic_ratio_band
-    (PIPE-DQ-004-REQ-014).
+    (EPIC-006-F-010-S-004-REQ-T-010). Also computes provider-level generic_ratio_band
+    (EPIC-006-F-010-S-004-REQ-T-011).
     """
     molecule_map = {}
     for d in raw_drugs:

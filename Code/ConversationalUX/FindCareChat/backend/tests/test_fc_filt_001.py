@@ -65,7 +65,7 @@ def _find_in_any_frame(page: Page, selector: str):
 # ============================================================================
 
 class TestREQ001_VectorSearch:
-    """FC-FILT-001-REQ-001: Specialty search is AI vector search only."""
+    """EPIC-006-F-002-S-001-REQ-T-001: Specialty search is AI vector search only."""
 
     def test_colloquial_search_returns_results(self, page: Page):
         """'shrink' should match psychiatry/psychology via embeddings — no regex would catch this."""
@@ -95,7 +95,7 @@ class TestREQ001_VectorSearch:
 # ============================================================================
 
 class TestREQ002_StructuredResults:
-    """FC-FILT-001-REQ-002: Results include NUCC codes, name, flags, rank."""
+    """EPIC-006-F-002-S-001-REQ-B-001: Results include NUCC codes, name, flags, rank."""
 
     def test_filter_items_have_labels(self, page: Page):
         """Each filter item must have a visible specialty name label."""
@@ -128,7 +128,7 @@ class TestREQ002_StructuredResults:
 # ============================================================================
 
 class TestREQ003_Ranking:
-    """FC-FILT-001-REQ-003: Results ranked by relevance."""
+    """EPIC-006-F-002-S-001-REQ-T-002: Results ranked by relevance."""
 
     def test_results_are_ordered_by_relevance(self, page: Page):
         """First specialty in the list should be more relevant than the last."""
@@ -155,7 +155,7 @@ class TestREQ003_Ranking:
 # ============================================================================
 
 class TestREQ004_ClientCache:
-    """FC-FILT-001-REQ-004: Client caches specialty results."""
+    """EPIC-006-F-002-S-001-REQ-T-003: Client caches specialty results."""
 
     def test_toggle_does_not_trigger_network_call(self, page: Page):
         """Toggling prescriber switch should not cause a loading state (cached)."""
@@ -188,7 +188,7 @@ class TestREQ004_ClientCache:
 # ============================================================================
 
 class TestREQ005_ToggleFilters:
-    """FC-FILT-001-REQ-005: Prescriber/homeopathic toggles filter client-side."""
+    """EPIC-006-F-002-S-001-REQ-T-004: Prescriber/homeopathic toggles filter client-side."""
 
     def test_prescriber_toggle_filters_list(self, page: Page):
         """Prescriber toggle should show only prescriber specialties."""
@@ -242,7 +242,7 @@ class TestREQ005_ToggleFilters:
 # ============================================================================
 
 class TestREQ006_ApplyFilter:
-    """FC-FILT-001-REQ-006: Apply Filter empties unpicked providers, new DB request."""
+    """EPIC-006-F-002-S-001-REQ-B-002: Apply Filter empties unpicked providers, new DB request."""
 
     def test_apply_filter_changes_provider_list(self, page: Page):
         """Unchecking a specialty and applying should change the provider list."""
@@ -309,7 +309,7 @@ class TestREQ006_ApplyFilter:
 # ============================================================================
 
 class TestREQ007_ProviderQuery:
-    """FC-FILT-001-REQ-007: Provider query uses traditional MongoDB query."""
+    """EPIC-006-F-002-S-001-REQ-T-005: Provider query uses traditional MongoDB query."""
 
     def test_apply_filter_shows_loading_state(self, page: Page):
         """While the provider query runs, the screen should be empty or show a timer."""
@@ -340,7 +340,7 @@ class TestREQ007_ProviderQuery:
 # ============================================================================
 
 class TestREQ008_FilterPanel:
-    """FC-FILT-001-REQ-008: Filter panel shows specialty types."""
+    """EPIC-006-F-002-S-001-REQ-B-003: Filter panel shows specialty types."""
 
     def test_filter_panel_appears_after_search(self, page: Page):
         """After a search, the filter panel must appear with specialty checkboxes."""
@@ -357,7 +357,7 @@ class TestREQ008_FilterPanel:
 # ============================================================================
 
 class TestREQ009_PrescribersCheckbox:
-    """FC-FILT-001-REQ-009: Prescribers only checkbox."""
+    """EPIC-006-F-002-S-001-REQ-B-004: Prescribers only checkbox."""
 
     def test_prescribers_checkbox_exists(self, page: Page):
         """Prescribers only checkbox must be present and functional."""
@@ -372,7 +372,7 @@ class TestREQ009_PrescribersCheckbox:
 # ============================================================================
 
 class TestREQ010_HomeopathicCheckbox:
-    """FC-FILT-001-REQ-010: Homeopathic only checkbox."""
+    """EPIC-006-F-002-S-001-REQ-B-005: Homeopathic only checkbox."""
 
     def test_homeopathic_checkbox_exists(self, page: Page):
         """Homeopathic only checkbox must be present."""
@@ -387,7 +387,7 @@ class TestREQ010_HomeopathicCheckbox:
 # ============================================================================
 
 class TestREQ011_ThreeCounts:
-    """FC-FILT-001-REQ-011: Three counts — total types, showing, filtered."""
+    """EPIC-006-F-002-S-001-REQ-B-006: Three counts — total types, showing, filtered."""
 
     def test_three_counts_are_visible(self, page: Page):
         """All three count elements must be visible."""
@@ -430,7 +430,7 @@ class TestREQ011_ThreeCounts:
 # ============================================================================
 
 class TestREQ012_ToggleAll:
-    """FC-FILT-001-REQ-012: Check all / uncheck all toggle."""
+    """EPIC-006-F-002-S-001-REQ-B-007: Check all / uncheck all toggle."""
 
     def test_uncheck_all_sets_showing_to_zero(self, page: Page):
         """Clicking 'Uncheck All' must set showing to 0."""
@@ -473,7 +473,7 @@ class TestREQ012_ToggleAll:
 # ============================================================================
 
 class TestREQ013_HeaderLayout:
-    """FC-FILT-001-REQ-013: Filter header horizontal grid, no truncation."""
+    """EPIC-006-F-002-S-001-REQ-B-008: Filter header horizontal grid, no truncation."""
 
     def test_filter_header_labels_not_truncated(self, page: Page):
         """Filter header labels must be fully visible — no text-overflow ellipsis."""
@@ -495,7 +495,7 @@ class TestREQ013_HeaderLayout:
 # ============================================================================
 
 class TestREQ014_ApplyFilterFull:
-    """FC-FILT-001-REQ-014: Apply Filter full flow."""
+    """EPIC-006-F-002-S-001-REQ-B-009: Apply Filter full flow."""
 
     def test_apply_with_no_change_shows_message(self, page: Page):
         """Clicking Apply Filter with no changes should show 'no changes' message."""
@@ -580,7 +580,7 @@ class TestUX002_ScrollWindow:
 # ============================================================================
 
 class TestREQ016_ToggleLabel:
-    """FC-FILT-001-REQ-016: Toggle label changes based on majority state."""
+    """EPIC-006-F-002-S-001-REQ-B-010: Toggle label changes based on majority state."""
 
     def test_initial_label_is_uncheck_all(self, page: Page):
         """Initially all are checked, so label should be 'Uncheck All'."""

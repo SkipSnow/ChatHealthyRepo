@@ -1,5 +1,5 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
-# BRAIN-SCHEMA-REQ-001: Schema enforcement tests.
+# EPIC-008-F-007-S-020-REQ-T-001: Schema enforcement tests.
 #
 # Every constrained field in schema.json must reject illegal values.
 # These tests hand illegal values to the validator and verify they fail.

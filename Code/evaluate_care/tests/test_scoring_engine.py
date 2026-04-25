@@ -66,7 +66,7 @@ def _trial_request() -> ScoringRequest:
 
 
 # ---------------------------------------------------------------------------
-# Determinism (EVAL-REQ-001, EVAL-REQ-002)
+# Determinism (EPIC-001-F-020-S-004-REQ-T-001, EPIC-001-F-020-S-004-REQ-T-002)
 # ---------------------------------------------------------------------------
 
 class TestDeterminism:
@@ -328,7 +328,7 @@ class TestConfidence:
 
 
 # ---------------------------------------------------------------------------
-# Input immutability (EVAL-REQ-013)
+# Input immutability (EPIC-001-F-020-S-004-REQ-T-010)
 # ---------------------------------------------------------------------------
 
 class TestImmutability:

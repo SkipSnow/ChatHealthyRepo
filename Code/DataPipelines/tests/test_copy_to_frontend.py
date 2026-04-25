@@ -17,7 +17,7 @@ def _get_clients():
     return MongoClient(pipeline_uri), MongoClient(frontend_uri)
 
 def test_parity_after_copy():
-    """PIPE-CP-001-REQ-001: source count == destination count for copied collections"""
+    """EPIC-006-F-016-S-001-REQ-B-001: source count == destination count for copied collections"""
     pipeline_client, frontend_client = _get_clients()
     env = os.environ.get("ENV_PREFIX", "dev")
     db_name = f"{env}_PublicHealthData"
@@ -31,7 +31,7 @@ def test_parity_after_copy():
         assert src == dst, f"Parity failure {coll_name}: pipeline={src} frontend={dst}"
 
 def test_parity_per_state():
-    """PIPE-CP-001-REQ-002: provider count matches per state"""
+    """EPIC-006-F-016-S-001-REQ-B-002: provider count matches per state"""
     pipeline_client, frontend_client = _get_clients()
     env = os.environ.get("ENV_PREFIX", "dev")
     db_name = f"{env}_PublicHealthData"

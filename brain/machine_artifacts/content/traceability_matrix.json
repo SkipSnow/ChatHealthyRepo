@@ -6,7 +6,7 @@
   "date": "2026-04-08",
   "epic_id": "EPIC-PIPE",
   "entries": {
-    "PIPE-QG-001-REQ-001": {
+    "EPIC-006-F-011-S-001-REQ-T-001": {
       "story": "PIPE-QG-001",
       "test_artifacts": [
         "test_quality_gates.py::test_min_row_count_fail"
@@ -17,7 +17,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-QG-001-REQ-002": {
+    "EPIC-006-F-011-S-001-REQ-T-002": {
       "story": "PIPE-QG-001",
       "test_artifacts": [
         "test_quality_gates.py::test_min_row_count_pass"
@@ -28,7 +28,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-QG-001-REQ-003": {
+    "EPIC-006-F-011-S-001-REQ-T-003": {
       "story": "PIPE-QG-001",
       "test_artifacts": [
         "test_quality_gates.py::test_null_check_fail"
@@ -39,7 +39,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-QG-001-REQ-004": {
+    "EPIC-006-F-011-S-001-REQ-T-004": {
       "story": "PIPE-QG-001",
       "test_artifacts": [
         "test_quality_gates.py::test_null_check_pass"
@@ -50,7 +50,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-FA-001-REQ-001": {
+    "EPIC-006-F-012-S-001-REQ-T-001": {
       "story": "PIPE-FA-001",
       "test_artifacts": [
         "test_error_alerting.py::test_alert_on_fatal_error"
@@ -61,7 +61,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-FA-001-REQ-002": {
+    "EPIC-006-F-012-S-001-REQ-T-002": {
       "story": "PIPE-FA-001",
       "test_artifacts": [
         "test_error_alerting.py::test_alert_logs_to_mongodb"
@@ -72,7 +72,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-FA-001-REQ-003": {
+    "EPIC-006-F-012-S-001-REQ-T-003": {
       "story": "PIPE-FA-001",
       "test_artifacts": [
         "test_error_alerting.py::test_bell_stop"
@@ -83,7 +83,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-SD-001-REQ-001": {
+    "EPIC-006-F-013-S-001-REQ-T-001": {
       "story": "PIPE-SD-001",
       "test_artifacts": [
         "test_schema_drift.py::test_drift_detected"
@@ -94,7 +94,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-SD-001-REQ-002": {
+    "EPIC-006-F-013-S-001-REQ-T-002": {
       "story": "PIPE-SD-001",
       "test_artifacts": [
         "test_schema_drift.py::test_no_drift"
@@ -105,7 +105,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-SD-001-REQ-003": {
+    "EPIC-006-F-013-S-001-REQ-T-003": {
       "story": "PIPE-SD-001",
       "test_artifacts": [
         "test_schema_drift.py::test_store_fingerprint"
@@ -116,7 +116,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-SD-001-REQ-004": {
+    "EPIC-006-F-013-S-001-REQ-T-004": {
       "story": "PIPE-SD-001",
       "test_artifacts": [
         "test_schema_drift.py::test_allow_drift_override"
@@ -127,7 +127,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-ID-001-REQ-001": {
+    "EPIC-006-F-014-S-001-REQ-T-001": {
       "story": "PIPE-ID-001",
       "test_artifacts": [
         "test_idempotency.py::test_output_exists"
@@ -138,7 +138,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-ID-001-REQ-002": {
+    "EPIC-006-F-014-S-001-REQ-T-002": {
       "story": "PIPE-ID-001",
       "test_artifacts": [
         "test_idempotency.py::test_no_output"
@@ -149,7 +149,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-ID-001-REQ-003": {
+    "EPIC-006-F-014-S-001-REQ-T-003": {
       "story": "PIPE-ID-001",
       "test_artifacts": [
         "test_idempotency.py::test_insufficient_count"
@@ -160,7 +160,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-CO-001-REQ-001": {
+    "EPIC-006-F-015-S-001-REQ-T-001": {
       "story": "PIPE-CO-001",
       "test_artifacts": [
         "test_compliance.py::test_no_raw_requests_get"
@@ -171,7 +171,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-CO-001-REQ-002": {
+    "EPIC-006-F-015-S-001-REQ-T-002": {
       "story": "PIPE-CO-001",
       "test_artifacts": [
         "test_compliance.py::test_no_readall"
@@ -182,7 +182,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-CO-001-REQ-003": {
+    "EPIC-006-F-015-S-001-REQ-T-003": {
       "story": "PIPE-CO-001",
       "test_artifacts": [
         "test_compliance.py::test_no_hardcoded_urls"
@@ -193,7 +193,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-CO-001-REQ-004": {
+    "EPIC-006-F-015-S-001-REQ-T-004": {
       "story": "PIPE-CO-001",
       "test_artifacts": [
         "test_compliance.py::test_quality_gate_imported"
@@ -204,7 +204,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-CO-001-REQ-005": {
+    "EPIC-006-F-015-S-001-REQ-T-005": {
       "story": "PIPE-CO-001",
       "test_artifacts": [
         "test_compliance.py::test_fatal_alert_imported"
@@ -215,7 +215,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-CP-001-REQ-001": {
+    "EPIC-006-F-016-S-001-REQ-B-001": {
       "story": "PIPE-CP-001",
       "test_artifacts": [
         "test_copy_to_frontend.py::test_parity_after_copy"
@@ -226,7 +226,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-CP-001-REQ-002": {
+    "EPIC-006-F-016-S-001-REQ-B-002": {
       "story": "PIPE-CP-001",
       "test_artifacts": [
         "test_copy_to_frontend.py::test_parity_per_state"
@@ -237,7 +237,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-TR-001-REQ-001": {
+    "EPIC-006-F-017-S-001-REQ-T-001": {
       "story": "PIPE-TR-001",
       "test_artifacts": [
         "test_traceability.py::test_all_requirements_have_tests"
@@ -248,7 +248,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-TR-001-REQ-002": {
+    "EPIC-006-F-017-S-001-REQ-T-002": {
       "story": "PIPE-TR-001",
       "test_artifacts": [
         "test_traceability.py::test_test_files_exist"
@@ -259,7 +259,7 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "PIPE-TR-001-REQ-003": {
+    "EPIC-006-F-017-S-001-REQ-T-003": {
       "story": "PIPE-TR-001",
       "test_artifacts": [
         "test_traceability.py::test_matrix_valid_json"

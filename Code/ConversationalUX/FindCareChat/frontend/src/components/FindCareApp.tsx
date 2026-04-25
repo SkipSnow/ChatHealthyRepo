@@ -39,7 +39,7 @@ function sendToParent(type: string, data: any = {}) {
   }
 }
 
-// ── SEC-HTTPS-001-REQ-003: Check for security violation on every fetch ───
+// ── EPIC-002-F-001-S-012-REQ-B-003: Check for security violation on every fetch ───
 function checkSecurityViolation(resp: Response, url: string): void {
   if (resp.status === 403 || resp.status === 426) {
     throw new Error(`SECURITY: ${url} returned ${resp.status} — HTTPS required. HTTP calls are blocked.`)
@@ -119,7 +119,7 @@ export default function FindCareApp() {
 
       if (msg.type === 'gui:event') {
         if (msg.action === 'filter-apply' && searchParamsRef.current) {
-          // FC-FILT-001-REQ-007: Re-query with filtered codes
+          // EPIC-006-F-002-S-001-REQ-T-005: Re-query with filtered codes
           const params = { ...searchParamsRef.current, specialty_codes: JSON.parse(msg.value || '[]') }
           fetchProviders(params, questionRef.current)
         }
@@ -296,7 +296,7 @@ export default function FindCareApp() {
       <div data-filter-panel style="display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:#fff;height:100%;">
           <div data-cell="1" style="flex:0 0 18%;overflow:hidden;">
             <div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f8fffe;height:100%;box-sizing:border-box;">
-              <!-- FC-FILT-001-REQ-013: 7 elements in order inside cell 1 (green header):
+              <!-- EPIC-006-F-002-S-001-REQ-B-008: 7 elements in order inside cell 1 (green header):
                    (1) Filter by specialty label, (2) All possible, (3) Prescribers count,
                    (4) Your choices, (5) Uncheck All toggle, (6) Prescribers checkbox,
                    (7) Homeopathic checkbox. Uncheck All sits to the LEFT of the checkbox column. -->
@@ -481,7 +481,7 @@ export default function FindCareApp() {
             )}
           </div>
 
-          {/* Selected providers — sticky bottom half (FC-SELECT-001-REQ-002: drop target) */}
+          {/* Selected providers — sticky bottom half (EPIC-006-F-001-S-002-REQ-B-002: drop target) */}
           <div
             style={{
               borderTop: '2px solid #d97706', background: '#fffdf7',

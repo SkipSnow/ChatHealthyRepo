@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/dev/EngineeringRulesSchema.json",
-  "title": "ChatHealthy Engineering Rules",
+  "title": "ChatHealthy Engineering Rules Schema",
   "description": "Engineering rules with binding statements and runtime enforcements.",
   "type": "object",
   "required": [
@@ -29,7 +29,7 @@
               "name",
               "description",
               "rule_statements",
-              "enforcements"
+              "status"
             ],
             "properties": {
               "id": {
@@ -89,7 +89,8 @@
               "enforcements": {
                 "type": "object",
                 "required": [
-                  "enforcement"
+                  "enforcement",
+                  "risk_acceptance_id"
                 ],
                 "properties": {
                   "enforcement": {
@@ -97,23 +98,266 @@
                     "description": "May be empty when no runtime enforcement is wired yet.",
                     "items": {
                       "type": "object",
+                      "additionalProperties": false,
                       "required": [
-                        "type"
+                        "hook",
+                        "requirements",
+                        "environment_scoped"
                       ],
                       "properties": {
-                        "type": {
+                        "hook": {
                           "type": "string",
-                          "description": "Enforcement-type discriminator (e.g. file_scan, graph_entry_check, published_schema_validation)."
+                          "enum": [
+                            "SessionStart",
+                            "UserPromptSubmit",
+                            "PreToolUse",
+                            "PostToolUse",
+                            "Stop",
+                            "SubagentStop",
+                            "SessionEnd",
+                            "PreCompact",
+                            "Notification"
+                          ]
+                        },
+                        "requirements": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "not": {
+                              "const": "Orphan"
+                            }
+                          }
+                        },
+                        "environment_scoped": {
+                          "type": "boolean"
+                        },
+                        "environments": {
+                          "type": "object",
+                          "required": [
+                            "local",
+                            "dev",
+                            "qa",
+                            "prod"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "local": {
+                              "type": "object",
+                              "required": [
+                                "scriptPath",
+                                "args"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "scriptPath": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "args": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "dev": {
+                              "type": "object",
+                              "required": [
+                                "scriptPath",
+                                "args"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "scriptPath": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "args": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "qa": {
+                              "type": "object",
+                              "required": [
+                                "scriptPath",
+                                "args"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "scriptPath": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "args": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "prod": {
+                              "type": "object",
+                              "required": [
+                                "scriptPath",
+                                "args"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "scriptPath": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "args": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "script": {
+                          "type": "object",
+                          "required": [
+                            "scriptPath",
+                            "args"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "scriptPath": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "args": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
                         }
                       },
-                      "additionalProperties": false
-                    }
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "environment_scoped": {
+                                "const": true
+                              }
+                            },
+                            "required": [
+                              "environment_scoped"
+                            ]
+                          },
+                          "then": {
+                            "required": [
+                              "environments"
+                            ],
+                            "not": {
+                              "required": [
+                                "script"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "if": {
+                            "properties": {
+                              "environment_scoped": {
+                                "const": false
+                              }
+                            },
+                            "required": [
+                              "environment_scoped"
+                            ]
+                          },
+                          "then": {
+                            "required": [
+                              "script"
+                            ],
+                            "not": {
+                              "required": [
+                                "environments"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "risk_acceptance_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "ID of the risk_acceptance.json entry covering every enforcement in this block."
                   }
                 },
                 "additionalProperties": false
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "unenforced",
+                  "enforcement_proposed",
+                  "enforcement_sit_testing",
+                  "enforcement_sit_failed",
+                  "enforcement_uat_testing",
+                  "enforcement_uat_failed",
+                  "enforced"
+                ],
+                "description": "Rule enforcement lifecycle status."
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "unenforced"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "enforcements"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "not": {
+                        "const": "unenforced"
+                      }
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "enforcements"
+                  ]
+                }
+              }
+            ]
           }
         }
       },

@@ -1,7 +1,7 @@
 """
 apiSmokeTestPyTest.py — service-to-service API tests, no browser needed.
 
-Per SEC-HTTPS-001-REQ-009: any call between FindCare, EvaluateCare, or
+Per EPIC-002-F-001-S-012-REQ-T-002: any call between FindCare, EvaluateCare, or
 SharedServices MUST complete a mutual-authentication TLS 1.2+ handshake.
 
 Positive matrix (6 tests): for each ordered pair (caller, callee) where
@@ -144,7 +144,7 @@ _PAIRS = [
 # ── Positive matrix: every service MUST be able to mTLS-handshake every peer ─
 @pytest.mark.parametrize("caller,callee", _PAIRS)
 def test_mtls_handshake_with_client_cert(caller, callee):
-    """SEC-HTTPS-001-REQ-009: ${caller} -> ${callee} MUST complete mutual-auth handshake."""
+    """EPIC-002-F-001-S-012-REQ-T-002: ${caller} -> ${callee} MUST complete mutual-auth handshake."""
     status, code, body = _handshake(caller, callee, with_cert=True)
     assert status == "ok", (
         f"{caller} -> {callee}: handshake did not complete. exception: {body}"
@@ -164,7 +164,7 @@ def test_mtls_handshake_with_client_cert(caller, callee):
 )
 @pytest.mark.parametrize("caller,callee", _PAIRS)
 def test_mtls_rejects_missing_client_cert(caller, callee):
-    """SEC-HTTPS-001-REQ-009: ${callee} MUST reject a handshake with no client cert."""
+    """EPIC-002-F-001-S-012-REQ-T-002: ${callee} MUST reject a handshake with no client cert."""
     status, code, body = _handshake(caller, callee, with_cert=False)
     assert (
         status == "error"

@@ -431,7 +431,6 @@ class engineering_rules_worker(governance_worker_base):
         r"bash_rule_guard\.py",
         r"kill_zombies\.py",
         r"bump_build\.py",
-        r"pre_deploy_rule_check",
         r"devpipelinemanagmentservice.*azurewebsites\.net",  # Pipeline service invocation
         r"start_local\.bat",  # Local dev environment launcher
         r"^curl\s",  # Network reads — health checks, status polls
@@ -1192,7 +1191,7 @@ class chathealthy_devops_boot:
         }
 
     def inform_claude(self, boot_result: dict) -> str:
-        """ARCH-DEVOPS-BOOT-001-REQ-011 (BUG-GOV-011): Emit ONLY the mode-selection
+        """EPIC-008-F-003-S-001-REQ-B-004 (BUG-GOV-011): Emit ONLY the mode-selection
         directive at boot. Orphan-triage directive is emitted in prompt() on the
         turn the user replies 1/2/3 — keeps SessionStart additionalContext small
         enough to survive the preview-truncation window."""

@@ -75,14 +75,14 @@ def edit_1_backlog():
     reqs = get_reqs(ber)
     existing = {r.get("req_id") for r in reqs}
     additions = [
-        make_req("BRAIN-ENGINEERING-RULES-REQ-B001", "business", "must-have",
+        make_req("EPIC-008-F-007-S-011-REQ-B-001", "business", "must-have",
                  "engineering_rules.json MUST express each rule as (a) a short "
                  "name (max 80 chars), (b) a non-binding description, and (c) "
                  "one or more individually Boolean-testable statements. Rule "
                  "identifiers MUST be uniform Rule-NNN. Every rule MUST carry "
                  "a date.",
                  "BRAIN-ENGINEERING-RULES"),
-        make_req("BRAIN-ENGINEERING-RULES-REQ-T001", "technical", "must-have",
+        make_req("EPIC-008-F-007-S-011-REQ-T-002", "technical", "must-have",
                  "Publish a strict JSON schema (Draft 2020-12) defining "
                  "rules[].rule with fields {id (matching ^Rule-\\d{3}$), name "
                  "(maxLength 80), description, rule_statements[] of "
@@ -90,9 +90,8 @@ def edit_1_backlog():
                  "standard|incident-driven), source}. Migrate engineering_"
                  "rules.json in one commit; in the same commit rename every "
                  "v4-NNN/DR-NNN to Rule-NNN and update every reference in non-"
-                 "loose-schema brain JSONs and bugs.json. preCommitScan.py + "
-                 "pre_deploy_rule_check.py iterate rule_statements[] instead "
-                 "of the prose body.",
+                 "loose-schema brain JSONs and bugs.json. preCommitScan.py "
+                 "iterates rule_statements[] instead of the prose body.",
                  "BRAIN-ENGINEERING-RULES"),
     ]
     for a in additions:
@@ -113,7 +112,7 @@ def edit_1_backlog():
                     "name": "Build the compliance crosswalk agent (NIST 800-53 + HITRUST CSF v11)",
                     "status": "in_progress",
                     "requirements": {"requirement": [
-                        make_req("ARCH-COMPLIANCE-CROSSWALK-001-REQ-B001",
+                        make_req("EPIC-002-F-002-S-002-REQ-B-001",
                                  "business", "must-have",
                                  "The system MUST be auditable against NIST SP "
                                  "800-53 Rev 5 and HITRUST CSF v11 by maintaining "
@@ -122,7 +121,7 @@ def edit_1_backlog():
                                  "that implement it. The crosswalk MUST be "
                                  "machine-readable and persisted in the brain.",
                                  "ARCH-COMPLIANCE-CROSSWALK-001"),
-                        make_req("ARCH-COMPLIANCE-CROSSWALK-001-REQ-T001",
+                        make_req("EPIC-002-F-002-S-002-REQ-T-001",
                                  "technical", "must-have",
                                  "An agent (compliance_crosswalk_agent.py — under "
                                  "Code/_pending/compliance_crosswalk/src/, single "
@@ -144,14 +143,14 @@ def edit_1_backlog():
                     "name": "Crosswalk agent: third framework — engineering rules",
                     "status": "not_started",
                     "requirements": {"requirement": [
-                        make_req("ARCH-COMPLIANCE-CROSSWALK-002-REQ-B001",
+                        make_req("EPIC-002-F-003-S-002-REQ-B-001",
                                  "business", "should-have",
                                  "The system MUST surface, for any source file or "
                                  "any external compliance control, the internal "
                                  "engineering rules that govern it — in the same "
                                  "crosswalk.",
                                  "ARCH-COMPLIANCE-CROSSWALK-002"),
-                        make_req("ARCH-COMPLIANCE-CROSSWALK-002-REQ-T001",
+                        make_req("EPIC-002-F-003-S-002-REQ-T-001",
                                  "technical", "should-have",
                                  "Compliance crosswalk agent gains a third "
                                  "framework: engineering_rules. Pass 1 ingests "
@@ -160,7 +159,7 @@ def edit_1_backlog():
                                  "the classifier so each implementation entry can "
                                  "reference both external control IDs and "
                                  "engineering rule IDs. Hard dependency on "
-                                 "BRAIN-ENGINEERING-RULES-REQ-T001.",
+                                 "EPIC-008-F-007-S-011-REQ-T-002.",
                                  "ARCH-COMPLIANCE-CROSSWALK-002"),
                     ]}
                 }
@@ -181,7 +180,7 @@ def edit_1_backlog():
                     "name": "End-to-end deferred-work tracking pattern",
                     "status": "not_started",
                     "requirements": {"requirement": [
-                        make_req("BRAIN-DEFERRED-WORK-001-REQ-B001",
+                        make_req("EPIC-008-F-009-S-001-REQ-B-001",
                                  "business", "must-have",
                                  "Every unit of work that is deferred MUST be "
                                  "visible end-to-end: the deferred state, the "
@@ -191,7 +190,7 @@ def edit_1_backlog():
                                  "Deferral remains visible until the requirement "
                                  "is fulfilled.",
                                  "BRAIN-DEFERRED-WORK-001"),
-                        make_req("BRAIN-DEFERRED-WORK-001-REQ-T001",
+                        make_req("EPIC-008-F-009-S-001-REQ-T-001",
                                  "technical", "must-have",
                                  "Backlog requirements with status=deferred MUST "
                                  "have a paired tracking bug in bugs.json with "
@@ -254,13 +253,13 @@ def edit_2_bugs():
         }
 
     additions = [
-        make_bug("BUG-DEFER-001", "ARCH-COMPLIANCE-CROSSWALK-001-REQ-T001",
+        make_bug("BUG-DEFER-001", "EPIC-002-F-002-S-002-REQ-T-001",
                  "Deferred: compliance crosswalk agent not yet approved into prod"),
-        make_bug("BUG-DEFER-002", "BRAIN-ENGINEERING-RULES-REQ-T001",
+        make_bug("BUG-DEFER-002", "EPIC-008-F-007-S-011-REQ-T-002",
                  "Deferred: engineering_rules.json schema redesign not yet done"),
-        make_bug("BUG-DEFER-003", "ARCH-COMPLIANCE-CROSSWALK-002-REQ-T001",
+        make_bug("BUG-DEFER-003", "EPIC-002-F-003-S-002-REQ-T-001",
                  "Deferred: crosswalk third-framework (engineering rules) not yet done"),
-        make_bug("BUG-DEFER-004", "BRAIN-DEFERRED-WORK-001-REQ-T001",
+        make_bug("BUG-DEFER-004", "EPIC-008-F-009-S-001-REQ-T-001",
                  "Deferred: deferred-work pattern not yet codified end-to-end"),
     ]
     for a in additions:

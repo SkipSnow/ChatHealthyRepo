@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ARCH-DEVOPS-BOOT-001-REQ-017 step 2: at SessionStart, hash each
+# EPIC-008-F-003-S-001-REQ-T-009 step 2: at SessionStart, hash each
 # context-resident brain JSON on disk and retain the hash. This is
 # the pre-load baseline the InstructionsLoaded logger compares
 # against to detect hash_mismatch.

@@ -31,7 +31,7 @@ CERTS_DIR = os.environ.get("CERTS_DIR",
 _session_guid: str | None = None
 
 
-# SEC-HTTPS-001-REQ-017: the origin field in a session token MUST be the
+# EPIC-002-F-001-S-012-REQ-T-006: the origin field in a session token MUST be the
 # canonical service name ("FindCare", "EvaluateCare", "SharedServices").
 # Cert files on disk use shorter historical names. This map is the single
 # source of truth for service-name → cert-file-basename.
@@ -47,7 +47,7 @@ def _cert_basename(origin: str) -> str:
     security primitives MUST fail loud (feedback_no_security_fallbacks)."""
     if origin not in _SERVICE_TO_CERT_NAME:
         raise ValueError(
-            f"Invalid token origin {origin!r}. Per SEC-HTTPS-001-REQ-017 "
+            f"Invalid token origin {origin!r}. Per EPIC-002-F-001-S-012-REQ-T-006 "
             f"origin MUST be one of {sorted(_SERVICE_TO_CERT_NAME)}."
         )
     return _SERVICE_TO_CERT_NAME[origin]
@@ -81,7 +81,7 @@ def generate_session_token(origin: str = "FindCare") -> dict:
         raise FileNotFoundError(
             f"session-token signing key not found: {key_path}. "
             f"A session token cannot be issued without a signing key. "
-            f"Per SEC-HTTPS-001-REQ-014 the server MUST exit rather than serve unsigned tokens."
+            f"Per EPIC-002-F-001-S-012-REQ-T-004 the server MUST exit rather than serve unsigned tokens."
         )
 
     with open(key_path, "rb") as f:

@@ -50,7 +50,7 @@ def search_page():
         chat_input = chat_frame.locator("input[placeholder*='Type a message'], textarea").first
         chat_input.wait_for(state="visible", timeout=30000)
 
-        # FC-SEARCH-001-REQ-001: free-text search
+        # EPIC-006-F-001-S-001-REQ-B-001: free-text search
         chat_input.fill("find me a foot doctor in Delaware")
         chat_frame.locator("button", has_text="Send").first.click()
 
@@ -83,7 +83,7 @@ def search_page():
 
 
 class TestProviderSearchFreeText:
-    """FC-SEARCH-001-REQ-001: User can search by free text."""
+    """EPIC-006-F-001-S-001-REQ-B-001: User can search by free text."""
 
     def test_free_text_search_returns_results(self, search_page):
         """Free-text search returns provider results."""
@@ -97,7 +97,7 @@ class TestProviderSearchFreeText:
 
 
 class TestProviderResultFields:
-    """FC-SEARCH-001-REQ-002: System returns provider name, NPI, address, county, phone."""
+    """EPIC-006-F-001-S-001-REQ-B-002: System returns provider name, NPI, address, county, phone."""
 
     def test_results_contain_npi(self, search_page):
         """Results include NPI numbers."""
@@ -134,7 +134,7 @@ class TestProviderResultFields:
 
 
 class TestProviderSearchPagination:
-    """FC-SEARCH-001-REQ-003: Results paginated with forward/back controls."""
+    """EPIC-006-F-001-S-001-REQ-B-003: Results paginated with forward/back controls."""
 
     def test_pagination_controls_present(self, search_page):
         """Pagination controls (Load more button or remaining count) visible."""
@@ -150,7 +150,7 @@ class TestProviderSearchPagination:
 
 
 class TestSpecialtyClassification:
-    """FC-SEARCH-001-REQ-004: System identifies matching specialty types from search query."""
+    """EPIC-006-F-001-S-001-REQ-B-004: System identifies matching specialty types from search query."""
 
     def test_specialty_types_identified(self, search_page):
         """Search results trigger specialty classification visible in filter panel."""

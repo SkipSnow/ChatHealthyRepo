@@ -102,7 +102,7 @@
           },
           "req_id": {
             "type": "string",
-            "description": "Reference to the agile_backlog requirement this bug is associated with (e.g. FC-SELECT-001-REQ-002). Every bug must trace to a requirement."
+            "description": "Reference to the agile_backlog requirement this bug is associated with (e.g. EPIC-006-F-001-S-002-REQ-B-002). Every bug must trace to a requirement."
           },
           "story_id": {
             "type": "string",

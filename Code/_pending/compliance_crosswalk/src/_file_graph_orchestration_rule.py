@@ -5,7 +5,7 @@
 # What:
 #   1. Engineering rule v4-043 — every business-logic entry point routes
 #      through a graph orchestrator; enforced at check-in.
-#   2. Story + B+T requirement pair under EPIC-008/ARCH-GRAPH-ORCHESTRATION
+#   2. Story + B+T requirement pair under EPIC-008/EPIC-008-F-010
 #      (new feature) capturing the architectural intent + the scanner
 #      that must enforce it.
 #   3. BUG-ARCH-GRAPH-001 — /classify endpoint currently bypasses the
@@ -97,7 +97,7 @@ def add_rule():
     return True
 
 
-# ── 2. New feature ARCH-GRAPH-ORCHESTRATION + story + B/T reqs ──
+# ── 2. New feature EPIC-008-F-010 + story + B/T reqs ──
 
 
 def add_backlog():
@@ -107,12 +107,12 @@ def add_backlog():
                     if e.get("epic_id") == "EPIC-008" and e.get("name") == "Architecture")
     feats = epic_008.get("features", {}).get("feature", []) if isinstance(
         epic_008.get("features"), dict) else epic_008.get("features", [])
-    if any((f.get("feature_id") or f.get("id")) == "ARCH-GRAPH-ORCHESTRATION"
+    if any((f.get("feature_id") or f.get("id")) == "EPIC-008-F-010"
            for f in feats):
         return False
 
     feats.append({
-        "feature_id": "ARCH-GRAPH-ORCHESTRATION",
+        "feature_id": "EPIC-008-F-010",
         "name": "Graph-orchestrated business-logic entry points",
         "status": "in_progress",
         "description": (
@@ -125,7 +125,7 @@ def add_backlog():
         "orphan": False,
         "approval": "approved",
         "stories": {"story": [{
-            "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+            "story_id": "EPIC-008-F-010-001",
             "name": "Codify graph-orchestration rule and enforce at check-in",
             "title": "Codify graph-orchestration rule and enforce at check-in",
             "description": (
@@ -140,7 +140,7 @@ def add_backlog():
             "approval": "approved",
             "requirements": {"requirement": [
                 {
-                    "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-B001",
+                    "req_id": "EPIC-008-F-010-001-REQ-B001",
                     "requirement": (
                         "Every operational entry point in ChatHealthy.ai "
                         "Python services MUST invoke business logic "
@@ -157,12 +157,12 @@ def add_backlog():
                     "pytests": _orphan_pytest(),
                     "approval": "approved",
                     "type": "business",
-                    "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+                    "story_id": "EPIC-008-F-010-001",
                     "source": "human directive 2026-04-19",
                     "date": TODAY,
                 },
                 {
-                    "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+                    "req_id": "EPIC-008-F-010-001-REQ-T001",
                     "requirement": (
                         "Engineering rule v4-043 codifies the graph-"
                         "orchestration rule. preCommitScan.py gains a new "
@@ -186,10 +186,10 @@ def add_backlog():
                     "pytests": _orphan_pytest(),
                     "approval": "approved",
                     "type": "technical",
-                    "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+                    "story_id": "EPIC-008-F-010-001",
                     "source": "human directive 2026-04-19",
                     "date": TODAY,
-                    "traces_to": "ARCH-GRAPH-ORCHESTRATION-001-REQ-B001",
+                    "traces_to": "EPIC-008-F-010-001-REQ-B001",
                 },
             ]}
         }]}
@@ -240,8 +240,8 @@ def add_bugs():
             "environments": ["dev"],
             "status": "in_analysis",
             "severity": "critical",
-            "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
-            "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+            "req_id": "EPIC-008-F-010-001-REQ-T001",
+            "story_id": "EPIC-008-F-010-001",
             "pytest_id": "TBD-refactor-pytest",
             "pytest_success_criteria": [
                 "/classify route handler body contains _chat_graph.invoke(...) "
@@ -290,8 +290,8 @@ def add_bugs():
             "environments": ["dev"],
             "status": "new",
             "severity": "low",
-            "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
-            "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
+            "req_id": "EPIC-008-F-010-001-REQ-T001",
+            "story_id": "EPIC-008-F-010-001",
             "pytest_id": "TBD-scanner-implementation",
             "pytest_success_criteria": [
                 "preCommitScan.py EXECUTORS dict has 'graph_entry_check' key",
@@ -326,7 +326,7 @@ def main():
     b = add_backlog()
     add_bugs()
     print(f"v4-043 added: {r}")
-    print(f"ARCH-GRAPH-ORCHESTRATION feature added: {b}")
+    print(f"EPIC-008-F-010 feature added: {b}")
     print("BUG-ARCH-GRAPH-001 + BUG-ARCH-GRAPH-002 filed")
 
 

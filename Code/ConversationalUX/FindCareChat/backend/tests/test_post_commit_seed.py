@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# Pytest for DEVOPS-DEPLOY-001-REQ-016: post-commit hook seeds and increments
+# Pytest for EPIC-008-F-004-S-001-REQ-T-002: post-commit hook seeds and increments
 # the version doc in MongoDB at {ENV_PREFIX}_System.version.
 #
 # Tests the same seed/increment logic that lives in .git/hooks/post-commit.
@@ -80,7 +80,7 @@ def _increment(coll):
 
 
 class TestPostCommitSeed:
-    """DEVOPS-DEPLOY-001-REQ-016: hook seeds + increments version doc correctly."""
+    """EPIC-008-F-004-S-001-REQ-T-002: hook seeds + increments version doc correctly."""
 
     def test_extract_from_version_json_uses_new_schema_shape(self):
         """Seed extraction reads versions.version[-1].* (new shape), not current.*."""
