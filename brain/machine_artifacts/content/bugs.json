@@ -24,7 +24,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-MSG-001",
@@ -43,7 +44,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-FILTER-002",
@@ -62,7 +64,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-MSG-002",
@@ -81,7 +84,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-VECTOR-001",
@@ -103,7 +107,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DESIGN-001",
@@ -125,7 +130,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-001",
@@ -144,7 +150,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-002",
@@ -163,7 +170,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-003",
@@ -182,7 +190,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-005",
@@ -201,7 +210,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-004",
@@ -220,7 +230,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-006",
@@ -239,7 +250,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-008",
@@ -258,7 +270,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-007",
@@ -277,7 +290,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-ROADMAP-001",
@@ -296,7 +310,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-LOAD-001",
@@ -315,7 +330,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-LOAD-002",
@@ -334,7 +350,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-LOAD-003",
@@ -353,7 +370,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-LEGAL-001",
@@ -372,7 +390,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-001",
@@ -394,7 +413,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-002",
@@ -413,7 +433,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "UAT-FILTER-001",
@@ -432,7 +453,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-BA-001",
@@ -457,7 +479,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "UAT-UX-001",
@@ -476,7 +499,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-003",
@@ -495,7 +519,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-004",
@@ -514,7 +539,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-009",
@@ -533,7 +559,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-CLASSIFY-001",
@@ -556,7 +583,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "Factual health questions misclassified as medical advice. Example: 'What is the"
+      "title": "Factual health questions misclassified as medical advice. Example: 'What is the",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PERF-001",
@@ -579,7 +607,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "Provider search in VA took 87 seconds. Query falls back to collection scan when"
+      "title": "Provider search in VA took 87 seconds. Query falls back to collection scan when",
+      "severity": "low"
     },
     {
       "title": "Timeout behavior not enforced or not testable",
@@ -598,7 +627,8 @@
         "dev",
         "qa",
         "prod"
-      ]
+      ],
+      "severity": "low"
     },
     {
       "title": "Pipeline cluster did not return 503 when expected paused",
@@ -617,7 +647,8 @@
         "dev",
         "qa",
         "prod"
-      ]
+      ],
+      "severity": "low"
     },
     {
       "bugid": "BUG-DATA-001",
@@ -639,7 +670,8 @@
       "due_date": "2026-05-01",
       "pytest_id": "ORPHAN_PYTEST",
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-010",
@@ -661,7 +693,8 @@
       "due_date": "2026-05-01",
       "pytest_id": "ORPHAN_PYTEST",
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-GOV-002",
@@ -683,7 +716,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-005",
@@ -705,7 +739,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-GOV-003",
@@ -724,7 +759,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-006",
@@ -740,7 +776,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-LOCAL-001",
@@ -759,7 +796,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-007",
@@ -779,7 +817,8 @@
         "dev"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-EVAL-001",
@@ -796,7 +835,8 @@
         "dev"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-008",
@@ -817,7 +857,8 @@
         "qa"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-GOV-004",
@@ -836,7 +877,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-CODE-001",
@@ -855,7 +897,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-EVAL-002",
@@ -872,7 +915,8 @@
         "dev"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-009",
@@ -891,7 +935,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-COMM-001",
@@ -910,7 +955,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-EVAL-003",
@@ -926,7 +972,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-010",
@@ -942,7 +989,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-MODEL-001",
@@ -958,7 +1006,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-011",
@@ -974,7 +1023,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-SEC-004",
@@ -992,7 +1042,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-SEC-005",
@@ -1014,7 +1065,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-GOV-005",
@@ -1036,7 +1088,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-012",
@@ -1061,7 +1114,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-013",
@@ -1080,7 +1134,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-014",
@@ -1102,7 +1157,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-015",
@@ -1127,7 +1183,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "The session token appears in the left panel but positioned beside the specialtie"
+      "title": "The session token appears in the left panel but positioned beside the specialtie",
+      "severity": "low"
     },
     {
       "bugid": "BUG-REG-001",
@@ -1146,7 +1203,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-001",
@@ -1165,7 +1223,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-002",
@@ -1184,7 +1243,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-003",
@@ -1203,7 +1263,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-004",
@@ -1222,7 +1283,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-005",
@@ -1241,7 +1303,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-006",
@@ -1260,7 +1323,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-007",
@@ -1279,7 +1343,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-008",
@@ -1298,7 +1363,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-009",
@@ -1317,7 +1383,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-010",
@@ -1336,7 +1403,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-011",
@@ -1355,7 +1423,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-012",
@@ -1374,7 +1443,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-013",
@@ -1393,7 +1463,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-014",
@@ -1412,7 +1483,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-015",
@@ -1431,7 +1503,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-016",
@@ -1450,7 +1523,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-017",
@@ -1469,7 +1543,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-018",
@@ -1488,7 +1563,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-019",
@@ -1507,7 +1583,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-020",
@@ -1526,7 +1603,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-021",
@@ -1545,7 +1623,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-022",
@@ -1564,7 +1643,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-023",
@@ -1583,7 +1663,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-024",
@@ -1602,7 +1683,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-025",
@@ -1621,7 +1703,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-026",
@@ -1640,7 +1723,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-027",
@@ -1659,7 +1743,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-028",
@@ -1678,7 +1763,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-029",
@@ -1697,7 +1783,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-030",
@@ -1716,7 +1803,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-GOV-006",
@@ -1735,7 +1823,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-MSG-003",
@@ -1754,7 +1843,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-GOV-007",
@@ -1773,7 +1863,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-AUTH-001",
@@ -1794,7 +1885,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "The batch file authenticates via claude /login which opens a browser for OAuth a"
+      "title": "The batch file authenticates via claude /login which opens a browser for OAuth a",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-031",
@@ -1815,7 +1907,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "HTML rendering functions (splash pages, filter panel, provider cards) have no di"
+      "title": "HTML rendering functions (splash pages, filter panel, provider cards) have no di",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-016",
@@ -1836,7 +1929,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "The token display does not use labeled Nonce/GUID/Signed token fields with disti"
+      "title": "The token display does not use labeled Nonce/GUID/Signed token fields with disti",
+      "severity": "low"
     },
     {
       "bugid": "BUG-SEARCH-001",
@@ -1857,7 +1951,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "Vector search semantic matching is too broad for specific injury queries. Return"
+      "title": "Vector search semantic matching is too broad for specific injury queries. Return",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-017",
@@ -1876,7 +1971,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "The specialty list shows all specialties without a scroll constraint. No scroll"
+      "title": "The specialty list shows all specialties without a scroll constraint. No scroll",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-018",
@@ -1895,7 +1991,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "Transfer back to FindCare restored old iframe instead of painting FindCare splas"
+      "title": "Transfer back to FindCare restored old iframe instead of painting FindCare splas",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-019",
@@ -1916,7 +2013,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "Apply Filter sends new query but old provider list stays visible during the requ"
+      "title": "Apply Filter sends new query but old provider list stays visible during the requ",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEVOPS-001",
@@ -1937,7 +2035,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "Pre-commit hook bumps build number before commit. Health endpoint reads stale fi"
+      "title": "Pre-commit hook bumps build number before commit. Health endpoint reads stale fi",
+      "severity": "low"
     },
     {
       "bugid": "BUG-GOV-008",
@@ -1958,7 +2057,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "conversation_log_worker._clean_content() truncates at MAX_CONTENT_LEN=500 and re"
+      "title": "conversation_log_worker._clean_content() truncates at MAX_CONTENT_LEN=500 and re",
+      "severity": "low"
     },
     {
       "bugid": "BUG-AGENT-001",
@@ -1980,7 +2080,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEVOPS-002",
@@ -2000,7 +2101,8 @@
         "dev"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEVOPS-003",
@@ -2022,7 +2124,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEVOPS-004",
@@ -2041,7 +2144,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-SCAN-001",
@@ -2061,7 +2165,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-PIPE-011",
@@ -2082,7 +2187,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-LOG-001",
@@ -2101,7 +2207,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-LOG-002",
@@ -2120,7 +2227,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-LOG-003",
@@ -2139,7 +2247,8 @@
         "local"
       ],
       "reproduction": "TBD",
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-SAFETY-001",
@@ -2160,7 +2269,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "/classify bypasses safety check. Emergency messages return providers instead of"
+      "title": "/classify bypasses safety check. Emergency messages return providers instead of",
+      "severity": "low"
     },
     {
       "bugid": "BUG-SCHEMA-001",
@@ -2182,7 +2292,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "Brain JSON writes are not validated against schema.json. Invalid field values ac"
+      "title": "Brain JSON writes are not validated against schema.json. Invalid field values ac",
+      "severity": "low"
     },
     {
       "bugid": "BUG-SEC-003",
@@ -2204,7 +2315,8 @@
       "orphan": true,
       "due_date": "2026-05-01",
       "reproduction": "TBD",
-      "title": "FindCare proxy to EvaluateCare did not use mTLS â€” security finding under NIST"
+      "title": "FindCare proxy to EvaluateCare did not use mTLS â€” security finding under NIST",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEVOPS-005",
@@ -2224,7 +2336,8 @@
       "environments": [
         "local"
       ],
-      "reproduction": "TBD"
+      "reproduction": "TBD",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-020",
@@ -2244,7 +2357,8 @@
       "environments": [
         "local"
       ],
-      "reproduction": "TBD"
+      "reproduction": "TBD",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-021",
@@ -2264,7 +2378,8 @@
       "environments": [
         "local"
       ],
-      "reproduction": "TBD"
+      "reproduction": "TBD",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-022",
@@ -2284,7 +2399,8 @@
       "environments": [
         "local"
       ],
-      "reproduction": "TBD"
+      "reproduction": "TBD",
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-023",
@@ -2304,7 +2420,8 @@
       "environments": [
         "local"
       ],
-      "reproduction": "TBD"
+      "reproduction": "TBD",
+      "severity": "low"
     },
     {
       "bugid": "BUG-SEC-006",
@@ -2321,7 +2438,8 @@
         "local",
         "dev"
       ],
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-SEC-007",
@@ -2337,7 +2455,8 @@
       "environments": [
         "dev"
       ],
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEVOPS-008",
@@ -2357,7 +2476,8 @@
         "local",
         "dev"
       ],
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEVOPS-009",
@@ -2376,7 +2496,8 @@
       "environments": [
         "local"
       ],
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEVOPS-010",
@@ -2395,7 +2516,8 @@
       "environments": [
         "local"
       ],
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEVOPS-006",
@@ -2414,7 +2536,8 @@
       "environments": [
         "dev"
       ],
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEVOPS-007",
@@ -2434,7 +2557,8 @@
         "local",
         "dev"
       ],
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-032",
@@ -2451,7 +2575,8 @@
       "environments": [
         "dev",
         "local"
-      ]
+      ],
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-033",
@@ -2468,7 +2593,8 @@
       "environments": [
         "dev",
         "local"
-      ]
+      ],
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-034",
@@ -2485,7 +2611,8 @@
       "environments": [
         "dev",
         "local"
-      ]
+      ],
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-035",
@@ -2501,7 +2628,8 @@
       "pytest_id": "ORPHAN_PYTEST",
       "environments": [
         "local"
-      ]
+      ],
+      "severity": "low"
     },
     {
       "bugid": "BUG-TEST-036",
@@ -2518,7 +2646,8 @@
       "environments": [
         "local",
         "dev"
-      ]
+      ],
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-024",
@@ -2534,7 +2663,8 @@
       "pytest_id": "ORPHAN_PYTEST",
       "environments": [
         "local"
-      ]
+      ],
+      "severity": "low"
     },
     {
       "bugid": "BUG-UX-025",
@@ -2551,7 +2681,8 @@
       "environments": [
         "local",
         "dev"
-      ]
+      ],
+      "severity": "low"
     },
     {
       "bugid": "BUG-GOV-010",
@@ -2573,7 +2704,8 @@
         "qa",
         "prod"
       ],
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-GOV-011",
@@ -2597,7 +2729,8 @@
         "qa",
         "prod"
       ],
-      "title": "ORPHAN"
+      "title": "ORPHAN",
+      "severity": "low"
     },
     {
       "bugid": "BUG-GOV-009",
@@ -2619,7 +2752,8 @@
         "prod"
       ],
       "reproduction": "TBD",
-      "title": "UAT 2026-04-18 (human typed 'test' on fresh boot): hook emitted both BOOT DIRECTI"
+      "title": "UAT 2026-04-18 (human typed 'test' on fresh boot): hook emitted both BOOT DIRECTI",
+      "severity": "low"
     },
     {
       "bugid": "BUG-DEFER-001",
@@ -2751,32 +2885,6 @@
       "orphan": false,
       "next_action": [
         "Replace ORPHAN placeholder pytest with a real test that exercises 100%-from-project boot determinism."
-      ]
-    },
-    {
-      "bugid": "BUG-SKIP-002",
-      "title": "Agent re-asked permission for in-scope localhost deploy during active human assignment (critical)",
-      "description": "human assignment 2026-04-19 was: 'run the local host and dev deployment scripts.' After dev deploy completed successfully, the agent asked 'Want me to start the localhost deploy now?' instead of just running it. The localhost deploy was clearly inside the named assignment scope and within standing local authority (feedback_deploy_authority), so the re-ask blocked execution and consumed human time. Human called this out as the rule-that-interfered-with-execution, instructed Claude to override via v4-042 assignment scope as one of that rule's enforcement mechanisms, and required this bug be filed at critical severity. The fix is encoded in SKIP-ASSIST-001-REQ-T002 (no-reask-during-assignment). Per v4-041 severity_by_environment intent: dev=critical, qa=show_stopper, prod=show_stopper (field will move to a structured property once the schema update ships to the published Cloudflare URL).",
-      "environments": [
-        "dev"
-      ],
-      "status": "fixing",
-      "severity": "critical",
-      "req_id": "SKIP-ASSIST-001-REQ-T002",
-      "story_id": "SKIP-ASSIST-001",
-      "pytest_id": "TBD-behavioral-UAT-needed",
-      "pytest_success_criteria": [
-        "During an active named assignment, SkipsAssistant runs the next clearly in-scope deploy script without asking permission first.",
-        "If scope is genuinely ambiguous, SkipsAssistant asks ONCE to clarify scope, not to re-authorize.",
-        "Zero unprompted permission-asks observed across at least 3 successive multi-step assignments under UAT."
-      ],
-      "discovery_date": "2026-04-19",
-      "due_date": "2026-04-26",
-      "fix": "SKIP-ASSIST-001-REQ-T002 added to the backlog under AGENT-SKIPS-ASSISTANT/SKIP-ASSIST-001. The agent profile now codifies that in-scope steps under an active human assignment proceed without permission asks. v4-042 (assignment scope > ordinary rule) is the binding authority. Real validation is behavioral UAT (human observation across multiple assignments).",
-      "reproduction": "1. Human issues a multi-step assignment naming both step A and step B (e.g., 'run local + dev deploy scripts'). 2. Claude completes step A. 3. Before step B, Claude asks 'Want me to do step B now?' instead of just executing. Expected: Claude executes step B without asking.",
-      "orphan": false,
-      "next_action": [
-        "UAT during the next 3 multi-step assignments — verify no unprompted permission-asks for clearly in-scope steps."
       ]
     },
     {
@@ -4012,7 +4120,8 @@
       "reproduction": "Class A: grep agile_backlog.json for the listed deleted ids - they appear only in the named external files. Class B: check any test that exercises a story whose old req_ids had duplicates; if it fails citing a wrong canonical id, that is a Class B mismatch.",
       "next_action": [
         "Design solution"
-      ]
+      ],
+      "severity": "low"
     }
   ]
 }
