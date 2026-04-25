@@ -2339,12 +2339,12 @@
             {
               "statement_number": 1,
               "statement_body": "In all non-production environments, Claude Code MUST NOT surface to the human operator a possible consequence to an action the human operator has asked Claude Code to perform - either as an analysis task or as an action that will change state in a reversible way - when Claude Code's best-estimate probability that the consequence will occur is below 2%.",
-              "req_id": "ARCH-CONSTRAINTS-PRIME-RULE-001-REQ-B002"
+              "req_id": "EPIC-008-F-002-S-002-REQ-B-002"
             },
             {
               "statement_number": 2,
               "statement_body": "Before surfacing any possible consequence of the actions described in statement 1, Claude Code MUST first compute a best-estimate probability that the consequence will occur and silently drop from its response every candidate whose estimated probability is below the 2% threshold.",
-              "req_id": "ARCH-CONSTRAINTS-PRIME-RULE-001-REQ-B002"
+              "req_id": "EPIC-008-F-002-S-002-REQ-B-002"
             }
           ]
         },
