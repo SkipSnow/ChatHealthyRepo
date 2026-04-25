@@ -9,7 +9,7 @@
       "next_action": [
         "Infrastructure: vector search indexes (provider_vector_index, specialty_vector_index) must be created on frontend cluster. Cannot fix in code alone â€” requires pipeline/infra work."
       ],
-      "req_id": "IDX-001-REQ-002",
+      "req_id": "EPIC-006-F-005-S-001-REQ-T-002",
       "status": "in_analysis",
       "story_id": "IDX-001",
       "orphan": true,
@@ -29,7 +29,7 @@
     {
       "bugid": "BUG-MSG-001",
       "status": "uat_testing",
-      "req_id": "FC-SEARCH-001-REQ-006",
+      "req_id": "EPIC-006-F-001-S-001-REQ-T-001",
       "story_id": "FC-SEARCH-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -48,7 +48,7 @@
     {
       "bugid": "BUG-FILTER-002",
       "status": "closed_reqs_reorganized",
-      "req_id": "FC-FILT-001-REQ-001",
+      "req_id": "EPIC-006-F-002-S-001-REQ-T-001",
       "story_id": "FC-FILT-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -67,7 +67,7 @@
     {
       "bugid": "BUG-MSG-002",
       "status": "uat_testing",
-      "req_id": "FC-MSG-001-REQ-001",
+      "req_id": "EPIC-006-F-004-S-001-REQ-B-001",
       "story_id": "FC-MSG-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -88,7 +88,7 @@
       "next_action": [
         "Infrastructure: requires vector search indexes on SpecialtyMetaData collection. Pipeline/infra work, not a code-only fix."
       ],
-      "req_id": "IDX-001-REQ-002",
+      "req_id": "EPIC-006-F-005-S-001-REQ-T-002",
       "status": "in_analysis",
       "story_id": "IDX-001",
       "orphan": true,
@@ -110,7 +110,7 @@
       "next_action": [
         "UX design decision needed from human: pagination controls placement in cursor bar."
       ],
-      "req_id": "UX-CTRL-001-REQ-001",
+      "req_id": "EPIC-006-F-024-S-001-REQ-B-001",
       "status": "in_analysis",
       "story_id": "UX-CTRL-001",
       "orphan": true,
@@ -129,7 +129,7 @@
     },
     {
       "bugid": "BUG-PIPE-001",
-      "req_id": "PIPE-LC-001-REQ-001",
+      "req_id": "EPIC-006-F-006-S-001-REQ-T-001",
       "status": "in_analysis",
       "story_id": "PIPE-LC-001",
       "orphan": true,
@@ -148,7 +148,7 @@
     },
     {
       "bugid": "BUG-PIPE-002",
-      "req_id": "PIPE-LC-002-REQ-001",
+      "req_id": "EPIC-006-F-006-S-002-REQ-T-001",
       "status": "uat_testing",
       "story_id": "PIPE-LC-002",
       "orphan": true,
@@ -167,7 +167,7 @@
     },
     {
       "bugid": "BUG-PIPE-003",
-      "req_id": "PIPE-LC-003-REQ-002",
+      "req_id": "EPIC-006-F-006-S-003-REQ-T-001",
       "status": "in_analysis",
       "story_id": "PIPE-LC-003",
       "orphan": true,
@@ -205,7 +205,7 @@
     },
     {
       "bugid": "BUG-PIPE-004",
-      "req_id": "PIPE-DM-001-REQ-001",
+      "req_id": "EPIC-006-F-007-S-001-REQ-T-001",
       "status": "in_analysis",
       "story_id": "PIPE-DM-001",
       "orphan": true,
@@ -224,7 +224,7 @@
     },
     {
       "bugid": "BUG-PIPE-006",
-      "req_id": "PIPE-BP-004-REQ-002",
+      "req_id": "EPIC-006-F-009-S-004-REQ-T-002",
       "status": "in_analysis",
       "story_id": "PIPE-BP-004",
       "orphan": true,
@@ -262,7 +262,7 @@
     },
     {
       "bugid": "BUG-PIPE-007",
-      "req_id": "IDX-003-REQ-003",
+      "req_id": "EPIC-006-F-005-S-003-REQ-T-002",
       "status": "failed_ist_testing",
       "story_id": "IDX-003",
       "orphan": true,
@@ -300,7 +300,7 @@
     },
     {
       "bugid": "BUG-LOAD-001",
-      "req_id": "PIPE-CP-001-REQ-002",
+      "req_id": "EPIC-006-F-016-S-001-REQ-B-002",
       "status": "in_analysis",
       "story_id": "PIPE-CP-001",
       "orphan": true,
@@ -319,7 +319,7 @@
     },
     {
       "bugid": "BUG-LOAD-002",
-      "req_id": "PIPE-CP-001-REQ-001",
+      "req_id": "EPIC-006-F-016-S-001-REQ-B-001",
       "status": "in_analysis",
       "story_id": "PIPE-CP-001",
       "orphan": true,
@@ -357,7 +357,7 @@
     },
     {
       "bugid": "BUG-LEGAL-001",
-      "req_id": "UMLS-CPT-001-REQ-001",
+      "req_id": "EPIC-001-F-025-S-001-REQ-B-001",
       "status": "in_analysis",
       "story_id": "UMLS-CPT-001",
       "orphan": true,
@@ -379,7 +379,7 @@
       "next_action": [
         "Needs live testing to determine if GPT-4.1 switch resolved this. May be model/prompt issue. Cannot verify without running the application."
       ],
-      "req_id": "FC-SEARCH-001-REQ-001",
+      "req_id": "EPIC-006-F-001-S-001-REQ-B-001",
       "status": "in_analysis",
       "story_id": "FC-SEARCH-001",
       "orphan": true,
@@ -399,7 +399,7 @@
     {
       "bugid": "BUG-UX-002",
       "status": "closed_reqs_reorganized",
-      "req_id": "FC-FILT-001-REQ-001",
+      "req_id": "EPIC-006-F-002-S-001-REQ-T-001",
       "story_id": "FC-FILT-001",
       "orphan": true,
       "description": "ORPHAN\n\nx",
@@ -418,7 +418,7 @@
     {
       "bugid": "UAT-FILTER-001",
       "status": "closed_reqs_reorganized",
-      "req_id": "FC-FILT-001-REQ-001",
+      "req_id": "EPIC-006-F-002-S-001-REQ-T-001",
       "story_id": "FC-FILT-001",
       "orphan": true,
       "description": "ORPHAN\n\nll",
@@ -462,7 +462,7 @@
     {
       "bugid": "UAT-UX-001",
       "status": "uat_testing",
-      "req_id": "UX-FRAME-001-REQ-004",
+      "req_id": "EPIC-006-F-021-S-001-REQ-B-004",
       "story_id": "UX-FRAME-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -481,7 +481,7 @@
     {
       "bugid": "BUG-UX-003",
       "status": "uat_testing",
-      "req_id": "UX-FRAME-001-REQ-004",
+      "req_id": "EPIC-006-F-021-S-001-REQ-B-004",
       "story_id": "UX-FRAME-001",
       "orphan": true,
       "description": "ORPHAN\n\nim",
@@ -500,7 +500,7 @@
     {
       "bugid": "BUG-UX-004",
       "status": "closed_reqs_reorganized",
-      "req_id": "FC-FILT-001-REQ-002",
+      "req_id": "EPIC-006-F-002-S-001-REQ-B-001",
       "story_id": "FC-FILT-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -518,7 +518,7 @@
     },
     {
       "bugid": "BUG-PIPE-009",
-      "req_id": "PIPE-BP-004-REQ-002",
+      "req_id": "EPIC-006-F-009-S-004-REQ-T-002",
       "status": "in_analysis",
       "story_id": "PIPE-BP-004",
       "orphan": true,
@@ -542,7 +542,7 @@
       "next_action": [
         "Needs human to define the boundary between factual health questions and medical advice for prompt tuning. No rule text defined yet."
       ],
-      "req_id": "FC-BACKEND-007-REQ-002",
+      "req_id": "EPIC-009-F-001-S-007-REQ-B-001",
       "status": "in_analysis",
       "story_id": "FC-BACKEND-007",
       "orphan": true,
@@ -565,7 +565,7 @@
       "next_action": [
         "Needs monitoring after vector search indexes are deployed. Root cause fix (auto index creation) was added in build 168 but indexes still missing per BUG-DATA-001. Cannot close until infrastructure is verified."
       ],
-      "req_id": "IDX-001-REQ-001",
+      "req_id": "EPIC-006-F-005-S-001-REQ-T-001",
       "status": "in_analysis",
       "story_id": "IDX-001",
       "orphan": true,
@@ -630,7 +630,7 @@
       "next_action": [
         "analysis"
       ],
-      "req_id": "IDX-001-REQ-001",
+      "req_id": "EPIC-006-F-005-S-001-REQ-T-001",
       "status": "in_analysis",
       "story_id": "IDX-001",
       "orphan": true,
@@ -653,7 +653,7 @@
       "next_action": [
         "analysis"
       ],
-      "req_id": "PIPE-BP-001-REQ-001",
+      "req_id": "EPIC-006-F-009-S-001-REQ-B-001",
       "status": "in_analysis",
       "story_id": "PIPE-BP-001",
       "orphan": true,
@@ -729,7 +729,7 @@
     {
       "bugid": "BUG-UX-006",
       "status": "uat_testing",
-      "req_id": "FC-EVAL-001-REQ-005",
+      "req_id": "EPIC-006-F-003-S-001-REQ-B-005",
       "story_id": "FC-EVAL-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -747,7 +747,7 @@
       "next_action": [
         "kill_zombies.py exists (Code/Shared/ops/tools/) and kills by port. Adding taskkill /F /IM python.exe would kill ALL python processes (dangerous). Better approach: kill_zombies.py should also check for uvicorn/vite in process command line. Needs careful implementation to avoid killing unrelated processes."
       ],
-      "req_id": "SDT-LOCAL-003-REQ-003",
+      "req_id": "EPIC-006-F-029-S-003-REQ-T-003",
       "status": "in_analysis",
       "story_id": "SDT-LOCAL-003",
       "orphan": true,
@@ -766,7 +766,7 @@
       "next_action": [
         "Needs UX design spec from human. Excel mockup must be translated to implementation requirements."
       ],
-      "req_id": "FC-FILT-001-REQ-006",
+      "req_id": "EPIC-006-F-002-S-001-REQ-B-002",
       "status": "closed_reqs_reorganized",
       "story_id": "FC-FILT-001",
       "orphan": true,
@@ -783,7 +783,7 @@
     },
     {
       "bugid": "BUG-EVAL-001",
-      "req_id": "FC-SELECT-001-REQ-007",
+      "req_id": "EPIC-006-F-001-S-002-REQ-B-007",
       "status": "in_analysis",
       "story_id": "FC-SELECT-001",
       "orphan": true,
@@ -803,7 +803,7 @@
       "next_action": [
         "Needs UX design spec from human for banner content and formatting."
       ],
-      "req_id": "TEST-SIM-001-REQ-002",
+      "req_id": "EPIC-005-F-001-S-001-REQ-B-002",
       "status": "uat_testing",
       "story_id": "TEST-SIM-001",
       "orphan": true,
@@ -860,7 +860,7 @@
     {
       "bugid": "BUG-EVAL-002",
       "status": "uat_testing",
-      "req_id": "FC-SELECT-001-REQ-007",
+      "req_id": "EPIC-006-F-001-S-002-REQ-B-007",
       "story_id": "FC-SELECT-001",
       "orphan": true,
       "description": "ORPHAN\n\nec",
@@ -879,7 +879,7 @@
       "next_action": [
         "FindCareApp.tsx has flex layout with available (flex:1, overflowY:auto) and selected (maxHeight:35%, overflowY:auto). Layout looks correct for split view. May need viewport height testing or the 35% maxHeight may be too large. Needs Playwright visual verification."
       ],
-      "req_id": "FC-SELECT-001-REQ-001",
+      "req_id": "EPIC-006-F-001-S-002-REQ-B-001",
       "status": "in_analysis",
       "story_id": "FC-SELECT-001",
       "orphan": true,
@@ -896,7 +896,7 @@
     {
       "bugid": "BUG-COMM-001",
       "status": "uat_testing",
-      "req_id": "FC-EVAL-001-REQ-005",
+      "req_id": "EPIC-006-F-003-S-001-REQ-B-005",
       "pytest_success_criteria": [
         "All 3 acceptance criteria must pass via Playwright end-to-end test."
       ],
@@ -915,7 +915,7 @@
     {
       "bugid": "BUG-EVAL-003",
       "status": "uat_testing",
-      "req_id": "FC-SELECT-001-REQ-007",
+      "req_id": "EPIC-006-F-001-S-002-REQ-B-007",
       "story_id": "FC-SELECT-001",
       "orphan": true,
       "description": "ORPHAN\n\nel",
@@ -931,7 +931,7 @@
     {
       "bugid": "BUG-UX-010",
       "status": "uat_testing",
-      "req_id": "FC-SEARCH-001-REQ-006",
+      "req_id": "EPIC-006-F-001-S-001-REQ-T-001",
       "story_id": "FC-SEARCH-001",
       "orphan": true,
       "description": "ORPHAN\n\n-M",
@@ -947,7 +947,7 @@
     {
       "bugid": "BUG-MODEL-001",
       "status": "uat_testing",
-      "req_id": "FC-SEARCH-001-REQ-004",
+      "req_id": "EPIC-006-F-001-S-001-REQ-B-004",
       "story_id": "FC-SEARCH-001",
       "orphan": true,
       "description": "ORPHAN\n\nF",
@@ -963,7 +963,7 @@
     {
       "bugid": "BUG-UX-011",
       "status": "closed_reqs_reorganized",
-      "req_id": "FC-FILT-001-REQ-007",
+      "req_id": "EPIC-006-F-002-S-001-REQ-T-005",
       "story_id": "FC-FILT-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -1001,7 +1001,7 @@
       "pytest_success_criteria": [
         "HTTP request to every server in every environment returns 426 with status code visible in response body text."
       ],
-      "req_id": "SEC-HTTPS-001-REQ-007",
+      "req_id": "EPIC-002-F-001-S-012-REQ-B-005",
       "story_id": "SEC-HTTPS-001",
       "orphan": false,
       "description": "ORPHAN",
@@ -1022,7 +1022,7 @@
       "next_action": [
         "Audit all requirements in agile_backlog.json for pytest_id and pytest file existence. Create missing tests. Add requirement and tests for governance grid hook loading."
       ],
-      "req_id": "PIPE-TR-001-REQ-001",
+      "req_id": "EPIC-006-F-017-S-001-REQ-T-001",
       "story_id": "PIPE-TR-001",
       "orphan": true,
       "description": "ORPHAN",
@@ -1040,9 +1040,9 @@
     },
     {
       "bugid": "BUG-UX-012",
-      "req_id": "FC-SELECT-001-REQ-002",
+      "req_id": "EPIC-006-F-001-S-002-REQ-B-002",
       "status": "uat_testing",
-      "pytest_id": "FC-SELECT-001-REQ-002",
+      "pytest_id": "EPIC-006-F-001-S-002-REQ-B-002",
       "pytest_success_criteria": [
         "Playwright test: user drags a provider card from the top candidate list and drops it into the bottom evaluate container. Provider appears in selected list. Max 5 enforced."
       ],
@@ -1065,7 +1065,7 @@
     },
     {
       "bugid": "BUG-UX-013",
-      "req_id": "FC-SEARCH-001-REQ-001",
+      "req_id": "EPIC-006-F-001-S-001-REQ-B-001",
       "status": "uat_testing",
       "story_id": "FC-SEARCH-001",
       "orphan": true,
@@ -1084,7 +1084,7 @@
     },
     {
       "bugid": "BUG-UX-014",
-      "req_id": "FC-EVAL-001-REQ-001",
+      "req_id": "EPIC-006-F-003-S-001-REQ-B-001",
       "status": "fixing",
       "next_action": [
         "Requirements written in FC-EVAL-001. Needs implementation: move button, add cold/hot state, instruction popup."
@@ -1106,7 +1106,7 @@
     },
     {
       "bugid": "BUG-UX-015",
-      "req_id": "FC-FILT-001-REQ-006",
+      "req_id": "EPIC-006-F-002-S-001-REQ-B-002",
       "status": "fixing",
       "pytest_id": "test_filter_panel.py::test_filter_header_labels_not_truncated",
       "pytest_success_criteria": [
@@ -1131,7 +1131,7 @@
     },
     {
       "bugid": "BUG-REG-001",
-      "req_id": "PIPE-TR-003-REQ-004",
+      "req_id": "EPIC-008-F-008-S-005-REQ-B-001",
       "status": "fixing",
       "story_id": "ARCH-SCAN-GENERAL",
       "orphan": true,
@@ -1150,7 +1150,7 @@
     },
     {
       "bugid": "BUG-TEST-001",
-      "req_id": "TEST-SIM-001-REQ-001",
+      "req_id": "EPIC-005-F-001-S-001-REQ-B-001",
       "status": "fixing",
       "pytest_id": "local_environment_user_ready.py::TestPageLoad::test_page_title",
       "pytest_success_criteria": [
@@ -1169,7 +1169,7 @@
     },
     {
       "bugid": "BUG-TEST-002",
-      "req_id": "TEST-SIM-001-REQ-005",
+      "req_id": "EPIC-005-F-001-S-001-REQ-B-005",
       "status": "fixing",
       "pytest_id": "local_environment_user_ready.py::TestProviderSearch::test_providers_have_npis",
       "pytest_success_criteria": [
@@ -1188,7 +1188,7 @@
     },
     {
       "bugid": "BUG-TEST-003",
-      "req_id": "TEST-SIM-001-REQ-007",
+      "req_id": "EPIC-005-F-001-S-001-REQ-B-007",
       "status": "fixing",
       "pytest_id": "local_environment_user_ready.py::TestLeftPanel::test_session_token_in_left_panel",
       "pytest_success_criteria": [
@@ -1207,7 +1207,7 @@
     },
     {
       "bugid": "BUG-TEST-004",
-      "req_id": "TEST-SIM-001-REQ-010",
+      "req_id": "EPIC-005-F-001-S-001-REQ-B-010",
       "status": "fixing",
       "pytest_id": "local_environment_user_ready.py::TestEvaluateCareHandoff::test_evaluate_click",
       "pytest_success_criteria": [
@@ -1226,7 +1226,7 @@
     },
     {
       "bugid": "BUG-TEST-005",
-      "req_id": "FC-SEARCH-001-REQ-001",
+      "req_id": "EPIC-006-F-001-S-001-REQ-B-001",
       "status": "fixing",
       "pytest_id": "test_findcare_search.py::TestProviderSearchFreeText::test_free_text_search_returns_results",
       "pytest_success_criteria": [
@@ -1245,7 +1245,7 @@
     },
     {
       "bugid": "BUG-TEST-006",
-      "req_id": "FC-SEARCH-001-REQ-002",
+      "req_id": "EPIC-006-F-001-S-001-REQ-B-002",
       "status": "fixing",
       "pytest_id": "test_findcare_search.py::TestProviderResultFields::test_results_contain_npi",
       "pytest_success_criteria": [
@@ -1264,7 +1264,7 @@
     },
     {
       "bugid": "BUG-TEST-007",
-      "req_id": "FC-SEARCH-001-REQ-003",
+      "req_id": "EPIC-006-F-001-S-001-REQ-B-003",
       "status": "fixing",
       "pytest_id": "test_findcare_search.py::TestProviderSearchPagination::test_pagination_controls_present",
       "pytest_success_criteria": [
@@ -1283,7 +1283,7 @@
     },
     {
       "bugid": "BUG-TEST-008",
-      "req_id": "FC-SEARCH-001-REQ-004",
+      "req_id": "EPIC-006-F-001-S-001-REQ-B-004",
       "status": "fixing",
       "pytest_id": "test_findcare_search.py::TestSpecialtyClassification::test_specialty_types_identified",
       "pytest_success_criteria": [
@@ -1302,7 +1302,7 @@
     },
     {
       "bugid": "BUG-TEST-009",
-      "req_id": "FC-SEARCH-001-REQ-006",
+      "req_id": "EPIC-006-F-001-S-001-REQ-T-001",
       "status": "fixing",
       "pytest_id": "test_classify_performance.py::test_classify_returns_ordered_specialties",
       "pytest_success_criteria": [
@@ -1321,7 +1321,7 @@
     },
     {
       "bugid": "BUG-TEST-010",
-      "req_id": "FC-SEARCH-001-REQ-007",
+      "req_id": "EPIC-006-F-001-S-001-REQ-B-006",
       "status": "fixing",
       "pytest_id": "test_search_timer.py::test_timer_runs_until_results_displayed",
       "pytest_success_criteria": [
@@ -1340,7 +1340,7 @@
     },
     {
       "bugid": "BUG-TEST-011",
-      "req_id": "FC-FILT-001-REQ-001",
+      "req_id": "EPIC-006-F-002-S-001-REQ-T-001",
       "status": "closed_reqs_reorganized",
       "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_checkboxes_visible_and_labeled",
       "pytest_success_criteria": [
@@ -1359,7 +1359,7 @@
     },
     {
       "bugid": "BUG-TEST-012",
-      "req_id": "FC-FILT-001-REQ-002",
+      "req_id": "EPIC-006-F-002-S-001-REQ-B-001",
       "status": "closed_reqs_reorganized",
       "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_prescribers_only_filters_to_prescriber_specialties",
       "pytest_success_criteria": [
@@ -1378,7 +1378,7 @@
     },
     {
       "bugid": "BUG-TEST-013",
-      "req_id": "FC-FILT-001-REQ-003",
+      "req_id": "EPIC-006-F-002-S-001-REQ-T-002",
       "status": "closed_reqs_reorganized",
       "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_homeopathic_only_adds_homeopathic_specialties",
       "pytest_success_criteria": [
@@ -1397,7 +1397,7 @@
     },
     {
       "bugid": "BUG-TEST-014",
-      "req_id": "FC-FILT-001-REQ-004",
+      "req_id": "EPIC-006-F-002-S-001-REQ-T-003",
       "status": "closed_reqs_reorganized",
       "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_filter_header_shows_specialty_counts_not_provider_counts",
       "pytest_success_criteria": [
@@ -1416,7 +1416,7 @@
     },
     {
       "bugid": "BUG-TEST-015",
-      "req_id": "FC-FILT-001-REQ-005",
+      "req_id": "EPIC-006-F-002-S-001-REQ-T-004",
       "status": "closed_reqs_reorganized",
       "pytest_id": "test_filter_panel.py::TestFilterPanelDisplay::test_uncheck_all_updates_your_choices_to_zero",
       "pytest_success_criteria": [
@@ -1435,7 +1435,7 @@
     },
     {
       "bugid": "BUG-TEST-016",
-      "req_id": "FC-PIPE-COPY-001-REQ-001",
+      "req_id": "EPIC-006-F-016-S-002-REQ-T-001",
       "status": "fixing",
       "pytest_id": "test_copy_to_frontend.py::test_parity_after_copy",
       "pytest_success_criteria": [
@@ -1454,7 +1454,7 @@
     },
     {
       "bugid": "BUG-TEST-017",
-      "req_id": "PIPE-TR-002-REQ-001",
+      "req_id": "EPIC-008-F-008-S-003-REQ-T-001",
       "status": "fixing",
       "pytest_id": "pre_deploy_rule_check.py passes with zero violations",
       "pytest_success_criteria": [
@@ -1473,7 +1473,7 @@
     },
     {
       "bugid": "BUG-TEST-018",
-      "req_id": "UX-MOB-001-REQ-001",
+      "req_id": "EPIC-006-F-019-S-001-REQ-B-001",
       "status": "fixing",
       "pytest_id": "test_website.py::test_hamburger_menu_mobile",
       "pytest_success_criteria": [
@@ -1492,7 +1492,7 @@
     },
     {
       "bugid": "BUG-TEST-019",
-      "req_id": "UX-MOB-001-REQ-002",
+      "req_id": "EPIC-006-F-019-S-001-REQ-B-002",
       "status": "fixing",
       "pytest_id": "test_website.py::test_hamburger_menu_opens",
       "pytest_success_criteria": [
@@ -1511,7 +1511,7 @@
     },
     {
       "bugid": "BUG-TEST-020",
-      "req_id": "UX-MOB-001-REQ-003",
+      "req_id": "EPIC-006-F-019-S-001-REQ-B-003",
       "status": "fixing",
       "pytest_id": "test_website.py::test_hamburger_menu_navigation",
       "pytest_success_criteria": [
@@ -1530,7 +1530,7 @@
     },
     {
       "bugid": "BUG-TEST-021",
-      "req_id": "UX-MOB-002-REQ-001",
+      "req_id": "EPIC-006-F-019-S-002-REQ-B-001",
       "status": "fixing",
       "pytest_id": "test_website.py::test_back_link_mobile",
       "pytest_success_criteria": [
@@ -1549,7 +1549,7 @@
     },
     {
       "bugid": "BUG-TEST-022",
-      "req_id": "UX-MOB-002-REQ-002",
+      "req_id": "EPIC-006-F-019-S-002-REQ-B-002",
       "status": "fixing",
       "pytest_id": "test_website.py::test_back_link_navigates",
       "pytest_success_criteria": [
@@ -1568,7 +1568,7 @@
     },
     {
       "bugid": "BUG-TEST-023",
-      "req_id": "UX-CTRL-003-REQ-001",
+      "req_id": "EPIC-006-F-024-S-003-REQ-B-001",
       "status": "fixing",
       "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
       "pytest_success_criteria": [
@@ -1587,7 +1587,7 @@
     },
     {
       "bugid": "BUG-TEST-024",
-      "req_id": "UX-CTRL-003-REQ-002",
+      "req_id": "EPIC-006-F-024-S-003-REQ-T-001",
       "status": "fixing",
       "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
       "pytest_success_criteria": [
@@ -1606,7 +1606,7 @@
     },
     {
       "bugid": "BUG-TEST-025",
-      "req_id": "UX-CTRL-003-REQ-003",
+      "req_id": "EPIC-006-F-024-S-003-REQ-T-002",
       "status": "fixing",
       "pytest_id": "test_evalcare_handoff.py::TestFindCareToEvaluateCareHandoff::test_evaluate_button_and_handoff",
       "pytest_success_criteria": [
@@ -1625,7 +1625,7 @@
     },
     {
       "bugid": "BUG-TEST-026",
-      "req_id": "FC-BACKEND-005-REQ-002",
+      "req_id": "EPIC-009-F-001-S-005-REQ-T-002",
       "status": "fixing",
       "pytest_id": "test_tool_router.py::TestToolRouter::test_pydantic_validation",
       "pytest_success_criteria": [
@@ -1644,7 +1644,7 @@
     },
     {
       "bugid": "BUG-TEST-027",
-      "req_id": "FC-BACKEND-005-REQ-003",
+      "req_id": "EPIC-009-F-001-S-005-REQ-T-003",
       "status": "fixing",
       "pytest_id": "test_tool_router.py::TestToolRouter::test_handle_tool_calls",
       "pytest_success_criteria": [
@@ -1663,7 +1663,7 @@
     },
     {
       "bugid": "BUG-TEST-028",
-      "req_id": "FC-BACKEND-007-REQ-001",
+      "req_id": "EPIC-009-F-001-S-007-REQ-T-001",
       "status": "fixing",
       "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
       "pytest_success_criteria": [
@@ -1682,7 +1682,7 @@
     },
     {
       "bugid": "BUG-TEST-029",
-      "req_id": "FC-BACKEND-007-REQ-002",
+      "req_id": "EPIC-009-F-001-S-007-REQ-B-001",
       "status": "fixing",
       "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
       "pytest_success_criteria": [
@@ -1701,7 +1701,7 @@
     },
     {
       "bugid": "BUG-TEST-030",
-      "req_id": "FC-BACKEND-007-REQ-003",
+      "req_id": "EPIC-009-F-001-S-007-REQ-B-002",
       "status": "fixing",
       "pytest_id": "test_unanswerable_questions.py::TestUnanswerableQuestions",
       "pytest_success_criteria": [
@@ -1739,7 +1739,7 @@
     },
     {
       "bugid": "BUG-MSG-003",
-      "req_id": "FC-MSG-001-REQ-001",
+      "req_id": "EPIC-006-F-004-S-001-REQ-B-001",
       "status": "in_analysis",
       "story_id": "FC-MSG-001",
       "orphan": true,
@@ -1819,7 +1819,7 @@
     },
     {
       "bugid": "BUG-UX-016",
-      "req_id": "SEC-HTTPS-001-REQ-013",
+      "req_id": "EPIC-002-F-001-S-012-REQ-B-007",
       "description": "The token display does not use labeled Nonce/GUID/Signed token fields with distinct colors. The left panel shows a raw CH string. The requirement states identical formatting across all panels with Nonce in amber, GUID in teal, Signed token in indigo.",
       "discovery_date": "2026-04-12",
       "status": "fixing",
@@ -1840,7 +1840,7 @@
     },
     {
       "bugid": "BUG-SEARCH-001",
-      "req_id": "FC-FILT-001-REQ-001",
+      "req_id": "EPIC-006-F-002-S-001-REQ-T-001",
       "description": "Vector search semantic matching is too broad for specific injury queries. Returns specialties that match on trauma/injury keywords but are medically irrelevant.",
       "discovery_date": "2026-04-12",
       "status": "in_analysis",
@@ -1899,7 +1899,7 @@
     },
     {
       "bugid": "BUG-UX-019",
-      "req_id": "FC-FILT-001-REQ-006",
+      "req_id": "EPIC-006-F-002-S-001-REQ-B-002",
       "description": "Apply Filter sends new query but old provider list stays visible during the request. Should clear first.",
       "discovery_date": "2026-04-12",
       "status": "in_analysis",
@@ -1941,7 +1941,7 @@
     },
     {
       "bugid": "BUG-GOV-008",
-      "req_id": "BRAIN-CONVERSATION-LOG-REQ-B001",
+      "req_id": "EPIC-008-F-007-S-007-REQ-B-001",
       "description": "conversation_log_worker._clean_content() truncates at MAX_CONTENT_LEN=500 and regex-strips system-reminder tags. This destroys content.",
       "discovery_date": "2026-04-13",
       "status": "fixing",
@@ -2007,7 +2007,7 @@
       "next_action": [
         "Change v4-019 from warning to blocking error in pre-commit hook."
       ],
-      "req_id": "SEC-HTTPS-001-REQ-004",
+      "req_id": "EPIC-002-F-001-S-012-REQ-B-004",
       "status": "in_analysis",
       "story_id": "SEC-HTTPS-001",
       "orphan": true,
@@ -2029,7 +2029,7 @@
       "next_action": [
         "Verify all try/except/finally blocks in chathealthy_devops_boot.py fail open with sys.exit(0)."
       ],
-      "req_id": "ARCH-DEVOPS-BOOT-001-REQ-003",
+      "req_id": "EPIC-008-F-003-S-001-REQ-T-001",
       "story_id": "ARCH-DEVOPS-BOOT-001",
       "status": "deferred",
       "orphan": true,
@@ -2045,7 +2045,7 @@
     },
     {
       "bugid": "BUG-SCAN-001",
-      "req_id": "ARCH-SCAN-JSON-REQ-002",
+      "req_id": "EPIC-008-F-008-S-004-REQ-B-001",
       "story_id": "ARCH-SCAN-JSON",
       "status": "fixed",
       "next_action": [],
@@ -2065,7 +2065,7 @@
     },
     {
       "bugid": "BUG-PIPE-011",
-      "req_id": "FC-PIPE-COPY-001-REQ-003",
+      "req_id": "EPIC-006-F-016-S-002-REQ-T-003",
       "story_id": "FC-PIPE-COPY-001",
       "status": "ist_working",
       "next_action": [
@@ -2086,7 +2086,7 @@
     },
     {
       "bugid": "BUG-LOG-001",
-      "req_id": "BRAIN-CONVERSATION-LOG-REQ-T001",
+      "req_id": "EPIC-008-F-007-S-007-REQ-T-001",
       "story_id": "BRAIN-CONVERSATION-LOG",
       "status": "fixing",
       "next_action": [
@@ -2105,7 +2105,7 @@
     },
     {
       "bugid": "BUG-LOG-002",
-      "req_id": "BRAIN-CONVERSATION-LOG-REQ-T011",
+      "req_id": "EPIC-008-F-007-S-007-REQ-T-011",
       "story_id": "BRAIN-CONVERSATION-LOG",
       "status": "ist_testing",
       "next_action": [
@@ -2124,7 +2124,7 @@
     },
     {
       "bugid": "BUG-LOG-003",
-      "req_id": "BRAIN-CONVERSATION-LOG-REQ-B001",
+      "req_id": "EPIC-008-F-007-S-007-REQ-B-001",
       "story_id": "BRAIN-CONVERSATION-LOG",
       "status": "in_analysis",
       "next_action": [
@@ -2164,7 +2164,7 @@
     },
     {
       "bugid": "BUG-SCHEMA-001",
-      "req_id": "BRAIN-SCHEMA-REQ-001",
+      "req_id": "EPIC-008-F-007-S-020-REQ-T-001",
       "description": "Brain JSON writes are not validated against schema.json. Invalid field values accepted without error.",
       "discovery_date": "2026-04-16",
       "status": "in_analysis",
@@ -2186,7 +2186,7 @@
     },
     {
       "bugid": "BUG-SEC-003",
-      "req_id": "SEC-HTTPS-001-REQ-009",
+      "req_id": "EPIC-002-F-001-S-012-REQ-T-002",
       "description": "FindCare proxy to EvaluateCare did not use mTLS â€” security finding under NIST 800-53 SC-8 and HITRUST 09.m.",
       "discovery_date": "2026-04-16",
       "status": "fixed",
@@ -2228,7 +2228,7 @@
     },
     {
       "bugid": "BUG-UX-020",
-      "req_id": "SEC-HTTPS-001-REQ-013",
+      "req_id": "EPIC-002-F-001-S-012-REQ-B-007",
       "story_id": "SEC-HTTPS-001",
       "status": "fixing",
       "discovery_date": "2026-04-16",
@@ -2308,7 +2308,7 @@
     },
     {
       "bugid": "BUG-SEC-006",
-      "req_id": "SEC-HTTPS-001-REQ-009",
+      "req_id": "EPIC-002-F-001-S-012-REQ-T-002",
       "story_id": "SEC-HTTPS-001",
       "status": "new",
       "orphan": true,
@@ -2325,7 +2325,7 @@
     },
     {
       "bugid": "BUG-SEC-007",
-      "req_id": "SEC-HTTPS-001-REQ-012",
+      "req_id": "EPIC-002-F-001-S-012-REQ-T-003",
       "story_id": "SEC-HTTPS-001",
       "status": "new",
       "orphan": true,
@@ -2345,7 +2345,7 @@
       "next_action": [
         "Commit the workflow edits (already in staged working tree)."
       ],
-      "req_id": "DEVOPS-DEPLOY-001-REQ-016",
+      "req_id": "EPIC-008-F-004-S-001-REQ-T-002",
       "status": "uat_testing",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": true,
@@ -2365,7 +2365,7 @@
       "next_action": [
         "Hook already neutered in working tree; needs persistence story across machines."
       ],
-      "req_id": "DEVOPS-DEPLOY-001-REQ-016",
+      "req_id": "EPIC-008-F-004-S-001-REQ-T-002",
       "status": "removed",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": true,
@@ -2403,7 +2403,7 @@
       "next_action": [
         "Workflow edit already staged in working tree."
       ],
-      "req_id": "DEVOPS-DEPLOY-001-REQ-019",
+      "req_id": "EPIC-008-F-004-S-001-REQ-T-004",
       "status": "uat_testing",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": true,
@@ -2420,9 +2420,9 @@
       "bugid": "BUG-DEVOPS-007",
       "reproduction": "(1) deploy commit X to local; (2) leave dev on commit Y where Y != X; (3) run smoke; (4) smoke returns pass/fail without noting the SHA drift.",
       "next_action": [
-        "Smoke SHA-gate to be written once DEVOPS-DEPLOY-001-REQ-018 is approved."
+        "Smoke SHA-gate to be written once EPIC-008-F-004-S-001-REQ-T-003 is approved."
       ],
-      "req_id": "DEVOPS-DEPLOY-001-REQ-018",
+      "req_id": "EPIC-008-F-004-S-001-REQ-T-003",
       "status": "uat_testing",
       "story_id": "DEVOPS-DEPLOY-001",
       "orphan": true,
@@ -2438,7 +2438,7 @@
     },
     {
       "bugid": "BUG-TEST-032",
-      "req_id": "SEC-HTTPS-001-REQ-009",
+      "req_id": "EPIC-002-F-001-S-012-REQ-T-002",
       "title": "Smoke does not assert Verified == VERIFIED in session panel",
       "reproduction": "Run SMOKE_TEST_ENV=dev pytest; step 17 passes despite Verified: FAILED in UI.",
       "status": "uat_testing",
@@ -2472,7 +2472,7 @@
     },
     {
       "bugid": "BUG-TEST-034",
-      "req_id": "FC-FILT-001-REQ-013",
+      "req_id": "EPIC-006-F-002-S-001-REQ-B-008",
       "title": "Smoke does not assert Uncheck All placement inside cell 1 (green header)",
       "reproduction": "Open local or dev; inspect left-panel DOM; toggle-all button is outside the green-header td.",
       "status": "uat_testing",
@@ -2489,7 +2489,7 @@
     },
     {
       "bugid": "BUG-TEST-035",
-      "req_id": "SEC-HTTPS-001-REQ-013",
+      "req_id": "EPIC-002-F-001-S-012-REQ-B-007",
       "title": "Smoke does not assert all 5 SESSION VERIFICATION fields present",
       "reproduction": "Open https://localhost, do a search, observe SV panel lacks 'Signed token:' and 'Origin:' lines.",
       "status": "uat_testing",
@@ -2505,7 +2505,7 @@
     },
     {
       "bugid": "BUG-TEST-036",
-      "req_id": "SEC-HTTPS-001-REQ-015",
+      "req_id": "EPIC-002-F-001-S-012-REQ-B-008",
       "title": "Smoke does not assert Fatal Error splash on 30s verification timeout",
       "reproduction": "Stop EvaluateCare verify path; observe UI shows Pending forever with no Fatal Error splash.",
       "status": "uat_testing",
@@ -2522,7 +2522,7 @@
     },
     {
       "bugid": "BUG-UX-024",
-      "req_id": "FC-EVAL-001-REQ-002",
+      "req_id": "EPIC-006-F-003-S-001-REQ-B-002",
       "title": "Evaluate Providers button persists on welcome/splash when RestoreState=false",
       "reproduction": "(1) Open the site; (2) search 'Find me a bone doctor in Delaware'; (3) select 2 providers; (4) click Evaluate These Providers; (5) from the banner click FindCare (or otherwise return via /transfer/to-findcare with RestoreState=false); (6) observe the orange 'Evaluate 2 Providers' button still visible over the welcome splash.",
       "status": "new",
@@ -2555,7 +2555,7 @@
     },
     {
       "bugid": "BUG-GOV-010",
-      "req_id": "ARCH-DEVOPS-BOOT-001-REQ-012",
+      "req_id": "EPIC-008-F-003-S-001-REQ-T-006",
       "story_id": "ARCH-DEVOPS-BOOT-001",
       "discovery_date": "2026-04-18",
       "status": "testing",
@@ -2577,7 +2577,7 @@
     },
     {
       "bugid": "BUG-GOV-011",
-      "req_id": "ARCH-DEVOPS-BOOT-001-REQ-011",
+      "req_id": "EPIC-008-F-003-S-001-REQ-B-004",
       "story_id": "ARCH-DEVOPS-BOOT-001",
       "fix": "inform_claude() emits only the mode-selection directive at boot. prompt() detects when the user's reply (token 1/2/3) completes REQ-010 and emits the orphan-triage directive in that turn's additionalContext. Orphan list is re-scanned from bugs.json at mode-reply time so it is always current.",
       "discovery_date": "2026-04-18",
@@ -2601,7 +2601,7 @@
     },
     {
       "bugid": "BUG-GOV-009",
-      "req_id": "ARCH-DEVOPS-BOOT-001-REQ-007",
+      "req_id": "EPIC-008-F-003-S-001-REQ-B-002",
       "description": "UAT 2026-04-18 (human typed 'test' on fresh boot): hook emitted both BOOT DIRECTIVE sections correctly (verified at lines 211 and 222 of the additionalContext file). Claude responded with a paraphrased 'REQ-010 — Mode: Unattended / Normal / Idiot?' instead of the verbatim numbered prompt the directive demanded. Human's finding: requirements say the flow is deterministic; a flow that depends on the LLM following a text instruction is non-deterministic by construction. The fix landed in the prior iteration (SessionStart hook clearing the booted flag) closed the lifecycle-gap symptom but not the underlying enforcement gap.\n\nopen because the flow has not yet been made non-circumventable.",
       "discovery_date": "2026-04-18",
       "status": "testing",
@@ -2624,13 +2624,13 @@
     {
       "bugid": "BUG-DEFER-001",
       "title": "Deferred: compliance crosswalk agent not yet approved into prod",
-      "description": "Auto-tracking debt bug for deferred requirement ARCH-COMPLIANCE-CROSSWALK-001-REQ-T001. Severity escalates by environment per v4-041 (Deferred work tracking pattern). Closes only when the requirement is completed and the work is moved out of Code/_pending/. Per v4-041, severity_by_environment intent: dev=low, qa=critical, prod=show_stopper. (Field will move to a structured property once the schema update ships to the published Cloudflare URL.)",
+      "description": "Auto-tracking debt bug for deferred requirement EPIC-002-F-002-S-002-REQ-T-001. Severity escalates by environment per v4-041 (Deferred work tracking pattern). Closes only when the requirement is completed and the work is moved out of Code/_pending/. Per v4-041, severity_by_environment intent: dev=low, qa=critical, prod=show_stopper. (Field will move to a structured property once the schema update ships to the published Cloudflare URL.)",
       "environments": [
         "dev"
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-COMPLIANCE-CROSSWALK-001-REQ-T001",
+      "req_id": "EPIC-002-F-002-S-002-REQ-T-001",
       "story_id": "ARCH-COMPLIANCE-CROSSWALK-001",
       "pytest_id": "",
       "pytest_success_criteria": [],
@@ -2640,19 +2640,19 @@
       "reproduction": "N/A — tracking bug, not a defect.",
       "orphan": false,
       "next_action": [
-        "Approve and complete ARCH-COMPLIANCE-CROSSWALK-001-REQ-T001"
+        "Approve and complete EPIC-002-F-002-S-002-REQ-T-001"
       ]
     },
     {
       "bugid": "BUG-DEFER-002",
       "title": "Deferred: engineering_rules.json schema redesign not yet done",
-      "description": "Auto-tracking debt bug for deferred requirement BRAIN-ENGINEERING-RULES-REQ-T001. Severity escalates by environment per v4-041 (Deferred work tracking pattern). Closes only when the requirement is completed and the work is moved out of Code/_pending/. Per v4-041, severity_by_environment intent: dev=low, qa=critical, prod=show_stopper. (Field will move to a structured property once the schema update ships to the published Cloudflare URL.)",
+      "description": "Auto-tracking debt bug for deferred requirement EPIC-008-F-007-S-011-REQ-T-002. Severity escalates by environment per v4-041 (Deferred work tracking pattern). Closes only when the requirement is completed and the work is moved out of Code/_pending/. Per v4-041, severity_by_environment intent: dev=low, qa=critical, prod=show_stopper. (Field will move to a structured property once the schema update ships to the published Cloudflare URL.)",
       "environments": [
         "dev"
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "BRAIN-ENGINEERING-RULES-REQ-T001",
+      "req_id": "EPIC-008-F-007-S-011-REQ-T-002",
       "story_id": "BRAIN-ENGINEERING-RULES",
       "pytest_id": "",
       "pytest_success_criteria": [],
@@ -2662,19 +2662,19 @@
       "reproduction": "N/A — tracking bug, not a defect.",
       "orphan": false,
       "next_action": [
-        "Approve and complete BRAIN-ENGINEERING-RULES-REQ-T001"
+        "Approve and complete EPIC-008-F-007-S-011-REQ-T-002"
       ]
     },
     {
       "bugid": "BUG-DEFER-003",
       "title": "Deferred: crosswalk third-framework (engineering rules) not yet done",
-      "description": "Auto-tracking debt bug for deferred requirement ARCH-COMPLIANCE-CROSSWALK-002-REQ-T001. Severity escalates by environment per v4-041 (Deferred work tracking pattern). Closes only when the requirement is completed and the work is moved out of Code/_pending/. Per v4-041, severity_by_environment intent: dev=low, qa=critical, prod=show_stopper. (Field will move to a structured property once the schema update ships to the published Cloudflare URL.)",
+      "description": "Auto-tracking debt bug for deferred requirement EPIC-002-F-003-S-002-REQ-T-001. Severity escalates by environment per v4-041 (Deferred work tracking pattern). Closes only when the requirement is completed and the work is moved out of Code/_pending/. Per v4-041, severity_by_environment intent: dev=low, qa=critical, prod=show_stopper. (Field will move to a structured property once the schema update ships to the published Cloudflare URL.)",
       "environments": [
         "dev"
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-COMPLIANCE-CROSSWALK-002-REQ-T001",
+      "req_id": "EPIC-002-F-003-S-002-REQ-T-001",
       "story_id": "ARCH-COMPLIANCE-CROSSWALK-002",
       "pytest_id": "",
       "pytest_success_criteria": [],
@@ -2684,19 +2684,19 @@
       "reproduction": "N/A — tracking bug, not a defect.",
       "orphan": false,
       "next_action": [
-        "Approve and complete ARCH-COMPLIANCE-CROSSWALK-002-REQ-T001"
+        "Approve and complete EPIC-002-F-003-S-002-REQ-T-001"
       ]
     },
     {
       "bugid": "BUG-DEFER-004",
       "title": "Deferred: deferred-work pattern not yet codified end-to-end",
-      "description": "Auto-tracking debt bug for deferred requirement BRAIN-DEFERRED-WORK-001-REQ-T001. Severity escalates by environment per v4-041 (Deferred work tracking pattern). Closes only when the requirement is completed and the work is moved out of Code/_pending/. Per v4-041, severity_by_environment intent: dev=low, qa=critical, prod=show_stopper. (Field will move to a structured property once the schema update ships to the published Cloudflare URL.)",
+      "description": "Auto-tracking debt bug for deferred requirement EPIC-008-F-009-S-001-REQ-T-001. Severity escalates by environment per v4-041 (Deferred work tracking pattern). Closes only when the requirement is completed and the work is moved out of Code/_pending/. Per v4-041, severity_by_environment intent: dev=low, qa=critical, prod=show_stopper. (Field will move to a structured property once the schema update ships to the published Cloudflare URL.)",
       "environments": [
         "dev"
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "BRAIN-DEFERRED-WORK-001-REQ-T001",
+      "req_id": "EPIC-008-F-009-S-001-REQ-T-001",
       "story_id": "BRAIN-DEFERRED-WORK-001",
       "pytest_id": "",
       "pytest_success_criteria": [],
@@ -2706,7 +2706,7 @@
       "reproduction": "N/A — tracking bug, not a defect.",
       "orphan": false,
       "next_action": [
-        "Approve and complete BRAIN-DEFERRED-WORK-001-REQ-T001"
+        "Approve and complete EPIC-008-F-009-S-001-REQ-T-001"
       ]
     },
     {
@@ -2733,14 +2733,14 @@
     },
     {
       "bugid": "BUG-MISSING-PYTEST-001",
-      "title": "ARCH-DEVOPS-BOOT-001-REQ-018 needs a real pytest (currently ORPHAN placeholder)",
+      "title": "EPIC-008-F-003-S-001-REQ-T-010 needs a real pytest (currently ORPHAN placeholder)",
       "description": "The requirement was schema-noncompliant (empty pytests) and blocked an unrelated commit on 2026-04-19. Backfilled with an ORPHAN placeholder pytest to unblock; a real pytest exercising 100%-from-project boot must replace it.",
       "environments": [
         "dev"
       ],
       "status": "new",
       "severity": "low",
-      "req_id": "ARCH-DEVOPS-BOOT-001-REQ-018",
+      "req_id": "EPIC-008-F-003-S-001-REQ-T-010",
       "story_id": "ARCH-DEVOPS-BOOT-001",
       "pytest_id": "",
       "pytest_success_criteria": [],
@@ -2788,7 +2788,7 @@
       ],
       "status": "in_analysis",
       "severity": "critical",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-refactor-pytest",
       "pytest_success_criteria": [
@@ -2814,7 +2814,7 @@
       ],
       "status": "new",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-scanner-implementation",
       "pytest_success_criteria": [
@@ -2842,7 +2842,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-exemption-review",
       "pytest_success_criteria": [
@@ -2868,7 +2868,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -2894,7 +2894,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -2920,7 +2920,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -2946,7 +2946,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -2972,7 +2972,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -2998,7 +2998,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3024,7 +3024,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3050,7 +3050,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3076,7 +3076,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3102,7 +3102,7 @@
       ],
       "status": "uat_testing",
       "severity": "high",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3128,7 +3128,7 @@
       ],
       "status": "uat_testing",
       "severity": "high",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3154,7 +3154,7 @@
       ],
       "status": "uat_testing",
       "severity": "high",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3180,7 +3180,7 @@
       ],
       "status": "uat_testing",
       "severity": "high",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3206,7 +3206,7 @@
       ],
       "status": "uat_testing",
       "severity": "high",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3232,7 +3232,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3258,7 +3258,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3284,7 +3284,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3310,7 +3310,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3336,7 +3336,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3362,7 +3362,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3388,7 +3388,7 @@
       ],
       "status": "uat_testing",
       "severity": "high",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3414,7 +3414,7 @@
       ],
       "status": "uat_testing",
       "severity": "high",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3440,7 +3440,7 @@
       ],
       "status": "uat_testing",
       "severity": "high",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3466,7 +3466,7 @@
       ],
       "status": "uat_testing",
       "severity": "high",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3492,7 +3492,7 @@
       ],
       "status": "uat_testing",
       "severity": "high",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3518,7 +3518,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3544,7 +3544,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3570,7 +3570,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3596,7 +3596,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3622,7 +3622,7 @@
       ],
       "status": "uat_testing",
       "severity": "low",
-      "req_id": "ARCH-GRAPH-ORCHESTRATION-001-REQ-T001",
+      "req_id": "EPIC-008-F-010-S-001-REQ-T-001",
       "story_id": "ARCH-GRAPH-ORCHESTRATION-001",
       "pytest_id": "TBD-graph-routed-handler-test",
       "pytest_success_criteria": [
@@ -3651,7 +3651,7 @@
       ],
       "status": "new",
       "severity": "high",
-      "req_id": "ARCH-CONSTRAINTS-PRIME-RULE-001-REQ-T001",
+      "req_id": "EPIC-008-F-002-S-002-REQ-T-001",
       "story_id": "ARCH-CONSTRAINTS-PRIME-RULE-001",
       "pytest_id": "TBD-prime-rule-enforcement-tests",
       "pytest_success_criteria": [
@@ -3684,7 +3684,7 @@
       ],
       "status": "new",
       "severity": "high",
-      "req_id": "ARCH-SCAN-JSON-REQ-003",
+      "req_id": "EPIC-008-F-008-S-004-REQ-T-002",
       "story_id": "ARCH-SCAN-JSON",
       "pytest_id": "TBD-backlog-schema-executor-test",
       "pytest_success_criteria": [
@@ -3708,7 +3708,7 @@
     {
       "bugid": "BUG-RULES-NO-REQ-TRACE-001",
       "title": "61 engineering rules in engineering_rules.json have no requirement trace (orphan rules)",
-      "description": "Every rule in brain/machine_artifacts/content/engineering_rules.json MUST carry a 'req_id' field per ARCH-SCAN-JSON-REQ-004. Audit on 2026-04-19 found 61 rules in the file, ZERO of which carry a req_id field. All are orphans. The full list with file:line references is in 'next_action'. Closes when every listed rule has been updated with a req_id pointing at an approved agile_backlog requirement, the schema makes req_id required on each rule, AND the scanner enforces it. Severity intent (per v4-041): dev=low, qa=critical, prod=show_stopper.",
+      "description": "Every rule in brain/machine_artifacts/content/engineering_rules.json MUST carry a 'req_id' field per EPIC-008-F-008-S-004-REQ-T-003. Audit on 2026-04-19 found 61 rules in the file, ZERO of which carry a req_id field. All are orphans. The full list with file:line references is in 'next_action'. Closes when every listed rule has been updated with a req_id pointing at an approved agile_backlog requirement, the schema makes req_id required on each rule, AND the scanner enforces it. Severity intent (per v4-041): dev=low, qa=critical, prod=show_stopper.",
       "environments": [
         "local",
         "dev",
@@ -3717,7 +3717,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "ARCH-SCAN-JSON-REQ-004",
+      "req_id": "EPIC-008-F-008-S-004-REQ-T-003",
       "story_id": "ARCH-SCAN-JSON",
       "pytest_id": "TBD-rules-have-req-trace",
       "pytest_success_criteria": [
@@ -3826,7 +3826,7 @@
     {
       "bugid": "BUG-SCANNER-NOT-SINGLE-GATE-001",
       "title": "preCommitScan does not enforce the 61 engineering rules at pre-commit (split with pre-push)",
-      "description": "Per ARCH-SCAN-JSON-REQ-005 the pre-commit scanner MUST run every engineering rule with an executor at pre-commit time. Today only schema validation + HTTP scan run at pre-commit; the 61 rules' executors run at pre-push. This split creates a 'commit passed but push fails' trap. Closes when preCommitScan.py 'staged' mode runs the full rule set scoped to staged files AND pre-push reduces to network-op only.\n\nADDITIONAL (2026-04-19): Rule-002 statement 3 (Pipeline discipline - 'Every workflow fix commit must include a meaningful Code/DataPipelines/ file change') is also enforced in the WRONG place. The check lives at .git/hooks/pre-commit:63-70 (an untracked, local-only bash hook) instead of preCommitScan.py. The hook output prints the stale label 'v4-001A' even though the rules were renamed to Rule-NNN earlier today (Rule-002 is the canonical id). Same root cause as the parent bug: enforcement is split across multiple gates (preCommitScan.py + .git/hooks/pre-commit + pre_deploy_rule_check.py) and untracked local hooks drift independently. Rule-002 enforcement must move into preCommitScan.py's rule-executor loop (driven by engineering_rules.json), and the .git/hooks/pre-commit check must be retired so the canonical rule label is the only one users ever see.",
+      "description": "Per EPIC-008-F-008-S-004-REQ-B-002 the pre-commit scanner MUST run every engineering rule with an executor at pre-commit time. Today only schema validation + HTTP scan run at pre-commit; the 61 rules' executors run at pre-push. This split creates a 'commit passed but push fails' trap. Closes when preCommitScan.py 'staged' mode runs the full rule set scoped to staged files AND pre-push reduces to network-op only.\n\nADDITIONAL (2026-04-19): Rule-002 statement 3 (Pipeline discipline - 'Every workflow fix commit must include a meaningful Code/DataPipelines/ file change') is also enforced in the WRONG place. The check lives at .git/hooks/pre-commit:63-70 (an untracked, local-only bash hook) instead of preCommitScan.py. The hook output prints the stale label 'v4-001A' even though the rules were renamed to Rule-NNN earlier today (Rule-002 is the canonical id). Same root cause as the parent bug: enforcement is split across multiple gates (preCommitScan.py + .git/hooks/pre-commit + pre_deploy_rule_check.py) and untracked local hooks drift independently. Rule-002 enforcement must move into preCommitScan.py's rule-executor loop (driven by engineering_rules.json), and the .git/hooks/pre-commit check must be retired so the canonical rule label is the only one users ever see.",
       "environments": [
         "local",
         "dev",
@@ -3835,7 +3835,7 @@
       ],
       "status": "new",
       "severity": "high",
-      "req_id": "ARCH-SCAN-JSON-REQ-005",
+      "req_id": "EPIC-008-F-008-S-004-REQ-B-002",
       "story_id": "ARCH-SCAN-JSON",
       "pytest_id": "TBD-single-gate-test",
       "pytest_success_criteria": [
@@ -3859,7 +3859,7 @@
     {
       "bugid": "BUG-AGILE-BACKLOG-UNIQUENESS-DISABLED-001",
       "title": "Cross-record uniqueness check disabled in pre_deploy_rule_check.py - 4 ID fields unenforced (also: bugs.json bugid uniqueness unenforced)",
-      "description": "Per Skip directive 2026-04-19, the cross-record uniqueness check in enforce_backlog_schema (Code/Shared/ops/tools/pre_deploy_rule_check.py) was commented out because it was orphan code (no requirement authorized it) and was blocking commits on pre-existing duplicate IDs that pre-date today's session. Fields no longer enforced for uniqueness within agile_backlog.json: (1) epic_id, (2) feature_id, (3) story_id, (4) req_id. Today these IDs reuse: EPIC-008 was used by 2 epics (Architecture and UX) before today's rename; EVAL-REQ-001..018 reused 7-24 times each across EvaluateCare measure variants; EVAL-WEIGHTS-REQ-*, EVAL-CACHE-REQ-*, EVAL-NORM-REQ-*, EVAL-DATA-PROV-REQ-*, EVAL-REQ-FAILSAFE-*, EVAL-CONF-REQ-*, EVAL-REQ-CTM4-* families all carry duplicates. Closes when (a) a requirement is filed and approved authorizing scanner ID-uniqueness enforcement, (b) the existing duplicates are deduplicated, and (c) the commented block in pre_deploy_rule_check.py is restored.\n\nADDITIONAL: bugs.json itself also lacks bugid uniqueness enforcement. 4 duplicate bugids found: BUG-LANGCHAIN-CONTAINER-APP-HEALTH, BUG-LANGCHAIN-CONTAINER-APP-SPLASH, BUG-LANGCHAIN-CONTAINER-APP-TRANSFER-TO-FINDCARE, BUG-LANGCHAIN-CONTAINER-APP-VERIFY-TOKEN (each appears twice). No scanner check currently enforces bugid uniqueness; the absence of this check is a sibling of the disabled agile_backlog uniqueness check.\n\nADDITIONAL (2026-04-19): preCommitScan.py also carries an orphan hardcoded check at lines 140-141 that rejects any staged JSON whose top-level is not a dict, citing 'BRAIN-SCHEMA-REQ-001'. The check has no Rule-NNN trace in engineering_rules.json (it directly cites a requirement_id, bypassing the rules->enforcements framework) and no path-based opt-out, so it blocks legitimate non-conforming files such as Code/_pending/engineering_rules_redesign/output/id_mapping.json (a top-level array used as a migration intermediate). Same pattern as the uniqueness check: orphan scanner code with no rule authorization and no scope discipline.",
+      "description": "Per Skip directive 2026-04-19, the cross-record uniqueness check in enforce_backlog_schema (Code/Shared/ops/tools/pre_deploy_rule_check.py) was commented out because it was orphan code (no requirement authorized it) and was blocking commits on pre-existing duplicate IDs that pre-date today's session. Fields no longer enforced for uniqueness within agile_backlog.json: (1) epic_id, (2) feature_id, (3) story_id, (4) req_id. Today these IDs reuse: EPIC-008 was used by 2 epics (Architecture and UX) before today's rename; EPIC-001-F-020-S-004-REQ-T-001..018 reused 7-24 times each across EvaluateCare measure variants; EVAL-WEIGHTS-REQ-*, EVAL-CACHE-REQ-*, EVAL-NORM-REQ-*, EVAL-DATA-PROV-REQ-*, EVAL-REQ-FAILSAFE-*, EVAL-CONF-REQ-*, EVAL-REQ-CTM4-* families all carry duplicates. Closes when (a) a requirement is filed and approved authorizing scanner ID-uniqueness enforcement, (b) the existing duplicates are deduplicated, and (c) the commented block in pre_deploy_rule_check.py is restored.\n\nADDITIONAL: bugs.json itself also lacks bugid uniqueness enforcement. 4 duplicate bugids found: BUG-LANGCHAIN-CONTAINER-APP-HEALTH, BUG-LANGCHAIN-CONTAINER-APP-SPLASH, BUG-LANGCHAIN-CONTAINER-APP-TRANSFER-TO-FINDCARE, BUG-LANGCHAIN-CONTAINER-APP-VERIFY-TOKEN (each appears twice). No scanner check currently enforces bugid uniqueness; the absence of this check is a sibling of the disabled agile_backlog uniqueness check.\n\nADDITIONAL (2026-04-19): preCommitScan.py also carries an orphan hardcoded check at lines 140-141 that rejects any staged JSON whose top-level is not a dict, citing 'EPIC-008-F-007-S-020-REQ-T-001'. The check has no Rule-NNN trace in engineering_rules.json (it directly cites a requirement_id, bypassing the rules->enforcements framework) and no path-based opt-out, so it blocks legitimate non-conforming files such as Code/_pending/engineering_rules_redesign/output/id_mapping.json (a top-level array used as a migration intermediate). Same pattern as the uniqueness check: orphan scanner code with no rule authorization and no scope discipline.",
       "environments": [
         "local",
         "dev",
@@ -3883,7 +3883,7 @@
       "discovery_date": "2026-04-19",
       "due_date": "2026-04-26",
       "fix": "",
-      "reproduction": "Open Code/Shared/ops/tools/pre_deploy_rule_check.py at the comment block 'Cross-record uniqueness check - DISABLED' (around line 345). Confirm the seen={...} block and the for kind, m in seen.items() loop are commented out. Run python preCommitScan.py all - duplicate IDs in agile_backlog.json are NOT reported as violations. Also: stage any JSON with a top-level array (e.g. Code/_pending/engineering_rules_redesign/output/id_mapping.json) and attempt to commit; preCommitScan.py:140-141 will reject it citing BRAIN-SCHEMA-REQ-001 even though no Rule-NNN authorizes that check.",
+      "reproduction": "Open Code/Shared/ops/tools/pre_deploy_rule_check.py at the comment block 'Cross-record uniqueness check - DISABLED' (around line 345). Confirm the seen={...} block and the for kind, m in seen.items() loop are commented out. Run python preCommitScan.py all - duplicate IDs in agile_backlog.json are NOT reported as violations. Also: stage any JSON with a top-level array (e.g. Code/_pending/engineering_rules_redesign/output/id_mapping.json) and attempt to commit; preCommitScan.py:140-141 will reject it citing EPIC-008-F-007-S-020-REQ-T-001 even though no Rule-NNN authorizes that check.",
       "orphan": false,
       "next_action": [
         "File a requirement under ARCH-SCAN-GENERAL story (or another scanning story) authorizing scanner ID-uniqueness enforcement.",
@@ -3895,8 +3895,8 @@
     },
     {
       "bugid": "BUG-PORT-NONCOMPLIANCE-001",
-      "title": "3 backend files violate DEVOPS-DEPLOY-001-REQ-015 standard-ports rule",
-      "description": "DEVOPS-DEPLOY-001-REQ-015 requires standard ports 80, 443, 7860, 8001, 8002 across all environments. Three backend files reference non-standard ports as defaults or in CORS allow_origins: (1) Code/ConversationalUX/FindCareChat/backend/main.py:589 defaults EVALCARE_URL to https://localhost:8081 (Caddy mTLS port that does not exist in the local deploy and is not in the standard set); (2) Code/evaluate_care/app.py:89-90 lists https://localhost:3000 and https://localhost:8080 in CORS allow_origins; (3) Code/shared_services/app.py:87-88 lists https://localhost:3000, https://localhost:8080, https://localhost:8081. These ports are not in the REQ-015 standard set and they bias the system toward non-canonical local topology that does not match local/dev/qa/prod parity. Surfaced by the 13 local Playwright smoke failures on 2026-04-19: FindCare /evaluate/providers proxy timed out trying to reach :8081 because nothing was listening there.",
+      "title": "3 backend files violate EPIC-008-F-004-S-001-REQ-T-001 standard-ports rule",
+      "description": "EPIC-008-F-004-S-001-REQ-T-001 requires standard ports 80, 443, 7860, 8001, 8002 across all environments. Three backend files reference non-standard ports as defaults or in CORS allow_origins: (1) Code/ConversationalUX/FindCareChat/backend/main.py:589 defaults EVALCARE_URL to https://localhost:8081 (Caddy mTLS port that does not exist in the local deploy and is not in the standard set); (2) Code/evaluate_care/app.py:89-90 lists https://localhost:3000 and https://localhost:8080 in CORS allow_origins; (3) Code/shared_services/app.py:87-88 lists https://localhost:3000, https://localhost:8080, https://localhost:8081. These ports are not in the REQ-015 standard set and they bias the system toward non-canonical local topology that does not match local/dev/qa/prod parity. Surfaced by the 13 local Playwright smoke failures on 2026-04-19: FindCare /evaluate/providers proxy timed out trying to reach :8081 because nothing was listening there.",
       "environments": [
         "local",
         "dev",
@@ -3905,7 +3905,7 @@
       ],
       "status": "fixing",
       "severity": "high",
-      "req_id": "DEVOPS-DEPLOY-001-REQ-015",
+      "req_id": "EPIC-008-F-004-S-001-REQ-T-001",
       "story_id": "DEVOPS-DEPLOY-001",
       "pytest_id": "TBD-port-compliance-test",
       "pytest_success_criteria": [
@@ -3937,7 +3937,7 @@
       ],
       "status": "fixing",
       "severity": "high",
-      "req_id": "SEC-HTTPS-001-REQ-009",
+      "req_id": "EPIC-002-F-001-S-012-REQ-T-002",
       "story_id": "SEC-HTTPS-001",
       "pytest_id": "TBD-evalcare-graph-state-test",
       "pytest_success_criteria": [
@@ -3962,7 +3962,7 @@
     {
       "bugid": "BUG-VERIFY-TOKEN-PROXY-001",
       "title": "Right-panel /verify-token call goes to FindCare (proxy), not directly to the cold-button service",
-      "description": "Per SEC-HTTPS-001-REQ-019 the browser MUST call the cold-button service's /verify-token endpoint directly. Today Website/index.html openSharedServices() and openEvaluateCare() both POST /shared/verify-token and /evaluate/verify-token to FindCare (apiBase + '/shared/verify-token' and apiBase + '/evaluate/verify-token'). FindCare then proxies the call server-side via requests.post to the peer service. The right panel renders the result, but the operator cannot independently verify (via DevTools Network tab or smoke test) that the cold-button service actually verified the token — all visible HTTP traffic terminates at FindCare. This is a validation gap as well as an architectural mismatch with the per-owner banner refresh (DEVOPS-BANNER-B007) and the Env/Time token rows (SEC-HTTPS-001-REQ-018) which already report the active service.",
+      "description": "Per EPIC-002-F-001-S-012-REQ-T-007 the browser MUST call the cold-button service's /verify-token endpoint directly. Today Website/index.html openSharedServices() and openEvaluateCare() both POST /shared/verify-token and /evaluate/verify-token to FindCare (apiBase + '/shared/verify-token' and apiBase + '/evaluate/verify-token'). FindCare then proxies the call server-side via requests.post to the peer service. The right panel renders the result, but the operator cannot independently verify (via DevTools Network tab or smoke test) that the cold-button service actually verified the token — all visible HTTP traffic terminates at FindCare. This is a validation gap as well as an architectural mismatch with the per-owner banner refresh (EPIC-008-F-004-S-004-REQ-B-007) and the Env/Time token rows (EPIC-002-F-001-S-012-REQ-B-009) which already report the active service.",
       "environments": [
         "local",
         "dev",
@@ -3971,7 +3971,7 @@
       ],
       "status": "fixing",
       "severity": "high",
-      "req_id": "SEC-HTTPS-001-REQ-019",
+      "req_id": "EPIC-002-F-001-S-012-REQ-T-007",
       "story_id": "SEC-HTTPS-001",
       "pytest_id": "TestStep25.test_push_shared_services",
       "pytest_success_criteria": [
@@ -3990,6 +3990,28 @@
         "Apply Website/index.html fix (3 lines per service: read peer URL from window._envServiceUrls and POST to it).",
         "Run local smoke + dev smoke; TestStep25 must pass with new direct-call assertions.",
         "Manually verify via DevTools Network tab on dev that the direct call appears."
+      ]
+    },
+    {
+      "bugid": "BUG-FK-001",
+      "title": "Dangling FK references after universal rename + EPIC-002-F-003 deletion",
+      "status": "in_analysis",
+      "req_id": "EPIC-008-F-003-S-003-REQ-B-001",
+      "story_id": "EPIC-008-F-003-S-003",
+      "pytest_id": "ORPHAN_PYTEST",
+      "orphan": false,
+      "discovery_date": "2026-04-25",
+      "due_date": "2026-06-01",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "description": "Two classes of dangling FK created during the 2026-04-24/25 universal rename and the 2026-04-25 move/delete of EPIC-002-F-003.\n\nClass A (deletion fallout - known and listed):\n- bugs.json BUG-DEFER-003 still has req_id EPIC-002-F-003-S-002-REQ-T-001 (record was deleted).\n- Code/_pending/compliance_crosswalk/src/_apply_brain_edits_2026_04_19.py - 4 lines reference deleted S-002 reqs.\n- Code/_pending/compliance_crosswalk/src/_build_deferral_doc.py - 2 lines reference deleted S-002 reqs.\n- Code/_pending/compliance_crosswalk/src/_build_pending_readmes.py - 2 lines reference deleted S-002 reqs.\n\nClass B (universal-rename lossy mapping - possible, undetected):\n- The universal-rename agent built id_mapping[old_id] = new_id but old_ids like 'EVAL-REQ-001' collided across stories. The lossy map was applied to 1109 reference replacements across 69 git-tracked files. Where code/tests referenced a specific instance of a duplicated old id, the rewrite may now point at the wrong canonical record. Most replacements are likely semantically OK because the duplicated old ids referred to structurally identical stubs, but a small number may be wrong.",
+      "reproduction": "Class A: grep agile_backlog.json for the listed deleted ids - they appear only in the named external files. Class B: check any test that exercises a story whose old req_ids had duplicates; if it fails citing a wrong canonical id, that is a Class B mismatch.",
+      "next_action": [
+        "Design solution"
       ]
     }
   ]
