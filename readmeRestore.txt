@@ -9,7 +9,6 @@ WHAT THIS STATE LOOKS LIKE:
 - brain/ renamed to brainbak/ (brain JSON files are all here)
 - Code/Shared/brain_auth.py renamed to brain_auth.py.bak
 - Code/Shared/brain_loop.py renamed to brain_loop.py.bak
-- Code/Shared/brain_runner.py renamed to brain_runner.py.bak
 - Code/Shared/ops/tools/chathealthy_devops_boot.py has Framework 0.1.3 boot script
 - .claude/settings.json has 2 hooks wired (SessionStart, UserPromptSubmit)
 - .claude/settings.local.json has permission allowlists (NOT tracked in git)
@@ -43,7 +42,7 @@ It calls GPT-4.1-mini on every user prompt (handle_user_prompt_submit).
 If that call hangs or throws, the hook blocks Claude entirely.
 The fix was:
 1. Rename brain/ to brainbak/ (boot script can't find brain JSONs, fails open)
-2. Rename brain_auth.py, brain_loop.py, brain_runner.py to .bak
+2. Rename brain_auth.py, brain_loop.py to .bak
 3. Reinstall Claude Code plugin
 
 FILES NOT IN GIT (must be restored manually if lost):

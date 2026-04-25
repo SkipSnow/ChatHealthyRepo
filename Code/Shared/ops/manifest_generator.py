@@ -44,7 +44,6 @@ class ManifestGenerator:
         "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx": ["Markdown rendering (react-markdown + GFM)", "HTML sanitization", "Error message styling", "Token/timing metadata footer"],
         "Code/Shared/ChatHealthyMongoUtilities.py": ["MongoDB connection lifecycle management", "Ping validation per access", "Context manager support", "commit() write utility"],
         "Code/Shared/prompt_system_maker.py": ["System prompt assembly from brain artifacts", "Tool definition loading (Anthropic schema)", "Emergency keyword registry", "Brain collection and record reading", "ME context loading"],
-        "Code/Shared/brain_runner.py": ["GPT assignment orchestration", "Static system prompt from brain", "Context fetching + Machine Brain search", "Usage logging to cost_guard"],
         "Code/Shared/brain_loop.py": ["Claude-GPT autonomous review loop", "Assignment queue management", "Gate decision logic", "UAT scenario execution"],
         "Code/Shared/brain_auth.py": ["Bearer token auth for Brain API", "Agent identity resolution", "Scope-based access control"],
         "Code/Shared/cost_guard.py": ["Token usage tracking per call", "Model-specific pricing", "Budget enforcement (daily/monthly)"],
@@ -245,8 +244,14 @@ class ManifestGenerator:
         if not self._manifest:
             self.generate()
         path = output_path or os.path.join(self._root, "brain", "manifest", "project_manifest.json")
+        envelope = {
+            "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
+            "collection": "project_manifest",
+            "records": self._manifest,
+        }
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(self._manifest, f, indent=2)
+            json.dump(envelope, f, indent=2)
+            f.write("\n")
         return path
 
     @property

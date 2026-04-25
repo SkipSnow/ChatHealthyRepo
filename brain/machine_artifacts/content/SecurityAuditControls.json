@@ -676,26 +676,6 @@
           "classified_at": "2026-04-19T06:45:45.964389+00:00"
         },
         {
-          "source_file": "Code/DataPipelines/tests/gpt_sit_runner.py",
-          "code_blocks": [
-            {
-              "start_line": 101,
-              "end_line": 107,
-              "summary": "Test: unauthorized database 'secret_db' returns 403 (access denied)"
-            },
-            {
-              "start_line": 110,
-              "end_line": 113,
-              "summary": "Test: unknown write action 'InsertDocument' returns 400 (read-only enforcement)"
-            }
-          ],
-          "evidence": "Tests explicitly verify that unauthorized databases return 403, unknown/write actions return 400, and only allowlisted databases are accessible, demonstrating enforcement of access authorizations for logical access.",
-          "confidence": "medium",
-          "classified_by": "agent",
-          "classifier_model": "claude-sonnet-4-6",
-          "classified_at": "2026-04-19T06:47:08.249642+00:00"
-        },
-        {
           "source_file": "Code/DataPipelines/tests/test_gpt_reader.py",
           "code_blocks": [
             {
@@ -943,21 +923,6 @@
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
           "classified_at": "2026-04-19T06:44:17.744765+00:00"
-        },
-        {
-          "source_file": "Code/DataPipelines/tests/gpt_sit_runner.py",
-          "code_blocks": [
-            {
-              "start_line": 175,
-              "end_line": 196,
-              "summary": "Test: read-only MongoDB user cannot perform insert_one (write blocked by role)"
-            }
-          ],
-          "evidence": "Tests verify role-based read-only enforcement: a read-only user attempting a write operation is blocked ('not authorized'), confirming role-based access control over database subjects/objects.",
-          "confidence": "medium",
-          "classified_by": "agent",
-          "classifier_model": "claude-sonnet-4-6",
-          "classified_at": "2026-04-19T06:47:08.249642+00:00"
         }
       ]
     },
@@ -1126,7 +1091,7 @@
               "summary": "Runs scan_http.py on staged files; blocks deploy if insecure HTTP URLs are found"
             }
           ],
-          "evidence": "The script enforces a check (SEC-HTTPS-001-REQ-006) that scans staged files for insecure HTTP URLs using scan_http.py, blocking deployment if insecure (non-HTTPS) URLs are found in code — directly controlling information flow to prevent use of unencrypted channels.",
+          "evidence": "The script enforces a check (EPIC-008-F-008-S-002-REQ-B-001) that scans staged files for insecure HTTP URLs using scan_http.py, blocking deployment if insecure (non-HTTPS) URLs are found in code — directly controlling information flow to prevent use of unencrypted channels.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -1941,21 +1906,6 @@
           "classified_at": "2026-04-19T06:44:49.281342+00:00"
         },
         {
-          "source_file": "Code/DataPipelines/tests/gpt_sit_runner.py",
-          "code_blocks": [
-            {
-              "start_line": 175,
-              "end_line": 196,
-              "summary": "Least-privilege test: read-only user write attempt must be blocked"
-            }
-          ],
-          "evidence": "The test validates that the read-only user cannot write to the database, directly testing least-privilege enforcement — the user has only the access necessary (read) and no more.",
-          "confidence": "medium",
-          "classified_by": "agent",
-          "classifier_model": "claude-sonnet-4-6",
-          "classified_at": "2026-04-19T06:47:08.249642+00:00"
-        },
-        {
           "source_file": "Code/DataPipelines/tests/test_gpt_reader.py",
           "code_blocks": [
             {
@@ -2291,21 +2241,6 @@
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
           "classified_at": "2026-04-19T06:43:51.581977+00:00"
-        },
-        {
-          "source_file": "Code/DataPipelines/tests/gpt_sit_runner.py",
-          "code_blocks": [
-            {
-              "start_line": 62,
-              "end_line": 66,
-              "summary": "Test: invalid/wrong token returns HTTP 401 (authentication enforcement)"
-            }
-          ],
-          "evidence": "Tests verify that invalid tokens result in 401 responses, demonstrating enforcement of authentication failure handling at the service boundary.",
-          "confidence": "medium",
-          "classified_by": "agent",
-          "classifier_model": "claude-sonnet-4-6",
-          "classified_at": "2026-04-19T06:47:08.249642+00:00"
         },
         {
           "source_file": "Code/DataPipelines/tests/test_gpt_reader.py",
@@ -2932,21 +2867,6 @@
           "classified_at": "2026-04-19T06:44:49.281342+00:00"
         },
         {
-          "source_file": "Code/DataPipelines/tests/gpt_sit_runner.py",
-          "code_blocks": [
-            {
-              "start_line": 56,
-              "end_line": 66,
-              "summary": "Tests valid and invalid token acceptance for remote service access"
-            }
-          ],
-          "evidence": "The SIT validates that the GPT Reader service enforces token-based authorization for remote access, and that invalid tokens are rejected, which tests remote access control policy implementation.",
-          "confidence": "low",
-          "classified_by": "agent",
-          "classifier_model": "claude-sonnet-4-6",
-          "classified_at": "2026-04-19T06:47:08.249642+00:00"
-        },
-        {
           "source_file": "Website/security-architecture.html",
           "code_blocks": [
             {
@@ -3077,7 +2997,7 @@
             {
               "start_line": 1,
               "end_line": 16,
-              "summary": "SEC-HTTPS-001-REQ-004 policy: no HTTP URLs in production code"
+              "summary": "EPIC-002-F-001-S-012-REQ-B-004 policy: no HTTP URLs in production code"
             },
             {
               "start_line": 93,
@@ -3220,7 +3140,7 @@
               "summary": "Negative test: asserts server rejects connections without client cert"
             }
           ],
-          "evidence": "The test suite explicitly verifies mutual-authentication TLS 1.2+ (mTLS) handshakes between services, referencing SEC-HTTPS-001-REQ-009. It enforces that every service-to-service call uses client certificates and TLS encryption, which directly implements cryptographic protection of confidentiality and integrity for remote (service-to-service) access sessions.",
+          "evidence": "The test suite explicitly verifies mutual-authentication TLS 1.2+ (mTLS) handshakes between services, referencing EPIC-002-F-001-S-012-REQ-T-002. It enforces that every service-to-service call uses client certificates and TLS encryption, which directly implements cryptographic protection of confidentiality and integrity for remote (service-to-service) access sessions.",
           "confidence": "high",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -4340,21 +4260,6 @@
           "classified_at": "2026-04-19T06:46:41.388780+00:00"
         },
         {
-          "source_file": "Code/DataPipelines/tests/gpt_sit_runner.py",
-          "code_blocks": [
-            {
-              "start_line": 159,
-              "end_line": 163,
-              "summary": "Test: audit log entry count increases after ReadArtifact call (event logged)"
-            }
-          ],
-          "evidence": "The test explicitly checks that an audit log entry is created after each GPT Reader call, verifying the system logs access events.",
-          "confidence": "high",
-          "classified_by": "agent",
-          "classifier_model": "claude-sonnet-4-6",
-          "classified_at": "2026-04-19T06:47:08.249642+00:00"
-        },
-        {
           "source_file": "Code/DataPipelines/tests/test_gpt_reader.py",
           "code_blocks": [
             {
@@ -4961,21 +4866,6 @@
           "classified_at": "2026-04-19T06:46:41.388780+00:00"
         },
         {
-          "source_file": "Code/DataPipelines/tests/gpt_sit_runner.py",
-          "code_blocks": [
-            {
-              "start_line": 165,
-              "end_line": 169,
-              "summary": "Test: audit entry has actor, action, target, timestamp, status_code fields"
-            }
-          ],
-          "evidence": "The test verifies that audit log entries contain required fields: actor, action, target, timestamp, and status_code — directly validating audit record content requirements.",
-          "confidence": "high",
-          "classified_by": "agent",
-          "classifier_model": "claude-sonnet-4-6",
-          "classified_at": "2026-04-19T06:47:08.249642+00:00"
-        },
-        {
           "source_file": "Code/DataPipelines/tests/test_gpt_reader.py",
           "code_blocks": [
             {
@@ -5089,7 +4979,7 @@
               "summary": "buildTokenDisplayHtml parses token into nonce, GUID, origin, verified fields"
             }
           ],
-          "evidence": "Session verification tokens are parsed into nonce, GUID, origin, and verified fields and displayed, providing structured identity/audit information about session events (SEC-HTTPS-001-REQ-013).",
+          "evidence": "Session verification tokens are parsed into nonce, GUID, origin, and verified fields and displayed, providing structured identity/audit information about session events (EPIC-002-F-001-S-012-REQ-B-007).",
           "confidence": "low",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
@@ -6660,21 +6550,6 @@
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
           "classified_at": "2026-04-19T06:46:41.388780+00:00"
-        },
-        {
-          "source_file": "Code/DataPipelines/tests/gpt_sit_runner.py",
-          "code_blocks": [
-            {
-              "start_line": 159,
-              "end_line": 169,
-              "summary": "Validates audit record generation for service actions in MongoDB audit collection"
-            }
-          ],
-          "evidence": "Tests confirm audit records are generated for ReadArtifact actions by checking document counts before and after calls to the gpt_reader_audit collection.",
-          "confidence": "high",
-          "classified_by": "agent",
-          "classifier_model": "claude-sonnet-4-6",
-          "classified_at": "2026-04-19T06:47:08.249642+00:00"
         },
         {
           "source_file": "Code/DataPipelines/tests/test_gpt_reader_integration.py",
@@ -17485,7 +17360,7 @@
             {
               "start_line": 271,
               "end_line": 281,
-              "summary": "Step 1: verifies HTTP→HTTPS redirect (SEC-HTTPS-001-REQ-004)"
+              "summary": "Step 1: verifies HTTP→HTTPS redirect (EPIC-002-F-001-S-012-REQ-B-004)"
             },
             {
               "start_line": 371,
@@ -20396,21 +20271,6 @@
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",
           "classified_at": "2026-04-19T06:44:49.281342+00:00"
-        },
-        {
-          "source_file": "Code/DataPipelines/tests/gpt_sit_runner.py",
-          "code_blocks": [
-            {
-              "start_line": 143,
-              "end_line": 152,
-              "summary": "Tests: path traversal and absolute path inputs are blocked with 403"
-            }
-          ],
-          "evidence": "Tests verify that path traversal attempts ('../../etc/passwd') and absolute paths ('/etc/passwd') are blocked with 403, confirming input validation of the project_path parameter.",
-          "confidence": "high",
-          "classified_by": "agent",
-          "classifier_model": "claude-sonnet-4-6",
-          "classified_at": "2026-04-19T06:47:08.249642+00:00"
         }
       ]
     },

@@ -364,12 +364,12 @@
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "Every GPT prompt, including those in brain_runner.py, collaboration scripts, or ad-hoc use, loads corporate governance policies from brain/corporate_governance.json.",
+              "statement_body": "Every GPT prompt, loads corporate governance policies from brain/corporate_governance.json.",
               "req_id": "Orphan"
             },
             {
               "statement_number": 2,
-              "statement_body": "Every GPT prompt, including those in brain_runner.py, collaboration scripts, or ad-hoc use, includes the loaded governance policies in the system prompt or context.",
+              "statement_body": "Every GPT prompt, includes the loaded governance policies in the system prompt or context.",
               "req_id": "Orphan"
             },
             {

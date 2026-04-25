@@ -32,7 +32,6 @@
                 ]
               },
               "files_touched": [
-                "brain/machine_artifacts/content/ai_operations.json",
                 "brain/machine_artifacts/content/architecture.json",
                 "brain/machine_artifacts/content/business_plan.json",
                 "brain/machine_artifacts/content/controlled_vocabularies.json",
@@ -50,7 +49,6 @@
                 "brain/machine_artifacts/content/schema.json",
                 "brain/machine_artifacts/content/security.json",
                 "brain/machine_artifacts/content/SecurityAuditControls.json",
-                "brain/machine_artifacts/content/sprint_plan.json",
                 "brain/machine_artifacts/content/token_usage.json",
                 "brain/machine_artifacts/content/traceability_matrix.json",
                 "brain/machine_artifacts/content/unrealized_ideas.json",
