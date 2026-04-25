@@ -1703,14 +1703,6 @@
             "purpose": "Enterprise architect role — design proposals, SIT execution, code audit",
             "invocation": "On-demand by Claude via brain runner",
             "cost_profile": "Variable, per-assignment"
-          },
-          {
-            "prompt": "GPT assurance loop (assignment review)",
-            "model": "GPT-5.3-chat-latest (OpenAI)",
-            "location": "Code/Shared/brain_runner.py",
-            "purpose": "Review Claude's work against assignments, produce assurance output",
-            "invocation": "Per brain assignment",
-            "cost_profile": "Low volume, medium cost per call"
           }
         ],
         "model_selection_rationale": [

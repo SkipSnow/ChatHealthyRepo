@@ -2,16 +2,15 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # preCommitScan.py — Unified pre-commit and pre-push scanner.
-# Replaces scan_http.py and pre_deploy_rule_check.py.
 #
 # One file. One pass. All rules. No redundancy.
 #
 # Rules enforced:
-#   - SEC-HTTPS-001-REQ-004: No HTTP URLs in production code
+#   - EPIC-002-F-001-S-012-REQ-B-004: No HTTP URLs in production code
 #   - v4-007 enforcement types: file_scan, file_absent, file_present, json_check, no_pattern
 #   - v4-031: Dead code scanner (two-pass)
 #
-# BRAIN-SCHEMA-REQ-001 (JSON-vs-schema validation) is a RUNTIME requirement,
+# EPIC-008-F-007-S-020-REQ-T-001 (JSON-vs-schema validation) is a RUNTIME requirement,
 # not a governance-time requirement, and is no longer enforced here.
 #
 # Usage:
@@ -48,7 +47,6 @@ HTTP_EXEMPT_PATTERNS = [
     r"brain/BusinessArtifacts/",
     r"Code/Shared/ops/tools/scan_http\.py$",  # scanner's own regex patterns
     r"Code/Shared/ops/tools/preCommitScan\.py$",  # ditto
-    r"Code/Shared/ops/tools/pre_deploy_rule_check\.py$",  # ditto
 ]
 
 SKIP_PATTERNS = [r"__pycache__", r"\.pyc$", r"node_modules", r"\.venv"]
@@ -119,12 +117,12 @@ def scan_files(files):
     exit_code = 0
 
     if http_violations:
-        print(f"SEC-HTTPS-001-REQ-004 VIOLATION: {len(http_violations)} insecure HTTP URLs:")
+        print(f"EPIC-002-F-001-S-012-REQ-B-004 VIOLATION: {len(http_violations)} insecure HTTP URLs:")
         for v in http_violations:
             print(v)
         exit_code = 1
     else:
-        print(f"SEC-HTTPS-001-REQ-004 PASS: 0 insecure HTTP URLs in {len(files)} files.")
+        print(f"EPIC-002-F-001-S-012-REQ-B-004 PASS: 0 insecure HTTP URLs in {len(files)} files.")
 
     return exit_code
 
@@ -315,39 +313,13 @@ def enforce_graph_entry_check(rule_id, enforcement):
     return violations
 
 
-# Reuse schema validators from the deploy-time scanner so both gates apply
-# the same rule executors (single source of truth — no executor drift).
-try:
-    from pre_deploy_rule_check import (  # noqa: E402
-        enforce_bugs_schema,
-        enforce_backlog_schema,
-        enforce_ai_operations_schema,
-        enforce_conversation_log_schema,
-    )
-except ImportError:
-    enforce_bugs_schema = enforce_backlog_schema = None
-    enforce_ai_operations_schema = enforce_conversation_log_schema = None
-
 EXECUTORS = {
     "file_scan": enforce_file_scan,
     "file_absent": enforce_file_absent,
     "file_present": enforce_file_present,
     "json_check": enforce_json_check,
     "no_pattern": enforce_no_pattern,
-    # graph_entry_check: DISABLED 2026-04-20 per Skip directive — LangGraph
-    # was removed from runtime code (build 1007). Rule-061 in
-    # engineering_rules.json is now orphan; this executor would fire on every
-    # route handler and block all pushes. Re-enable only if LangGraph
-    # orchestration is reintroduced. Mirrors disable in pre_deploy_rule_check.py.
-    # "graph_entry_check": enforce_graph_entry_check,
 }
-if enforce_bugs_schema:
-    EXECUTORS.update({
-        "bugs_schema": enforce_bugs_schema,
-        "backlog_schema": enforce_backlog_schema,
-        "ai_operations_schema": enforce_ai_operations_schema,
-        "conversation_log_schema": enforce_conversation_log_schema,
-    })
 
 
 # ── Dead code scanner (v4-031) ──────────────────────────────────
@@ -508,7 +480,6 @@ def _changed_files_for_push():
 _IMPLICIT_TARGET_FILES = {
     "bugs_schema": ["brain/machine_artifacts/content/bugs.json"],
     "backlog_schema": ["brain/machine_artifacts/content/agile_backlog.json"],
-    "ai_operations_schema": ["brain/machine_artifacts/content/ai_operations.json"],
     "conversation_log_schema": ["brain/machine_artifacts/content/schema.json"],
 }
 
@@ -646,7 +617,7 @@ def main():
                 all_violations.append("File scan violations found")
             checked += 1
         else:
-            print("PASS: SEC-HTTPS-001-REQ-004 (no scannable staged files)")
+            print("PASS: EPIC-002-F-001-S-012-REQ-B-004 (no scannable staged files)")
             checked += 1
 
         print("=" * 60)

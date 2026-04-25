@@ -42800,63 +42800,13 @@
                   },
                   {
                     "story_id": "EPIC-008-F-007-S-002",
-                    "description": "Brain artifact: ai_operations",
-                    "size": "S",
-                    "status": "in_progress",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-007-S-002-REQ-T-001",
-                          "requirement": "ai_operations.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Review ai_operations.json for accuracy, completeness, and redundancy",
-                          "depends_on": []
-                        },
-                        {
-                          "requirement": "ai_operations.json MUST be controlled by a JSON schema. The file MUST be in strict compliance with that schema at all times.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": true,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Validate ai_operations.json against strict JSON schema at all times",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "ai_operations.json — Brain artifact"
-                  },
-                  {
-                    "story_id": "EPIC-008-F-007-S-003",
                     "description": "Brain artifact: architecture",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-003-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-002-REQ-T-001",
                           "requirement": "architecture.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -42899,14 +42849,14 @@
                     "name": "architecture.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-004",
+                    "story_id": "EPIC-008-F-007-S-003",
                     "description": "All system bugs. Each bug has its own environment and status attributes. Environments constrained to local/dev/qa/prod. Source of truth for defect tracking.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-004-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-003-REQ-T-001",
                           "requirement": "bugs.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -42949,14 +42899,14 @@
                     "name": "bugs.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-005",
+                    "story_id": "EPIC-008-F-007-S-004",
                     "description": "Brain artifact: business_plan",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-005-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-004-REQ-T-001",
                           "requirement": "business_plan.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -42999,14 +42949,14 @@
                     "name": "business_plan.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-006",
+                    "story_id": "EPIC-008-F-007-S-005",
                     "description": "Governed controlled vocabularies used across the ChatHealthy.ai system. Each vocabulary has a definition, members with definitions, and implementation traceability. Engineering rules (engineering_rule",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-006-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-005-REQ-T-001",
                           "requirement": "controlled_vocabularies.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43049,14 +42999,14 @@
                     "name": "controlled_vocabularies.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-007",
+                    "story_id": "EPIC-008-F-007-S-006",
                     "description": "Rolling 24h conversation log.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-B-001",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-B-001",
                           "requirement": "All visible user and assistant text MUST be stored verbatim. No truncation, no summarization. Thinking indicators excluded.",
                           "priority": "must-have",
                           "status": "done",
@@ -43065,7 +43015,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-B-001-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-B-001-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43076,7 +43026,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-B-002",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-B-002",
                           "requirement": "Each record MUST have a PST timestamp (0.1 second precision), a UTC timestamp, and a globally unique key. Records do not have to be unique by timestamp.",
                           "priority": "must-have",
                           "status": "done",
@@ -43085,7 +43035,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-B-002-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-B-002-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43096,7 +43046,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-B-003",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-B-003",
                           "requirement": "ALL utterances MUST be durably captured and archived to MongoDB. MongoDB is the permanent record. Zero utterance loss is the target. The system MUST NOT silently drop events.",
                           "priority": "must-have",
                           "status": "done",
@@ -43105,7 +43055,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-B-003-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-B-003-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43116,7 +43066,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-B-004",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-B-004",
                           "requirement": "Sensitive keys (API keys, connection strings, passwords, credentials) MUST NEVER be written to MongoDB. These values MUST be redacted with [Sensitive content redacted]. Profanity MUST be redacted with [expletive redacted].",
                           "priority": "must-have",
                           "status": "done",
@@ -43125,7 +43075,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-B-004-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-B-004-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43136,7 +43086,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-B-005",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-B-005",
                           "requirement": "Utterances older than 24 hours MUST be removed from local storage after they have been archived to MongoDB.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43155,7 +43105,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-B-006",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-B-006",
                           "requirement": "Every action on the log MUST be recorded with who, what, and when.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43174,7 +43124,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-B-007",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-B-007",
                           "requirement": "The conversation log service MUST start automatically on system boot without operator intervention.",
                           "priority": "must-have",
                           "status": "done",
@@ -43183,7 +43133,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-B-007-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-B-007-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43194,7 +43144,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-B-008",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-B-008",
                           "requirement": "If MongoDB is unavailable, utterances MUST be retained durably and archived when MongoDB becomes available. No utterance may be lost due to a downstream outage.",
                           "priority": "must-have",
                           "status": "done",
@@ -43203,7 +43153,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-B-008-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-B-008-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43214,7 +43164,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-B-009",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-B-009",
                           "requirement": "If the service fails, the human operator MUST be informed as soon as they appear after an absence, or immediately if they are present. The notification MUST include what failed and why.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43233,7 +43183,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-B-010",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-B-010",
                           "requirement": "The human user MUST be able to restart the service at any time. The service MUST be fully operational within 10 seconds of restart.",
                           "priority": "must-have",
                           "status": "done",
@@ -43242,7 +43192,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-B-010-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-B-010-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43253,7 +43203,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-001",
                           "requirement": "The Claude Code hook MUST capture each utterance and POST the raw payload to a localhost HTTP sidecar. The hook MUST complete in under 100ms. The hook MUST NOT parse, redact, transform, or write to any file. If the sidecar is unreachable, the hook MUST append to a local emergency fallback log and return.",
                           "priority": "must-have",
                           "status": "done",
@@ -43262,7 +43212,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-001-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-001-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43273,7 +43223,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-002",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-002",
                           "requirement": "A persistent Python/FastAPI sidecar (PID 1) MUST maintain a warm Apache Kafka producer connection. It MUST accept HTTP POST requests from the hook, enqueue the raw payload to Kafka, and return HTTP 202 immediately. It MUST NOT do any processing beyond enqueue.",
                           "priority": "must-have",
                           "status": "done",
@@ -43282,7 +43232,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-002-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-002-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43293,7 +43243,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-003",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-003",
                           "requirement": "A persistent Python consumer (PID 2) MUST read from the Kafka topic, perform GPT-4.1-mini redaction (B004), assign a unique key (CH_KEY_ followed by a generated GUID), add timestamps (B002), and archive to MongoDB. It MUST use manual commit only after successful MongoDB write. If it crashes mid-processing, Kafka MUST redeliver the message (at-least-once delivery).",
                           "priority": "must-have",
                           "status": "done",
@@ -43302,7 +43252,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-003-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-003-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43313,7 +43263,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-004",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-004",
                           "requirement": "Apache Kafka MUST run in a Docker container on the local machine. The Kafka broker MUST use KRaft mode (no ZooKeeper). The topic MUST retain messages for 24 hours. A single partition is sufficient.",
                           "priority": "must-have",
                           "status": "done",
@@ -43322,7 +43272,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-004-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-004-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43333,7 +43283,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-005",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-005",
                           "requirement": "The C# Windows service (ChatHealthyClaudeLogMgmt) MUST be a supervisor only. It MUST start the Docker Kafka container if not running, start the sidecar (PID 1), start the consumer (PID 2), monitor both, and restart them if they die. It MUST kill child processes on service stop (no zombies). It MUST NOT contain any business logic.",
                           "priority": "must-have",
                           "status": "done",
@@ -43342,7 +43292,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-005-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-005-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43353,7 +43303,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-006",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-006",
                           "requirement": "The C# Windows service MUST be configured for AUTO_START so it runs on system boot without operator intervention.",
                           "priority": "must-have",
                           "status": "done",
@@ -43362,7 +43312,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-006-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-006-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43373,7 +43323,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-007",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-007",
                           "requirement": "Errors MUST be written to errors.json with timestamp, source, and error message.",
                           "priority": "must-have",
                           "status": "done",
@@ -43382,7 +43332,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-007-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-007-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43393,7 +43343,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-008",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-008",
                           "requirement": "MongoDB connection string MUST be read from Code/.env. All MongoDB communication MUST use TLS 1.2+. Every record written to MongoDB MUST include build number, framework version, and product version from version.json.",
                           "priority": "must-have",
                           "status": "done",
@@ -43402,7 +43352,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-008-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-008-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43413,7 +43363,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-009",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-009",
                           "requirement": "Apache Kafka is licensed under Apache 2.0. This dependency is approved for commercial use and investor IP due diligence. No SSPL, RSALv2, or proprietary-licensed queue technology may be used.",
                           "priority": "must-have",
                           "status": "done",
@@ -43422,7 +43372,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-009-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-009-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43433,7 +43383,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-010",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-010",
                           "requirement": "conversation_log.json schema MUST be defined in schema.json and validated by the pre-commit scanner. The schema_address field MUST be present in the file header.",
                           "priority": "must-have",
                           "status": "done",
@@ -43442,7 +43392,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-010-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-010-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43453,7 +43403,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-011",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-011",
                           "requirement": "The consumer (PID 2) MUST batch writes to MongoDB. It MUST accumulate messages and flush to MongoDB using insert_many when either the batch reaches 50 messages or 30 seconds have elapsed since the last flush, whichever comes first. Individual insert_one calls per utterance are prohibited.",
                           "priority": "must-have",
                           "status": "done",
@@ -43462,7 +43412,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-007-REQ-T-011-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-011-PYTEST-1",
                                 "pytest_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -43473,7 +43423,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-007-REQ-T-012",
+                          "req_id": "EPIC-008-F-007-S-006-REQ-T-012",
                           "requirement": "conversation_log.json needs to be reviewed by human and Claude for possible rationalization.",
                           "priority": "must-have",
                           "status": "done",
@@ -43498,14 +43448,14 @@
                     "name": "conversation_log.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-008",
+                    "story_id": "EPIC-008-F-007-S-007",
                     "description": "Daily punch lists with results. Tracks what was planned, what was done, and what carried over. Source of truth for daily velocity and accountability.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-008-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-007-REQ-T-001",
                           "requirement": "daily_punch_list_with_results_and_accomplishments.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43548,14 +43498,14 @@
                     "name": "daily_punch_list_with_results_and_accomplishments.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-009",
+                    "story_id": "EPIC-008-F-007-S-008",
                     "description": "Brain artifact: design",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-009-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-008-REQ-T-001",
                           "requirement": "design.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43598,14 +43548,14 @@
                     "name": "design.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-010",
+                    "story_id": "EPIC-008-F-007-S-009",
                     "description": "Config-driven keyword list for SafetyService EmergencyDetector. Dual-trigger OR logic: keyword match OR semantic classifier. F-09 fix: expanded from v1.0.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-010-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-009-REQ-T-001",
                           "requirement": "emergency_keywords.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43648,14 +43598,14 @@
                     "name": "emergency_keywords.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-011",
+                    "story_id": "EPIC-008-F-007-S-010",
                     "description": "Authoritative engineering rules for ChatHealthy.ai. Single source of truth. Combines operating standards (v4-series) and incident-driven lessons (DR-series). No deviation without signed risk acceptanc",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-011-REQ-B-001",
+                          "req_id": "EPIC-008-F-007-S-010-REQ-B-001",
                           "requirement": "engineering_rules.json MUST express each rule as (a) a short name (max 80 chars), (b) a non-binding description, and (c) one or more individually Boolean-testable statements. Rule identifiers MUST be uniform Rule-NNN. Every rule MUST carry a date.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43674,7 +43624,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-011-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-010-REQ-T-001",
                           "requirement": "engineering_rules.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43693,7 +43643,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-011-REQ-T-002",
+                          "req_id": "EPIC-008-F-007-S-010-REQ-T-002",
                           "requirement": "Publish a strict JSON schema (Draft 2020-12) defining rules[].rule with fields {id (matching ^Rule-\\d{3}$), name (maxLength 80), description, rule_statements[] of {statement_number >=1, statement_body}, date, type (enum standard|incident-driven), source}. Migrate engineering_rules.json in one commit; in the same commit rename every v4-NNN/DR-NNN to Rule-NNN and update every reference in non-loose-schema brain JSONs and bugs.json. preCommitScan.py + pre_deploy_rule_check.py iterate rule_statements[] instead of the prose body.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43736,14 +43686,14 @@
                     "name": "engineering_rules.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-012",
+                    "story_id": "EPIC-008-F-007-S-011",
                     "description": "Brain artifact: external_audits",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-012-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-011-REQ-T-001",
                           "requirement": "external_audits.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43786,14 +43736,14 @@
                     "name": "external_audits.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-013",
+                    "story_id": "EPIC-008-F-007-S-012",
                     "description": "Governance records: sign-offs, corporate cadence, and policies. Policies is a child of governance. Operating rules in engineering_rules.json. Risk acceptances in risk_acceptance.json.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-013-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-012-REQ-T-001",
                           "requirement": "governance.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43836,14 +43786,14 @@
                     "name": "governance.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-014",
+                    "story_id": "EPIC-008-F-007-S-013",
                     "description": "Governance propensity matrix. Rows = brain JSONs. Columns = Anthropic action events. Cells = CV-007 labels. GOV-015: all environments equal. Policies is a child of governance. Every cell value must be",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-014-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-013-REQ-T-001",
                           "requirement": "governance_matrix.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43886,14 +43836,14 @@
                     "name": "governance_matrix.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-015",
+                    "story_id": "EPIC-008-F-007-S-014",
                     "description": "Brain artifact: legal",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-015-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-014-REQ-T-001",
                           "requirement": "legal.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43936,14 +43886,14 @@
                     "name": "legal.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-016",
+                    "story_id": "EPIC-008-F-007-S-015",
                     "description": "Brain artifact: project_manifest",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-016-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-015-REQ-T-001",
                           "requirement": "project_manifest.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -43986,14 +43936,14 @@
                     "name": "project_manifest.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-017",
+                    "story_id": "EPIC-008-F-007-S-016",
                     "description": "All system and user prompts for GPT and Claude agent assignments. Registered per GOV-009 (Role In System Prompt).",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-017-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-016-REQ-T-001",
                           "requirement": "prompts.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44036,14 +43986,14 @@
                     "name": "prompts.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-018",
+                    "story_id": "EPIC-008-F-007-S-017",
                     "description": "Brain artifact: regression_report",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-018-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-017-REQ-T-001",
                           "requirement": "regression_report.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44086,14 +44036,14 @@
                     "name": "regression_report.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-019",
+                    "story_id": "EPIC-008-F-007-S-018",
                     "description": "Formal risk acceptance register. Every deviation from policy or operating rules requires a signed risk acceptance from Skip Snow recorded here. Referenced by GOV-007 (Engineering Rules Are Standards),",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-019-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-018-REQ-T-001",
                           "requirement": "risk_acceptance.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44136,14 +44086,14 @@
                     "name": "risk_acceptance.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-020",
+                    "story_id": "EPIC-008-F-007-S-019",
                     "description": "Defines all brain collections in brain/machine_artifacts/content/, their record types, and artifact generation rules. All brain content is JSON. Diagrams live in brain/machine_artifacts/diagrams/.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-020-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-019-REQ-T-001",
                           "requirement": "All ChatHealthy JSON content files MUST reference a published schema on chathealthy.ai/schemas/{env}/ via a $schema field. All ChatHealthy JSON schema files MUST reference the JSON Schema spec at https://json-schema.org/draft/2020-12/schema — not the ChatHealthy website. Schemas define the spec. Content references the schema. On each check-in each JSON content file MUST be validated against its schema. All schemas MUST be published on ChatHealthy's static web site in the directory /schemas/{env}/. Third-party JSON files (e.g. VS Code, npm, .NET, Anthropic) are exempt.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -44151,7 +44101,7 @@
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_id": "EPIC-008-F-007-S-020-REQ-T-001-PYTEST-1",
+                                "pytest_id": "EPIC-008-F-007-S-019-REQ-T-001-PYTEST-1",
                                 "pytest_type": "unit",
                                 "file": "Code/Shared/tests/test_brain_schema_validator.py",
                                 "orphan": false
@@ -44163,7 +44113,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-020-REQ-T-002",
+                          "req_id": "EPIC-008-F-007-S-019-REQ-T-002",
                           "requirement": "schema.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44182,7 +44132,7 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-007-S-020-REQ-T-003",
+                          "req_id": "EPIC-008-F-007-S-019-REQ-T-003",
                           "requirement": "A relaxed schema with no field-level constraints is allowed as a temporary placeholder. Any ChatHealthy JSON file that does not yet have a specific schema MUST reference this relaxed schema. The relaxed schema MUST be published alongside all other schemas at chathealthy.ai/schemas/{env}/. No ChatHealthy JSON file may exist without a $schema reference.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44207,14 +44157,14 @@
                     "name": "schema.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-021",
+                    "story_id": "EPIC-008-F-007-S-020",
                     "description": "Security architecture design, compliance control mappings, and CUI readiness assessment. Authoritative source for all security architecture decisions. Features and requirements are in agile_backlog.js",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-021-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-020-REQ-T-001",
                           "requirement": "security.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44257,64 +44207,14 @@
                     "name": "security.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-022",
-                    "description": "Brain artifact: sprint_plan",
-                    "size": "S",
-                    "status": "in_progress",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-007-S-022-REQ-T-001",
-                          "requirement": "sprint_plan.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Review sprint_plan.json for correctness, completeness, and redundancy",
-                          "depends_on": []
-                        },
-                        {
-                          "requirement": "sprint_plan.json MUST be controlled by a JSON schema. The file MUST be in strict compliance with that schema at all times.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": true,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Enforce strict JSON schema compliance for sprint_plan.json",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "sprint_plan.json — Brain artifact"
-                  },
-                  {
-                    "story_id": "EPIC-008-F-007-S-023",
+                    "story_id": "EPIC-008-F-007-S-021",
                     "description": "Brain artifact: token_usage",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-023-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-021-REQ-T-001",
                           "requirement": "token_usage.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44357,14 +44257,14 @@
                     "name": "token_usage.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-024",
+                    "story_id": "EPIC-008-F-007-S-022",
                     "description": "Brain artifact: traceability_matrix",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-024-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-022-REQ-T-001",
                           "requirement": "traceability_matrix.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44407,14 +44307,14 @@
                     "name": "traceability_matrix.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-025",
+                    "story_id": "EPIC-008-F-007-S-023",
                     "description": "Ideas captured from human that are not yet in the backlog. Every idea gets tracked here first, then promoted to a story when prioritized.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-025-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-023-REQ-T-001",
                           "requirement": "unrealized_ideas.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44457,14 +44357,14 @@
                     "name": "unrealized_ideas.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-026",
+                    "story_id": "EPIC-008-F-007-S-024",
                     "description": "Product version, framework version, and build history. Loaded by the singleton at SessionStart. Displayed in banner. Included in every git commit message.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-026-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-024-REQ-T-001",
                           "requirement": "version.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44507,14 +44407,14 @@
                     "name": "version.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-027",
+                    "story_id": "EPIC-008-F-007-S-025",
                     "description": "Brain artifact: work_log",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-027-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-025-REQ-T-001",
                           "requirement": "work_log.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",
@@ -44557,14 +44457,14 @@
                     "name": "work_log.json — Brain artifact"
                   },
                   {
-                    "story_id": "EPIC-008-F-007-S-028",
+                    "story_id": "EPIC-008-F-007-S-026",
                     "description": "System error log. All unrecoverable errors from agents, services, and background processes are recorded here.",
                     "size": "S",
                     "status": "not_started",
                     "requirements": {
                       "requirement": [
                         {
-                          "req_id": "EPIC-008-F-007-S-028-REQ-T-001",
+                          "req_id": "EPIC-008-F-007-S-026-REQ-T-001",
                           "requirement": "errors.json needs to be reviewed by human and Claude for possible rationalization. Evaluate whether the content, structure, and purpose of this brain artifact are correct, complete, and non-redundant with other brain artifacts.",
                           "priority": "must-have",
                           "status": "not_started",

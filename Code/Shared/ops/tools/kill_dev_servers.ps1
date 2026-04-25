@@ -26,7 +26,7 @@ foreach ($port in $ports) {
 # Also kill any stray python/node that might be ours
 Get-Process python -ErrorAction SilentlyContinue | ForEach-Object {
     $cmd = (Get-CimInstance Win32_Process -Filter "ProcessId = $($_.Id)").CommandLine
-    if ($cmd -match "main\.py|http\.server|epic_planning|brain_runner") {
+    if ($cmd -match "main\.py|http\.server|epic_planning") {
         Write-Host "Stray python PID $($_.Id): $cmd — killing" -ForegroundColor Yellow
         Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
         $killed++
