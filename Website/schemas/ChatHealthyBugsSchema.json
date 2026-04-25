@@ -39,7 +39,8 @@
           "discovery_date",
           "due_date",
           "reproduction",
-          "orphan"
+          "orphan",
+          "severity"
         ],
         "properties": {
           "bugid": {
@@ -94,11 +95,9 @@
               "critical",
               "high",
               "medium",
-              "low",
-              "not_a_bug",
-              "resolved"
+              "low"
             ],
-            "description": "Legacy field — use type instead"
+            "description": "Severity level of the bug."
           },
           "req_id": {
             "type": "string",
