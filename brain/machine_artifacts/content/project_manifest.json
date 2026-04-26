@@ -1069,13 +1069,6 @@
       "description": "Distributed provider embedding (text-embedding-3-large); 100-doc batch processing; Rate limit backoff"
     },
     {
-      "project_path": "Code/DataPipelines/fatal_alert_bridge.py",
-      "size": 3590,
-      "content_hash": "b12bd556bfd955cb",
-      "entity_type": "file",
-      "description": "Python module: fatal_alert_bridge"
-    },
-    {
       "project_path": "Code/DataPipelines/favicon.ico",
       "size": 15406,
       "content_hash": "887a11acad37e20c",
@@ -2827,14 +2820,14 @@
       "size": 76964,
       "content_hash": "aff47f829ad785f2",
       "entity_type": "file",
-      "description": "Design doc: Architecture \u2014 ChatHealthy.ai"
+      "description": "Design doc: Architecture — ChatHealthy.ai"
     },
     {
       "project_path": "Website/chat-app-design.html",
       "size": 71300,
       "content_hash": "a1475ca34665e192",
       "entity_type": "file",
-      "description": "Design doc: Chat Application Design \u2014 ChatHealthy.ai"
+      "description": "Design doc: Chat Application Design — ChatHealthy.ai"
     },
     {
       "project_path": "Website/chat-url.txt",
@@ -2848,21 +2841,21 @@
       "size": 28229,
       "content_hash": "8bb5af8108ecfecd",
       "entity_type": "file",
-      "description": "Design doc: Embedding Design \u2014 ChatHealthy.ai"
+      "description": "Design doc: Embedding Design — ChatHealthy.ai"
     },
     {
       "project_path": "Website/index.html",
       "size": 79304,
       "content_hash": "bed2d7fb6a0837a6",
       "entity_type": "file",
-      "description": "Design doc: ChatHealthy.ai \u2014 Find Care with AI"
+      "description": "Design doc: ChatHealthy.ai — Find Care with AI"
     },
     {
       "project_path": "Website/load-perf-report.html",
       "size": 36313,
       "content_hash": "193133509524c843",
       "entity_type": "file",
-      "description": "Design doc: Provider Load Performance \u2014 ChatHealthy.ai"
+      "description": "Design doc: Provider Load Performance — ChatHealthy.ai"
     },
     {
       "project_path": "Website/load_comparison.png",
@@ -2883,35 +2876,35 @@
       "size": 55556,
       "content_hash": "0f77592e57ef5d0e",
       "entity_type": "file",
-      "description": "Design doc: Pipeline Operations Manager \u2014 ChatHealthy.ai"
+      "description": "Design doc: Pipeline Operations Manager — ChatHealthy.ai"
     },
     {
       "project_path": "Website/privacy.html",
       "size": 21861,
       "content_hash": "e9ac8ec08ec052ba",
       "entity_type": "file",
-      "description": "Design doc: Privacy Policy \u2014 ChatHealthy.ai"
+      "description": "Design doc: Privacy Policy — ChatHealthy.ai"
     },
     {
       "project_path": "Website/products.html",
       "size": 16973,
       "content_hash": "9344fa06f51f5e37",
       "entity_type": "file",
-      "description": "Design doc: Products &amp; Services \u2014 ChatHealthy.ai"
+      "description": "Design doc: Products &amp; Services — ChatHealthy.ai"
     },
     {
       "project_path": "Website/provider-data-load.html",
       "size": 71764,
       "content_hash": "36c563f659973810",
       "entity_type": "file",
-      "description": "Design doc: Provider Data Load Design \u2014 ChatHealthy.ai"
+      "description": "Design doc: Provider Data Load Design — ChatHealthy.ai"
     },
     {
       "project_path": "Website/roadmap.html",
       "size": 54499,
       "content_hash": "4482c043a7d6e4bb",
       "entity_type": "file",
-      "description": "Design doc: Roadmap \u2014 ChatHealthy.ai"
+      "description": "Design doc: Roadmap — ChatHealthy.ai"
     },
     {
       "project_path": "Website/schemas/ChatHealthyAgileBacklogSchema.json",
@@ -2988,7 +2981,7 @@
       "size": 15409,
       "content_hash": "bd4032e66a52ae08",
       "entity_type": "file",
-      "description": "Design doc: Terms of Use \u2014 ChatHealthy.ai"
+      "description": "Design doc: Terms of Use — ChatHealthy.ai"
     },
     {
       "project_path": "Website/tests/conftest.py",
@@ -3072,7 +3065,7 @@
       "size": 1751,
       "content_hash": "0a9a9309630e1042",
       "entity_type": "file",
-      "description": "Project manifest \u2014 file catalog with capabilities"
+      "description": "Project manifest — file catalog with capabilities"
     },
     {
       "project_path": "brain/machine_artifacts/content/daily_punch_list_with_results_and_accomplishments.json",
@@ -3492,7 +3485,7 @@
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "The Brain \u2014 AI-native SDLC operating system. Governance, prompts, plans, assignments, audit trails, manifests."
+      "description": "The Brain — AI-native SDLC operating system. Governance, prompts, plans, assignments, audit trails, manifests."
     },
     {
       "project_path": "brain/machine_artifacts/",
@@ -3506,14 +3499,14 @@
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Project manifest \u2014 every file cataloged with capabilities and descriptions."
+      "description": "Project manifest — every file cataloged with capabilities and descriptions."
     },
     {
       "project_path": "brain/machine_artifacts/code/",
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Brain tools \u2014 scripts that generate PDFs, manifests, and other artifacts."
+      "description": "Brain tools — scripts that generate PDFs, manifests, and other artifacts."
     },
     {
       "project_path": "brain/machine_artifacts/.iteration_cache/",
@@ -3527,14 +3520,14 @@
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Business gate artifacts \u2014 QA reports, IP agreements, investor docs, UAT reports."
+      "description": "Business gate artifacts — QA reports, IP agreements, investor docs, UAT reports."
     },
     {
       "project_path": "brain/BusinessArtifacts/diagrams/",
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Business architecture diagrams \u2014 component, moat, revenue, compliance."
+      "description": "Business architecture diagrams — component, moat, revenue, compliance."
     },
     {
       "project_path": "Code/",
@@ -3548,7 +3541,7 @@
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "App 2 \u2014 Chat Window. React frontend + FastAPI backend."
+      "description": "App 2 — Chat Window. React frontend + FastAPI backend."
     },
     {
       "project_path": "Code/ConversationalUX/FindCareChat/",
@@ -3562,28 +3555,28 @@
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "FastAPI backend \u2014 tools, safety, search, consent, LLM orchestration."
+      "description": "FastAPI backend — tools, safety, search, consent, LLM orchestration."
     },
     {
       "project_path": "Code/ConversationalUX/FindCareChat/backend/domain/",
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Domain services \u2014 business logic separated by bounded context."
+      "description": "Domain services — business logic separated by bounded context."
     },
     {
       "project_path": "Code/ConversationalUX/FindCareChat/backend/application/",
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Application layer \u2014 facades, tool router, Pydantic models."
+      "description": "Application layer — facades, tool router, Pydantic models."
     },
     {
       "project_path": "Code/ConversationalUX/FindCareChat/backend/infrastructure/",
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Infrastructure \u2014 embeddings, debug logging, MongoDB utilities."
+      "description": "Infrastructure — embeddings, debug logging, MongoDB utilities."
     },
     {
       "project_path": "Code/ConversationalUX/FindCareChat/frontend/",
@@ -3597,14 +3590,14 @@
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Frontend source \u2014 components, styles, app root."
+      "description": "Frontend source — components, styles, app root."
     },
     {
       "project_path": "Code/ConversationalUX/FindCareChat/frontend/src/components/",
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "React components \u2014 ChatWindow, MessageBubble."
+      "description": "React components — ChatWindow, MessageBubble."
     },
     {
       "project_path": "Code/ConversationalUX/ChatHealthyWhoAmIChat/",
@@ -3618,35 +3611,35 @@
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "App 3 \u2014 Data Pipelines. Azure Functions, provider load, county enrichment."
+      "description": "App 3 — Data Pipelines. Azure Functions, provider load, county enrichment."
     },
     {
       "project_path": "Code/DataPipelines/tests/",
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Pipeline tests \u2014 integration, SIT runner, GPT SIT."
+      "description": "Pipeline tests — integration, SIT runner, GPT SIT."
     },
     {
       "project_path": "Code/Shared/",
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Shared code \u2014 MongoDB utilities, Brain runner, cost guard, prompt maker."
+      "description": "Shared code — MongoDB utilities, Brain runner, cost guard, prompt maker."
     },
     {
       "project_path": "Code/Shared/ops/",
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "DevOps tools \u2014 UAT report, manifest generator, build bump, epic planning runner."
+      "description": "DevOps tools — UAT report, manifest generator, build bump, epic planning runner."
     },
     {
       "project_path": "Website/",
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "App 1 \u2014 Static Website. Cloudflare Pages. Design docs, roadmap, architecture."
+      "description": "App 1 — Static Website. Cloudflare Pages. Design docs, roadmap, architecture."
     },
     {
       "project_path": "Website/tests/",
@@ -3660,7 +3653,7 @@
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "Legal documents \u2014 IP license, compliance."
+      "description": "Legal documents — IP license, compliance."
     },
     {
       "project_path": ".github/",
@@ -3674,7 +3667,7 @@
       "size": 0,
       "content_hash": "",
       "entity_type": "directory",
-      "description": "CI/CD \u2014 deploy pipelines, test workflows, build promotion."
+      "description": "CI/CD — deploy pipelines, test workflows, build promotion."
     }
   ]
 }

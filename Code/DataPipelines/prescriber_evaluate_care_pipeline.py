@@ -22,7 +22,7 @@
 #   - list(find()) replaced with batched cursor (v4-001D)
 #   - hardcoded URL moved to config (v4-001D)
 #   - QualityGate checks between stages
-#   - FatalAlertBridge on fatal errors (v4-008)
+#   - BellRinger on fatal errors (EPIC-008-F-004-S-002)
 
 import csv
 import io
@@ -65,13 +65,18 @@ CMS_PART_D_URL = os.environ.get(
     "https://data.cms.gov/sites/default/files/2025-04/0d5915ce-002c-4d87-bde8-24ffb08bb6cc/MUP_DPR_RY25_P04_V10_DY23_NPIBN.csv"
 )
 
+import sys as _sys
+_sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__), "..", "..",
+    "architecture", "DevOpsBuildDeployAndEnvironmentManagement",
+))
 from pymongo import MongoClient
 from quality_gate import QualityGate, QualityGateFailure
-from fatal_alert_bridge import FatalAlertBridge
+from bell_ringer import BellRinger
 
 pipeline_client = MongoClient(PIPELINE_URI)
 frontend_client = MongoClient(FRONTEND_URI)
-alert_bridge = FatalAlertBridge(db_client=frontend_client)
+bell = BellRinger(db_client=frontend_client)
 
 
 def step_1_can_prescribe():
@@ -428,17 +433,29 @@ if __name__ == "__main__":
         parity_ok = step_8_verify_parity()
     except QualityGateFailure as qe:
         log.error("QUALITY GATE FAILURE: %s", qe)
-        alert_bridge.send_alert(qe, context="QualityGate")
+        bell.log_event_and_ring(
+            event_type=type(qe).__name__,
+            message=str(qe),
+            context="QualityGate",
+            priority="fatal",
+        )
         parity_ok = False
     except Exception as e:
         log.error("PIPELINE FAILED: %s", e, exc_info=True)
-        alert_bridge.send_alert(e, context="overnight_pipeline")
+        bell.log_event_and_ring(
+            event_type=type(e).__name__,
+            message=str(e),
+            context="overnight_pipeline",
+            priority="fatal",
+        )
         parity_ok = False
 
     if not parity_ok:
-        alert_bridge.send_alert(
-            RuntimeError("Parity verification failed"),
-            context="step_8_verify_parity"
+        bell.log_event_and_ring(
+            event_type="RuntimeError",
+            message="Parity verification failed",
+            context="step_8_verify_parity",
+            priority="fatal",
         )
 
     elapsed = time.time() - start
@@ -448,4 +465,4 @@ if __name__ == "__main__":
     log.info("=" * 60)
 
     if parity_ok:
-        FatalAlertBridge.stop_bell()
+        bell.stop()

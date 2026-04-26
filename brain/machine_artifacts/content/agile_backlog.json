@@ -34507,7 +34507,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "BUG-PIPE-001: State filter explicit in every enrichment step"
+                    "name": "State filter explicit in every enrichment step"
                   },
                   {
                     "story_id": "EPIC-006-F-006-S-002",
@@ -34584,7 +34584,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "BUG-PIPE-002: Try/finally with status report and reservation release"
+                    "name": "Try/finally with status report and reservation release"
                   },
                   {
                     "story_id": "EPIC-006-F-006-S-003",
@@ -34654,7 +34654,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "BUG-PIPE-003: Drop collection unless incremental=true"
+                    "name": "Drop collection unless incremental=true"
                   },
                   {
                     "story_id": "EPIC-006-F-006-S-004",
@@ -34686,7 +34686,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "BUG-PIPE-005: findcare_pipeline_orchestrator must try/finally release reservation"
+                    "name": "findcare_pipeline_orchestrator must try/finally release reservation"
                   },
                   {
                     "story_id": "EPIC-006-F-006-S-005",
@@ -34718,7 +34718,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "BUG-PIPE-006: provider_load_orchestrator must try/finally release reservation"
+                    "name": "provider_load_orchestrator must try/finally release reservation"
                   },
                   {
                     "story_id": "EPIC-006-F-006-S-006",
@@ -34756,7 +34756,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "BUG-PIPE-007: copy_to_frontend_orchestrator must try/finally release reservation"
+                    "name": "copy_to_frontend_orchestrator must try/finally release reservation"
                   },
                   {
                     "story_id": "EPIC-006-F-006-S-007",
@@ -34788,7 +34788,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "BUG-PIPE-008: migrate_environment_orchestrator must try/finally release reservation"
+                    "name": "migrate_environment_orchestrator must try/finally release reservation"
                   },
                   {
                     "story_id": "EPIC-006-F-006-S-008",
@@ -35171,7 +35171,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "BUG-PIPE-009: ClusterLifecycleManager.reserve() must not block with sleep"
+                    "name": "ClusterLifecycleManager.reserve() must not block with sleep"
                   }
                 ]
               },
@@ -35186,7 +35186,7 @@
             {
               "feature_id": "EPIC-006-F-007",
               "name": "Provider Data Model — In-Place Enrichment",
-              "description": "BUG-PIPE-004: Provider and enrichment data must be one record. Enrichment updates fields on the provider record in-place. No separate enrichment collection. Per MongoDB best practices — avoid cross-collection joins.",
+              "description": "Provider and enrichment data must be one record. Enrichment updates fields on the provider record in-place. No separate enrichment collection. Per MongoDB best practices — avoid cross-collection joins.",
               "priority": "HIGH",
               "status": "not_started",
               "stories": {
@@ -35221,7 +35221,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "BUG-PIPE-004: Enrichment in-place on provider record"
+                    "name": "Enrichment in-place on provider record"
                   }
                 ]
               },
@@ -35449,95 +35449,6 @@
                     "orphan": false,
                     "approval": "proposed",
                     "name": "95% success rate SLA"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-009-S-002",
-                    "description": "Errors that are fatal must warn Skip Snow by ringing a bell continuously every 5 seconds on Skip's computer. Requires a persistent local service on human's machine that receives alert webhooks.",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-009-S-002-REQ-B-001",
-                          "requirement": "Fatal pipeline errors must trigger a continuous bell (every 5 seconds) on Skip Snow's local machine",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Fatal pipeline errors trigger bell every 5s on Skip Snow's local machine",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-009-S-002-REQ-B-002",
-                          "requirement": "Bell continues until Skip acknowledges the alert",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Bell continues until Skip acknowledges the alert",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-009-S-002-REQ-B-003",
-                          "requirement": "Alert must include pipeline name, step that failed, error message, and timestamp",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Alert includes pipeline name, failed step, error message and timestamp",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-009-S-002-REQ-T-001",
-                          "requirement": "A persistent local service must run on Skip's machine to receive alert webhooks and ring the bell",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Persistent local service receives webhooks and rings bell on Skip's machine",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "size": "M",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Fatal error alerting — continuous bell on human's machine"
                   },
                   {
                     "story_id": "EPIC-006-F-009-S-003",
@@ -36553,7 +36464,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-010-S-004-REQ-T-005",
-                          "requirement": "mark_prescriber_fn must respect states filter (BUG-PIPE-001) and only classify providers without existing can_prescribe flag (idempotent)",
+                          "requirement": "mark_prescriber_fn must respect states filter and only classify providers without existing can_prescribe flag (idempotent)",
                           "priority": "must-have",
                           "status": "not_started",
                           "depends_on": [
@@ -37184,97 +37095,6 @@
               "due_date": "2026-04-01"
             },
             {
-              "feature_id": "EPIC-006-F-012",
-              "name": "Fatal Error Alerting (v4-008)",
-              "description": "Ring bell on fatal pipeline errors. PowerShell local, Pushover cloud.",
-              "priority": "HIGH",
-              "status": "done",
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-006-F-012-S-001",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-012-S-001-REQ-T-001",
-                          "requirement": "FatalAlertBridge.send_alert() must not crash on any error type",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "EPIC-006-F-012-S-001-REQ-T-001-PYTEST-1",
-                                "pytest_type": "unit",
-                                "orphan": false,
-                                "file": "Code/DataPipelines/tests/test_error_alerting.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "FatalAlertBridge.send_alert() must not crash on any error type",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-012-S-001-REQ-T-002",
-                          "requirement": "FatalAlertBridge must log events to admin.BellEvents in MongoDB",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "EPIC-006-F-012-S-001-REQ-T-002-PYTEST-1",
-                                "pytest_type": "unit",
-                                "orphan": false,
-                                "file": "Code/DataPipelines/tests/test_error_alerting.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Log FatalAlertBridge events to admin.BellEvents in MongoDB",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-012-S-001-REQ-T-003",
-                          "requirement": "FatalAlertBridge.stop_bell() must terminate the bell loop",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "EPIC-006-F-012-S-001-REQ-T-003-PYTEST-1",
-                                "pytest_type": "unit",
-                                "orphan": false,
-                                "file": "Code/DataPipelines/tests/test_error_alerting.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "stop_bell() must terminate the bell loop in FatalAlertBridge",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Implement FatalAlertBridge",
-                    "size": "M",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Implement FatalAlertBridge"
-                  }
-                ]
-              },
-              "realized_by": [
-                "Azure Durable Functions (Python 3.12)",
-                "MongoDB Atlas"
-              ],
-              "orphan": false,
-              "approval": "proposed",
-              "due_date": "2026-04-01"
-            },
-            {
               "feature_id": "EPIC-006-F-013",
               "name": "Schema Drift Detection",
               "description": "Detect schema changes between pipeline runs via SHA-256 fingerprints.",
@@ -37571,9 +37391,9 @@
                         },
                         {
                           "req_id": "EPIC-006-F-015-S-001-REQ-T-005",
-                          "requirement": "Pipeline must import and use FatalAlertBridge",
+                          "requirement": "Pipeline must import and use BellRinger from architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "orphan": false,
                           "pytests": {
                             "pytest": [
@@ -37586,7 +37406,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Pipeline must import and use FatalAlertBridge",
+                          "name": "Pipeline must import and use BellRinger",
                           "depends_on": []
                         }
                       ]
@@ -37609,7 +37429,7 @@
             },
             {
               "feature_id": "EPIC-006-F-016",
-              "name": "CopyToFrontEnd Parity (BUG-LOAD-001)",
+              "name": "CopyToFrontEnd Parity",
               "description": "Verify source==destination counts per collection and per state after every copy.",
               "priority": "CRITICAL",
               "status": "done",
@@ -40309,7 +40129,7 @@
             {
               "feature_id": "EPIC-008-F-002",
               "name": "Engineering Rules Enforcement",
-              "status": "done",
+              "status": "in_progress",
               "description": "Runtime enforcement of architecture and governance constraints. Guard evaluates tool calls against rules, risk acceptances, and policies. Structured I/O with GPT-4.1-mini.",
               "realized_by": [
                 "GPT-4.1-mini",
@@ -40321,14 +40141,14 @@
                     "story_id": "EPIC-008-F-002-S-001",
                     "description": "The PreToolUse guard loads risk_acceptance.json, passes all active entries to GPT-4.1-mini with the command being evaluated. GPT checks risks FIRST — if covered, action passes immediately without further evaluation. Structured JSON schema enforces typed output.",
                     "size": "M",
-                    "status": "done",
+                    "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "EPIC-008-F-002-S-001-REQ-T-001",
                           "requirement": "Guard loads risk_acceptance.json dynamically on every tool call. No hardcoded risk acceptances.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "orphan": false,
                           "pytests": {
                             "pytest": [
@@ -40348,7 +40168,7 @@
                           "req_id": "EPIC-008-F-002-S-001-REQ-T-002",
                           "requirement": "GPT structured output schema includes: pass (bool), reason (string), risk_accepted (bool), risk_id (string). Strict JSON schema enforced via response_format.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "orphan": false,
                           "pytests": {
                             "pytest": [
@@ -40368,7 +40188,7 @@
                           "req_id": "EPIC-008-F-002-S-001-REQ-T-003",
                           "requirement": "If risk_accepted=true, the action passes immediately. GPT does not evaluate state change further.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "orphan": false,
                           "pytests": {
                             "pytest": [
@@ -40423,7 +40243,7 @@
                           "name": "Materiality threshold for Claude's communication in non-production",
                           "requirement": "In all non-production environments, a possible consequence to an action a human user asks Claude Code to do - either as an analysis task or as one that will change state in a reversible way - must not be surfaced to the human operator when that possible analytical or factual potential has less than a 2% probability of occurring.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "in_progress",
                           "approval": "proposed",
                           "orphan": false,
                           "pytests": {
@@ -42075,6 +41895,228 @@
                     "orphan": false,
                     "approval": "approved",
                     "name": "Cloudflare Pages Configuration"
+                  },
+                  {
+                    "story_id": "EPIC-008-F-004-S-009",
+                    "name": "Notify Human user with work station generated sound",
+                    "description": "A single, OO bell-ringing capability used by every caller in the codebase that needs to notify the human at their workstation — fatal pipeline errors, deploy completion, Claude Code completion events, and future workstation notifications. One class (BellRinger), one location, three ring patterns (once, n-times, until-acknowledged), with optional MongoDB event logging and Pushover cloud alerts.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-T-001",
+                          "name": "Class supports ring-once mode",
+                          "requirement": "BellRinger MUST expose a ring_once method that emits a single beep with configurable frequency and duration.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-T-002",
+                          "name": "Class supports ring-n-times mode with configurable interval",
+                          "requirement": "BellRinger MUST expose a ring_n_times method that emits N beeps with configurable frequency, duration, and interval between beeps.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-T-003",
+                          "name": "Class supports ring-until-acknowledged mode",
+                          "requirement": "BellRinger MUST expose a ring_until_acknowledged method that starts a daemon thread emitting beeps every N seconds until stop() is called. The method MUST be idempotent: a second call while a continuous ring is already in progress is a no-op.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-T-004",
+                          "name": "Class invokable from any Python module without subprocess overhead",
+                          "requirement": "BellRinger MUST use winsound (Windows in-process audio) when available, falling back to a subprocess PowerShell call only if winsound is unavailable. Cloud / headless environments (WEBSITE_SITE_NAME, SPACE_ID) MUST be detected and skipped silently.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-T-005",
+                          "name": "Class logs bell events to admin.BellEvents when MongoDB configured",
+                          "requirement": "When constructed with a MongoDB client, BellRinger MUST insert an event document into admin.BellEvents on every log_event_and_ring invocation. Document fields: ts, event_type, message, context, priority, hostname.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-T-006",
+                          "name": "Class emits Pushover cloud alert for high/fatal priorities",
+                          "requirement": "When PUSHOVER_TOKEN and PUSHOVER_USER environment variables are set, BellRinger MUST emit a Pushover alert for log_event_and_ring calls with priority in (high, fatal). Fatal priority MUST use Pushover priority 2 with retry/expire for guaranteed delivery.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-T-007",
+                          "name": "Single class location",
+                          "requirement": "The single bell-ringing class MUST live at projectRoot/architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py. No ad-hoc bell-ringing code elsewhere in the codebase.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-T-008",
+                          "name": "All callers invoke this class; no ad-hoc bell code elsewhere",
+                          "requirement": "Every caller in the codebase that rings a bell MUST invoke BellRinger. Inline PowerShell beeps, raw winsound calls, or alternate bell-ringing classes are forbidden.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-B-001",
+                          "name": "Fatal pipeline errors invoke ring-until-acknowledged",
+                          "requirement": "Fatal pipeline errors (QualityGateFailure, unhandled exceptions in the overnight pipeline, parity verification failure) MUST invoke BellRinger.log_event_and_ring with priority='fatal', which triggers ring_until_acknowledged.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-B-002",
+                          "name": "Bell continues until human acknowledges",
+                          "requirement": "A continuous bell (ring_until_acknowledged) MUST keep ringing until stop() is called explicitly by the human or by a downstream condition that signifies acknowledgment.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-009-REQ-B-003",
+                          "name": "Claude Code completion events invoke ring-once",
+                          "requirement": "When a Claude Code background agent or significant task completes, the completion handler MUST invoke BellRinger.ring_once (or the bell_ringer.py CLI with pattern=once) to notify the human at their workstation.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
                   }
                 ]
               },
