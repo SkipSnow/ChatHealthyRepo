@@ -777,43 +777,6 @@
         }
       },
       {
-        "id": "Rule-020",
-        "name": "Contradiction and duplicate check before creation",
-        "description": "Require checks for contradictions and duplicates before creating new items, with escalation if found.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "Before creating any new rule, requirement, story, feature, epic, or roadmap item, a search of all existing items for contradictions or duplicates must be performed.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "If a contradiction or duplicate is found during this search, the issue must be escalated to Skip Snow before proceeding.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "This contradiction and duplicate check must be performed when loading the brain.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "This contradiction and duplicate check must be performed when inserting or updating any rule.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "There must be a tool or function for rule insertion that enforces the contradiction and duplicate check gate.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": []
-        }
-      },
-      {
         "id": "Rule-021",
         "name": "Boot-time WhoAmI Reconciliation with Brain State",
         "description": "At every boot, after loading the brain, ensure summary.txt in the me/ directory matches the current brain state, updating it as needed and reporting any drift. Always treat the brain as the source of truth and never modify the brain to match me/.",
@@ -1398,33 +1361,6 @@
         }
       },
       {
-        "id": "Rule-034",
-        "name": "No bug without a requirement",
-        "description": "Every bug in bugs.json must be linked to an existing requirement or marked as an orphan if the requirement is unknown.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "Every bug entry in bugs.json has a req_id field.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "The req_id value for each bug in bugs.json corresponds to an existing requirement id in agile_backlog.json, unless Unattended Mode applies.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "In Unattended Mode, if Claude cannot absolutely and positively determine the requirement for a bug, the req_id field is set to ORPHAN_BUG.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": []
-        }
-      },
-      {
         "id": "Rule-035",
         "name": "Apply Established Pattern Consistently in Same Commit",
         "description": "Ensure that once a design or code pattern is established in a code change, the same pattern is used everywhere relevant within that same commit.",
@@ -1573,38 +1509,6 @@
             {
               "statement_number": 4,
               "statement_body": "Vector search must only resolve taxonomy codes and not provide actual data records as results.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": []
-        }
-      },
-      {
-        "id": "Rule-043",
-        "name": "Vector search indexes must be verified on every environment",
-        "description": "Ensure required vector search indexes exist on all environments during promotion.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "On every environment promotion (dev→qa, qa→prod), all required vector search indexes must be verified to exist.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "The provider_vector_index must exist on the providers table in the frontend cluster.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "The specialty_vector_index must exist on the SpecialtyMetaData table in the frontend cluster.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "Environment promotion must fail if any required vector search index is missing.",
               "req_id": "Orphan"
             }
           ]
@@ -2081,58 +1985,6 @@
         }
       },
       {
-        "id": "Rule-057",
-        "name": "Brain content SHALL NOT be stored in Markdown files",
-        "description": "ChatHealthy brain content, including derived views and indexes, must not be stored in Markdown files. Brain content must reside as JSON only, with specific Markdown exceptions allowed for non-brain-data documentation and notes.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "No ChatHealthy brain content, including facts, rules, requirements, policies, schemas, indexes, derived views, or caches of brain data, is stored in Markdown (.md) files.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "All ChatHealthy brain content must be stored as JSON files under brain/machine_artifacts/content/.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "Derived views, caches, and indexes containing brain content must be stored as JSON files.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "Markdown files in the repository are reserved only for: CLAUDE.md, .claude/CLAUDE.md (harness instructions); CLAUDE.local.md (personal notes); README.md and other human-facing, non-brain documentation.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "Any Markdown (.md) file within the brain/ directory is a v4-040 violation.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 6,
-              "statement_body": "Any Markdown (.md) file containing structured brain content is a v4-040 violation, regardless of location.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 7,
-              "statement_body": "Any derived index that accompanies a JSON source of truth for brain content must be stored as JSON.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 8,
-              "statement_body": "MEMORY.md and auto-memory topic files under ~/.claude/projects/<project>/memory/ are explicitly excluded from this rule, unless they contain brain content.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": []
-        }
-      },
-      {
         "id": "Rule-058",
         "name": "Blanket risk acceptance cascades to child actions",
         "description": "Risk acceptance for a parent task is blanket and cascades to child actions. Claude must treat sub-steps obviously inside the accepted task as covered without re-authorization, log only one parent risk acceptance, and document actions taken under the blanket. If scope is ambiguous, clarify once, not re-authorize. The form of acceptance is less important than its substance. This rule overrides repeating authorization in related rules.",
@@ -2280,48 +2132,6 @@
             {
               "statement_number": 6,
               "statement_body": "Assignment scope must not be logged per child action, in accordance with v4-039 cascade.",
-              "req_id": "Orphan"
-            }
-          ]
-        },
-        "enforcements": {
-          "enforcement": []
-        }
-      },
-      {
-        "id": "Rule-061",
-        "name": "Business-logic Entrypoints Route Through Graph Orchestrator",
-        "description": "All business-logic entry points must invoke business services through a graph orchestrator such as LangGraph StateGraph, rather than call them directly from endpoint handlers.",
-        "rule_statements": {
-          "rule_statement": [
-            {
-              "statement_number": 1,
-              "statement_body": "Every business-logic entry point in the codebase invokes business logic by calling a graph orchestrator (such as LangGraph StateGraph) rather than by directly calling business services from the handler.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 2,
-              "statement_body": "Business-logic entry points include: FastAPI/Flask/etc. route handlers, scheduled triggers, CLI command handlers, message/queue consumers, and any other operationally-invoked surface.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 3,
-              "statement_body": "Pure utility libraries—such as those handling data structures, serialization, string formatting, and math—are exempt from this rule.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "Handlers that bypass the orchestrator by calling shared business services directly (e.g., endpoint handlers calling business services without routing through the graph) violate this rule.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 5,
-              "statement_body": "Any FastAPI/Flask route handler function body must include a call to graph.invoke() (or equivalent StateGraph entry) as its primary business-logic action, with any business work itself flowing through the graph orchestrator.",
-              "req_id": "Orphan"
-            },
-            {
-              "statement_number": 6,
-              "statement_body": "Route handler code is permitted to perform request parsing, response shaping, and exception translation outside of the orchestrator call.",
               "req_id": "Orphan"
             }
           ]

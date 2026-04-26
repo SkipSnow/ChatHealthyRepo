@@ -57,7 +57,8 @@ def test_quality_gate_imported():
     content = _read("prescriber_evaluate_care_pipeline.py")
     assert "from quality_gate import" in content or "import quality_gate" in content
 
-def test_fatal_alert_imported():
-    """EPIC-006-F-015-S-001-REQ-T-005"""
+def test_bell_ringer_imported():
+    """EPIC-006-F-015-S-001-REQ-T-005: pipeline imports BellRinger from
+    architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py"""
     content = _read("prescriber_evaluate_care_pipeline.py")
-    assert "from fatal_alert_bridge import" in content or "import fatal_alert_bridge" in content
+    assert "from bell_ringer import" in content or "import bell_ringer" in content

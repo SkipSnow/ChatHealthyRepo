@@ -50,39 +50,6 @@
         "verified_by": "Claude Opus 4.6"
       }
     },
-    "EPIC-006-F-012-S-001-REQ-T-001": {
-      "story": "PIPE-FA-001",
-      "test_artifacts": [
-        "test_error_alerting.py::test_alert_on_fatal_error"
-      ],
-      "status": "IMPLEMENTED",
-      "audit_trail": {
-        "last_verified": "2026-04-08",
-        "verified_by": "Claude Opus 4.6"
-      }
-    },
-    "EPIC-006-F-012-S-001-REQ-T-002": {
-      "story": "PIPE-FA-001",
-      "test_artifacts": [
-        "test_error_alerting.py::test_alert_logs_to_mongodb"
-      ],
-      "status": "IMPLEMENTED",
-      "audit_trail": {
-        "last_verified": "2026-04-08",
-        "verified_by": "Claude Opus 4.6"
-      }
-    },
-    "EPIC-006-F-012-S-001-REQ-T-003": {
-      "story": "PIPE-FA-001",
-      "test_artifacts": [
-        "test_error_alerting.py::test_bell_stop"
-      ],
-      "status": "IMPLEMENTED",
-      "audit_trail": {
-        "last_verified": "2026-04-08",
-        "verified_by": "Claude Opus 4.6"
-      }
-    },
     "EPIC-006-F-013-S-001-REQ-T-001": {
       "story": "PIPE-SD-001",
       "test_artifacts": [

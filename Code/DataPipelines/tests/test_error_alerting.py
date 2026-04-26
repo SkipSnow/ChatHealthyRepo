@@ -1,32 +1,47 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""FatalAlertBridge tests — PIPE-FA-001"""
-import os, sys, pytest
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from fatal_alert_bridge import FatalAlertBridge
+"""BellRinger tests — EPIC-008-F-004-S-009 (Notify Human user with work
+station generated sound)."""
+import os
+import sys
 
-def test_alert_on_fatal_error():
-    """EPIC-006-F-012-S-001-REQ-T-001: send_alert must not crash on any error type"""
-    bridge = FatalAlertBridge(db_client=None)
-    # Must not raise on any error type — if it does, pytest catches the exception
-    for err in [RuntimeError("test"), ValueError("bad"), Exception("generic"), OSError("io")]:
-        bridge.send_alert(err, context="unit_test")
-    assert True  # reached here without raising
+import pytest
 
-def test_alert_logs_to_mongodb():
-    """EPIC-006-F-012-S-001-REQ-T-002: event written to admin.BellEvents"""
-    # Mock a minimal MongoDB client
+sys.path.insert(0, os.path.join(
+    os.path.dirname(__file__), "..", "..", "..",
+    "architecture", "DevOpsBuildDeployAndEnvironmentManagement",
+))
+from bell_ringer import BellRinger
+
+
+def test_log_event_and_ring_does_not_crash_on_any_priority():
+    """Class must accept normal/high/fatal priorities without raising."""
+    ringer = BellRinger(db_client=None)
+    for priority in ("normal", "high", "fatal"):
+        ringer.log_event_and_ring(
+            event_type="UnitTest",
+            message=f"test {priority}",
+            context="unit_test",
+            priority=priority,
+        )
+    ringer.stop()
+
+
+def test_log_event_writes_to_admin_bell_events():
+    """Configured db_client receives the event document in admin.BellEvents."""
     class MockColl:
         def __init__(self):
             self.docs = []
         def insert_one(self, doc):
             self.docs.append(doc)
+
     class MockDB:
         def __init__(self):
             self.bell = MockColl()
         def __getitem__(self, name):
             return self.bell
+
     class MockClient:
         def __init__(self):
             self.db = MockDB()
@@ -34,12 +49,28 @@ def test_alert_logs_to_mongodb():
             return self.db
 
     client = MockClient()
-    bridge = FatalAlertBridge(db_client=client)
-    bridge.send_alert(RuntimeError("test"), context="unit_test")
+    ringer = BellRinger(db_client=client)
+    ringer.log_event_and_ring(
+        event_type="RuntimeError",
+        message="test",
+        context="unit_test",
+        priority="normal",
+    )
     assert len(client.db.bell.docs) == 1
-    assert client.db.bell.docs[0]["error_type"] == "RuntimeError"
+    assert client.db.bell.docs[0]["event_type"] == "RuntimeError"
+    assert client.db.bell.docs[0]["priority"] == "normal"
 
-def test_bell_stop():
-    """EPIC-006-F-012-S-001-REQ-T-003: stop_bell terminates loop without error"""
-    FatalAlertBridge.stop_bell()
-    assert True  # reached here without raising
+
+def test_stop_terminates_continuous_loop_without_error():
+    """stop() returns cleanly even with no active loop, and after starting one."""
+    ringer = BellRinger()
+    ringer.stop()  # idempotent: no active loop
+    ringer.ring_until_acknowledged(interval_seconds=0.1)
+    ringer.stop()
+
+
+def test_ring_n_times_with_zero_or_negative_is_noop():
+    """Defensive: ring_n_times(0) and ring_n_times(-3) do not raise."""
+    ringer = BellRinger()
+    ringer.ring_n_times(0)
+    ringer.ring_n_times(-3)

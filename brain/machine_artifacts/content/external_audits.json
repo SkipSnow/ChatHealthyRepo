@@ -726,7 +726,7 @@
           "finding_id": "PA-F07",
           "area": "Fatal bell alerting",
           "revised_status": "Substantially improved in design, live verification pending",
-          "basis": "v4 adds FatalAlertBridge with bell logic and event logging"
+          "basis": "v4 added FatalAlertBridge with bell logic and event logging; consolidated into BellRinger per EPIC-008-F-004-S-009"
         },
         {
           "finding_id": "PA-F08",

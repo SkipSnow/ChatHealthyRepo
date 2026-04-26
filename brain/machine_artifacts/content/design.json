@@ -347,7 +347,7 @@
                 {
                   "step": 4,
                   "name": "Drain staging collection",
-                  "notes": "Drop unless incremental=true (BUG-PIPE-003)"
+                  "notes": "Drop unless incremental=true"
                 },
                 {
                   "step": 5,
@@ -524,15 +524,6 @@
           ],
           "behavior": "SHA-256 fingerprint of normalized columns+types vs admin.SchemaFingerprints. Abort pipeline on mismatch. Override for hotfixes."
         },
-        "fatal_alert_bridge": {
-          "file": "Code/DataPipelines/pipeline/fatal_alert_bridge.py",
-          "class": "FatalAlertBridge",
-          "purpose": "Ring bell on fatal pipeline errors per v4-008",
-          "methods": [
-            "send_alert(error, context)"
-          ],
-          "behavior": "Local: PowerShell beep loop every 5 seconds. Cloud: Pushover webhook. Events logged to admin.BellEvents."
-        },
         "idempotency_manager": {
           "enhanced_in": "Code/DataPipelines/pipeline_worker_base.py",
           "method": "output_exists_and_valid()",
@@ -582,12 +573,25 @@
             "validate_manifest()"
           ],
           "behavior": "Auto-detect collections. Add mongodb_collections section to manifest."
+        },
+        "bell_ringer": {
+          "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py",
+          "class": "BellRinger",
+          "purpose": "Workstation sound notifier for all callers (fatal errors, deploy completion, Claude Code completion)",
+          "methods": [
+            "ring_once()",
+            "ring_n_times(n, ...)",
+            "ring_until_acknowledged(...)",
+            "stop()",
+            "log_event_and_ring(...)"
+          ],
+          "behavior": "winsound.Beep when available, PowerShell fallback. Optional MongoDB event logging (admin.BellEvents) and Pushover cloud alerts. Per EPIC-008-F-004-S-009."
         }
       },
       "v4_remediations": {
         "prescriber_evaluate_care_pipeline": "Replace raw requests.get with DataFetcherBase subclass calls. Replace .readall() with streaming download_blob().chunks(). Move hardcoded URLs to env/config.",
         "cloud_only_execution": "prescriber_evaluate_care_pipeline.py becomes Durable Functions orchestrator. CI gate rejects 'if __name__'. Health check verifies WEBSITE_SITE_NAME.",
-        "copytofrontend_fix": "Atomic staged copy with metadata sidecar. Count+hash parity verification. Atomic swap. Rollback on failure. Addresses BUG-LOAD-001."
+        "copytofrontend_fix": "Atomic staged copy with metadata sidecar. Count+hash parity verification. Atomic swap. Rollback on failure. Addresses ."
       },
       "execution_rules": {
         "stage_ordering": "Sequential stages (v4-001E): Assemble -> Process -> Enrich -> Embed -> Ship. Each completes before next begins. No interleaving.",
@@ -683,7 +687,7 @@
           "issues": [
             4
           ],
-          "description": "Fix BUG-LOAD-001 with atomic staged copy and parity verification"
+          "description": "Fix with atomic staged copy and parity verification"
         },
         {
           "phase": 7,
@@ -699,7 +703,7 @@
           "issues": [
             10
           ],
-          "description": "FatalAlertBridge with PowerShell beep and Pushover webhook"
+          "description": "BellRinger (single class for all bell needs) with winsound/PowerShell beeps and optional Pushover cloud alerts"
         },
         {
           "phase": 9,

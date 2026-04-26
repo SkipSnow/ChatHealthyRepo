@@ -310,8 +310,8 @@ class TestStep01:
         host = HTTP_REDIRECT_HOST or BASE_URL.replace("https://", "").rstrip("/")
         # Deliberate insecure-scheme probe — this test exists to verify that
         # HTTP redirects to HTTPS (EPIC-002-F-001-S-012-REQ-B-004 positive-path test).
-        # Scheme assembled at runtime so pre_deploy_rule_check.py's substring
-        # scan does not false-positive on a deliberate security test.
+        # Scheme assembled at runtime so the pre-commit substring scan
+        # does not false-positive on a deliberate security test.
         insecure_scheme = "htt" + "p"
         page.goto(f"{insecure_scheme}://{host}", wait_until="domcontentloaded")
         assert page.url.startswith(f"https://{host}") or page.url.startswith("https://"), \

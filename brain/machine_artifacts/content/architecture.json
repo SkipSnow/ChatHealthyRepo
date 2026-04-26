@@ -3107,7 +3107,7 @@
         "12_data_quality": {
           "reconciliation": "After every batch step, not just at Ship",
           "row_error_tracking": "PipelineWorkerBase accumulates row_errors",
-          "state_filter": "BUG-PIPE-001: mandatory state filter",
+          "state_filter": "mandatory state filter",
           "stratified_sampling": "Audit samples edge cases (rare ZIPs, specialties, exclusions)",
           "known_test_records": "Synthetic known-good/known-bad records injected every run",
           "anomaly_detection": "Outlier detection on output distributions with alarms",
@@ -3958,7 +3958,7 @@
         "14_data_quality": {
           "reconciliation": "After every batch step, not just at Ship",
           "row_error_tracking": "PipelineWorkerBase accumulates row_errors",
-          "state_filter": "BUG-PIPE-001: mandatory state filter",
+          "state_filter": "mandatory state filter",
           "stratified_sampling": "Audit samples edge cases (rare ZIPs, specialties, exclusions)",
           "known_test_records": "Synthetic known-good/known-bad records injected every run",
           "anomaly_detection": "Outlier detection on output distributions with alarms",
@@ -4636,7 +4636,7 @@
         },
         {
           "issue": 4,
-          "title": "CopyToFrontEnd parity incomplete (BUG-LOAD-001)",
+          "title": "CopyToFrontEnd parity incomplete",
           "class": "bug_fix",
           "fix": "Atomic staged copy with metadata sidecar. Count+hash parity checks. Atomic swap.",
           "files": [
@@ -4708,8 +4708,8 @@
           "issue": 10,
           "title": "Fatal error alerting (bell) not implemented",
           "class": "new_component",
-          "fix": "FatalAlertBridge: on fatal error log event, if local Windows run PowerShell beep loop every 5s, if Azure send Pushover/webhook to Skip PC triggering local bell. Dedup by run_id. Events in admin.BellEvents.",
-          "new_file": "fatal_alert_bridge.py",
+          "fix": "BellRinger (architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py): single class for all bell needs. Three ring patterns (once, n-times, until-acknowledged). Optional MongoDB event logging (admin.BellEvents) and Pushover cloud alerts. Replaces the v4-era FatalAlertBridge per EPIC-008-F-004-S-009.",
+          "new_file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py",
           "local_cmd": "powershell -c while($true){[console]::beep(800,500); Start-Sleep -Seconds 5}",
           "cloud": "Azure Function -> Pushover API -> Skip PC -> local listener -> bell",
           "test": "Inject fatal, verify bell event logged. CI: mock bell.",
@@ -4739,9 +4739,9 @@
           "file": "schema_drift_detector.py",
           "purpose": "Schema fingerprinting and drift detection"
         },
-        "FatalAlertBridge": {
-          "file": "fatal_alert_bridge.py",
-          "purpose": "Fatal error bell notification (local+cloud)"
+        "BellRinger": {
+          "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py",
+          "purpose": "Workstation sound notifier; replaces FatalAlertBridge per EPIC-008-F-004-S-009"
         }
       },
       "reliability_target": {
@@ -4840,7 +4840,7 @@
         "v4-001D": "DataFetcherBase, streaming, no hardcoded URLs (issues 5, 6, 7)",
         "v4-001E": "Sequential stages, parallel sub-steps",
         "v4-003": "Architecture doc updated with code",
-        "v4-008": "Bell via FatalAlertBridge (issue 10)",
+        "v4-008": "Bell via BellRinger (EPIC-008-F-004-S-009)",
         "v4-009": "Governance in all GPT prompts (verified)"
       },
       "iteration_summary": {
