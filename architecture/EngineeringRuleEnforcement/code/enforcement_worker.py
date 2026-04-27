@@ -156,12 +156,7 @@ class EnforcementWorker(abc.ABC):
         default — metadata-driven — is preferred. ScanFilesEnforcementWorker
         does NOT override this (V17 §4.9.1).
         """
-        scopes = self.entry.get("scopes", [])
-        if not isinstance(scopes, list):
-            raise WorkerInternalError(
-                f"scopes on {self.enforcement_id} must be a list, got {type(scopes).__name__}"
-            )
-        return scopes
+        return self.entry.get("scopes", [])
 
     def _validate_scope_function_names(self) -> None:
         """Fail loudly if any function_name in scopes isn't a worker method.
@@ -172,16 +167,7 @@ class EnforcementWorker(abc.ABC):
         """
         seen: set[str] = set()
         for row in self.scopes:
-            if not isinstance(row, list) or len(row) != 3:
-                raise WorkerInternalError(
-                    f"scope row malformed on {self.enforcement_id}: {row!r}"
-                )
-            function_name, scope_list_type, _terms = row
-            if scope_list_type not in SCOPE_LIST_TYPES:
-                raise WorkerInternalError(
-                    f"scope_list_type {scope_list_type!r} on "
-                    f"{self.enforcement_id} not in {SCOPE_LIST_TYPES}"
-                )
+            function_name = row[0]
             if function_name in seen:
                 continue
             seen.add(function_name)
@@ -315,10 +301,6 @@ class EnforcementWorker(abc.ABC):
         except WorkerInternalError as exc:
             print(f"[worker] internal-error: {exc}", file=sys.stderr)
             return EXIT_WORKER_INTERNAL_ERROR
-        except (AttributeError, ValueError, KeyError) as exc:
-            # Misconfigured scopes / entry → loud worker failure.
-            print(f"[worker] startup-error: {exc}", file=sys.stderr)
-            return EXIT_WORKER_ERROR
 
         start_ns = time.perf_counter_ns()
         worker._emit_telemetry(
