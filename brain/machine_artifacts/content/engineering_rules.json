@@ -387,8 +387,7 @@
                   "_validate_json",
                   "excluded_exact",
                   [
-                    "package-lock.json",
-                    "brain/machine_artifacts/content/engineering_rules.json"
+                    "package-lock.json"
                   ]
                 ],
                 [
