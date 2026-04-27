@@ -460,7 +460,7 @@ if [ "$SKIP_SMOKE" -eq 0 ]; then
     STATE[phase_current]="smoke"
 
     # Ring the bell + banner — Human can start manual testing in parallel
-    python "${REPO_ROOT}/architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py" once 2>/dev/null || true
+    python "${REPO_ROOT}/architecture/DevOpsBuildDeployAndEnvironmentManagement/code/bell_ringer.py" once 2>/dev/null || true
     STATE[manual_test_ready_ts]=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     log ""
     log "=================================================================="

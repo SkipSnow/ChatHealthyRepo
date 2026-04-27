@@ -1,0 +1,6 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/JsonValidationFixtureSchema.json",
+  "name": "clean-fixture",
+  "kind": "gamma",
+  "count": 3
+}

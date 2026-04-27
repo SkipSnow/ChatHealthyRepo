@@ -323,7 +323,7 @@ def build_user_journey():
                  "tool_get_chathealthy_context"):
         g.add_edge(name, "system_utterance")
 
-    # ── system_utterance always loops back to user_utterance ──
+    # ── system_utterance can back to user_utterance ──
     g.add_edge("system_utterance", "user_utterance")
 
     # ── Terminals (two) ──

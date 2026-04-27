@@ -68,7 +68,7 @@ CMS_PART_D_URL = os.environ.get(
 import sys as _sys
 _sys.path.insert(0, os.path.join(
     os.path.dirname(__file__), "..", "..",
-    "architecture", "DevOpsBuildDeployAndEnvironmentManagement",
+    "architecture", "DevOpsBuildDeployAndEnvironmentManagement", "code",
 ))
 from pymongo import MongoClient
 from quality_gate import QualityGate, QualityGateFailure

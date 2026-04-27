@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/EngineeringRulesSchema.json",
   "title": "ChatHealthy Engineering Rules",
-  "description": "Engineering rules with binding statements and runtime enforcements.",
+  "description": "Engineering rules with binding statements and runtime enforcements. V17 schema additions: every entry inside rule.enforcements.enforcement[] now carries enforcement_id, hook, executable_path, requires_lock, scopes (optional), and timeout (optional).",
   "type": "object",
   "required": [
     "$schema",
@@ -94,16 +94,85 @@
                 "properties": {
                   "enforcement": {
                     "type": "array",
-                    "description": "May be empty when no runtime enforcement is wired yet.",
+                    "description": "May be empty when no runtime enforcement is wired yet. When populated, each entry follows the V17 enforcement-entry schema (TR-1 / Table 5).",
                     "items": {
                       "type": "object",
                       "required": [
-                        "type"
+                        "enforcement_id",
+                        "hook",
+                        "executable_path",
+                        "requires_lock"
                       ],
                       "properties": {
-                        "type": {
+                        "enforcement_id": {
                           "type": "string",
-                          "description": "Enforcement-type discriminator (e.g. file_scan, graph_entry_check, published_schema_validation)."
+                          "pattern": "^Rule-\\d{3}-ENF-\\d{3}$",
+                          "description": "<rule_id>-ENF-NNN, e.g. Rule-008-ENF-001."
+                        },
+                        "hook": {
+                          "type": "string",
+                          "enum": [
+                            "pre-commit",
+                            "commit-msg",
+                            "post-commit",
+                            "pre-push",
+                            "SessionStart",
+                            "UserPromptSubmit",
+                            "PreToolUse",
+                            "Stop",
+                            "SessionEnd",
+                            "InstructionsLoaded"
+                          ],
+                          "description": "The Git lifecycle or Claude Code hook that fires this enforcement."
+                        },
+                        "executable_path": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Repo-relative path to the worker script. Manager invokes via subprocess.run([sys.executable, executable_path, enforcement_id], timeout=...)."
+                        },
+                        "requires_lock": {
+                          "type": "boolean",
+                          "description": "True if the manager must acquire a lock before dispatching this worker."
+                        },
+                        "scopes": {
+                          "type": "array",
+                          "description": "Per-enforcement scope-list rules. Flat list of three-column rows: [function_name: str, scope_list_type: str, list_of_terms: list[str]]. Optional; absent/empty means is_in_scope() falls through to SCOPE_DEFAULT.",
+                          "items": {
+                            "type": "array",
+                            "minItems": 3,
+                            "maxItems": 3,
+                            "prefixItems": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "function_name — name of a check method on the worker class."
+                              },
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "allowed_exact",
+                                  "allowed_pattern",
+                                  "excluded_exact",
+                                  "excluded_pattern"
+                                ],
+                                "description": "scope_list_type — one of the four canonical terms (BR-14)."
+                              },
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "description": "list_of_terms — full strings for exact-match types, regex strings for pattern types."
+                              }
+                            ],
+                            "items": false
+                          }
+                        },
+                        "timeout": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "Optional per-worker subprocess timeout in seconds. Manager defaults to DEFAULT_TIMEOUT_SECONDS = 30 when omitted."
                         }
                       },
                       "additionalProperties": false
