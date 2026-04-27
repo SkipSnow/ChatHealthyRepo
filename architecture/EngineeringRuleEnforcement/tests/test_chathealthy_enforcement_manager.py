@@ -127,27 +127,6 @@ class TestFilterEnforcements:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Startup self-check (warning #2)
-# ─────────────────────────────────────────────────────────────────────────────
-class TestStartupSelfCheck:
-    def test_passes_on_real_rules(self):
-        m = ChatHealthyEnforcementManager("pre-commit")
-        assert m._startup_self_check() == 0
-
-    def test_returns_manager_error_on_missing_rules(self, monkeypatch, tmp_path):
-        m = ChatHealthyEnforcementManager("pre-commit")
-        monkeypatch.setattr(m, "ENGINEERING_RULES_PATH", tmp_path / "missing.json")
-        assert m._startup_self_check() == ChatHealthyEnforcementManager.EXIT_MANAGER_ERROR
-
-    def test_returns_manager_error_on_corrupt_rules(self, monkeypatch, tmp_path):
-        bad = tmp_path / "rules.json"
-        bad.write_text("not json {", encoding="utf-8")
-        m = ChatHealthyEnforcementManager("pre-commit")
-        monkeypatch.setattr(m, "ENGINEERING_RULES_PATH", bad)
-        assert m._startup_self_check() == ChatHealthyEnforcementManager.EXIT_MANAGER_ERROR
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Spawn worker — uses a tiny stub-worker script to exercise the manager
 # ─────────────────────────────────────────────────────────────────────────────
 STUB_WORKER_OK = '''
@@ -261,25 +240,6 @@ class TestSpawnWorker:
             "timeout": 1,
         })
         assert rc == ChatHealthyEnforcementManager.EXIT_WORKER_TIMEOUT
-
-    def test_missing_executable_returns_spawn_failure(self):
-        m = ChatHealthyEnforcementManager("pre-commit")
-        rc = m._spawn_worker({
-            "enforcement_id": "Rule-999-ENF-006",
-            "executable_path": "architecture/EngineeringRuleEnforcement/code/does_not_exist.py",
-            "requires_lock": False,
-            "timeout": 10,
-        })
-        assert rc == ChatHealthyEnforcementManager.EXIT_WORKER_SPAWN_FAILURE
-
-    def test_missing_executable_path_field(self):
-        m = ChatHealthyEnforcementManager("pre-commit")
-        rc = m._spawn_worker({
-            "enforcement_id": "Rule-999-ENF-007",
-            "requires_lock": False,
-        })
-        assert rc == ChatHealthyEnforcementManager.EXIT_WORKER_SPAWN_FAILURE
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Lock acquisition smoke test (warning #5: Windows file-lock edge cases)

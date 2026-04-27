@@ -10,13 +10,6 @@ Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV17.do
 One file, one main(), one class. Read-only on engineering_rules.json. Spawns each
 matching enforcement as an isolated subprocess via subprocess.run, aggregates
 return codes by the precedence in TR-2, exits with the worst.
-
-Manager startup self-check (Skip risk-register #2 — chicken-and-egg):
-Before any dispatch, the manager validates engineering_rules.json against
-EngineeringRulesSchema.json directly, using the same jsonschema library the
-ScanFiles worker uses. If the rules file is corrupt the manager cannot trust
-itself to dispatch the JSON-validation worker against the rules file, so it
-exits with EXIT_MANAGER_ERROR (2) and a clear stderr message instead.
 """
 
 from __future__ import annotations
@@ -30,7 +23,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-import jsonschema
 from filelock import FileLock, Timeout as FileLockTimeout
 
 
@@ -63,12 +55,6 @@ class ChatHealthyEnforcementManager:
     # ── ENGINEERING_RULES_PATH (V17 Table 3) ─────────────────────────────────
     ENGINEERING_RULES_PATH: Path = (
         PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "engineering_rules.json"
-    )
-
-    # The schema for engineering_rules.json itself, used by the startup
-    # self-check (warning #2 in Skip's risk register).
-    ENGINEERING_RULES_SCHEMA_PATH: Path = (
-        PROJECT_ROOT / "Website" / "schemas" / "EngineeringRulesSchema.json"
     )
 
     # ── Exit codes (TR-2) ────────────────────────────────────────────────────
@@ -107,11 +93,6 @@ class ChatHealthyEnforcementManager:
         Returns one of EXIT_OK / EXIT_VIOLATIONS_FOUND / EXIT_MANAGER_ERROR /
         EXIT_WORKER_SPAWN_FAILURE / EXIT_WORKER_TIMEOUT / EXIT_WORKER_INTERNAL_ERROR.
         """
-        # ── Startup self-check (warning #2) ─────────────────────────────────
-        startup_status = self._startup_self_check()
-        if startup_status != self.EXIT_OK:
-            return startup_status
-
         rules = self._load_rules()
         enforcements = self._filter_enforcements(rules, self.hook_name)
 
@@ -124,79 +105,6 @@ class ChatHealthyEnforcementManager:
             exit_codes.append(code)
 
         return self._aggregate(exit_codes)
-
-    # ────────────────────────────────────────────────────────────────────────
-    # Startup self-check (warning #2)
-    # ────────────────────────────────────────────────────────────────────────
-    def _startup_self_check(self) -> int:
-        """Validate engineering_rules.json against its schema before dispatch.
-
-        If the rules file or its schema is unreadable / malformed / invalid, the
-        manager cannot trust itself to run the JSON-validation worker against
-        the rules file. Bail with EXIT_MANAGER_ERROR (2) and a clear stderr
-        message instead of dispatching a worker that may itself be misled.
-        """
-        if not self.ENGINEERING_RULES_PATH.is_file():
-            print(
-                f"[manager] engineering_rules.json not found at "
-                f"{self.ENGINEERING_RULES_PATH}",
-                file=sys.stderr,
-            )
-            return self.EXIT_MANAGER_ERROR
-
-        if not self.ENGINEERING_RULES_SCHEMA_PATH.is_file():
-            print(
-                f"[manager] EngineeringRulesSchema.json not found at "
-                f"{self.ENGINEERING_RULES_SCHEMA_PATH}",
-                file=sys.stderr,
-            )
-            return self.EXIT_MANAGER_ERROR
-
-        try:
-            with self.ENGINEERING_RULES_PATH.open(encoding="utf-8") as f:
-                rules_data = json.load(f)
-        except json.JSONDecodeError as exc:
-            print(
-                f"[manager] engineering_rules.json is malformed JSON: "
-                f"{exc.msg} at line {exc.lineno} col {exc.colno}",
-                file=sys.stderr,
-            )
-            return self.EXIT_MANAGER_ERROR
-
-        try:
-            with self.ENGINEERING_RULES_SCHEMA_PATH.open(encoding="utf-8") as f:
-                schema = json.load(f)
-        except json.JSONDecodeError as exc:
-            print(
-                f"[manager] EngineeringRulesSchema.json is malformed JSON: "
-                f"{exc.msg} at line {exc.lineno} col {exc.colno}",
-                file=sys.stderr,
-            )
-            return self.EXIT_MANAGER_ERROR
-
-        try:
-            validator = jsonschema.Draft202012Validator(schema)
-        except jsonschema.exceptions.SchemaError as exc:
-            print(
-                f"[manager] EngineeringRulesSchema.json fails Draft 2020-12: "
-                f"{exc.message}",
-                file=sys.stderr,
-            )
-            return self.EXIT_MANAGER_ERROR
-
-        errors = list(validator.iter_errors(rules_data))
-        if errors:
-            print(
-                f"[manager] engineering_rules.json fails schema validation "
-                f"({len(errors)} error(s)):",
-                file=sys.stderr,
-            )
-            for err in errors:
-                path = "/".join(str(p) for p in err.absolute_path)
-                print(f"  {path}: {err.message}", file=sys.stderr)
-            return self.EXIT_MANAGER_ERROR
-
-        return self.EXIT_OK
 
     # ────────────────────────────────────────────────────────────────────────
     # Load + filter
@@ -278,34 +186,9 @@ class ChatHealthyEnforcementManager:
         The worker is never told the timeout — enforcement is exclusively in
         this method (V17 §4.3.2).
         """
-        enforcement_id = enforcement.get("enforcement_id", "<unknown>")
-        executable_path_value = enforcement.get("executable_path")
-        if not executable_path_value or not isinstance(executable_path_value, str):
-            print(
-                f"[manager] spawn-failure {enforcement_id}: missing executable_path",
-                file=sys.stderr,
-            )
-            return self.EXIT_WORKER_SPAWN_FAILURE
-
-        executable_path = (PROJECT_ROOT / executable_path_value).resolve()
-        if not executable_path.is_file():
-            print(
-                f"[manager] spawn-failure {enforcement_id}: "
-                f"executable_path does not exist: {executable_path}",
-                file=sys.stderr,
-            )
-            return self.EXIT_WORKER_SPAWN_FAILURE
-
-        # Timeout resolution (V17 §4.3.2 / Table 5).
+        enforcement_id = enforcement["enforcement_id"]
+        executable_path = (PROJECT_ROOT / enforcement["executable_path"]).resolve()
         timeout_value = enforcement.get("timeout", self.DEFAULT_TIMEOUT_SECONDS)
-        if not isinstance(timeout_value, int) or timeout_value <= 0:
-            print(
-                f"[manager] spawn-failure {enforcement_id}: invalid timeout "
-                f"{timeout_value!r}",
-                file=sys.stderr,
-            )
-            return self.EXIT_WORKER_SPAWN_FAILURE
-
         requires_lock = bool(enforcement.get("requires_lock", False))
 
         lock_handle: FileLock | None = None

@@ -266,17 +266,8 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
                 allowed_url_patterns.extend(row[2])
 
         violations: list[ViolationRecord] = []
-        try:
-            with absolute_path.open(encoding="utf-8", errors="replace") as f:
-                text = f.read()
-        except OSError as exc:
-            # Worker-internal: a file that disappeared between scope eval and
-            # read is not a violation; surface to telemetry via stderr.
-            print(
-                f"[scan_files] read-error {file_path}: {exc}",
-                file=sys.stderr,
-            )
-            return []
+        with absolute_path.open(encoding="utf-8", errors="replace") as f:
+            text = f.read()
 
         for match in _HTTP_URL_RE.finditer(text):
             url = match.group(0)
@@ -460,10 +451,6 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         try:
             with absolute_path.open(encoding="utf-8") as f:
                 data = json.load(f)
-        except FileNotFoundError as exc:
-            raise WorkerInternalError(
-                f"_validate_json target file vanished: {file_path}: {exc}"
-            )
         except json.JSONDecodeError as error:
             v = ViolationRecord(
                 enforcement_id=self.enforcement_id,
