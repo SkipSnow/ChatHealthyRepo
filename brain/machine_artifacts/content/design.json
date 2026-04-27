@@ -575,7 +575,7 @@
           "behavior": "Auto-detect collections. Add mongodb_collections section to manifest."
         },
         "bell_ringer": {
-          "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py",
+          "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/code/bell_ringer.py",
           "class": "BellRinger",
           "purpose": "Workstation sound notifier for all callers (fatal errors, deploy completion, Claude Code completion)",
           "methods": [

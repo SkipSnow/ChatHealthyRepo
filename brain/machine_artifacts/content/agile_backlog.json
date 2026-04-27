@@ -37391,7 +37391,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-015-S-001-REQ-T-005",
-                          "requirement": "Pipeline must import and use BellRinger from architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py",
+                          "requirement": "Pipeline must import and use BellRinger from architecture/DevOpsBuildDeployAndEnvironmentManagement/code/bell_ringer.py",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -42023,7 +42023,7 @@
                         {
                           "req_id": "EPIC-008-F-004-S-009-REQ-T-007",
                           "name": "Single class location",
-                          "requirement": "The single bell-ringing class MUST live at projectRoot/architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py. No ad-hoc bell-ringing code elsewhere in the codebase.",
+                          "requirement": "The single bell-ringing class MUST live at projectRoot/architecture/DevOpsBuildDeployAndEnvironmentManagement/code/bell_ringer.py. No ad-hoc bell-ringing code elsewhere in the codebase.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,

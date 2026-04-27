@@ -1979,6 +1979,46 @@
         "Design solution"
       ],
       "severity": "low"
+    },
+    {
+      "bugid": "BUG-ENF-WORKER-001",
+      "title": "V17 §4.9.3 step 3 mandates URL-pattern resolver that crashes on JSON Schema meta-schema URL",
+      "description": "V17 §4.9.3 step 3 stipulated that the worker resolve a JSON file's $schema URL by stripping the prefix `https://(dev|qa|)?chathealthy.ai/schemas/` and treating the suffix as a filename under Website/schemas/. That design is non-functional whenever a JSON file declares a $schema URL outside the chathealthy.ai pattern — most importantly, schema files themselves declare `$schema = https://json-schema.org/draft/2020-12/schema` (the JSON Schema 2020-12 meta-schema). Under V17, the URL-pattern resolver fails on those files and raises WorkerInternalError, which the worker maps to exit 5 and blocks pre-commit. The defect is in V17 itself, not the implementation: the implementation was honoring V17 §4.9.3 step 3 as written. Resolution: V18 §4.9.3 replaces the URL-pattern resolver with web fetch (HTTP GET, 5s timeout, per-run cache) and adds a single carve-out for the JSON Schema 2020-12 meta-schema (whose URL is contractually frozen by the spec). Unreachable URLs become per-file ViolationRecords, never WorkerInternalError. See V18 §4.9.3.1 for the carve-out policy and V18 Table 12 for the resolution mechanism.",
+      "discovery_date": "2026-04-27",
+      "due_date": "2026-05-04",
+      "status": "in_analysis",
+      "severity": "medium",
+      "req_id": "EPIC-008-F-002-S-002-REQ-T-001",
+      "story_id": "EPIC-008-F-002-S-002",
+      "pytest_id": "ORPHAN_PYTEST",
+      "orphan": false,
+      "environments": [
+        "local"
+      ],
+      "reproduction": "Under V17: stage Website/schemas/EngineeringRulesSchema.json; attempt git commit; pre-commit's CHECK 11 invokes the manager which dispatches scan_files_enforcement_worker; the worker reads $schema = https://json-schema.org/draft/2020-12/schema; the V17 URL-pattern resolver cannot map that URL to a Website/schemas/<file>.json path; the worker raises WorkerInternalError, exits 5, and the commit is blocked.",
+      "next_action": [
+        "Adopt V18 §4.9.3 web-fetch resolver with carve-out for the JSON Schema meta-schema; this bug closes when V18 is the binding contract and scan_files_enforcement_worker.py no longer contains a URL-pattern resolver."
+      ]
+    },
+    {
+      "bugid": "BUG-ENF-WORKER-002",
+      "title": "_validate_json conflates schema loading, file parsing, and validation; not compliant with single-responsibility principle implicit in BR-11/TR-12",
+      "description": "V17 BR-11 / TR-12 stipulate that JSON validation is performed by jsonschema.Draft202012Validator against the schema declared in $schema. The function _validate_json was implemented as an orchestrator that also (a) parses the file as JSON and (b) loads the schema via inline URL resolution. This violates single-responsibility and gives the function room to invent constraints. Result: SCOPES has no `\\.json$` allowed_pattern for _validate_json, the function runs on Python and shell files, json.load() raises JSONDecodeError, and 5 spurious 'invalid JSON' violations are emitted on non-JSON files. Refactor: _validate_json must do nothing but call the standard library validator. Schema loading moves to __init__ (registry built once). File parsing and schema lookup move to run().",
+      "discovery_date": "2026-04-27",
+      "due_date": "2026-05-04",
+      "status": "in_analysis",
+      "severity": "medium",
+      "req_id": "EPIC-008-F-002-S-002-REQ-T-001",
+      "story_id": "EPIC-008-F-002-S-002",
+      "pytest_id": "ORPHAN_PYTEST",
+      "orphan": false,
+      "environments": [
+        "local"
+      ],
+      "reproduction": "Stage any non-JSON file (e.g., Code/DataPipelines/prescriber_evaluate_care_pipeline.py); attempt git commit; the worker emits a 'invalid JSON: Expecting value at line 1 col 1' violation.",
+      "next_action": [
+        "Refactor _validate_json to a thin wrapper that takes (data, schema) and returns iter_errors. Schema registry built at __init__. SCOPES updated with `\\.json$` allowed_pattern."
+      ]
     }
   ]
 }

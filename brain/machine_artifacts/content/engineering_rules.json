@@ -336,8 +336,8 @@
       },
       {
         "id": "Rule-008",
-        "name": "Brain JSONs must conform to human-approved schemas",
-        "description": "Every JSON file under brain/machine_artifacts/content/ must validate against a rigorous schema that has been reviewed and approved by the human operator.",
+        "name": "All files added to the local Git repository must be scanned for architectural compliance.",
+        "description": "All JSONs, code and configuration files must be scanned for compliance. Current scope is to ensure that only permissible references to HTTP can be in our code base and other artifacts, and that all JSONs be validated by standard Python schema mechanisms.",
         "rule_statements": {
           "rule_statement": [
             {
@@ -349,11 +349,82 @@
               "statement_number": 2,
               "statement_body": "The schema used to validate a brain JSON MUST have been reviewed and approved by the human operator before that schema is relied upon for validation.",
               "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "Every text-based file committed to the repository MUST NOT reference an insecure http:// URL unless the specific URL is explicitly listed as permitted on the enforcement entry.",
+              "req_id": "Orphan"
             }
           ]
         },
         "enforcements": {
-          "enforcement": []
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-008-ENF-001",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py",
+              "requires_lock": false,
+              "scopes": [
+                [
+                  "_scan_http",
+                  "allowed_pattern",
+                  [
+                    "^http://(localhost|127\\.0\\.0\\.1)",
+                    "^http://www\\.w3\\.org/",
+                    "^http://169\\.254\\.169\\.254/"
+                  ]
+                ],
+                [
+                  "_scan_http",
+                  "excluded_pattern",
+                  [
+                    "^test_",
+                    "conftest\\.py$",
+                    "^brain/BusinessArtifacts/"
+                  ]
+                ],
+                [
+                  "_validate_json",
+                  "excluded_exact",
+                  [
+                    "package-lock.json",
+                    "brain/machine_artifacts/content/engineering_rules.json"
+                  ]
+                ],
+                [
+                  "_validate_json",
+                  "excluded_pattern",
+                  [
+                    "^tests/fixtures/",
+                    "^architecture/EngineeringRuleEnforcement/tests/fixtures/",
+                    "^Website/schemas/standard/"
+                  ]
+                ],
+                [
+                  "_validate_json",
+                  "allowed_pattern",
+                  [
+                    "\\.json$"
+                  ]
+                ],
+                [
+                  "_scan_http",
+                  "excluded_pattern",
+                  [
+                    "^Website/schemas/standard/"
+                  ]
+                ],
+                [
+                  "_scan_http",
+                  "excluded_exact",
+                  [
+                    "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py"
+                  ]
+                ]
+              ],
+              "timeout": 60
+            }
+          ]
         }
       },
       {

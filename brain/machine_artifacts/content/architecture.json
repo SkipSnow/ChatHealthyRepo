@@ -4708,8 +4708,8 @@
           "issue": 10,
           "title": "Fatal error alerting (bell) not implemented",
           "class": "new_component",
-          "fix": "BellRinger (architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py): single class for all bell needs. Three ring patterns (once, n-times, until-acknowledged). Optional MongoDB event logging (admin.BellEvents) and Pushover cloud alerts. Replaces the v4-era FatalAlertBridge per EPIC-008-F-004-S-009.",
-          "new_file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py",
+          "fix": "BellRinger (architecture/DevOpsBuildDeployAndEnvironmentManagement/code/bell_ringer.py): single class for all bell needs. Three ring patterns (once, n-times, until-acknowledged). Optional MongoDB event logging (admin.BellEvents) and Pushover cloud alerts. Replaces the v4-era FatalAlertBridge per EPIC-008-F-004-S-009.",
+          "new_file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/code/bell_ringer.py",
           "local_cmd": "powershell -c while($true){[console]::beep(800,500); Start-Sleep -Seconds 5}",
           "cloud": "Azure Function -> Pushover API -> Skip PC -> local listener -> bell",
           "test": "Inject fatal, verify bell event logged. CI: mock bell.",
@@ -4740,7 +4740,7 @@
           "purpose": "Schema fingerprinting and drift detection"
         },
         "BellRinger": {
-          "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/bell_ringer.py",
+          "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/code/bell_ringer.py",
           "purpose": "Workstation sound notifier; replaces FatalAlertBridge per EPIC-008-F-004-S-009"
         }
       },

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://dev.chathealthy.ai/schemas/JsonValidationFixtureSchema.json",
+  "name": "beta-fixture",
+  "kind": "delta",
+  "count": -1
+}

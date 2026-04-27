@@ -1,0 +1,4 @@
+{
+  "name": "excluded-fixture",
+  "kind": "this-would-fail-if-validated"
+}
