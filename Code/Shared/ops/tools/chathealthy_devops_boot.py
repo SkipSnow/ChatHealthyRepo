@@ -1208,22 +1208,6 @@ class chathealthy_devops_boot:
             "Do NOT proceed until the user replies with 1, 2, or 3.",
         ])
 
-    def _build_orphan_triage_context(self, orphans: list) -> str:
-        """BUG-GOV-011: Render orphan-triage directive emitted from prompt()
-        after the user's mode reply. Re-scanned from bugs.json so always current."""
-        lines = [
-            "BOOT DIRECTIVE — ORPHAN BUG TRIAGE (ARCH-ORPHAN-001-REQ-011):",
-            f"Mode selected. You MUST now present the {len(orphans)} orphan bugs below",
-            "and ask the user to triage each one by assigning a req_id or closing it.",
-            "Do NOT proceed to other work until triage is complete or the user explicitly defers.",
-            "",
-            "| bugid | severity | title | discovery_date |",
-            "|---|---|---|---|",
-        ]
-        for o in orphans:
-            lines.append(f"| {o['bugid']} | {o['severity']} | {o['title']} | {o['discovery_date']} |")
-        return "\n".join(lines)
-
     def dispatch_code_controlled(self, hook_input: dict, action_event: str) -> dict:
         """Dispatch to child class workers for code_controlled cells in the grid.
         Reads the matrix, finds code_controlled cells for this action_event,
@@ -1250,12 +1234,7 @@ class chathealthy_devops_boot:
         return {"comply": True, "workers": results}
 
     def prompt(self, user_message: str, hook_input: dict = None) -> dict:
-        """UserPromptSubmit — dispatch code_controlled workers. Boot runs on SessionStart.
-
-        BUG-GOV-011: When the user's reply is '1', '2', or '3' and mode has not yet
-        been selected this session, emit the orphan-triage directive as
-        additionalContext on this turn. Orphans are re-scanned from bugs.json so the
-        list is always current."""
+        """UserPromptSubmit — dispatch code_controlled workers. Boot runs on SessionStart."""
         self._announce("prompt", "user_prompt_submit", f"user_message[:{min(50, len(user_message))}]")
         self._state["last_prompt"] = user_message
         result = self.dispatch_code_controlled(hook_input or {}, "user_prompt_submit")
@@ -1265,13 +1244,6 @@ class chathealthy_devops_boot:
             if (user_message or "").strip() in ("1", "2", "3"):
                 settings["mode_selected"] = True
                 self._write_settings(settings)
-                orphans = self._scan_orphans()
-                if orphans:
-                    result.setdefault("workers", []).append({
-                        "json": "orphan_triage",
-                        "comply": True,
-                        "additionalContext": self._build_orphan_triage_context(orphans),
-                    })
         return result
 
     def tool_call(self, tool_name: str, tool_input: dict, transcript_path: str = "") -> dict:
