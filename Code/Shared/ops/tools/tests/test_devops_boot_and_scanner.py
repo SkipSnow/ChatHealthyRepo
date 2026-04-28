@@ -152,25 +152,18 @@ class TestREQ004_InformClaude:
         result = boot.inform_claude({"orphan_bugs": []})
         assert "operating mode" in result.lower() or "MODE SELECTION" in result
 
-    def test_inform_claude_includes_orphan_table_when_present(self):
-        """When orphan bugs exist, output includes orphan table."""
+    def test_inform_claude_does_not_include_orphan_triage(self):
+        """ORPHAN BUG TRIAGE directive removed: inform_claude emits ONLY the
+        mode-selection directive (orphan triage is no longer part of boot)."""
         boot = _fresh_boot_instance(load_full=False)
         boot.brain = {"version": {"current": {}}, "governance_matrix": {"matrix": {}}}
         boot._constraints = []
         boot._state = {}
-        orphans = [{"bugid": "BUG-TEST-001", "severity": "medium", "title": "test rule", "discovery_date": "2026-01-01"}]
-        result = boot.inform_claude({"orphan_bugs": orphans})
-        assert "BUG-TEST-001" in result
-        assert "ORPHAN BUG TRIAGE" in result
-
-    def test_inform_claude_no_orphan_table_when_empty(self):
-        """When no orphan bugs, orphan table section is absent."""
-        boot = _fresh_boot_instance(load_full=False)
-        boot.brain = {"version": {"current": {}}, "governance_matrix": {"matrix": {}}}
-        boot._constraints = []
-        boot._state = {}
-        result = boot.inform_claude({"orphan_bugs": []})
+        result = boot.inform_claude({"orphan_bugs": [
+            {"bugid": "BUG-TEST-001", "severity": "medium", "title": "x", "discovery_date": "2026-01-01"}
+        ]})
         assert "ORPHAN BUG TRIAGE" not in result
+        assert "MODE SELECTION" in result
 
 
 # ============================================================================
@@ -394,52 +387,6 @@ class TestREQ010_ModeSelectionDirective:
         boot._state = {}
         result = boot.inform_claude({"orphan_bugs": []})
         assert "1" in result and "2" in result and "3" in result
-
-
-# ============================================================================
-# REQ-011: After mode selection, if orphans exist, present orphan table
-# ============================================================================
-
-class TestREQ011_OrphanTablePresentation:
-    """EPIC-008-F-003-S-001-REQ-B-004: After mode selection, if orphan bugs exist,
-    present orphan table and ask user to triage."""
-
-    def test_orphan_table_has_headers(self):
-        """Orphan table must have ID, Type, Description, Date headers."""
-        boot = _fresh_boot_instance(load_full=False)
-        boot.brain = {"version": {"current": {}}, "governance_matrix": {"matrix": {}}}
-        boot._constraints = []
-        boot._state = {}
-        orphans = [{"bugid": "BUG-001", "severity": "high", "title": "something broke", "discovery_date": "2026-04-01"}]
-        result = boot.inform_claude({"orphan_bugs": orphans})
-        assert "| ID |" in result or "| id |" in result.lower()
-        assert "| Type |" in result or "| type |" in result.lower()
-
-    def test_orphan_table_contains_bug_data(self):
-        """Each orphan bug row must appear in the output."""
-        boot = _fresh_boot_instance(load_full=False)
-        boot.brain = {"version": {"current": {}}, "governance_matrix": {"matrix": {}}}
-        boot._constraints = []
-        boot._state = {}
-        orphans = [
-            {"bugid": "BUG-X-001", "severity": "medium", "title": "orphan rule text", "discovery_date": "2026-03-15"},
-            {"bugid": "BUG-X-002", "severity": "high", "title": "second orphan", "discovery_date": "2026-03-20"},
-        ]
-        result = boot.inform_claude({"orphan_bugs": orphans})
-        assert "BUG-X-001" in result
-        assert "BUG-X-002" in result
-        assert "orphan rule text" in result
-
-    def test_orphan_triage_directive_present(self):
-        """Output must direct Claude to ask user to triage orphans."""
-        boot = _fresh_boot_instance(load_full=False)
-        boot.brain = {"version": {"current": {}}, "governance_matrix": {"matrix": {}}}
-        boot._constraints = []
-        boot._state = {}
-        orphans = [{"bugid": "BUG-001", "severity": "high", "title": "test", "discovery_date": "2026-01-01"}]
-        result = boot.inform_claude({"orphan_bugs": orphans})
-        assert "triage" in result.lower()
-        assert "Do NOT proceed" in result or "do not proceed" in result.lower()
 
 
 # ============================================================================
