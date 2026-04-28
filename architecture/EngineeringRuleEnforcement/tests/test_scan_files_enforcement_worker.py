@@ -525,13 +525,13 @@ class TestSchemaResolutionCarveOut:
 class TestGhostSchemaUrl:
     """Fixture 04 declares a $schema URL that doesn't exist on the network.
 
-    Under V18 the worker MUST attempt a web fetch; any failure becomes a
+    Under V19 the worker MUST attempt a web fetch; any failure becomes a
     per-file ViolationRecord (NOT a worker crash)."""
 
     def test_unknown_schema_url_is_per_file_violation_not_crash(
         self, worker, staged_fixture
     ):
-        rel = staged_fixture("04_missing_local_schema.json")
+        rel = staged_fixture("04_unreachable_schema_url.json")
         # Mock the fetch to fail with HTTPError 404.
         http_error = urllib.error.HTTPError(
             url=GHOST_SCHEMA_URL,

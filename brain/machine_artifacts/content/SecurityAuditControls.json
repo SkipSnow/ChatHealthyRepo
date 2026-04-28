@@ -1091,7 +1091,7 @@
               "summary": "Runs scan_http.py on staged files; blocks deploy if insecure HTTP URLs are found"
             }
           ],
-          "evidence": "The script enforces a check (EPIC-008-F-008-S-002-REQ-B-001) that scans staged files for insecure HTTP URLs using scan_http.py, blocking deployment if insecure (non-HTTPS) URLs are found in code — directly controlling information flow to prevent use of unencrypted channels.",
+          "evidence": "The script enforces a check (EPIC-008-F-002-S-005-REQ-B-002) that scans staged files for insecure HTTP URLs using scan_http.py, blocking deployment if insecure (non-HTTPS) URLs are found in code — directly controlling information flow to prevent use of unencrypted channels.",
           "confidence": "medium",
           "classified_by": "agent",
           "classifier_model": "claude-sonnet-4-6",

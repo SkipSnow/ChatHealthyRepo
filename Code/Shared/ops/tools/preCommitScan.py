@@ -41,7 +41,6 @@ ALLOWED_PATTERNS = [
 ]
 
 HTTP_EXEMPT_PATTERNS = [
-    r"\.json$",
     r"test_",
     r"conftest\.py",
     r"brain/BusinessArtifacts/",
@@ -51,7 +50,7 @@ HTTP_EXEMPT_PATTERNS = [
 
 SKIP_PATTERNS = [r"__pycache__", r"\.pyc$", r"node_modules", r"\.venv"]
 
-SCAN_EXTENSIONS = {".py", ".tsx", ".ts", ".js", ".jsx", ".html", ".json", ".yml", ".yaml", ".cfg", ".toml"}
+SCAN_EXTENSIONS = {".py", ".tsx", ".ts", ".js", ".jsx", ".html", ".yml", ".yaml", ".cfg", ".toml"}
 
 
 def _should_skip(filepath):

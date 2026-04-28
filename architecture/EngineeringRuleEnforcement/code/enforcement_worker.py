@@ -1,6 +1,7 @@
 """EnforcementWorker — abstract base class for engineering-rule workers.
 
-Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV17.docx
+Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV19.docx
+    §4.0    (Implementation discipline — TR-trace principle)
     §4.4.2  (base-class member table)
     §4.5    (scope-list mechanism, precedence walk, _load_scopes contract)
     TR-4, TR-5, TR-6, TR-7, TR-14
@@ -14,7 +15,7 @@ Owns:
   • Exit-code semantics       — 0 clean, 1 violations, 2 worker error
 
 Workers MUST NOT install signal handlers, watchdog threads, or any in-process
-timeout mechanism. Per design V17 §4.3.2, timeout enforcement is exclusively
+timeout mechanism. Per design V19 §4.3.2, timeout enforcement is exclusively
 the manager's responsibility — the worker does not see the timeout value, and
 the manager hard-kills the worker subprocess on the wall-clock budget.
 Adding any in-process timeout primitive here is a contract violation.
@@ -61,7 +62,7 @@ SCOPE_LIST_TYPES: tuple[str, ...] = (
 class WorkerInternalError(Exception):
     """Raised when a worker hits an unrecoverable configuration error.
 
-    Per V17 §4.9.3: missing schema file, malformed schema, schema invalid
+    Per V19 §4.9.3: missing schema file, malformed schema, schema invalid
     against Draft 2020-12 — any of these surface as WorkerInternalError, which
     the worker's main() converts to exit code 5 (EXIT_WORKER_INTERNAL_ERROR).
     """
@@ -103,9 +104,9 @@ class ViolationRecord:
 
 
 class EnforcementWorker(abc.ABC):
-    """Abstract base for every engineering-rule enforcement worker (V17 §4.4.2)."""
+    """Abstract base for every engineering-rule enforcement worker (V19 §4.4.2)."""
 
-    # SCOPE_DEFAULT is per-check semantics (V17 §4.5 / Table 9). Subclasses
+    # SCOPE_DEFAULT is per-check semantics (V19 §4.5 / Table 9). Subclasses
     # that have a single-policy default may set it as a class attribute; per-
     # check semantics are looked up via the SCOPE_DEFAULTS class attribute
     # (mapping function_name → bool) on subclasses that need different
@@ -114,10 +115,10 @@ class EnforcementWorker(abc.ABC):
     SCOPE_DEFAULTS: dict[str, bool] = {}  # subclasses override per-method
 
     def __init__(self, enforcement_id: str) -> None:
-        """Store enforcement_id; load entry; load scopes (V17 §4.4.2 ctor row).
+        """Store enforcement_id; load entry; load scopes (V19 §4.4.2 ctor row).
 
         On AttributeError from getattr against a function_name in scopes,
-        fail loudly per V17 §4.5 ("a typo in the method name surfaces at
+        fail loudly per V19 §4.5 ("a typo in the method name surfaces at
         worker startup as an AttributeError rather than as a silently dropped
         rule").
         """
@@ -150,18 +151,18 @@ class EnforcementWorker(abc.ABC):
         )
 
     def _load_scopes(self) -> list[list[Any]]:
-        """Virtual. Default returns self.entry["scopes"] (V17 §4.5 / Table 4).
+        """Virtual. Default returns self.entry["scopes"] (V19 §4.5 / Table 4).
 
         Subclasses MAY override if scope is intrinsically code-driven. The
         default — metadata-driven — is preferred. ScanFilesEnforcementWorker
-        does NOT override this (V17 §4.9.1).
+        does NOT override this (V19 §4.9.1).
         """
         return self.entry.get("scopes", [])
 
     def _validate_scope_function_names(self) -> None:
         """Fail loudly if any function_name in scopes isn't a worker method.
 
-        Per V17 §4.5 / §4.9.2: the base class resolves function_name to a
+        Per V19 §4.5 / §4.9.2: the base class resolves function_name to a
         bound method via getattr(self, row[0]) at startup; a typo surfaces as
         AttributeError instead of a silently dropped rule.
         """
@@ -179,7 +180,7 @@ class EnforcementWorker(abc.ABC):
                 )
 
     # ────────────────────────────────────────────────────────────────────────
-    # Scope evaluation (V17 §4.5 / TR-5 — fixed precedence; lives in base only)
+    # Scope evaluation (V19 §4.5 / TR-5 — fixed precedence; lives in base only)
     # ────────────────────────────────────────────────────────────────────────
     def is_in_scope(self, resource: str, function_name: str) -> bool:
         """Walk this resource's matching rows in self.scopes (TR-5).
@@ -225,7 +226,7 @@ class EnforcementWorker(abc.ABC):
         return self._scope_default_for(function_name)
 
     def _scope_default_for(self, function_name: str) -> bool:
-        """Resolve the per-check SCOPE_DEFAULT (V17 Table 9 / §4.5)."""
+        """Resolve the per-check SCOPE_DEFAULT (V19 Table 9 / §4.5)."""
         if function_name in self.SCOPE_DEFAULTS:
             return self.SCOPE_DEFAULTS[function_name]
         return self.SCOPE_DEFAULT
@@ -237,14 +238,14 @@ class EnforcementWorker(abc.ABC):
     def run(self) -> int:
         """Subclass orchestration. Return 0 (clean) or 1 (violations).
 
-        Per TR-6 / V17 Table 4 row 10: subclasses iterate resources, gate by
+        Per TR-6 / V19 Table 4 row 10: subclasses iterate resources, gate by
         is_in_scope(), call their domain check method(s) in defined order,
         aggregate violations, and return the status. main() converts uncaught
         exceptions to exit code 2.
         """
 
     # ────────────────────────────────────────────────────────────────────────
-    # Telemetry / violation emission (TR-6, TR-7; V17 §4.4.2)
+    # Telemetry / violation emission (TR-6, TR-7; V19 §4.4.2)
     # ────────────────────────────────────────────────────────────────────────
     def _emit_violation(self, v: ViolationRecord) -> None:
         """Emit one ViolationRecord per TR-6 — one JSON object per line."""
@@ -275,14 +276,14 @@ class EnforcementWorker(abc.ABC):
         sys.stdout.flush()
 
     # ────────────────────────────────────────────────────────────────────────
-    # CLI entry (V17 Table 4 row 6)
+    # CLI entry (V19 Table 4 row 6)
     # ────────────────────────────────────────────────────────────────────────
     @classmethod
     def main(cls, argv: list[str] | None = None) -> int:
         """Parse enforcement_id; instantiate cls; emit telemetry; run; return.
 
-        Per V17 Table 4 row 6: traps any uncaught exception (exit 2). Per
-        V17 §4.9.3: a WorkerInternalError surfaces as exit 5
+        Per V19 Table 4 row 6: traps any uncaught exception (exit 2). Per
+        V19 §4.9.3: a WorkerInternalError surfaces as exit 5
         (EXIT_WORKER_INTERNAL_ERROR — the manager promotes worker exit ≥ 3 to
         the same code).
         """
@@ -322,7 +323,7 @@ class EnforcementWorker(abc.ABC):
             print(f"[worker] internal-error: {exc}", file=sys.stderr)
             rc = EXIT_WORKER_INTERNAL_ERROR
         except Exception as exc:  # noqa: BLE001 — TR-2 trap: convert to exit 2
-            # V17 Table 4 row 6: trap any uncaught exception → exit 2.
+            # V19 Table 4 row 6: trap any uncaught exception → exit 2.
             # We re-raise the message to stderr so it isn't lost; the manager
             # captures stderr per warning #4.
             print(f"[worker] uncaught: {type(exc).__name__}: {exc}", file=sys.stderr)
