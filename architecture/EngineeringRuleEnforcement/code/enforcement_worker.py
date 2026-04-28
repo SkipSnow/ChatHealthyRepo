@@ -1,6 +1,6 @@
 """EnforcementWorker — abstract base class for engineering-rule workers.
 
-Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV19.docx
+Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV20.docx
     §4.0    (Implementation discipline — TR-trace principle)
     §4.4.2  (base-class member table)
     §4.5    (scope-list mechanism, precedence walk, _load_scopes contract)

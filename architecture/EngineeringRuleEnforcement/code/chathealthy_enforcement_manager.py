@@ -1,6 +1,6 @@
 """ChatHealthyEnforcementManager — engineering-rules dispatch + aggregation.
 
-Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV19.docx
+Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV20.docx
     §4.0   (Implementation discipline — TR-trace principle)
     §4.4.1 (manager class table)
     §4.3.1 (concurrency model — manager owns the mutex)
