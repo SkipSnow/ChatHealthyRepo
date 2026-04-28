@@ -1,19 +1,20 @@
 """ScanFilesEnforcementWorker — V1 concrete worker (worked example).
 
-Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV18.docx
-    §4.9    (worked example: ScanFilesEnforcementWorker on pre-commit)
-    §4.9.1  (class-member table)
-    §4.9.2  (worked-example scope rows — live on the enforcement entry)
-    §4.9.3  (JSON-validation implementation contract — web-fetch resolver)
+Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV19.docx
+    §4.0     (Implementation discipline — TR-trace principle)
+    §4.9     (worked example: ScanFilesEnforcementWorker on pre-commit)
+    §4.9.1   (class-member table)
+    §4.9.2   (worked-example scope rows — live on the enforcement entry)
+    §4.9.3   (JSON-validation implementation contract — web-fetch resolver)
     §4.9.3.1 (carve-out policy for contractually-frozen external schemas)
     TR-9, TR-10, TR-11, TR-12
 
 Two checks, both synchronous, in this order per file:
     1. _scan_http(file)            — regex scan for http://; allowed_pattern URLs OK
-    2. _validate_json(data, schema) — jsonschema.Draft202012Validator (V18 §4.9.3)
+    2. _validate_json(data, schema) — jsonschema.Draft202012Validator (V19 §4.9.3)
 
-V18 schema-resolution model (replaces V17 URL-pattern resolver and the prior
-draft's pre-build-at-init registry):
+V19 inherits the V18 schema-resolution model (web-fetch resolver replaced V17's
+URL-pattern resolver and the prior draft's pre-build-at-init registry):
     • The JSON file's `$schema` URL is the source of truth.
     • For each in-scope file, the worker HTTP-GETs that URL with a 5s timeout,
       caches the response in a per-run dict, and validates against it.
@@ -26,7 +27,7 @@ draft's pre-build-at-init registry):
 
 Inherits the default _load_scopes() from EnforcementWorker — its scope rows
 live on its enforcement entry's `scopes` field in engineering_rules.json
-(V18 §4.9.1 explicitly forbids overriding _load_scopes() here).
+(V19 §4.9.1 explicitly forbids overriding _load_scopes() here).
 """
 
 from __future__ import annotations
@@ -66,7 +67,7 @@ else:
     )
 
 
-# Regex matching plain http:// URLs in file content (V18 §4.9 / TR-11).
+# Regex matching plain http:// URLs in file content (V19 §4.9 / TR-11).
 # Captured group 0 is the full URL up to the first whitespace / quote / angle
 # bracket / comma / closing paren. Used both for "is there an http: in this
 # file" and "what was the actual URL so we can pattern-allow it".
@@ -74,10 +75,10 @@ _HTTP_URL_RE = re.compile(r"http://[^\s\"'<>,()]+")
 
 # JSON Schema 2020-12 meta-schema URL — schema files declare this in their
 # top-level $schema. Frozen per spec; served from a local copy via the
-# carve-out map (V18 §4.9.3.1).
+# carve-out map (V19 §4.9.3.1).
 _META_SCHEMA_URL: str = "https://json-schema.org/draft/2020-12/schema"
 
-# Local cached copy of the JSON Schema 2020-12 meta-schema (V18 §4.9.3.1).
+# Local cached copy of the JSON Schema 2020-12 meta-schema (V19 §4.9.3.1).
 # This is the ONLY entry currently in the carve-out map. Adding others requires
 # documented contractual freeze of the third-party schema URL.
 _META_SCHEMA_LOCAL_PATH: Path = (
@@ -88,10 +89,10 @@ _META_SCHEMA_LOCAL_PATH: Path = (
     / "json-schema-2020-12-meta.json"
 )
 
-# HTTP fetch timeout (seconds) for runtime $schema resolution (V18 §4.9.3).
+# HTTP fetch timeout (seconds) for runtime $schema resolution (V19 §4.9.3).
 _SCHEMA_FETCH_TIMEOUT_SECONDS: int = 5
 
-# HTTP fetch headers for runtime $schema resolution (V18 §4.9.3).
+# HTTP fetch headers for runtime $schema resolution (V19 §4.9.3).
 # User-Agent identifies this worker — the default urllib UA is on Cloudflare's
 # automated-tool blocklist for dev.chathealthy.ai and produces HTTP 403 before
 # the WAF custom rule can fire. Sending an explicit UA bypasses that early
@@ -107,7 +108,7 @@ _WORKER_TOKEN_HEADER_NAME: str = "X-ChatHealthy-Worker-Token"
 class ScanFilesEnforcementWorker(EnforcementWorker):
     """V1 worker: HTTP scan + JSON schema validation on staged files."""
 
-    # SCOPE_DEFAULT is per-check (V18 Table 9 row 1 / §4.5):
+    # SCOPE_DEFAULT is per-check (V19 Table 9 row 1 / §4.5):
     #   _scan_http     → False (opt-in by extension)
     #   _validate_json → False (gated positively by the \.json$ allowed_pattern
     #                    row; non-JSON files never enter the validator).
@@ -132,7 +133,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         # Counters surfaced by the base-class telemetry envelope (TR-7).
         self.files_scanned: int = 0
         self.violation_count: int = 0
-        # Carve-out for contractually-frozen third-party schemas (V18 §4.9.3.1).
+        # Carve-out for contractually-frozen third-party schemas (V19 §4.9.3.1).
         # Only the JSON Schema 2020-12 meta-schema lives here today; its URL is
         # immutable per the spec maintainers' contract (any change requires a
         # new draft URL). ChatHealthy schemas are NEVER carve-outs — they
@@ -140,17 +141,17 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         self._frozen_external_schemas: dict[str, dict[str, Any]] = (
             self._load_frozen_external_schemas()
         )
-        # Per-run cache for runtime web-fetch deduplication (V18 §4.9.3 step 3).
+        # Per-run cache for runtime web-fetch deduplication (V19 §4.9.3 step 3).
         # Cleared at the start of each run().
         self._fetched_schema_cache: dict[str, dict[str, Any]] = {}
 
     # ────────────────────────────────────────────────────────────────────────
-    # Carve-out loader (V18 §4.9.3.1)
+    # Carve-out loader (V19 §4.9.3.1)
     # ────────────────────────────────────────────────────────────────────────
     def _load_frozen_external_schemas(self) -> dict[str, dict[str, Any]]:
         """Build the {url: schema} map for contractually-frozen external schemas.
 
-        V18 §4.9.3.1 carve-out policy: any URL in this map MUST be a
+        V19 §4.9.3.1 carve-out policy: any URL in this map MUST be a
         contractually-frozen external standard with documented immutable URL
         semantics. Today there is exactly one entry — the JSON Schema 2020-12
         meta-schema, frozen per the JSON Schema spec.
@@ -177,10 +178,10 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
     # Orchestration
     # ────────────────────────────────────────────────────────────────────────
     def run(self) -> int:
-        """For each staged file, _scan_http then _validate_json (V18 Table 9 row 2).
+        """For each staged file, _scan_http then _validate_json (V19 Table 9 row 2).
 
         Synchronous. Multi-threading inside run() is a Phase-6 enhancement
-        and is NOT V1 (V18 §4.9 / Phase-6 backlog).
+        and is NOT V1 (V19 §4.9 / Phase-6 backlog).
         """
         # Per-run cache lifetime: the cache is dedup-only. Clearing at the
         # start of run() guarantees no leakage across runs in long-lived test
@@ -215,7 +216,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         On pre-commit: the staged files (`git diff --cached --name-only ...`).
         On any other hook the scan target list is the empty list — workers
         for those hooks will populate it via their own enumeration. For V1
-        the worker is wired only to pre-commit per V18 §4.9.
+        the worker is wired only to pre-commit per V19 §4.9.
 
         For tests, the SCAN_FILES_ENFORCEMENT_TARGETS environment variable
         can override the list directly with a path-separator-joined string.
@@ -242,12 +243,12 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         return [line for line in completed.stdout.splitlines() if line.strip()]
 
     # ────────────────────────────────────────────────────────────────────────
-    # _scan_http  (V18 Table 9 row 3 / TR-11)
+    # _scan_http  (V19 Table 9 row 3 / TR-11)
     # ────────────────────────────────────────────────────────────────────────
     def _scan_http(self, file_path: str) -> list[ViolationRecord]:
         """Regex-scan for http://; emit a violation for each URL not allowed.
 
-        Per V18 / TR-11 the base class has already cleared file-level scope
+        Per V19 / TR-11 the base class has already cleared file-level scope
         using rows where row[0] == "_scan_http" (excluded_exact /
         excluded_pattern). This method then scans the file's content for
         http:// URLs and gates each found URL against the allowed_pattern
@@ -288,7 +289,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
     # JSON validation orchestration — file parse + schema resolution
     # ────────────────────────────────────────────────────────────────────────
     def _check_one_file_json(self, file_path: str) -> list[ViolationRecord]:
-        """Run JSON validation against one in-scope file (V18 §4.9.3).
+        """Run JSON validation against one in-scope file (V19 §4.9.3).
 
         Steps:
           1. Parse the data file. Parse error → ViolationRecord; no validation.
@@ -335,19 +336,19 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         ]
 
     # ────────────────────────────────────────────────────────────────────────
-    # Schema resolution — carve-out, per-run cache, web fetch (V18 §4.9.3)
+    # Schema resolution — carve-out, per-run cache, web fetch (V19 §4.9.3)
     # ────────────────────────────────────────────────────────────────────────
     def _resolve_schema(
         self,
         file_path: str,
         schema_url: str,
     ) -> tuple[dict[str, Any] | None, ViolationRecord | None]:
-        """Resolve $schema URL → schema dict (V18 §4.9.3 step 3).
+        """Resolve $schema URL → schema dict (V19 §4.9.3 step 3).
 
         Single responsibility: take a URL, return either (schema, None) or
         (None, ViolationRecord). Does not validate; does not parse data.
         """
-        # 1. Carve-out for contractually-frozen externals (V18 §4.9.3.1).
+        # 1. Carve-out for contractually-frozen externals (V19 §4.9.3.1).
         if schema_url in self._frozen_external_schemas:
             return self._frozen_external_schemas[schema_url], None
 
@@ -365,7 +366,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
     ) -> tuple[dict[str, Any] | None, ViolationRecord | None]:
         """HTTP GET schema_url with a 5s timeout; cache on success.
 
-        Per V18 §4.9.3 step 3: fetch failure (URLError, HTTPError, timeout,
+        Per V19 §4.9.3 step 3: fetch failure (URLError, HTTPError, timeout,
         generic OSError) and malformed-JSON response are per-file violations,
         NOT WorkerInternalError. Unreachable URL is a deployment problem; the
         worker reports it as a violation against the file that declared it.
@@ -415,7 +416,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         schema_url: str,
         reason: str,
     ) -> ViolationRecord:
-        """Build a ViolationRecord for a $schema fetch failure (V18 §4.9.3)."""
+        """Build a ViolationRecord for a $schema fetch failure (V19 §4.9.3)."""
         return ViolationRecord(
             enforcement_id=self.enforcement_id,
             rule_id=self.rule_id,
@@ -425,17 +426,17 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         )
 
     # ────────────────────────────────────────────────────────────────────────
-    # _validate_json — the single thing this method does (V18 §4.9.3 / TR-12)
+    # _validate_json — the single thing this method does (V19 §4.9.3 / TR-12)
     # ────────────────────────────────────────────────────────────────────────
     def _validate_json(
         self,
         data: Any,
         schema: dict[str, Any],
     ) -> list[jsonschema.exceptions.ValidationError]:
-        """JSON validation per V18 §4.9.3 / TR-12.
+        """JSON validation per V19 §4.9.3 / TR-12.
 
         jsonschema.Draft202012Validator is the SOLE arbiter of validity. Do not invent.
-        See V18 §4.9.3 for the binding contract.
+        See V19 §4.9.3 for the binding contract.
         """
         return list(jsonschema.Draft202012Validator(schema).iter_errors(data))
 

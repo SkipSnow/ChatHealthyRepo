@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # Pytests for EPIC-008-F-008-S-001-REQ-B-001 through REQ-011
-# and EPIC-008-F-008-S-004-REQ-B-001.
+# and EPIC-008-F-002-S-006-REQ-B-001.
 #
 # Each test class maps to exactly one requirement.
 #

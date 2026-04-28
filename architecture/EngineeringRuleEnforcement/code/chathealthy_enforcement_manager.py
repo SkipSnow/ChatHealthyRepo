@@ -1,6 +1,7 @@
 """ChatHealthyEnforcementManager — engineering-rules dispatch + aggregation.
 
-Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV17.docx
+Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV19.docx
+    §4.0   (Implementation discipline — TR-trace principle)
     §4.4.1 (manager class table)
     §4.3.1 (concurrency model — manager owns the mutex)
     §4.3.2 (runaway-process control — manager owns the timeout)
@@ -36,7 +37,7 @@ PROJECT_ROOT = _THIS_FILE.parents[3]
 
 
 class ChatHealthyEnforcementManager:
-    """Dispatcher for engineering-rule enforcement workers (design V17 §4.4.1)."""
+    """Dispatcher for engineering-rule enforcement workers (design V19 §4.4.1)."""
 
     # ── HOOKS — TR-1 enum (4 Git + 6 Claude Code = 10) ───────────────────────
     HOOKS: tuple[str, ...] = (
@@ -52,7 +53,7 @@ class ChatHealthyEnforcementManager:
         "InstructionsLoaded",
     )
 
-    # ── ENGINEERING_RULES_PATH (V17 Table 3) ─────────────────────────────────
+    # ── ENGINEERING_RULES_PATH (V19 Table 3) ─────────────────────────────────
     ENGINEERING_RULES_PATH: Path = (
         PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "engineering_rules.json"
     )
@@ -65,7 +66,7 @@ class ChatHealthyEnforcementManager:
     EXIT_WORKER_TIMEOUT: int = 4
     EXIT_WORKER_INTERNAL_ERROR: int = 5
 
-    # ── Timeouts (V17 §4.3.2 / Table 5) ──────────────────────────────────────
+    # ── Timeouts (V19 §4.3.2 / Table 5) ──────────────────────────────────────
     DEFAULT_TIMEOUT_SECONDS: int = 30
 
     # Aggregation precedence — highest wins (TR-2).
@@ -76,7 +77,7 @@ class ChatHealthyEnforcementManager:
     _LOCK_DIR: Path = PROJECT_ROOT / "architecture" / "EngineeringRuleEnforcement" / "locks"
 
     def __init__(self, hook_name: str) -> None:
-        """Validate hook_name; store. (V17 Table 3, ctor row.)"""
+        """Validate hook_name; store. (V19 Table 3, ctor row.)"""
         if hook_name not in self.HOOKS:
             raise ValueError(
                 f"unknown hook_name {hook_name!r}; "
@@ -88,7 +89,7 @@ class ChatHealthyEnforcementManager:
     # Public entry point
     # ────────────────────────────────────────────────────────────────────────
     def run(self) -> int:
-        """Load rules, filter, dispatch, aggregate (V17 Table 3 row 11).
+        """Load rules, filter, dispatch, aggregate (V19 Table 3 row 11).
 
         Returns one of EXIT_OK / EXIT_VIOLATIONS_FOUND / EXIT_MANAGER_ERROR /
         EXIT_WORKER_SPAWN_FAILURE / EXIT_WORKER_TIMEOUT / EXIT_WORKER_INTERNAL_ERROR.
@@ -110,7 +111,7 @@ class ChatHealthyEnforcementManager:
     # Load + filter
     # ────────────────────────────────────────────────────────────────────────
     def _load_rules(self) -> list[dict[str, Any]]:
-        """Read-only load of engineering_rules.json (V17 Table 3 row 12)."""
+        """Read-only load of engineering_rules.json (V19 Table 3 row 12)."""
         with self.ENGINEERING_RULES_PATH.open(encoding="utf-8") as f:
             data = json.load(f)
         return data["rules"]["rule"]
@@ -120,7 +121,7 @@ class ChatHealthyEnforcementManager:
         rules: list[dict[str, Any]],
         hook: str,
     ) -> list[dict[str, Any]]:
-        """Return enforcement entries whose hook matches (V17 Table 3 row 13).
+        """Return enforcement entries whose hook matches (V19 Table 3 row 13).
 
         The result preserves the rule_id of the parent rule on each entry so
         the manager can include it in spawn-failure messages without re-walking.
@@ -148,7 +149,7 @@ class ChatHealthyEnforcementManager:
     def _acquire_lock(self, enforcement_id: str) -> FileLock:
         """Acquire an advisory file lock keyed on enforcement_id (TR-8).
 
-        Default mechanism per design V17: file lock at
+        Default mechanism per design V19: file lock at
         architecture/EngineeringRuleEnforcement/locks/<enforcement_id>.lock.
         Blocks until acquired. May be promoted to a distributed claim later
         without touching workers.
@@ -160,7 +161,7 @@ class ChatHealthyEnforcementManager:
         return lock
 
     def _release_lock(self, lock: FileLock) -> None:
-        """Release the lock (V17 Table 3 row 17)."""
+        """Release the lock (V19 Table 3 row 17)."""
         lock.release()
 
     # ────────────────────────────────────────────────────────────────────────
@@ -169,7 +170,7 @@ class ChatHealthyEnforcementManager:
     def _spawn_worker(self, enforcement: dict[str, Any]) -> int:
         """Spawn one worker subprocess; return its promoted exit code.
 
-        Behavior per V17 Table 3 row 14:
+        Behavior per V19 Table 3 row 14:
           • Reads enforcement.executable_path.
           • Resolves the timeout (entry's optional `timeout` field, else
             DEFAULT_TIMEOUT_SECONDS).
@@ -184,7 +185,7 @@ class ChatHealthyEnforcementManager:
             when the worker exits abnormally so it isn't silently dropped.
 
         The worker is never told the timeout — enforcement is exclusively in
-        this method (V17 §4.3.2).
+        this method (V19 §4.3.2).
         """
         enforcement_id = enforcement["enforcement_id"]
         executable_path = (PROJECT_ROOT / enforcement["executable_path"]).resolve()
@@ -206,7 +207,7 @@ class ChatHealthyEnforcementManager:
                     cwd=str(PROJECT_ROOT),
                 )
             except subprocess.TimeoutExpired as exc:
-                # Manager-owned hard kill on timeout (V17 §4.3.2).
+                # Manager-owned hard kill on timeout (V19 §4.3.2).
                 print(
                     f"[manager] timeout {enforcement_id}: exceeded "
                     f"{timeout_value}s",
@@ -268,7 +269,7 @@ class ChatHealthyEnforcementManager:
     # Aggregation
     # ────────────────────────────────────────────────────────────────────────
     def _aggregate(self, exit_codes: list[int]) -> int:
-        """Apply precedence 2 > 3 > 5 > 4 > 1 > 0. Empty → 0 (V17 Table 3 row 15)."""
+        """Apply precedence 2 > 3 > 5 > 4 > 1 > 0. Empty → 0 (V19 Table 3 row 15)."""
         if not exit_codes:
             return self.EXIT_OK
         for rank in self._PRECEDENCE:
@@ -279,13 +280,13 @@ class ChatHealthyEnforcementManager:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CLI entry point — single main() per V17 Table 0 row 2
+# CLI entry point — single main() per V19 Table 0 row 2
 # ─────────────────────────────────────────────────────────────────────────────
 def main(argv: list[str] | None = None) -> int:
     """Hook entry point. Invoked by every Git / Claude Code hook with hook_name."""
     parser = argparse.ArgumentParser(
         prog="chathealthy_enforcement_manager",
-        description="ChatHealthy engineering-rule enforcement dispatcher (V17).",
+        description="ChatHealthy engineering-rule enforcement dispatcher (V19).",
     )
     parser.add_argument(
         "--hook",

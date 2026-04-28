@@ -27,7 +27,7 @@
                 "cause": [
                   {
                     "identifier_type": "requirement_id",
-                    "identifier": "EPIC-008-F-008-S-004-REQ-B-001"
+                    "identifier": "EPIC-008-F-002-S-006-REQ-B-001"
                   }
                 ]
               },
@@ -80,7 +80,7 @@
                 "cause": [
                   {
                     "identifier_type": "requirement_id",
-                    "identifier": "EPIC-008-F-008-S-004-REQ-T-002"
+                    "identifier": "EPIC-008-F-002-S-006-REQ-T-001"
                   }
                 ]
               },
@@ -127,7 +127,7 @@
                 "cause": [
                   {
                     "identifier_type": "requirement_id",
-                    "identifier": "EPIC-008-F-008-S-004-REQ-T-002"
+                    "identifier": "EPIC-008-F-002-S-006-REQ-T-001"
                   }
                 ]
               },

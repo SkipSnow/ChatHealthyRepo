@@ -1649,7 +1649,7 @@
       ],
       "status": "new",
       "severity": "high",
-      "req_id": "EPIC-008-F-008-S-004-REQ-T-002",
+      "req_id": "EPIC-008-F-002-S-006-REQ-T-001",
       "story_id": "ARCH-SCAN-JSON",
       "pytest_id": "TBD-backlog-schema-executor-test",
       "pytest_success_criteria": [
@@ -1673,7 +1673,7 @@
     {
       "bugid": "BUG-RULES-NO-REQ-TRACE-001",
       "title": "61 engineering rules in engineering_rules.json have no requirement trace (orphan rules)",
-      "description": "Every rule in brain/machine_artifacts/content/engineering_rules.json MUST carry a 'req_id' field per EPIC-008-F-008-S-004-REQ-T-003. Audit on 2026-04-19 found 61 rules in the file, ZERO of which carry a req_id field. All are orphans. The full list with file:line references is in 'next_action'. Closes when every listed rule has been updated with a req_id pointing at an approved agile_backlog requirement, the schema makes req_id required on each rule, AND the scanner enforces it. Severity intent (per v4-041): dev=low, qa=critical, prod=show_stopper.",
+      "description": "Every rule in brain/machine_artifacts/content/engineering_rules.json MUST carry a 'req_id' field per EPIC-008-F-002-S-003-REQ-T-001. Audit on 2026-04-19 found 61 rules in the file, ZERO of which carry a req_id field. All are orphans. The full list with file:line references is in 'next_action'. Closes when every listed rule has been updated with a req_id pointing at an approved agile_backlog requirement, the schema makes req_id required on each rule, AND the scanner enforces it. Severity intent (per v4-041): dev=low, qa=critical, prod=show_stopper.",
       "environments": [
         "local",
         "dev",
@@ -1682,7 +1682,7 @@
       ],
       "status": "deferred",
       "severity": "low",
-      "req_id": "EPIC-008-F-008-S-004-REQ-T-003",
+      "req_id": "EPIC-008-F-002-S-003-REQ-T-001",
       "story_id": "ARCH-SCAN-JSON",
       "pytest_id": "TBD-rules-have-req-trace",
       "pytest_success_criteria": [
@@ -1771,7 +1771,7 @@
       ],
       "status": "new",
       "severity": "high",
-      "req_id": "Orphan",
+      "req_id": "EPIC-008-F-002-S-004-REQ-T-001",
       "story_id": "ARCH-SCAN-JSON",
       "pytest_id": "TBD-scanner-scope-test",
       "pytest_success_criteria": [
@@ -1791,7 +1791,7 @@
     {
       "bugid": "BUG-SCANNER-NOT-SINGLE-GATE-001",
       "title": "preCommitScan does not enforce the 61 engineering rules at pre-commit (split with pre-push)",
-      "description": "Per EPIC-008-F-008-S-004-REQ-B-002 the pre-commit scanner MUST run every engineering rule with an executor at pre-commit time. Today only schema validation + HTTP scan run at pre-commit; the 61 rules' executors run at pre-push. This split creates a 'commit passed but push fails' trap. Closes when preCommitScan.py 'staged' mode runs the full rule set scoped to staged files AND pre-push reduces to network-op only.\n\nADDITIONAL (2026-04-19): Rule-002 statement 3 (Pipeline discipline - 'Every workflow fix commit must include a meaningful Code/DataPipelines/ file change') is also enforced in the WRONG place. The check lives at .git/hooks/pre-commit:63-70 (an untracked, local-only bash hook) instead of preCommitScan.py. The hook output prints the stale label 'v4-001A' even though the rules were renamed to Rule-NNN earlier today (Rule-002 is the canonical id). Same root cause as the parent bug: enforcement is split across multiple gates (preCommitScan.py + .git/hooks/pre-commit + pre_deploy_rule_check.py) and untracked local hooks drift independently. Rule-002 enforcement must move into preCommitScan.py's rule-executor loop (driven by engineering_rules.json), and the .git/hooks/pre-commit check must be retired so the canonical rule label is the only one users ever see.",
+      "description": "Per EPIC-008-F-002-S-003-REQ-B-001 the pre-commit scanner MUST run every engineering rule with an executor at pre-commit time. Today only schema validation + HTTP scan run at pre-commit; the 61 rules' executors run at pre-push. This split creates a 'commit passed but push fails' trap. Closes when preCommitScan.py 'staged' mode runs the full rule set scoped to staged files AND pre-push reduces to network-op only.\n\nADDITIONAL (2026-04-19): Rule-002 statement 3 (Pipeline discipline - 'Every workflow fix commit must include a meaningful Code/DataPipelines/ file change') is also enforced in the WRONG place. The check lives at .git/hooks/pre-commit:63-70 (an untracked, local-only bash hook) instead of preCommitScan.py. The hook output prints the stale label 'v4-001A' even though the rules were renamed to Rule-NNN earlier today (Rule-002 is the canonical id). Same root cause as the parent bug: enforcement is split across multiple gates (preCommitScan.py + .git/hooks/pre-commit + pre_deploy_rule_check.py) and untracked local hooks drift independently. Rule-002 enforcement must move into preCommitScan.py's rule-executor loop (driven by engineering_rules.json), and the .git/hooks/pre-commit check must be retired so the canonical rule label is the only one users ever see.",
       "environments": [
         "local",
         "dev",
@@ -1800,7 +1800,7 @@
       ],
       "status": "new",
       "severity": "high",
-      "req_id": "EPIC-008-F-008-S-004-REQ-B-002",
+      "req_id": "EPIC-008-F-002-S-003-REQ-B-001",
       "story_id": "ARCH-SCAN-JSON",
       "pytest_id": "TBD-single-gate-test",
       "pytest_success_criteria": [
@@ -1986,7 +1986,7 @@
       "description": "V17 §4.9.3 step 3 stipulated that the worker resolve a JSON file's $schema URL by stripping the prefix `https://(dev|qa|)?chathealthy.ai/schemas/` and treating the suffix as a filename under Website/schemas/. That design is non-functional whenever a JSON file declares a $schema URL outside the chathealthy.ai pattern — most importantly, schema files themselves declare `$schema = https://json-schema.org/draft/2020-12/schema` (the JSON Schema 2020-12 meta-schema). Under V17, the URL-pattern resolver fails on those files and raises WorkerInternalError, which the worker maps to exit 5 and blocks pre-commit. The defect is in V17 itself, not the implementation: the implementation was honoring V17 §4.9.3 step 3 as written. Resolution: V18 §4.9.3 replaces the URL-pattern resolver with web fetch (HTTP GET, 5s timeout, per-run cache) and adds a single carve-out for the JSON Schema 2020-12 meta-schema (whose URL is contractually frozen by the spec). Unreachable URLs become per-file ViolationRecords, never WorkerInternalError. See V18 §4.9.3.1 for the carve-out policy and V18 Table 12 for the resolution mechanism.",
       "discovery_date": "2026-04-27",
       "due_date": "2026-05-04",
-      "status": "in_analysis",
+      "status": "fixed",
       "severity": "medium",
       "req_id": "EPIC-008-F-002-S-002-REQ-T-001",
       "story_id": "EPIC-008-F-002-S-002",
@@ -1996,9 +1996,8 @@
         "local"
       ],
       "reproduction": "Under V17: stage Website/schemas/EngineeringRulesSchema.json; attempt git commit; pre-commit's CHECK 11 invokes the manager which dispatches scan_files_enforcement_worker; the worker reads $schema = https://json-schema.org/draft/2020-12/schema; the V17 URL-pattern resolver cannot map that URL to a Website/schemas/<file>.json path; the worker raises WorkerInternalError, exits 5, and the commit is blocked.",
-      "next_action": [
-        "Adopt V18 §4.9.3 web-fetch resolver with carve-out for the JSON Schema meta-schema; this bug closes when V18 is the binding contract and scan_files_enforcement_worker.py no longer contains a URL-pattern resolver."
-      ]
+      "fix": "Resolved by V19 §4.9.3 / §4.9.3.1 carve-out policy. ScanFilesEnforcementWorker._load_frozen_external_schemas() (architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py) builds a {url: schema} carve-out map at __init__ that maps the JSON Schema 2020-12 meta-schema URL (https://json-schema.org/draft/2020-12/schema) to the local copy at Website/schemas/standard/json-schema-2020-12-meta.json. _resolve_schema() consults the carve-out before any web fetch, so schema files declaring the meta-schema URL no longer trigger a URL-pattern lookup and never raise WorkerInternalError. The V17 URL-pattern resolver has been removed.",
+      "next_action": []
     },
     {
       "bugid": "BUG-ENF-WORKER-002",
@@ -2006,7 +2005,7 @@
       "description": "V17 BR-11 / TR-12 stipulate that JSON validation is performed by jsonschema.Draft202012Validator against the schema declared in $schema. The function _validate_json was implemented as an orchestrator that also (a) parses the file as JSON and (b) loads the schema via inline URL resolution. This violates single-responsibility and gives the function room to invent constraints. Result: SCOPES has no `\\.json$` allowed_pattern for _validate_json, the function runs on Python and shell files, json.load() raises JSONDecodeError, and 5 spurious 'invalid JSON' violations are emitted on non-JSON files. Refactor: _validate_json must do nothing but call the standard library validator. Schema loading moves to __init__ (registry built once). File parsing and schema lookup move to run().",
       "discovery_date": "2026-04-27",
       "due_date": "2026-05-04",
-      "status": "in_analysis",
+      "status": "fixed",
       "severity": "medium",
       "req_id": "EPIC-008-F-002-S-002-REQ-T-001",
       "story_id": "EPIC-008-F-002-S-002",
@@ -2016,9 +2015,8 @@
         "local"
       ],
       "reproduction": "Stage any non-JSON file (e.g., Code/DataPipelines/prescriber_evaluate_care_pipeline.py); attempt git commit; the worker emits a 'invalid JSON: Expecting value at line 1 col 1' violation.",
-      "next_action": [
-        "Refactor _validate_json to a thin wrapper that takes (data, schema) and returns iter_errors. Schema registry built at __init__. SCOPES updated with `\\.json$` allowed_pattern."
-      ]
+      "fix": "Resolved by SRP refactor of _validate_json in V19. ScanFilesEnforcementWorker._validate_json (architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py) is now a 4-line wrapper that does only `return list(jsonschema.Draft202012Validator(schema).iter_errors(data))`. File parsing moved to _load_data, schema resolution moved to _resolve_schema (carve-out -> per-run cache -> HTTP GET), and orchestration moved to _check_one_file_json. The worker's enforcement entry now carries an `[\"_validate_json\", \"allowed_pattern\", [\"\\\\.json$\"]]` row gating the validator to JSON files only, so non-JSON files no longer enter the validator path.",
+      "next_action": []
     }
   ]
 }
