@@ -40283,7 +40283,7 @@
                   {
                     "story_id": "EPIC-008-F-002-S-003",
                     "name": "Rules infrastructure: manager, base worker, lock, timeout, telemetry, exit-code aggregation",
-                    "description": "ChatHealthyEnforcementManager + EnforcementWorker (abstract base) deliver the framework: read-only rules-registry load, hook-filtered enforcement dispatch, manager-owned mutex coordination, per-worker subprocess timeout, structured violation/telemetry envelopes, and worst-code-wins aggregation. Per V19 §4.4. The manager is invoked by every Git and Claude Code hook with a single hook_name argument.",
+                    "description": "ChatHealthyEnforcementManager + EnforcementWorker (abstract base) deliver the framework: read-only rules-registry load, hook-filtered enforcement dispatch, manager-owned mutex coordination, per-worker subprocess timeout, structured violation/telemetry envelopes, and worst-code-wins aggregation. Per V20 §4.4. The manager is invoked by every Git and Claude Code hook with a single hook_name argument.",
                     "size": "L",
                     "status": "done",
                     "approval": "approved",
@@ -40714,7 +40714,7 @@
                   {
                     "story_id": "EPIC-008-F-002-S-004",
                     "name": "Scanning: file enumeration on hooks, SCOPES evaluation, scope precedence",
-                    "description": "Per V19 §4.5 and §4.9. Workers receive resource candidates (staged or about-to-push files for the V1 ScanFilesEnforcementWorker), evaluate each via the base-class is_in_scope() walk against the SCOPES rows on the enforcement entry, and dispatch matched check methods. Scope precedence is fixed and lives entirely in the base class.",
+                    "description": "Per V20 §4.5 and §4.9. Workers receive resource candidates (staged or about-to-push files for the V1 ScanFilesEnforcementWorker), evaluate each via the base-class is_in_scope() walk against the SCOPES rows on the enforcement entry, and dispatch matched check methods. Scope precedence is fixed and lives entirely in the base class.",
                     "size": "M",
                     "status": "done",
                     "approval": "approved",
@@ -40803,7 +40803,7 @@
                   {
                     "story_id": "EPIC-008-F-002-S-005",
                     "name": "HTTP vs HTTPS: _scan_http check and allowed_pattern URL handling",
-                    "description": "Per V19 BR-12, BR-13, TR-11. The _scan_http check on ScanFilesEnforcementWorker enforces that production source code, documentation, and deployment configuration MUST NOT contain http:// URLs unless the URL itself matches an allowed_pattern row on the enforcement entry's scopes (loopback, link-local metadata, w3.org, etc.). Files intended to carry http:// content as legitimate data are listed in allowed_exact / allowed_pattern rows. Other files are exempted via excluded_exact / excluded_pattern.",
+                    "description": "Per V20 BR-12, BR-13, TR-11. The _scan_http check on ScanFilesEnforcementWorker enforces that production source code, documentation, and deployment configuration MUST NOT contain http:// URLs unless the URL itself matches an allowed_pattern row on the enforcement entry's scopes (loopback, link-local metadata, w3.org, etc.). Files intended to carry http:// content as legitimate data are listed in allowed_exact / allowed_pattern rows. Other files are exempted via excluded_exact / excluded_pattern.",
                     "size": "S",
                     "status": "done",
                     "approval": "approved",
@@ -40873,7 +40873,7 @@
                   {
                     "story_id": "EPIC-008-F-002-S-006",
                     "name": "JSON validation: _validate_json check, $schema web-fetch resolver, meta-schema carve-out, in-run cache",
-                    "description": "Per V19 BR-11/15/16, TR-12/18/19, §4.9.3 and §4.9.3.1. The _validate_json check on ScanFilesEnforcementWorker validates every governed JSON file under brain/machine_artifacts/content/ against the schema declared in its $schema field, using jsonschema Draft 2020-12. ChatHealthy schemas declared in $schema URLs are resolved via HTTPS GET (5s timeout, per-run cache) per TR-18; the JSON Schema 2020-12 meta-schema is the single carve-out, served from a local copy under Website/schemas/standard/ per TR-19 / BR-16. Files with $schema missing that are not explicitly excluded MUST FAIL LOUD.",
+                    "description": "Per V20 BR-11/15/16, TR-12/18/19, §4.9.3 and §4.9.3.1. The _validate_json check on ScanFilesEnforcementWorker validates every governed JSON file under brain/machine_artifacts/content/ against the schema declared in its $schema field, using jsonschema Draft 2020-12. ChatHealthy schemas declared in $schema URLs are resolved via HTTPS GET (5s timeout, per-run cache) per TR-18; the JSON Schema 2020-12 meta-schema is the single carve-out, served from a local copy under Website/schemas/standard/ per TR-19 / BR-16. Files with $schema missing that are not explicitly excluded MUST FAIL LOUD.",
                     "size": "M",
                     "status": "done",
                     "approval": "approved",

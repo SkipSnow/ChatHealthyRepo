@@ -1,6 +1,6 @@
 """ScanFilesEnforcementWorker — V1 concrete worker (worked example).
 
-Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV19.docx
+Binding contract: CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV20.docx
     §4.0     (Implementation discipline — TR-trace principle)
     §4.9     (worked example: ScanFilesEnforcementWorker on pre-commit)
     §4.9.1   (class-member table)
