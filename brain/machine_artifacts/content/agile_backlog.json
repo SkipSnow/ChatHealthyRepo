@@ -41854,37 +41854,6 @@
                     "name": "Make and maintain deployment scripts for all environments"
                   },
                   {
-                    "story_id": "EPIC-008-F-004-S-002",
-                    "description": "Formal rules for where epics, features, stories, and requirements belong in the backlog. Defines placement criteria so items land in the right place the first time instead of being shuffled repeatedly.",
-                    "size": "L",
-                    "status": "deferred",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "requirement": "Requirements pending post-alpha. Backlog hierarchy will be reorganized and formalized after alpha launch.",
-                          "priority": "should-have",
-                          "status": "deferred",
-                          "orphan": true,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Reorganize and formalize backlog hierarchy post-alpha launch",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Backlog hierarchy governance rules"
-                  },
-                  {
                     "story_id": "EPIC-008-F-004-S-003",
                     "description": "One deploy script that wipes, builds, and starts the local UAT environment. Frontend on HTTPS port 443 with HTTP-to-HTTPS redirect on port 80. Backend calls dev.chathealthy.ai. Script runs verification tests before handing to human for UAT.",
                     "size": "M",
