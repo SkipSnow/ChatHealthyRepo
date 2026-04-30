@@ -124,13 +124,15 @@ class TestClassShape:
         )
 
     def test_per_check_scope_defaults(self):
-        # _scan_http default = False (opt-in by extension via allowed_pattern).
+        # _scan_http default = True (V21 §4.5: scan every staged text file by
+        # default; excluded_exact / excluded_pattern carve out specific files;
+        # binaries are silently skipped inside _scan_http via UnicodeDecodeError).
         # _validate_json default = False post-refactor (BUG-ENF-WORKER-002):
         # the positive `\.json$` allowed_pattern row in the entry's scopes
         # gates JSON validation, and non-JSON files must not fall through to
         # a json.load parse error.
         defaults = sfew.ScanFilesEnforcementWorker.SCOPE_DEFAULTS
-        assert defaults["_scan_http"] is False
+        assert defaults["_scan_http"] is True
         assert defaults["_validate_json"] is False
 
     def test_validate_json_docstring_contains_required_anchors(self):
@@ -144,9 +146,10 @@ class TestClassShape:
 # is_in_scope walkthroughs from V18 §4.5
 # ─────────────────────────────────────────────────────────────────────────────
 class TestScopeWalkthroughs:
-    def test_scan_http_default_excludes_random_python(self, worker):
-        # random .py file with no rules matching → SCOPE_DEFAULT (False) for _scan_http
-        assert worker.is_in_scope("Code/Shared/ops/tools/preCommitScan.py", "_scan_http") is False
+    def test_scan_http_default_includes_random_python(self, worker):
+        # V21: random .py file with no rules matching → SCOPE_DEFAULT (True) for _scan_http.
+        # Source-tree files are scanned by default; excluded_exact / excluded_pattern carve out.
+        assert worker.is_in_scope("Code/Shared/ops/tools/preCommitScan.py", "_scan_http") is True
 
     def test_validate_json_includes_json_via_allowed_pattern(self, worker):
         # Post-refactor, SCOPE_DEFAULT is False but the synthetic entry below

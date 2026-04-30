@@ -40161,7 +40161,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Guard loads dynamic risk_acceptance.json, no hardcoded risk acceptances",
+                          "name": "Dynamic risk_acceptance.json reload",
                           "depends_on": []
                         },
                         {
@@ -40181,7 +40181,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Add schema fields: pass, reason, risk_accepted, risk_id to GPT output",
+                          "name": "GPT output schema fields",
                           "depends_on": []
                         },
                         {
@@ -40201,7 +40201,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Bypass action if risk_accepted=true; skip further state evaluation",
+                          "name": "risk_accepted bypass",
                           "depends_on": []
                         }
                       ]
@@ -40235,12 +40235,12 @@
                               }
                             ]
                           },
-                          "name": "Claude must never misrepresent; always verify facts through sufficient research",
+                          "name": "Prime rule: no misrepresentation",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-002-REQ-B-002",
-                          "name": "Materiality threshold for Claude's communication in non-production",
+                          "name": "Materiality threshold",
                           "requirement": "In all non-production environments, a possible consequence to an action a human user asks Claude Code to do - either as an analysis task or as one that will change state in a reversible way - must not be surfaced to the human operator when that possible analytical or factual potential has less than a 2% probability of occurring.",
                           "priority": "must-have",
                           "status": "in_progress",
@@ -40273,7 +40273,7 @@
                               }
                             ]
                           },
-                          "name": "Prime rule enforced via runtime hooks: verify directive, claim audit, rule id in",
+                          "name": "Prime rule runtime enforcement",
                           "depends_on": []
                         }
                       ]
@@ -40292,7 +40292,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-001",
-                          "name": "BR: BR-1",
+                          "name": "Rules carry enforcement entries",
                           "requirement": "Every engineering rule that the team intends to enforce MUST carry at least one programmatic enforcement entry. A rule with an empty enforcement array is documentation, not governance, and SHALL be either populated, retired, or annotated as documentation-only.",
                           "priority": "must-have",
                           "status": "done",
@@ -40311,7 +40311,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-002",
-                          "name": "BR: BR-2",
+                          "name": "Enforcement at hook moment",
                           "requirement": "Enforcement runs at the moment a violation can occur — the relevant Git or Claude Code hook — not on a separate cadence. There is no nightly job that catches yesterday's mistake.",
                           "priority": "must-have",
                           "status": "done",
@@ -40330,7 +40330,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-003",
-                          "name": "BR: BR-3",
+                          "name": "Hook-agnostic framework",
                           "requirement": "An engineering rule MUST be able to attach to any of the four Git hooks (pre-commit, commit-msg, post-commit, pre-push) and any of the six Claude Code hooks (SessionStart, UserPromptSubmit, PreToolUse, Stop, SessionEnd, InstructionsLoaded). The framework is hook-agnostic; the enforcement entry declares its hook.",
                           "priority": "must-have",
                           "status": "done",
@@ -40349,7 +40349,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-004",
-                          "name": "BR: BR-4",
+                          "name": "Human debuggability",
                           "requirement": "The system MUST be debuggable by a human. One file per role. One class per file. One entry point. Per-enforcement, per-worker structured stdout and telemetry, with worst exit code propagated.",
                           "priority": "must-have",
                           "status": "done",
@@ -40368,7 +40368,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-005",
-                          "name": "BR: BR-5",
+                          "name": "Multi-PID concurrency",
                           "requirement": "The framework MUST handle multi-PID race conditions correctly. The same hook can fire many times concurrently across different Claude Code PIDs and Git invocations. The manager acquires a lock before dispatching any worker whose enforcement entry declares requires_lock = True; in-process locks are forbidden.",
                           "priority": "must-have",
                           "status": "done",
@@ -40387,7 +40387,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-006",
-                          "name": "BR: BR-6",
+                          "name": "Additive enforcement",
                           "requirement": "Adding the next enforcement MUST be a small, additive change. New enforcement entries get a new enforcement_id and — if needed — a new worker subclass; existing rules and workers are not touched.",
                           "priority": "must-have",
                           "status": "done",
@@ -40406,7 +40406,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-007",
-                          "name": "BR: BR-7",
+                          "name": "Worker inherits base class",
                           "requirement": "Every worker MUST inherit from EnforcementWorker. Subclasses implement only their domain-specific check logic. The base class owns scope evaluation, violation shape, exit codes, telemetry, and error handling so every worker behaves the same from the manager's perspective.",
                           "priority": "must-have",
                           "status": "done",
@@ -40425,7 +40425,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-008",
-                          "name": "BR: BR-8",
+                          "name": "Enforcement entry first-class",
                           "requirement": "Enforcement entries are first-class records: every entry carries a stable enforcement_id (format <rule_id>-ENF-NNN), a declared hook, an executable_path, a scopes field carrying scope-list rules in the four canonical types (allowed_exact, allowed_pattern, excluded_exact, excluded_pattern), and a requires_lock boolean. They can be cited in audit trails, bug reports, and the backlog like requirements are today.",
                           "priority": "must-have",
                           "status": "done",
@@ -40444,7 +40444,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-009",
-                          "name": "BR: BR-9",
+                          "name": "Filesystem mirrors operating model",
                           "requirement": "The architecture MUST be aligned with the EPIC / Feature / Story tree. Filesystem mirrors operating model. The home for this feature is projectRoot/architecture/EngineeringRuleEnforcement/. crossEpicConcerns/ holds shared business artifacts only — no code lives there.",
                           "priority": "must-have",
                           "status": "done",
@@ -40463,7 +40463,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-010",
-                          "name": "BR: BR-10",
+                          "name": "V1 demonstrability",
                           "requirement": "Once V1 ships, BR-1 through BR-9 are demonstrably satisfied for the worked example (file scanning on pre-commit) and the framework is in place to absorb every other rule on its own schedule.",
                           "priority": "must-have",
                           "status": "done",
@@ -40482,7 +40482,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-B-011",
-                          "name": "BR: BR-14",
+                          "name": "Four canonical scope-list types",
                           "requirement": "The framework MUST support all four scope-list types on every enforcement entry, even when a given worker uses only a subset. The four permitted terms (allowed_exact, allowed_pattern, excluded_exact, excluded_pattern) are the only vocabulary used anywhere in this system.",
                           "priority": "must-have",
                           "status": "done",
@@ -40501,7 +40501,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-001",
-                          "name": "TR: TR-1",
+                          "name": "Enforcement schema fields",
                           "requirement": "engineering_rules.json schema gains the following required fields per enforcement entry: enforcement_id (string, format <rule_id>-ENF-NNN); hook (enum: pre-commit, commit-msg, post-commit, pre-push, SessionStart, UserPromptSubmit, PreToolUse, Stop, SessionEnd, InstructionsLoaded); executable_path (string — repo-relative path to the worker script that implements this enforcement); requires_lock (boolean — true if the manager must acquire a lock before dispatching this worker); scopes (array of three-column arrays — [function_name: str, scope_list_type: str, list_of_terms: list[str]] — carrying this enforcement's per-enforcement scope-list rules; scope_list_type ∈ {allowed_exact, allowed_pattern, excluded_exact, excluded_pattern}; the EngineeringRulesSchema.json validator enforces this row shape; see §4.6); timeout (integer, optional — seconds; defaults to manager constant DEFAULT_TIMEOUT_SECONDS = 30 when omitted; the manager passes this value to subprocess.run(..., timeout=N); on timeout the manager kills the worker subprocess and returns EXIT_WORKER_TIMEOUT (4); the worker does not see this field — the timeout is enforced by the parent process; see §4.3.2). The four scope-list types are carried only by scopes; there are no separate top-level allowed_exact / allowed_pattern / excluded_exact / excluded_pattern fields on the entry.",
                           "priority": "must-have",
                           "status": "done",
@@ -40520,7 +40520,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-002",
-                          "name": "TR: TR-2",
+                          "name": "Manager class and exit codes",
                           "requirement": "ChatHealthyEnforcementManager lives at projectRoot/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py. Single class. Single main(). Constructor signature __init__(hook_name: str). run() returns int. The manager module defines the following named exit-code constants and run() returns one of them: EXIT_OK = 0 (all matched enforcements passed), EXIT_VIOLATIONS_FOUND = 1 (at least one worker reported violations; commit/push must block), EXIT_MANAGER_ERROR = 2 (manager-level failure: cannot read engineering_rules.json, malformed schema, unknown hook name, or any other pre-dispatch error), EXIT_WORKER_SPAWN_FAILURE = 3 (one or more workers could not be launched: missing executable_path, executable not found, permission denied, OSError on subprocess), EXIT_WORKER_TIMEOUT = 4 (one or more workers exceeded the configured subprocess timeout), EXIT_WORKER_INTERNAL_ERROR = 5 (a worker exited with a non-0 / non-1 status — i.e. anything ≥ 3 from a worker is treated as an internal worker failure rather than a violation). Aggregation by precedence (highest wins): 2 > 3 > 5 > 4 > 1 > 0. Manager-level errors trump worker errors trump violations trump success, so the caller can immediately tell whether the issue is in the framework or in the user's code. Worker exit codes follow the same convention for the worker's subset: 0 = clean, 1 = violations, 2 = worker error; any worker exit ≥ 3 is promoted by the manager to EXIT_WORKER_INTERNAL_ERROR.",
                           "priority": "must-have",
                           "status": "done",
@@ -40539,7 +40539,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-003",
-                          "name": "TR: TR-3",
+                          "name": "Manager load-filter-spawn",
                           "requirement": "Manager loads engineering_rules.json read-only, filters enforcement[] by hook, and for each matching enforcement reads executable_path and spawns the worker via subprocess.run([sys.executable, executable_path, enforcement_id], timeout=...). The manager collects each subprocess returncode and aggregates by the TR-2 exit-code precedence.",
                           "priority": "must-have",
                           "status": "done",
@@ -40558,7 +40558,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-004",
-                          "name": "TR: TR-4",
+                          "name": "EnforcementWorker base class",
                           "requirement": "EnforcementWorker (abstract base) lives at architecture/EngineeringRuleEnforcement/code/enforcement_worker.py. It owns: __init__(enforcement_id), _load_enforcement(), is_in_scope(resource), main() (CLI entry that parses enforcement_id, instantiates the subclass, calls run(), returns its exit code), violation emission, telemetry emission, and structured error handling. Subclasses implement run() and any private helper methods their domain requires.",
                           "priority": "must-have",
                           "status": "done",
@@ -40577,7 +40577,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-005",
-                          "name": "TR: TR-6",
+                          "name": "Violation record shape",
                           "requirement": "Violation record shape (emitted by the base class): {enforcement_id, rule_id, resource, message, severity}. severity in {info, warn, error}.",
                           "priority": "must-have",
                           "status": "done",
@@ -40596,7 +40596,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-006",
-                          "name": "TR: TR-7",
+                          "name": "Telemetry envelope",
                           "requirement": "Telemetry envelope (emitted by the base class): start record and end record per worker invocation, both carrying enforcement_id, hook, duration_ms, files_scanned, violation_count, exit_code. Format: one JSON object per line to stdout.",
                           "priority": "must-have",
                           "status": "done",
@@ -40615,7 +40615,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-007",
-                          "name": "TR: TR-8",
+                          "name": "Manager-owned mutex",
                           "requirement": "When an enforcement entry declares requires_lock = True, the manager MUST acquire a process-safe lock keyed on enforcement_id before invoking subprocess.run, and MUST release the lock after subprocess.run returns (clean, non-zero, or timeout). Default mechanism: advisory file lock. In-process Python locks are forbidden. Workers do not declare a concurrency primitive.",
                           "priority": "must-have",
                           "status": "done",
@@ -40634,7 +40634,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-008",
-                          "name": "TR: TR-14",
+                          "name": "Manager-worker contract",
                           "requirement": "Manager and workers MUST NOT import each other's internals. The only contract is enforcement_id (str) in via CLI argv, exit code (int) out via subprocess returncode, and the structured stdout (violation + telemetry) envelope.",
                           "priority": "must-have",
                           "status": "done",
@@ -40653,7 +40653,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-009",
-                          "name": "TR: TR-15",
+                          "name": "Tests location",
                           "requirement": "Tests live at architecture/EngineeringRuleEnforcement/tests/. The base class ships with its own test suite covering scope evaluation, exit-code semantics, violation shape, telemetry envelope, and the try/except fail-safe. Each new worker ships with at least one happy-path and one violation-path test.",
                           "priority": "must-have",
                           "status": "done",
@@ -40672,26 +40672,27 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-010",
-                          "name": "TR: TR-16",
-                          "requirement": "Hook plumbing. .git/hooks/{pre-commit, commit-msg, post-commit, pre-push} each invoke `python -m chathealthy_enforcement_manager <hook>`. .claude/settings.json wires SessionStart, UserPromptSubmit, PreToolUse, Stop, SessionEnd, InstructionsLoaded to the same manager with the matching hook_name.",
+                          "name": "Hook plumbing",
+                          "requirement": "Hook plumbing. .git/hooks/{pre-commit, commit-msg, post-commit, pre-push} each invoke `python <repo-root>/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py --hook <hook>`. .claude/settings.json registers the same invocation under SessionStart, UserPromptSubmit, PreToolUse, Stop, SessionEnd, InstructionsLoaded with the matching `--hook <hook_name>` flag. A pytest under architecture/EngineeringRuleEnforcement/tests/ MUST verify, for every hook named above: (a) hard assert the wire-up exists when the hook carries at least one enforcement entry in engineering_rules.json; (b) advisory warning when the wire-up is missing and the hook has no enforcement (reserved for future Phase-6 workers). The test runs in the F-002 suite and the hard assertions gate pre-push.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "in_progress",
                           "approval": "approved",
                           "orphan": false,
                           "depends_on": [],
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "pytest_id": "EPIC-008-F-002-S-003-REQ-T-010-PYTEST-1",
+                                "pytest_type": "ordinary",
+                                "orphan": false,
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_hook_wireup.py"
                               }
                             ]
                           }
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-011",
-                          "name": "TR: TR-17",
+                          "name": "Worker taxonomy",
                           "requirement": "Worker taxonomy supported by the framework: file scanning (pre-commit / pre-push), prompt-injection check (UserPromptSubmit — returns additionalContext), post-response audit (Stop), log publishing (UserPromptSubmit + Stop -> Kafka), boot orchestration (SessionStart), and mode selection (SessionStart). Each is a concrete subclass of EnforcementWorker, deployed as its own standalone executable.",
                           "priority": "must-have",
                           "status": "done",
@@ -40723,7 +40724,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-008-F-002-S-004-REQ-T-001",
-                          "name": "TR: TR-5",
+                          "name": "Scope walk precedence",
                           "requirement": "Scope evaluation is fixed-precedence and lives entirely in the base class. For each (resource, function_name) the base class walks the matching rows in self.scopes (filtered by function_name) in this fixed order: excluded_exact, excluded_pattern, allowed_exact, allowed_pattern, then per-check SCOPE_DEFAULT. Subclasses do not override this walk. The default behavior (in scope vs. out of scope when no row matched) is declared per check via the per-method SCOPE_DEFAULT class attribute.",
                           "priority": "must-have",
                           "status": "done",
@@ -40742,7 +40743,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-004-REQ-T-002",
-                          "name": "TR: TR-9",
+                          "name": "ScanFilesEnforcementWorker",
                           "requirement": "ScanFilesEnforcementWorker (worked example, V1) lives at projectRoot/architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py. It is a standalone Python script with a main() that takes enforcement_id as a CLI argument and exits with a status code. Its run() implements two domain checks synchronously, in this order, on every in-scope file: (a) _scan_http(file) — the HTTP-vs-HTTPS regex scan ported from preCommitScan.py; (b) _validate_json(file) — the JSON schema validation ported from validate_all_json.py. Both run inside the same subprocess. Multi-threading inside run() is a documented future enhancement, not V1. requires_lock = false (read-only worker; the manager dispatches without acquiring a lock). ScanFilesEnforcementWorker's scope-list rules live in its enforcement entry in engineering_rules.json under the scopes field (see §4.6); the worker inherits the default _load_scopes() from EnforcementWorker, which returns self.entry.get(\"scopes\", []). It does NOT override _load_scopes() and contributes no SCOPES class attribute (see §4.5 for the mechanism, §4.9.1 for the per-method spec, and §4.9.2 for the worked-example rows).",
                           "priority": "must-have",
                           "status": "done",
@@ -40761,7 +40762,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-004-REQ-T-003",
-                          "name": "TR: TR-10",
+                          "name": "Scope rows on enforcement entry",
                           "requirement": "ScanFilesEnforcementWorker scope rules are expressed as a flat three-column list in its enforcement entry in engineering_rules.json under the scopes field. Each row has the shape [function_name: str, scope_list_type: str, list_of_terms: list[str]] where scope_list_type is one of the four canonical terms (allowed_exact, allowed_pattern, excluded_exact, excluded_pattern) and function_name is the name of a check method on the worker (e.g. _scan_http, _validate_json). The EnforcementWorker base class loads the list at worker startup through the virtual _load_scopes() method, whose default implementation returns self.entry.get(\"scopes\", []); ScanFilesEnforcementWorker inherits that default and does NOT override it. The base class then resolves function_name to a bound method via getattr(self, row[0]) at startup, so a typo in function_name fails loudly rather than silently dropping a rule. The ordered precedence of the four types is fixed in the base class per TR-5 and is described in narrative form in §4.5. The SCOPE_DEFAULT class attribute is per-check: False for _scan_http (don't flag a path that no rule matched), True for _validate_json (every governed JSON is in scope unless explicitly excluded). The canonical worked example — exactly the rows used by V1 — is in §4.9.2.",
                           "priority": "must-have",
                           "status": "done",
@@ -40780,7 +40781,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-004-REQ-T-004",
-                          "name": "TR: TR-13",
+                          "name": "preCommitScan.py JSON retirement",
                           "requirement": "preCommitScan.py SHALL drop \".json\" from SCAN_EXTENSIONS and \\.json$ from HTTP_EXEMPT_PATTERNS once ScanFilesEnforcementWorker is the single source of truth (note: SCAN_EXTENSIONS and HTTP_EXEMPT_PATTERNS are legacy module-level names inside preCommitScan.py — the artifact being retired — and are not part of the new framework's vocabulary; the new framework uses scopes rows in engineering_rules.json). Once the manager dispatches all enforcement, preCommitScan.py is retired.",
                           "priority": "must-have",
                           "status": "done",
@@ -40812,7 +40813,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-008-F-002-S-005-REQ-B-001",
-                          "name": "BR: BR-12",
+                          "name": "http: legitimate-content allowance",
                           "requirement": "Files that are intended to carry plain text \"http:\" as legitimate content — for example, JSON files whose purpose is to record example URLs, configuration files that list http endpoints by design, fixtures, and similar data files — MUST be allowed to contain the term \"http:\". These files are listed on the enforcement entry's allowed by exact match rows, or matched by the enforcement entry's allowed by pattern rows, and they will not be flagged as a violation.",
                           "priority": "must-have",
                           "status": "done",
@@ -40831,7 +40832,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-005-REQ-B-002",
-                          "name": "BR: BR-13",
+                          "name": "http: production-source ban",
                           "requirement": "Files that are intended to be production source code, documentation, deployment configuration, or any other artifact that should not embed insecure http URLs MUST NOT contain the term \"http:\" unless the URL itself is on the enforcement entry's allowed by pattern rows (for example, loopback addresses, link-local metadata endpoints, or known public standards URLs). Files of this kind that are deliberately exempt for any reason MUST appear on the enforcement entry's excluded by exact match rows or be matched by the enforcement entry's excluded by pattern rows. Any other file found to contain the term \"http:\" is a violation and the commit MUST be blocked.",
                           "priority": "must-have",
                           "status": "done",
@@ -40850,7 +40851,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-005-REQ-T-001",
-                          "name": "TR: TR-11",
+                          "name": "_scan_http scope alignment",
                           "requirement": "The set of files allowed to contain \"http:\" is exactly the union of the enforcement entry's allowed_exact rows and the files matched by the entry's allowed_pattern rows for _scan_http. The set of files exempt from the scan entirely is exactly the union of the entry's excluded_exact rows and the files matched by the entry's excluded_pattern rows for _scan_http. Any file not matched by any of those four scope_list_type rows that contains the term \"http:\" — except where the URL itself matches an allowed_pattern row for _scan_http — is a violation.",
                           "priority": "must-have",
                           "status": "done",
@@ -40882,7 +40883,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-008-F-002-S-006-REQ-B-001",
-                          "name": "BR: BR-11",
+                          "name": "Governed JSON validation gate",
                           "requirement": "Every file the system treats as governed JSON content MUST validate cleanly against the schema declared in its $schema field. The set of governed JSON files is defined using only the four permitted scope-list terms (allowed_exact, allowed_pattern, excluded_exact, excluded_pattern). The system MUST NOT trust data from a JSON file that fails schema validation, and the framework MUST treat validation failure as a governance violation. JSON validation is the load-bearing gate that protects the entire governed-data layer from silent drift.",
                           "priority": "must-have",
                           "status": "done",
@@ -40901,7 +40902,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-006-REQ-T-001",
-                          "name": "TR: TR-12",
+                          "name": "Draft 2020-12, no opt-out",
                           "requirement": "Governed JSON content lives under brain/machine_artifacts/content/. Each governed JSON file MUST declare its schema URL in a top-level $schema field. JSON parsing uses Python's standard library json module. Schema validation uses the jsonschema package against JSON Schema Draft 2020-12. Validation failure produces a violation record per TR-6 and contributes to the worker's exit code (EXIT_VIOLATIONS_FOUND = 1). Files identified by the worker's excluded_exact or excluded_pattern lists are skipped silently; files in scope without a $schema field MUST FAIL LOUD. There is no opt-out, and there is no quiet passing of unschemaed JSON content. The JSON Schema 2020-12 meta-schema URL is the single resolver carve-out, served from a local copy at Website/schemas/standard/json-schema-2020-12-meta.json. All other $schema URLs are resolved by HTTP GET with a 5-second timeout and per-run cache.",
                           "priority": "must-have",
                           "status": "done",
@@ -40920,7 +40921,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-006-REQ-B-002",
-                          "name": "BR: BR-15",
+                          "name": "Validation uses $schema URL",
                           "requirement": "Validation MUST use the schema referenced by the JSON file's $schema URL.",
                           "priority": "must-have",
                           "status": "done",
@@ -40939,7 +40940,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-006-REQ-B-003",
-                          "name": "BR: BR-16",
+                          "name": "External standards committed",
                           "requirement": "External standards used by the framework MUST be committed to the repository.",
                           "priority": "must-have",
                           "status": "done",
@@ -40958,7 +40959,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-006-REQ-T-002",
-                          "name": "TR: TR-18",
+                          "name": "$schema HTTPS resolution + cache",
                           "requirement": "Aligned to BR-15. ChatHealthy schemas declared in $schema URLs are resolved via HTTPS GET to the URL the JSON file declared, performed at validation time. A per-run cache deduplicates identical URLs within a single worker invocation. Unreachable URL, non-200, timeout, or non-JSON response body produces a per-file ViolationRecord per TR-6.",
                           "priority": "must-have",
                           "status": "done",
@@ -40977,7 +40978,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-002-S-006-REQ-T-003",
-                          "name": "TR: TR-19",
+                          "name": "External-standard carve-out cache",
                           "requirement": "Aligned to BR-16. Cached external standards live under Website/schemas/standard/. A standard is eligible for caching when its URL is contractually frozen by the spec maintainer (any change requires a new versioned URL). The framework's runtime serves those URLs from the cached copies. Cached standards remain under the stewardship of their original publisher; the framework's governance applies to content the framework owns.",
                           "priority": "must-have",
                           "status": "done",

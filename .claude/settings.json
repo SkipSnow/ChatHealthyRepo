@@ -6,6 +6,10 @@
           {
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode tool_call"
+          },
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook PreToolUse"
           }
         ]
       }
@@ -40,6 +44,10 @@
           {
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode session_end"
+          },
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook SessionEnd"
           }
         ]
       }
@@ -58,6 +66,10 @@
           {
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/capture_brain_hashes.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook SessionStart"
           }
         ]
       }
@@ -68,6 +80,10 @@
           {
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/log_instructions_loaded.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook InstructionsLoaded"
           }
         ]
       }

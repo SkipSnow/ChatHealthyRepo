@@ -380,14 +380,16 @@
                   [
                     "^test_",
                     "conftest\\.py$",
-                    "^brain/BusinessArtifacts/"
+                    "^brain/BusinessArtifacts/",
+                    "^architecture/EngineeringRuleEnforcement/tests/"
                   ]
                 ],
                 [
                   "_validate_json",
                   "excluded_exact",
                   [
-                    "package-lock.json"
+                    "package-lock.json",
+                    ".claude/settings.json"
                   ]
                 ],
                 [
@@ -417,7 +419,9 @@
                   "_scan_http",
                   "excluded_exact",
                   [
-                    "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py"
+                    "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py",
+                    "brain/machine_artifacts/content/agile_backlog.json",
+                    "brain/machine_artifacts/content/engineering_rules.json"
                   ]
                 ]
               ],

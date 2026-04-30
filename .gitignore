@@ -87,3 +87,7 @@ Code/CSharp/**/obj/
 Code/CSharp/**/build/
 brain/machine_artifacts/.iteration_cache/
 .langgraph_api/
+
+# Markdown files: dev-only artifacts (Claude scratchpads, audit reports, etc.)
+# never served to users; not subject to BR-13 HTTP scan.
+*.md

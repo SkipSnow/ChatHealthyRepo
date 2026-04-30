@@ -121,7 +121,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
     # parse-error violation. The exclusion rows for package-lock.json and
     # tests/fixtures/ still trump the allowed_pattern per TR-5 precedence.
     SCOPE_DEFAULTS: dict[str, bool] = {
-        "_scan_http": False,
+        "_scan_http": True,
         "_validate_json": False,
     }
     # Class-level fallback (used if a check method is added without a per-
@@ -258,6 +258,12 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         """
         absolute_path = (PROJECT_ROOT / file_path).resolve()
         if not absolute_path.is_file():
+            return []
+        # Binary skip: a file that fails utf-8 decode cannot semantically contain an http:// URL.
+        # Return [] silently rather than misreading bytes (V21 §4.5).
+        try:
+            absolute_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
             return []
 
         # Pull the allowed-URL patterns for _scan_http off this entry's scopes.
