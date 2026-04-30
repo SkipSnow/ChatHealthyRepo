@@ -91,3 +91,8 @@ brain/machine_artifacts/.iteration_cache/
 # Markdown files: dev-only artifacts (Claude scratchpads, audit reports, etc.)
 # never served to users; not subject to BR-13 HTTP scan.
 *.md
+
+# Archive directories: any "archive" subdir is gitignored at any depth.
+# Currently-tracked content under archive/ stays tracked (Skip directive 2026-04-30:
+# add the pattern, do NOT clean up the repo). Future additions are ignored.
+archive/
