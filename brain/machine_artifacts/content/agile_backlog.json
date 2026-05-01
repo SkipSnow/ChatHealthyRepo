@@ -41503,7 +41503,7 @@
               "feature_id": "EPIC-008-F-004",
               "name": "DevOps — Build, Deploy, and Environment Management",
               "status": "in_progress",
-              "description": "A software engineering discipline that unifies development and operations through automation, continuous delivery, and shared responsibility to accelerate the delivery of reliable software systems.",
+              "description": "This feature establishes the requirements that ChatHealthy.ai's software be automatically deployed from end to end in the most simple possible way. While it is recognized that a local deployment might differ from a dev, QA or Prod deployment, this means that at most there shall be 2 deployment scripts.",
               "realized_by": [
                 "Python 3.11",
                 "GitHub Actions",
@@ -41596,22 +41596,124 @@
                           "depends_on": []
                         },
                         {
-                          "requirement": "A deployment script MUST exist for the local environment that builds, packages, and deploys all components (FindCare, EvaluateCare, Website).",
-                          "priority": "should-have",
-                          "status": "deferred",
-                          "orphan": true,
+                          "req_id": "EPIC-008-F-004-S-001-REQ-B-001",
+                          "name": "Deploy script verifies target environment can receive a deployment",
+                          "requirement": "Each deploy script MUST make sure existing environments are capable of receiving deployments before any deploy action is taken.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
                           "pytests": {
                             "pytest": [
                               {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "pytest_id": "EPIC-008-F-004-S-001-REQ-B-001-PYTEST-1",
+                                "pytest_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/deploy/devSmokeTestPyTest.py"
                               }
                             ]
-                          },
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-001-REQ-B-002",
+                          "name": "Deploy all application software; front-end MongoDB cluster is tested-as-available, not deployed",
+                          "requirement": "Each deploy script MUST deploy all software used by the application, except for the front-end MongoDB cluster, which MUST instead be tested as up and available at the time of deployment.",
+                          "priority": "must-have",
+                          "status": "in_progress",
                           "approval": "proposed",
-                          "name": "Deployment script for local environment builds, packages, deploys all components",
-                          "depends_on": []
+                          "orphan": false,
+                          "depends_on": [],
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "EPIC-008-F-004-S-001-REQ-B-002-PYTEST-1",
+                                "pytest_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/deploy/devSmokeTestPyTest.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-001-REQ-B-003",
+                          "name": "Deploy script starts all deployed software",
+                          "requirement": "Each deploy script MUST start all software that has been deployed.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "EPIC-008-F-004-S-001-REQ-B-003-PYTEST-1",
+                                "pytest_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-001-REQ-B-004",
+                          "name": "Deploy script waits for all 5 environmental components to respond as expected",
+                          "requirement": "Each deploy script MUST wait until every deployed software is started and responding as expected. The 5 environmental components that MUST be tested at this stage are: (1) HuggingFace FindCare up and functioning properly; (2) HuggingFace EvaluateCare up and functioning properly; (3) HuggingFace SharedServices up and functioning properly; (4) localhost or Cloudflare (whichever is appropriate to the environment being deployed to) up and functioning properly; (5) the React application and its back-end services up and running as expected.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "EPIC-008-F-004-S-001-REQ-B-004-PYTEST-1",
+                                "pytest_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/deploy/apiSmokeTestPyTest.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-001-REQ-B-005",
+                          "name": "Deploy script runs Playwright smoke test (precursor to regression, not substitute)",
+                          "requirement": "Each deploy script MUST run a Playwright smoke test to ensure that intercomponent communication works and the basic functionality of the application can be exercised. The smoke test is NOT a substitute for a regression test but MUST be the precursor to any regression test that assumes components are available to one another. The 5 functional checks during smoke: (1) HuggingFace FindCare up and presenting its core functions; (2) HuggingFace EvaluateCare up and presenting its core functions - at this time simply to present the list of entities to be evaluated and a security token that it itself serves; (3) HuggingFace SharedServices up and functioning properly - at this time just to present a security token that it itself serves; (4) localhost or Cloudflare (whichever is appropriate) up and functioning properly; (5) the React application and its back-end services up and running as expected.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "EPIC-008-F-004-S-001-REQ-B-005-PYTEST-1",
+                                "pytest_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-001-REQ-B-006",
+                          "name": "Deploy script puts a human-readable message on screen between every action; flags + logs errors",
+                          "requirement": "Between every action above, the deploy script MUST put a message on the human user's screen when each action has been accomplished, or flag and log errors when an action fails.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "EPIC-008-F-004-S-001-REQ-B-006-PYTEST-1",
+                                "pytest_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          }
                         }
                       ]
                     },
@@ -41892,6 +41994,26 @@
                           },
                           "name": "Build and run backend containers using only requirements.txt dependencies",
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-003-REQ-T-012",
+                          "name": "Deploy script builds and starts Website wrapper on port 443",
+                          "requirement": "The deploy script MUST build and start the Website wrapper as the localhost frontend, serving index.html and the FindCare iframe on port 443 over HTTPS. The Website wrapper is a separate process from the three backends (FindCare/EvaluateCare/CHShared); the deploy script orchestrates all four. The HTTP-to-HTTPS redirect on port 80 is owned by REQ-B-001.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "EPIC-008-F-004-S-003-REQ-T-012-PYTEST-1",
+                                "pytest_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          }
                         }
                       ]
                     },
@@ -42053,85 +42175,7 @@
                     "size": "M",
                     "status": "in_progress",
                     "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-005-REQ-B-001",
-                          "requirement": "A Playwright pytest localSmokeTestPyTest.py MUST execute the following 31 steps in order against any environment. Every step MUST pass. The target domain is a parameter: localhost (local), dev.chathealthy.ai (dev), qa.chathealthy.ai (qa), chathealthy.ai (prod).\n1. [EPIC-008-F-004-S-003-REQ-B-001] Navigate to http://{domain}. Verify the browser redirects to https://{domain}.\n2. [EPIC-008-F-004-S-004-REQ-B-002] Verify the environment banner is visible and contains the correct environment label, Version, Framework, and Build with correct values matching the deployed system.\n3. [EPIC-008-F-004-S-004-REQ-B-003] Verify the banner contains a control to test Shared Services. PROD WAIVER: This control MUST NOT appear in production. Skip this step in prod.\n4. [EPIC-005-F-001-S-001-REQ-B-003] Verify the splash page renders with the correct first 25 words of the welcome message.\n5. [EPIC-005-F-001-S-001-REQ-B-004] Verify there is a text input and the cursor is focused so typing goes to the right place.\n6. [EPIC-005-F-001-S-001-REQ-B-005] Type \"Find me a bone doctor in Delaware\" and submit.\n7. [EPIC-005-F-001-S-001-REQ-B-006] Verify a list of specialties appears in the left panel.\n8. [EPIC-006-F-010-S-004-REQ-B-007] Verify the specialty list is contained in a scroll window with a maximum of 12 visible items. The list MUST NOT overflow the left panel.\n9. [EPIC-005-F-001-S-001-REQ-B-005] Verify a list of providers appears in the center panel.\n10. [UX-CTRL-003-REQ-006] Verify the bottom panel (Selected for Evaluation) shows zero providers.\n11. [UX-CTRL-003-REQ-007] Select up to 3 providers (or all if fewer than 3) by clicking the select control on provider cards.\n12. [UX-CTRL-003-REQ-008] Verify the selected providers appear in the bottom panel.\n13. [EPIC-006-F-024-S-003-REQ-T-002] Click the Evaluate These Providers button.\n14. [TEST-SIM-001-REQ-012] Verify that EvaluateCare has control of the entire frame.\n15. [EPIC-002-F-001-S-012-REQ-T-002] Verify that the calls between FindCare and EvaluateCare are done with mutual authentication using TLS 1.2 or above.\n16. [EPIC-005-F-001-S-001-REQ-B-010] Verify the right panel displays the providers that were moved.\n17. [EPIC-005-F-001-S-001-REQ-B-011] Verify the right panel shows the session token proving mutual authentication, the same token FindCare created is the same one EvaluateCare received.\n18. [EPIC-002-F-001-S-012-REQ-B-007] Verify the signed and unsigned token forms are displayed in distinct colors.\n19. [EPIC-002-F-001-S-012-REQ-T-003] Verify the nonce changed from the original FindCare token. The GUID MUST remain the same. The nonce MUST be different, proving EvaluateCare processed a fresh token.\n20. [EPIC-006-F-024-S-003-REQ-B-002] Verify the center panel displays EvaluateCare and is still unimplemented.\n21. [TEST-SIM-001-REQ-014] Change a value in the specialty filter panel (e.g. uncheck a specialty checkbox).\n22. [TEST-SIM-001-REQ-014] Verify control returns to FindCare, the splash page reappears.\n23. [TEST-SIM-001-REQ-015] Verify the text input renders and the cursor is focused for typing.\n24. [EPIC-002-F-001-S-012-REQ-T-003] Verify the nonce changed again on return to FindCare. The GUID MUST remain the same. The nonce MUST differ from both the original and the EvaluateCare nonce.\n25. [EPIC-008-F-004-S-004-REQ-B-003] Push the Shared Services button in the banner. PROD WAIVER: Skip this step in prod.\n26. [EPIC-008-F-004-S-004-REQ-B-004] Verify that the SharedServices server has control of the entire frame. PROD WAIVER: Skip this step in prod.\n27. [EPIC-002-F-001-S-012-REQ-T-002] Verify that the calls between FindCare and SharedServices are done with mutual authentication using TLS 1.2 or above. PROD WAIVER: Skip this step in prod.\n28. [EPIC-008-F-004-S-004-REQ-B-005] Verify the center panel displays Shared Services and is still unimplemented. PROD WAIVER: Skip this step in prod.\n29. [EPIC-002-F-001-S-012-REQ-T-001] Verify the same session token mutual authentication test passes for Shared Services. PROD WAIVER: Skip this step in prod.\n30. [EPIC-002-F-001-S-012-REQ-T-003] Verify the nonce changed from the FindCare return nonce. The GUID MUST remain the same. The nonce MUST differ from all previous nonces, proving SharedServices processed a fresh token. PROD WAIVER: Skip this step in prod.\n31. [EPIC-002-F-001-S-012-REQ-B-006] Verify all pages are served over HTTPS from the correct servers (443, 7860, 8001, 8002).",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "playwright",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "LocalSmokeTestPyTest.py executes 31 ordered steps with all steps passing on any{",
-                          "depends_on": []
-                        },
-                        {
-                          "requirement": "Every deploy script MUST use the following standard port assignments: port 80 (HTTP redirect to HTTPS), port 443 (Website wrapper), port 7860 (FindCare backend + React frontend), port 8001 (EvaluateCare), port 8002 (CHShared). These port numbers MUST be identical across all environments (localhost, dev, qa, prod).",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "unit",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "req_id": "EPIC-008-F-004-S-005-REQ-T-001",
-                          "name": "Enforce standard port assignments across all deploy scripts and environments",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-005-REQ-T-002",
-                          "requirement": "The deploy script MUST produce a structured output file that Claude can read. The file MUST contain all test results (pass/fail), server PIDs, port assignments, timestamps, and errors. The file MUST be written to test_output/deploy/ with the environment name and timestamp in the filename.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "unit",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Deploy script writes Claude-readable test results with env & timestamp in path",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-005-REQ-T-003",
-                          "requirement": "The deploy script MUST log the state of all servers and processes before and after teardown. For each port (80, 443, 7860, 8001, 8002) the script MUST report whether a server is running or the port is empty. The script MUST report how many processes were killed. After teardown the script MUST verify all ports are clear. Any errors MUST be reported in the output.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "EPIC-008-F-004-S-005-REQ-T-003-PYTEST-1",
-                                "pytest_type": "unit",
-                                "orphan": false,
-                                "file": "Code/deploy/tests/test_deploy_output.py"
-                              }
-                            ]
-                          },
-                          "name": "Deploy script logs server/process state, verifies ports cleared, reports errors",
-                          "depends_on": []
-                        }
-                      ]
+                      "requirement": []
                     },
                     "orphan": false,
                     "approval": "proposed",
@@ -42143,85 +42187,7 @@
                     "size": "M",
                     "status": "not_started",
                     "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-001",
-                          "requirement": "A Playwright pytest localSmokeTestPyTest.py MUST execute the following 31 steps in order against any environment. Every step MUST pass. The target domain is a parameter: localhost (local), dev.chathealthy.ai (dev), qa.chathealthy.ai (qa), chathealthy.ai (prod).\n1. [EPIC-008-F-004-S-003-REQ-B-001] Navigate to http://{domain}. Verify the browser redirects to https://{domain}.\n2. [EPIC-008-F-004-S-004-REQ-B-002] Verify the environment banner is visible and contains the correct environment label, Version, Framework, and Build with correct values matching the deployed system.\n3. [EPIC-008-F-004-S-004-REQ-B-003] Verify the banner contains a control to test Shared Services. PROD WAIVER: This control MUST NOT appear in production. Skip this step in prod.\n4. [EPIC-005-F-001-S-001-REQ-B-003] Verify the splash page renders with the correct first 25 words of the welcome message.\n5. [EPIC-005-F-001-S-001-REQ-B-004] Verify there is a text input and the cursor is focused so typing goes to the right place.\n6. [EPIC-005-F-001-S-001-REQ-B-005] Type \"Find me a bone doctor in Delaware\" and submit.\n7. [EPIC-005-F-001-S-001-REQ-B-006] Verify a list of specialties appears in the left panel.\n8. [EPIC-006-F-010-S-004-REQ-B-007] Verify the specialty list is contained in a scroll window with a maximum of 12 visible items. The list MUST NOT overflow the left panel.\n9. [EPIC-005-F-001-S-001-REQ-B-005] Verify a list of providers appears in the center panel.\n10. [UX-CTRL-003-REQ-006] Verify the bottom panel (Selected for Evaluation) shows zero providers.\n11. [UX-CTRL-003-REQ-007] Select up to 3 providers (or all if fewer than 3) by clicking the select control on provider cards.\n12. [UX-CTRL-003-REQ-008] Verify the selected providers appear in the bottom panel.\n13. [EPIC-006-F-024-S-003-REQ-T-002] Click the Evaluate These Providers button.\n14. [TEST-SIM-001-REQ-012] Verify that EvaluateCare has control of the entire frame.\n15. [EPIC-002-F-001-S-012-REQ-T-002] Verify that the calls between FindCare and EvaluateCare are done with mutual authentication using TLS 1.2 or above.\n16. [EPIC-005-F-001-S-001-REQ-B-010] Verify the right panel displays the providers that were moved.\n17. [EPIC-005-F-001-S-001-REQ-B-011] Verify the right panel shows the session token proving mutual authentication, the same token FindCare created is the same one EvaluateCare received.\n18. [EPIC-002-F-001-S-012-REQ-B-007] Verify the signed and unsigned token forms are displayed in distinct colors.\n19. [EPIC-002-F-001-S-012-REQ-T-003] Verify the nonce changed from the original FindCare token. The GUID MUST remain the same. The nonce MUST be different, proving EvaluateCare processed a fresh token.\n20. [EPIC-006-F-024-S-003-REQ-B-002] Verify the center panel displays EvaluateCare and is still unimplemented.\n21. [TEST-SIM-001-REQ-014] Change a value in the specialty filter panel (e.g. uncheck a specialty checkbox).\n22. [TEST-SIM-001-REQ-014] Verify control returns to FindCare, the splash page reappears.\n23. [TEST-SIM-001-REQ-015] Verify the text input renders and the cursor is focused for typing.\n24. [EPIC-002-F-001-S-012-REQ-T-003] Verify the nonce changed again on return to FindCare. The GUID MUST remain the same. The nonce MUST differ from both the original and the EvaluateCare nonce.\n25. [EPIC-008-F-004-S-004-REQ-B-003] Push the Shared Services button in the banner. PROD WAIVER: Skip this step in prod.\n26. [EPIC-008-F-004-S-004-REQ-B-004] Verify that the SharedServices server has control of the entire frame. PROD WAIVER: Skip this step in prod.\n27. [EPIC-002-F-001-S-012-REQ-T-002] Verify that the calls between FindCare and SharedServices are done with mutual authentication using TLS 1.2 or above. PROD WAIVER: Skip this step in prod.\n28. [EPIC-008-F-004-S-004-REQ-B-005] Verify the center panel displays Shared Services and is still unimplemented. PROD WAIVER: Skip this step in prod.\n29. [EPIC-002-F-001-S-012-REQ-T-001] Verify the same session token mutual authentication test passes for Shared Services. PROD WAIVER: Skip this step in prod.\n30. [EPIC-002-F-001-S-012-REQ-T-003] Verify the nonce changed from the FindCare return nonce. The GUID MUST remain the same. The nonce MUST differ from all previous nonces, proving SharedServices processed a fresh token. PROD WAIVER: Skip this step in prod.\n31. [EPIC-002-F-001-S-012-REQ-B-006] Verify all pages are served over HTTPS from the correct servers (443, 7860, 8001, 8002).",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "playwright",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Playwright pytest must execute localSmokeTestPyTest.py 31-step smoke test per-en",
-                          "depends_on": []
-                        },
-                        {
-                          "requirement": "Every deploy script MUST use the following standard port assignments: port 80 (HTTP redirect to HTTPS), port 443 (Website wrapper), port 7860 (FindCare backend + React frontend), port 8001 (EvaluateCare), port 8002 (CHShared). These port numbers MUST be identical across all environments (localhost, dev, qa, prod).",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "unit",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "req_id": "EPIC-008-F-004-S-006-REQ-T-001",
-                          "name": "Standardize port assignments across environments for deploy scripts",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-T-002",
-                          "requirement": "The deploy script MUST produce a structured output file that Claude can read. The file MUST contain all test results (pass/fail), server PIDs, port assignments, timestamps, and errors. The file MUST be written to test_output/deploy/ with the environment name and timestamp in the filename.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "unit",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Deploy script outputs structured test results with metadata to test_output/deply",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-T-003",
-                          "requirement": "The deploy script MUST log the state of all servers and processes before and after teardown. For each port (80, 443, 7860, 8001, 8002) the script MUST report whether a server is running or the port is empty. The script MUST report how many processes were killed. After teardown the script MUST verify all ports are clear. Any errors MUST be reported in the output.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "EPIC-008-F-004-S-006-REQ-T-003-PYTEST-1",
-                                "pytest_type": "unit",
-                                "orphan": false,
-                                "file": "Code/deploy/tests/test_deploy_output.py"
-                              }
-                            ]
-                          },
-                          "name": "Deploy script logs server/process state, port status, killed count, errors for 5",
-                          "depends_on": []
-                        }
-                      ]
+                      "requirement": []
                     },
                     "orphan": false,
                     "approval": "proposed",
@@ -42233,85 +42199,7 @@
                     "size": "M",
                     "status": "not_started",
                     "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-007-REQ-B-001",
-                          "requirement": "A Playwright pytest localSmokeTestPyTest.py MUST execute the following 31 steps in order against any environment. Every step MUST pass. The target domain is a parameter: localhost (local), dev.chathealthy.ai (dev), qa.chathealthy.ai (qa), chathealthy.ai (prod).\n1. [EPIC-008-F-004-S-003-REQ-B-001] Navigate to http://{domain}. Verify the browser redirects to https://{domain}.\n2. [EPIC-008-F-004-S-004-REQ-B-002] Verify the environment banner is visible and contains the correct environment label, Version, Framework, and Build with correct values matching the deployed system.\n3. [EPIC-008-F-004-S-004-REQ-B-003] Verify the banner contains a control to test Shared Services. PROD WAIVER: This control MUST NOT appear in production. Skip this step in prod.\n4. [EPIC-005-F-001-S-001-REQ-B-003] Verify the splash page renders with the correct first 25 words of the welcome message.\n5. [EPIC-005-F-001-S-001-REQ-B-004] Verify there is a text input and the cursor is focused so typing goes to the right place.\n6. [EPIC-005-F-001-S-001-REQ-B-005] Type \"Find me a bone doctor in Delaware\" and submit.\n7. [EPIC-005-F-001-S-001-REQ-B-006] Verify a list of specialties appears in the left panel.\n8. [EPIC-006-F-010-S-004-REQ-B-007] Verify the specialty list is contained in a scroll window with a maximum of 12 visible items. The list MUST NOT overflow the left panel.\n9. [EPIC-005-F-001-S-001-REQ-B-005] Verify a list of providers appears in the center panel.\n10. [UX-CTRL-003-REQ-006] Verify the bottom panel (Selected for Evaluation) shows zero providers.\n11. [UX-CTRL-003-REQ-007] Select up to 3 providers (or all if fewer than 3) by clicking the select control on provider cards.\n12. [UX-CTRL-003-REQ-008] Verify the selected providers appear in the bottom panel.\n13. [EPIC-006-F-024-S-003-REQ-T-002] Click the Evaluate These Providers button.\n14. [TEST-SIM-001-REQ-012] Verify that EvaluateCare has control of the entire frame.\n15. [EPIC-002-F-001-S-012-REQ-T-002] Verify that the calls between FindCare and EvaluateCare are done with mutual authentication using TLS 1.2 or above.\n16. [EPIC-005-F-001-S-001-REQ-B-010] Verify the right panel displays the providers that were moved.\n17. [EPIC-005-F-001-S-001-REQ-B-011] Verify the right panel shows the session token proving mutual authentication, the same token FindCare created is the same one EvaluateCare received.\n18. [EPIC-002-F-001-S-012-REQ-B-007] Verify the signed and unsigned token forms are displayed in distinct colors.\n19. [EPIC-002-F-001-S-012-REQ-T-003] Verify the nonce changed from the original FindCare token. The GUID MUST remain the same. The nonce MUST be different, proving EvaluateCare processed a fresh token.\n20. [EPIC-006-F-024-S-003-REQ-B-002] Verify the center panel displays EvaluateCare and is still unimplemented.\n21. [TEST-SIM-001-REQ-014] Change a value in the specialty filter panel (e.g. uncheck a specialty checkbox).\n22. [TEST-SIM-001-REQ-014] Verify control returns to FindCare, the splash page reappears.\n23. [TEST-SIM-001-REQ-015] Verify the text input renders and the cursor is focused for typing.\n24. [EPIC-002-F-001-S-012-REQ-T-003] Verify the nonce changed again on return to FindCare. The GUID MUST remain the same. The nonce MUST differ from both the original and the EvaluateCare nonce.\n25. [EPIC-008-F-004-S-004-REQ-B-003] Push the Shared Services button in the banner. PROD WAIVER: Skip this step in prod.\n26. [EPIC-008-F-004-S-004-REQ-B-004] Verify that the SharedServices server has control of the entire frame. PROD WAIVER: Skip this step in prod.\n27. [EPIC-002-F-001-S-012-REQ-T-002] Verify that the calls between FindCare and SharedServices are done with mutual authentication using TLS 1.2 or above. PROD WAIVER: Skip this step in prod.\n28. [EPIC-008-F-004-S-004-REQ-B-005] Verify the center panel displays Shared Services and is still unimplemented. PROD WAIVER: Skip this step in prod.\n29. [EPIC-002-F-001-S-012-REQ-T-001] Verify the same session token mutual authentication test passes for Shared Services. PROD WAIVER: Skip this step in prod.\n30. [EPIC-002-F-001-S-012-REQ-T-003] Verify the nonce changed from the FindCare return nonce. The GUID MUST remain the same. The nonce MUST differ from all previous nonces, proving SharedServices processed a fresh token. PROD WAIVER: Skip this step in prod.\n31. [EPIC-002-F-001-S-012-REQ-B-006] Verify all pages are served over HTTPS from the correct servers (443, 7860, 8001, 8002).",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "playwright",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Playwright localSmokeTestPyTest.py: 31 ordered steps pass with env/PROD waivers",
-                          "depends_on": []
-                        },
-                        {
-                          "requirement": "Every deploy script MUST use the following standard port assignments: port 80 (HTTP redirect to HTTPS), port 443 (Website wrapper), port 7860 (FindCare backend + React frontend), port 8001 (EvaluateCare), port 8002 (CHShared). These port numbers MUST be identical across all environments (localhost, dev, qa, prod).",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "unit",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "req_id": "EPIC-008-F-004-S-007-REQ-T-001",
-                          "name": "Enforce standard port assignments across all deploy script environments",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-007-REQ-T-002",
-                          "requirement": "The deploy script MUST produce a structured output file that Claude can read. The file MUST contain all test results (pass/fail), server PIDs, port assignments, timestamps, and errors. The file MUST be written to test_output/deploy/ with the environment name and timestamp in the filename.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "unit",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Deploy script outputs structured test results, server info, and errors to named,",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-007-REQ-T-003",
-                          "requirement": "The deploy script MUST log the state of all servers and processes before and after teardown. For each port (80, 443, 7860, 8001, 8002) the script MUST report whether a server is running or the port is empty. The script MUST report how many processes were killed. After teardown the script MUST verify all ports are clear. Any errors MUST be reported in the output.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "EPIC-008-F-004-S-007-REQ-T-003-PYTEST-1",
-                                "pytest_type": "unit",
-                                "orphan": false,
-                                "file": "Code/deploy/tests/test_deploy_output.py"
-                              }
-                            ]
-                          },
-                          "name": "Deploy script logs server states, port status, process kills, and error reports",
-                          "depends_on": []
-                        }
-                      ]
+                      "requirement": []
                     },
                     "orphan": false,
                     "approval": "proposed",
@@ -42342,6 +42230,26 @@
                           },
                           "name": "Return HTTP 404 for unknown chathealthy.ai paths without redirect or index.html",
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-004-S-008-REQ-B-002",
+                          "name": "Cloudflare Pages 301 redirects all http requests to https",
+                          "requirement": "Every Cloudflare Pages deployment of chathealthy.ai (dev, qa, prod) MUST 301-redirect every http:// request to its https:// equivalent. The redirect MUST be immediate (no intermediate response, no caching delay) and applies to every path, including the root, schemas, and any subpath served by Cloudflare Pages. localhost has its own equivalent obligation owned by EPIC-008-F-004-S-003-REQ-B-001 (handled by the Website wrapper).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "EPIC-008-F-004-S-008-REQ-B-002-PYTEST-1",
+                                "pytest_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/devSmokeTestPyTest.py"
+                              }
+                            ]
+                          }
                         }
                       ]
                     },
