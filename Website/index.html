@@ -846,7 +846,12 @@
           .then(function(result) {
             if (!result || !result.session_token) return;
             var st = result.session_token;
-            // RIGHT — security panel inside #rightSecurity (coexists with provider/splash content in #rightContent)
+            // RIGHT — security panel inside #rightSecurity (coexists with
+            // provider/splash content in #rightContent).
+            // LEFT is intentionally NOT touched per
+            // EPIC-006-F-002-S-001-REQ-B-011: LEFT (SpecialtyFilter +
+            // session token cell) is FindCare territory and persists
+            // across every service-control transfer.
             window.ensureRightPanelStructure();
             var sec = document.getElementById('rightSecurity');
             if (sec) {
@@ -857,9 +862,6 @@
                 + '</div>'
                 + window.buildTokenDisplayHtml(st);
             }
-            // LEFT — same result so nonces match (smoke assertion)
-            var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
-            if (sessionEl) sessionEl.innerHTML = window.buildTokenDisplayHtml(st);
           })
           .catch(function(e) { console.error('refreshTokenPanels failed (owner=' + owner + '):', e); });
       };
