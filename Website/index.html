@@ -902,6 +902,13 @@
         // DEVOPS-BANNER-B006: banner-initiated handoff to EvaluateCare.
         // Mirrors openSharedServices but hits /evaluate/* via FindCare proxy.
         window._pageOwner = 'evaluatecare';
+        // Clear any prior service's content from the right panel content
+        // sub-div so we don't show, e.g., a stale "SHARED SERVICES" header
+        // while the user is now in EvaluateCare. #rightSecurity gets
+        // refreshed by refreshTokenPanels below.
+        window.ensureRightPanelStructure();
+        var _rc = document.getElementById('rightContent');
+        if (_rc) _rc.innerHTML = '';
         if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
         // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
         if (typeof window.refreshBanner === 'function') window.refreshBanner('evaluatecare');
@@ -940,6 +947,10 @@
         // Always run the return flow so the UI resets even when pageOwner
         // is already findcare (covers stale-results cleanup).
         window._pageOwner = 'findcare';
+        // Clear stale prior-service content from #rightContent.
+        window.ensureRightPanelStructure();
+        var _rc = document.getElementById('rightContent');
+        if (_rc) _rc.innerHTML = '';
         if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
         // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
         if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
@@ -962,6 +973,12 @@
       window.openSharedServices = function() {
         // Transfer control to SharedServices (mirrors EvaluateCare pattern)
         window._pageOwner = 'sharedservices';
+        // Clear stale prior-service content (e.g., EvaluateCare's orange
+        // "EVALUATECARE 2 providers" header) from #rightContent so the
+        // right panel reflects the current owner, not the previous one.
+        window.ensureRightPanelStructure();
+        var _rc = document.getElementById('rightContent');
+        if (_rc) _rc.innerHTML = '';
         if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
         // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
         if (typeof window.refreshBanner === 'function') window.refreshBanner('sharedservices');
@@ -1184,6 +1201,11 @@
                 // Hot click — send to evaluate
                 // Transfer control to EvaluateCare
                 window._pageOwner = 'evaluatecare';
+                // Clear stale prior-service content from #rightContent;
+                // gui:evaluate-result will repaint with EvalCare providers.
+                window.ensureRightPanelStructure();
+                var _rc = document.getElementById('rightContent');
+                if (_rc) _rc.innerHTML = '';
                 if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
                 // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
                 if (typeof window.refreshBanner === 'function') window.refreshBanner('evaluatecare');
