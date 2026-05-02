@@ -496,18 +496,22 @@ class engineering_rules_worker(governance_worker_base):
             file_path = tool_input.get("file_path", "")
             try:
                 import subprocess
+                # CREATE_NO_WINDOW prevents the boot probe (which runs on
+                # EVERY hook event) from flashing a console window per call.
+                _kw = {"capture_output": True, "text": True, "timeout": 5}
+                if sys.platform == "win32":
+                    _kw["creationflags"] = subprocess.CREATE_NO_WINDOW
                 result = subprocess.run(
                     ["git", "ls-files", "--error-unmatch", file_path],
-                    capture_output=True, text=True, timeout=5,
-                    cwd=str(BRAIN_DIR.parents[2])
+                    cwd=str(BRAIN_DIR.parents[2]), **_kw
                 )
                 if result.returncode == 0:
                     return {"comply": True, "allow": True}  # Git-tracked → allow
                 # New file in a git repo dir → also allow (will be tracked on add)
                 result2 = subprocess.run(
                     ["git", "rev-parse", "--is-inside-work-tree"],
-                    capture_output=True, text=True, timeout=5,
-                    cwd=os.path.dirname(file_path) if os.path.dirname(file_path) else "."
+                    cwd=os.path.dirname(file_path) if os.path.dirname(file_path) else ".",
+                    **_kw
                 )
                 if result2.returncode == 0 and result2.stdout.strip() == "true":
                     return {"comply": True, "allow": True}  # Inside git repo → allow

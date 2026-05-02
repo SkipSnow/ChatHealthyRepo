@@ -27,7 +27,10 @@ def _bootstrap_certs_from_env():
     findcare.crt) can find them on HF. No-op locally where /certs is bind-
     mounted and CERTS_DIR is already set."""
     import base64
-    runtime_dir = "/tmp/ch_certs"
+    import tempfile
+    # BUG-002: was hardcoded "/tmp/ch_certs" (Linux-only). Use OS tempdir
+    # so this runs on HF Space (Linux) AND any host OS without modification.
+    runtime_dir = os.path.join(tempfile.gettempdir(), "ch_certs")
     mapping = {
         "FINDCARE_CERT_PEM":        "findcare.crt",
         "SHARED_CERT_PEM":          "shared.crt",

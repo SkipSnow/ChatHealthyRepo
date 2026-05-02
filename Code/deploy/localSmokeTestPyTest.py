@@ -938,3 +938,111 @@ class TestStep34:
         r = c.get(f"{SHARED_URL}/health")
         assert r.json()["service"] == "shared_services"
         c.close()
+
+
+# Step 35 [EPIC-008-F-004-S-006-REQ-T-003] — Comprehensive PKI cert verification (V11)
+# (a) every cert file in Code/Shared/ops/certs/ parses as valid X.509,
+#     signed by ca.crt, not expired
+# (b) for each ordered server pair (FindCare↔EvalCare, FindCare↔Shared,
+#     EvalCare↔Shared), an mTLS handshake succeeds in BOTH directions.
+class TestStep35:
+    SERVER_CERTS = ("findcare.crt", "evalcare.crt", "shared.crt", "localhost.crt")
+
+    def _load_cert(self, path):
+        from cryptography import x509
+        from cryptography.hazmat.backends import default_backend
+        with open(path, "rb") as f:
+            data = f.read()
+        return x509.load_pem_x509_certificate(data, default_backend())
+
+    def test_step35a_certs_valid_and_signed_by_ca(self):
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes
+        from cryptography.hazmat.primitives.asymmetric import (
+            padding, rsa, ec)
+        import datetime as dt
+
+        ca_path = os.path.join(CERTS_DIR, "ca.crt")
+        assert os.path.isfile(ca_path), f"ca.crt missing at {ca_path}"
+        ca = self._load_cert(ca_path)
+        ca_pub = ca.public_key()
+        now = dt.datetime.now(dt.timezone.utc)
+
+        problems = []
+        for fname in self.SERVER_CERTS:
+            path = os.path.join(CERTS_DIR, fname)
+            if not os.path.isfile(path):
+                problems.append(f"{fname}: missing at {path}")
+                continue
+            try:
+                cert = self._load_cert(path)
+            except Exception as e:
+                problems.append(f"{fname}: parse failed: {e!r}")
+                continue
+            # Expiry — not_valid_after_utc available on cryptography 42+
+            try:
+                nva = cert.not_valid_after_utc
+            except AttributeError:
+                nva = cert.not_valid_after.replace(tzinfo=dt.timezone.utc)
+            if nva < now:
+                problems.append(f"{fname}: expired at {nva.isoformat()}")
+                continue
+            # Signed by CA — verify the cert signature using ca's pubkey
+            try:
+                if isinstance(ca_pub, rsa.RSAPublicKey):
+                    ca_pub.verify(
+                        cert.signature,
+                        cert.tbs_certificate_bytes,
+                        padding.PKCS1v15(),
+                        cert.signature_hash_algorithm,
+                    )
+                elif isinstance(ca_pub, ec.EllipticCurvePublicKey):
+                    ca_pub.verify(
+                        cert.signature,
+                        cert.tbs_certificate_bytes,
+                        ec.ECDSA(cert.signature_hash_algorithm),
+                    )
+                else:
+                    problems.append(
+                        f"{fname}: unsupported CA key type {type(ca_pub).__name__}"
+                    )
+            except Exception as e:
+                problems.append(f"{fname}: signature not valid against ca.crt: {e!r}")
+        assert not problems, "Step 35a cert problems: " + "; ".join(problems)
+
+    def test_step35b_mtls_full_mesh(self):
+        if not MTLS_ENABLED:
+            pytest.skip(
+                f"mTLS disabled for env={SMOKE_ENV} "
+                "(BUG-SEC-002 — HF does not support mTLS; deferred to Beta)"
+            )
+        # Full-mesh ordered pairs: (client, server)
+        pairs = [
+            ("findcare", "evalcare", EVALCARE_URL),
+            ("findcare", "shared",   SHARED_URL),
+            ("evalcare", "findcare", FINDCARE_URL),
+            ("evalcare", "shared",   SHARED_URL),
+            ("shared",   "findcare", FINDCARE_URL),
+            ("shared",   "evalcare", EVALCARE_URL),
+        ]
+        ca_path = os.path.join(CERTS_DIR, "ca.crt")
+        problems = []
+        for client_name, server_name, server_url in pairs:
+            client_cert = (
+                os.path.join(CERTS_DIR, f"{client_name}.crt"),
+                os.path.join(CERTS_DIR, f"{client_name}.key"),
+            )
+            try:
+                with httpx.Client(cert=client_cert, verify=ca_path,
+                                  timeout=10) as c:
+                    r = c.get(f"{server_url}/health")
+                    if r.status_code != 200:
+                        problems.append(
+                            f"{client_name}->{server_name}: "
+                            f"status {r.status_code}"
+                        )
+            except Exception as e:
+                problems.append(f"{client_name}->{server_name}: {e!r}")
+        assert not problems, (
+            "Step 35b mTLS pair failures: " + "; ".join(problems)
+        )

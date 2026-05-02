@@ -20,7 +20,14 @@ _log = logging.getLogger("ChatHealthyClaudeLogManagementAnthropicAgent")
 MONGO_DB = "ClaudeCodeLog"
 MONGO_COLLECTION = "conversation_log_archive"
 
-REPO_ROOT = Path(r"c:\chatHealthy\findCare")
+# BUG-002: resolve via env var so the agent works wherever the repo is cloned.
+# CHATHEALTHY_PROJECT_ROOT is set by the boot probe / SessionStart hook.
+# Falls back to the package location if the env var is absent.
+_env_root = os.environ.get("CHATHEALTHY_PROJECT_ROOT")
+REPO_ROOT = (
+    Path(_env_root) if _env_root
+    else Path(__file__).resolve().parents[4]
+)
 
 CH_GUID_PATTERN = re.compile(
     r"^CH-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"

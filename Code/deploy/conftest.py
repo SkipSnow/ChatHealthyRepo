@@ -1,0 +1,33 @@
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+"""pytest plumbing for Code/deploy/localSmokeTestPyTest.py.
+
+Adds the --smoke-env CLI option so the master smoke test can be invoked by the
+deploy classes (LocalDeploy, RemoteDeploy) with a specific environment per
+V11 S-006 (smoke test is parameterized on env={local,dev,qa,prod}).
+
+The localSmokeTestPyTest module reads SMOKE_TEST_ENV at import time, so this
+conftest sets the env var in pytest_configure (which runs before collection).
+"""
+import os
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--smoke-env",
+        action="store",
+        default=None,
+        choices=["local", "dev", "qa", "prod"],
+        help=(
+            "Target environment for the master smoke test. "
+            "Maps to SMOKE_TEST_ENV; if omitted, the env var is honored."
+        ),
+    )
+
+
+def pytest_configure(config):
+    val = config.getoption("--smoke-env")
+    if val:
+        # Set BEFORE any test module is imported so module-level reads of
+        # SMOKE_TEST_ENV pick up the right value.
+        os.environ["SMOKE_TEST_ENV"] = val

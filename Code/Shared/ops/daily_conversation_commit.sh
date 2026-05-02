@@ -3,7 +3,14 @@
 # Only commits if conversation_log.json has changed. Zero noise on quiet days.
 # Copyright (c) 2026 Skip Snow. All rights reserved.
 
-cd "c:/chatHealthy/findCare" || exit 1
+# BUG-002: resolve project root via env var (set at machine login by the
+# CHATHEALTHY_PROJECT_ROOT system env var) so the daily commit task works
+# regardless of where the repo is cloned.
+if [ -z "$CHATHEALTHY_PROJECT_ROOT" ]; then
+    echo "ERROR: CHATHEALTHY_PROJECT_ROOT env var not set" >&2
+    exit 1
+fi
+cd "$CHATHEALTHY_PROJECT_ROOT" || exit 1
 
 LOG="brain/machine_artifacts/content/conversation_log.json"
 
