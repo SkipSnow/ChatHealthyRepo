@@ -335,7 +335,7 @@ class PromptSystemMaker:
             db = get_db_fn()
             if db is None:
                 return "?"
-            record = db.client["admin"]["Versions"].find_one(sort=[("from", -1)])
+            record = db["admin"]["Versions"].find_one(sort=[("from", -1)])
             return str(record["build"]) if record else "0"
         except Exception:
             return "?"

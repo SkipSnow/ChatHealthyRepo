@@ -14,7 +14,7 @@
         "qa",
         "prod"
       ],
-      "status": "new",
+      "status": "tested_passed",
       "severity": "high",
       "req_id": "EPIC-008-F-004-S-001-REQ-T-002",
       "story_id": "EPIC-008-F-004-S-001",
