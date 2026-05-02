@@ -472,7 +472,13 @@ class RemoteDeploy:
                 })
 
     def _verify_components(self) -> None:
-        """Hit /health on each deployed service URL."""
+        """Hit /health on each deployed service URL. Fail-hard per V11
+        S-001-REQ-B-001: if any verification fails, abort the deploy.
+        Same gate pattern as LocalDeploy._verify_components — caught in a
+        post-BUG-003 audit (was missing from the original BUG-003 list,
+        which only flagged the local copy).
+        """
+        failed: list[str] = []
         with httpx.Client(timeout=15) as c:
             for svc in ("findcare", "evalcare", "shared"):
                 url = f"{self.urls[svc]}/health"
@@ -484,26 +490,39 @@ class RemoteDeploy:
                         "ok": ok,
                         "detail": f"{r.status_code}: {r.text[:200]}",
                     })
+                    if not ok:
+                        failed.append(f"{svc}_health: status={r.status_code}")
                 except Exception as e:
                     self.results["verification"].append({
                         "name": f"{svc}_health",
                         "ok": False,
                         "detail": str(e),
                     })
+                    failed.append(f"{svc}_health: {e!r}")
             # Website
             try:
                 r = c.get(self.urls["website"])
+                ok = r.status_code == 200
                 self.results["verification"].append({
                     "name": "website_200",
-                    "ok": r.status_code == 200,
+                    "ok": ok,
                     "detail": f"got {r.status_code}",
                 })
+                if not ok:
+                    failed.append(f"website_200: status={r.status_code}")
             except Exception as e:
                 self.results["verification"].append({
                     "name": "website_200",
                     "ok": False,
                     "detail": str(e),
                 })
+                failed.append(f"website_200: {e!r}")
+        if failed:
+            sys.exit(
+                f"ERROR: post-deploy verification failed for {failed}. "
+                "Aborting deploy per V11 S-001-REQ-B-001 (atomic / no "
+                "half-deployed third state)."
+            )
 
     # ── Invoke smoke test (S-001-REQ-B-004 + S-006) ────────────────────
     def _invoke_smoke_test(self) -> int:
