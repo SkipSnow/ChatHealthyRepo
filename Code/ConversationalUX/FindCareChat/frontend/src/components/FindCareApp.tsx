@@ -24,9 +24,9 @@
 //   - phase: 'welcome' | 'searching' | 'results'
 
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { useSelectionState } from '@shared/ux/hooks/useSelectionState'
-import { ProviderCard } from '@shared/ux/components/ProviderCard'
-import type { Provider } from '@shared/ux/types/provider'
+import { useSelectionState } from '../ux/hooks/useSelectionState'
+import { ProviderCard } from '../ux/components/ProviderCard'
+import type { Provider } from '../ux/types/provider'
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 
@@ -453,7 +453,7 @@ export default function FindCareApp() {
               </span>
             </div>
 
-            {selection.state.available.map(p => (
+            {selection.state.available.map((p: Provider) => (
               <ProviderCard
                 key={p.npi}
                 provider={p}
@@ -507,7 +507,7 @@ export default function FindCareApp() {
                 Click ↓ to select providers (max {selection.state.maxSelected})
               </div>
             ) : (
-              selection.state.selected.map(p => (
+              selection.state.selected.map((p: Provider) => (
                 <ProviderCard
                   key={p.npi}
                   provider={p}
