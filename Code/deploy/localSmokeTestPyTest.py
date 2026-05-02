@@ -388,12 +388,15 @@ class TestStep06:
         chat_input = env.get("chat_input") or frame.locator("input[placeholder*='Type a message'], textarea").first
         chat_input.fill("Find me a bone doctor in Delaware")
         frame.locator("button", has_text="Send").first.click()
-        try:
-            keep_btn = frame.locator("button", has_text="Yes, keep waiting").first
-            keep_btn.wait_for(state="visible", timeout=60000)
-            keep_btn.click()
-        except Exception:
-            pass
+        # "Yes, keep waiting" button appears only on slow searches as a
+        # confirmation prompt. Explicit conditional handling — no try/except
+        # swallow (BUG-003 item #11). Brief presence-check window then
+        # decide deterministically whether the button is part of THIS run.
+        env["page"].wait_for_timeout(2000)  # let UI settle
+        keep_btns = frame.locator("button", has_text="Yes, keep waiting")
+        if keep_btns.count() > 0:
+            keep_btns.first.click()
+        # else: search completed without prompting; nothing to confirm
         frame.locator("text=/NPI|Phone|County/i").first.wait_for(state="visible", timeout=CHAT_TIMEOUT)
         env["page"].wait_for_timeout(12000)
         assert re.findall(r"NPI[:\s]+\d{10}", frame.locator("body").inner_text()), "No NPI numbers found"
@@ -1010,12 +1013,12 @@ class TestStep35:
                 problems.append(f"{fname}: signature not valid against ca.crt: {e!r}")
         assert not problems, "Step 35a cert problems: " + "; ".join(problems)
 
+    @pytest.mark.mtls_required
     def test_step35b_mtls_full_mesh(self):
-        if not MTLS_ENABLED:
-            pytest.skip(
-                f"mTLS disabled for env={SMOKE_ENV} "
-                "(BUG-SEC-002 — HF does not support mTLS; deferred to Beta)"
-            )
+        # mTLS-enabled vs disabled is decided at smoke-test invocation
+        # via marker filter (deploy classes pass `-m "not mtls_required"`
+        # for envs without mTLS). No in-test pytest.skip — that was the
+        # invented behavior in BUG-003 item #5.
         # Full-mesh ordered pairs: (client, server)
         pairs = [
             ("findcare", "evalcare", EVALCARE_URL),

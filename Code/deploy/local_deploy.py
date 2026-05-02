@@ -479,6 +479,10 @@ class LocalDeploy:
             str(self.deploy_dir / "localSmokeTestPyTest.py"),
             f"--smoke-env={self.env}",
         ]
+        # Local has mTLS enabled, so include mtls_required tests (no marker
+        # filter). Non-local envs would pass `-m "not mtls_required"` here
+        # (BUG-003 item #5 — invocation-level decision, not in-test skip).
+
         # Run smoke test, capture output. We rely on pytest's exit code
         # (returncode equivalent of PIPESTATUS[0] in the shell).
         result = subprocess.run(
