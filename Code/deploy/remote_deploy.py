@@ -98,18 +98,16 @@ class RemoteDeploy:
         }
 
         # Per-env public URLs.
-        # FindCare HF Space (per workflow naming convention):
-        #   dev/qa: skipsnow-{env}_chathealthyspace.hf.space
-        #   prod:   skipsnow-chathealthyspace.hf.space
-        # Peer URLs (EvalCare, Shared) use a different convention:
-        #   dev/qa: skipsnow-{env}-evaluatecarespace.hf.space
-        # See deploy-findcare-backend.yml lines 35-44 + 70-71.
+        # The HF Space NAME (for the API) is `${BRANCH}_${BASE}` per the
+        # GHA workflow (e.g. dev_ChatHealthySpace), but the public hf.space
+        # URL collapses underscores+casing to dashes+lowercase. So all four
+        # service URLs use the dash form.
         if env == "prod":
             fc_space = "skipsnow-chathealthyspace"
             prefix = ""
             cf_host = "chathealthy.ai"
         else:
-            fc_space = f"skipsnow-{env}_chathealthyspace"
+            fc_space = f"skipsnow-{env}-chathealthyspace"
             prefix = f"{env}-"
             cf_host = f"{env}.chathealthy.ai"
         self.urls = {
