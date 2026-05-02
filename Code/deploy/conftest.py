@@ -26,6 +26,14 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
+    # Register markers so they don't trigger PytestUnknownMarkWarning.
+    config.addinivalue_line(
+        "markers",
+        "mtls_required: test requires mTLS to be enabled in the env "
+        "(local only; HF-deployed envs do not support mTLS per BUG-SEC-002). "
+        "Deploy classes filter this marker via -m 'not mtls_required' for "
+        "non-local envs (BUG-003 item #5)."
+    )
     val = config.getoption("--smoke-env")
     if val:
         # Set BEFORE any test module is imported so module-level reads of
