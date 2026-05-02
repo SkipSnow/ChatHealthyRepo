@@ -8,8 +8,7 @@ on:
       - qa
       - main
     paths:
-      - 'Code/evaluate_care/**'
-      - 'Code/Shared/session_token.py'
+      - 'evaluateCare/Code/**'
       - '.github/workflows/deploy-evaluatecare-backend.yml'
 
 jobs:
@@ -55,13 +54,10 @@ jobs:
           SHARED_URL="https://skipsnow-${PREFIX}sharedservicesspace.hf.space"
           set_var() {
             K="$1"; V="$2"
-            # Delete any pre-existing secret with the same name — HF rejects
-            # collision between a variable and a secret, causing CONFIG_ERROR.
             curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
               -H "Authorization: Bearer $HF_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"key\":\"${K}\"}" -o /dev/null
-            # Now set the variable (authoritative per-env value from this workflow).
             curl -sf -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
               -H "Authorization: Bearer $HF_TOKEN" \
               -H "Content-Type: application/json" \
@@ -88,23 +84,14 @@ jobs:
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
           cp /tmp/hf_readme.md hf_space/README.md 2>/dev/null || true
 
-          # EvaluateCare — app.py at root, evaluate_care/ as package
-          cp Code/evaluate_care/app.py hf_space/
-          cp Code/evaluate_care/Dockerfile hf_space/
-          cp Code/evaluate_care/requirements.txt hf_space/
-          mkdir -p hf_space/evaluate_care
+          # Mirror evaluateCare/Code/ flat into hf_space/. Same layout as the
+          # Dockerfile produces inside the container — single set of import
+          # statements works in both environments.
           rsync -av \
             --exclude='.env' \
             --exclude='__pycache__' \
             --exclude='*.pyc' \
-            --exclude='tests/' \
-            --exclude='app.py' \
-            --exclude='Dockerfile' \
-            --exclude='requirements.txt' \
-            Code/evaluate_care/ hf_space/evaluate_care/
-
-          # Shared utilities — at root so `from session_token import ...` works
-          for f in Code/Shared/*.py; do cp "$f" hf_space/; done
+            evaluateCare/Code/ hf_space/
 
           # PKI certs deferred to Beta (BUG-SEC-002) — HF doesn't support mTLS
 

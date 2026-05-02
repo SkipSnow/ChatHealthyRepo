@@ -455,8 +455,8 @@ class TestNoHTTPInCode:
     SCAN_DIRS = [
         "Code/ConversationalUX/FindCareChat/backend",
         "Code/ConversationalUX/FindCareChat/frontend/src",
-        "Code/evaluate_care",
-        "Code/shared_services",
+        "evaluateCare/Code",
+        "sharedServices/Code",
         "Code/Shared/llm_client.py",
         "Code/Shared/ops/Caddyfile",
         "Website/index.html",

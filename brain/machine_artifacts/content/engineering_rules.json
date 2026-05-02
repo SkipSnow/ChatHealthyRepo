@@ -398,7 +398,9 @@
                   [
                     "^tests/fixtures/",
                     "^architecture/EngineeringRuleEnforcement/tests/fixtures/",
-                    "^Website/schemas/standard/"
+                    "^Website/schemas/standard/",
+                    "^evaluateCare/APICatalogue/",
+                    "^sharedServices/APICatalogue/"
                   ]
                 ],
                 [
@@ -421,7 +423,8 @@
                   [
                     "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py",
                     "brain/machine_artifacts/content/agile_backlog.json",
-                    "brain/machine_artifacts/content/engineering_rules.json"
+                    "brain/machine_artifacts/content/engineering_rules.json",
+                    "Code/Shared/ops/tools/preCommitScan.py"
                   ]
                 ]
               ],
@@ -894,7 +897,7 @@
       },
       {
         "id": "Rule-022",
-        "name": "Website pages generated from brain — no hand-maintained HTML",
+        "name": "Website pages generated from brain â€” no hand-maintained HTML",
         "description": "All website pages presenting brain content must be generated from the brain JSON via designated generators. No hand-editing of generated HTML is allowed, and each generated file must include a specific comment header. Only index.html is exempt.",
         "rule_statements": {
           "rule_statement": [
@@ -920,7 +923,7 @@
             },
             {
               "statement_number": 5,
-              "statement_body": "Each generated HTML file contains a comment header stating (1) GENERATED FILE — do not edit directly, (2) the source JSON(s), (3) the generator script path, and (4) the generation timestamp.",
+              "statement_body": "Each generated HTML file contains a comment header stating (1) GENERATED FILE â€” do not edit directly, (2) the source JSON(s), (3) the generator script path, and (4) the generation timestamp.",
               "req_id": "Orphan"
             },
             {
@@ -2190,7 +2193,7 @@
             },
             {
               "statement_number": 3,
-              "statement_body": "Assignment authority does not override rule v4-006 (deploy authority — QA/prod sign-off).",
+              "statement_body": "Assignment authority does not override rule v4-006 (deploy authority â€” QA/prod sign-off).",
               "req_id": "Orphan"
             },
             {

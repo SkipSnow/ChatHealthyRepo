@@ -784,6 +784,24 @@
         openPanel(src + '/qa-report', 'QA Report — v0.1.4');
       };
 
+      // rightPanel hosts two persistent sub-divs so providers/splash content
+      // (written by gui:evaluate-result, gui:shared-result, etc.) and the
+      // security panel (written by refreshTokenPanels) can coexist without
+      // overwriting each other.
+      window.ensureRightPanelStructure = function() {
+        var rightPanel = document.getElementById('rightPanel');
+        if (!rightPanel) return;
+        if (!document.getElementById('rightContent') || !document.getElementById('rightSecurity')) {
+          rightPanel.style.alignItems = 'stretch';
+          rightPanel.style.justifyContent = 'flex-start';
+          rightPanel.style.flexDirection = 'column';
+          rightPanel.style.overflow = 'auto';
+          rightPanel.innerHTML =
+              '<div id="rightContent" style="display:flex;flex-direction:column;flex:0 1 auto;"></div>'
+            + '<div id="rightSecurity" style="flex:0 0 auto;"></div>';
+        }
+      };
+
       // SEC-HTTPS-001-REQ-021/022: refresh BOTH token panels on every
       // page-ownership change.
       //   • LEFT panel always shows FindCare's own /session token (FC's
@@ -800,59 +818,50 @@
         var sharedUrl = urls.sharedservices || 'https://localhost:8002';
         var evalUrl   = urls.evaluatecare   || 'https://localhost:8001';
 
-        function mintAndVerify(minterUrl, verifierUrl) {
-          return fetch(minterUrl + '/session')
-            .then(function(r) { return r.json(); })
-            .then(function(token) {
-              return fetch(verifierUrl + '/verify-token', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({session_token: token})
-              });
-            })
-            .then(function(r) { return r.json(); });
+        // FC always mints; the COLD service (current owner, or an independent
+        // peer when FC owns) verifies. Browser → cold service direct per V11
+        // EPIC-002-F-001-S-012 "browser must call cold-button service directly
+        // for verify-token (no FindCare proxy)".
+        // Both LEFT and RIGHT panels render the SAME verification result so
+        // their nonces match (smoke asserts cross-panel nonce equality).
+        var coldUrl, color, label, bg;
+        if (owner === 'sharedservices') {
+          coldUrl = sharedUrl; color = '#0b7a75'; label = 'Shared Services'; bg = '#f0fffe';
+        } else if (owner === 'evaluatecare') {
+          coldUrl = evalUrl;   color = '#d97706'; label = 'EvaluateCare';   bg = '#fff7ed';
+        } else {
+          coldUrl = sharedUrl; color = '#0b7a75'; label = 'FindCare';       bg = '#f0fffe';
         }
 
-        // LEFT — FC mints, SS verifies. Always.
-        mintAndVerify(apiBase, sharedUrl)
+        fetch(apiBase + '/session')
+          .then(function(r) { return r.json(); })
+          .then(function(token) {
+            return fetch(coldUrl + '/verify-token', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({session_token: token})
+            });
+          })
+          .then(function(r) { return r.json(); })
           .then(function(result) {
             if (!result || !result.session_token) return;
-            var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
-            if (sessionEl) sessionEl.innerHTML = window.buildTokenDisplayHtml(result.session_token);
-          })
-          .catch(function(e) { console.error('LEFT panel refresh failed:', e); });
-
-        // RIGHT — owner mints, independent verifier checks signature.
-        var minterUrl, verifierUrl, color, label, bg;
-        if (owner === 'sharedservices') {
-          minterUrl = sharedUrl; verifierUrl = apiBase;
-          color = '#0b7a75'; label = 'Shared Services'; bg = '#f0fffe';
-        } else if (owner === 'evaluatecare') {
-          minterUrl = evalUrl;   verifierUrl = apiBase;
-          color = '#d97706'; label = 'EvaluateCare'; bg = '#fff7ed';
-        } else {
-          // findcare owns
-          minterUrl = apiBase;   verifierUrl = sharedUrl;
-          color = '#0b7a75'; label = 'FindCare'; bg = '#f0fffe';
-        }
-
-        mintAndVerify(minterUrl, verifierUrl)
-          .then(function(result) {
-            var rightPanel = document.getElementById('rightPanel');
-            if (!rightPanel || !result || !result.session_token) return;
             var st = result.session_token;
-            rightPanel.style.alignItems = 'stretch';
-            rightPanel.style.justifyContent = 'flex-start';
-            rightPanel.style.flexDirection = 'column';
-            rightPanel.style.overflow = 'auto';
-            rightPanel.innerHTML =
-                '<div style="padding:8px 10px;border-bottom:2px solid ' + color + ';background:' + bg + ';">'
-              + '<div style="font-size:11px;font-weight:700;color:' + color + ';text-transform:uppercase;">' + label + '</div>'
-              + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
-              + '</div>'
-              + window.buildTokenDisplayHtml(st);
+            // RIGHT — security panel inside #rightSecurity (coexists with provider/splash content in #rightContent)
+            window.ensureRightPanelStructure();
+            var sec = document.getElementById('rightSecurity');
+            if (sec) {
+              sec.innerHTML =
+                  '<div style="padding:8px 10px;border-bottom:2px solid ' + color + ';background:' + bg + ';">'
+                + '<div style="font-size:11px;font-weight:700;color:' + color + ';text-transform:uppercase;">' + label + '</div>'
+                + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
+                + '</div>'
+                + window.buildTokenDisplayHtml(st);
+            }
+            // LEFT — same result so nonces match (smoke assertion)
+            var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
+            if (sessionEl) sessionEl.innerHTML = window.buildTokenDisplayHtml(st);
           })
-          .catch(function(e) { console.error('RIGHT panel refresh failed (owner=' + owner + '):', e); });
+          .catch(function(e) { console.error('refreshTokenPanels failed (owner=' + owner + '):', e); });
       };
       // DEVOPS-BANNER-B006: 3-button banner with hot/cold states.
       // The service that owns the page renders cold (disabled + tooltip).
@@ -1059,8 +1068,10 @@
           + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
           + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + guid + '</span></div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-          + '<b>Server, serving security token:</b> ' + (st.origin || 'unknown')
+          + '<b>Origin:</b> ' + (st.origin || 'unknown')
           + ' &middot; <b>Verified:</b> <span style="color:' + (st.verified ? '#059669' : '#dc2626') + ';font-weight:700;">' + (st.verified ? 'YES ✓' : 'FAILED ✗') + '</span></div>'
+          + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+          + '<b>Server, serving security token:</b> ' + (st.origin || 'unknown') + '</div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
           + '<b>Env:</b> <span style="color:#7c3aed;font-weight:700;">' + envLabel + '</span></div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
@@ -1207,6 +1218,10 @@
                     splashDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7280;">EvaluateCare unavailable</div>';
                   });
                 chatFrame.contentWindow.postMessage({ type: 'gui:event', action: 'evaluate-providers' }, '*');
+                // SEC-HTTPS-001-REQ-021: refresh RIGHT panel via direct
+                // browser → cold service /verify-token (matches the banner
+                // EvaluateCare button path).
+                window.refreshTokenPanels('evaluatecare');
               }
             });
           }
@@ -1483,12 +1498,16 @@
             rightPanel.style.justifyContent = 'flex-start';
             rightPanel.style.flexDirection = 'column';
             rightPanel.style.overflow = 'auto';
-            rightPanel.innerHTML = '<div style="padding:8px 10px;border-bottom:2px solid #d97706;background:#fffbeb;">'
+            // Write the provider list into #rightContent so it coexists
+            // with the security panel that refreshTokenPanels owns
+            // (#rightSecurity). See window.ensureRightPanelStructure().
+            window.ensureRightPanelStructure();
+            document.getElementById('rightContent').innerHTML =
+                '<div style="padding:8px 10px;border-bottom:2px solid #d97706;background:#fffbeb;">'
               + '<div style="font-size:11px;font-weight:700;color:#d97706;text-transform:uppercase;">EvaluateCare</div>'
               + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">' + msg.providers.length + ' providers · ' + (msg.question || '') + '</div>'
               + '</div>'
-              + '<div style="overflow-y:auto;flex:1;">' + rows + '</div>'
-              + tokenHtml;
+              + '<div style="overflow-y:auto;flex:1;">' + rows + '</div>';
             // BUG-UX-020: Update left panel with identical session verification
             if (msg.session_token) {
               var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
@@ -1499,24 +1518,17 @@
           }
         }
 
-        // SharedServices result — render in right panel (mirrors EvaluateCare pattern)
+        // SharedServices result — render in #rightContent so it coexists
+        // with the security panel in #rightSecurity owned by refreshTokenPanels.
         if (msg.type === 'gui:shared-result') {
-          var rightPanel = document.getElementById('rightPanel');
-          if (rightPanel) {
-            // EPIC-002-F-001-S-012-REQ-B-007: Use shared token display function
-            var tokenHtml = '';
-            if (msg.session_token) {
-              tokenHtml = buildTokenDisplayHtml(msg.session_token);
-            }
-            rightPanel.style.alignItems = 'stretch';
-            rightPanel.style.justifyContent = 'flex-start';
-            rightPanel.style.flexDirection = 'column';
-            rightPanel.style.overflow = 'auto';
-            rightPanel.innerHTML = '<div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f0fffe;">'
+          window.ensureRightPanelStructure();
+          var content = document.getElementById('rightContent');
+          if (content) {
+            content.innerHTML =
+                '<div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f0fffe;">'
               + '<div style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Shared Services</div>'
               + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
-              + '</div>'
-              + tokenHtml;
+              + '</div>';
           }
         }
 
@@ -1534,8 +1546,11 @@
             if (msg.session_token && typeof msg.session_token === 'object') {
               // Full verified token — use identical display function
               sessionEl.innerHTML = window.buildTokenDisplayHtml(msg.session_token);
-            } else {
-              // Initial raw token string (pre-verify) — build pending display
+            } else if (sessionEl.innerHTML.indexOf('Signed token:') === -1) {
+              // Initial raw token string (pre-verify) — build pending display.
+              // Skip if a verified display is already in place (refreshTokenPanels
+              // may have painted it before this Pending message arrived); we
+              // never want to clobber a verified panel with Pending.
               var token = msg.token || '';
               var nonce = token.length >= 36 ? token.substring(2, 36) : token;
               var guid = token.length >= 68 ? token.substring(36) : '';

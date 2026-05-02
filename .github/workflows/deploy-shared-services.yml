@@ -8,8 +8,7 @@ on:
       - qa
       - main
     paths:
-      - 'Code/shared_services/**'
-      - 'Code/Shared/session_token.py'
+      - 'sharedServices/Code/**'
       - '.github/workflows/deploy-shared-services.yml'
 
 jobs:
@@ -88,15 +87,14 @@ jobs:
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
           cp /tmp/hf_readme.md hf_space/README.md 2>/dev/null || true
 
-          # Shared Services code
+          # Mirror sharedServices/Code/ flat into hf_space/. Same layout as
+          # the Dockerfile produces inside the container — single set of
+          # import statements works in both environments.
           rsync -av \
             --exclude='.env' \
             --exclude='__pycache__' \
             --exclude='*.pyc' \
-            Code/shared_services/ hf_space/
-
-          # Shared utilities — session_token.py etc. at root so `from session_token import ...` works
-          for f in Code/Shared/*.py; do cp "$f" hf_space/; done
+            sharedServices/Code/ hf_space/
 
           cd hf_space
           git add .
