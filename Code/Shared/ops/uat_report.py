@@ -93,7 +93,7 @@ def build_uat_welcome(get_db_fn=None) -> str:
         # Per Rule-063 + BUG-001: read from canonical
         # admin.Versions (latest record), not the legacy per-env build_counter.
         try:
-            record = db.client["admin"]["Versions"].find_one(sort=[("from", -1)])
+            record = db["admin"]["Versions"].find_one(sort=[("from", -1)])
             build = str(record["build"]) if record else "0"
         except Exception:
             pass

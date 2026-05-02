@@ -610,7 +610,7 @@ def health():
     db = _get_db()
     if db is not None:
         try:
-            doc = db.client["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
+            doc = db["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
             _build = doc.get("build", "?")
             _version_str = doc.get("version", "?")
             _framework_str = doc.get("framework", "?")
