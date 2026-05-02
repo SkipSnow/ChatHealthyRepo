@@ -157,10 +157,15 @@ class BellRinger:
         except (ImportError, RuntimeError):
             pass
         try:
+            # CREATE_NO_WINDOW prevents PowerShell flashing a console window
+            # when the bell rings (otherwise every beep pops a window).
+            kwargs = {"timeout": 5, "capture_output": True}
+            if sys.platform == "win32":
+                kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
             subprocess.run(
                 ["powershell", "-Command",
                  f"[console]::beep({frequency_hz},{duration_ms})"],
-                timeout=5, capture_output=True,
+                **kwargs,
             )
         except Exception:
             pass
