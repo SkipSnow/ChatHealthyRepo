@@ -104,7 +104,30 @@ class LocalDeploy:
 
     # ── Atomic teardown precondition (S-001-REQ-T-005) ─────────────────
     def _teardown_precondition(self) -> None:
-        """Kill processes bound to the canonical ports; verify ports clear."""
+        """Stop backend containers + kill website host process; verify
+        ports clear.
+
+        Fail-hard semantics per V11 S-001-REQ-B-001: the wipe is the
+        precondition for atomicity. If we cannot wipe, we cannot deploy.
+        """
+        # 1. Docker stop the backend containers (V11 S-002-REQ-T-001).
+        #    The chathealthy-kafka container is intentionally NOT touched —
+        #    it's separate infrastructure used by the producer.
+        for container_name in self.BACKEND_CONTAINERS:
+            result = subprocess.run(
+                ["docker", "stop", container_name],
+                capture_output=True, text=True,
+                creationflags=(subprocess.CREATE_NO_WINDOW
+                               if sys.platform == "win32" else 0),
+            )
+            # docker stop on a non-existent or already-stopped container
+            # returns nonzero; that's a teardown success (goal achieved).
+            # We don't differentiate — the post-step port verification gates.
+            if result.returncode == 0:
+                self._step_notice(f"docker stopped {container_name}")
+
+        # 2. Kill any remaining processes on the canonical ports
+        #    (covers the website wrapper + anything else stray).
         killed_pids = set()
         for port in self.PORTS.values():
             for pid in self._pids_listening_on(port):
@@ -116,14 +139,18 @@ class LocalDeploy:
                     proc = psutil.Process(pid)
                     proc.kill()
                     killed_pids.add(pid)
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                except psutil.NoSuchProcess:
+                    # Process already dead = teardown goal achieved for this PID.
                     pass
+                # AccessDenied: NOT caught — surfaces and aborts the deploy.
+                # If we can't kill a port-listening process, we cannot ensure
+                # atomicity per V11 S-001-REQ-B-001 / S-001-REQ-T-005.
 
         # Wipe stale frontend artifacts (re-built fresh in _build_react_frontend)
         for stale in (self.frontend_dir / "dist",
                       self.frontend_dir / "node_modules" / ".vite"):
             if stale.exists():
-                shutil.rmtree(stale, ignore_errors=True)
+                shutil.rmtree(stale)  # raises on failure — fail hard
 
         time.sleep(2)
 
@@ -149,13 +176,16 @@ class LocalDeploy:
         return pids
 
     def _port_in_use(self, port: int) -> bool:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.5)
-            try:
-                s.connect(("127.0.0.1", port))
-                return True
-            except (ConnectionRefusedError, socket.timeout, OSError):
-                return False
+        """Definitive: True if any process is LISTEN on this port.
+
+        Uses psutil (kernel-level inspection) — no TCP connect, no
+        firewall stealth-mode interaction. TCP connect on Windows
+        unreliably times out for closed ports under stealth firewall,
+        making it the wrong probe for fail-hard semantics. psutil reads
+        the listener table directly. psutil.AccessDenied (if it ever
+        arises) propagates per fail-hard.
+        """
+        return len(self._pids_listening_on(port)) > 0
 
     # ── Validate prerequisites ─────────────────────────────────────────
     def _validate_prerequisites(self) -> None:
@@ -176,29 +206,77 @@ class LocalDeploy:
         if not shutil.which("python"):
             sys.exit("ERROR: python not on PATH")
 
-        # Frontend ux symlink: point Code/ConversationalUX/FindCareChat/
-        # frontend/src/ux at Code/Shared/ux. If missing, copy as fallback.
-        ux_link = self.frontend_dir / "src" / "ux"
+        # ux access: vite path alias `@shared/ux` -> ../../../Shared/ux
+        # (configured in vite.config.ts + tsconfig.json). No filesystem
+        # symlink needed; the bundler resolves the alias at build time.
+        # Verify the target dir exists; fail hard if missing.
         ux_target = self.repo_root / "Code" / "Shared" / "ux"
-        if not ux_link.exists():
-            try:
-                shutil.copytree(ux_target, ux_link)
-            except Exception as e:
-                sys.exit(f"ERROR: ux symlink/copy failed: {e}")
+        if not ux_target.is_dir():
+            sys.exit(
+                f"ERROR: shared ux directory missing at {ux_target}. "
+                "Required by vite alias @shared/ux."
+            )
 
-    # ── Build backend containers (S-002-REQ-T-001) ─────────────────────
-    def _build_backend_containers(self) -> None:
-        """V11 says Docker; this class runs subprocess Python instead.
+    # ── Backend container names (V11 S-001-REQ-T-001 + S-002-REQ-T-001) ─
+    # Container name -> (host port, backend source dir relative to repo root)
+    BACKEND_CONTAINERS = {
+        "ch-findcare": ("findcare",
+                        "Code/ConversationalUX/FindCareChat/backend"),
+        "ch-evalcare": ("evalcare",
+                        "Code/evaluate_care"),
+        "ch-sharedsvc": ("shared",
+                         "Code/shared_services"),
+    }
 
-        Filed as a known V11 deviation in the morning hand-off bug list.
-        Method exists so the call site in run() is honest about the step.
-        """
-        # No-op for tonight; the venv supplies the runtime. Docker
-        # containerization tracked as a separate bug.
-        self._step_notice(
-            "backend containers SKIPPED — using subprocess Python "
-            "(V11 S-002-REQ-T-001 deviation, bug filed)"
+    # ── Docker daemon precheck ─────────────────────────────────────────
+    def _ensure_docker_available(self) -> None:
+        """Fail-hard if Docker is not running. V11 S-002-REQ-T-001 makes
+        Docker mandatory for local backends; no subprocess-Python fallback
+        per BUG-003."""
+        result = subprocess.run(
+            ["docker", "version"],
+            capture_output=True, text=True, timeout=15,
+            creationflags=(subprocess.CREATE_NO_WINDOW
+                           if sys.platform == "win32" else 0),
         )
+        if result.returncode != 0:
+            sys.exit(
+                "ERROR: Docker daemon not available. "
+                "FIX: open Docker Desktop (Start menu -> Docker Desktop) "
+                "and re-run this script. "
+                "V11 S-002-REQ-T-001 requires local backends to run as "
+                "Docker containers; subprocess-Python fallback removed "
+                "per BUG-003. "
+                f"`docker version` exit={result.returncode}, "
+                f"stderr={result.stderr.strip()[:300]}"
+            )
+
+    # ── Build backend containers (V11 S-002-REQ-T-001) ─────────────────
+    def _build_backend_containers(self) -> None:
+        """Docker build per V11 S-002-REQ-T-001. Idempotent: docker build
+        with cached layers is fast.
+        """
+        for container_name, (_label, src_dir) in self.BACKEND_CONTAINERS.items():
+            image_tag = container_name  # same name for image and container
+            full_src = self.repo_root / src_dir
+            if not (full_src / "Dockerfile").is_file():
+                sys.exit(
+                    f"ERROR: Dockerfile missing at {full_src}/Dockerfile. "
+                    "V11 S-002-REQ-T-001 requires Dockerfile per backend."
+                )
+            self._step_notice(f"building image {image_tag} from {src_dir}")
+            result = subprocess.run(
+                ["docker", "build", "-t", image_tag, str(full_src)],
+                cwd=str(self.repo_root),
+                capture_output=True, text=True,
+                creationflags=(subprocess.CREATE_NO_WINDOW
+                               if sys.platform == "win32" else 0),
+            )
+            if result.returncode != 0:
+                sys.exit(
+                    f"ERROR: docker build failed for {image_tag}: "
+                    f"{result.stderr.strip()[:500]}"
+                )
 
     # ── Build React frontend (S-001-REQ-T-008) ─────────────────────────
     # SKIP'S HIGH-MISS STEP — historically often missed in deploys.
@@ -244,44 +322,47 @@ class LocalDeploy:
             else:
                 shutil.copy2(item, backend_static / item.name)
 
-    # ── Start servers (separate processes; matches existing pattern) ────
+    # ── Start servers (V11 S-002-REQ-T-001: Docker; T-002: website host) ─
     def _start_backend_processes(self) -> None:
+        # Backends run as Docker containers per V11 S-002-REQ-T-001.
+        for container_name in self.BACKEND_CONTAINERS:
+            self._step_notice(f"docker start {container_name}")
+            result = subprocess.run(
+                ["docker", "start", container_name],
+                capture_output=True, text=True,
+                creationflags=(subprocess.CREATE_NO_WINDOW
+                               if sys.platform == "win32" else 0),
+            )
+            if result.returncode != 0:
+                sys.exit(
+                    f"ERROR: docker start {container_name} failed: "
+                    f"{result.stderr.strip()[:500]}"
+                )
+
+        # Website wrapper runs as host-OS process per V11 S-002-REQ-T-002
+        # (Docker exception, intentional). Stays as subprocess Python.
         certs_arg = str(self.certs_dir)
         website_arg = str(self.website_dir)
-
-        # Use existing _start_*.py launchers — they're proven and self-contained.
-        # All four are background processes that own their own port.
-        py = sys.executable  # venv python (has anthropic + all deps)
-        starts = [
-            ([py, str(self.deploy_dir / "_start_website.py"),
-              certs_arg, website_arg], "website", "website-80-443"),
-            ([py, str(self.deploy_dir / "_start_findcare.py"),
-              certs_arg], "findcare", "findcare-7860"),
-            ([py, str(self.deploy_dir / "_start_evalcare.py"),
-              certs_arg], "evalcare", "evalcare-8001"),
-            ([py, str(self.deploy_dir / "_start_shared.py"),
-              certs_arg], "shared", "shared-8002"),
-        ]
         log_dir = self.output_dir / "process_logs"
         log_dir.mkdir(exist_ok=True)
-        for cmd, label, log_stem in starts:
-            log_file = log_dir / f"{log_stem}_{self.results['started_at']}.log"
-            log_fh = open(log_file, "w", encoding="utf-8")
-            # CREATE_NO_WINDOW suppresses the per-process console popup on
-            # Windows; CREATE_NEW_PROCESS_GROUP keeps signal isolation.
-            proc = subprocess.Popen(
-                cmd, cwd=str(self.repo_root),
-                stdout=log_fh, stderr=subprocess.STDOUT,
-                creationflags=(
-                    (subprocess.CREATE_NEW_PROCESS_GROUP
-                     | subprocess.CREATE_NO_WINDOW)
-                    if sys.platform == "win32" else 0
-                ),
-            )
-            self.backend_procs.append(proc)
-            self._step_notice(
-                f"started {label} pid={proc.pid} log={log_file.name}"
-            )
+        log_file = (log_dir / f"website-80-443_{self.results['started_at']}.log")
+        log_fh = open(log_file, "w", encoding="utf-8")
+        proc = subprocess.Popen(
+            [sys.executable, str(self.deploy_dir / "_start_website.py"),
+             certs_arg, website_arg],
+            cwd=str(self.repo_root),
+            stdout=log_fh, stderr=subprocess.STDOUT,
+            creationflags=(
+                (subprocess.CREATE_NEW_PROCESS_GROUP
+                 | subprocess.CREATE_NO_WINDOW)
+                if sys.platform == "win32" else 0
+            ),
+        )
+        self.backend_procs.append(proc)
+        self._step_notice(
+            f"started website pid={proc.pid} log={log_file.name} "
+            "(host-OS per V11 S-002-REQ-T-002)"
+        )
 
     # ── Wait for everyone to come up (S-001-REQ-B-003) ─────────────────
     def _wait_for_all_components(self, timeout_s: int = 180) -> None:
@@ -335,6 +416,11 @@ class LocalDeploy:
 
     # ── Verify components (S-001-REQ-B-003) ────────────────────────────
     def _verify_components(self) -> None:
+        """Verify all components respond correctly. Fail-hard per V11
+        S-001-REQ-B-001 (atomic deploy / no half-deployed third state):
+        any failed verification aborts the deploy. Recording-only without
+        gating was a fallback (BUG-003 item #9) — removed.
+        """
         passed, failed = [], []
         v = self.results["verification"]
 
@@ -343,33 +429,24 @@ class LocalDeploy:
             (passed if ok else failed).append(name)
 
         with httpx.Client(verify=False, timeout=10) as c:
-            try:
-                r = c.get("http://localhost/", follow_redirects=False)
-                record("http_to_https_301",
-                       r.status_code == 301,
-                       f"got {r.status_code}")
-            except Exception as e:
-                record("http_to_https_301", False, str(e))
+            r = c.get("http://localhost/", follow_redirects=False)
+            record("http_to_https_301",
+                   r.status_code == 301,
+                   f"got {r.status_code}")
 
-            try:
-                r = c.get("https://localhost/")
-                record("website_200", r.status_code == 200,
-                       f"got {r.status_code}")
-                record("website_has_banner",
-                       "envBanner" in r.text, "")
-            except Exception as e:
-                record("website_200", False, str(e))
+            r = c.get("https://localhost/")
+            record("website_200", r.status_code == 200,
+                   f"got {r.status_code}")
+            record("website_has_banner",
+                   "envBanner" in r.text, "")
 
             for svc, port in (("findcare", self.PORTS["findcare"]),
                               ("evalcare", self.PORTS["evalcare"]),
                               ("shared",   self.PORTS["shared"])):
-                try:
-                    r = c.get(f"https://localhost:{port}/health")
-                    record(f"{svc}_health",
-                           r.status_code == 200,
-                           r.text)
-                except Exception as e:
-                    record(f"{svc}_health", False, str(e))
+                r = c.get(f"https://localhost:{port}/health")
+                record(f"{svc}_health",
+                       r.status_code == 200,
+                       r.text)
 
         # mTLS verifications (FindCare client cert -> EvalCare, FindCare -> Shared)
         ca = str(self.certs_dir / "ca.crt")
@@ -379,21 +456,21 @@ class LocalDeploy:
             ("evalcare", self.PORTS["evalcare"], "evaluate_care"),
             ("shared",   self.PORTS["shared"],   "shared_services"),
         ):
-            try:
-                with httpx.Client(cert=fc_cert, verify=ca, timeout=10) as cc:
-                    r = cc.get(f"https://localhost:{tgt_port}/health")
-                    ok = r.status_code == 200 and expected_substr in r.text
-                    record(f"mtls_findcare_to_{tgt_svc}", ok,
-                           r.text if ok else f"{r.status_code}: {r.text}")
-            except Exception as e:
-                record(f"mtls_findcare_to_{tgt_svc}", False, str(e))
+            with httpx.Client(cert=fc_cert, verify=ca, timeout=10) as cc:
+                r = cc.get(f"https://localhost:{tgt_port}/health")
+                ok = r.status_code == 200 and expected_substr in r.text
+                record(f"mtls_findcare_to_{tgt_svc}", ok,
+                       r.text if ok else f"{r.status_code}: {r.text}")
 
         self._step_notice(
             f"verification: {len(passed)} passed, {len(failed)} failed"
             + (f"; failed={failed}" if failed else "")
         )
         if failed:
-            self._smoke_failed = True
+            sys.exit(
+                f"ERROR: verification failed for {failed}. Aborting deploy "
+                "per V11 S-001-REQ-B-001 (atomic / no half-deployed state)."
+            )
 
     # ── Invoke smoke test (S-001-REQ-B-004 + S-006) ────────────────────
     def _invoke_smoke_test(self) -> int:
@@ -452,6 +529,7 @@ class LocalDeploy:
 
         self._human_authorization_gate()                    # S-001-REQ-B-006
 
+        self._ensure_docker_available()                     # S-002-REQ-T-001 prereq
         self._teardown_precondition()                       # S-001-REQ-T-005
         self._step_notice("old environment torn down and ready")
 
@@ -481,19 +559,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Local deploy for ChatHealthy.ai per V11 EPIC-008-F-004"
     )
-    # No env arg — local is the only env this script handles.
-    # --no-smoke is a convenience flag for build-only iteration.
-    parser.add_argument(
-        "--no-smoke", action="store_true",
-        help="Build + start + verify, but skip the smoke test invocation.",
-    )
-    args = parser.parse_args(argv)
-
-    deploy = LocalDeploy()
-    if args.no_smoke:
-        # Replace _invoke_smoke_test with a no-op for this run.
-        deploy._invoke_smoke_test = lambda: 0  # type: ignore[method-assign]
-    return deploy.run()
+    # No flags. The deploy is atomic per V11 S-001-REQ-B-001 — there is
+    # no half-deploy mode. Previous --no-smoke convenience flag removed
+    # per BUG-003 item #6 (invented behavior without V11 backing).
+    parser.parse_args(argv)
+    return LocalDeploy().run()
 
 
 if __name__ == "__main__":
