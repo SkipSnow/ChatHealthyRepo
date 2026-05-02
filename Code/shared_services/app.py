@@ -107,14 +107,15 @@ def _mongo():
 # graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/health")
 def health():
-    # EPIC-008-F-004-S-001-REQ-T-002: read build/version/framework from
-    # {ENV_PREFIX}_System.version._id='current'.
+    # Per Rule-063 + BUG-001: read latest record from the
+    # canonical global collection admin.Versions. Fields: build, version,
+    # framework. Latest record (by `from` desc) is the current state.
     _build = "?"; _version_str = "?"; _framework_str = "?"
     db_status = "unavailable"
     c = _mongo()
     if c is not None:
         try:
-            doc = c[f"{_ENV_PREFIX}_System"]["version"].find_one({"_id": "current"}) or {}
+            doc = c["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
             _build = doc.get("build", "?")
             _version_str = doc.get("version", "?")
             _framework_str = doc.get("framework", "?")

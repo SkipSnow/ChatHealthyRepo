@@ -2235,6 +2235,35 @@
         "enforcements": {
           "enforcement": []
         }
+      },
+      {
+        "id": "Rule-063",
+        "name": "Build number, App version and Framework Version management",
+        "description": "On every git commit that is not part of a deploy pipeline, this rule (a) increments the canonical build number stored in MongoDB by one and (b) pushes the new build value to the running Kafka producer so every subsequent message it publishes carries the correct build stamp without the producer needing to re-read MongoDB. The rule touches only the build field; version and framework identifiers are set by humans through a separate path. The producer's in-memory build value is therefore current by virtue of being pushed, never polled.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "On every post-commit hook event triggered by a commit that is NOT part of a deploy pipeline, the `build` field of the canonical version document in MongoDB is incremented by exactly one. The `version` and `framework` fields are not touched.",
+              "req_id": "EPIC-008-F-004-S-001-REQ-T-003"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "After the Mongo update in Statement 1 completes successfully, the new `build` value is pushed to the running Kafka producer process. The producer updates its in-memory static and uses the new value for all subsequent messages it publishes. If the push fails, the producer continues with its prior cached value; the producer self-corrects on next restart by re-reading from MongoDB.",
+              "req_id": "EPIC-008-F-004-S-001-REQ-T-003"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-063-ENF-001",
+              "hook": "post-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/build_bump_enforcement_worker.py",
+              "requires_lock": true
+            }
+          ]
+        }
       }
     ]
   }

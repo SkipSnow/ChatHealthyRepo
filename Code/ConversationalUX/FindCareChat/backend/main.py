@@ -601,15 +601,16 @@ def health():
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     idx_check = _check_indexes()
     status = "ok" if idx_check["status"] == "ok" else "degraded"
-    # EPIC-008-F-004-S-001-REQ-T-002: build, version, framework read from
-    # {ENV_PREFIX}_System.version._id='current' — single source of truth.
+    # Per Rule-063 + BUG-001: read latest record from the
+    # canonical global collection admin.Versions. Latest record (by `from`
+    # desc) is the current state.
     _build = "?"
     _version_str = "?"
     _framework_str = "?"
     db = _get_db()
     if db is not None:
         try:
-            doc = db[f"{_ENV_PREFIX}_System"]["version"].find_one({"_id": "current"}) or {}
+            doc = db.client["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
             _build = doc.get("build", "?")
             _version_str = doc.get("version", "?")
             _framework_str = doc.get("framework", "?")

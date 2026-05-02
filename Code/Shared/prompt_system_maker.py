@@ -324,16 +324,19 @@ class PromptSystemMaker:
 
     # ------------------------------------------------------------------
     # Build number — from MongoDB
+    # Per Rule-063 + BUG-001: canonical source is the latest
+    # record in admin.Versions (single global collection). env_prefix is
+    # ignored; kept in the signature for backward compatibility.
     # ------------------------------------------------------------------
     @staticmethod
     def get_build_number(get_db_fn, env_prefix: str) -> str:
-        """Read build number from MongoDB. Read once at startup."""
+        """Read latest build number from admin.Versions. Read once at startup."""
         try:
             db = get_db_fn()
             if db is None:
                 return "?"
-            record = db[f"{env_prefix}_System"]["build_counter"].find_one({"_id": "build"})
-            return str(record["number"]) if record else "0"
+            record = db.client["admin"]["Versions"].find_one(sort=[("from", -1)])
+            return str(record["build"]) if record else "0"
         except Exception:
             return "?"
 

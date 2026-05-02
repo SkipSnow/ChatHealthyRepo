@@ -41,10 +41,14 @@ def main() -> int:
     except Exception:
         pass
 
+    # Canary read: confirm the brain content directory is readable. Uses
+    # engineering_rules.json (always present, large enough to fail loudly if
+    # the content dir is unreachable). Was version.json; swapped per
+    # BUG-001 (the file is being deleted).
     brain_read_ok = False
     brain_read_err = ""
     try:
-        with open(BRAIN_DIR / "version.json", encoding="utf-8") as f:
+        with open(BRAIN_DIR / "engineering_rules.json", encoding="utf-8") as f:
             json.load(f)
         brain_read_ok = True
     except Exception as e:
