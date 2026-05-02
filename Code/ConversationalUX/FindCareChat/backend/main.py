@@ -664,30 +664,6 @@ class EvaluateRequest(BaseModel):
     session_token: Optional[dict] = None
     question_summary: str = ""
 
-# graph-exempt: static page render — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.get("/evaluate/splash")
-def evaluate_splash():
-    """Proxy splash call to EvaluateCare service. Transfers page ownership to EvaluateCare."""
-    import requests as _req
-    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8001")
-    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
-    _log.info("CONTROL TRANSFER: FindCare → EvaluateCare (user clicked Evaluate)")
-    req_kwargs = {"timeout": 5}
-    if not os.getenv("SPACE_ID"):
-        findcare_crt = os.path.join(certs_dir, "findcare.crt")
-        findcare_key = os.path.join(certs_dir, "findcare.key")
-        ca_crt = os.path.join(certs_dir, "ca.crt")
-        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
-            req_kwargs["cert"] = (findcare_crt, findcare_key)
-        if os.path.exists(ca_crt):
-            req_kwargs["verify"] = ca_crt
-    try:
-        resp = _req.get(f"{evalcare_url}/splash", **req_kwargs)
-        return resp.json()
-    except Exception as e:
-        _log.error("CONTROL TRANSFER FAILED: EvaluateCare unreachable at %s: %s", evalcare_url, e)
-        return {"html": '<div style="text-align:center;padding:20px;"><div style="font-size:24px;font-weight:700;color:#1f2937;">EvaluateCare</div><div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">Service unavailable</div></div>'}
-
 # graph-exempt: proxy/redirect — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.post("/transfer/to-findcare")
 def transfer_to_findcare():
@@ -752,31 +728,6 @@ def evaluate_proxy(body: EvaluateRequest):
     except Exception as e:
         _log.error("EvaluateCare proxy failed: %s", e)
         return {"status": "error", "error": str(e)}
-
-# ── Shared Services proxy — FindCare backend → CHShared over mTLS ──
-# graph-exempt: static page render — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.get("/shared/splash")
-def shared_splash():
-    """Proxy splash call to SharedServices. Transfers page ownership."""
-    import requests as _req
-    shared_url = os.getenv("SHARED_SERVICES_URL", "https://localhost:8002")
-    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
-    _log.info("CONTROL TRANSFER: FindCare → SharedServices (user clicked Shared Services)")
-    req_kwargs = {"timeout": 5}
-    if not os.getenv("SPACE_ID"):
-        findcare_crt = os.path.join(certs_dir, "findcare.crt")
-        findcare_key = os.path.join(certs_dir, "findcare.key")
-        ca_crt = os.path.join(certs_dir, "ca.crt")
-        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
-            req_kwargs["cert"] = (findcare_crt, findcare_key)
-        if os.path.exists(ca_crt):
-            req_kwargs["verify"] = ca_crt
-    try:
-        resp = _req.get(f"{shared_url}/splash", **req_kwargs)
-        return resp.json()
-    except Exception:
-        _log.error("CONTROL TRANSFER FAILED: SharedServices unreachable at %s", shared_url)
-        return {"html": '<div style="text-align:center;padding:20px;"><div style="font-size:24px;font-weight:700;color:#1f2937;">Shared Services</div><div style="font-size:16px;font-weight:600;color:#6b7280;margin-top:8px;">Service unavailable</div></div>'}
 
 # SEC-HTTPS-001-REQ-021: FindCare verifies tokens minted by peer services.
 # When SharedServices or EvaluateCare owns the page, the browser fetches
