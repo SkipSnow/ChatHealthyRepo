@@ -19,12 +19,9 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Bump build counter
-        env:
-          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
-        run: |
-          pip install -r Code/Shared/ops/tools/requirements.txt
-          python Code/Shared/ops/bump_build.py --env qa
+      # Build-counter bump removed per Rule-063 + BUG-001:
+      # the build is now incremented by a post-commit engineering rule on
+      # every non-deploy commit, and deploys do NOT bump.
 
       - name: Create Pages project (idempotent)
         uses: cloudflare/wrangler-action@v3

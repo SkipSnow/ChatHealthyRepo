@@ -30304,26 +30304,6 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-001-S-012-REQ-B-002",
-                          "requirement": "Website :80 redirects to HTTPS only for index.html, rejects all other HTTP",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "EPIC-002-F-001-S-012-REQ-B-002-PYTEST-1",
-                                "pytest_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_https_security.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "HTTP on :80 redirects to HTTPS for index.html; rejects other HTTP requests",
-                          "depends_on": []
-                        },
-                        {
                           "req_id": "EPIC-002-F-001-S-012-REQ-B-003",
                           "requirement": "Every client REST call must check for HTTP 426 (Upgrade Required) or 403 (Forbidden) — if received, fail immediately with a clear security error. Do not retry, do not silently continue. This specific code means HTTP was used when HTTPS was required.",
                           "priority": "must-have",
@@ -42319,7 +42299,7 @@
                   },
                   {
                     "story_id": "EPIC-008-F-004-S-008",
-                    "description": "Configuration of Cloudflare Pages for the ChatHealthy.ai static website. HTTP-to-HTTPS redirect is handled by EPIC-002-F-001-S-012-REQ-B-002.",
+                    "description": "Configuration of Cloudflare Pages for the ChatHealthy.ai static website. HTTP-to-HTTPS redirect is handled by EPIC-008-F-004-S-003-REQ-T-002 (this feature, see proposed-review V9 forward).",
                     "size": "S",
                     "status": "not_started",
                     "requirements": {
@@ -43835,26 +43815,6 @@
                             ]
                           },
                           "name": "Write errors to errors.json with timestamp, source, and message",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-007-S-006-REQ-T-008",
-                          "requirement": "MongoDB connection string MUST be read from Code/.env. All MongoDB communication MUST use TLS 1.2+. Every record written to MongoDB MUST include build number, framework version, and product version from version.json.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "proposed",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_id": "EPIC-008-F-007-S-006-REQ-T-008-PYTEST-1",
-                                "pytest_type": "integration",
-                                "orphan": false,
-                                "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
-                              }
-                            ]
-                          },
-                          "name": "Read MongoDB string from .env, use TLS 1.2+, store build/version info in records",
                           "depends_on": []
                         },
                         {

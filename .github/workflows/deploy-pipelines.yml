@@ -42,11 +42,9 @@ jobs:
           fi
           echo "Environment: $BRANCH"
 
-      - name: Bump build counter
-        env:
-          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
-        run: |
-          python Code/Shared/ops/bump_build.py --env ${{ steps.env.outputs.name }}
+      # Build-counter bump removed per Rule-063 + BUG-001:
+      # the build is now incremented by a post-commit engineering rule on
+      # every non-deploy commit, and deploys do NOT bump.
 
       - name: Login to Azure
         uses: azure/login@v2

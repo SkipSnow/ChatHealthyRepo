@@ -3,5 +3,84 @@
   "collection": "bugs",
   "schema_address": "brain/machine_artifacts/content/schema.json",
   "description": "All system bugs. Each bug has its own environment and status attributes. Environments constrained to local/dev/qa/prod. Source of truth for defect tracking.",
-  "bug": []
+  "bug": [
+    {
+      "bugid": "BUG-001",
+      "title": "Multiple disjoint stores for build/version/framework data",
+      "description": "Build, version, and framework identifiers are currently stored across at least three patterns: (1) per-environment Mongo collection {ENV_PREFIX}_System.version (read by /health endpoints in FindCare/EvaluateCare/SharedServices and consumed by the env banner); (2) global admin.framework_version Mongo collection (managed by Code/Shared/ops/framework_version.py); (3) flat file brain/machine_artifacts/content/version.json (read by conversation_log_consumer.py for record stamping, by boot_probe.py for session-start logging, by conversation_log_purge_service.py, and copied into the docker stage by deploy_localhost_docker.sh). A fourth pattern, {db}.build_counter, is referenced in older design docs. EPIC-008-F-007-S-006-REQ-T-008 explicitly contradicts the Mongo-based path by mandating reads 'from version.json'. EPIC-006-F-009-S-004-REQ-T-004 ('All database names must use ENV_PREFIX') is silently violated by the existing global admin.* collections. Result: no single source of truth, denormalized data, drift risk, and at least one direct requirement contradiction. | Authored Rule-063 (build-bump on post-commit) into engineering_rules.json with body and statements but with an empty enforcements.enforcement array — schema-noncompliant pending the migration of Code/Shared/ops/bump_build.py from a deploy-time CLI (currently called with --env from 5 GitHub workflows: deploy-findcare-website-dev/qa, deploy-pipelines, promote-build, promote-data) into a post-commit enforcement worker that calls the canonical bump primitive and pushes the new build value to the running Kafka producer.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "high",
+      "req_id": "EPIC-008-F-004-S-001-REQ-T-002",
+      "story_id": "EPIC-008-F-004-S-001",
+      "pytest_id": "BUG-001-PYTEST-1",
+      "pytest_success_criteria": [
+        "After a non-deploy commit, the build field of the canonical version document in MongoDB is incremented by exactly one",
+        "version.json file does not exist in the repository",
+        "No production code reads version.json (grep returns empty)",
+        "Banner displays correct build/version/framework values from /health",
+        "Smoke test passes against local and dev environments",
+        "Conversation-log records carry _build/_version/_framework fields stamped by the producer",
+        "Rule-063 in engineering_rules.json has at least one enforcement entry conforming to schema (enforcement_id, hook, executable_path with minLength 1, requires_lock all populated) and the bump-build worker the entry points to is wired into the post-commit hook chain."
+      ],
+      "discovery_date": "2026-05-01",
+      "due_date": "2026-05-01",
+      "reproduction": "1. Inspect MongoDB collections {ENV}_System.version and admin.framework_version. 2. Inspect file brain/machine_artifacts/content/version.json. 3. Verify that build/version/framework data lives in all three locations with no automated mechanism keeping them in sync. 4. Read EPIC-008-F-007-S-006-REQ-T-008 and EPIC-008-F-004-S-001-REQ-T-002 — note the contradiction.",
+      "orphan": false,
+      "next_action": [
+        "Define canonical Mongo collection (extend admin.framework_version or successor)",
+        "Create one canonical engineering rule (Rule-063) with an enforcement on post-commit that increments build on non-deploy commits",
+        "Write a Python routine Claude invokes when version or framework needs updating (no separate CLI ceremony)",
+        "Both writers push new values to producer; producer caches as static",
+        "Producer stamps Kafka messages with version; consumer copies through",
+        "Update boot_probe.py and conversation_log_consumer.py to drop version.json read",
+        "Delete version.json file and all references",
+        "Delete EPIC-008-F-007-S-006-REQ-T-008",
+        "Delete conversation_log_purge_service.py",
+        "Migrate bump_build.py: drop the --env arg, retarget it at the canonical Mongo collection and the canonical document/field names, remove the 5 GitHub workflow calls (deploys no longer bump), then create the thin enforcement worker that wraps it and pushes to the Kafka producer; finally fill in Rule-063 enforcement entry pointing at that worker.",
+        "Spawn audit agent: enumerate all rogue artifacts across the repo (Mongo collections via live connection, code references with broader name variants, config files, GitHub workflow inputs, generated files) AND all rogue requirements in agile_backlog.json that touch build/version/framework storage; present findings as a single inventory for human review.",
+        "Spawn cleanup agent: act on the inventory from the audit agent (delete rogue collections, code references, configs, requirements) once human-approved; report what was changed."
+      ]
+    },
+    {
+      "bugid": "BUG-002",
+      "title": "Git-eligible artifacts hardcode absolute paths instead of using {project root}",
+      "description": "Git-eligible artifacts across the repo (any file tracked or trackable in git — code, configs, scripts, generators, docs, JSON, YAML) hardcode absolute filesystem paths (most commonly 'c:\\chatHealthy\findCare', the legacy project tree) instead of resolving paths from a project-root reference (env var CHATHEALTHY_PROJECT_ROOT or computed via Path(__file__).parents[N]). Concrete impact: (1) the C# supervisor Code/CSharp/ChatHealthyLogService/dev/Worker.cs launches producer/consumer from the legacy tree, so code changes to the new project (c:\\CHATHealthyLLC) do not affect any running process — this specific instance was fixed in this session by env-var-driven Worker.cs + system env var CHATHEALTHY_PROJECT_ROOT; (2) start_local.bat launches all four local services from the legacy tree; (3) the boot class chathealthy_devops_boot.py (governs every Claude session) carries a legacy-path marker; (4) at least 12 other Git-eligible artifacts (rebuild_manifest.py, bash_rule_guard.py, build_backlog_story_view.py, both conversation_log_agent copies, daily_conversation_commit.sh, gen_ops_design_docx.py, generate_log_refactor_plan.py, etc.) carry the same defect. On 2026-05-01 Skip attempted to rename c:/chatHealthy/findCare and the rename failed because the supervisor-spawned Python processes had open handles in that tree. Per Skip 2026-05-01: the C# service was always a bit of an anomaly and the broader sweep may find fewer hits than the audit suggests.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "new",
+      "severity": "show_stopper",
+      "req_id": "Orphan",
+      "story_id": "Orphan",
+      "pytest_id": "BUG-002-PYTEST-1",
+      "pytest_success_criteria": [
+        "grep for 'c:\\chathealthy\\findcare' (case-insensitive) across Git-eligible artifacts returns zero hits (excluding test_output/, _pending/, scratch dirs that are themselves slated for removal or gitignored)",
+        "Every Git-eligible artifact resolves its project root via either os.environ['CHATHEALTHY_PROJECT_ROOT'] or Path(__file__).resolve().parents[N], not from a hardcoded absolute path",
+        "C# Worker.cs files take RepoRoot from environment/configuration, not as a const",
+        "Restarting the supervisor causes the running producer/consumer to load code from the project root configured in the supervisor environment, verified by hitting /version_bump (which exists only in the new tree) and getting 200",
+        "Renaming or moving c:/chatHealthy/findCare succeeds without OS file-lock errors (no process holds handles there)"
+      ],
+      "discovery_date": "2026-05-01",
+      "due_date": "2026-05-08",
+      "reproduction": "1. Run grep -rln -iE 'c:[\\/]chathealthy[\\/]findcare' from repo root across Git-eligible artifacts; observe at least 12 hits. 2. Try to rename c:/chatHealthy/findCare; observe failure due to file locks held by supervisor-spawned processes (PIDs visible via tasklist + netstat -ano on port 8100).",
+      "orphan": true,
+      "next_action": [
+        "Spawn audit agent: enumerate every Git-eligible artifact with a hardcoded absolute path; produce inventory grouped by file role (supervisor, launcher, tool, generator, doc, etc.).",
+        "Spawn cleanup agent: migrate each file in the inventory to use {project root} (env var CHATHEALTHY_PROJECT_ROOT or Path(__file__).parents[N]); rebuild C# supervisor; restart services; verify by re-running BUG-001's SIT.",
+        "Spawn placement-recommendation agent: parse every epic, every feature, every story, and every requirement in agile_backlog.json; recommend the structural home (which epic / feature / story) for a new requirement mandating 'Git-eligible artifacts MUST NOT contain hardcoded absolute filesystem paths and MUST resolve the project root via environment variable or computed-relative path.' Output: recommendation with rationale for Skip's review.",
+        "Skip authors the requirement at the recommended location.",
+        "Add engineering rule (anchored to the new requirement) that forbids hardcoded absolute paths and enforces project-root resolution.",
+        "After fix lands: BUG-001 SIT can run to completion (this bug unblocks that one)."
+      ]
+    }
+  ]
 }

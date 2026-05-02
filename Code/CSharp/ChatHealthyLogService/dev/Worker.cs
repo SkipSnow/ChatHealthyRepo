@@ -8,21 +8,64 @@ using System.Diagnostics;
 
 namespace ChatHealthyLogService;
 
-public class Worker(ILogger<Worker> logger) : BackgroundService
+public class Worker(
+    ILogger<Worker> logger,
+    IHostApplicationLifetime lifetime
+) : BackgroundService
 {
-    private const string PythonExe = @"c:\chatHealthy\findCare\.venv\Scripts\python.exe";
-    private const string RepoRoot = @"c:\chatHealthy\findCare";
+    // Per BUG-002: project root is resolved from CHATHEALTHY_PROJECT_ROOT;
+    // no fallback. If the env var is not set, the supervisor logs critical
+    // and stops the host. Hardcoded absolute paths are forbidden.
+    private const string RepoRootEnvVar = "CHATHEALTHY_PROJECT_ROOT";
     private const string SidecarScript = @"Code\Shared\ops\kafka\conversation_log_producer.py";
     private const string ConsumerScript = @"Code\Shared\ops\kafka\conversation_log_consumer.py";
     private const string DockerComposePath = @"Code\Shared\ops\kafka\docker-compose.yml";
     private const int HealthCheckIntervalMs = 30_000;  // 30 seconds
     private const int RestartDelayMs = 5_000;          // 5 seconds before restart
 
+    private string _repoRoot = "";
+    private string _pythonExe = "";
     private Process? _sidecarProcess;
     private Process? _consumerProcess;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Bulletproof prerequisite validation (BUG-002): env var present,
+        // directory exists, venv python exists. Each failure logs critical
+        // and stops the host — no silent fallback.
+        _repoRoot = Environment.GetEnvironmentVariable(RepoRootEnvVar) ?? "";
+        if (string.IsNullOrWhiteSpace(_repoRoot))
+        {
+            logger.LogCritical(
+                "{EnvVar} environment variable is not set. Set it at the " +
+                "Windows Service scope (value: absolute path to the project " +
+                "root) and restart the service. Supervisor cannot start " +
+                "without it.", RepoRootEnvVar);
+            lifetime.StopApplication();
+            return;
+        }
+        if (!Directory.Exists(_repoRoot))
+        {
+            logger.LogCritical(
+                "{EnvVar} points to {Path} which does not exist. Fix the " +
+                "env var and restart.", RepoRootEnvVar, _repoRoot);
+            lifetime.StopApplication();
+            return;
+        }
+        _pythonExe = Path.Combine(_repoRoot, ".venv", "Scripts", "python.exe");
+        if (!File.Exists(_pythonExe))
+        {
+            logger.LogCritical(
+                "Expected Python executable at {Path} does not exist. The " +
+                "project venv must be created before the supervisor can " +
+                "spawn workers.", _pythonExe);
+            lifetime.StopApplication();
+            return;
+        }
+        logger.LogInformation(
+            "Supervisor starting: RepoRoot={RepoRoot}, PythonExe={PythonExe}",
+            _repoRoot, _pythonExe);
+
         // Step 1: Ensure Kafka is running in Docker
         await EnsureKafkaRunning(stoppingToken);
         if (stoppingToken.IsCancellationRequested) return;
@@ -75,7 +118,7 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
             UseShellExecute = false,
             RedirectStandardOutput = true,
             CreateNoWindow = true,
-            WorkingDirectory = RepoRoot,
+            WorkingDirectory = _repoRoot,
         };
 
         try
@@ -107,7 +150,7 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
-            WorkingDirectory = RepoRoot,
+            WorkingDirectory = _repoRoot,
         };
 
         try
@@ -132,16 +175,16 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
 
     private Process? StartPython(string scriptRelPath, string name)
     {
-        var fullPath = Path.Combine(RepoRoot, scriptRelPath);
+        var fullPath = Path.Combine(_repoRoot, scriptRelPath);
         var psi = new ProcessStartInfo
         {
-            FileName = PythonExe,
+            FileName = _pythonExe,
             Arguments = $"\"{fullPath}\"",
             UseShellExecute = false,
             RedirectStandardOutput = false,
             RedirectStandardError = false,
             CreateNoWindow = true,
-            WorkingDirectory = RepoRoot,
+            WorkingDirectory = _repoRoot,
         };
 
         var process = Process.Start(psi);

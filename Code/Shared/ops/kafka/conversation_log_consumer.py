@@ -41,24 +41,10 @@ MONGO_COLLECTION = "conversation_log_archive"
 BATCH_SIZE = 50
 BATCH_TIMEOUT_SECONDS = 30
 
-# Version info for stamping records (T008)
-VERSION_PATH = Path(__file__).resolve().parents[4] / "brain" / "machine_artifacts" / "content" / "version.json"
+# Per Rule-063 + BUG-001: build/version/framework arrive on
+# each Kafka message as headers (_build, _version, _framework) stamped by
+# the producer. The consumer no longer reads version.json or any DB.
 ERRORS_PATH = Path(__file__).resolve().parents[4] / "brain" / "machine_artifacts" / "content" / "errors.json"
-
-
-def _read_version():
-    try:
-        with open(VERSION_PATH, encoding="utf-8") as f:
-            data = json.load(f)
-        latest_version = data["versions"]["version"][-1]
-        latest_build = latest_version["builds"]["build"][-1]
-        return {
-            "version": latest_version["version_number"],
-            "framework": latest_version["framework_version"],
-            "build": latest_build["build_number"],
-        }
-    except Exception:
-        return {"version": "?", "framework": "?", "build": 0}
 
 
 def _write_error(msg):
@@ -125,12 +111,30 @@ def _parse_hook_payload(raw_bytes):
         return {"raw": raw_bytes.decode("utf-8", errors="replace")}
 
 
-def _build_record(payload, headers, version_info, oai_client):
-    """Build a MongoDB record from a Kafka message."""
+def _build_record(payload, headers, oai_client):
+    """Build a MongoDB record from a Kafka message.
+
+    Version stamps (_build/_version/_framework) come from message headers
+    set by the producer per Rule-063.
+    """
     hook_event = ""
+    msg_build = 0
+    msg_version = "?"
+    msg_framework = "?"
     for h in (headers or []):
-        if h[0] == "hook_event":
-            hook_event = h[1].decode("utf-8") if isinstance(h[1], bytes) else str(h[1])
+        key = h[0]
+        val = h[1].decode("utf-8") if isinstance(h[1], bytes) else str(h[1])
+        if key == "hook_event":
+            hook_event = val
+        elif key == "_build":
+            try:
+                msg_build = int(val)
+            except (TypeError, ValueError):
+                msg_build = 0
+        elif key == "_version":
+            msg_version = val
+        elif key == "_framework":
+            msg_framework = val
 
     pst, utc = _make_timestamps()
 
@@ -193,10 +197,10 @@ def _build_record(payload, headers, version_info, oai_client):
         "actor": actor,
         "role": role,
         "content": content,
-        # T008: Version stamps
-        "_version": version_info.get("version", "?"),
-        "_framework": version_info.get("framework", "?"),
-        "_build": version_info.get("build", 0),
+        # T008: Version stamps — copied from message headers (Rule-063)
+        "_version": msg_version,
+        "_framework": msg_framework,
+        "_build": msg_build,
     }
 
 
@@ -217,10 +221,6 @@ def run_consumer():
     except Exception as e:
         _log.warning("OpenAI client init failed: %s — redaction disabled", e)
         oai_client = None
-
-    version_info = _read_version()
-    _log.info("Version: %s, Framework: %s, Build: %s",
-              version_info.get("version"), version_info.get("framework"), version_info.get("build"))
 
     consumer = Consumer({
         "bootstrap.servers": KAFKA_BOOTSTRAP,
@@ -243,7 +243,7 @@ def run_consumer():
             if msg is None:
                 # No message — check if batch needs time-based flush
                 if batch and (time.time() - last_flush) >= BATCH_TIMEOUT_SECONDS:
-                    _flush_batch(batch, consumer, version_info)
+                    _flush_batch(batch, consumer)
                     batch = []
                     last_flush = time.time()
                 continue
@@ -257,7 +257,7 @@ def run_consumer():
             # Parse and build record
             try:
                 payload = _parse_hook_payload(msg.value())
-                record = _build_record(payload, msg.headers(), version_info, oai_client)
+                record = _build_record(payload, msg.headers(), oai_client)
                 if record:
                     batch.append(record)
                     _log.debug("Batch: %d messages", len(batch))
@@ -267,7 +267,7 @@ def run_consumer():
 
             # T011: Flush on batch size
             if len(batch) >= BATCH_SIZE:
-                _flush_batch(batch, consumer, version_info)
+                _flush_batch(batch, consumer)
                 batch = []
                 last_flush = time.time()
 
@@ -276,12 +276,12 @@ def run_consumer():
     finally:
         # Flush remaining batch
         if batch:
-            _flush_batch(batch, consumer, version_info)
+            _flush_batch(batch, consumer)
         consumer.close()
         _log.info("Consumer closed")
 
 
-def _flush_batch(batch, consumer, version_info):
+def _flush_batch(batch, consumer):
     """T011: Write batch to MongoDB using insert_many. Commit offset after success."""
     if not batch:
         return

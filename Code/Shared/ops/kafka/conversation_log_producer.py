@@ -5,15 +5,26 @@
 # T002: Persistent FastAPI with warm Kafka producer connection.
 # Accepts HTTP POST from hook, enqueues raw payload, returns 202.
 # No processing beyond enqueue.
+#
+# Per Rule-063 + BUG-001:
+#   - Maintains an in-memory static (build/version/framework) seeded from
+#     admin.Versions on startup.
+#   - Exposes POST /version_bump for the bumper (post-commit worker or human
+#     routine) to push a new {build, version, framework} into the static.
+#   - Stamps every outgoing /produce message with _build/_version/_framework
+#     headers so the consumer can copy them into MongoDB without its own
+#     read.
 
 import json
 import logging
 import os
 import sys
+import threading
 import time
 
 from fastapi import FastAPI, Request, Response
 from confluent_kafka import Producer
+from pymongo import MongoClient
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,6 +34,7 @@ _log = logging.getLogger("conversation_log_producer")
 
 KAFKA_BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC", "conversation-log")
+MONGO_CONN = os.environ.get("MONGO_FRONTEND_connectionString")
 
 # T002: One global producer for the life of the process — warm connection
 _producer_config = {
@@ -36,6 +48,10 @@ _producer_config = {
 }
 
 _producer: Producer = None
+
+# Rule-063 in-memory static — updated by /version_bump POST.
+_version_info = {"build": 0, "version": "?", "framework": "?"}
+_version_lock = threading.Lock()
 
 
 def _get_producer() -> Producer:
@@ -55,13 +71,48 @@ def _delivery_report(err, msg):
         _log.debug("Delivered to %s [%d] @ %d", msg.topic(), msg.partition(), msg.offset())
 
 
+def _load_initial_version_from_mongo():
+    """Seed the in-memory static from admin.Versions on startup."""
+    if not MONGO_CONN:
+        _log.warning("MONGO_FRONTEND_connectionString not set; version stamps "
+                     "will be unknown until first bump")
+        return
+    try:
+        client = MongoClient(MONGO_CONN, serverSelectionTimeoutMS=5000)
+        latest = client["admin"]["Versions"].find_one(sort=[("from", -1)])
+        if latest:
+            with _version_lock:
+                _version_info["build"] = int(latest["build"])
+                _version_info["version"] = str(latest["version"])
+                _version_info["framework"] = str(latest["framework"])
+            _log.info("Initial version loaded: build=%s version=%s framework=%s",
+                      _version_info["build"], _version_info["version"],
+                      _version_info["framework"])
+        else:
+            _log.warning("admin.Versions has no records; version stamps "
+                         "will be unknown until first bump")
+    except Exception as e:
+        _log.error("Failed to load initial version from MongoDB: %s", e)
+
+
+def _version_headers() -> dict:
+    """Snapshot the static for use as message headers."""
+    with _version_lock:
+        return {
+            "_build": str(_version_info["build"]),
+            "_version": str(_version_info["version"]),
+            "_framework": str(_version_info["framework"]),
+        }
+
+
 app = FastAPI(title="ChatHealthy Conversation Log Producer", docs_url=None)
 
 
 @app.on_event("startup")
 async def startup():
-    """Warm the Kafka connection on startup so first request is fast."""
+    """Warm the Kafka connection and seed the version static."""
     _get_producer()
+    _load_initial_version_from_mongo()
     _log.info("Sidecar ready on port 8100")
 
 
@@ -77,21 +128,24 @@ async def shutdown():
 async def produce(request: Request):
     """T002: Accept raw payload from hook, enqueue to Kafka, return 202.
     The payload is whatever Claude Code sent to the hook — raw bytes.
-    We add a timestamp header but do NOT parse or transform the body."""
+    We add timestamp and version-stamp headers but do NOT parse or transform
+    the body."""
     try:
         body = await request.body()
         if not body:
             return Response(status_code=400, content="Empty payload")
 
         producer = _get_producer()
+        headers = {
+            "source": "claudecode",
+            "occurred_at": str(time.time()),
+            "hook_event": request.headers.get("X-Hook-Event", "unknown"),
+        }
+        headers.update(_version_headers())  # _build / _version / _framework
         producer.produce(
             topic=KAFKA_TOPIC,
             value=body,
-            headers={
-                "source": "claudecode",
-                "occurred_at": str(time.time()),
-                "hook_event": request.headers.get("X-Hook-Event", "unknown"),
-            },
+            headers=headers,
             callback=_delivery_report,
         )
         # Poll to trigger delivery reports (non-blocking)
@@ -101,6 +155,30 @@ async def produce(request: Request):
 
     except Exception as e:
         _log.error("Failed to enqueue: %s", e)
+        return Response(status_code=500, content=str(e))
+
+
+@app.post("/version_bump")
+async def version_bump(request: Request):
+    """Rule-063: receive a push of new {build, version, framework} values
+    and update the in-memory static. Body is JSON: {build, version, framework}.
+    Called by the build-bump enforcement worker (post-commit) and by the
+    human routine that sets version/framework on prod deploy."""
+    try:
+        payload = await request.json()
+        with _version_lock:
+            _version_info["build"] = int(payload["build"])
+            _version_info["version"] = str(payload["version"])
+            _version_info["framework"] = str(payload["framework"])
+        _log.info("Version updated via /version_bump: build=%s version=%s framework=%s",
+                  _version_info["build"], _version_info["version"],
+                  _version_info["framework"])
+        return Response(status_code=200, content="Updated")
+    except (KeyError, ValueError, json.JSONDecodeError) as e:
+        _log.error("/version_bump bad payload: %s", e)
+        return Response(status_code=400, content=f"Bad payload: {e}")
+    except Exception as e:
+        _log.error("/version_bump failed: %s", e)
         return Response(status_code=500, content=str(e))
 
 

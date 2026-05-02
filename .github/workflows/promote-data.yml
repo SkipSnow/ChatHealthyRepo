@@ -66,9 +66,6 @@ jobs:
             --to ${{ inputs.to_env }} \
             $DRY_RUN_FLAG
 
-      - name: Bump build counter on target environment
-        if: inputs.dry_run == false
-        env:
-          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
-        run: |
-          python Code/Shared/ops/bump_build.py --env ${{ inputs.to_env }}
+      # Build-counter bump removed per Rule-063 + BUG-001:
+      # the build is now incremented by a post-commit engineering rule on
+      # every non-deploy commit, and deploys/promotions do NOT bump.

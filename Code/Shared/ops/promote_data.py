@@ -85,18 +85,12 @@ def promote_data(from_env: str, to_env: str, dry_run: bool = False):
         elapsed = time.time() - start
         log.info("  Done: %s docs in %.1f s", f"{copied:,}", elapsed)
 
-    # Copy build counter
-    src_sys = client[f"{from_env}_System"]["build_counter"].find_one({"_id": "build"})
-    if src_sys:
-        build_num = src_sys["number"]
-        client[f"{to_env}_System"]["build_counter"].update_one(
-            {"_id": "build"},
-            {"$set": {"number": build_num}},
-            upsert=True,
-        )
-        log.info("Build counter: %s -> %s = %d", from_env, to_env, build_num)
-    else:
-        log.warning("No build counter in %s_System", from_env)
+    # Per Rule-063 + BUG-001: build is global (admin.Versions),
+    # not per-env. Data promotion does not touch build/version/framework.
+    # Log the current global build for the operator's audit trail.
+    current_record = client["admin"]["Versions"].find_one(sort=[("from", -1)])
+    current_build = current_record["build"] if current_record else "unknown"
+    log.info("Current global build: %s (admin.Versions latest record)", current_build)
 
     log.info("PROMOTE COMPLETE: %s -> %s", from_env, to_env)
 
