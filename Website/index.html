@@ -653,16 +653,29 @@
       // banner-only-from-FindCare bug. Service argument is one of:
       //   'findcare' | 'evaluatecare' | 'sharedservices'
       window.refreshBanner = function(serviceKey) {
-        var root = (window._envServiceUrls || {})[serviceKey || 'findcare'] || '';
+        var key = serviceKey || 'findcare';
+        var root = (window._envServiceUrls || {})[key] || '';
         var healthUrl = root + '/health';
-        fetch(healthUrl).then(function(r) { return r.json(); }).then(function(d) {
+        function paintBanner(version, framework, build) {
           banner.innerHTML = '<span style="margin-right:12px;">' + env + '</span>'
-            + '<span style="margin-right:12px;">Version: ' + (d.version || '?') + '</span>'
-            + '<span style="margin-right:12px;">Framework: ' + (d.framework || '?') + '</span>'
-            + '<span style="margin-right:12px;">Build: ' + (d.build || '?') + '</span>'
-            + '<span style="margin-right:12px;font-size:11px;opacity:0.85;">[' + (serviceKey || 'findcare') + ']</span>'
+            + '<span style="margin-right:12px;">Version: ' + (version || '?') + '</span>'
+            + '<span style="margin-right:12px;">Framework: ' + (framework || '?') + '</span>'
+            + '<span style="margin-right:12px;">Build: ' + (build || '?') + '</span>'
+            + '<span style="margin-right:12px;font-size:11px;opacity:0.85;">[' + key + ']</span>'
             + '<span id="serviceButtons"></span>';
           if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
+        }
+        // V11 S-005-REQ-B-002: bracket MUST reflect the new owner on
+        // ownership transfer. Old code only updated the bracket on /health
+        // fetch SUCCESS — when the fetch failed/timed out, the bracket
+        // stayed showing the PREVIOUS owner while the button gray-state
+        // (renderBannerButtons, called synchronously from the transition
+        // handler) already reflected the NEW owner. Paint synchronously
+        // first so bracket and buttons stay atomically aligned, then
+        // overlay real values when /health resolves.
+        paintBanner('?', '?', '?');
+        fetch(healthUrl).then(function(r) { return r.json(); }).then(function(d) {
+          paintBanner(d.version, d.framework, d.build);
         }).catch(function() {});
       };
 
