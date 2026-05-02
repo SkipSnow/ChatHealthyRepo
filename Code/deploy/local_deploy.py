@@ -255,18 +255,38 @@ class LocalDeploy:
     def _build_backend_containers(self) -> None:
         """Docker build per V11 S-002-REQ-T-001. Idempotent: docker build
         with cached layers is fast.
+
+        Build-context pattern (BUG-003 #1 / V11 S-002-REQ-T-001 fix):
+        all three backend builds use the REPO ROOT as the build context
+        and select their Dockerfile via `-f`. Per Docker docs
+        (https://docs.docker.com/build/concepts/context/): "Build
+        instructions such as COPY and ADD can refer to any of the files
+        and directories in the context." The previous narrow per-backend
+        contexts could not reach Code/Shared/, brain/, or
+        Code/ConversationalUX/ChatHealthyWhoAmIChat/me/ — required at
+        runtime by all three apps — so containers crashed at import time
+        (ModuleNotFoundError on ChatHealthyMongoUtilities for findcare,
+        on evaluate_care for evalcare). Repo-root .dockerignore keeps the
+        transferred context small.
         """
         for container_name, (_label, src_dir) in self.BACKEND_CONTAINERS.items():
             image_tag = container_name  # same name for image and container
-            full_src = self.repo_root / src_dir
-            if not (full_src / "Dockerfile").is_file():
+            dockerfile_rel = f"{src_dir}/Dockerfile"
+            dockerfile_abs = self.repo_root / src_dir / "Dockerfile"
+            if not dockerfile_abs.is_file():
                 sys.exit(
-                    f"ERROR: Dockerfile missing at {full_src}/Dockerfile. "
+                    f"ERROR: Dockerfile missing at {dockerfile_abs}. "
                     "V11 S-002-REQ-T-001 requires Dockerfile per backend."
                 )
-            self._step_notice(f"building image {image_tag} from {src_dir}")
+            self._step_notice(
+                f"building image {image_tag} (-f {dockerfile_rel}, "
+                "context=repo root)"
+            )
             result = subprocess.run(
-                ["docker", "build", "-t", image_tag, str(full_src)],
+                ["docker", "build",
+                 "-t", image_tag,
+                 "-f", str(dockerfile_abs),
+                 str(self.repo_root)],
                 cwd=str(self.repo_root),
                 capture_output=True, text=True,
                 creationflags=(subprocess.CREATE_NO_WINDOW
@@ -325,19 +345,61 @@ class LocalDeploy:
     # ── Start servers (V11 S-002-REQ-T-001: Docker; T-002: website host) ─
     def _start_backend_processes(self) -> None:
         # Backends run as Docker containers per V11 S-002-REQ-T-001.
-        for container_name in self.BACKEND_CONTAINERS:
-            self._step_notice(f"docker start {container_name}")
-            result = subprocess.run(
-                ["docker", "start", container_name],
-                capture_output=True, text=True,
-                creationflags=(subprocess.CREATE_NO_WINDOW
-                               if sys.platform == "win32" else 0),
+        # Pattern is `docker rm -f` + `docker run` (NOT `docker start`):
+        # `docker start` resumes the existing container instance, which was
+        # created from whatever image existed at create time — so
+        # subsequent `docker build` images are silently ignored. Removing
+        # and re-running guarantees the container instance is created from
+        # the freshly-built image (the V11 parity guarantee).
+        certs_host = str(self.certs_dir).replace("\\", "/")
+        env_file = self.repo_root / "Code" / ".env"
+        if not env_file.is_file():
+            sys.exit(
+                f"ERROR: env file missing at {env_file}; backend containers "
+                "depend on it for MongoDB / API credentials."
             )
-            if result.returncode != 0:
+        # Parse .env via python-dotenv (handles inline comments + quoting
+        # that Docker's --env-file parser does not). Pass each as -e to
+        # docker run.
+        from dotenv import dotenv_values
+        env_dict = dotenv_values(env_file)
+        env_args: list[str] = []
+        for k, v in env_dict.items():
+            if v is None:
+                continue
+            env_args.extend(["-e", f"{k}={v}"])
+
+        cflags = (subprocess.CREATE_NO_WINDOW
+                  if sys.platform == "win32" else 0)
+        for container_name, (label, _src_dir) in self.BACKEND_CONTAINERS.items():
+            host_port = self.PORTS[label]
+            # Remove existing container (silent-ok if absent — `docker rm
+            # -f` exit is non-zero when name unknown but harmless).
+            subprocess.run(
+                ["docker", "rm", "-f", container_name],
+                capture_output=True, text=True, creationflags=cflags,
+            )
+            # Run fresh container from the latest image. Container is
+            # named after its image (1:1 convention).
+            run_cmd = (
+                ["docker", "run", "-d",
+                 "--name", container_name,
+                 "-p", f"{host_port}:7860",
+                 "-v", f"{certs_host}:/certs:ro"]
+                + env_args
+                + [container_name]
+            )
+            run_result = subprocess.run(
+                run_cmd, capture_output=True, text=True, creationflags=cflags,
+            )
+            if run_result.returncode != 0:
                 sys.exit(
-                    f"ERROR: docker start {container_name} failed: "
-                    f"{result.stderr.strip()[:500]}"
+                    f"ERROR: docker run {container_name} failed: "
+                    f"{run_result.stderr.strip()[:500]}"
                 )
+            self._step_notice(
+                f"docker run {container_name} -> host port {host_port}"
+            )
 
         # Website wrapper runs as host-OS process per V11 S-002-REQ-T-002
         # (Docker exception, intentional). Stays as subprocess Python.
