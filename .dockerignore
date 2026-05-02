@@ -1,0 +1,66 @@
+# Repo-root .dockerignore
+#
+# Per V11 EPIC-008-F-004 S-002-REQ-T-001 + BUG-003 #1, local backend Docker
+# builds use the REPO ROOT as the build context (so Dockerfiles can COPY
+# sibling-tree paths like Code/Shared/, Code/evaluate_care/, brain/, etc.).
+# Without this file, Docker would ship the entire 250+ MB tree to the daemon
+# every build.
+#
+# Per Docker docs (https://docs.docker.com/build/concepts/context/):
+# "Excluded patterns are removed from the build context before it's sent
+#  to the builder."
+#
+# Keep the list narrow: exclude only what is large or definitely unwanted.
+# Anything an individual Dockerfile needs MUST NOT be excluded here.
+
+# Version control + IDE noise
+.git
+.gitignore
+.github
+.vscode
+.idea
+.claude
+
+# Python build/cache
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/*.egg-info
+**/.venv
+**/venv
+
+# Node build/cache (the React frontend dist is rebuilt on the host before
+# Docker runs and copied into Code/.../backend/static/, so the container
+# pulls the static assets via a normal COPY of backend/static/)
+**/node_modules
+**/.vite
+**/.next
+**/dist
+
+# Claude / agent outputs
+test_output
+claude_thoughts
+gpt_thoughts
+
+# Docker leftovers
+**/Dockerfile.bak
+**/.dockerignore
+
+# Local secrets — Code/.env is mounted at runtime via `-e` env-args, never
+# baked into the image
+**/.env
+**/.env.local
+
+# Large repo-root artifacts not used by any container build
+Analysis
+Legal
+LangGraph
+docs
+enrichment_content
+findCare
+*.png
+*.bak
+migrate_progress.log
