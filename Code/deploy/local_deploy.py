@@ -223,9 +223,9 @@ class LocalDeploy:
         "ch-findcare": ("findcare",
                         "Code/ConversationalUX/FindCareChat/backend"),
         "ch-evalcare": ("evalcare",
-                        "Code/evaluate_care"),
+                        "evaluateCare/Code"),
         "ch-sharedsvc": ("shared",
-                         "Code/shared_services"),
+                         "sharedServices/Code"),
     }
 
     # ── Docker daemon precheck ─────────────────────────────────────────
@@ -440,6 +440,10 @@ class LocalDeploy:
             ("shared",
              f"https://localhost:{self.PORTS['shared']}/health",
              lambda t: '"service":"shared_services"' in t),
+            # NOTE: the health endpoints still self-identify as the legacy
+            # snake_case service names so existing downstream consumers
+            # (smoke tests, banner) keep matching. Renaming is a separate
+            # contract change.
             ("website",
              "https://localhost/",
              lambda t: True),  # any 200 from wrapper

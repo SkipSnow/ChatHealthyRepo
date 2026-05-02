@@ -1,0 +1,484 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ChatHealthy.ai EvaluateCare",
+    "version": "0.1.4"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "HealthEndpoint",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "x-implementing-class": "HealthEndpoint",
+        "x-implementing-file": "evaluateCare/Code/healthcheck/health_endpoint.py"
+      }
+    },
+    "/splash": {
+      "get": {
+        "summary": "Splash",
+        "operationId": "SplashEndpoint",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "x-implementing-class": "SplashEndpoint",
+        "x-implementing-file": "evaluateCare/Code/displayChrome/splash_endpoint.py"
+      }
+    },
+    "/session": {
+      "get": {
+        "summary": "Session",
+        "operationId": "SessionEndpoint",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionToken"
+                }
+              }
+            }
+          }
+        },
+        "x-implementing-class": "SessionEndpoint",
+        "x-implementing-file": "evaluateCare/Code/security/session_endpoint.py"
+      }
+    },
+    "/verify-token": {
+      "post": {
+        "summary": "Verify Token",
+        "operationId": "VerifyTokenEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyTokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-implementing-class": "VerifyTokenEndpoint",
+        "x-implementing-file": "evaluateCare/Code/security/verify_token_endpoint.py"
+      }
+    },
+    "/evaluate/providers": {
+      "post": {
+        "summary": "Evaluate Providers",
+        "operationId": "EvaluateProvidersEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateProvidersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluateProvidersResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-implementing-class": "EvaluateProvidersEndpoint",
+        "x-implementing-file": "evaluateCare/Code/externalInterface/evaluate_providers_endpoint.py"
+      }
+    },
+    "/transfer/to-findcare": {
+      "post": {
+        "summary": "Transfer To Findcare",
+        "operationId": "TransferToFindCareEndpoint",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "x-implementing-class": "TransferToFindCareEndpoint",
+        "x-implementing-file": "evaluateCare/Code/displayChrome/transfer_to_findcare_endpoint.py"
+      }
+    },
+    "/debug/verify-live": {
+      "post": {
+        "summary": "Debug Verify Live",
+        "operationId": "DebugVerifyLiveEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionToken"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-implementing-class": "DebugVerifyLiveEndpoint",
+        "x-implementing-file": "evaluateCare/Code/security/debug_verify_live_endpoint.py"
+      }
+    },
+    "/debug/bootstrap": {
+      "get": {
+        "summary": "Debug Bootstrap",
+        "operationId": "DebugBootstrapEndpoint",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "x-implementing-class": "DebugBootstrapEndpoint",
+        "x-implementing-file": "evaluateCare/Code/security/debug_bootstrap_endpoint.py"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EvaluateProvidersRequest": {
+        "properties": {
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/Provider"
+            },
+            "type": "array",
+            "title": "Providers",
+            "description": "Selected providers — items conform to the canonical Provider schema"
+          },
+          "session_token": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionToken"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "FindCare-signed session token for mutual authentication"
+          },
+          "question_summary": {
+            "type": "string",
+            "title": "Question Summary",
+            "description": "Free-text reason the user wants these providers evaluated",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "providers"
+        ],
+        "title": "EvaluateProvidersRequest",
+        "description": "Payload posted by FindCare's React iframe (via the FindCare /evaluate/providers\nproxy) when the user clicks Evaluate."
+      },
+      "EvaluateProvidersResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "`received` on success — set even when no real evaluation is performed (current implementation echoes only)"
+          },
+          "evaluated_providers": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluatedProvider"
+            },
+            "type": "array",
+            "title": "Evaluated Providers"
+          },
+          "question_summary": {
+            "type": "string",
+            "title": "Question Summary"
+          },
+          "session_token": {
+            "$ref": "#/components/schemas/SessionTokenVerification"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "evaluated_providers",
+          "question_summary",
+          "session_token"
+        ],
+        "title": "EvaluateProvidersResponse"
+      },
+      "EvaluatedProvider": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "specialty": {
+            "type": "string",
+            "title": "Specialty"
+          },
+          "npi": {
+            "type": "string",
+            "title": "Npi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "specialty",
+          "npi"
+        ],
+        "title": "EvaluatedProvider",
+        "description": "The post-receive shape EvaluateCare currently echoes back per provider\n(3-field stub until real scoring lands; will return enriched Provider\nrecords conforming to the canonical schema once implemented)."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Provider": {
+        "$ref": "https://dev.chathealthy.ai/schemas/ChatHealthyProvidersSchema.json",
+        "properties": {},
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Provider",
+        "description": "Provider record. Canonical shape lives at the published schema URL —\nhttps://dev.chathealthy.ai/schemas/ChatHealthyProvidersSchema.json (see also\nWebsite/schemas/ChatHealthyProvidersSchema.json on disk). The catalog\nreferences that schema as the source of truth; this Pydantic class is a\npermissive carrier so the canonical schema controls validation, not a\nhand-mirrored Python definition."
+      },
+      "SessionToken": {
+        "properties": {
+          "origin": {
+            "type": "string",
+            "title": "Origin",
+            "description": "Issuing service: FindCare | EvaluateCare | SharedServices"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token",
+            "description": "CH{nonce:17}{created:17}{guid:32} — 68 chars, no delimiters"
+          },
+          "signature": {
+            "type": "string",
+            "title": "Signature",
+            "description": "Base64-encoded RSA PKCS1v15 SHA256 signature of origin:created:guid"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "description": "ISO 8601 UTC timestamp the token was minted"
+          },
+          "signed": {
+            "type": "boolean",
+            "title": "Signed",
+            "description": "True when a signing key was used; False is never returned by a healthy service"
+          },
+          "server_env": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Server Env",
+            "description": "Issuing container's env (LOCAL|DEV|QA|PROD) — added by the /session endpoint per S-012-REQ-B-010"
+          }
+        },
+        "type": "object",
+        "required": [
+          "origin",
+          "token",
+          "signature",
+          "created_at",
+          "signed"
+        ],
+        "title": "SessionToken",
+        "description": "Canonical shape returned by every /session endpoint and accepted as\nthe input to every /verify-token endpoint. Single source of truth for\nthe on-the-wire session-token contract."
+      },
+      "SessionTokenVerification": {
+        "properties": {
+          "token_received": {
+            "type": "string",
+            "title": "Token Received",
+            "description": "Echo of the token string received from the caller"
+          },
+          "signature_received": {
+            "type": "string",
+            "title": "Signature Received",
+            "description": "First 40 chars of the received signature, then '...' — for visual audit, not re-verification"
+          },
+          "origin": {
+            "type": "string",
+            "title": "Origin",
+            "description": "Self-identification of the responding service: FindCare | EvaluateCare | SharedServices (per S-012-REQ-B-010, distinct from the cryptographic signer)"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "description": "True if the signature validated against the named origin's public cert"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token_received",
+          "signature_received",
+          "origin",
+          "verified"
+        ],
+        "title": "SessionTokenVerification",
+        "description": "Canonical shape returned in the `session_token` field of every\n/verify-token response (and any equivalent endpoint that verifies a\nsession token, e.g., /evaluate/providers). Audit + verdict — distinct\nfrom SessionToken, which is the on-the-wire input shape."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VerifyTokenRequest": {
+        "properties": {
+          "session_token": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionToken"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "VerifyTokenRequest"
+      },
+      "VerifyTokenResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "session_token": {
+            "$ref": "#/components/schemas/SessionTokenVerification"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "session_token"
+        ],
+        "title": "VerifyTokenResponse"
+      }
+    }
+  }
+}

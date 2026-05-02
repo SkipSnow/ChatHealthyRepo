@@ -327,8 +327,8 @@ _SCAN_DIRS = [
     "Code/ConversationalUX/FindCareChat/backend",
     "Code/DataPipelines",
     "Code/Shared",
-    "Code/evaluate_care",
-    "Code/shared_services",
+    "evaluateCare/Code",
+    "sharedServices/Code",
 ]
 _SKIP_DIRS = {"node_modules", ".venv", "__pycache__", ".git", "tests", ".pytest_cache"}
 _SCANNER_FUNCTIONS = {"dead_code_scan", "comment_out_dead_code"}
