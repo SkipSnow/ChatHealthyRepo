@@ -113,7 +113,8 @@
         "LocalDeploy._port_in_use() does NOT catch OSError/timeout and return False. A failure to determine port state is surfaced and aborts the deploy with a terminal error. The function returns True/False only when it can actually tell.",
         "LocalDeploy._verify_components() GATES the deploy. If any verification check fails, the deploy aborts with terminal error per V11 S-001-REQ-B-001 (atomic deploy / no half-deployed third state). It does NOT record pass/fail and continue to smoke.",
         "RemoteDeploy._dispatch_workflow() does NOT silently swallow JSON parse or list-API failures. If the dispatched run cannot be tracked, the deploy aborts with terminal error — there is no untracked-but-running workflow.",
-        "TestStep06::test_search (line 395) does NOT silently swallow a missing 'Yes, keep waiting' button. The expected presence-or-absence of that button is declared in the test (either always present, with explicit assertion, or always absent, with explicit assertion). The Playwright pattern of suppressing an assertion to handle 'optional' UI is forbidden — suppressed assertions hide problems."
+        "TestStep06::test_search (line 395) does NOT silently swallow a missing 'Yes, keep waiting' button. The expected presence-or-absence of that button is declared in the test (either always present, with explicit assertion, or always absent, with explicit assertion). The Playwright pattern of suppressing an assertion to handle 'optional' UI is forbidden — suppressed assertions hide problems.",
+        "RemoteDeploy._verify_components() GATES the deploy. If any verification check fails, the deploy aborts with terminal error per V11 S-001-REQ-B-001 (atomic deploy / no half-deployed third state). Same gate pattern as LocalDeploy._verify_components — initially missed in the BUG-003 audit because only the local copy was flagged."
       ],
       "discovery_date": "2026-05-02",
       "due_date": "2026-05-09",
@@ -136,7 +137,8 @@
         "Change LocalDeploy._port_in_use to let OSError propagate; only ConnectionRefusedError counts as 'port free'. Timeout means we don't know — abort.",
         "Add a hard gate at the end of LocalDeploy._verify_components: if any verification entry has ok=False, sys.exit with the failed checks listed.",
         "Remove the `except Exception: pass` in RemoteDeploy._dispatch_workflow; re-raise to abort the dispatch step. Untracked workflow runs are not acceptable.",
-        "Remove the `except Exception: pass` around the 'Yes, keep waiting' button in localSmokeTestPyTest.py Step 06; either assert the button must be present (and click it) or assert it must be absent. The optional-element-with-suppressed-exception pattern is forbidden across the smoke test."
+        "Remove the `except Exception: pass` around the 'Yes, keep waiting' button in localSmokeTestPyTest.py Step 06; either assert the button must be present (and click it) or assert it must be absent. The optional-element-with-suppressed-exception pattern is forbidden across the smoke test.",
+        "Add a hard gate at the end of RemoteDeploy._verify_components: if any verification entry has ok=False, sys.exit with the failed checks listed. (Same as the local fix; was missed in original audit.) [DONE in commit 2b4c359.]"
       ]
     }
   ]
