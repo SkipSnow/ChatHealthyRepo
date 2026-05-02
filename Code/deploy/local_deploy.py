@@ -219,12 +219,21 @@ class LocalDeploy:
 
     # ── Backend container names (V11 S-001-REQ-T-001 + S-002-REQ-T-001) ─
     # Container name -> (host port, backend source dir relative to repo root)
+    # Each entry: container_name -> (port label, src_dir, build_context).
+    # build_context is relative to repo root. FindCare uses repo root because
+    # its Dockerfile reaches sibling-tree paths (Code/Shared/, etc.). The
+    # refactored services use their own Code/ dir so the same Dockerfile works
+    # in both local and HF Space builds (HF flat-rsyncs Code/ contents into
+    # the Space root, which then becomes the build context).
     BACKEND_CONTAINERS = {
-        "ch-findcare": ("findcare",
-                        "Code/ConversationalUX/FindCareChat/backend"),
-        "ch-evalcare": ("evalcare",
-                        "evaluateCare/Code"),
+        "ch-findcare":  ("findcare",
+                         "Code/ConversationalUX/FindCareChat/backend",
+                         "."),
+        "ch-evalcare":  ("evalcare",
+                         "evaluateCare/Code",
+                         "evaluateCare/Code"),
         "ch-sharedsvc": ("shared",
+                         "sharedServices/Code",
                          "sharedServices/Code"),
     }
 
@@ -269,7 +278,8 @@ class LocalDeploy:
         on evaluate_care for evalcare). Repo-root .dockerignore keeps the
         transferred context small.
         """
-        for container_name, (_label, src_dir) in self.BACKEND_CONTAINERS.items():
+        for container_name, entry in self.BACKEND_CONTAINERS.items():
+            _label, src_dir, build_ctx_rel = entry
             image_tag = container_name  # same name for image and container
             dockerfile_rel = f"{src_dir}/Dockerfile"
             dockerfile_abs = self.repo_root / src_dir / "Dockerfile"
@@ -278,15 +288,16 @@ class LocalDeploy:
                     f"ERROR: Dockerfile missing at {dockerfile_abs}. "
                     "V11 S-002-REQ-T-001 requires Dockerfile per backend."
                 )
+            build_ctx_abs = self.repo_root if build_ctx_rel == "." else (self.repo_root / build_ctx_rel)
             self._step_notice(
                 f"building image {image_tag} (-f {dockerfile_rel}, "
-                "context=repo root)"
+                f"context={build_ctx_rel})"
             )
             result = subprocess.run(
                 ["docker", "build",
                  "-t", image_tag,
                  "-f", str(dockerfile_abs),
-                 str(self.repo_root)],
+                 str(build_ctx_abs)],
                 cwd=str(self.repo_root),
                 capture_output=True, text=True,
                 creationflags=(subprocess.CREATE_NO_WINDOW
@@ -371,7 +382,7 @@ class LocalDeploy:
 
         cflags = (subprocess.CREATE_NO_WINDOW
                   if sys.platform == "win32" else 0)
-        for container_name, (label, _src_dir) in self.BACKEND_CONTAINERS.items():
+        for container_name, (label, _src_dir, _build_ctx) in self.BACKEND_CONTAINERS.items():
             host_port = self.PORTS[label]
             # Remove existing container (silent-ok if absent — `docker rm
             # -f` exit is non-zero when name unknown but harmless).

@@ -1,28 +1,29 @@
 # EvaluateCare backend Dockerfile.
 #
-# Build context: REPO ROOT.
-# Build invocation:
-#   docker build -t ch-evalcare -f evaluateCare/Code/Dockerfile <repo_root>
+# Build context: this directory (evaluateCare/Code/). Same paths work for
+# local builds (where local_deploy.py uses this dir as the context) and for
+# the HF Space build (where the GHA workflow flat-rsyncs this dir's
+# contents into the Space root, which becomes the context).
 #
-# Container layout (mirrors evaluateCare/Code/ exactly):
-#   /app/app.py                     entry point, the single object that imports each feature
+# Container layout:
+#   /app/app.py                     entry point
 #   /app/healthcheck/               /health
 #   /app/displayChrome/             /splash, /transfer/to-findcare
-#   /app/security/                  /session, /verify-token, /debug/*, session_token model
+#   /app/security/                  /session, /verify-token, /debug/*, session_token
 #   /app/externalInterface/         /evaluate/providers (FindCare → EvaluateCare handoff)
 
 FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY evaluateCare/Code/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-COPY evaluateCare/Code/app.py             /app/app.py
-COPY evaluateCare/Code/healthcheck        /app/healthcheck
-COPY evaluateCare/Code/displayChrome      /app/displayChrome
-COPY evaluateCare/Code/security           /app/security
-COPY evaluateCare/Code/externalInterface  /app/externalInterface
+COPY app.py             /app/app.py
+COPY healthcheck        /app/healthcheck
+COPY displayChrome      /app/displayChrome
+COPY security           /app/security
+COPY externalInterface  /app/externalInterface
 
 ENV PORT=7860 \
     CERTS_DIR=/certs \
