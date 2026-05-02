@@ -895,8 +895,11 @@
         // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
         if (typeof window.refreshBanner === 'function') window.refreshBanner('evaluatecare');
         var chatFrame = document.getElementById('coreChatFrame');
-        var apiBase = window._hfBaseUrl || '';
-        fetch(apiBase + '/evaluate/splash')
+        // Splash content comes from the owning service directly (V11
+        // S-005-REQ-B-004 "served by the HuggingFace server that owns
+        // the content"). FindCare is no longer a proxy.
+        var evalcareUrl = (window._envServiceUrls || {}).evaluatecare || '';
+        fetch(evalcareUrl + '/splash')
           .then(function(r) { return r.json(); })
           .then(function(d) {
             chatFrame.style.display = 'none';
@@ -952,13 +955,14 @@
         // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
         if (typeof window.refreshBanner === 'function') window.refreshBanner('sharedservices');
         var chatFrame = document.getElementById('coreChatFrame');
-        var apiBase = src;
 
         // Get session token from left panel for mutual auth verification
         var sessionEl = document.getElementById('guiSessionId');
         var sessionToken = sessionEl ? sessionEl.textContent : '';
 
-        fetch(apiBase + '/shared/splash')
+        // Splash content from the owning service directly (V11 S-005-REQ-B-004).
+        var sharedUrl = (window._envServiceUrls || {}).sharedservices || '';
+        fetch(sharedUrl + '/splash')
           .then(function(r) { return r.json(); })
           .then(function(d) {
             chatFrame.style.display = 'none';
@@ -1170,11 +1174,10 @@
                 if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
                 // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
                 if (typeof window.refreshBanner === 'function') window.refreshBanner('evaluatecare');
-                var chatSrc = chatFrame.src || '';
-                var apiBase = chatSrc.replace(/\/static\/.*$/, '').replace(/\/$/, '');
-                if (!apiBase) apiBase = '';
-                // Fetch splash from EvaluateCare service (via FindCare proxy)
-                fetch(apiBase + '/evaluate/splash')
+                // Splash content from the owning service directly (V11
+                // S-005-REQ-B-004). FindCare is no longer a proxy.
+                var evalcareUrl = (window._envServiceUrls || {}).evaluatecare || '';
+                fetch(evalcareUrl + '/splash')
                   .then(function(r) { return r.json(); })
                   .then(function(d) {
                     // Paint EvaluateCare splash in CENTER panel (iframe area)
