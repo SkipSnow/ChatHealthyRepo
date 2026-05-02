@@ -133,7 +133,9 @@ jobs:
           # Brain artifacts needed at runtime
           mkdir -p hf_space/brain/machine_artifacts/content
           cp brain/machine_artifacts/content/emergency_keywords.json hf_space/brain/machine_artifacts/content/
-          cp brain/machine_artifacts/content/version.json hf_space/brain/machine_artifacts/content/
+          # version.json removed per BUG-001: canonical build/version/framework
+          # now lives in MongoDB admin.Versions; HF backend reads via /health
+          # which reads the latest record. No filesystem version artifact.
 
           # UAT report tool
           mkdir -p hf_space/ops
