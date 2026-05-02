@@ -12,11 +12,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "@shared/ux/*": ["../../../Shared/ux/*"]
-    }
+    "strict": true
   },
-  "include": ["src", "../../../Shared/ux"]
+  "include": ["src"]
 }
