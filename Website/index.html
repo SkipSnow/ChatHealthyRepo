@@ -1030,7 +1030,7 @@
         if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
         // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
         if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
-        fetch(apiBase + '/transfer/to-findcare', { method: 'POST' })
+        fetch(((window._envServiceUrls || {}).evaluatecare || '') + '/transfer/to-findcare', { method: 'POST' })
           .then(function(r) { return r.json(); })
           .catch(function() { window.chFatalError(''); return {}; })
           .then(function() {
