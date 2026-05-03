@@ -66,5 +66,7 @@ class VerifyTokenEndpoint:
                 # the responding service.
                 origin="SharedServices",
                 verified=token_valid,
+                created_at=inbound.get("created_at", "") or "",
+                server_env=inbound.get("server_env"),
             ),
         )
