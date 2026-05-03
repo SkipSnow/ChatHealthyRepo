@@ -691,20 +691,6 @@ def health():
         result["version_error"] = _version_error
     return result
 
-# ── EPIC-008-F-011-S-001 verification harness ─────────────────
-# graph-exempt: test/debug endpoint — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.get("/dev/raise-fatal")
-def dev_raise_fatal():
-    """Test-only endpoint to fire a ChatHealthyFatalError on demand so the
-    REQ-B-001 overlay can be verified end-to-end. Refuses in prod."""
-    if _ENV_PREFIX == "prod":
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="not available in prod")
-    raise ChatHealthyFatalError(
-        api="/dev/raise-fatal",
-        source="manual verification trigger",
-    )
-
 # ── Session token — signed with FindCare's x509 cert ──────────
 # graph-exempt: session token read, no LLM — security primitive; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/session")
