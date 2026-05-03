@@ -611,6 +611,9 @@
 
       // REQ-B-001 trigger: patch fetch so any 503 response trips the overlay.
       // Only 503 is the fatal contract — other status codes are the caller's concern.
+      // Per REQ-B-002, the response body shape is {detail:{service, source, time}};
+      // format it as a human-readable line so the user can read the service name
+      // back to Skip on the phone (Line 2 of the overlay).
       var _origFetch = window.fetch;
       window.fetch = function() {
         return _origFetch.apply(this, arguments).then(function(resp) {
@@ -619,8 +622,16 @@
               var msg;
               try {
                 var parsed = JSON.parse(body);
-                msg = (parsed && (parsed.detail || parsed.message || parsed.error)) || body;
-                if (typeof msg === 'object') msg = JSON.stringify(msg);
+                var detail = parsed && parsed.detail;
+                if (detail && typeof detail === 'object' && detail.service) {
+                  msg = detail.service + ' service unavailable'
+                      + (detail.source ? ' (source: ' + detail.source + ')' : '')
+                      + (detail.time   ? ' at '       + detail.time           : '');
+                } else if (typeof detail === 'string') {
+                  msg = detail;
+                } else {
+                  msg = body;
+                }
               } catch (_) { msg = body; }
               window.chFatalError(String(msg || 'Service returned 503'));
             }).catch(function() {

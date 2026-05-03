@@ -247,7 +247,7 @@ _rg_shared = _rg_os.path.join(_rg_os.path.dirname(__file__), "..", "..", "..", "
 if _rg_shared not in _rg_sys.path:
     _rg_sys.path.insert(0, _rg_shared)
 from runtime_governance import ChatHealthyFatalError, register_fatal_handler  # noqa: E402
-register_fatal_handler(app, service_name="findcare")
+register_fatal_handler(app, service_name="FindCare")
 
 # ── EPIC-002-F-001-S-012-REQ-T-004: startup security-primitive verification ──
 # /session depends on session_token.generate_session_token producing a
