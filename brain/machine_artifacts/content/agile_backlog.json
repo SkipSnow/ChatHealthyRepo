@@ -1128,128 +1128,13 @@
               "feature_id": "EPIC-005-F-001",
               "name": "User Testing",
               "status": "in_progress",
-              "description": "User testing simulation, QA reporting, and test migration.",
+              "description": "User testing simulation, and test migration.",
               "realized_by": [
                 "Python 3.11",
                 "Playwright"
               ],
               "stories": {
                 "story": [
-                  {
-                    "story_id": "EPIC-005-F-001-S-002",
-                    "size": "M",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-005-F-001-S-002-REQ-B-001",
-                          "requirement": "Report scoped by epic — shows only features for the specified release",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Report shows only features within the specified epic and release",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-005-F-001-S-002-REQ-B-002",
-                          "requirement": "Report accessible in dev and QA only — not visible in prod",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Report accessible only in dev and QA environments, hidden in production",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "QA report renderer reads brain JSON and produces HTML",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "QA report renderer reads brain JSON and produces HTML"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-001-S-003",
-                    "size": "S",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-005-F-001-S-003-REQ-B-001",
-                          "requirement": "PASS=green, FAIL=red, NOT_STARTED=gray, IN_PROGRESS=blue, RELEASE_BLOCKER=red bold",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Display PASS as green, FAIL as red, NOT_STARTED as gray, IN_PROGRESS as blue, RE",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "QA report shows test case status with color coding",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "QA report shows test case status with color coding"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-001-S-004",
-                    "size": "S",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-005-F-001-S-004-REQ-B-001",
-                          "requirement": "Prior QA reports referenced with status",
-                          "priority": "should-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Display prior QA reports with their review status",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "QA report includes prior release history",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "QA report includes prior release history"
-                  },
                   {
                     "story_id": "EPIC-005-F-001-S-005",
                     "size": "S",
@@ -1300,76 +1185,6 @@
                     "orphan": false,
                     "approval": "proposed",
                     "name": "Application loading indicator until app is ready"
-                  },
-                  {
-                    "story_id": "EPIC-005-F-001-S-006",
-                    "size": "M",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-005-F-001-S-006-REQ-B-001",
-                          "requirement": "Test case status fields are editable dropdowns (PASS/FAIL/DEFERRED/NOT_STARTED)",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Test case status is an editable dropdown with PASS/FAIL/DEFERRED/NOT_STARTED",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-005-F-001-S-006-REQ-B-002",
-                          "requirement": "Only human can submit — no authentication bypass",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Require human submission; prevent authentication bypass",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-005-F-001-S-006-REQ-T-001",
-                          "requirement": "Submit button saves changes to MongoDB via POST endpoint",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "pytests": {
-                            "pytest": [
-                              {
-                                "pytest_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Submit button saves changes to MongoDB using POST endpoint",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Interactive QA report — edit and submit from browser",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Interactive QA report — edit and submit from browser"
                   },
                   {
                     "story_id": "EPIC-005-F-001-S-007",

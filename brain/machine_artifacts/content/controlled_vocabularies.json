@@ -133,22 +133,8 @@
         }
       ],
       "invoked_by": {
-        "source_files": [
-          {
-            "file": "Code/ConversationalUX/FindCareChat/backend/main.py",
-            "function": "qa_report",
-            "note": "QA report renderer color coding"
-          },
-          {
-            "file": "Code/ConversationalUX/FindCareChat/backend/main.py",
-            "function": "qa_report_submit",
-            "note": "QA report dropdown options"
-          }
-        ],
-        "stories": [
-          "DEVOPS-QA-001",
-          "DEVOPS-QA-002"
-        ]
+        "source_files": [],
+        "stories": []
       }
     },
     {
