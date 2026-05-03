@@ -334,7 +334,7 @@
                                                     "properties": {
                                                       "pytest_id": {
                                                         "type": "string",
-                                                        "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}-REQ-[BT]-\\d{3}-PYTEST-[12]$",
+                                                        "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}-REQ-[BT]-\\d{3}-PYTEST-(?:[12]|[Uu][Nn][Ss][Uu][Pp][Pp][Oo][Rr][Tt][Aa][Bb][Ll][Ee])$",
                                                         "description": "Required when orphan=false; forbidden when orphan=true."
                                                       },
                                                       "orphan": {
@@ -348,7 +348,8 @@
                                                           "unit",
                                                           "integration",
                                                           "analysis",
-                                                          "ORPHAN"
+                                                          "ORPHAN",
+                                                          "Unsupportable"
                                                         ]
                                                       },
                                                       "file": {
