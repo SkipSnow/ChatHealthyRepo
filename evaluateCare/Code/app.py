@@ -117,20 +117,20 @@ def _impl(cls_name, file_subpath):
     }
 
 
-@app.get("/health", operation_id="HealthEndpoint",
-         openapi_extra=_impl("HealthEndpoint", "healthcheck/health_endpoint.py"))
+@app.post("/health", operation_id="HealthEndpoint",
+          openapi_extra=_impl("HealthEndpoint", "healthcheck/health_endpoint.py"))
 def health():
     return HealthEndpoint()()
 
 
-@app.get("/splash", operation_id="SplashEndpoint",
-         openapi_extra=_impl("SplashEndpoint", "displayChrome/splash_endpoint.py"))
+@app.post("/splash", operation_id="SplashEndpoint",
+          openapi_extra=_impl("SplashEndpoint", "displayChrome/splash_endpoint.py"))
 def splash():
     return SplashEndpoint()()
 
 
-@app.get("/session", operation_id="SessionEndpoint", response_model=SessionToken,
-         openapi_extra=_impl("SessionEndpoint", "security/session_endpoint.py"))
+@app.post("/session", operation_id="SessionEndpoint", response_model=SessionToken,
+          openapi_extra=_impl("SessionEndpoint", "security/session_endpoint.py"))
 def session():
     return SessionEndpoint()()
 

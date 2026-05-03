@@ -611,7 +611,7 @@ async def qa_report_submit(request: Request):
     from starlette.responses import RedirectResponse
     return RedirectResponse(url="/qa-report", status_code=303)
 
-@app.get("/welcome")
+@app.post("/welcome")
 def welcome():
     return {"message": WELCOME_MESSAGE}
 
@@ -653,7 +653,7 @@ def _check_indexes() -> dict:
     return {"status": status, "missing": missing, "errors": errors}
 
 # graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.get("/health")
+@app.post("/health")
 def health():
     """Health-state report. Returns 200 always — the body's `status` field
     carries the result. /health is a state report, not a fatal-trigger:
@@ -693,7 +693,7 @@ def health():
 
 # ── Session token — signed with FindCare's x509 cert ──────────
 # graph-exempt: session token read, no LLM — security primitive; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.get("/session")
+@app.post("/session")
 def get_session():
     """Generate a signed session token for this browser session.
     Client stores it in memory, passes it on cross-component calls.

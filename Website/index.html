@@ -743,7 +743,7 @@
         // first so bracket and buttons stay atomically aligned, then
         // overlay real values when /health resolves.
         paintBanner('?', '?', '?');
-        fetch(healthUrl).then(function(r) { return r.json(); }).then(function(d) {
+        fetch(healthUrl, { method: 'POST' }).then(function(r) { return r.json(); }).then(function(d) {
           paintBanner(d.version, d.framework, d.build);
         }).catch(function() { window.chFatalError(''); });
       };
@@ -902,7 +902,7 @@
           coldUrl = sharedUrl; color = '#0b7a75'; label = 'FindCare';       bg = '#f0fffe';
         }
 
-        fetch(apiBase + '/session')
+        fetch(apiBase + '/session', { method: 'POST' })
           .then(function(r) {
             if (!r.ok) throw new Error('FindCare /session HTTP ' + r.status);
             return r.json();
@@ -993,7 +993,7 @@
         // S-005-REQ-B-004 "served by the HuggingFace server that owns
         // the content"). FindCare is no longer a proxy.
         var evalcareUrl = (window._envServiceUrls || {}).evaluatecare || '';
-        fetch(evalcareUrl + '/splash')
+        fetch(evalcareUrl + '/splash', { method: 'POST' })
           .then(function(r) { return r.json(); })
           .then(function(d) {
             chatFrame.style.display = 'none';
@@ -1066,7 +1066,7 @@
 
         // Splash content from the owning service directly (V11 S-005-REQ-B-004).
         var sharedUrl = (window._envServiceUrls || {}).sharedservices || '';
-        fetch(sharedUrl + '/splash')
+        fetch(sharedUrl + '/splash', { method: 'POST' })
           .then(function(r) { return r.json(); })
           .then(function(d) {
             chatFrame.style.display = 'none';
@@ -1280,7 +1280,7 @@
                 // Splash content from the owning service directly (V11
                 // S-005-REQ-B-004). FindCare is no longer a proxy.
                 var evalcareUrl = (window._envServiceUrls || {}).evaluatecare || '';
-                fetch(evalcareUrl + '/splash')
+                fetch(evalcareUrl + '/splash', { method: 'POST' })
                   .then(function(r) { return r.json(); })
                   .then(function(d) {
                     // Paint EvaluateCare splash in CENTER panel (iframe area)
