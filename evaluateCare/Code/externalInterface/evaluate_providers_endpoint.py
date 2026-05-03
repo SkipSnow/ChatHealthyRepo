@@ -12,7 +12,6 @@ from security.session_token import (
     TokenInfraError,
     verify_session_token,
 )
-from runtimeGovernance.runtime_governance import ChatHealthyFatalError
 
 
 class Provider(BaseModel):
@@ -63,12 +62,6 @@ class EvaluateProvidersEndpoint:
         self.log = logging.getLogger("evaluate_care.evaluate_providers")
 
     def __call__(self, body: EvaluateProvidersRequest) -> EvaluateProvidersResponse:
-        # TEMPORARY test stage for EPIC-008-F-011-S-001-REQ-B-001/002/003
-        # verification — remove after Skip confirms the overlay fires.
-        raise ChatHealthyFatalError(
-            api="/evaluate/providers",
-            source="staged fatal — overlay verification",
-        )
         if not body.session_token:
             raise HTTPException(status_code=400, detail="session_token is required")
         inbound = body.session_token.model_dump()

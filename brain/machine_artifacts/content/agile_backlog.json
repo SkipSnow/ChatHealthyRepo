@@ -15189,7 +15189,7 @@
                     "name": "Run Time Error Management",
                     "description": "Defines and enforces runtime error behavior for the ChatHealthy.AI front-end application. This story covers how the application surfaces failures to users, how it interacts with backend services under failure conditions.",
                     "size": "S",
-                    "status": "in_progress",
+                    "status": "done",
                     "approval": "approved",
                     "requirements": {
                       "requirement": [
@@ -15198,7 +15198,7 @@
                           "name": "Fatal error full-screen display in index.html",
                           "requirement": "For every error that is fatal — meaning any error condition whatsoever that is not explicitly required in a written requirement to be less than fatal — index.html is to display the following: In a large font and centered: 'HTTP 503: Fatal Error, this service is not available.' In a smaller font and centered: Line 1: link to HTTPS://{current environment}.chathealthy.ai. Line 2: If you get this error repeatedly and wish to call our team, please call Skip Snow @ 646 408 8999. Line 3: If you prefer email skip's email is: skip@chatHealthy.ai. Line 4: smaller text that wraps, the error message returned from an API. If the error is from the JavaScript without a call to an API then the error message will be 'JS routine {failed}'. Line 5: we apologize for this problem.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "pytests": {
                             "pytest": [
@@ -15217,7 +15217,7 @@
                           "name": "Internal API error responses must not reveal application facts",
                           "requirement": "Every API that index.html calls that is internal to ChatHealthy.ai's servers must, when they encounter errors, return an error message that is not sufficiently clear that it would reveal any significant fact about the application. The error message can cite the API that failed, the rough-grained source of the error, and the time of the error.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "pytests": {
                             "pytest": [
@@ -15236,7 +15236,7 @@
                           "name": "API errors must log a detailed message for later debugging",
                           "requirement": "Any API that does encounter an error must log a detailed message about the error so that it can be debugged later.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "pytests": {
                             "pytest": [
