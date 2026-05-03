@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # TEST-REG-001: Ordered regression test runner.
-# Reads agile_backlog.json, runs pytests in hierarchy order.
+# Reads agile_backlog.json, runs tests in hierarchy order.
 #
 # Usage:
 #   python regression_runner.py --all
@@ -37,7 +37,7 @@ def load_backlog():
 
 
 def collect_tests(backlog, scope_type, scope_value):
-    """Collect pytest_ids grouped by hierarchy, filtered by scope."""
+    """Collect test_ids grouped by hierarchy, filtered by scope."""
     tests = []
 
     for epic in backlog.get("epics", []):
@@ -57,7 +57,7 @@ def collect_tests(backlog, scope_type, scope_value):
 
                 for req in story.get("requirements", []):
                     rid = req.get("req_id", "")
-                    pytest_ids = req.get("pytest_ids", [])
+                    test_ids = req.get("test_ids", [])
                     status = req.get("status", "")
 
                     tests.append({
@@ -68,7 +68,7 @@ def collect_tests(backlog, scope_type, scope_value):
                         "story_id": sid,
                         "req_id": rid,
                         "requirement": req.get("requirement", "")[:100],
-                        "pytest_ids": pytest_ids,
+                        "test_ids": test_ids,
                         "status": status,
                         "test_method": req.get("test_method", ""),
                         "test_timeout_seconds": req.get("test_timeout_seconds", 0),
@@ -78,7 +78,7 @@ def collect_tests(backlog, scope_type, scope_value):
 
 
 def find_test_file(pytest_ref):
-    """Resolve a pytest_id like 'test_foo.py::TestBar::test_baz' to a full path."""
+    """Resolve a test_id like 'test_foo.py::TestBar::test_baz' to a full path."""
     if not pytest_ref or pytest_ref == "NEEDS_TEST":
         return None
     fname = pytest_ref.split("::")[0]
@@ -90,7 +90,7 @@ def find_test_file(pytest_ref):
 
 
 def _clean_pytest_ref(pytest_ref):
-    """Clean up pytest_id references that have extra info like '(7 tests)'."""
+    """Clean up test_id references that have extra info like '(7 tests)'."""
     # Remove parenthetical counts: "TestHTTPRejection (7 tests)" -> "TestHTTPRejection"
     import re
     return re.sub(r'\s*\(\d+\s+tests?\)', '', pytest_ref).strip()
@@ -160,8 +160,8 @@ def run_regression(scope_type="all", scope_value=None, concurrency=4):
         if status not in ("implemented", "in_progress"):
             not_testable.append({**t, "result": "not_implemented", "detail": ""})
             continue
-        pytest_ids = t["pytest_ids"]
-        if not pytest_ids or not any(p.strip() for p in pytest_ids):
+        test_ids = t["test_ids"]
+        if not test_ids or not any(p.strip() for p in test_ids):
             not_testable.append({**t, "result": "not_testable", "detail": ""})
             continue
         testable.append(t)
@@ -180,7 +180,7 @@ def run_regression(scope_type="all", scope_value=None, concurrency=4):
     # Stream results as they complete
     req_results = {}  # req_id -> {req, details[]}
     completed_count = [0]
-    total_tasks = sum(len([p for p in t["pytest_ids"] if p.strip() and p != "NEEDS_TEST"]) for t in testable)
+    total_tasks = sum(len([p for p in t["test_ids"] if p.strip() and p != "NEEDS_TEST"]) for t in testable)
 
     launch_counter = [0]
 
@@ -194,13 +194,13 @@ def run_regression(scope_type="all", scope_value=None, concurrency=4):
         completed_count[0] += 1
         marker = "PASS" if status == "pass" else status.upper()
         print(f"  [{completed_count[0]}/{total_tasks}] {t['req_id']} / {pid}: {marker}", flush=True)
-        return t["req_id"], {"pytest_id": pid, "result": status, "detail": detail}
+        return t["req_id"], {"test_id": pid, "result": status, "detail": detail}
 
     async def run_all():
         sem = asyncio.Semaphore(concurrency)
         tasks = []
         for t in testable:
-            for pid in t["pytest_ids"]:
+            for pid in t["test_ids"]:
                 pid = pid.strip()
                 if not pid or pid == "NEEDS_TEST":
                     continue

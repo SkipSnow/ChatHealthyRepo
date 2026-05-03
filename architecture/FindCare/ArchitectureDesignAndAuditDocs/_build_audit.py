@@ -41,8 +41,8 @@ TOTAL = len(reqs)
 
 # ----- Classification helpers -----
 def pyt_list(r):
-    pn = r.get("pytests", {}) or {}
-    pl = pn.get("pytest", []) if isinstance(pn, dict) else []
+    pn = r.get("tests", {}) or {}
+    pl = pn.get("test", []) if isinstance(pn, dict) else []
     if isinstance(pl, dict):
         pl = [pl]
     return pl
@@ -54,7 +54,7 @@ def is_orphan_pytest(r):
         return True
     for p in pl:
         f = (p.get("file") or "").upper()
-        pid = (p.get("pytest_id") or "").upper()
+        pid = (p.get("test_id") or "").upper()
         if p.get("orphan") is True or f == "ORPHAN" or "ORPHAN" in pid:
             return True
         if not p.get("file"):

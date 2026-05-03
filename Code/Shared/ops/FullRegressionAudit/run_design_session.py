@@ -115,7 +115,7 @@ def main():
         "   e. Context carry-forward (Virginia then Richmond)\n"
         "   f. Consent trigger (5th message)\n"
         "   g. URL validation on tool response\n\n"
-        "3. BACKLOG: features, stories (with size), boolean-testable requirements, pytest children\n\n"
+        "3. BACKLOG: features, stories (with size), boolean-testable requirements, test children\n\n"
         "Be rigorous. Use real class names. Show method signatures. Reference actual codebase files.\n"
         "This is a design document developers will implement from.\n\n"
         "Pattern: Interface-first. Thin superclass (just routing/dispatch). Middleware for cross-cutting.\n"

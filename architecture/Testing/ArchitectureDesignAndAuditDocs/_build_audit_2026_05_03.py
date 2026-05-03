@@ -37,9 +37,9 @@ for feat in epic5["features"]["feature"]:
         sstatus = story.get("status", "")
         sdesc = story.get("description", "")
         for req in story["requirements"]["requirement"]:
-            pytests = req.get("pytests", {}).get("pytest", [])
+            pytests = req.get("tests", {}).get("test", [])
             files = [pt.get("file", "") for pt in pytests]
-            ptypes = [pt.get("pytest_type", "") for pt in pytests]
+            ptypes = [pt.get("test_type", "") for pt in pytests]
             records.append({
                 "fid": fid,
                 "fname": fname,
@@ -52,8 +52,8 @@ for feat in epic5["features"]["feature"]:
                 "text": req.get("requirement", ""),
                 "status": req.get("status", ""),
                 "approval": req.get("approval", ""),
-                "pytest_files": files,
-                "pytest_types": ptypes,
+                "test_files": files,
+                "test_types": ptypes,
             })
 
 total = len(records)
@@ -77,7 +77,7 @@ for r in records:
 
 
 def all_orphan(r):
-    return all(t == "ORPHAN" for t in r["pytest_types"]) if r["pytest_types"] else True
+    return all(t == "ORPHAN" for t in r["test_types"]) if r["test_types"] else True
 
 
 # --- F-001 S-005: Loading message + retry ---
@@ -327,7 +327,7 @@ def emit_class(title, items, intro):
             doc.add_paragraph(f"Status / Approval: {r['status']} / {r['approval']}")
             doc.add_paragraph(
                 "Pytest evidence: "
-                + ("; ".join(f"[{t}] {f}" for t, f in zip(r["pytest_types"], r["pytest_files"]))
+                + ("; ".join(f"[{t}] {f}" for t, f in zip(r["test_types"], r["test_files"]))
                    or "(none)")
             )
         else:

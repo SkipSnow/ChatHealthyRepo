@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Derived view of agile_backlog.json pruned at story level.
-# Non-schema-compliant by design: omits requirements/pytests/realized_by
+# Non-schema-compliant by design: omits requirements/tests/realized_by
 # arrays. Intended as a lightweight context artifact so Claude can see
 # the Epic→Feature→Story shape of the backlog without the full 521K
 # tokens of requirement text.
@@ -47,7 +47,7 @@ def build():
     view = {
         "_schema_compliant": False,
         "_source": "brain/machine_artifacts/content/agile_backlog.json",
-        "_view": "story-level pruned view — no requirements, pytests, realized_by",
+        "_view": "story-level pruned view — no requirements, tests, realized_by",
         "_generated_at": time.time(),
         "epics": [],
     }
