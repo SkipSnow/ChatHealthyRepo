@@ -491,7 +491,9 @@ class LocalDeploy:
                 missing = []
                 for label, url, ok_pred in checks:
                     try:
-                        r = c.get(url)
+                        # Wrapper root is GET (static HTML); backend /health
+                        # endpoints are POST per EPIC-008-F-011-S-002-REQ-B-001.
+                        r = (c.get(url) if label == "website" else c.post(url))
                         if r.status_code == 200 and ok_pred(r.text):
                             ready.append(label)
                             last_state[label] = "ready"
@@ -544,7 +546,8 @@ class LocalDeploy:
             for svc, port in (("findcare", self.PORTS["findcare"]),
                               ("evalcare", self.PORTS["evalcare"]),
                               ("shared",   self.PORTS["shared"])):
-                r = c.get(f"https://localhost:{port}/health")
+                # /health is POST per EPIC-008-F-011-S-002-REQ-B-001.
+                r = c.post(f"https://localhost:{port}/health")
                 record(f"{svc}_health",
                        r.status_code == 200,
                        r.text)
@@ -558,7 +561,7 @@ class LocalDeploy:
             ("shared",   self.PORTS["shared"],   "shared_services"),
         ):
             with httpx.Client(cert=fc_cert, verify=ca, timeout=10) as cc:
-                r = cc.get(f"https://localhost:{tgt_port}/health")
+                r = cc.post(f"https://localhost:{tgt_port}/health")
                 ok = r.status_code == 200 and expected_substr in r.text
                 record(f"mtls_findcare_to_{tgt_svc}", ok,
                        r.text if ok else f"{r.status_code}: {r.text}")
