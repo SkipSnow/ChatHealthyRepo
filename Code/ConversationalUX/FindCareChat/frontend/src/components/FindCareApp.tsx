@@ -56,7 +56,7 @@ function checkSecurityViolation(resp: Response, url: string): void {
 // of silent security regression that masked BUG-SEC-007.
 let _sessionToken: any = null
 async function getSessionToken(): Promise<any> {
-  const resp = await fetch(`${API_URL}/session`)
+  const resp = await fetch(`${API_URL}/session`, { method: 'POST' })
   checkSecurityViolation(resp, `${API_URL}/session`)
   _sessionToken = await resp.json()
   return _sessionToken
@@ -87,7 +87,7 @@ export default function FindCareApp() {
 
   // Fetch welcome message on mount
   useEffect(() => {
-    fetch(`${API_URL}/welcome`)
+    fetch(`${API_URL}/welcome`, { method: 'POST' })
       .then(r => r.json())
       .then(d => setWelcomeHtml(d.message || 'Welcome to ChatHealthy FindCare'))
       .catch(() => setWelcomeHtml('Welcome to ChatHealthy FindCare'))

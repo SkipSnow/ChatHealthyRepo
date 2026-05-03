@@ -35,7 +35,7 @@ const LOADING_MESSAGE: Message = {
 let _sessionToken: any = null
 async function getSessionToken(apiUrl: string) {
   if (_sessionToken) return _sessionToken
-  const resp = await fetch(`${apiUrl}/session`)
+  const resp = await fetch(`${apiUrl}/session`, { method: 'POST' })
   _sessionToken = await resp.json()
   return _sessionToken
 }
@@ -324,7 +324,7 @@ export default function ChatWindow() {
 
   // Fetch welcome message dynamically from server — no static defaults
   useEffect(() => {
-    fetch(`${API_URL}/welcome`)
+    fetch(`${API_URL}/welcome`, { method: 'POST' })
       .then(r => r.json())
       .then(data => {
         if (data.message) {
@@ -338,7 +338,7 @@ export default function ChatWindow() {
 
   // Fetch build number + env from /health on mount
   useEffect(() => {
-    fetch(`${API_URL}/health`)
+    fetch(`${API_URL}/health`, { method: 'POST' })
       .then(r => r.json())
       .then(data => {
         backendEnvRef.current = data.env || 'prod'
