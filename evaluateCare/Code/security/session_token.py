@@ -45,6 +45,8 @@ class SessionTokenVerification(BaseModel):
     signature_received: str = Field(..., description="First 40 chars of the received signature, then '...' — for visual audit, not re-verification")
     origin: str = Field(..., description="Self-identification of the responding service: FindCare | EvaluateCare | SharedServices (per S-012-REQ-B-010, distinct from the cryptographic signer)")
     verified: bool = Field(..., description="True if the signature validated against the named origin's public cert")
+    created_at: str = Field("", description="ISO 8601 UTC timestamp the input token was minted — echoed for client display per S-012-REQ-B-009")
+    server_env: Optional[str] = Field(None, description="Issuing service's env (LOCAL|DEV|QA|PROD) — echoed for client display per S-012-REQ-B-009")
 
 
 CERTS_DIR = os.environ.get("CERTS_DIR",

@@ -912,12 +912,6 @@
               throw new Error('verify-token response missing session_token');
             }
             var st = result.session_token;
-            // RIGHT — security panel inside #rightSecurity (coexists with
-            // provider/splash content in #rightContent).
-            // LEFT is intentionally NOT touched per
-            // EPIC-006-F-002-S-001-REQ-B-011: LEFT (SpecialtyFilter +
-            // session token cell) is FindCare territory and persists
-            // across every service-control transfer.
             window.ensureRightPanelStructure();
             var sec = document.getElementById('rightSecurity');
             if (sec) {
@@ -928,6 +922,8 @@
                 + '</div>'
                 + window.buildTokenDisplayHtml(st);
             }
+            var leftCell = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
+            if (leftCell) leftCell.innerHTML = window.buildTokenDisplayHtml(st);
           })
           .catch(function() { window.chFatalError(''); });
       };
@@ -1627,14 +1623,45 @@
                 var token = msg.token || '';
                 var nonce = token.length >= 36 ? token.substring(2, 36) : token;
                 var guid = token.length >= 68 ? token.substring(36) : '';
+                var pstTime = '?';
+                if (token.length >= 36) {
+                  var c = token.substring(19, 36);
+                  try {
+                    var d = new Date(Date.UTC(
+                      parseInt(c.substring(4, 8), 10),
+                      parseInt(c.substring(0, 2), 10) - 1,
+                      parseInt(c.substring(2, 4), 10),
+                      parseInt(c.substring(8, 10), 10),
+                      parseInt(c.substring(10, 12), 10),
+                      parseInt(c.substring(12, 14), 10)
+                    ));
+                    if (!isNaN(d.getTime())) {
+                      pstTime = d.toLocaleString('en-US', {
+                        timeZone: 'America/Los_Angeles',
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit',
+                        hour12: false,
+                      });
+                    }
+                  } catch (e) { pstTime = '?'; }
+                }
+                var envLabel = window._envLabel || 'UNKNOWN';
                 sessionEl.innerHTML = '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
                   + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
                   + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
+                  + '<b style="color:#6366f1;">Signed token:</b> <span style="color:#6366f1;">Pending…</span></div>'
+                  + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
                   + '<b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + nonce + '</span></div>'
                   + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
                   + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + guid + '</span></div>'
                   + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-                  + '<b>Verified:</b> <span style="color:#6b7280;">Pending...</span></div>'
+                  + '<b>Verified:</b> <span style="color:#6b7280;">Pending…</span></div>'
+                  + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+                  + '<b>Server, serving security token:</b> Pending…</div>'
+                  + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+                  + '<b>Env:</b> <span style="color:#7c3aed;font-weight:700;">' + envLabel + '</span></div>'
+                  + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+                  + '<b>Time:</b> PST <span style="color:#374151;">' + pstTime + '</span></div>'
                   + '</div>';
               };
               var __attempts = 0;

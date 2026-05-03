@@ -662,6 +662,8 @@ def verify_token(body: EvaluateRequest):
             # the cryptographic signer (REQ-017, always FindCare).
             "origin": "FindCare",
             "verified": token_valid,
+            "created_at": body.session_token.get("created_at", "") or "",
+            "server_env": body.session_token.get("server_env"),
         },
     }
 
