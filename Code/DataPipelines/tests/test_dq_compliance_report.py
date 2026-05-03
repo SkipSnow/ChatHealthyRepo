@@ -88,9 +88,9 @@ def _walk_hierarchy(backlog):
                     })
                     req_orphan = req.get("orphan", False)
 
-                    for pt in req.get("pytests", []):
-                        levels["Pytest"].append({
-                            "id": pt.get("pytest_id", ""),
+                    for pt in req.get("tests", []):
+                        levels["Test"].append({
+                            "id": pt.get("test_id", ""),
                             "orphan": pt.get("orphan"),
                             "parent_orphan": req_orphan,
                             "item": pt,
@@ -117,12 +117,12 @@ def test_backlog_file_exists_and_parses(backlog):
 
 
 # ── EPIC-005-F-004-S-008-REQ-T-001 ────────────────────────────────────────
-# Report walks full hierarchy: Epic, Feature, Story, Requirement, Pytest
+# Report walks full hierarchy: Epic, Feature, Story, Requirement, Test
 
 def test_hierarchy_walk_produces_all_levels(backlog):
-    """EPIC-005-F-004-S-008-REQ-T-001: hierarchy walk covers Epic, Feature, Story, Requirement, Pytest."""
+    """EPIC-005-F-004-S-008-REQ-T-001: hierarchy walk covers Epic, Feature, Story, Requirement, Test."""
     levels = _walk_hierarchy(backlog)
-    for level_name in ["Epic", "Feature", "Story", "Requirement", "Pytest"]:
+    for level_name in ["Epic", "Feature", "Story", "Requirement", "Test"]:
         assert len(levels[level_name]) > 0, f"No {level_name} items found in backlog"
 
 
@@ -241,37 +241,37 @@ def test_every_level_has_orphan_boolean(backlog):
 
 
 # ── EPIC-005-F-004-S-008-REQ-T-006 ────────────────────────────────────────
-# Pytest must be child of Requirement, 1-2 pytest children each
+# Test must be child of Requirement, 1-2 test children each
 
-def test_pytest_is_child_of_requirement(backlog):
-    """EPIC-005-F-004-S-008-REQ-T-006: pytest is nested under requirement, not a peer attribute."""
+def test_test_is_child_of_requirement(backlog):
+    """EPIC-005-F-004-S-008-REQ-T-006: test is nested under requirement, not a peer attribute."""
     levels = _walk_hierarchy(backlog)
     for req_item in levels["Requirement"]:
         req = req_item["item"]
-        assert "pytests" in req, (
-            f"Requirement {req.get('req_id', '?')} missing pytests array"
+        assert "tests" in req, (
+            f"Requirement {req.get('req_id', '?')} missing tests array"
         )
-        pytests = req["pytests"]
-        assert isinstance(pytests, list), (
-            f"Requirement {req.get('req_id', '?')} pytests must be a list"
+        tests = req["tests"]
+        assert isinstance(tests, list), (
+            f"Requirement {req.get('req_id', '?')} tests must be a list"
         )
-        assert 1 <= len(pytests) <= 2, (
-            f"Requirement {req.get('req_id', '?')} must have 1-2 pytest children, has {len(pytests)}"
+        assert 1 <= len(tests) <= 2, (
+            f"Requirement {req.get('req_id', '?')} must have 1-2 test children, has {len(tests)}"
         )
 
 
-def test_pytest_children_have_required_fields(backlog):
-    """EPIC-005-F-004-S-008-REQ-T-006: each pytest child has pytest_id, pytest_type, orphan."""
+def test_test_children_have_required_fields(backlog):
+    """EPIC-005-F-004-S-008-REQ-T-006: each test child has test_id, test_type, orphan."""
     levels = _walk_hierarchy(backlog)
     for req_item in levels["Requirement"]:
         req = req_item["item"]
-        for pt in req.get("pytests", []):
-            assert "pytest_id" in pt, f"Pytest in {req.get('req_id', '?')} missing pytest_id"
-            assert "pytest_type" in pt, f"Pytest in {req.get('req_id', '?')} missing pytest_type"
-            assert "orphan" in pt, f"Pytest in {req.get('req_id', '?')} missing orphan"
+        for pt in req.get("tests", []):
+            assert "test_id" in pt, f"Test in {req.get('req_id', '?')} missing test_id"
+            assert "test_type" in pt, f"Test in {req.get('req_id', '?')} missing test_type"
+            assert "orphan" in pt, f"Test in {req.get('req_id', '?')} missing orphan"
             valid_types = ("playwright", "ordinary", "unit", "integration", "static_analysis", "ORPHAN")
-            assert pt["pytest_type"] in valid_types, (
-                f"Pytest in {req.get('req_id', '?')} invalid type: {pt['pytest_type']}"
+            assert pt["test_type"] in valid_types, (
+                f"Test in {req.get('req_id', '?')} invalid type: {pt['test_type']}"
             )
 
 

@@ -118,8 +118,8 @@ class bug_governance_constraints(governance_worker_base):
     severity: str = ""                 # CV-008
     req_id: str = ""
     story_id: str = ""
-    pytest_id: str = ""
-    pytest_success_criteria: list = []
+    test_id: str = ""
+    test_success_criteria: list = []
     discovery_date: str = ""
     due_date: str = ""
     fix: str = ""

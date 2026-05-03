@@ -18,8 +18,8 @@
       "severity": "high",
       "req_id": "EPIC-008-F-004-S-001-REQ-T-002",
       "story_id": "EPIC-008-F-004-S-001",
-      "pytest_id": "BUG-001-PYTEST-1",
-      "pytest_success_criteria": [
+      "test_id": "BUG-001-PYTEST-1",
+      "test_success_criteria": [
         "After a non-deploy commit, the build field of the canonical version document in MongoDB is incremented by exactly one",
         "version.json file does not exist in the repository",
         "No production code reads version.json (grep returns empty)",
@@ -61,8 +61,8 @@
       "severity": "show_stopper",
       "req_id": "Orphan",
       "story_id": "Orphan",
-      "pytest_id": "BUG-002-PYTEST-1",
-      "pytest_success_criteria": [
+      "test_id": "BUG-002-PYTEST-1",
+      "test_success_criteria": [
         "grep for 'c:\\chathealthy\\findcare' (case-insensitive) across Git-eligible artifacts returns zero hits (excluding test_output/, _pending/, scratch dirs that are themselves slated for removal or gitignored)",
         "Every Git-eligible artifact resolves its project root via either os.environ['CHATHEALTHY_PROJECT_ROOT'] or Path(__file__).resolve().parents[N], not from a hardcoded absolute path",
         "C# Worker.cs files take RepoRoot from environment/configuration, not as a const",
@@ -93,8 +93,8 @@
       "severity": "show_stopper",
       "req_id": "EPIC-008-F-004-S-001-REQ-B-001",
       "story_id": "EPIC-008-F-004-S-001",
-      "pytest_id": "BUG-003-PYTEST-1",
-      "pytest_success_criteria": [
+      "test_id": "BUG-003-PYTEST-1",
+      "test_success_criteria": [
         "Code/deploy/local_deploy.py contains NO subprocess-Python fallback path for backend services. The methods _build_backend_containers() and _start_backend_processes() either do real Docker work or fail loudly — there is no third state.",
         "If the Docker daemon is unreachable when LocalDeploy.run() executes, the run aborts with an explicit, terminal error (non-zero exit, clear message: 'Docker daemon required per V11 S-002-REQ-T-001'). It does NOT fall back to subprocess Python.",
         "_build_backend_containers() invokes `docker build` for each of the 3 backend services (idempotent if the image is up to date) producing images ch-findcare, ch-evalcare, ch-sharedsvc.",
@@ -155,7 +155,7 @@
       "severity": "medium",
       "req_id": "EPIC-008-F-001-S-001-REQ-B-002",
       "story_id": "EPIC-008-F-001-S-001",
-      "pytest_id": "",
+      "test_id": "",
       "discovery_date": "2026-05-03",
       "due_date": "2026-06-01",
       "reproduction": "",
