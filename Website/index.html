@@ -637,7 +637,6 @@
       <nav class="header-nav">
         <button type="button" class="nav-coming-soon" data-tip="You are already home">Home</button>
         <button type="button" onclick="openPanel('products.html','Products &amp; Services')">Products &amp; Services</button>
-        <button type="button" id="qaReportNav" style="display:none" onclick="openQAReport()">QA Report</button>
       </nav>
 
       <!-- Hamburger (visible on mobile only) -->
@@ -842,16 +841,7 @@
         src = 'https://' + org + '-' + spaceName + '.hf.space';
       }
 
-      // QA Report + Shared Services — dev/local only
-      if (env !== 'prod') {
-        document.getElementById('qaReportNav').style.display = '';
-      }
-      // sharedServicesNav button lives inside #envBanner — visible when banner is visible
-      // No separate show/hide needed (BUG-UX-021)
       window._hfBaseUrl = src;
-      window.openQAReport = function() {
-        openPanel(src + '/qa-report', 'QA Report — v0.1.4');
-      };
 
       // rightPanel hosts two persistent sub-divs so providers/splash content
       // (written by gui:evaluate-result, gui:shared-result, etc.) and the
