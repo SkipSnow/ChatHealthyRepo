@@ -140,6 +140,26 @@
         "Remove the `except Exception: pass` around the 'Yes, keep waiting' button in localSmokeTestPyTest.py Step 06; either assert the button must be present (and click it) or assert it must be absent. The optional-element-with-suppressed-exception pattern is forbidden across the smoke test.",
         "Add a hard gate at the end of RemoteDeploy._verify_components: if any verification entry has ok=False, sys.exit with the failed checks listed. (Same as the local fix; was missed in original audit.) [DONE in commit 2b4c359.]"
       ]
+    },
+    {
+      "bugid": "BUG-004",
+      "title": "HuggingFace FastAPI's core routing patterns and infrastructure code initiating the fast API servers are unacaptable",
+      "description": "the current fastAPI deployment files, e.g {project root}\\evaluateCare\\Code\u0007pp.py are multi functional, mixiing server initation with the API definitions and without proper encapsualtion. In addtion there is no clean destinction between Public APIs and private internal APIs within the routing tables. FindCare's main.py needs a total refactor.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "fixing",
+      "severity": "medium",
+      "req_id": "EPIC-008-F-001-S-001-REQ-B-002",
+      "story_id": "EPIC-008-F-001-S-001",
+      "pytest_id": "",
+      "discovery_date": "2026-05-03",
+      "due_date": "2026-06-01",
+      "reproduction": "",
+      "orphan": false
     }
   ]
 }
