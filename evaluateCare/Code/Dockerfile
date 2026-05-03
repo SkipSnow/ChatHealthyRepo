@@ -11,6 +11,8 @@
 #   /app/displayChrome/             /splash, /transfer/to-findcare
 #   /app/security/                  /session, /verify-token, /debug/*, session_token
 #   /app/externalInterface/         /evaluate/providers (FindCare → EvaluateCare handoff)
+#   /app/runtimeGovernance/         ChatHealthyFatalError + register_fatal_handler
+#                                   (EPIC-008-F-011-S-001-REQ-B-002 / REQ-B-003)
 
 FROM python:3.12-slim
 
@@ -24,6 +26,7 @@ COPY healthcheck        /app/healthcheck
 COPY displayChrome      /app/displayChrome
 COPY security           /app/security
 COPY externalInterface  /app/externalInterface
+COPY runtimeGovernance  /app/runtimeGovernance
 
 ENV PORT=7860 \
     CERTS_DIR=/certs \

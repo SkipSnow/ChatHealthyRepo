@@ -12,6 +12,8 @@
 #   /app/security/                  /session, /verify-token, session_token
 #   /app/externalInterface/         placeholder for future external interfaces
 #   /app/secretsManager/            /secrets/{key}
+#   /app/runtimeGovernance/         ChatHealthyFatalError + register_fatal_handler
+#                                   (EPIC-008-F-011-S-001-REQ-B-002 / REQ-B-003)
 
 FROM python:3.12-slim
 
@@ -26,6 +28,7 @@ COPY displayChrome      /app/displayChrome
 COPY security           /app/security
 COPY externalInterface  /app/externalInterface
 COPY secretsManager     /app/secretsManager
+COPY runtimeGovernance  /app/runtimeGovernance
 
 ENV PORT=7860 \
     CERTS_DIR=/certs \
