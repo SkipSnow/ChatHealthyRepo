@@ -549,6 +549,90 @@
 
 <body>
 
+  <!-- ══ EPIC-008-F-011-S-001-REQ-B-001 — fatal-error full-screen overlay ══════════
+       Triggered by: any HTTP 503 response, any unhandled JS exception, any client-side
+       retry exhaustion. All paths converge on window.chFatalError(message). -->
+  <div id="chFatalErrorOverlay" style="display:none;position:fixed;inset:0;z-index:2147483647;background:#fff;overflow:auto;padding:40px 20px;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;">
+    <div style="max-width:680px;margin:0 auto;text-align:center;color:#111;">
+      <div style="font-size:38px;font-weight:700;color:#dc2626;margin:60px 0 40px 0;line-height:1.25;">HTTP 503: Fatal Error, this service is not available.</div>
+      <div style="font-size:16px;line-height:1.7;color:#374151;">
+        <div style="margin:8px 0;"><a id="chFatalHomeLink" href="" style="color:#0b7a75;text-decoration:underline;"></a></div>
+        <div style="margin:8px 0;">If you get this error repeatedly and wish to call our team, please call Skip Snow @ <a href="tel:+16464088999" style="color:#0b7a75;">646 408 8999</a></div>
+        <div style="margin:8px 0;">If you prefer email skip's email is: <a href="mailto:skip@chatHealthy.ai" style="color:#0b7a75;">skip@chatHealthy.ai</a></div>
+        <div id="chFatalErrorMessage" style="margin:18px auto;font-size:13px;color:#6b7280;word-break:break-word;max-width:600px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;"></div>
+        <div style="margin:8px 0;">we apologize for this problem.</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    /* EPIC-008-F-011-S-001-REQ-B-001 + REQ-B-002 — defined first so every later script
+       can call window.chFatalError safely. Spec: same overlay for every fatal site. */
+    (function() {
+      window.chFatalError = function(message) {
+        try {
+          var overlay = document.getElementById('chFatalErrorOverlay');
+          if (!overlay) {
+            console.error('[chFatalError] overlay element missing; cannot render. message=' + message);
+            return;
+          }
+          var host = window.location.hostname;
+          var homeUrl;
+          if (host === 'localhost' || host === '127.0.0.1') {
+            homeUrl = window.location.protocol + '//' + host + (window.location.port ? ':' + window.location.port : '');
+          } else if (host.indexOf('dev.') === 0) {
+            homeUrl = 'https://dev.chathealthy.ai';
+          } else if (host.indexOf('qa.') === 0) {
+            homeUrl = 'https://qa.chathealthy.ai';
+          } else {
+            homeUrl = 'https://chathealthy.ai';
+          }
+          var link = document.getElementById('chFatalHomeLink');
+          if (link) { link.href = homeUrl; link.textContent = homeUrl; }
+          var msgEl = document.getElementById('chFatalErrorMessage');
+          if (msgEl) msgEl.textContent = String(message == null ? '' : message);
+          overlay.style.display = 'block';
+          overlay.style.zIndex = '2147483647';
+        } catch (renderErr) {
+          console.error('[chFatalError] render failed:', renderErr, 'original message:', message);
+        }
+      };
+
+      // REQ-B-001 trigger: any unhandled JS exception → overlay.
+      window.addEventListener('error', function(e) {
+        var routine = (e && e.filename) ? (e.filename + ':' + (e.lineno || '?')) : 'unknown';
+        var msg = (e && e.message) ? e.message : 'unknown error';
+        window.chFatalError('JS routine {' + routine + ' failed}: ' + msg);
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        var reason = e && e.reason;
+        var msg = reason ? (reason.message || String(reason)) : 'unhandled promise rejection';
+        window.chFatalError('JS routine {promise failed}: ' + msg);
+      });
+
+      // REQ-B-001 trigger: patch fetch so any 503 response trips the overlay.
+      // Only 503 is the fatal contract — other status codes are the caller's concern.
+      var _origFetch = window.fetch;
+      window.fetch = function() {
+        return _origFetch.apply(this, arguments).then(function(resp) {
+          if (resp && resp.status === 503) {
+            resp.clone().text().then(function(body) {
+              var msg;
+              try {
+                var parsed = JSON.parse(body);
+                msg = (parsed && (parsed.detail || parsed.message || parsed.error)) || body;
+                if (typeof msg === 'object') msg = JSON.stringify(msg);
+              } catch (_) { msg = body; }
+              window.chFatalError(String(msg || 'Service returned 503'));
+            }).catch(function() {
+              window.chFatalError('Service returned 503 (response body unreadable)');
+            });
+          }
+          return resp;
+        });
+      };
+    })();
+  </script>
+
   <!-- ══ HEADER ══════════════════════════════════════ -->
   <header>
     <div class="header-inner">
@@ -676,7 +760,10 @@
         paintBanner('?', '?', '?');
         fetch(healthUrl).then(function(r) { return r.json(); }).then(function(d) {
           paintBanner(d.version, d.framework, d.build);
-        }).catch(function() {});
+        }).catch(function(e) {
+          console.error('refreshBanner /health fetch failed (' + key + '):', e);
+          window.chFatalError('refreshBanner /health (' + key + '): ' + String(e && e.message ? e.message : e));
+        });
       };
 
       // Initial paint: FindCare owns the page on first load.
@@ -833,18 +920,27 @@
           coldUrl = sharedUrl; color = '#0b7a75'; label = 'FindCare';       bg = '#f0fffe';
         }
 
+        // EPIC-008-F-011-S-001-REQ-B-001: mutual-auth failure is fatal — the
+        // single chFatalError overlay handles every fatal site identically.
         fetch(apiBase + '/session')
-          .then(function(r) { return r.json(); })
+          .then(function(r) {
+            if (!r.ok) throw new Error('FindCare /session HTTP ' + r.status);
+            return r.json();
+          })
           .then(function(token) {
             return fetch(coldUrl + '/verify-token', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({session_token: token})
+            }).then(function(r) {
+              if (!r.ok) throw new Error(coldUrl + ' /verify-token HTTP ' + r.status);
+              return r.json();
             });
           })
-          .then(function(r) { return r.json(); })
           .then(function(result) {
-            if (!result || !result.session_token) return;
+            if (!result || !result.session_token) {
+              throw new Error('verify-token response missing session_token');
+            }
             var st = result.session_token;
             // RIGHT — security panel inside #rightSecurity (coexists with
             // provider/splash content in #rightContent).
@@ -863,7 +959,10 @@
                 + window.buildTokenDisplayHtml(st);
             }
           })
-          .catch(function(e) { console.error('refreshTokenPanels failed (owner=' + owner + '):', e); });
+          .catch(function(e) {
+            console.error('refreshTokenPanels failed (owner=' + owner + '):', e);
+            window.chFatalError('refreshTokenPanels (' + owner + '): ' + String(e && e.message ? e.message : e));
+          });
       };
       // DEVOPS-BANNER-B006: 3-button banner with hot/cold states.
       // The service that owns the page renders cold (disabled + tooltip).
@@ -934,7 +1033,10 @@
             splashDiv.style.display = 'flex';
             splashDiv.innerHTML = d.html || '';
           })
-          .catch(function() {});
+          .catch(function(e) {
+            console.error('evalcare splash fetch failed:', e);
+            window.chFatalError('evalcare splash fetch: ' + String(e && e.message ? e.message : e));
+          });
         // SEC-HTTPS-001-REQ-021: token MUST come from page-owning service.
         // EvaluateCare mints with evalcare.key; FindCare verifies with evalcare.crt.
         // refreshTokenPanels also rotates the LEFT panel (FC /session) per REQ-022.
@@ -956,7 +1058,11 @@
         if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
         fetch(apiBase + '/transfer/to-findcare', { method: 'POST' })
           .then(function(r) { return r.json(); })
-          .catch(function() { return {}; })
+          .catch(function(e) {
+            console.error('/transfer/to-findcare notify failed:', e);
+            window.chFatalError('/transfer/to-findcare: ' + String(e && e.message ? e.message : e));
+            return {};
+          })
           .then(function() {
             var ecSplash = document.getElementById('evalcareSplash');
             if (ecSplash) ecSplash.style.display = 'none';
@@ -1008,18 +1114,9 @@
             splashDiv.style.display = 'flex';
             splashDiv.innerHTML = d.html || '';
           })
-          .catch(function() {
-            chatFrame.style.display = 'none';
-            var centerArea = chatFrame.parentElement;
-            var splashDiv = document.getElementById('sharedSplash');
-            if (!splashDiv) {
-              splashDiv = document.createElement('div');
-              splashDiv.id = 'sharedSplash';
-              splashDiv.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;';
-              centerArea.appendChild(splashDiv);
-            }
-            splashDiv.style.display = 'flex';
-            splashDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7280;">Shared Services unavailable</div>';
+          .catch(function(e) {
+            console.error('SharedServices splash fetch failed:', e);
+            window.chFatalError('SharedServices splash fetch: ' + String(e && e.message ? e.message : e));
           });
 
         // SEC-HTTPS-001-REQ-021: token MUST come from page-owning service.
@@ -1063,21 +1160,25 @@
         // EPIC-002-F-001-S-012-REQ-B-009 — Env + PST Time rows.
         // Env comes from the website's environment label (set during banner init).
         var envLabel = window._envLabel || 'UNKNOWN';
-        // Time: parse ISO created_at (or fall back to current); render in America/Los_Angeles.
-        var ts;
-        try {
-            ts = st.created_at ? new Date(st.created_at) : new Date();
-            if (isNaN(ts.getTime())) ts = new Date();
-        } catch (e) { ts = new Date(); }
-        var pstTime;
-        try {
-            pstTime = ts.toLocaleString('en-US', {
-                timeZone: 'America/Los_Angeles',
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit',
-                hour12: false
-            });
-        } catch (e) { pstTime = ts.toISOString(); }
+        // Time: parse ISO created_at from the server. NO FALLBACK to
+        // browser time — if the server forgot to send created_at, render
+        // "?" so the operator sees the missing field instead of being
+        // misled by a browser-time substitute. The browser clock is not
+        // a trusted source for security-token display.
+        var pstTime = '?';
+        if (st.created_at) {
+            var ts = new Date(st.created_at);
+            if (!isNaN(ts.getTime())) {
+                try {
+                    pstTime = ts.toLocaleString('en-US', {
+                        timeZone: 'America/Los_Angeles',
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit',
+                        hour12: false,
+                    });
+                } catch (e) { pstTime = '?'; }
+            }
+        }
         return '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
           + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
           + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
@@ -1228,18 +1329,9 @@
                     splashDiv.style.display = 'flex';
                     splashDiv.innerHTML = d.html || '';
                   })
-                  .catch(function() {
-                    chatFrame.style.display = 'none';
-                    var centerArea = chatFrame.parentElement;
-                    var splashDiv = document.getElementById('evalcareSplash');
-                    if (!splashDiv) {
-                      splashDiv = document.createElement('div');
-                      splashDiv.id = 'evalcareSplash';
-                      splashDiv.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;';
-                      centerArea.appendChild(splashDiv);
-                    }
-                    splashDiv.style.display = 'flex';
-                    splashDiv.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7280;">EvaluateCare unavailable</div>';
+                  .catch(function(e) {
+                    console.error('EvaluateCare splash fetch failed:', e);
+                    window.chFatalError('EvaluateCare splash fetch: ' + String(e && e.message ? e.message : e));
                   });
                 chatFrame.contentWindow.postMessage({ type: 'gui:event', action: 'evaluate-providers' }, '*');
                 // SEC-HTTPS-001-REQ-021: refresh RIGHT panel via direct
@@ -1570,23 +1662,56 @@
             if (msg.session_token && typeof msg.session_token === 'object') {
               // Full verified token — use identical display function
               sessionEl.innerHTML = window.buildTokenDisplayHtml(msg.session_token);
-            } else if (sessionEl.innerHTML.indexOf('Signed token:') === -1) {
-              // Initial raw token string (pre-verify) — build pending display.
-              // Skip if a verified display is already in place (refreshTokenPanels
-              // may have painted it before this Pending message arrived); we
-              // never want to clobber a verified panel with Pending.
-              var token = msg.token || '';
-              var nonce = token.length >= 36 ? token.substring(2, 36) : token;
-              var guid = token.length >= 68 ? token.substring(36) : '';
-              sessionEl.innerHTML = '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
-                + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
-                + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
-                + '<b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + nonce + '</span></div>'
-                + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
-                + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + guid + '</span></div>'
-                + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-                + '<b>Verified:</b> <span style="color:#6b7280;">Pending...</span></div>'
-                + '</div>';
+            } else {
+              // Initial raw token string (pre-verify) — build Pending display.
+              // Race handling (no silent skip): if LEFT currently shows a
+              // verified token (contains "Signed token:") we wait & retry up
+              // to 5 cycles for the verified state to clear before painting
+              // Pending. After retries exhausted we paint anyway and log
+              // loudly — silent skip would hide the underlying race.
+              var __renderPending = function() {
+                var token = msg.token || '';
+                var nonce = token.length >= 36 ? token.substring(2, 36) : token;
+                var guid = token.length >= 68 ? token.substring(36) : '';
+                sessionEl.innerHTML = '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
+                  + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
+                  + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
+                  + '<b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + nonce + '</span></div>'
+                  + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
+                  + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + guid + '</span></div>'
+                  + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+                  + '<b>Verified:</b> <span style="color:#6b7280;">Pending...</span></div>'
+                  + '</div>';
+              };
+              var __attempts = 0;
+              var __MAX_ATTEMPTS = 5;
+              var __DELAY_MS = 50;
+              var __tryPaint = function() {
+                // No verified display present — paint Pending immediately.
+                if (sessionEl.innerHTML.indexOf('Signed token:') === -1) {
+                  __renderPending();
+                  return;
+                }
+                // A verified display IS present. Wait for it to clear in
+                // case Pending raced ahead of an in-flight verify update.
+                __attempts++;
+                if (__attempts >= __MAX_ATTEMPTS) {
+                  // EPIC-008-F-011-S-001-REQ-B-001: retry exhaustion is fatal —
+                  // route through the single chFatalError overlay rather than
+                  // silently overwriting verified state with Pending.
+                  console.error(
+                    'gui:session-display: retry exhausted after ' + __MAX_ATTEMPTS +
+                    ' cycles; verified state never cleared — fatal.'
+                  );
+                  window.chFatalError(
+                    'JS routine {gui:session-display retry exhausted after ' + __MAX_ATTEMPTS +
+                    ' cycles; verified token still present, refusing to overwrite with Pending}'
+                  );
+                  return;
+                }
+                setTimeout(__tryPaint, __DELAY_MS);
+              };
+              __tryPaint();
             }
           }
         }
