@@ -35,7 +35,7 @@
           "status",
           "req_id",
           "story_id",
-          "pytest_id",
+          "test_id",
           "discovery_date",
           "due_date",
           "reproduction",
@@ -107,16 +107,16 @@
             "type": "string",
             "description": "Reference to the agile_backlog story this bug is associated with. Every bug must trace to a story."
           },
-          "pytest_id": {
+          "test_id": {
             "type": "string",
-            "description": "Reference to the pytest that validates the fix"
+            "description": "Reference to the test that validates the fix"
           },
-          "pytest_success_criteria": {
+          "test_success_criteria": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Success criteria from the pytest record — mandatory, not freetext"
+            "description": "Success criteria from the test record — mandatory, not freetext"
           },
           "discovery_date": {
             "type": "string",

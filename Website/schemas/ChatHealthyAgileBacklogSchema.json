@@ -237,7 +237,7 @@
                                         "x-unique-by": "req_id",
                                         "items": {
                                           "type": "object",
-                                          "description": "A boolean-testable assertion. Contains pytest children.",
+                                          "description": "A boolean-testable assertion. Contains test children.",
                                           "required": [
                                             "orphan",
                                             "name",
@@ -245,7 +245,7 @@
                                             "priority",
                                             "status",
                                             "depends_on",
-                                            "pytests",
+                                            "tests",
                                             "approval"
                                           ],
                                           "properties": {
@@ -312,27 +312,27 @@
                                                 "rejected"
                                               ]
                                             },
-                                            "pytests": {
+                                            "tests": {
                                               "type": "object",
                                               "required": [
-                                                "pytest"
+                                                "test"
                                               ],
                                               "properties": {
-                                                "pytest": {
+                                                "test": {
                                                   "type": "array",
                                                   "minItems": 1,
                                                   "maxItems": 2,
-                                                  "x-unique-by": "pytest_id",
+                                                  "x-unique-by": "test_id",
                                                   "items": {
                                                     "type": "object",
                                                     "description": "A test that validates a requirement.",
                                                     "required": [
                                                       "orphan",
-                                                      "pytest_type",
+                                                      "test_type",
                                                       "file"
                                                     ],
                                                     "properties": {
-                                                      "pytest_id": {
+                                                      "test_id": {
                                                         "type": "string",
                                                         "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}-REQ-[BT]-\\d{3}-PYTEST-(?:[12]|[Uu][Nn][Ss][Uu][Pp][Pp][Oo][Rr][Tt][Aa][Bb][Ll][Ee])$",
                                                         "description": "Required when orphan=false; forbidden when orphan=true."
@@ -340,7 +340,7 @@
                                                       "orphan": {
                                                         "type": "boolean"
                                                       },
-                                                      "pytest_type": {
+                                                      "test_type": {
                                                         "type": "string",
                                                         "enum": [
                                                           "playwright",
@@ -371,12 +371,12 @@
                                                         },
                                                         "then": {
                                                           "required": [
-                                                            "pytest_id"
+                                                            "test_id"
                                                           ]
                                                         },
                                                         "else": {
                                                           "properties": {
-                                                            "pytest_id": false
+                                                            "test_id": false
                                                           }
                                                         }
                                                       }
