@@ -19,6 +19,7 @@ export interface Message {
 }
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''
+const EVALCARE_URL = import.meta.env.VITE_EVALCARE_URL ?? ''
 const RETRY_SECONDS = 10
 const TIMEOUT_THRESHOLD_SECONDS = 45
 
@@ -266,12 +267,8 @@ export default function ChatWindow() {
         }
       })
 
-      // Route through FindCare backend proxy (not browser → EvaluateCare direct)
       getSessionToken(API_URL).then(sessionToken => {
-        console.log('[Evaluate] Session token:', sessionToken?.token?.substring(0, 20))
-        console.log('[Evaluate] Sending to:', `${API_URL}/evaluate/providers`)
-        console.log('[Evaluate] Providers:', providers.length)
-        return fetch(`${API_URL}/evaluate/providers`, {
+        return fetch(`${EVALCARE_URL}/evaluate/providers`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -282,12 +279,10 @@ export default function ChatWindow() {
         })
       })
         .then(r => {
-          console.log('[Evaluate] Response status:', r.status)
           if (!r.ok) throw new Error(`EvaluateCare returned ${r.status}`)
           return r.json()
         })
         .then(data => {
-          console.log('[Evaluate] Data received:', data?.status, data?.evaluated_providers?.length, 'providers')
           if (data.evaluated_providers) {
             setMessages(prev => {
               const filtered = prev.filter(m => m.content !== '**Evaluating providers...**')

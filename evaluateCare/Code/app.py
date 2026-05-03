@@ -86,7 +86,7 @@ app.add_middleware(
     allow_origins=["https://localhost", "https://localhost:443", "https://localhost:3000",
                    "https://localhost:8080", "https://localhost:8081",
                    "https://chathealthy.ai", "https://dev.chathealthy.ai"],
-    allow_origin_regex=r"https://localhost(:\d+)?$|https://[a-zA-Z0-9-]+\.chathealthy\.ai$",
+    allow_origin_regex=r"https://localhost(:\d+)?$|https://[a-zA-Z0-9-]+\.chathealthy\.ai$|https://skipsnow-[a-zA-Z0-9-]+\.hf\.space$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

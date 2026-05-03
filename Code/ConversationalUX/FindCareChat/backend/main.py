@@ -723,81 +723,11 @@ def get_session():
     token["server_env"] = _ENV_PREFIX
     return token
 
-# ── Evaluate proxy — FindCare backend → EvaluateCare over mTLS ──
+# Body model for /verify-token (callers POST {session_token: {...}}).
 class EvaluateRequest(BaseModel):
     providers: list[dict] = []
     session_token: Optional[dict] = None
     question_summary: str = ""
-
-# graph-exempt: proxy/redirect — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.post("/transfer/to-findcare")
-def transfer_to_findcare():
-    """EvaluateCare calls FindCare facade to return page ownership.
-    Called when user interacts with filter while in EvaluateCare mode.
-    Proxies through EvaluateCare first so both services log the transfer."""
-    import requests as _req
-    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8001")
-    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
-    _log.info("CONTROL TRANSFER: FindCare has taken ownership of the page (from EvaluateCare)")
-    req_kwargs = {"timeout": 5}
-    if not os.getenv("SPACE_ID"):
-        ca_crt = os.path.join(certs_dir, "ca.crt")
-        findcare_crt = os.path.join(certs_dir, "findcare.crt")
-        findcare_key = os.path.join(certs_dir, "findcare.key")
-        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
-            req_kwargs["cert"] = (findcare_crt, findcare_key)
-        if os.path.exists(ca_crt):
-            req_kwargs["verify"] = ca_crt
-    try:
-        _req.post(f"{evalcare_url}/transfer/to-findcare", **req_kwargs)
-    except Exception as _exc:
-        # EPIC-008-F-011-S-001-REQ-B-001: any error not declared less-than-fatal
-        # is fatal. EvalCare notify failure is not in any less-than-fatal req.
-        raise ChatHealthyFatalError(
-            api="/transfer/to-findcare",
-            source="evalcare notify post",
-        ) from _exc
-    return {"owner": "findcare", "splash": WELCOME_MESSAGE}
-
-# graph-exempt: proxy/redirect — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.post("/evaluate/providers")
-def evaluate_proxy(body: EvaluateRequest):
-    """Proxy evaluate call through FindCare → EvaluateCare.
-    Uses mTLS: FindCare presents its client cert, verifies against CA.
-    EVALCARE_URL defaults to https://localhost:8001 (EPIC-008-F-004-S-001-REQ-T-001 standard
-    EvaluateCare port), HF space in dev/prod."""
-    import requests as _req
-
-    # EVALCARE_URL must be set in environment. No HTTP default.
-    # Local: HTTPS direct to EvaluateCare on standard port 8001 (REQ-015)
-    # HF: HTTPS via HF space URL (set as HF Secret)
-    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8001")
-    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
-
-    req_kwargs = {"timeout": 15}
-    if not os.getenv("SPACE_ID"):
-        findcare_crt = os.path.join(certs_dir, "findcare.crt")
-        findcare_key = os.path.join(certs_dir, "findcare.key")
-        ca_crt = os.path.join(certs_dir, "ca.crt")
-        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
-            req_kwargs["cert"] = (findcare_crt, findcare_key)
-        if os.path.exists(ca_crt):
-            req_kwargs["verify"] = ca_crt
-
-    try:
-        resp = _req.post(
-            f"{evalcare_url}/evaluate/providers",
-            json={
-                "providers": body.providers,
-                "session_token": body.session_token,
-                "question_summary": body.question_summary,
-            },
-            **req_kwargs,
-        )
-        return resp.json()
-    except Exception as e:
-        _log.error("EvaluateCare proxy failed: %s", e)
-        return {"status": "error", "error": str(e)}
 
 # SEC-HTTPS-001-REQ-021: FindCare verifies tokens minted by peer services.
 # When SharedServices or EvaluateCare owns the page, the browser fetches
@@ -848,57 +778,6 @@ def verify_token(body: EvaluateRequest):
             "verified": token_valid,
         },
     }
-
-# graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.post("/shared/verify-token")
-def shared_verify_token(body: EvaluateRequest):
-    """Proxy token verification to SharedServices over mTLS."""
-    import requests as _req
-    shared_url = os.getenv("SHARED_SERVICES_URL", "https://localhost:8002")
-    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
-    req_kwargs = {"timeout": 10}
-    if not os.getenv("SPACE_ID"):
-        findcare_crt = os.path.join(certs_dir, "findcare.crt")
-        findcare_key = os.path.join(certs_dir, "findcare.key")
-        ca_crt = os.path.join(certs_dir, "ca.crt")
-        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
-            req_kwargs["cert"] = (findcare_crt, findcare_key)
-        if os.path.exists(ca_crt):
-            req_kwargs["verify"] = ca_crt
-    try:
-        resp = _req.post(f"{shared_url}/verify-token",
-                         json={"session_token": body.session_token},
-                         **req_kwargs)
-        return resp.json()
-    except Exception as e:
-        _log.error("SharedServices verify-token failed: %s", e)
-        return {"status": "error", "error": str(e)}
-
-# graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.post("/evaluate/verify-token")
-def evaluate_verify_token(body: EvaluateRequest):
-    """Proxy token verification to EvaluateCare over mTLS — mirrors /shared/verify-token.
-    Used by the DEVOPS-BANNER-B006 EvaluateCare button to populate the security panel."""
-    import requests as _req
-    evalcare_url = os.getenv("EVALCARE_URL", "https://localhost:8001")
-    certs_dir = os.environ.get("CERTS_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared", "ops", "certs")
-    req_kwargs = {"timeout": 10}
-    if not os.getenv("SPACE_ID"):
-        findcare_crt = os.path.join(certs_dir, "findcare.crt")
-        findcare_key = os.path.join(certs_dir, "findcare.key")
-        ca_crt = os.path.join(certs_dir, "ca.crt")
-        if os.path.exists(findcare_crt) and os.path.exists(findcare_key):
-            req_kwargs["cert"] = (findcare_crt, findcare_key)
-        if os.path.exists(ca_crt):
-            req_kwargs["verify"] = ca_crt
-    try:
-        resp = _req.post(f"{evalcare_url}/verify-token",
-                         json={"session_token": body.session_token},
-                         **req_kwargs)
-        return resp.json()
-    except Exception as e:
-        _log.error("EvaluateCare verify-token failed: %s", e)
-        return {"status": "error", "error": str(e)}
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):

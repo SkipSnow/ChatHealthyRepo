@@ -29,6 +29,7 @@ import { ProviderCard } from '../ux/components/ProviderCard'
 import type { Provider } from '../ux/types/provider'
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''
+const EVALCARE_URL = import.meta.env.VITE_EVALCARE_URL ?? ''
 
 type Phase = 'welcome' | 'searching' | 'results' | 'error'
 
@@ -355,7 +356,7 @@ export default function FindCareApp() {
     sendToParent('gui:session-display', { token: token.token || '' })
 
     try {
-      const resp = await fetch(`${API_URL}/evaluate/providers`, {
+      const resp = await fetch(`${EVALCARE_URL}/evaluate/providers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

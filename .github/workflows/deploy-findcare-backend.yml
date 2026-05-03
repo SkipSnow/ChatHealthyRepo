@@ -55,9 +55,16 @@ jobs:
 
       - name: Install and build frontend
         working-directory: Code/ConversationalUX/FindCareChat/frontend
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |
           npm ci
-          VITE_API_URL="" npm run build
+          if [ "$BRANCH" = "main" ]; then
+            EVALCARE_URL="https://skipsnow-evaluatecarespace.hf.space"
+          else
+            EVALCARE_URL="https://skipsnow-${BRANCH}-evaluatecarespace.hf.space"
+          fi
+          VITE_API_URL="" VITE_EVALCARE_URL="$EVALCARE_URL" npm run build
 
       - name: Set HF Space variables (peer URLs, env)
         env:
