@@ -97,20 +97,41 @@ _SPARKMAIL_FROM    = os.getenv("NOTIFICATION_FROM_EMAIL", "")
 _SPARKMAIL_TO      = os.getenv("NOTIFICATION_TO_EMAIL", "")
 
 def push(message):
+    """Send an operator-notification email via SparkPost.
+
+    Returns:
+        {"sent": True}                 — delivered
+        {"sent": False, "skipped": ...} — env var missing, intentionally skipped
+        {"sent": False, "error": ...}  — SparkPost call raised; caller must
+                                         see this and decide what to do
+                                         (no silent swallow per the no-fallback
+                                         rule).
+    """
     if not _SPARKMAIL_API_KEY:
-        return
+        return {"sent": False, "skipped": "SPARKMAIL_API_KEY not configured"}
     try:
         from sparkpost import SparkPost
         SparkPost(_SPARKMAIL_API_KEY).transmissions.send(
             recipients=[_SPARKMAIL_TO], from_email=_SPARKMAIL_FROM,
             subject="ChatHealthy — Activity", text=message,
         )
+        return {"sent": True}
     except Exception as exc:
         _log.warning("SparkPost send failed: %s", exc)
+        return {"sent": False, "error": f"{type(exc).__name__}: {exc}"}
 
 def commitSignificantActivity(payload=None, **kwargs):
+    """Commit a significant-activity record to MongoDB.
+
+    Failure semantics (NO silent fallbacks):
+      - DB unavailable         → {"recorded": "skipped", "reason": "db_unavailable"}
+                                 (NOT "ok" — a skipped commit is not a successful one)
+      - Bad payload / DB error → {"recorded": "error", "error": "..."} — caller
+                                 MUST inspect this; upstream code has no excuse
+                                 for treating this as success.
+    """
     if _get_db() is None:
-        return {"recorded": "ok", "note": "MongoDB unavailable"}
+        return {"recorded": "skipped", "reason": "db_unavailable"}
     try:
         payload = payload or kwargs
         if isinstance(payload, str):
@@ -118,7 +139,7 @@ def commitSignificantActivity(payload=None, **kwargs):
         return _db_manager.commit(_ENV_PREFIX, payload["database"], payload["collection"], payload["record"])
     except Exception as exc:
         _log.error("commitSignificantActivity failed: %s", exc)
-        return {"recorded": "error", "note": str(exc)}
+        return {"recorded": "error", "error": f"{type(exc).__name__}: {exc}"}
 
 def _format_chat_history(messages, truncate: bool = True):
     max_len = 500 if truncate else None
@@ -217,6 +238,16 @@ def _handle_tool_calls(tool_use_blocks, messages):
 import time as _time_mod
 
 app = FastAPI(title="ChatHealthy FindCare API")
+
+# EPIC-008-F-011-S-001-REQ-B-002 / REQ-B-003 — uniform fatal-error contract.
+# Code/Shared/ is on sys.path (via the /session endpoint's bootstrap below);
+# import once here so the handler is registered on app construction.
+import sys as _rg_sys, os as _rg_os
+_rg_shared = _rg_os.path.join(_rg_os.path.dirname(__file__), "..", "..", "..", "Shared")
+if _rg_shared not in _rg_sys.path:
+    _rg_sys.path.insert(0, _rg_shared)
+from runtime_governance import ChatHealthyFatalError, register_fatal_handler  # noqa: E402
+register_fatal_handler(app, service_name="findcare")
 
 # ── EPIC-002-F-001-S-012-REQ-T-004: startup security-primitive verification ──
 # /session depends on session_token.generate_session_token producing a
@@ -448,10 +479,18 @@ async def classify(body: ClassifyRequest, request: Request):
                     "homeopathic": True,
                     "homeopathic_general": True,
                 })
-    except Exception:
-        pass
+    except Exception as exc:
+        # NO silent swallow: surface the read failure to the caller via a
+        # typed error field on the response. Caller can render a visible
+        # warning rather than mistaking an empty list for "no homeopathic
+        # generalists exist."
+        _log.warning("classify: homeopathic_generalists Mongo read failed: %s", exc)
+        homeo_generalists = []
+        homeo_generalists_error = f"{type(exc).__name__}: {exc}"
+    else:
+        homeo_generalists_error = None
 
-    return {
+    response = {
         "specialties": specialties,
         "homeopathic_generalists": homeo_generalists,
         "state": state,
@@ -459,6 +498,9 @@ async def classify(body: ClassifyRequest, request: Request):
         "county": county,
         "model": "text-embedding-3-large (vector search)",
     }
+    if homeo_generalists_error is not None:
+        response["homeopathic_generalists_error"] = homeo_generalists_error
+    return response
 
 def _get_qa_report():
     """Load QA report from MongoDB (source of truth), fall back to file for bootstrap."""
@@ -579,44 +621,65 @@ _REQUIRED_INDEXES = {
 }
 
 def _check_indexes() -> dict:
-    """DR-016/DR-018: verify all required vector search indexes exist."""
+    """DR-016/DR-018: verify all required vector search indexes exist.
+
+    Failure semantics (NO silent fallbacks):
+      - DB unreachable           → status: "db_unavailable" (caller must
+                                   degrade /health, not call this "ok")
+      - Index list call raises   → status: "fail" with errors[] explaining
+                                   which collections couldn't be checked.
+                                   NOT silently appending "/ERROR" to
+                                   missing[] (which conflated unreadable
+                                   with absent).
+      - Indexes legitimately
+        missing                  → status: "fail" with missing[] populated.
+    """
     db = _get_db()
     if db is None:
-        return {"status": "db_unavailable"}
+        return {"status": "db_unavailable", "missing": [], "errors": []}
     missing = []
+    errors = []
     for coll_name, index_names in _REQUIRED_INDEXES.items():
         try:
             existing = [idx.get("name") for idx in
                         db[f"{_ENV_PREFIX}_PublicHealthData"][coll_name].list_search_indexes()]
-            for idx in index_names:
-                if idx not in existing:
-                    missing.append(f"{coll_name}/{idx}")
-        except Exception:
-            missing.append(f"{coll_name}/ERROR")
-    return {"missing": missing, "status": "fail" if missing else "ok"}
+        except Exception as exc:
+            errors.append({"collection": coll_name, "error": f"{type(exc).__name__}: {exc}"})
+            continue
+        for idx in index_names:
+            if idx not in existing:
+                missing.append(f"{coll_name}/{idx}")
+    status = "ok" if not missing and not errors else "fail"
+    return {"status": status, "missing": missing, "errors": errors}
 
 # graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
 @app.get("/health")
 def health():
+    """Health-state report. Returns 200 always — the body's `status` field
+    carries the result. /health is a state report, not a fatal-trigger:
+    operators need it to RESPOND when Mongo is down so monitoring can see
+    the degraded state. NO silent-fallback `?` placeholders — explicit
+    None when the read didn't succeed."""
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     idx_check = _check_indexes()
-    status = "ok" if idx_check["status"] == "ok" else "degraded"
-    # Per Rule-063 + BUG-001: read latest record from the
-    # canonical global collection admin.Versions. Latest record (by `from`
-    # desc) is the current state.
-    _build = "?"
-    _version_str = "?"
-    _framework_str = "?"
+    _build = None
+    _version_str = None
+    _framework_str = None
+    _version_error = None
     db = _get_db()
     if db is not None:
         try:
             doc = db["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
-            _build = doc.get("build", "?")
-            _version_str = doc.get("version", "?")
-            _framework_str = doc.get("framework", "?")
+            _build = doc.get("build")
+            _version_str = doc.get("version")
+            _framework_str = doc.get("framework")
         except Exception as _exc:
             _log.warning("/health: MongoDB read for build/version/framework failed: %s", _exc)
-    result = {"status": status, "db": "connected" if db is not None else "unavailable",
+            _version_error = f"{type(_exc).__name__}: {_exc}"
+    db_status = "connected" if db is not None and _version_error is None else (
+        "unavailable" if db is None else "unreachable")
+    status = "ok" if (idx_check["status"] == "ok" and db_status == "connected") else "degraded"
+    result = {"status": status, "db": db_status,
               "env": env_label,
               "build": _build,
               "version": _version_str,
@@ -624,7 +687,23 @@ def health():
     if idx_check.get("missing"):
         result["missing_indexes"] = idx_check["missing"]
         _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
+    if _version_error:
+        result["version_error"] = _version_error
     return result
+
+# ── EPIC-008-F-011-S-001 verification harness ─────────────────
+# graph-exempt: test/debug endpoint — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
+@app.get("/dev/raise-fatal")
+def dev_raise_fatal():
+    """Test-only endpoint to fire a ChatHealthyFatalError on demand so the
+    REQ-B-001 overlay can be verified end-to-end. Refuses in prod."""
+    if _ENV_PREFIX == "prod":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="not available in prod")
+    raise ChatHealthyFatalError(
+        api="/dev/raise-fatal",
+        source="manual verification trigger",
+    )
 
 # ── Session token — signed with FindCare's x509 cert ──────────
 # graph-exempt: session token read, no LLM — security primitive; per BUG-ARCH-GRAPH-EXEMPT-001
@@ -685,8 +764,13 @@ def transfer_to_findcare():
             req_kwargs["verify"] = ca_crt
     try:
         _req.post(f"{evalcare_url}/transfer/to-findcare", **req_kwargs)
-    except Exception:
-        _log.warning("Could not notify EvaluateCare of transfer")
+    except Exception as _exc:
+        # EPIC-008-F-011-S-001-REQ-B-001: any error not declared less-than-fatal
+        # is fatal. EvalCare notify failure is not in any less-than-fatal req.
+        raise ChatHealthyFatalError(
+            api="/transfer/to-findcare",
+            source="evalcare notify post",
+        ) from _exc
     return {"owner": "findcare", "splash": WELCOME_MESSAGE}
 
 # graph-exempt: proxy/redirect — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
@@ -750,22 +834,27 @@ def verify_token(body: EvaluateRequest):
     if _local_shared not in _sys.path:
         _sys.path.insert(0, _local_shared)
     os.environ.setdefault("CERTS_DIR", os.path.join(_local_shared, "ops", "certs"))
-    token_valid = False
-    token_origin = "unknown"
-    if body.session_token:
-        try:
-            from session_token import verify_session_token
-            token_origin = body.session_token.get("origin", "unknown")
-            token_valid = verify_session_token(body.session_token, token_origin)
-            _log.info("FindCare verify-token: origin=%s valid=%s",
-                      token_origin, token_valid)
-        except Exception as e:
-            _log.warning("FindCare verify-token failed: %s", e)
+    if not body.session_token:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="session_token is required")
+    # NO silent fallback. ValueError = caller-side bad input → 400.
+    # TokenInfraError = server-side cert/CERTS_DIR failure → propagates → 500
+    # so the operator sees infra broken, not a misleading verified=false.
+    from session_token import verify_session_token
+    token_origin = body.session_token.get("origin", "unknown")
+    try:
+        token_valid = verify_session_token(body.session_token, token_origin)
+    except ValueError as e:
+        _log.warning("FindCare verify-token 400: %s", e)
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    _log.info("FindCare verify-token: origin=%s valid=%s",
+              token_origin, token_valid)
     return {
         "status": "verified" if token_valid else "failed",
         "session_token": {
-            "token_received": body.session_token.get("token", "") if body.session_token else "",
-            "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token and body.session_token.get("signature") else "none",
+            "token_received": body.session_token.get("token", ""),
+            "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token.get("signature") else "none",
             # EPIC-002-F-001-S-012-REQ-B-010: origin field is the name of the
             # RESPONDING service (self-identification). Distinct from
             # the cryptographic signer (REQ-017, always FindCare).
@@ -866,8 +955,13 @@ def _extract_user_search_term(user_message: str) -> str:
         _log.info("GOV-011-STD-002: '%s' → '%s'", user_message, term)
         return term if term else user_message
     except Exception as exc:
-        _log.warning("Search term extraction failed: %s", exc)
-        return user_message
+        # EPIC-008-F-011-S-001-REQ-B-001: GPT-extraction failure is not declared
+        # less-than-fatal. Surface as fatal rather than silently feeding the
+        # user's raw message into the search pipeline as if extraction succeeded.
+        raise ChatHealthyFatalError(
+            api="/chat (term extraction)",
+            source="openai chat.completions",
+        ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -903,8 +997,12 @@ def _strip_redundant_summary(text: str, total_count: int, page_count: int) -> st
         _log.info("GOV-011-STD-001: stripped %d → %d chars", len(text), len(cleaned))
         return cleaned if cleaned else text
     except Exception as exc:
-        _log.warning("De-dup failed, returning original: %s", exc)
-        return text
+        # EPIC-008-F-011-S-001-REQ-B-001: GOV-011-STD-001 dedup failure is not
+        # declared less-than-fatal. Don't silently return un-cleaned text.
+        raise ChatHealthyFatalError(
+            api="/chat (summary dedup)",
+            source="openai chat.completions",
+        ) from exc
 
 
 # ---------------------------------------------------------------------------

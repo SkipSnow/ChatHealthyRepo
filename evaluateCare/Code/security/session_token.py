@@ -133,77 +133,105 @@ import logging as _logging
 _log = _logging.getLogger("session_token")
 
 
+class TokenInfraError(RuntimeError):
+    """Raised when verify_session_token cannot complete because of an
+    infrastructure / configuration failure (missing cert file, unreadable
+    CERTS_DIR, malformed cert, etc.). Distinct from a legitimate
+    `verified == False` outcome (signature didn't match a present cert).
+    Callers should let this propagate so the operator sees a 500 +
+    visible Fatal Error rather than a misleading verification verdict."""
+
+
 def verify_session_token(session: dict, expected_origin: str = "FindCare") -> bool:
     """Verify a session token's signature using the origin's public cert.
 
-    The token itself is the nonce — created_stamp + guid are unique per session.
-    Verifies origin + created + guid were signed by the expected origin.
-    Returns True if the signature is valid. Logs WHY on every negative path
-    so operators can diagnose without changing code.
+    Returns:
+        True  — signature matches; receiver-side last_used has been mutated
+                into the session dict per EPIC-002-F-001-S-012-REQ-T-003.
+        False — token is well-formed and the signature was checked against
+                a present cert and did not match. THIS IS THE ONLY MEANING
+                OF False. A False return is NOT a fallback for "the cert
+                file was missing" or "the request shape was bad" — those
+                conditions raise TokenInfraError or ValueError instead.
+
+    Raises:
+        ValueError       — required token field missing/malformed (caller
+                           sent garbage; legitimate 4xx).
+        TokenInfraError  — server cannot complete verification (cert file
+                           missing, CERTS_DIR unreadable, malformed cert
+                           on disk). Operator infra fix needed; legitimate
+                           5xx that must propagate (no fallback).
     """
     if not session:
-        _log.warning("verify: no session object")
-        return False
+        raise ValueError("verify: no session object")
     if not session.get("signed"):
-        _log.warning("verify: session.signed == %r (MUST be True)", session.get("signed"))
-        return False
+        raise ValueError(f"verify: session.signed == {session.get('signed')!r} (MUST be True)")
 
     origin = session.get("origin", "")
     token = session.get("token", "")
     sig_b64 = session.get("signature", "")
 
     if origin != expected_origin:
-        _log.warning("verify: origin=%r expected=%r", origin, expected_origin)
-        return False
+        raise ValueError(f"verify: origin={origin!r} expected={expected_origin!r}")
     if not token:
-        _log.warning("verify: empty token")
-        return False
+        raise ValueError("verify: empty token")
     if not sig_b64:
-        _log.warning("verify: empty signature")
-        return False
+        raise ValueError("verify: empty signature")
+    if len(token) < 68:
+        raise ValueError(f"verify: token length {len(token)} < 68")
 
     # Extract by position: CH{last_used:17}{created:17}{guid:32}
-    if len(token) < 68:
-        _log.warning("verify: token length %d < 68", len(token))
-        return False
     created_stamp = token[19:36]
     guid = token[36:]
 
-    # Load public cert — CERTS_DIR resolved at import; if bootstrap changes it
-    # after import, re-read from env at call time.
+    # Load public cert. Cert-related failures are infrastructure; raise so
+    # the operator sees them rather than a `verified=False` impostor.
     certs_dir = os.environ.get("CERTS_DIR", CERTS_DIR)
     cert_path = os.path.join(certs_dir, f"{_cert_basename(origin)}.crt")
     if not os.path.exists(cert_path):
-        _log.warning(
-            "verify: cert file missing at %s (CERTS_DIR=%s). "
-            "Peer Space likely lacks FINDCARE_CERT_PEM bootstrap.",
-            cert_path, certs_dir,
+        raise TokenInfraError(
+            f"cert file missing at {cert_path} (CERTS_DIR={certs_dir}). "
+            f"Peer Space likely lacks FINDCARE_CERT_PEM bootstrap."
         )
-        return False
-
-    with open(cert_path, "rb") as f:
-        cert = load_pem_x509_certificate(f.read())
+    try:
+        with open(cert_path, "rb") as f:
+            cert_pem = f.read()
+        cert = load_pem_x509_certificate(cert_pem)
+    except Exception as exc:
+        raise TokenInfraError(
+            f"failed to load cert at {cert_path}: {type(exc).__name__}: {exc}"
+        ) from exc
 
     public_key = cert.public_key()
     payload = f"{origin}:{created_stamp}:{guid}".encode()
-    signature = base64.b64decode(sig_b64)
-
     try:
-        public_key.verify(
-            signature,
-            payload,
-            padding.PKCS1v15(),
-            hashes.SHA256(),
-        )
-        now = datetime.now(timezone.utc)
-        ms = str(now.microsecond)[:3].zfill(3)
-        last_used_stamp = now.strftime('%m%d%Y%H%M%S') + ms
-        session["token"] = f"CH{last_used_stamp}{created_stamp}{guid}"
-        session["last_used"] = now.isoformat()
-        return True
+        signature = base64.b64decode(sig_b64)
     except Exception as exc:
+        raise ValueError(
+            f"verify: signature is not valid base64: {type(exc).__name__}: {exc}"
+        ) from exc
+
+    # The actual cryptographic check. InvalidSignature is the ONLY path
+    # that legitimately yields `verified == False`; anything else is infra.
+    from cryptography.exceptions import InvalidSignature
+    try:
+        public_key.verify(signature, payload, padding.PKCS1v15(), hashes.SHA256())
+    except InvalidSignature:
         _log.warning(
-            "verify: signature check failed (%s: %s). cert=%s payload.len=%d sig.len=%d",
-            type(exc).__name__, exc, cert_path, len(payload), len(signature),
+            "verify: InvalidSignature for origin=%s cert=%s",
+            origin, cert_path,
         )
         return False
+    except Exception as exc:
+        # cryptography lib internal errors (corrupted key, etc.) — infra.
+        raise TokenInfraError(
+            f"crypto.verify raised {type(exc).__name__}: {exc}"
+        ) from exc
+
+    # Signature good — receiver MUST update last_used per REQ-T-003.
+    now = datetime.now(timezone.utc)
+    ms = str(now.microsecond)[:3].zfill(3)
+    last_used_stamp = now.strftime('%m%d%Y%H%M%S') + ms
+    session["token"] = f"CH{last_used_stamp}{created_stamp}{guid}"
+    session["last_used"] = now.isoformat()
+    return True

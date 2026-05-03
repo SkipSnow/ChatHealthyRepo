@@ -3,9 +3,15 @@
 
 import logging
 from typing import Optional
+from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from security.session_token import SessionToken, SessionTokenVerification, verify_session_token
+from security.session_token import (
+    SessionToken,
+    SessionTokenVerification,
+    TokenInfraError,
+    verify_session_token,
+)
 
 
 class Provider(BaseModel):
@@ -56,25 +62,28 @@ class EvaluateProvidersEndpoint:
         self.log = logging.getLogger("evaluate_care.evaluate_providers")
 
     def __call__(self, body: EvaluateProvidersRequest) -> EvaluateProvidersResponse:
-        token_valid = False
-        token_origin = "unknown"
-        token_str = ""
-        sig_str = "none"
-        if body.session_token:
-            inbound = body.session_token.model_dump()
-            try:
-                token_valid = verify_session_token(inbound, "FindCare")
-                token_origin = inbound.get("origin", "unknown")
-                self.log.info(
-                    "Session token: origin=%s valid=%s token=%s",
-                    token_origin, token_valid,
-                    (inbound.get("token", "") or "?")[:20],
-                )
-            except Exception as e:
-                self.log.warning("Session token verification failed: %s", e)
-            token_str = inbound.get("token", "") or ""
-            sig = inbound.get("signature", "") or ""
-            sig_str = (sig[:40] + "...") if sig else "none"
+        if not body.session_token:
+            raise HTTPException(status_code=400, detail="session_token is required")
+        inbound = body.session_token.model_dump()
+        token_str = inbound.get("token", "") or ""
+        sig = inbound.get("signature", "") or ""
+        sig_str = (sig[:40] + "...") if sig else "none"
+
+        # NO silent fallback: ValueError on caller-side garbage → 400.
+        # TokenInfraError on server-side cert/CERTS_DIR failure propagates
+        # → 500 (the operator must see infra failure, not a fake
+        # verified=False).
+        try:
+            token_valid = verify_session_token(inbound, "FindCare")
+        except ValueError as e:
+            self.log.warning("evaluate/providers verify 400: %s", e)
+            raise HTTPException(status_code=400, detail=str(e)) from e
+
+        token_origin = inbound.get("origin", "unknown")
+        self.log.info(
+            "Session token: origin=%s valid=%s token=%s",
+            token_origin, token_valid, token_str[:20],
+        )
 
         results = [
             EvaluatedProvider(
