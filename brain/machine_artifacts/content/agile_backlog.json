@@ -9481,7 +9481,65 @@
                 "governance.json"
               ],
               "stories": {
-                "story": []
+                "story": [
+                  {
+                    "story_id": "EPIC-008-F-001-S-001",
+                    "orphan": false,
+                    "name": "industry best practicses Must be observed for large scale regulatd consmumer applicataions",
+                    "description": "ChatHealthy is a large scale B to C health Care application. It must support millions of users with potentially hundreds of thousands of concurent requests. It must be sufficiently secure to pass a NIST 800-53 external audit. and it must observe correct OO coding practices whereever possible.",
+                    "size": "XL",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-001-S-001-REQ-B-001",
+                          "name": "Industry best practices baseline for large-scale regulated consumer healthcare app",
+                          "requirement": "ChatHealthy is a large scale B to C health Care application. It must support millions of users with potentially hundreds of thousands of concurent requests. It must be sufficiently secure to pass a NIST 800-53 external audit. and it must observe correct OO coding practices whereever possible.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-001-S-001-REQ-B-002",
+                          "name": "Testing not waived",
+                          "requirement": "while no set of pytest of series of playright scripts can enforce this story. The ChatHealthy.ai deploys and will continue to deploy various rule enforcments to enforce this requiement. each of those rule enforcments themselves Must be associted with proper tests that will be part of ChatHealhty's end to end regressson testing when it matures sufficiently to have a true end to end regresssion test.",
+                          "priority": "must-have",
+                          "status": "deferred",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "EPIC-008-F-001-S-001-REQ-B-002-PYTEST-Unsupportable",
+                                "orphan": false,
+                                "pytest_type": "Unsupportable",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-001-S-001",
+                              "reason": "Scope of enforcement: all code, all Rule enforcements, and all Metadata inside ChatHealthy's brain's governed schemas."
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
               },
               "orphan": false,
               "approval": "proposed",
@@ -14994,7 +15052,12 @@
               "approval": "approved",
               "due_date": "2026-05-02",
               "realized_by": [
-                "Website/index.html"
+                "Website/index.html",
+                "HuggingFace Space: SkipSnow/ChatHealthySpace (FindCare backend — all envs)",
+                "HuggingFace Space: SkipSnow/EvaluateCareSpace (all envs)",
+                "HuggingFace Space: SkipSnow/SharedServicesSpace (all envs)",
+                "Cloudflare: chathealthy.ai (all envs — dev, qa, prod)",
+                "Local development environments"
               ],
               "stories": {
                 "story": [
@@ -15059,6 +15122,96 @@
                                 "pytest_type": "ORPHAN",
                                 "orphan": true,
                                 "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-011-S-002",
+                    "orphan": false,
+                    "name": "Use of HTTP methods for ChatHealthy.ai",
+                    "description": "This story specifies the requirements for the use of HTTP methods for all ChatHealthy's 'web servers'.",
+                    "size": "S",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-011-S-002-REQ-B-001",
+                          "name": "Client-callable endpoints exposed exclusively over POST and OPTIONS; other methods rejected",
+                          "requirement": "Every endpoint on a ChatHealthy.ai's dynamic web servers (currently hosted by HuggingFace) MUST only accept the HTTPS POST and OPTIONS Methods. These server MUST reject any other HTTPS method on those endpoints by returning HTTP 405 Method Not Allowed.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-011-S-002-REQ-B-002",
+                          "name": "All ChatHealthy.ai web servers redirect HTTP to HTTPS",
+                          "requirement": "All ChathelathyAi's web servers MUST reject any HTTP method, and redirect any HTTP call to the exact same URL as called using HTTPS.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-011-S-002-REQ-B-003",
+                          "name": "Static Page web servers support GET, HEAD; OPTIONS explicitly returns 405",
+                          "requirement": "ChatHealthy.ai's static web pages, (all currently served by the Cloudeflare) at the web address {env[dev, QA, prod]}SHALL support the GET and HEAD methods and no other HTTPS method. The local development enviornmnet's web server SHALL also support the GET and HEAD methods. OPTIONS Will explictly not be suported by Cloudflare. These servers will return 405s.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-011-S-002-REQ-B-004",
+                          "name": "Automated Testing reqiered",
+                          "requirement": "A pytestMust be implemented that examine the configuration of all ChatHealthy.ai.s web servers in all enviornments, iether by confirming this remotely or by examining ChatHealthy's Implementation code that configures its 'FastAPI' servers' This pytest MUST fail if any of the above requiements are not met.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "pytests": {
+                            "pytest": [
+                              {
+                                "pytest_id": "EPIC-008-F-011-S-002-REQ-B-004-PYTEST-1",
+                                "orphan": false,
+                                "pytest_type": "integration",
+                                "file": "Code/deploy/httpMethodEnforcementPyTest.py"
                               }
                             ]
                           },
