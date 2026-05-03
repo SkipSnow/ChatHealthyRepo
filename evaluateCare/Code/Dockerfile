@@ -21,12 +21,15 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
+# EPIC-003: install chathealthy-frontend-lib from the bundled source.
+COPY FrontEndApplicationLib /app/FrontEndApplicationLib
+RUN pip install --no-cache-dir /app/FrontEndApplicationLib
+
 COPY app.py             /app/app.py
 COPY healthcheck        /app/healthcheck
 COPY displayChrome      /app/displayChrome
 COPY security           /app/security
 COPY externalInterface  /app/externalInterface
-COPY runtimeGovernance  /app/runtimeGovernance
 
 ENV PORT=7860 \
     CERTS_DIR=/certs \

@@ -96,6 +96,14 @@ jobs:
             --exclude='*.pyc' \
             sharedServices/Code/ hf_space/
 
+          # EPIC-003: bring FrontEndApplicationLib into the build context so the
+          # Dockerfile can pip-install chathealthy-frontend-lib from a local path.
+          mkdir -p hf_space/FrontEndApplicationLib
+          rsync -av \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            FrontEndApplicationLib/ hf_space/FrontEndApplicationLib/
+
           cd hf_space
           git add .
           if git diff --staged --quiet; then

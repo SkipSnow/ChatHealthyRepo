@@ -93,6 +93,14 @@ jobs:
             --exclude='*.pyc' \
             evaluateCare/Code/ hf_space/
 
+          # EPIC-003: bring FrontEndApplicationLib into the build context so the
+          # Dockerfile can pip-install chathealthy-frontend-lib from a local path.
+          mkdir -p hf_space/FrontEndApplicationLib
+          rsync -av \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            FrontEndApplicationLib/ hf_space/FrontEndApplicationLib/
+
           # PKI certs deferred to Beta (BUG-SEC-002) — HF doesn't support mTLS
 
           cd hf_space
