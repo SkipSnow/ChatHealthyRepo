@@ -844,6 +844,55 @@
         "type": "functional"
       },
       {
+        "epic_id": "EPIC-003",
+        "orphan": false,
+        "name": "ChatHealthy FrontEnd libary",
+        "type": "operational",
+        "status": "in_progress",
+        "description": "Shared Python library distributed as the pip package `chathealthy-frontend-lib` (repo root: `FrontEndApplicationLib/`). Owns the code consumed in common by ChatHealthy.ai's front-end-facing services (FindCare, EvaluateCare, SharedServices) and the wrapper. Scope is FRONT-END application code only — devops, data pipelines, and analytics are explicitly out of scope. Operating-model intent: a separate team with its own P&L manages this library; consumers depend on it via versioned releases (`pip install chathealthy-frontend-lib==X.Y.Z`) following standard industry convention for shared libraries, including the boundary that the package mints no auth tokens — auth-token MANUFACTURE belongs 100% to SharedServices; only auth-token MANAGEMENT (verification, parsing, nonce advancement) is shared and lives here.",
+        "approval": "approved",
+        "features": {
+          "feature": [
+            {
+              "feature_id": "EPIC-003-F-001",
+              "orphan": false,
+              "name": "Shared front-end UX widget library",
+              "description": "Distribution mechanism + source-of-truth for the display-only UX widgets currently inlined in Website/index.html and the FindCare React iframe. Includes the chFatalError full-screen overlay, the non-prod env banner, the non-prod security panel (right-side rightSecurity panel), and any future widget shared by more than one front-end consumer. The library carries NO business logic — peer selection, mutual-auth pairing, service routing, ownership state, and any other biz-logic concerns are explicitly excluded and live in the backend per the no-biz-logic-on-client rule. Distribution channel TBD (npm package, CDN-hosted versioned bundle, or repo-internal copy at deploy time) — to be decided as part of the first story under this feature. Owned by the same EPIC-003 team that owns chathealthy-frontend-lib (Python).",
+              "priority": "must-have",
+              "status": "not_started",
+              "approval": "approved",
+              "due_date": "2026-06-01",
+              "realized_by": [
+                "FrontEndApplicationLib/widgets/ (planned)",
+                "Website/index.html (consumer)",
+                "Code/ConversationalUX/FindCareChat/frontend/ (consumer)"
+              ],
+              "stories": {
+                "story": []
+              }
+            },
+            {
+              "feature_id": "EPIC-003-F-002",
+              "orphan": false,
+              "name": "Backend orchestration that supports the shared front-end UX widgets",
+              "description": "Backend endpoints + service-layer code that own all the business logic that today lives inline in Website/index.html and the FindCare React iframe — peer selection (which backend's /health to call), mutual-auth pairing (the /session-then-/verify-token sequence currently driven from the wrapper), service-routing/ownership-state (gotoFindCare/gotoEvaluateCare/gotoSharedServices and the underlying ownership transition), and any other biz-logic decision the wrapper is making today. The widgets in EPIC-003-F-001 then become pure display: each widget consumes ONE clean data endpoint per render. This feature exists so that the no-biz-logic-on-client rule can actually be enforced; without it, extracting widgets only relocates the violation, not removes it. Per the auth caveat, token MANUFACTURE belongs 100% to SharedServices and any orchestration here MUST respect that boundary.",
+              "priority": "must-have",
+              "status": "not_started",
+              "approval": "approved",
+              "due_date": "2026-06-01",
+              "realized_by": [
+                "sharedServices/Code/ (likely host of the orchestration endpoints)",
+                "evaluateCare/Code/ (peer)",
+                "Code/ConversationalUX/FindCareChat/backend/ (peer)"
+              ],
+              "stories": {
+                "story": []
+              }
+            }
+          ]
+        }
+      },
+      {
         "epic_id": "EPIC-004",
         "name": "Safety",
         "status": "in_progress",

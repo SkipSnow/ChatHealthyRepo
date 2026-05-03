@@ -240,13 +240,8 @@ import time as _time_mod
 app = FastAPI(title="ChatHealthy FindCare API")
 
 # EPIC-008-F-011-S-001-REQ-B-002 / REQ-B-003 — uniform fatal-error contract.
-# Code/Shared/ is on sys.path (via the /session endpoint's bootstrap below);
-# import once here so the handler is registered on app construction.
-import sys as _rg_sys, os as _rg_os
-_rg_shared = _rg_os.path.join(_rg_os.path.dirname(__file__), "..", "..", "..", "Shared")
-if _rg_shared not in _rg_sys.path:
-    _rg_sys.path.insert(0, _rg_shared)
-from runtime_governance import ChatHealthyFatalError, register_fatal_handler  # noqa: E402
+# EPIC-003: consumed from the chathealthy-frontend-lib package.
+from chathealthy_frontend_lib.runtime_governance import ChatHealthyFatalError, register_fatal_handler
 register_fatal_handler(app, service_name="FindCare")
 
 # ── EPIC-002-F-001-S-012-REQ-T-004: startup security-primitive verification ──

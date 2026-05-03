@@ -64,7 +64,8 @@ _bootstrap_certs_from_env()
 app = FastAPI(title="ChatHealthy.ai Shared Services", version="0.1.4")
 
 # EPIC-008-F-011-S-001-REQ-B-002 / REQ-B-003 — uniform fatal-error contract.
-from runtimeGovernance.runtime_governance import register_fatal_handler
+# EPIC-003: consumed from the chathealthy-frontend-lib package.
+from chathealthy_frontend_lib.runtime_governance import register_fatal_handler
 register_fatal_handler(app, service_name="SharedServices")
 
 

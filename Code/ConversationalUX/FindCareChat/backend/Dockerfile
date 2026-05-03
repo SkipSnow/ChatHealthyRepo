@@ -38,6 +38,10 @@ COPY Code/Shared /app/Code/Shared
 COPY Code/ConversationalUX/ChatHealthyWhoAmIChat/me /app/Code/ConversationalUX/ChatHealthyWhoAmIChat/me
 COPY brain /app/brain
 
+# EPIC-003: install chathealthy-frontend-lib from the bundled source.
+COPY FrontEndApplicationLib /app/FrontEndApplicationLib
+RUN pip install --no-cache-dir /app/FrontEndApplicationLib
+
 # Run as the host process would: WORKDIR == backend/, exec `python main.py`.
 # main.py's __main__ block reads SSL_CERTFILE/SSL_KEYFILE/PORT env to bind
 # uvicorn over HTTPS, matching the host-port HTTPS contract that
