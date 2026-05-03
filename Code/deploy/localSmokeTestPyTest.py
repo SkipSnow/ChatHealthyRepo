@@ -114,9 +114,10 @@ def _retry(label, attempts, sleep_ms, action):
 
 
 def _get_health():
+    # POST per EPIC-008-F-011-S-002-REQ-B-001 (client-callable endpoints are POST).
     c = httpx.Client(verify=False, timeout=10)
     try:
-        return c.get(f"{FINDCARE_URL}/health").json()
+        return c.post(f"{FINDCARE_URL}/health").json()
     finally:
         c.close()
 
@@ -124,7 +125,7 @@ def _get_health():
 def _get_welcome_words():
     c = httpx.Client(verify=False, timeout=10)
     try:
-        data = c.get(f"{FINDCARE_URL}/welcome").json()
+        data = c.post(f"{FINDCARE_URL}/welcome").json()
         import html as html_mod
         text = re.sub(r'<[^>]+>', ' ', data.get("message", ""))
         text = html_mod.unescape(text).strip()
@@ -136,7 +137,7 @@ def _get_welcome_words():
 def _get_fresh_token():
     c = httpx.Client(verify=False, timeout=10)
     try:
-        return c.get(f"{FINDCARE_URL}/session").json()
+        return c.post(f"{FINDCARE_URL}/session").json()
     finally:
         c.close()
 
@@ -933,11 +934,12 @@ class TestStep34:
         c = httpx.Client(verify=False, timeout=10)
         r = c.get(f"{BASE_URL}/")
         assert r.status_code == 200, f"Website 443: {r.status_code}"
-        r = c.get(f"{FINDCARE_URL}/health")
+        # /health endpoints are POST-only per EPIC-008-F-011-S-002-REQ-B-001.
+        r = c.post(f"{FINDCARE_URL}/health")
         assert r.json()["status"] == "ok"
-        r = c.get(f"{EVALCARE_URL}/health")
+        r = c.post(f"{EVALCARE_URL}/health")
         assert r.json()["service"] == "evaluate_care"
-        r = c.get(f"{SHARED_URL}/health")
+        r = c.post(f"{SHARED_URL}/health")
         assert r.json()["service"] == "shared_services"
         c.close()
 
@@ -1037,7 +1039,8 @@ class TestStep35:
             try:
                 with httpx.Client(cert=client_cert, verify=ca_path,
                                   timeout=10) as c:
-                    r = c.get(f"{server_url}/health")
+                    # /health is POST-only per EPIC-008-F-011-S-002-REQ-B-001.
+                    r = c.post(f"{server_url}/health")
                     if r.status_code != 200:
                         problems.append(
                             f"{client_name}->{server_name}: "
