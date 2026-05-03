@@ -53,7 +53,20 @@ class ChatHealthyFatalError(Exception):
 
 
 def register_fatal_handler(app: FastAPI, service_name: str) -> None:
-    """Register the global ChatHealthyFatalError handler on the FastAPI app."""
+    """Register the global ChatHealthyFatalError handler AND a generic Exception
+    handler on the FastAPI app.
+
+    The generic handler catches every uncaught Exception in every endpoint and
+    converts it to the same 503 + sanitized body + detailed log contract as
+    ChatHealthyFatalError. This means an endpoint author does NOT need to wrap
+    their code in try/except to satisfy REQ-B-001/B-002/B-003 — any escape
+    becomes the uniform fatal response. Endpoints can still raise
+    ChatHealthyFatalError explicitly to attach a coarse `source` label;
+    otherwise the generic handler labels it "unhandled".
+
+    HTTPException is intentionally NOT caught here — FastAPI's built-in
+    HTTPException handler already produces the appropriate 4xx for legitimate
+    client-fault responses, which are NOT fatal."""
     log = logging.getLogger(f"{service_name}.fatal")
 
     @app.exception_handler(ChatHealthyFatalError)
@@ -74,6 +87,29 @@ def register_fatal_handler(app: FastAPI, service_name: str) -> None:
                 "detail": {
                     "api": exc.api,
                     "source": exc.source,
+                    "time": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    "service": service_name,
+                }
+            },
+        )
+
+    @app.exception_handler(Exception)
+    async def _generic_handler(request: Request, exc: Exception):
+        log.error(
+            "UNHANDLED %s %s | client=%s | %s: %s\n%s",
+            request.method,
+            request.url.path,
+            request.client.host if request.client else "unknown",
+            type(exc).__name__,
+            exc,
+            "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
+        )
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": {
+                    "api": request.url.path,
+                    "source": "unhandled",
                     "time": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                     "service": service_name,
                 }
