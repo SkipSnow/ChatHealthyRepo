@@ -549,9 +549,6 @@
 
 <body>
 
-  <!-- ══ EPIC-008-F-011-S-001-REQ-B-001 — fatal-error full-screen overlay ══════════
-       Triggered by: any HTTP 503 response, any unhandled JS exception, any client-side
-       retry exhaustion. All paths converge on window.chFatalError(message). -->
   <div id="chFatalErrorOverlay" style="display:none;position:fixed;inset:0;z-index:2147483647;background:#fff;overflow:auto;padding:40px 20px;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;">
     <div style="max-width:680px;margin:0 auto;text-align:center;color:#111;">
       <div style="font-size:38px;font-weight:700;color:#dc2626;margin:60px 0 40px 0;line-height:1.25;">HTTP 503: Fatal Error, this service is not available.</div>
@@ -565,16 +562,11 @@
     </div>
   </div>
   <script>
-    /* EPIC-008-F-011-S-001-REQ-B-001 + REQ-B-002 — defined first so every later script
-       can call window.chFatalError safely. Spec: same overlay for every fatal site. */
     (function() {
       window.chFatalError = function(message) {
         try {
           var overlay = document.getElementById('chFatalErrorOverlay');
-          if (!overlay) {
-            console.error('[chFatalError] overlay element missing; cannot render. message=' + message);
-            return;
-          }
+          if (!overlay) return;
           var host = window.location.hostname;
           var homeUrl;
           if (host === 'localhost' || host === '127.0.0.1') {
@@ -592,12 +584,8 @@
           if (msgEl) msgEl.textContent = String(message == null ? '' : message);
           overlay.style.display = 'block';
           overlay.style.zIndex = '2147483647';
-        } catch (renderErr) {
-          console.error('[chFatalError] render failed:', renderErr, 'original message:', message);
-        }
+        } catch (_) {}
       };
-
-      // REQ-B-001 trigger: any unhandled JS exception → overlay.
       window.addEventListener('error', function(e) {
         var routine = (e && e.filename) ? (e.filename + ':' + (e.lineno || '?')) : 'unknown';
         var msg = (e && e.message) ? e.message : 'unknown error';
@@ -608,12 +596,6 @@
         var msg = reason ? (reason.message || String(reason)) : 'unhandled promise rejection';
         window.chFatalError('JS routine {promise failed}: ' + msg);
       });
-
-      // REQ-B-001 trigger: patch fetch so any 503 response trips the overlay.
-      // Only 503 is the fatal contract — other status codes are the caller's concern.
-      // Per REQ-B-002, the response body shape is {detail:{service, source, time}};
-      // format it as a human-readable line so the user can read the service name
-      // back to Skip on the phone (Line 2 of the overlay).
       var _origFetch = window.fetch;
       window.fetch = function() {
         return _origFetch.apply(this, arguments).then(function(resp) {
@@ -623,20 +605,12 @@
               try {
                 var parsed = JSON.parse(body);
                 var detail = parsed && parsed.detail;
-                if (detail && typeof detail === 'object' && detail.service) {
-                  msg = detail.service + ' service unavailable'
-                      + (detail.source ? ' (source: ' + detail.source + ')' : '')
-                      + (detail.time   ? ' at '       + detail.time           : '');
-                } else if (typeof detail === 'string') {
-                  msg = detail;
-                } else {
-                  msg = body;
-                }
+                if (detail && typeof detail === 'object' && detail.message) msg = detail.message;
+                else if (typeof detail === 'string') msg = detail;
+                else msg = body;
               } catch (_) { msg = body; }
-              window.chFatalError(String(msg || 'Service returned 503'));
-            }).catch(function() {
-              window.chFatalError('Service returned 503 (response body unreadable)');
-            });
+              window.chFatalError(String(msg || ''));
+            }).catch(function() { window.chFatalError(''); });
           }
           return resp;
         });
@@ -771,10 +745,7 @@
         paintBanner('?', '?', '?');
         fetch(healthUrl).then(function(r) { return r.json(); }).then(function(d) {
           paintBanner(d.version, d.framework, d.build);
-        }).catch(function(e) {
-          console.error('refreshBanner /health fetch failed (' + key + '):', e);
-          window.chFatalError('refreshBanner /health (' + key + '): ' + String(e && e.message ? e.message : e));
-        });
+        }).catch(function() { window.chFatalError(''); });
       };
 
       // Initial paint: FindCare owns the page on first load.
@@ -931,8 +902,6 @@
           coldUrl = sharedUrl; color = '#0b7a75'; label = 'FindCare';       bg = '#f0fffe';
         }
 
-        // EPIC-008-F-011-S-001-REQ-B-001: mutual-auth failure is fatal — the
-        // single chFatalError overlay handles every fatal site identically.
         fetch(apiBase + '/session')
           .then(function(r) {
             if (!r.ok) throw new Error('FindCare /session HTTP ' + r.status);
@@ -970,10 +939,7 @@
                 + window.buildTokenDisplayHtml(st);
             }
           })
-          .catch(function(e) {
-            console.error('refreshTokenPanels failed (owner=' + owner + '):', e);
-            window.chFatalError('refreshTokenPanels (' + owner + '): ' + String(e && e.message ? e.message : e));
-          });
+          .catch(function() { window.chFatalError(''); });
       };
       // DEVOPS-BANNER-B006: 3-button banner with hot/cold states.
       // The service that owns the page renders cold (disabled + tooltip).
@@ -1044,10 +1010,7 @@
             splashDiv.style.display = 'flex';
             splashDiv.innerHTML = d.html || '';
           })
-          .catch(function(e) {
-            console.error('evalcare splash fetch failed:', e);
-            window.chFatalError('evalcare splash fetch: ' + String(e && e.message ? e.message : e));
-          });
+          .catch(function() { window.chFatalError(''); });
         // SEC-HTTPS-001-REQ-021: token MUST come from page-owning service.
         // EvaluateCare mints with evalcare.key; FindCare verifies with evalcare.crt.
         // refreshTokenPanels also rotates the LEFT panel (FC /session) per REQ-022.
@@ -1069,11 +1032,7 @@
         if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
         fetch(apiBase + '/transfer/to-findcare', { method: 'POST' })
           .then(function(r) { return r.json(); })
-          .catch(function(e) {
-            console.error('/transfer/to-findcare notify failed:', e);
-            window.chFatalError('/transfer/to-findcare: ' + String(e && e.message ? e.message : e));
-            return {};
-          })
+          .catch(function() { window.chFatalError(''); return {}; })
           .then(function() {
             var ecSplash = document.getElementById('evalcareSplash');
             if (ecSplash) ecSplash.style.display = 'none';
@@ -1125,10 +1084,7 @@
             splashDiv.style.display = 'flex';
             splashDiv.innerHTML = d.html || '';
           })
-          .catch(function(e) {
-            console.error('SharedServices splash fetch failed:', e);
-            window.chFatalError('SharedServices splash fetch: ' + String(e && e.message ? e.message : e));
-          });
+          .catch(function() { window.chFatalError(''); });
 
         // SEC-HTTPS-001-REQ-021: token MUST come from page-owning service.
         // SharedServices mints with shared.key; FindCare verifies with shared.crt.
@@ -1340,10 +1296,7 @@
                     splashDiv.style.display = 'flex';
                     splashDiv.innerHTML = d.html || '';
                   })
-                  .catch(function(e) {
-                    console.error('EvaluateCare splash fetch failed:', e);
-                    window.chFatalError('EvaluateCare splash fetch: ' + String(e && e.message ? e.message : e));
-                  });
+                  .catch(function() { window.chFatalError(''); });
                 chatFrame.contentWindow.postMessage({ type: 'gui:event', action: 'evaluate-providers' }, '*');
                 // SEC-HTTPS-001-REQ-021: refresh RIGHT panel via direct
                 // browser → cold service /verify-token (matches the banner
@@ -1707,17 +1660,7 @@
                 // case Pending raced ahead of an in-flight verify update.
                 __attempts++;
                 if (__attempts >= __MAX_ATTEMPTS) {
-                  // EPIC-008-F-011-S-001-REQ-B-001: retry exhaustion is fatal —
-                  // route through the single chFatalError overlay rather than
-                  // silently overwriting verified state with Pending.
-                  console.error(
-                    'gui:session-display: retry exhausted after ' + __MAX_ATTEMPTS +
-                    ' cycles; verified state never cleared — fatal.'
-                  );
-                  window.chFatalError(
-                    'JS routine {gui:session-display retry exhausted after ' + __MAX_ATTEMPTS +
-                    ' cycles; verified token still present, refusing to overwrite with Pending}'
-                  );
+                  window.chFatalError('JS routine {gui:session-display retry exhausted}');
                   return;
                 }
                 setTimeout(__tryPaint, __DELAY_MS);

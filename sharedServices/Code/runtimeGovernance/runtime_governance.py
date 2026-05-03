@@ -146,6 +146,7 @@ def register_fatal_handler(app: FastAPI, service_name: str) -> None:
             status_code=503,
             content={
                 "detail": {
+                    "message": f"{service_name} service is not available.",
                     "service": service_name,
                     "source": exc.source,
                     "time": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -168,6 +169,7 @@ def register_fatal_handler(app: FastAPI, service_name: str) -> None:
             status_code=503,
             content={
                 "detail": {
+                    "message": f"{service_name} service is not available.",
                     "service": service_name,
                     "source": "unhandled",
                     "time": datetime.datetime.now(datetime.timezone.utc).isoformat(),
