@@ -2,7 +2,6 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 import logging
-from typing import Optional
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
@@ -41,8 +40,8 @@ class EvaluatedProvider(BaseModel):
 class EvaluateProvidersRequest(BaseModel):
     """Payload posted by FindCare's React iframe (via the FindCare /evaluate/providers
     proxy) when the user clicks Evaluate."""
-    providers: list[Provider] = Field(..., description="Selected providers — items conform to the canonical Provider schema")
-    session_token: Optional[SessionToken] = Field(default=None, description="FindCare-signed session token for mutual authentication")
+    providers: list[Provider] = Field(..., min_length=1, description="Selected providers — at least one required; items conform to the canonical Provider schema")
+    session_token: SessionToken = Field(..., description="FindCare-signed session token for mutual authentication")
     question_summary: str = Field(default="", description="Free-text reason the user wants these providers evaluated")
 
 
@@ -62,8 +61,6 @@ class EvaluateProvidersEndpoint:
         self.log = logging.getLogger("evaluate_care.evaluate_providers")
 
     def __call__(self, body: EvaluateProvidersRequest) -> EvaluateProvidersResponse:
-        if not body.session_token:
-            raise HTTPException(status_code=400, detail="session_token is required")
         inbound = body.session_token.model_dump()
         token_str = inbound.get("token", "") or ""
         sig = inbound.get("signature", "") or ""
