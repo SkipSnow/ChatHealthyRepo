@@ -115,35 +115,41 @@ jobs:
           find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
           cp /tmp/hf_readme.md hf_space/README.md 2>/dev/null || true
 
-          # Backend code
+          # Recreate the repo tree under hf_space/ so the FindCare backend
+          # Dockerfile's COPY paths (Code/Shared, brain, etc.) resolve. The
+          # Dockerfile was authored for the local build (context = repo root)
+          # and main.py's relative imports (sys.path.insert(0, ../../../Shared)
+          # etc.) work unmodified when /app mirrors the host tree.
+
+          mkdir -p hf_space/Code/ConversationalUX/FindCareChat/backend
           rsync -av \
             --exclude='.env' \
             --exclude='__pycache__' \
             --exclude='*.pyc' \
-            Code/ConversationalUX/FindCareChat/backend/ hf_space/
+            Code/ConversationalUX/FindCareChat/backend/ hf_space/Code/ConversationalUX/FindCareChat/backend/
 
-          # Pre-built React frontend → static/
-          cp -r Code/ConversationalUX/FindCareChat/frontend/dist hf_space/static
+          # Pre-built React frontend → backend/static (where main.py mounts it)
+          cp -r Code/ConversationalUX/FindCareChat/frontend/dist hf_space/Code/ConversationalUX/FindCareChat/backend/static
 
-          # Shared utilities — copy all .py files from Shared root
-          for f in Code/Shared/*.py; do cp "$f" hf_space/; done
+          # Code/Shared/ — preserve subdirs (ops/, agent_framework/, ux/, tests/)
+          mkdir -p hf_space/Code/Shared
+          rsync -av \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            Code/Shared/ hf_space/Code/Shared/
 
           # PKI certs deferred to Beta (BUG-SEC-002) — HF doesn't support mTLS
 
           # Brain artifacts needed at runtime
           mkdir -p hf_space/brain/machine_artifacts/content
           cp brain/machine_artifacts/content/emergency_keywords.json hf_space/brain/machine_artifacts/content/
-          # version.json removed per BUG-001: canonical build/version/framework
-          # now lives in MongoDB admin.Versions; HF backend reads via /health
-          # which reads the latest record. No filesystem version artifact.
-
-          # UAT report tool
-          mkdir -p hf_space/ops
-          cp Code/Shared/ops/uat_report.py hf_space/ops/
 
           # me/ context files (PDFs, summary, codebase)
-          mkdir -p hf_space/me
-          rsync -av Code/ConversationalUX/ChatHealthyWhoAmIChat/me/ hf_space/me/
+          mkdir -p hf_space/Code/ConversationalUX/ChatHealthyWhoAmIChat/me
+          rsync -av Code/ConversationalUX/ChatHealthyWhoAmIChat/me/ hf_space/Code/ConversationalUX/ChatHealthyWhoAmIChat/me/
+
+          # Dockerfile lives at the build-context root for HF.
+          cp Code/ConversationalUX/FindCareChat/backend/Dockerfile hf_space/Dockerfile
 
           cd hf_space
           git lfs track "*.pdf"
