@@ -109,13 +109,14 @@ for fname in os.listdir(website_dir):
             return serve
         website_app.get(f"/{fname}")(make_route(fpath))
 
-# Proxy /health to FindCare backend for banner build info
+# Proxy /health to FindCare backend for banner build info.
+# POST per EPIC-008-F-011-S-002-REQ-B-001 (client-callable endpoints are POST-only).
 import httpx
 
-@website_app.get("/health")
+@website_app.post("/health")
 async def proxy_health():
     async with httpx.AsyncClient(verify=False) as client:
-        resp = await client.get("https://localhost:7860/health")
+        resp = await client.post("https://localhost:7860/health")
         return resp.json()
 
 _log.info("Port 443  → Website started (HTTPS)")

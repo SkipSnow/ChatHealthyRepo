@@ -85,9 +85,10 @@ def _cert_facts(crt_path):
 
 
 def _handshake(caller, callee, with_cert=True, path="/health"):
-    """Attempt a GET to the callee's HTTPS endpoint. Return (status, code, body).
+    """Attempt a POST to the callee's HTTPS endpoint. Return (status, code, body).
     status == 'ok' on a completed response (any HTTP code). 'error' on exception
-    (TLS reject, network error, etc.).
+    (TLS reject, network error, etc.). POST per EPIC-008-F-011-S-002-REQ-B-001
+    (client-callable endpoints are POST-only).
 
     When SMOKE_DEBUG=1, logs audit-ready facts: timestamp, caller cert subject,
     issuer, serial, validity window, callee URL, outcome. This is the evidence
@@ -119,7 +120,7 @@ def _handshake(caller, callee, with_cert=True, path="/health"):
 
     try:
         with httpx.Client(**client_kw) as cli:
-            r = cli.get(url)
+            r = cli.post(url)
         if DEBUG:
             _log.debug(
                 "  OUTCOME ok  http_status=%d  body_snippet=%s",

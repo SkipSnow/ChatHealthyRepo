@@ -278,6 +278,8 @@ class LocalDeploy:
         on evaluate_care for evalcare). Repo-root .dockerignore keeps the
         transferred context small.
         """
+        import shutil as _shutil
+        frontend_lib_src = self.repo_root / "FrontEndApplicationLib"
         for container_name, entry in self.BACKEND_CONTAINERS.items():
             _label, src_dir, build_ctx_rel = entry
             image_tag = container_name  # same name for image and container
@@ -289,20 +291,42 @@ class LocalDeploy:
                     "V11 S-002-REQ-T-001 requires Dockerfile per backend."
                 )
             build_ctx_abs = self.repo_root if build_ctx_rel == "." else (self.repo_root / build_ctx_rel)
+
+            # EPIC-003: stage FrontEndApplicationLib into the per-service
+            # build context if the context is narrower than repo root.
+            # The Dockerfile expects `COPY FrontEndApplicationLib …`; for the
+            # per-service contexts (evaluateCare/Code, sharedServices/Code)
+            # FrontEndApplicationLib lives outside the context and must be
+            # mirrored in. Match the HF GHA workflow's rsync pattern.
+            staged_lib = None
+            if build_ctx_rel != ".":
+                staged_lib = build_ctx_abs / "FrontEndApplicationLib"
+                if staged_lib.exists():
+                    _shutil.rmtree(staged_lib)
+                _shutil.copytree(frontend_lib_src, staged_lib,
+                                 ignore=_shutil.ignore_patterns("__pycache__", "*.pyc"))
+
             self._step_notice(
                 f"building image {image_tag} (-f {dockerfile_rel}, "
                 f"context={build_ctx_rel})"
             )
-            result = subprocess.run(
-                ["docker", "build",
-                 "-t", image_tag,
-                 "-f", str(dockerfile_abs),
-                 str(build_ctx_abs)],
-                cwd=str(self.repo_root),
-                capture_output=True, text=True,
-                creationflags=(subprocess.CREATE_NO_WINDOW
-                               if sys.platform == "win32" else 0),
-            )
+            try:
+                result = subprocess.run(
+                    ["docker", "build",
+                     "-t", image_tag,
+                     "-f", str(dockerfile_abs),
+                     str(build_ctx_abs)],
+                    cwd=str(self.repo_root),
+                    capture_output=True, text=True,
+                    creationflags=(subprocess.CREATE_NO_WINDOW
+                                   if sys.platform == "win32" else 0),
+                )
+            finally:
+                # Always clean up the staged copy, even on failure, so we
+                # don't pollute the source tree with FrontEndApplicationLib
+                # duplicates that drift from the canonical copy at repo root.
+                if staged_lib is not None and staged_lib.exists():
+                    _shutil.rmtree(staged_lib)
             if result.returncode != 0:
                 sys.exit(
                     f"ERROR: docker build failed for {image_tag}: "
