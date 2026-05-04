@@ -108,7 +108,7 @@ from externalInterface.evaluate_providers_endpoint import (
     EvaluateProvidersRequest,
     EvaluateProvidersResponse,
 )
-from security.session_token import SessionToken
+from chathealthy_frontend_lib.session_token import SessionToken
 
 
 def _impl(cls_name, file_subpath):

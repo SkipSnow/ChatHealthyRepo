@@ -5,7 +5,7 @@ import logging
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from security.session_token import (
+from chathealthy_frontend_lib.session_token import (
     SessionToken,
     SessionTokenVerification,
     TokenInfraError,

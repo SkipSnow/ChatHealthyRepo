@@ -3,7 +3,7 @@
 EPIC-003 — owned by the front-end-library team.
 """
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 
 from .runtime_governance import (
     ChatHealthyFatalError,
@@ -13,6 +13,7 @@ from .session_token import (
     SessionToken,
     SessionTokenVerification,
     TokenInfraError,
+    generate_session_token,
     verify_session_token,
 )
 
@@ -22,5 +23,6 @@ __all__ = [
     "SessionToken",
     "SessionTokenVerification",
     "TokenInfraError",
+    "generate_session_token",
     "verify_session_token",
 ]

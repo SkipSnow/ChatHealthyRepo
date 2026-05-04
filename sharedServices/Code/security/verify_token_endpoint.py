@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import HTTPException
 from pydantic import BaseModel
 
-from security.session_token import (
+from chathealthy_frontend_lib.session_token import (
     SessionToken,
     SessionTokenVerification,
     TokenInfraError,

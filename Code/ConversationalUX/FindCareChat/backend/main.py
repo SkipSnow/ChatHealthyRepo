@@ -303,12 +303,8 @@ def _bootstrap_certs_from_env():
 def _startup_security_verification():
     import sys as _sys
     _bootstrap_certs_from_env()
-    _local_shared = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared")
-    if _local_shared not in _sys.path:
-        _sys.path.insert(0, _local_shared)
-    os.environ.setdefault("CERTS_DIR", os.path.join(_local_shared, "ops", "certs"))
     try:
-        from session_token import generate_session_token
+        from chathealthy_frontend_lib.session_token import generate_session_token
     except ImportError as _imp:
         _log.error("STARTUP ABEND exit=78 primitive=session_token reason=import_failed: %s", _imp)
         _sys.exit(78)
@@ -592,16 +588,7 @@ def get_session():
     """
     import sys as _sys
     # Local layout: Shared/ is three levels up from backend/.
-    # HF layout: session_token.py is copied flat into the hf_space root,
-    # which is already on the Python path, so the sys.path.insert below
-    # is a no-op there and the import resolves from the root. Either way,
-    # the import MUST succeed — if it doesn't, something is wrong and the
-    # caller needs to know.
-    _local_shared = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared")
-    if _local_shared not in _sys.path:
-        _sys.path.insert(0, _local_shared)
-    os.environ.setdefault("CERTS_DIR", os.path.join(_local_shared, "ops", "certs"))
-    from session_token import generate_session_token
+    from chathealthy_frontend_lib.session_token import generate_session_token
     token = generate_session_token("FindCare")
     # EPIC-002-F-001-S-012-REQ-B-010: server-asserted env (FindCare's deployment env).
     # `origin` field stays "FindCare" for cryptographic signature verification
@@ -631,18 +618,10 @@ def verify_token(body: EvaluateRequest):
     signature doesn't match the cert for the claimed origin, verification
     fails — so a caller can't lie about origin.
     """
-    import sys as _sys
-    _local_shared = os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared")
-    if _local_shared not in _sys.path:
-        _sys.path.insert(0, _local_shared)
-    os.environ.setdefault("CERTS_DIR", os.path.join(_local_shared, "ops", "certs"))
     if not body.session_token:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="session_token is required")
-    # NO silent fallback. ValueError = caller-side bad input → 400.
-    # TokenInfraError = server-side cert/CERTS_DIR failure → propagates → 500
-    # so the operator sees infra broken, not a misleading verified=false.
-    from session_token import verify_session_token
+    from chathealthy_frontend_lib.session_token import verify_session_token
     token_origin = body.session_token.get("origin", "unknown")
     try:
         token_valid = verify_session_token(body.session_token, token_origin)
