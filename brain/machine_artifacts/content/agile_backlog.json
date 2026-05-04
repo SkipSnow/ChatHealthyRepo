@@ -490,7 +490,7 @@
                         },
                         {
                           "req_id": "EPIC-002-F-001-S-012-REQ-B-007",
-                          "requirement": "The session token display MUST separate the nonce from the GUID so a human can visually verify each part. The display MUST show: (1) Signed token (the encrypted signature), (2) Nonce (the two timestamps extracted from the token), (3) GUID (the session identifier extracted from the token). The nonce and GUID MUST be displayed as separate labeled fields. The presentation in the right panel (after EvaluateCare or SharedServices handoff) MUST be identical to the presentation in the left panel. Both panels MUST use the same labels, layout, and format.",
+                          "requirement": "The session token display MUST separate the nonce from the GUID so a human can visually verify each part. The display MUST show: (1) Signed token (the encrypted signature), (2) Nonce (the two timestamps extracted from the token), (3) GUID (the session identifier extracted from the token). The nonce and GUID MUST be displayed as separate labeled fields. The presentation in the right panel (after EvaluateCare or SharedServices handoff) MUST be identical to the presentation in the left panel. Both panels MUST use the same labels, layout, and format. But the value of the NONCE will be updated correctly with the new time where it belongs, in the right panel if ownership is passed to EvaluateCare or Shared Services, and in the Left Panel if control is passed to FindCare. Only the owning service Shall update the NONCE.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -498,13 +498,14 @@
                           "tests": {
                             "test": [
                               {
+                                "test_id": "EPIC-002-F-001-S-012-REQ-B-007-PYTEST-1",
                                 "test_type": "playwright",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
                               }
                             ]
                           },
-                          "name": "Display nonce and GUID as separate labeled fields with identical format in both ",
+                          "name": "Display nonce and GUID as separate labeled fields with identical format in both panels",
                           "depends_on": []
                         },
                         {
@@ -528,7 +529,7 @@
                         },
                         {
                           "req_id": "EPIC-002-F-001-S-012-REQ-B-009",
-                          "requirement": "The session-verification panel rendered in the left (specialty search / guiSessionCell) and right panels MUST include two additional rows below the existing fields: (1) `Env: <ENV>` where ENV is the environment label (LOCAL, DEV, QA, or PROD) of the service that issued the token, derived from the active deployment context; (2) `Time: PST <YYYY-MM-DD HH:MM:SS>` where the value is the token's `created_at` timestamp reformatted to America/Los_Angeles timezone (Pacific Time, observing daylight saving). Both rows MUST appear in both the left and right panel renderings so a human operator can verify which environment served the token and at what time without consulting external tools.",
+                          "requirement": "The session-verification panel rendered in the left and right panels MUST match the mock at {projectRoot}/brain/machine_artifacts/diagramsAndImages/GUIImagesAndMockUps/NonProdSecuriytToken.jpg.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -536,18 +537,19 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-001-S-012-REQ-B-009-PYTEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
                               }
                             ]
                           },
-                          "name": "Session token display must include Env and PST Time rows in both panels",
+                          "name": "Session-verification panel matches NonProdSecuriytToken mock in both panels",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-002-F-001-S-012-REQ-B-010",
-                          "requirement": "The session_token.origin field returned by /verify-token (and any equivalent endpoint that returns a session_token object) MUST be set to the name of the RESPONDING service (e.g., \"EvaluateCare\" for EvaluateCare's /verify-token; \"SharedServices\" for SharedServices'). This origin field is the SELF-IDENTIFICATION of the service that produced THIS response object — it is distinct from the cryptographic token signer (REQ-017, which always identifies FindCare). One service MUST NOT assert another service's identity in any field rendered to the operator. The wrapper's session-verification panel MUST render this origin value as-is, treating it as the responding service's authoritative claim of its own identity. The display proves that the named component received the nonce and token and produced this verification result.",
+                          "requirement": "The session_token.origin field returned by /verify-token (and any equivalent endpoint that returns a session_token object) MUST be set to the name of the RESPONDING service (e.g., \"EvaluateCare\" for EvaluateCare's /verify-token; \"SharedServices\" for SharedServices'). This origin field is the SELF-IDENTIFICATION of the service that produced THIS response object — it is distinct from the cryptographic token signer (REQ-017, which always identifies FindCare). One service MUST NOT assert another service's identity in any field rendered to the operator. The wrapper's session-verification panel MUST render this origin value as-is, treating it as the responding service's authoritative claim of its own identity. The display proves that the named component received and updated the nonce and token and produced this verification result.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -558,7 +560,7 @@
                                 "test_id": "EPIC-002-F-001-S-012-REQ-B-010-PYTEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
-                                "file": "ORPHAN"
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
                               }
                             ]
                           },
@@ -671,13 +673,14 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-001-S-012-REQ-T-006-PYTEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
                               }
                             ]
                           },
-                          "name": "Session token must include and display service origin, signed and verified per-s",
+                          "name": "Session token must include and display service origin, signed and verified per-service",
                           "depends_on": []
                         },
                         {

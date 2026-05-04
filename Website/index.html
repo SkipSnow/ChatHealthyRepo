@@ -912,18 +912,29 @@
               throw new Error('verify-token response missing session_token');
             }
             var st = result.session_token;
-            window.ensureRightPanelStructure();
-            var sec = document.getElementById('rightSecurity');
-            if (sec) {
-              sec.innerHTML =
-                  '<div style="padding:8px 10px;border-bottom:2px solid ' + color + ';background:' + bg + ';">'
-                + '<div style="font-size:11px;font-weight:700;color:' + color + ';text-transform:uppercase;">' + label + '</div>'
-                + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
-                + '</div>'
-                + window.buildTokenDisplayHtml(st);
+            if (owner === 'findcare') {
+              var leftCell = document.getElementById('guiSessionId');
+              if (!leftCell) {
+                var leftPanelOuter = document.getElementById('leftPanel');
+                if (leftPanelOuter) {
+                  leftPanelOuter.insertAdjacentHTML('beforeend',
+                    '<div id="guiSessionId" style="padding:4px 8px;border-top:1px solid #e5e7eb;"></div>');
+                  leftCell = document.getElementById('guiSessionId');
+                }
+              }
+              if (leftCell) leftCell.innerHTML = window.buildTokenDisplayHtml(st);
+            } else {
+              window.ensureRightPanelStructure();
+              var sec = document.getElementById('rightSecurity');
+              if (sec) {
+                sec.innerHTML =
+                    '<div style="padding:8px 10px;border-bottom:2px solid ' + color + ';background:' + bg + ';">'
+                  + '<div style="font-size:11px;font-weight:700;color:' + color + ';text-transform:uppercase;">' + label + '</div>'
+                  + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
+                  + '</div>'
+                  + window.buildTokenDisplayHtml(st);
+              }
             }
-            var leftCell = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
-            if (leftCell) leftCell.innerHTML = window.buildTokenDisplayHtml(st);
           })
           .catch(function() { window.chFatalError(''); });
       };

@@ -226,16 +226,7 @@ def _verify_session_identity(page, env, handoff_label):
             f"mutual-auth handshake MUST complete; per EPIC-002-F-001-S-012-REQ-B-008 "
             f"any non-positive runtime state (FAILED, PENDING) is fatal."
         )
-    # refreshTokenPanels rotates both panels in lockstep, so LEFT and RIGHT
-    # carry the same nonce/GUID after every handoff (REQ-B-007 identical
-    # presentation). GUID is stable across the session (REQ-T-003); nonce
-    # is fresh on every inter-service call.
-    right_nonces = re.findall(r'Nonce:\s*(\w+)', right)
-    left_nonces = re.findall(r'Nonce:\s*(\w+)', left)
-    assert right_nonces, f"[{handoff_label}] No nonce in right panel"
-    assert left_nonces, f"[{handoff_label}] No nonce in left panel"
-    assert right_nonces[0] == left_nonces[0], \
-        f"[{handoff_label}] Nonce mismatch: right={right_nonces[0]} left={left_nonces[0]}"
+    # GUID is stable across the session (REQ-T-003) — both panels show same.
     right_guids = re.findall(r'GUID:\s*(\w+)', right)
     left_guids = re.findall(r'GUID:\s*(\w+)', left)
     assert right_guids, f"[{handoff_label}] No GUID in right panel"
@@ -246,14 +237,28 @@ def _verify_session_identity(page, env, handoff_label):
     if orig_guid:
         assert right_guids[0] == orig_guid, \
             f"[{handoff_label}] GUID changed from original: {right_guids[0]} vs {orig_guid}"
-    current_nonce = right_nonces[0]
-    prev_nonces = env.get("all_nonces", [])
-    for prev_label, prev_nonce in prev_nonces:
-        assert current_nonce != prev_nonce, \
-            f"[{handoff_label}] Nonce same as {prev_label}: {current_nonce}"
-    env.setdefault("all_nonces", []).append((handoff_label, current_nonce))
     if not orig_guid:
         env["original_guid"] = right_guids[0]
+
+    # Per REQ-B-007 amendment: only the owning service updates its panel's
+    # nonce. The owning panel is determined by the handoff target (right of
+    # the arrow in the label). Track nonce history per panel-side; assert
+    # the OWNING panel's current nonce differs from prior nonces on that side.
+    handoff_target = handoff_label.split("→")[-1].strip().lower()
+    if "findcare" in handoff_target:
+        owning_side, owning_text = "left", left
+    else:
+        owning_side, owning_text = "right", right
+    owning_nonces = re.findall(r'Nonce:\s*(\w+)', owning_text)
+    assert owning_nonces, f"[{handoff_label}] No nonce in {owning_side} panel"
+    current_nonce = owning_nonces[0]
+    history_key = f"{owning_side}_nonce_history"
+    prev = env.setdefault(history_key, [])
+    for prev_label, prev_nonce in prev:
+        assert current_nonce != prev_nonce, \
+            (f"[{handoff_label}] {owning_side} panel nonce same as {prev_label}: "
+             f"{current_nonce}. Per REQ-T-003 nonce MUST regenerate on every call.")
+    prev.append((handoff_label, current_nonce))
     return current_nonce, right_guids[0]
 
 
