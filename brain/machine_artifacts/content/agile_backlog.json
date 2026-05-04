@@ -398,7 +398,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-002-F-001-S-012-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_https_security.py"
@@ -418,7 +418,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-002-F-001-S-012-REQ-B-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_https_security.py"
@@ -438,7 +438,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-B-004-PYTEST-1",
+                                "test_id": "EPIC-002-F-001-S-012-REQ-B-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_https_security.py"
@@ -458,7 +458,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-B-005-PYTEST-1",
+                                "test_id": "EPIC-002-F-001-S-012-REQ-B-005-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_https_security.py"
@@ -498,7 +498,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-B-007-PYTEST-1",
+                                "test_id": "EPIC-002-F-001-S-012-REQ-B-007-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -537,7 +537,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-B-009-PYTEST-1",
+                                "test_id": "EPIC-002-F-001-S-012-REQ-B-009-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -557,7 +557,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-B-010-PYTEST-1",
+                                "test_id": "EPIC-002-F-001-S-012-REQ-B-010-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -615,7 +615,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-002-F-001-S-012-REQ-T-003-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -673,7 +673,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-T-006-PYTEST-1",
+                                "test_id": "EPIC-002-F-001-S-012-REQ-T-006-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -693,7 +693,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-T-007-PYTEST-1",
+                                "test_id": "EPIC-002-F-001-S-012-REQ-T-007-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -924,7 +924,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-004-F-001-S-001-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-004-F-001-S-001-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_safety_unlock.py"
@@ -944,7 +944,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-004-F-001-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-004-F-001-S-001-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_safety_unlock.py"
@@ -978,7 +978,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-004-F-001-S-002-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-004-F-001-S-002-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_safety_false_positives.py"
@@ -1004,7 +1004,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-004-F-001-S-002-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-004-F-001-S-002-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_safety_false_positives.py"
@@ -1023,7 +1023,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-004-F-001-S-002-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-004-F-001-S-002-REQ-B-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_safety_false_positives.py"
@@ -1043,7 +1043,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-004-F-001-S-002-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-004-F-001-S-002-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_safety_false_positives.py"
@@ -1076,7 +1076,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-004-F-001-S-003-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-004-F-001-S-003-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_safety_unlock.py"
@@ -1096,7 +1096,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-004-F-001-S-003-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-004-F-001-S-003-REQ-T-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_safety_unlock.py"
@@ -1116,7 +1116,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-004-F-001-S-003-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-004-F-001-S-003-REQ-T-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_safety_unlock.py"
@@ -1136,7 +1136,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-004-F-001-S-003-REQ-T-004-PYTEST-1",
+                                "test_id": "EPIC-004-F-001-S-003-REQ-T-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -2282,7 +2282,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-B-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
@@ -2302,13 +2302,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
                               },
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-001-PYTEST-2",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-001-TEST-2",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
@@ -2328,7 +2328,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-002-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
@@ -2348,13 +2348,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-003-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
                               },
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-003-PYTEST-2",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-003-TEST-2",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
@@ -2374,7 +2374,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-004-PYTEST-1",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-004-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
@@ -2394,7 +2394,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-005-PYTEST-1",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-005-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
@@ -2414,13 +2414,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-006-PYTEST-1",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-006-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
                               },
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-006-PYTEST-2",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-006-TEST-2",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
@@ -2440,13 +2440,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-007-PYTEST-1",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-007-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
                               },
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-007-PYTEST-2",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-007-TEST-2",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
@@ -2466,7 +2466,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-005-F-004-S-008-REQ-T-008-PYTEST-1",
+                                "test_id": "EPIC-005-F-004-S-008-REQ-T-008-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_dq_compliance_report.py"
@@ -2525,7 +2525,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-001-S-001-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-001-S-001-REQ-B-001-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_search.py"
@@ -2545,7 +2545,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-001-S-001-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-001-S-001-REQ-B-002-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_search.py"
@@ -2565,7 +2565,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-001-S-001-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-001-S-001-REQ-B-003-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_search.py"
@@ -2585,7 +2585,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-001-S-001-REQ-B-004-PYTEST-1",
+                                "test_id": "EPIC-006-F-001-S-001-REQ-B-004-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_search.py"
@@ -2630,7 +2630,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-001-S-001-REQ-B-006-PYTEST-1",
+                                "test_id": "EPIC-006-F-001-S-001-REQ-B-006-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_search_timer.py"
@@ -2655,7 +2655,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-001-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-001-S-001-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_classify_performance.py"
@@ -2706,13 +2706,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-001-S-002-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-001-S-002-REQ-B-002-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
                               },
                               {
-                                "test_id": "EPIC-006-F-001-S-002-REQ-B-002-PYTEST-2",
+                                "test_id": "EPIC-006-F-001-S-002-REQ-B-002-TEST-2",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
@@ -2808,7 +2808,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-001-S-002-REQ-B-007-PYTEST-1",
+                                "test_id": "EPIC-006-F-001-S-002-REQ-B-007-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
@@ -3012,7 +3012,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-001-S-003-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-001-S-003-REQ-B-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_https_security.py"
@@ -3101,7 +3101,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-001-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-002-S-001-REQ-B-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_fc_filt_001.py"
@@ -3121,7 +3121,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-001-REQ-B-004-PYTEST-1",
+                                "test_id": "EPIC-006-F-002-S-001-REQ-B-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_fc_filt_001.py"
@@ -3141,7 +3141,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-001-REQ-B-005-PYTEST-1",
+                                "test_id": "EPIC-006-F-002-S-001-REQ-B-005-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_fc_filt_001.py"
@@ -3161,7 +3161,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-001-REQ-B-006-PYTEST-1",
+                                "test_id": "EPIC-006-F-002-S-001-REQ-B-006-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_fc_filt_001.py"
@@ -3181,7 +3181,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-001-REQ-B-007-PYTEST-1",
+                                "test_id": "EPIC-006-F-002-S-001-REQ-B-007-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_fc_filt_001.py"
@@ -3239,13 +3239,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-001-REQ-B-010-PYTEST-1",
+                                "test_id": "EPIC-006-F-002-S-001-REQ-B-010-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
                               },
                               {
-                                "test_id": "EPIC-006-F-002-S-001-REQ-B-010-PYTEST-2",
+                                "test_id": "EPIC-006-F-002-S-001-REQ-B-010-TEST-2",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
@@ -3265,7 +3265,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-002-S-001-REQ-B-011-PYTEST-1",
+                                "test_id": "EPIC-006-F-002-S-001-REQ-B-011-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_sit_browser.py"
@@ -3436,7 +3436,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-003-S-001-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -3455,7 +3455,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-003-S-001-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -3475,7 +3475,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-003-S-001-REQ-B-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -3495,7 +3495,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-004-PYTEST-1",
+                                "test_id": "EPIC-006-F-003-S-001-REQ-B-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -3515,7 +3515,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-005-PYTEST-1",
+                                "test_id": "EPIC-006-F-003-S-001-REQ-B-005-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -3575,13 +3575,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-004-S-001-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-004-S-001-REQ-B-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_findcare_requirements.py"
                               },
                               {
-                                "test_id": "EPIC-006-F-004-S-001-REQ-B-001-PYTEST-2",
+                                "test_id": "EPIC-006-F-004-S-001-REQ-B-001-TEST-2",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_findcare_requirements.py"
@@ -4186,13 +4186,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-006-S-002-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-006-S-002-REQ-T-001-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_pipeline_orchestrator.py"
                               },
                               {
-                                "test_id": "EPIC-006-F-006-S-002-REQ-T-001-PYTEST-2",
+                                "test_id": "EPIC-006-F-006-S-002-REQ-T-001-TEST-2",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_pipeline_orchestrator.py"
@@ -4403,7 +4403,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-006-S-006-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-006-S-006-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_pipeline_e2e.py"
@@ -5596,13 +5596,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-010-S-004-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-010-S-004-REQ-B-001-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_findcare_requirements.py"
                               },
                               {
-                                "test_id": "EPIC-006-F-010-S-004-REQ-B-001-PYTEST-2",
+                                "test_id": "EPIC-006-F-010-S-004-REQ-B-001-TEST-2",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_findcare_requirements.py"
@@ -5631,13 +5631,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-010-S-004-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-010-S-004-REQ-B-002-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_findcare_requirements.py"
                               },
                               {
-                                "test_id": "EPIC-006-F-010-S-004-REQ-B-002-PYTEST-2",
+                                "test_id": "EPIC-006-F-010-S-004-REQ-B-002-TEST-2",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_findcare_requirements.py"
@@ -6666,7 +6666,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-011-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-011-S-001-REQ-T-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_quality_gates.py"
@@ -6686,7 +6686,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-011-S-001-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-011-S-001-REQ-T-002-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_quality_gates.py"
@@ -6706,7 +6706,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-011-S-001-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-011-S-001-REQ-T-003-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_quality_gates.py"
@@ -6726,7 +6726,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-011-S-001-REQ-T-004-PYTEST-1",
+                                "test_id": "EPIC-006-F-011-S-001-REQ-T-004-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_quality_gates.py"
@@ -6777,7 +6777,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-013-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-013-S-001-REQ-T-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_schema_drift.py"
@@ -6797,7 +6797,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-013-S-001-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-013-S-001-REQ-T-002-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_schema_drift.py"
@@ -6817,7 +6817,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-013-S-001-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-013-S-001-REQ-T-003-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_schema_drift.py"
@@ -6837,7 +6837,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-013-S-001-REQ-T-004-PYTEST-1",
+                                "test_id": "EPIC-006-F-013-S-001-REQ-T-004-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_schema_drift.py"
@@ -6888,7 +6888,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-014-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-014-S-001-REQ-T-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_idempotency.py"
@@ -6908,7 +6908,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-014-S-001-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-014-S-001-REQ-T-002-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_idempotency.py"
@@ -6928,7 +6928,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-014-S-001-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-014-S-001-REQ-T-003-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_idempotency.py"
@@ -6979,7 +6979,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-015-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-015-S-001-REQ-T-001-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_compliance.py"
@@ -6999,7 +6999,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-015-S-001-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-015-S-001-REQ-T-002-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_compliance.py"
@@ -7019,7 +7019,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-015-S-001-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-015-S-001-REQ-T-003-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_compliance.py"
@@ -7039,7 +7039,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-015-S-001-REQ-T-004-PYTEST-1",
+                                "test_id": "EPIC-006-F-015-S-001-REQ-T-004-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_compliance.py"
@@ -7059,7 +7059,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-015-S-001-REQ-T-005-PYTEST-1",
+                                "test_id": "EPIC-006-F-015-S-001-REQ-T-005-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_compliance.py"
@@ -7110,13 +7110,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-016-S-001-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-016-S-001-REQ-B-001-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_pipeline_orchestrator.py"
                               },
                               {
-                                "test_id": "EPIC-006-F-016-S-001-REQ-B-001-PYTEST-2",
+                                "test_id": "EPIC-006-F-016-S-001-REQ-B-001-TEST-2",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_pipeline_orchestrator.py"
@@ -7136,13 +7136,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-016-S-001-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-016-S-001-REQ-B-002-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_pipeline_orchestrator.py"
                               },
                               {
-                                "test_id": "EPIC-006-F-016-S-001-REQ-B-002-PYTEST-2",
+                                "test_id": "EPIC-006-F-016-S-001-REQ-B-002-TEST-2",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_pipeline_orchestrator.py"
@@ -7183,7 +7183,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-016-S-002-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-016-S-002-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_copy_to_frontend.py"
@@ -7208,7 +7208,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-016-S-002-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-016-S-002-REQ-T-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_data_quality_live.py"
@@ -7275,7 +7275,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-017-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-017-S-001-REQ-T-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_traceability.py"
@@ -7295,7 +7295,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-017-S-001-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-017-S-001-REQ-T-002-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_traceability.py"
@@ -7315,7 +7315,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-017-S-001-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-017-S-001-REQ-T-003-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_traceability.py"
@@ -7367,7 +7367,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-018-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-018-S-001-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_specialty_classification.py"
@@ -7400,7 +7400,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-018-S-002-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-018-S-002-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_specialty_classification.py"
@@ -7420,7 +7420,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-018-S-002-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-018-S-002-REQ-T-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_specialty_classification.py"
@@ -7453,13 +7453,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-018-S-003-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-018-S-003-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_pipeline_rename_compliance.py"
                               },
                               {
-                                "test_id": "EPIC-006-F-018-S-003-REQ-T-001-PYTEST-2",
+                                "test_id": "EPIC-006-F-018-S-003-REQ-T-001-TEST-2",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/DataPipelines/tests/test_pipeline_rename_compliance.py"
@@ -7492,7 +7492,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-018-S-004-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-018-S-004-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
@@ -7512,7 +7512,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-018-S-004-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-018-S-004-REQ-T-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
@@ -7532,7 +7532,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-018-S-004-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-018-S-004-REQ-T-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
@@ -7552,7 +7552,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-018-S-004-REQ-T-004-PYTEST-1",
+                                "test_id": "EPIC-006-F-018-S-004-REQ-T-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
@@ -7602,7 +7602,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-019-S-001-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-019-S-001-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Website/tests/test_website.py"
@@ -7622,7 +7622,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-019-S-001-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-019-S-001-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Website/tests/test_website.py"
@@ -7642,7 +7642,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-019-S-001-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-006-F-019-S-001-REQ-B-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Website/tests/test_website.py"
@@ -7675,7 +7675,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-019-S-002-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-019-S-002-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Website/tests/test_website.py"
@@ -7695,7 +7695,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-019-S-002-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-019-S-002-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Website/tests/test_website.py"
@@ -8035,13 +8035,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-021-S-001-REQ-B-004-PYTEST-1",
+                                "test_id": "EPIC-006-F-021-S-001-REQ-B-004-TEST-1",
                                 "test_type": "analysis",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
                               },
                               {
-                                "test_id": "EPIC-006-F-021-S-001-REQ-B-004-PYTEST-2",
+                                "test_id": "EPIC-006-F-021-S-001-REQ-B-004-TEST-2",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
@@ -8725,7 +8725,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-024-S-003-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-024-S-003-REQ-B-001-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_evalcare_handoff.py"
@@ -8750,7 +8750,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-024-S-003-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-024-S-003-REQ-B-002-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_evalcare_handoff.py"
@@ -8788,7 +8788,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-024-S-003-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-024-S-003-REQ-T-001-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_evalcare_handoff.py"
@@ -8814,7 +8814,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-024-S-003-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-006-F-024-S-003-REQ-T-002-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_evalcare_handoff.py"
@@ -9176,7 +9176,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-029-S-003-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-006-F-029-S-003-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
@@ -9234,7 +9234,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-029-S-003-REQ-T-005-PYTEST-1",
+                                "test_id": "EPIC-006-F-029-S-003-REQ-T-005-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
@@ -9254,7 +9254,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-029-S-003-REQ-T-006-PYTEST-1",
+                                "test_id": "EPIC-006-F-029-S-003-REQ-T-006-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
@@ -9274,7 +9274,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-029-S-003-REQ-T-007-PYTEST-1",
+                                "test_id": "EPIC-006-F-029-S-003-REQ-T-007-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
@@ -9294,7 +9294,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-006-F-029-S-003-REQ-T-008-PYTEST-1",
+                                "test_id": "EPIC-006-F-029-S-003-REQ-T-008-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
@@ -9573,7 +9573,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-001-S-001-REQ-B-002-PYTEST-Unsupportable",
+                                "test_id": "EPIC-008-F-001-S-001-REQ-B-002-TEST-Unsupportable",
                                 "orphan": false,
                                 "test_type": "Unsupportable",
                                 "file": ""
@@ -9625,7 +9625,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-002-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-002-S-001-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
@@ -9645,7 +9645,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-002-S-001-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-008-F-002-S-001-REQ-T-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
@@ -9665,7 +9665,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-002-S-001-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-002-S-001-REQ-T-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
@@ -10154,7 +10154,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-002-S-003-REQ-T-010-PYTEST-1",
+                                "test_id": "EPIC-008-F-002-S-003-REQ-T-010-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "architecture/EngineeringRuleEnforcement/tests/test_hook_wireup.py"
@@ -10503,7 +10503,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-B-001-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10523,7 +10523,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-B-002-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10543,7 +10543,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-B-003-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10563,7 +10563,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-B-004-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-B-004-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10583,7 +10583,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-B-005-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-B-005-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10603,7 +10603,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-B-006-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-B-006-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10623,7 +10623,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-T-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10643,7 +10643,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-T-002-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10663,7 +10663,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-T-003-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10683,7 +10683,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-T-004-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-T-004-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10703,7 +10703,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-T-005-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-T-005-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10723,7 +10723,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-001-REQ-T-006-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-001-REQ-T-006-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10832,13 +10832,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-002-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-002-REQ-B-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
                               },
                               {
-                                "test_id": "EPIC-008-F-003-S-002-REQ-B-001-PYTEST-2",
+                                "test_id": "EPIC-008-F-003-S-002-REQ-B-001-TEST-2",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -10915,7 +10915,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-003-S-002-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-003-S-002-REQ-T-003-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -11157,7 +11157,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-001-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-001-REQ-T-003-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tests/test_version_data_sit.py"
@@ -11584,7 +11584,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-001-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11604,7 +11604,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-002-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11624,7 +11624,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-003-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11644,7 +11644,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-004-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-004-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11664,7 +11664,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-005-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-005-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11684,7 +11684,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-006-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-006-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11704,7 +11704,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-007-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-007-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11724,7 +11724,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-008-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-008-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11744,7 +11744,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-009-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-009-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11764,7 +11764,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-010-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-010-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11784,7 +11784,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-011-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-011-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11804,7 +11804,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-012-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-012-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11824,7 +11824,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-013-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-013-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11844,7 +11844,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-014-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-014-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11864,7 +11864,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-015-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-015-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11884,7 +11884,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-016-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-016-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11904,7 +11904,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-T-001-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11924,7 +11924,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-017-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-017-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11944,7 +11944,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-018-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-018-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11964,7 +11964,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-019-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-019-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -11984,7 +11984,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-020-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-020-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12004,7 +12004,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-021-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-021-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12024,7 +12024,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-022-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-022-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12044,7 +12044,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-023-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-023-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12064,7 +12064,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-024-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-024-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12084,7 +12084,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-025-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-025-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12104,7 +12104,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-026-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-026-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12124,7 +12124,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-027-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-027-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12144,7 +12144,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-T-002-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12164,7 +12164,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-028-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-028-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12184,7 +12184,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-029-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-029-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12204,7 +12204,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-030-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-030-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12224,7 +12224,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-031-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-031-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12244,7 +12244,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-032-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-032-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12264,7 +12264,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-033-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-033-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12284,7 +12284,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-034-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-B-034-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12304,7 +12304,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-004-S-006-REQ-T-003-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "Code/deploy/localSmokeTestPyTest.py"
@@ -12470,7 +12470,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12490,7 +12490,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12510,7 +12510,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12530,7 +12530,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-004-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12550,7 +12550,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-005-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-005-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12570,7 +12570,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-006-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-006-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12590,7 +12590,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-007-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-007-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12610,7 +12610,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-008-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-008-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12630,7 +12630,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-009-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-009-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12650,7 +12650,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-010-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-010-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12670,7 +12670,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-011-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-011-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12690,7 +12690,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-012-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-012-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12710,7 +12710,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-013-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-013-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12730,7 +12730,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-014-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-014-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12750,7 +12750,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-015-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-015-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12770,7 +12770,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-016-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-016-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12790,7 +12790,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-017-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-017-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12810,7 +12810,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-B-018-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-B-018-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12830,7 +12830,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12850,7 +12850,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-T-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12870,7 +12870,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-T-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12890,7 +12890,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-T-004-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-T-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12910,7 +12910,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-T-005-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-T-005-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12930,7 +12930,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-T-006-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-T-006-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12950,7 +12950,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-T-007-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-T-007-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -12970,7 +12970,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-005-S-001-REQ-T-008-PYTEST-1",
+                                "test_id": "EPIC-008-F-005-S-001-REQ-T-008-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/tools/tests/test_lineage_orchestrator.py"
@@ -13376,7 +13376,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-B-001-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13396,7 +13396,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-B-002-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13416,7 +13416,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-B-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-B-003-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13436,7 +13436,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-B-004-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-B-004-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13494,7 +13494,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-B-007-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-B-007-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13514,7 +13514,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-B-008-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-B-008-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13553,7 +13553,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-B-010-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-B-010-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13573,7 +13573,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-T-001-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13593,7 +13593,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-T-002-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13613,7 +13613,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-T-003-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13633,7 +13633,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-T-004-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-T-004-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13653,7 +13653,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-T-005-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-T-005-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13673,7 +13673,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-T-006-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-T-006-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13693,7 +13693,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-T-007-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-T-007-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13713,7 +13713,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-T-009-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-T-009-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13733,7 +13733,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-T-010-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-T-010-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -13753,7 +13753,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-006-REQ-T-011-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-006-REQ-T-011-TEST-1",
                                 "test_type": "integration",
                                 "orphan": false,
                                 "file": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py"
@@ -14442,7 +14442,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-007-S-019-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-007-S-019-REQ-T-001-TEST-1",
                                 "test_type": "unit",
                                 "file": "Code/Shared/tests/test_brain_schema_validator.py",
                                 "orphan": false
@@ -14827,7 +14827,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-008-S-001-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-008-S-001-REQ-B-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -14847,7 +14847,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-008-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-008-S-001-REQ-T-001-TEST-1",
                                 "test_type": "unit",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -14873,14 +14873,14 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-008-F-008-S-003-REQ-T-001",
-                          "requirement": "preCommitScan.py must validate test_ids as an array (minimum 1 member) for every implemented requirement. Must support legacy pytest_id string fallback. Scanner passes with zero violations.",
+                          "requirement": "preCommitScan.py must validate test_ids as an array (minimum 1 member) for every implemented requirement. Must support legacy test_id string fallback. Scanner passes with zero violations.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-008-S-003-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-008-S-003-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15260,7 +15260,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-011-S-002-REQ-B-004-PYTEST-1",
+                                "test_id": "EPIC-008-F-011-S-002-REQ-B-004-TEST-1",
                                 "orphan": false,
                                 "test_type": "integration",
                                 "file": "Code/deploy/httpMethodEnforcementPyTest.py"
@@ -15294,13 +15294,13 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-008-F-011-S-004-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-008-F-011-S-004-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
                               },
                               {
-                                "test_id": "EPIC-008-F-011-S-004-REQ-B-001-PYTEST-2",
+                                "test_id": "EPIC-008-F-011-S-004-REQ-B-001-TEST-2",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
@@ -15467,7 +15467,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-001-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-001-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15487,7 +15487,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-001-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-001-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15507,7 +15507,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-001-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-001-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15527,7 +15527,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-001-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-001-REQ-T-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15547,7 +15547,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-001-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-001-REQ-T-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15580,7 +15580,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-002-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-002-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15600,7 +15600,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-002-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-002-REQ-T-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15620,7 +15620,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-002-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-002-REQ-T-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15640,7 +15640,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-002-REQ-T-004-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-002-REQ-T-004-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15660,7 +15660,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-002-REQ-T-005-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-002-REQ-T-005-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15693,7 +15693,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-003-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-003-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15726,7 +15726,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-004-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-004-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15759,7 +15759,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-005-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-005-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
@@ -15779,7 +15779,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-005-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-005-REQ-T-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
@@ -15799,7 +15799,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-005-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-005-REQ-T-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
@@ -15832,7 +15832,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-006-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-006-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15852,7 +15852,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-006-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-006-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15872,7 +15872,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-006-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-006-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -15905,7 +15905,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-007-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-007-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
@@ -15925,7 +15925,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-007-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-007-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
@@ -15945,7 +15945,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-007-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-007-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
@@ -15978,7 +15978,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-008-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-008-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -16011,7 +16011,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-009-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-009-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -16031,7 +16031,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-009-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-009-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -16064,7 +16064,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-010-REQ-B-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-010-REQ-B-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -16084,7 +16084,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-010-REQ-B-002-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-010-REQ-B-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "ORPHAN"
@@ -16117,7 +16117,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-011-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-011-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py"
@@ -16150,7 +16150,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-012-REQ-T-001-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-012-REQ-T-001-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py"
@@ -16170,7 +16170,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-012-REQ-T-002-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-012-REQ-T-002-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py"
@@ -16190,7 +16190,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-009-F-001-S-012-REQ-T-003-PYTEST-1",
+                                "test_id": "EPIC-009-F-001-S-012-REQ-T-003-TEST-1",
                                 "test_type": "ordinary",
                                 "orphan": false,
                                 "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py"

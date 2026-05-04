@@ -515,11 +515,11 @@
         },
         {
           "value": "testing",
-          "definition": "Fix applied. Pytest required. Fields: pytest_id (required), pytest_success_criteria (from pytest record, required)."
+          "definition": "Fix applied. Pytest required. Fields: test_id (required), test_success_criteria (from pytest record, required)."
         },
         {
           "value": "tested_passed",
-          "definition": "Pytest passed. Fields: pytest_id (required), pytest_success_criteria (from pytest record, required)."
+          "definition": "Pytest passed. Fields: test_id (required), test_success_criteria (from pytest record, required)."
         },
         {
           "value": "closed_reqs_reorganized",
