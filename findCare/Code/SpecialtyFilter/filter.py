@@ -22,10 +22,9 @@ _log = logging.getLogger("findcare.specialty_filter")
 
 
 # Resolve project root from this file's location:
-#   Code/ConversationalUX/FindCareChat/backend/domain/find_care/filter.py
-#   parents:  [0]find_care [1]domain [2]backend [3]FindCareChat
-#             [4]ConversationalUX [5]Code [6]<project root>
-_PROJECT_ROOT = Path(__file__).resolve().parents[6]
+#   findCare/Code/SpecialtyFilter/filter.py
+#   parents:  [0]SpecialtyFilter [1]Code [2]findCare [3]<project root>
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _PROMPTS_JSON_PATH = _PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "prompts.json"
 _NORMALIZE_RECORD_ID = "specialty_normalize_system_prompt"
 _FILTER_RECORD_ID = "specialty_filter_system_prompt"
@@ -107,33 +106,43 @@ class SpecialtyFilter:
             self._filter_prompt = _load_prompt_text(_FILTER_RECORD_ID)
 
     # ── private pipeline steps ──────────────────────────────────────────────
+    # Per EPIC-006-F-002-S-001-REQ-T-001 ("no fallback"), every stage MUST
+    # fail loudly with the actual upstream cause. No silent degradation,
+    # no swallowed exceptions, no substitute values. find_specialties()
+    # surfaces the real reason in {"error": ...}.
     def normalize_query(self, raw_query: str) -> str:
         """Stage 1: translate vernacular healthcare request into NUCC-aligned
-        text. Returns the original query unchanged if normalization fails
-        (degraded behaviour, never fatal — vector search still runs)."""
+        text. Raises on any failure (no fallback per REQ-T-001)."""
         self._ensure_prompts_loaded()
-        try:
-            self._ensure_openai_client()
-            r = self._oai.chat.completions.create(
-                model=self._normalize_model, max_tokens=200,
-                messages=[
-                    {"role": "system", "content": self._normalize_prompt},
-                    {"role": "user", "content": raw_query},
-                ],
+        self._ensure_openai_client()
+        r = self._oai.chat.completions.create(
+            model=self._normalize_model, max_tokens=200,
+            messages=[
+                {"role": "system", "content": self._normalize_prompt},
+                {"role": "user", "content": raw_query},
+            ],
+        )
+        text = (r.choices[0].message.content or "").strip()
+        if not text:
+            raise RuntimeError(
+                f"normalize step returned empty text from model "
+                f"{self._normalize_model!r} for query {raw_query!r}"
             )
-            text = (r.choices[0].message.content or "").strip()
-            if not text:
-                return raw_query
-            _log.info("normalize: %r -> %r", raw_query, text)
-            return text
-        except Exception as exc:
-            _log.warning("normalize failed (%s); using raw query", exc)
-            return raw_query
+        _log.info("normalize: %r -> %r", raw_query, text)
+        return text
 
     def embed_query(self, text: str) -> list[float]:
         """Stage 2: embed the normalized text with the canonical model
-        (declared at EPIC-008-F-011-S-004-REQ-B-001)."""
-        return self._get_vector(text)
+        (declared at EPIC-008-F-011-S-004-REQ-B-001). Raises if the
+        injected embedding function returns no vector (no fallback)."""
+        qvec = self._get_vector(text)
+        if not qvec:
+            raise RuntimeError(
+                "embedding step returned no vector — upstream embedding "
+                "client failed (see container logs for the OpenAI/HTTP "
+                "error). This is fatal per REQ-T-001 (no fallback)."
+            )
+        return qvec
 
     def vector_search(self, qvec: list[float]) -> list[dict]:
         """Stage 3: $vectorSearch SpecialtyMetaData. Returns ALL candidates
@@ -189,15 +198,9 @@ class SpecialtyFilter:
             kwargs["max_completion_tokens"] = 400
         else:
             kwargs["max_tokens"] = 400
-        try:
-            self._ensure_openai_client()
-            r = self._oai.chat.completions.create(**kwargs)
-            raw = (r.choices[0].message.content or "").strip()
-            # ensure clean parse regardless of model output style
-            kwargs = None  # noqa: free closure for GC
-        except Exception as exc:
-            _log.error("filter step failed: %s", exc)
-            return []
+        self._ensure_openai_client()
+        r = self._oai.chat.completions.create(**kwargs)
+        raw = (r.choices[0].message.content or "").strip()
         # Parse codes — comma or newline separated, NONE means empty
         raw = raw.replace("\n", ",").replace(";", ",")
         codes = [c.strip() for c in raw.split(",")
@@ -212,7 +215,14 @@ class SpecialtyFilter:
         """End-to-end: normalize → embed → vector search → AI filter.
         Returns the structured payload the driver returns to the frontend.
         The driver decides what HTTP route exposes this — this class never
-        sees an HTTP request."""
+        sees an HTTP request.
+
+        Per REQ-T-001 (no fallback) every stage fails loudly. This method
+        is the SINGLE catch point — any stage exception is converted into
+        {"error": "<stage>: <type>: <message>"} so the driver can return
+        the actual upstream cause to the frontend instead of a generic
+        'something failed' string. Logs include the same context plus a
+        traceback for the operator."""
         # Build the query text from chat history + current query
         parts = []
         if chat_history:
@@ -220,22 +230,32 @@ class SpecialtyFilter:
         parts.append(raw_query)
         query_text = " ".join(parts)
 
-        # Stage 1: normalize
-        normalized = self.normalize_query(query_text)
+        try:
+            normalized = self.normalize_query(query_text)
+        except Exception as exc:
+            _log.exception("Stage 1 normalize failed for %r", raw_query)
+            return {"error": f"normalize: {type(exc).__name__}: {exc}"}
 
-        # Stage 2: embed
-        qvec = self.embed_query(normalized)
-        if not qvec:
-            return {"error": "Embedding failed"}
+        try:
+            qvec = self.embed_query(normalized)
+        except Exception as exc:
+            _log.exception("Stage 2 embed failed for normalized=%r", normalized)
+            return {"error": f"embed: {type(exc).__name__}: {exc}"}
 
-        # Stage 3: vector search → candidate pool
-        candidates = self.vector_search(qvec)
+        try:
+            candidates = self.vector_search(qvec)
+        except Exception as exc:
+            _log.exception("Stage 3 vector_search failed")
+            return {"error": f"vector_search: {type(exc).__name__}: {exc}"}
         if not candidates:
             return {"specialties": [],
                     "message": f"No matching specialty found for {raw_query!r}."}
 
-        # Stage 4: AI filter → final code list
-        kept_codes = self.filter_candidates(candidates, raw_query, normalized)
+        try:
+            kept_codes = self.filter_candidates(candidates, raw_query, normalized)
+        except Exception as exc:
+            _log.exception("Stage 4 filter_candidates failed")
+            return {"error": f"filter: {type(exc).__name__}: {exc}"}
         if not kept_codes:
             return {"specialties": [],
                     "message": f"No matching specialty found for {raw_query!r}."}

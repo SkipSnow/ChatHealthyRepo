@@ -37,6 +37,10 @@ COPY Code/ConversationalUX/FindCareChat/backend /app/Code/ConversationalUX/FindC
 COPY Code/Shared /app/Code/Shared
 COPY Code/ConversationalUX/ChatHealthyWhoAmIChat/me /app/Code/ConversationalUX/ChatHealthyWhoAmIChat/me
 COPY brain /app/brain
+# findCare/ — per-service refactor target. SpecialtyFilter is the first
+# feature relocated here. app.py reaches it via the relative path
+# ../../../../findCare/Code from /app/Code/.../backend → /app/findCare/Code.
+COPY findCare /app/findCare
 
 # EPIC-003: install chathealthy-frontend-lib from the bundled source.
 COPY FrontEndApplicationLib /app/FrontEndApplicationLib
