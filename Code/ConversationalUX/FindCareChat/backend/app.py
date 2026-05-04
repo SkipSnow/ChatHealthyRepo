@@ -438,7 +438,24 @@ async def classify(body: ClassifyRequest, request: Request):
     result = _specialty_service.find_specialties(body.message)
 
     if "error" in result:
-        return {"specialties": [], "error": result["error"]}
+        # EPIC-008-F-011-S-001-REQ-B-002: externally-returned error MUST NOT
+        # reveal application facts (file paths, errno, internal exception
+        # messages). Strip filter.py's "<stage>: <ExcType>: <leaky msg>"
+        # down to just the API + stage + time + request id.
+        # REQ-B-003: detailed message is logged server-side for debugging.
+        import uuid as _uuid
+        from datetime import datetime as _dt, timezone as _tz
+        req_id = _uuid.uuid4().hex[:8]
+        ts = _dt.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        raw = result["error"]
+        stage = (raw.split(":", 1)[0].strip() if ":" in raw else "unknown")
+        _log.error("classify req_id=%s ip=%s stage=%s detail=%r message=%r",
+                   req_id, ip, stage, raw, body.message)
+        sanitized = (
+            f"FindCare /classify temporarily unavailable "
+            f"(stage: {stage}) at {ts}. Ref: {req_id}"
+        )
+        return {"specialties": [], "error": sanitized}
 
     # Map to the format the frontend expects
     specialties = [
