@@ -182,36 +182,43 @@ def _wait_for_verified_resolution(page, handoff_label, timeout_s=REQ_015_TIMEOUT
 
 
 def _verify_session_identity(page, env, handoff_label):
-    """After any handoff, both panels must show identical session verification.
-    Checks: SESSION VERIFICATION header, all 5 labeled fields (Signed token,
-    Nonce, GUID, Origin, Verified), Verified value == VERIFIED.
-    Nonces must match between panels. GUID must match original.
-    Nonce must differ from previous.
+    """After any handoff, BOTH panels must show identical session verification.
+    refreshTokenPanels rotates LEFT and RIGHT in lockstep on every ownership
+    change, so both panels carry the same verified state immediately after
+    the handoff completes.
 
-    BUG-TEST-032 (EPIC-002-F-001-S-012-REQ-T-002): assert Verified == VERIFIED.
-    BUG-TEST-035 (EPIC-002-F-001-S-012-REQ-B-007): assert all 5 SV fields present.
-    BUG-TEST-036 (EPIC-002-F-001-S-012-REQ-B-008): wait up to 30s for Verified to
-      resolve out of Pending before asserting its value."""
-    # BUG-TEST-036: bounded wait for Verified to leave the transient Pending state.
+    Checks (per EPIC-002-F-001-S-012):
+      REQ-B-007: both panels show Signed token + Nonce + GUID identically
+      REQ-B-009: Env + PST Time rows present in both panels; Time format is
+                 'PST <YYYY-MM-DD HH:MM:SS>' (not 'PST ?')
+      REQ-B-010: Server, serving security token row self-identifies the
+                 verifier (responding service)
+      REQ-T-002: Verified == YES (mutual-auth handshake completed)
+      REQ-T-003: nonce differs from every previous nonce in the run; GUID
+                 stays equal to the originating session GUID
+    """
     _wait_for_verified_resolution(page, handoff_label)
     right = page.locator("#rightPanel").inner_text()
     left = page.locator("#leftPanel").inner_text()
-    # Both panels must have SESSION VERIFICATION
-    assert "SESSION VERIFICATION" in right.upper(), \
-        f"[{handoff_label}] Right panel missing SESSION VERIFICATION: {right[:300]}"
-    assert "SESSION VERIFICATION" in left.upper(), \
-        f"[{handoff_label}] Left panel missing SESSION VERIFICATION: {left[-300:]}"
-    # BUG-TEST-035: all 5 SV labels must be present in both panels
-    for label in ["Signed token:", "Nonce:", "GUID:", "Origin:", "Verified:"]:
-        assert label in right, f"[{handoff_label}] Right panel missing {label}: {right[:400]}"
-        assert label in left, f"[{handoff_label}] Left panel missing {label}: {left[-400:]}"
-    # BUG-TEST-032: Verified MUST be the positive value (UI renders "YES ✓").
-    # FAILED, Pending, and any other state is illegal per EPIC-002-F-001-S-012-REQ-B-008.
-    # Positive-value set tolerates minor UI wording variations (YES/VERIFIED/TRUE).
+    SIX_FIELDS = ["Signed token:", "Nonce:", "GUID:", "Verified:",
+                  "Server, serving security token:", "Env:", "Time:"]
+    for panel_name, panel_text in (("right", right), ("left", left)):
+        assert "SESSION VERIFICATION" in panel_text.upper(), \
+            f"[{handoff_label}] {panel_name} panel missing SESSION VERIFICATION: {panel_text[:300]}"
+        for label in SIX_FIELDS:
+            assert label in panel_text, \
+                f"[{handoff_label}] {panel_name} panel missing {label!r}: {panel_text[:400]}"
+        m_time = re.search(r'Time:\s*PST\s*(\S+)', panel_text)
+        assert m_time, f"[{handoff_label}] {panel_name} panel: could not parse Time"
+        time_val = m_time.group(1)
+        assert time_val != "?" and re.match(r'\d{2}/\d{2}/\d{4}', time_val), \
+            (f"[{handoff_label}] {panel_name} panel Time={time_val!r} is not a "
+             f"PST timestamp. Per EPIC-002-F-001-S-012-REQ-B-009 the verify-token "
+             f"response MUST include created_at and the panel MUST render it.")
     POSITIVE = {"YES", "VERIFIED", "TRUE", "OK"}
-    for panel_name, txt in (("right", right), ("left", left)):
-        m = re.search(r'Verified:\s*([A-Za-z\.]+)', txt)
-        assert m, f"[{handoff_label}] Could not parse Verified in {panel_name} panel"
+    for panel_name, panel_text in (("right", right), ("left", left)):
+        m = re.search(r'Verified:\s*([A-Za-z\.]+)', panel_text)
+        assert m, f"[{handoff_label}] {panel_name} panel: could not parse Verified"
         val = m.group(1).upper()
         assert val in POSITIVE, (
             f"[{handoff_label}] {panel_name} panel Verified == {val!r} "

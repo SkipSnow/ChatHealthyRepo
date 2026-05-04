@@ -182,67 +182,75 @@ def _wait_for_verified_resolution(page, handoff_label, timeout_s=REQ_015_TIMEOUT
 
 
 def _verify_session_identity(page, env, handoff_label):
-    """After any handoff, both panels must show identical session verification.
-    Checks: SESSION VERIFICATION header, all 5 labeled fields (Signed token,
-    Nonce, GUID, Origin, Verified), Verified value == VERIFIED.
-    Nonces must match between panels. GUID must match original.
-    Nonce must differ from previous.
+    """After any handoff, BOTH panels must show identical session verification.
+    refreshTokenPanels rotates LEFT and RIGHT in lockstep on every ownership
+    change, so both panels carry the same verified state immediately after
+    the handoff completes.
 
-    BUG-TEST-032 (EPIC-002-F-001-S-012-REQ-T-002): assert Verified == VERIFIED.
-    BUG-TEST-035 (EPIC-002-F-001-S-012-REQ-B-007): assert all 5 SV fields present.
-    BUG-TEST-036 (EPIC-002-F-001-S-012-REQ-B-008): wait up to 30s for Verified to
-      resolve out of Pending before asserting its value."""
-    # BUG-TEST-036: bounded wait for Verified to leave the transient Pending state.
+    Checks (per EPIC-002-F-001-S-012):
+      REQ-B-007: both panels show Signed token + Nonce + GUID identically
+      REQ-B-009: Env + PST Time rows present in both panels; Time format is
+                 'PST <YYYY-MM-DD HH:MM:SS>' (not 'PST ?')
+      REQ-B-010: Server, serving security token row self-identifies the
+                 verifier (responding service)
+      REQ-T-002: Verified == YES (mutual-auth handshake completed)
+      REQ-T-003: nonce differs from every previous nonce in the run; GUID
+                 stays equal to the originating session GUID
+    """
     _wait_for_verified_resolution(page, handoff_label)
     right = page.locator("#rightPanel").inner_text()
     left = page.locator("#leftPanel").inner_text()
-    # RIGHT panel — full session-verification rendered by refreshTokenPanels.
-    assert "SESSION VERIFICATION" in right.upper(), \
-        f"[{handoff_label}] Right panel missing SESSION VERIFICATION: {right[:300]}"
-    for label in ["Signed token:", "Nonce:", "GUID:", "Origin:", "Verified:"]:
-        assert label in right, f"[{handoff_label}] Right panel missing {label}: {right[:400]}"
-    # LEFT panel — FindCare territory (EPIC-006-F-002-S-001-REQ-B-011),
-    # holds whatever React initially seeded (the Pending placeholder with
-    # Nonce + GUID + Verified rows). LEFT does NOT rotate on handoff and
-    # does NOT have Signed token / Origin labels. Only assert the presence
-    # of the SESSION VERIFICATION header.
-    assert "SESSION VERIFICATION" in left.upper(), \
-        f"[{handoff_label}] Left panel missing SESSION VERIFICATION: {left[-300:]}"
-    # BUG-TEST-032: RIGHT-side Verified MUST be positive (UI renders "YES ✓").
-    # LEFT remains as the React-seeded Pending state by design (REQ-B-011),
-    # so the Verified=YES check applies only to the RIGHT panel.
+    SIX_FIELDS = ["Signed token:", "Nonce:", "GUID:", "Verified:",
+                  "Server, serving security token:", "Env:", "Time:"]
+    for panel_name, panel_text in (("right", right), ("left", left)):
+        assert "SESSION VERIFICATION" in panel_text.upper(), \
+            f"[{handoff_label}] {panel_name} panel missing SESSION VERIFICATION: {panel_text[:300]}"
+        for label in SIX_FIELDS:
+            assert label in panel_text, \
+                f"[{handoff_label}] {panel_name} panel missing {label!r}: {panel_text[:400]}"
+        m_time = re.search(r'Time:\s*PST\s*(\S+)', panel_text)
+        assert m_time, f"[{handoff_label}] {panel_name} panel: could not parse Time"
+        time_val = m_time.group(1)
+        assert time_val != "?" and re.match(r'\d{2}/\d{2}/\d{4}', time_val), \
+            (f"[{handoff_label}] {panel_name} panel Time={time_val!r} is not a "
+             f"PST timestamp. Per EPIC-002-F-001-S-012-REQ-B-009 the verify-token "
+             f"response MUST include created_at and the panel MUST render it.")
     POSITIVE = {"YES", "VERIFIED", "TRUE", "OK"}
-    m = re.search(r'Verified:\s*([A-Za-z\.]+)', right)
-    assert m, f"[{handoff_label}] Could not parse Verified in right panel"
-    val = m.group(1).upper()
-    assert val in POSITIVE, (
-        f"[{handoff_label}] right panel Verified == {val!r} "
-        f"(expected one of {sorted(POSITIVE)}). Per EPIC-002-F-001-S-012-REQ-T-002 "
-        f"mutual-auth handshake MUST complete; per EPIC-002-F-001-S-012-REQ-B-008 "
-        f"any non-positive runtime state (FAILED, PENDING) is fatal."
-    )
-    # Extract RIGHT-side nonce/GUID. The cross-panel LEFT == RIGHT nonce
-    # equality assertion was removed (Skip 2026-05-02): a nonce is
-    # definitionally not stable — the receiver updates last_used on every
-    # verify (EPIC-002-F-001-S-012-REQ-T-003). LEFT (the FindCare
-    # SpecialtyFilter cell, EPIC-006-F-002-S-001-REQ-B-011 territory) and
-    # RIGHT (the cold-service-side verification result) can never match
-    # after a handoff — that's the whole point.
+    for panel_name, panel_text in (("right", right), ("left", left)):
+        m = re.search(r'Verified:\s*([A-Za-z\.]+)', panel_text)
+        assert m, f"[{handoff_label}] {panel_name} panel: could not parse Verified"
+        val = m.group(1).upper()
+        assert val in POSITIVE, (
+            f"[{handoff_label}] {panel_name} panel Verified == {val!r} "
+            f"(expected one of {sorted(POSITIVE)}). Per EPIC-002-F-001-S-012-REQ-T-002 "
+            f"mutual-auth handshake MUST complete; per EPIC-002-F-001-S-012-REQ-B-008 "
+            f"any non-positive runtime state (FAILED, PENDING) is fatal."
+        )
+    # refreshTokenPanels rotates both panels in lockstep, so LEFT and RIGHT
+    # carry the same nonce/GUID after every handoff (REQ-B-007 identical
+    # presentation). GUID is stable across the session (REQ-T-003); nonce
+    # is fresh on every inter-service call.
     right_nonces = re.findall(r'Nonce:\s*(\w+)', right)
+    left_nonces = re.findall(r'Nonce:\s*(\w+)', left)
     assert right_nonces, f"[{handoff_label}] No nonce in right panel"
+    assert left_nonces, f"[{handoff_label}] No nonce in left panel"
+    assert right_nonces[0] == left_nonces[0], \
+        f"[{handoff_label}] Nonce mismatch: right={right_nonces[0]} left={left_nonces[0]}"
     right_guids = re.findall(r'GUID:\s*(\w+)', right)
+    left_guids = re.findall(r'GUID:\s*(\w+)', left)
     assert right_guids, f"[{handoff_label}] No GUID in right panel"
+    assert left_guids, f"[{handoff_label}] No GUID in left panel"
+    assert right_guids[0] == left_guids[0], \
+        f"[{handoff_label}] GUID mismatch: right={right_guids[0]} left={left_guids[0]}"
     orig_guid = env.get("original_guid", "")
     if orig_guid:
         assert right_guids[0] == orig_guid, \
             f"[{handoff_label}] GUID changed from original: {right_guids[0]} vs {orig_guid}"
-    # Nonce must differ from all previously stored nonces
     current_nonce = right_nonces[0]
     prev_nonces = env.get("all_nonces", [])
     for prev_label, prev_nonce in prev_nonces:
         assert current_nonce != prev_nonce, \
             f"[{handoff_label}] Nonce same as {prev_label}: {current_nonce}"
-    # Store for next check
     env.setdefault("all_nonces", []).append((handoff_label, current_nonce))
     if not orig_guid:
         env["original_guid"] = right_guids[0]
