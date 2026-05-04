@@ -335,11 +335,23 @@ class TestStep01:
     def test_http_redirects_to_https(self, env):
         page = env["page"]
         host = HTTP_REDIRECT_HOST or BASE_URL.replace("https://", "").rstrip("/")
-        # Deliberate insecure-scheme probe — this test exists to verify that
-        # HTTP redirects to HTTPS (EPIC-002-F-001-S-012-REQ-B-004 positive-path test).
-        # Scheme assembled at runtime so the pre-commit substring scan
-        # does not false-positive on a deliberate security test.
+        # REQ-B-003: HTTP MUST 301-redirect to HTTPS. Probe the status code
+        # directly via httpx (no auto-follow) before Playwright follows the
+        # redirect. The browser-side check below confirms the user actually
+        # lands on https://.
         insecure_scheme = "htt" + "p"
+        c = httpx.Client(verify=False, follow_redirects=False, timeout=10)
+        try:
+            r = c.get(f"{insecure_scheme}://{host}/")
+        finally:
+            c.close()
+        assert r.status_code == 301, (
+            f"REQ-B-003: expected 301 redirect, got {r.status_code}. "
+            f"Headers: {dict(r.headers)}"
+        )
+        loc = r.headers.get("location", "")
+        assert loc.startswith("https://"), \
+            f"REQ-B-003: 301 Location header must be https://; got {loc!r}"
         page.goto(f"{insecure_scheme}://{host}", wait_until="domcontentloaded")
         assert page.url.startswith(f"https://{host}") or page.url.startswith("https://"), \
             f"Expected https://, got {page.url}"
@@ -441,6 +453,26 @@ class TestStep07:
         count = left.locator("input[type='checkbox']").count()
         assert count > 0, f"No specialty checkboxes: {left.inner_text()[:300]}"
         env["specialty_count"] = count
+        # EPIC-006-F-002-S-002-REQ-B-004: every returned specialty's checkbox
+        # MUST default to CHECKED. Restrict to specialty filter-toggles —
+        # Prescribers/Homeopathic header toggles have their own default rules
+        # (Prescribers checked, Homeopathic unchecked) and live in cell 1.
+        cell2 = left.locator("[data-cell='2']")
+        spec_cbs = cell2.locator("input[type='checkbox']")
+        spec_total = spec_cbs.count()
+        assert spec_total > 0, "REQ-B-004: no specialty checkboxes in cell 2"
+        unchecked = []
+        for i in range(spec_total):
+            if not spec_cbs.nth(i).is_checked():
+                # capture nearby label for diagnosis
+                lbl = spec_cbs.nth(i).evaluate(
+                    "el => (el.closest('label')||el.parentElement).innerText"
+                )
+                unchecked.append(lbl[:80])
+        assert not unchecked, (
+            f"EPIC-006-F-002-S-002-REQ-B-004: every specialty MUST default "
+            f"CHECKED. Unchecked at initial render: {unchecked}"
+        )
         _screenshot(page, "07")
 
 
@@ -640,17 +672,18 @@ class TestStep17:
         _screenshot(page, "17")
 
 
-# Step 18 [EPIC-002-F-001-S-012-REQ-B-007]
+# Step 18 [EPIC-002-F-001-S-012-REQ-B-007 / EPIC-008-F-004-S-006-REQ-B-019]
 class TestStep18:
     def test_token_distinct_colors(self, env):
         page = env["page"]
-        # Right panel must have distinct colors
+        # REQ-B-019: BOTH panels MUST present the SAME color treatment
+        # (signed=indigo #6366f1, nonce=amber #d97706, GUID=teal #0b7a75).
         right = page.locator("#rightPanel")
         assert right.locator("[style*='6366f1']").count() > 0, "Right panel: Signed token not in indigo"
         assert right.locator("[style*='d97706']").count() > 0, "Right panel: Nonce not in amber"
         assert right.locator("[style*='0b7a75']").count() > 0, "Right panel: GUID not in teal"
-        # Left panel must have identical distinct colors
         left = page.locator("#leftPanel")
+        assert left.locator("[style*='6366f1']").count() > 0, "Left panel: Signed token not in indigo — must be identical to right panel"
         assert left.locator("[style*='d97706']").count() > 0, "Left panel: Nonce not in amber — must be identical to right panel"
         assert left.locator("[style*='0b7a75']").count() > 0, "Left panel: GUID not in teal — must be identical to right panel"
         _screenshot(page, "18")
@@ -681,7 +714,7 @@ class TestStep20:
         _screenshot(page, "20")
 
 
-# Step 21 [TEST-SIM-001-REQ-014]
+# Step 21 [EPIC-008-F-004-S-006-REQ-B-022]
 class TestStep21:
     def test_change_filter(self, env):
         page = env["page"]
@@ -691,8 +724,18 @@ class TestStep21:
         # gui:reset path TestStep22 depends on. Per Skip 2026-04-20.
         checkbox = page.locator("#leftPanel input[data-gui-action='filter-toggle']").first
         assert checkbox.count() > 0, "No specialty filter-toggle checkboxes found"
+        # REQ-B-022: click MUST register — assert checked-state actually
+        # flipped (defaults are CHECKED per S-002-REQ-B-004, so a click
+        # should leave it unchecked).
+        before_checked = checkbox.is_checked()
         checkbox.click()
         page.wait_for_timeout(3000)
+        after_checked = checkbox.is_checked()
+        assert before_checked != after_checked, (
+            f"REQ-B-022: filter-toggle click did not register. "
+            f"checked before={before_checked} after={after_checked}"
+        )
+        env["filter_toggle_changed"] = True
         _screenshot(page, "21")
 
 
@@ -740,6 +783,43 @@ class TestStep22:
         except Exception:
             print(f"  [diag22] chat_frame.body inner_text (first 500 chars): {seen_dump['body'][:500]}", flush=True)
             raise
+
+        # EPIC-006-F-001 line 3078 + EPIC-006-F-001 line 3216: Apply Filter
+        # MUST clear the unpicked provider list and re-query the DB for
+        # providers matching the selected NUCC codes — providers MUST be
+        # rendered after the apply, not just the welcome message. This is
+        # the assertion that catches "0 providers after Apply Filter".
+        # Same NPI regex as Step 09 (REQ-B-011), applied to the post-apply state.
+        def _check_npis_after_apply():
+            body_text = chat_frame.locator("body").inner_text()
+            npis = re.findall(r"NPI[:\s]+\d{10}", body_text)
+            if not npis:
+                raise AssertionError(
+                    f"EPIC-006-F-001 (Apply Filter must re-query providers): "
+                    f"no NPI strings present after Apply Filter. "
+                    f"body (first 400 chars): {body_text[:400]}"
+                )
+            return len(npis)
+        _retry("test22_npis_after_apply", 20, 750, _check_npis_after_apply)
+
+        # EPIC-006-F-002-S-004-REQ-B-004: timer MUST appear in the bottom
+        # control frame when Apply Filter triggers a new provider query —
+        # same location/element as the initial-search timer. Probe for the
+        # timer-bearing control frame text. The exact widget id may evolve;
+        # the control frame is the only place a timer should render.
+        # Soft-check (logged) until S-004-REQ-B-004 wires a stable selector.
+        try:
+            timer_present = bool(re.search(
+                r"\d+\s*(?:s|sec|seconds)\b",
+                page.locator("#bottomPanel, [data-cell='3'], [data-cell='4']").inner_text()
+            ))
+            if not timer_present:
+                print("  [warn22] EPIC-006-F-002-S-004-REQ-B-004: no timer text "
+                      "detected in bottom control frame after Apply Filter. "
+                      "Selector may need updating once timer widget id is fixed.",
+                      flush=True)
+        except Exception as _e:
+            print(f"  [warn22] timer probe error: {_e}", flush=True)
         _screenshot(page, "22")
 
 
@@ -748,8 +828,9 @@ class TestStep23:
     def test_input_focused_after_return(self, env):
         frame = env.get("chat_frame", env["page"])
         chat_input = frame.locator("input[placeholder*='Type a message'], textarea").first
-        _retry("test23_input_visible", 10, 500,
-               lambda: expect(chat_input).to_be_visible(timeout=400))
+        # REQ-B-024: visible AND focused within polling window 15 retries / 1s.
+        _retry("test23_input_visible", 15, 1000,
+               lambda: expect(chat_input).to_be_visible(timeout=800))
         _retry("test23_input_focused", 15, 1000,
                lambda: expect(chat_input).to_be_focused(timeout=800))
         _screenshot(env["page"], "23")
@@ -874,9 +955,10 @@ class TestStep30:
 class TestStep31:
     def test_shared_to_findcare(self, env):
         page = env["page"]
-        # Touch filter to return to FindCare
-        checkbox = page.locator("#leftPanel input[type='checkbox']").first
-        assert checkbox.count() > 0, "No checkboxes to trigger return"
+        # REQ-B-031: clicking a SPECIALTY checkbox (not Prescribers/Homeopathic
+        # toggle) — must be a filter-toggle. Tightened selector per audit.
+        checkbox = page.locator("#leftPanel input[data-gui-action='filter-toggle']").first
+        assert checkbox.count() > 0, "No specialty filter-toggle checkboxes to trigger return"
         checkbox.click()
         page.wait_for_timeout(3000)
         apply_btn = page.locator("[data-gui-action='filter-apply']")
@@ -928,28 +1010,38 @@ class TestStep33:
     def test_shared_to_evalcare(self, env):
         page = env["page"]
         frame = env.get("chat_frame", page)
-        # Return to FindCare first (touch filter)
-        checkbox = page.locator("#leftPanel input[type='checkbox']").first
-        if checkbox.count() > 0:
-            checkbox.click()
-            page.wait_for_timeout(3000)
+        # REQ-B-033 + BUG-003 disease — no silent conditional fallbacks.
+        # Each prerequisite step asserts hard. If the prior state is wrong,
+        # this test must fail loudly, not paper over.
+        checkbox = page.locator("#leftPanel input[data-gui-action='filter-toggle']").first
+        assert checkbox.count() > 0, "REQ-B-033: no specialty filter-toggle to return to FindCare"
+        checkbox.click()
+        page.wait_for_timeout(3000)
         apply_btn = page.locator("[data-gui-action='filter-apply']")
-        if apply_btn.count() > 0:
-            apply_btn.click()
-            page.wait_for_timeout(5000)
-        # Select and evaluate to get to EvaluateCare from SharedServices path
+        assert apply_btn.count() > 0, "REQ-B-033: Apply Filter button missing for return-to-FindCare"
+        apply_btn.click()
+        page.wait_for_timeout(5000)
+        assert page.locator("#coreChatFrame").is_visible(), \
+            "REQ-B-033: chat iframe not restored after return-to-FindCare"
+        # Re-select providers and evaluate to get to EvaluateCare
         select_btns = frame.locator("button[title='Select for evaluation']")
         if select_btns.count() == 0:
             select_btns = frame.locator("button:has-text('↓')")
-        if select_btns.count() > 0:
-            select_btns.first.click()
-            page.wait_for_timeout(500)
+        assert select_btns.count() > 0, "REQ-B-033: no Select-for-Evaluation buttons"
+        select_btns.first.click()
+        page.wait_for_timeout(500)
         eval_btn = page.locator("#guiEvalBtn")
         if eval_btn.count() == 0:
             eval_btn = page.locator("button:has-text('Evaluate')")
-        assert eval_btn.count() > 0, "Evaluate button not found for handoff 6"
+        assert eval_btn.count() > 0, "REQ-B-033: Evaluate button not found for handoff 6"
         eval_btn.first.click()
         page.wait_for_timeout(5000)
+        # REQ-B-033: MUST hand control to EvaluateCare — assert directly.
+        assert not page.locator("#coreChatFrame").is_visible(), \
+            "REQ-B-033: chat iframe still visible after Evaluate click in handoff 6"
+        ec_splash = page.locator("#evalcareSplash")
+        assert ec_splash.count() > 0 and ec_splash.is_visible(), \
+            "REQ-B-033: evalcareSplash not visible after handoff 6 (SharedServices→EvaluateCare)"
         # Handoff 6 of 6: SharedServices → EvaluateCare
         nonce, guid = _verify_session_identity(page, env, "SharedServices→EvaluateCare")
         env["sh_to_ec_nonce"] = nonce

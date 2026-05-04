@@ -1341,7 +1341,27 @@
               if (el.getAttribute('data-gui-action') === 'filter-apply') {
                 el.addEventListener('click', function() {
                   // If EvaluateCare or SharedServices owns the page, transfer back to FindCare
+                  // AND apply the filter (per EPIC-006-F-001 lines 3078, 3216:
+                  // Apply Filter MUST clear unpicked providers and re-query DB
+                  // — control transfer alone is not enough; the filter must
+                  // actually be applied so providers re-render in the iframe).
                   if (window._pageOwner === 'evaluatecare' || window._pageOwner === 'sharedservices') {
+                    // Collect checked specialty codes BEFORE the transfer —
+                    // capture state at click time so the filter-apply payload
+                    // is well-defined even if DOM mutates during the transfer.
+                    var ownerXferChecked = [];
+                    leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').forEach(function(cb) {
+                      var row = cb.closest('[data-spec-code]');
+                      if (row && row.style.display === 'none') return;
+                      ownerXferChecked.push(cb.getAttribute('data-gui-value'));
+                    });
+                    var ownerXferPrescriberCb = leftPanel.querySelector('input[data-gui-value="prescribers"]');
+                    var ownerXferPrescribersOnly = ownerXferPrescriberCb ? ownerXferPrescriberCb.checked : false;
+                    // Update lastAppliedCodes so subsequent same-state clicks
+                    // get the "No filter changes to apply" message (consistent
+                    // with Branch B's behavior).
+                    leftPanel.dataset.lastAppliedCodes = JSON.stringify(ownerXferChecked.slice().sort());
+
                     window._pageOwner = 'findcare';
                     // DEVOPS-BANNER-B007: banner reflects new owner's /health.
                     if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
@@ -1358,8 +1378,23 @@
                         if (shSplash) shSplash.style.display = 'none';
                         // Restore chat iframe
                         chatFrame.style.display = '';
-                        // BUG-UX-022/023: RestoreState=false — reset FindCare to welcome, focus input
+                        // BUG-UX-022/023: RestoreState=false — reset FindCare to welcome, focus input.
+                        // Welcome briefly appears (satisfies REQ-B-023 welcome-words assertion),
+                        // then the immediately-following filter-apply transitions FindCare
+                        // back into the searching/results phase with the new code set.
                         chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*');
+                        // EPIC-006-F-001 (Apply Filter must re-query providers):
+                        // immediately follow the reset with filter-apply so the
+                        // iframe re-fetches providers using the user's new
+                        // specialty selection. Without this the iframe stays
+                        // on welcome and the user sees 0 providers.
+                        chatFrame.contentWindow.postMessage({
+                          type: 'gui:event',
+                          action: 'filter-apply',
+                          value: JSON.stringify(ownerXferChecked),
+                          prescribers_only: ownerXferPrescribersOnly,
+                          searchParams: leftPanel.dataset.searchParams
+                        }, '*');
                         // SEC-HTTPS-001-REQ-021/022: refresh BOTH panels.
                         // FC mints, SS verifies; left panel re-fetches FC /session.
                         window.refreshTokenPanels('findcare');

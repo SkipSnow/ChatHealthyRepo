@@ -37,14 +37,15 @@ class EmbeddingClient:
             _log.warning("Embedding (large) failed: %s", e)
             return None
 
-    def get_specialty_vector(self, text: str) -> Optional[list]:
+    def get_specialty_vector(self, text: str) -> list:
         """Embed via text-embedding-3-large. For specialty matching.
-        Same model as provider embeddings — required for cross-collection RAG."""
-        try:
-            return self._get_oai().embeddings.create(model="text-embedding-3-large", input=text).data[0].embedding
-        except Exception as e:
-            _log.warning("Embedding (large/specialty) failed: %s", e)
-            return None
+        Same model as provider embeddings — required for cross-collection RAG.
+        Raises on failure (no fallback per EPIC-006-F-002-S-001-REQ-T-001).
+        SpecialtyFilter's find_specialties() is the single catch point and
+        surfaces the actual upstream cause to the frontend."""
+        return self._get_oai().embeddings.create(
+            model="text-embedding-3-large", input=text
+        ).data[0].embedding
 
     def expand_query_terms(self, query: str) -> list[str]:
         """AI query expansion via Claude Haiku. Returns keyword stems."""

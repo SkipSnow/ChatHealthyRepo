@@ -60,7 +60,8 @@ Legal
 LangGraph
 docs
 enrichment_content
-findCare
+# findCare/ — design docs excluded; runtime code under findCare/Code IS shipped.
+findCare/ArchitectureAndDesign
 *.png
 *.bak
 migrate_progress.log
