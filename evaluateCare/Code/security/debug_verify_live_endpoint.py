@@ -4,7 +4,7 @@
 import os
 import traceback
 
-from security.session_token import SessionToken, verify_session_token, CERTS_DIR as MODULE_CERTS_DIR
+from chathealthy_frontend_lib.session_token import SessionToken, verify_session_token, CERTS_DIR as MODULE_CERTS_DIR
 
 
 class DebugVerifyLiveEndpoint:

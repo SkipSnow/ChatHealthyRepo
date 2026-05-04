@@ -102,7 +102,7 @@ from displayChrome.transfer_to_findcare_endpoint import TransferToFindCareEndpoi
 from security.session_endpoint import SessionEndpoint
 from security.verify_token_endpoint import VerifyTokenEndpoint, VerifyTokenRequest, VerifyTokenResponse
 from secretsManager.secrets_endpoint import SecretsEndpoint
-from security.session_token import SessionToken
+from chathealthy_frontend_lib.session_token import SessionToken
 
 
 def _impl(cls_name, file_subpath):

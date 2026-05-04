@@ -4,7 +4,7 @@
 import os
 import logging
 
-from security.session_token import SessionToken, generate_session_token
+from chathealthy_frontend_lib.session_token import SessionToken, generate_session_token
 
 
 class SessionEndpoint:
