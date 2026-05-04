@@ -13,6 +13,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/block_legacy_path_worker.py\""
+          },
+          {
+            "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode tool_call"
           },
           {
