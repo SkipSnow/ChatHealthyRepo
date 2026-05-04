@@ -334,7 +334,7 @@
                                                     "properties": {
                                                       "test_id": {
                                                         "type": "string",
-                                                        "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}-REQ-[BT]-\\d{3}-PYTEST-(?:[12]|[Uu][Nn][Ss][Uu][Pp][Pp][Oo][Rr][Tt][Aa][Bb][Ll][Ee])$",
+                                                        "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}-REQ-[BT]-\\d{3}-TEST-(?:[12]|[Uu][Nn][Ss][Uu][Pp][Pp][Oo][Rr][Tt][Aa][Bb][Ll][Ee])$",
                                                         "description": "Required when orphan=false; forbidden when orphan=true."
                                                       },
                                                       "orphan": {
