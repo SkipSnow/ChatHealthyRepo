@@ -96,3 +96,9 @@ brain/machine_artifacts/.iteration_cache/
 # Currently-tracked content under archive/ stays tracked (Skip directive 2026-04-30:
 # add the pattern, do NOT clean up the repo). Future additions are ignored.
 archive/
+
+# One-shot scratch scripts and dumps. Claude writes any one-shot helper
+# (audit script, JSON dump, doc-injector, etc.) into a _oneshots/ dir so
+# it never gets caught by pre-commit or accidentally committed.
+_oneshots/
+**/_oneshots/
