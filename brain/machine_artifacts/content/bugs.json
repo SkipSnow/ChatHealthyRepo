@@ -18,7 +18,7 @@
       "severity": "high",
       "req_id": "EPIC-008-F-004-S-001-REQ-T-002",
       "story_id": "EPIC-008-F-004-S-001",
-      "test_id": "BUG-001-PYTEST-1",
+      "test_id": "BUG-001-TEST-1",
       "test_success_criteria": [
         "After a non-deploy commit, the build field of the canonical version document in MongoDB is incremented by exactly one",
         "version.json file does not exist in the repository",
@@ -61,7 +61,7 @@
       "severity": "show_stopper",
       "req_id": "Orphan",
       "story_id": "Orphan",
-      "test_id": "BUG-002-PYTEST-1",
+      "test_id": "BUG-002-TEST-1",
       "test_success_criteria": [
         "grep for 'c:\\chathealthy\\findcare' (case-insensitive) across Git-eligible artifacts returns zero hits (excluding test_output/, _pending/, scratch dirs that are themselves slated for removal or gitignored)",
         "Every Git-eligible artifact resolves its project root via either os.environ['CHATHEALTHY_PROJECT_ROOT'] or Path(__file__).resolve().parents[N], not from a hardcoded absolute path",
@@ -93,7 +93,7 @@
       "severity": "show_stopper",
       "req_id": "EPIC-008-F-004-S-001-REQ-B-001",
       "story_id": "EPIC-008-F-004-S-001",
-      "test_id": "BUG-003-PYTEST-1",
+      "test_id": "BUG-003-TEST-1",
       "test_success_criteria": [
         "Code/deploy/local_deploy.py contains NO subprocess-Python fallback path for backend services. The methods _build_backend_containers() and _start_backend_processes() either do real Docker work or fail loudly — there is no third state.",
         "If the Docker daemon is unreachable when LocalDeploy.run() executes, the run aborts with an explicit, terminal error (non-zero exit, clear message: 'Docker daemon required per V11 S-002-REQ-T-001'). It does NOT fall back to subprocess Python.",
@@ -160,6 +160,33 @@
       "due_date": "2026-06-01",
       "reproduction": "",
       "orphan": false
+    },
+    {
+      "bugid": "BUG-005",
+      "title": "NUCC taxonomy CSV pollutes SpecialtyMetaData with codes for unlicensed humans",
+      "description": "The NUCC provider taxonomy CSV (loaded by Code/DataPipelines/load_specialty_data.py from nucc.org) defines codes for individual roles that are not licensed healthcare practitioners — e.g., Homemaker (376J00000X), Reflexologist (173C00000X), Driver (172A00000X), Health & Wellness Coach (171400000X), Lay Midwife (175M00000X), Funeral Director (176P00000X), Veterinarian (174M00000X), Graphics Designer (1744G0900X), Religious Nonmedical Practitioner (374K00000X), Lactation Consultant Non-RN (174N00000X), Peer Specialist (175T00000X), and 25+ others sitting in NUCC Grouping 'Other Service Providers' plus the single 'Student, Health Care' code (390200000X). All of these pass the existing $vectorSearch filter {Section: 'Individual'} in domain/find_care/specialty_service.py because Section=Individual only excludes group-practice and non-individual entries; it does NOT distinguish licensed from unlicensed roles. NUCC itself has no 'requires license' field. The result is that the specialty filter surfaces non-licensed and non-clinical roles in user-facing search results (e.g., a 'find me a foot doctor' query can return Homemaker, Reflexologist, Driver, etc.). Fix approach: derive the legitimate NUCC code set from the NPPES NPI database — query NPPES for the distinct NUCC codes actually registered against real NPIs (Type 1 individual + Type 2 organization) and use that derived set as the allow-list at pipeline load time. Every NUCC code that has at least one real NPI registrant is in scope; codes with zero NPI registrants get excluded automatically. SpecialtyMetaData may need enrichment with the NPI Type(s) per NUCC code. False negatives are acceptable — every legitimate NUCC code will have at least one NPI record. A new pipeline requirement is needed and will be authored on 2026-05-04.",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "fixing",
+      "severity": "high",
+      "req_id": "EPIC-006-F-002-S-001-REQ-T-001",
+      "story_id": "EPIC-006-F-002-S-001",
+      "test_id": "",
+      "discovery_date": "2026-05-03",
+      "due_date": "2026-05-04",
+      "reproduction": "1. Connect to {env}_PublicHealthData.SpecialtyMetaData. 2. Query: db.SpecialtyMetaData.find({Section:'Individual', Grouping: {$in: ['Other Service Providers', 'Student, Health Care']}}).count() — observe 37 records present in the dev cluster. 3. Run a specialty search via the specialty filter (e.g., 'find me a foot doctor'); observe non-licensed/non-clinical entries (Homemaker, Reflexologist, Driver, etc.) appearing in vector-search results.",
+      "orphan": false,
+      "next_action": [
+        "Author new pipeline requirement (2026-05-04): SpecialtyMetaData load step MUST filter NUCC codes to the set actually present in NPPES NPI registrants (Type 1 + Type 2).",
+        "Pull the latest NPPES public NPI data dump (or query the NPPES API) and extract the distinct set of taxonomy codes registered against real NPIs (both Type 1 individual and Type 2 organization).",
+        "Enrich SpecialtyMetaData rows with the NPI Type(s) that registered each code, for diagnostic/audit traceability.",
+        "Update Code/DataPipelines/load_specialty_data.py to apply the NPPES-derived code set as an allow-list at insert time — only NUCC rows whose Code appears in the NPPES set are loaded into SpecialtyMetaData.",
+        "Re-run the specialty pipeline; verify SpecialtyMetaData no longer contains Homemaker/Reflexologist/Driver/etc.",
+        "Re-run the specialty filter UI test (e.g., 'find me a foot doctor') and confirm only legitimate licensed-practitioner specialties appear in the results."
+      ]
     }
   ]
 }
