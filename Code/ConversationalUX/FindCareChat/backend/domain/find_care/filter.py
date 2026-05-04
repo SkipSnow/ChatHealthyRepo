@@ -21,7 +21,12 @@ from typing import Optional
 _log = logging.getLogger("findcare.specialty_filter")
 
 
-_PROMPTS_JSON_PATH = Path(__file__).resolve().parents[4] / "brain" / "machine_artifacts" / "content" / "prompts.json"
+# Resolve project root from this file's location:
+#   Code/ConversationalUX/FindCareChat/backend/domain/find_care/filter.py
+#   parents:  [0]find_care [1]domain [2]backend [3]FindCareChat
+#             [4]ConversationalUX [5]Code [6]<project root>
+_PROJECT_ROOT = Path(__file__).resolve().parents[6]
+_PROMPTS_JSON_PATH = _PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "prompts.json"
 _NORMALIZE_RECORD_ID = "specialty_normalize_system_prompt"
 _FILTER_RECORD_ID = "specialty_filter_system_prompt"
 
@@ -87,8 +92,11 @@ class SpecialtyFilter:
 
     def _ensure_openai_client(self):
         if self._oai is None:
+            api_key = os.environ.get("OPENAI_API_KEY", "")
+            if not api_key:
+                raise RuntimeError("OPENAI_API_KEY missing from environment")
             from openai import OpenAI
-            self._oai = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+            self._oai = OpenAI(api_key=api_key)
         return self._oai
 
     # ── private prompt loaders ──────────────────────────────────────────────
