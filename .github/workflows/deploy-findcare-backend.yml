@@ -148,9 +148,14 @@ jobs:
 
           # PKI certs deferred to Beta (BUG-SEC-002) — HF doesn't support mTLS
 
-          # Brain artifacts needed at runtime
+          # Brain artifacts needed at runtime — copy the entire content/ dir so
+          # any new JSON the backend reads (prompts.json for SpecialtyFilter,
+          # emergency_keywords.json for SafetyService, future records) is
+          # staged automatically. Cherry-picking individual files is how
+          # prompts.json was missed when SpecialtyFilter wired it 2026-05-04;
+          # the FileNotFoundError surfaced post-deploy instead of pre-deploy.
           mkdir -p hf_space/brain/machine_artifacts/content
-          cp brain/machine_artifacts/content/emergency_keywords.json hf_space/brain/machine_artifacts/content/
+          rsync -av brain/machine_artifacts/content/ hf_space/brain/machine_artifacts/content/
 
           # me/ context files (PDFs, summary, codebase)
           mkdir -p hf_space/Code/ConversationalUX/ChatHealthyWhoAmIChat/me
