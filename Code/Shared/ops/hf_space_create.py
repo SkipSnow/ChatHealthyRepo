@@ -120,15 +120,25 @@ def create_space(env: str, hardware: str, dry_run: bool = False):
     _set_secret(headers, full_name, "ENV_PREFIX", env)
     secrets_set += 1
 
+    missing_secrets = []
     for key in SECRET_KEYS:
         value = os.getenv(key)
         if value:
             _set_secret(headers, full_name, key, value)
             secrets_set += 1
         else:
-            log.warning("  Secret %s not found in .env — skipping", key)
+            missing_secrets.append(key)
 
     log.info("  %d secrets set", secrets_set)
+
+    if missing_secrets:
+        log.error("Required secrets missing from .env: %s", ", ".join(missing_secrets))
+        log.error("Space %s exists but is INCOMPLETELY configured. Add the missing "
+                  "keys to Code/.env and re-run, or set them via the HF UI before "
+                  "deploying. Per BUG-003 fail-hard contract: an incomplete Space "
+                  "MUST surface as a terminal error rather than ship silently.",
+                  full_name)
+        sys.exit(1)
 
     # Step 4: Verify
     log.info("Step 4/4: Verifying...")
