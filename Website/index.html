@@ -703,7 +703,7 @@
       window._envServiceUrls = (function() {
         if (isLocal) {
           return {
-            findcare: '',  // same-origin (website server proxies /health to :7860)
+            findcare:     'https://localhost:7860',
             evaluatecare: 'https://localhost:8001',
             sharedservices: 'https://localhost:8002',
           };
@@ -1664,25 +1664,7 @@
                   + '<b>Time:</b> PST <span style="color:#374151;">' + pstTime + '</span></div>'
                   + '</div>';
               };
-              var __attempts = 0;
-              var __MAX_ATTEMPTS = 5;
-              var __DELAY_MS = 50;
-              var __tryPaint = function() {
-                // No verified display present — paint Pending immediately.
-                if (sessionEl.innerHTML.indexOf('Signed token:') === -1) {
-                  __renderPending();
-                  return;
-                }
-                // A verified display IS present. Wait for it to clear in
-                // case Pending raced ahead of an in-flight verify update.
-                __attempts++;
-                if (__attempts >= __MAX_ATTEMPTS) {
-                  window.chFatalError('JS routine {gui:session-display retry exhausted}');
-                  return;
-                }
-                setTimeout(__tryPaint, __DELAY_MS);
-              };
-              __tryPaint();
+              __renderPending();
             }
           }
         }
