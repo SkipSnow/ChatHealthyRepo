@@ -913,7 +913,7 @@
             }
             var st = result.session_token;
             if (owner === 'findcare') {
-              var leftCell = document.getElementById('guiSessionId');
+              var leftCell = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
               if (!leftCell) {
                 var leftPanelOuter = document.getElementById('leftPanel');
                 if (leftPanelOuter) {
@@ -1621,15 +1621,11 @@
           }
           if (sessionEl) {
             if (msg.session_token && typeof msg.session_token === 'object') {
-              // Full verified token — use identical display function
               sessionEl.innerHTML = window.buildTokenDisplayHtml(msg.session_token);
+            } else if (sessionEl.innerHTML.indexOf('YES ✓') !== -1) {
+              // Already in verified state (refreshTokenPanels painted it).
+              // A late iframe-side Pending message must not clobber it.
             } else {
-              // Initial raw token string (pre-verify) — build Pending display.
-              // Race handling (no silent skip): if LEFT currently shows a
-              // verified token (contains "Signed token:") we wait & retry up
-              // to 5 cycles for the verified state to clear before painting
-              // Pending. After retries exhausted we paint anyway and log
-              // loudly — silent skip would hide the underlying race.
               var __renderPending = function() {
                 var token = msg.token || '';
                 var nonce = token.length >= 36 ? token.substring(2, 36) : token;

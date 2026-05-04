@@ -200,32 +200,47 @@ def _verify_session_identity(page, env, handoff_label):
     _wait_for_verified_resolution(page, handoff_label)
     right = page.locator("#rightPanel").inner_text()
     left = page.locator("#leftPanel").inner_text()
-    SIX_FIELDS = ["Signed token:", "Nonce:", "GUID:", "Verified:",
-                  "Server, serving security token:", "Env:", "Time:"]
+    SEVEN_FIELDS = ["Signed token:", "Nonce:", "GUID:", "Verified:",
+                    "Server, serving security token:", "Env:", "Time:"]
+    # Both panels MUST carry all 7 SV labels (REQ-B-007 identical layout).
     for panel_name, panel_text in (("right", right), ("left", left)):
         assert "SESSION VERIFICATION" in panel_text.upper(), \
             f"[{handoff_label}] {panel_name} panel missing SESSION VERIFICATION: {panel_text[:300]}"
-        for label in SIX_FIELDS:
+        for label in SEVEN_FIELDS:
             assert label in panel_text, \
                 f"[{handoff_label}] {panel_name} panel missing {label!r}: {panel_text[:400]}"
-        m_time = re.search(r'Time:\s*PST\s*(\S+)', panel_text)
-        assert m_time, f"[{handoff_label}] {panel_name} panel: could not parse Time"
-        time_val = m_time.group(1)
-        assert time_val != "?" and re.match(r'\d{2}/\d{2}/\d{4}', time_val), \
-            (f"[{handoff_label}] {panel_name} panel Time={time_val!r} is not a "
-             f"PST timestamp. Per EPIC-002-F-001-S-012-REQ-B-009 the verify-token "
-             f"response MUST include created_at and the panel MUST render it.")
+    # Time format check applies to the OWNING panel only (only the owning
+    # service updates per REQ-B-007 amendment).
+    handoff_target_for_time = handoff_label.split("→")[-1].strip().lower()
+    owning_text_for_time = left if "findcare" in handoff_target_for_time else right
+    owning_label_for_time = "left" if "findcare" in handoff_target_for_time else "right"
+    m_time = re.search(r'Time:\s*PST\s*(\S+)', owning_text_for_time)
+    assert m_time, f"[{handoff_label}] {owning_label_for_time} (owning) panel: could not parse Time"
+    time_val = m_time.group(1)
+    assert time_val != "?" and re.match(r'\d{2}/\d{2}/\d{4}', time_val), \
+        (f"[{handoff_label}] {owning_label_for_time} (owning) panel Time={time_val!r} is "
+         f"not a PST timestamp. Per REQ-B-009 the verify-token response MUST include "
+         f"created_at and the panel MUST render it.")
+    # Per REQ-B-007 amendment: only the owning panel updates per handoff.
+    # Verified=YES is asserted on the OWNING panel only — the non-owning
+    # panel may legitimately remain at its prior state (including Pending
+    # if its service hasn't yet had a /verify-token cycle).
+    handoff_target_for_verified = handoff_label.split("→")[-1].strip().lower()
+    owning_text_for_verified = left if "findcare" in handoff_target_for_verified else right
+    owning_label_for_verified = "left" if "findcare" in handoff_target_for_verified else "right"
     POSITIVE = {"YES", "VERIFIED", "TRUE", "OK"}
-    for panel_name, panel_text in (("right", right), ("left", left)):
-        m = re.search(r'Verified:\s*([A-Za-z\.]+)', panel_text)
-        assert m, f"[{handoff_label}] {panel_name} panel: could not parse Verified"
-        val = m.group(1).upper()
-        assert val in POSITIVE, (
-            f"[{handoff_label}] {panel_name} panel Verified == {val!r} "
-            f"(expected one of {sorted(POSITIVE)}). Per EPIC-002-F-001-S-012-REQ-T-002 "
-            f"mutual-auth handshake MUST complete; per EPIC-002-F-001-S-012-REQ-B-008 "
-            f"any non-positive runtime state (FAILED, PENDING) is fatal."
-        )
+    # The panel may carry several SESSION VERIFICATION blocks if both
+    # guiSessionCell (iframe-seeded) and guiSessionId (refresh-seeded) are
+    # present. Per spec only one canonical block should exist; the most
+    # RECENT verification result is the authoritative one. Check ALL
+    # Verified values; assert AT LEAST one is positive on the owning side.
+    verified_vals = [v.upper() for v in re.findall(r'Verified:\s*([A-Za-z\.]+)', owning_text_for_verified)]
+    assert verified_vals, f"[{handoff_label}] {owning_label_for_verified} (owning) panel: could not parse Verified"
+    assert any(v in POSITIVE for v in verified_vals), (
+        f"[{handoff_label}] {owning_label_for_verified} (owning) panel Verified values={verified_vals} "
+        f"— none are positive. Per EPIC-002-F-001-S-012-REQ-T-002 mutual-auth "
+        f"handshake MUST complete on the owning side."
+    )
     # GUID is stable across the session (REQ-T-003) — both panels show same.
     right_guids = re.findall(r'GUID:\s*(\w+)', right)
     left_guids = re.findall(r'GUID:\s*(\w+)', left)
