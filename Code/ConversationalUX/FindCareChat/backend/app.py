@@ -9,7 +9,6 @@
 import json
 import logging
 import os
-import re
 import sys
 import traceback
 from typing import Optional
@@ -26,7 +25,7 @@ from url_guardian import URLGuardian
 from application.tool_router import ToolRouter
 from application.facades.evaluate_care_facade import EvaluateCareFacade
 from domain.find_care.provider_search_service import FindCareService
-from domain.find_care.specialty_service import SpecialtyService
+from domain.find_care.filter import SpecialtyFilter
 from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
 from domain.evaluate_care_quality.provider_detail_service import ProviderDetailService
 from domain.shared.safety.safety_service import SafetyService
@@ -194,7 +193,7 @@ def _system_prompt(follow_up_check: bool = False) -> str:
 # ---------------------------------------------------------------------------
 _embedding_client = EmbeddingClient()
 
-_specialty_service = SpecialtyService(
+_specialty_service = SpecialtyFilter(
     get_db_fn=_get_db, env_prefix=_ENV_PREFIX,
     get_vector_fn=_embedding_client.get_specialty_vector)
 _find_care = FindCareService(
@@ -422,8 +421,9 @@ async def classify(body: ClassifyRequest, request: Request):
         _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
         return {"emergency": True, "response": EMERGENCY_RESPONSE}
 
-    # Vector search for specialties
-    result = _specialty_service.find_specialty_codes(body.message)
+    # Two-stage AI specialty matching pipeline (S-002 in EPIC-006-F-002 spec):
+    # normalize -> embed -> vector search -> AI filter -> NUCC code list
+    result = _specialty_service.find_specialties(body.message)
 
     if "error" in result:
         return {"specialties": [], "error": result["error"]}
@@ -810,8 +810,28 @@ async def _chat_inner(body: ChatRequest, request: Request):
 
     text = response.get("content", "")
     text = _url_guardian.guard_text(text)
-    text = re.sub(r'(?<!\[)Skip Snow on LinkedIn(?!\])',
-                  '[Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow)', text)
+    # Replace bare "Skip Snow on LinkedIn" with its markdown link form,
+    # but only when it isn't already in markdown-link form
+    # (i.e., not surrounded by `[` and `]`). No regex per Rule-008.
+    _LI_TARGET = "Skip Snow on LinkedIn"
+    _LI_REPLACEMENT = "[Skip Snow on LinkedIn](https://linkedin.com/in/skipsnow)"
+    _li_out = []
+    _li_i = 0
+    while True:
+        _li_idx = text.find(_LI_TARGET, _li_i)
+        if _li_idx == -1:
+            _li_out.append(text[_li_i:])
+            break
+        _li_prev = text[_li_idx - 1] if _li_idx > 0 else ""
+        _li_after_idx = _li_idx + len(_LI_TARGET)
+        _li_next = text[_li_after_idx] if _li_after_idx < len(text) else ""
+        _li_out.append(text[_li_i:_li_idx])
+        if _li_prev == "[" and _li_next == "]":
+            _li_out.append(_LI_TARGET)
+        else:
+            _li_out.append(_LI_REPLACEMENT)
+        _li_i = _li_after_idx
+    text = "".join(_li_out)
 
     pagination = None
     if last_provider_result and isinstance(last_provider_result, dict):

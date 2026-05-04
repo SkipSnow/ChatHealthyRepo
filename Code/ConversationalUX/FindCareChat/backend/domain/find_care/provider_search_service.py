@@ -485,7 +485,8 @@ class FindCareService:
                 "message": f"No providers found matching the search criteria."}
 
     def identify_specialty(self, query: str) -> dict:
-        """UAT Feature 2: Identify NUCC specialty codes."""
+        """UAT Feature 2: Identify NUCC specialty codes via the two-stage
+        AI pipeline (EPIC-006-F-002-S-002)."""
         if not self._specialty:
-            return {"error": "SpecialtyService not configured"}
-        return self._specialty.find_specialty_codes(query)
+            return {"error": "SpecialtyFilter not configured"}
+        return self._specialty.find_specialties(query)
