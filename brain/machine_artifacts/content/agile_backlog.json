@@ -1335,7 +1335,7 @@
                         },
                         {
                           "req_id": "EPIC-005-F-002-S-001-REQ-T-003",
-                          "requirement": "Results are reported per requirement: req_id, test_id, pass/fail/skip/error. Summary shows counts per story, feature, epic, and overall.",
+                          "requirement": "URLGuardian must use AI content verification (Claude Haiku) to confirm reachable URLs show expected content. Pages with wrong content treated as broken.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -1349,7 +1349,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Report test results per requirement and summarize by story, feature, epic, and  ",
+                          "name": "AI content verification for reachable URLs using Claude Haiku",
                           "depends_on": []
                         },
                         {
@@ -1953,7 +1953,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-005-F-004-S-004-REQ-B-001",
-                          "requirement": "90%+ of providers must have embeddings",
+                          "requirement": "90%+ of providers must have embeddings (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -1972,7 +1972,7 @@
                         },
                         {
                           "req_id": "EPIC-005-F-004-S-004-REQ-T-001",
-                          "requirement": "Embedding dimension must be 3072 (text-embedding-3-large)",
+                          "requirement": "Embedding dimension must match the canonical embedding model. (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -1986,12 +1986,12 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Set embedding dimension to 3072 for text-embedding-3-large",
+                          "name": "Embedding dimension matches the canonical embedding model",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-005-F-004-S-004-REQ-T-002",
-                          "requirement": "embedding_model field must be present and correct",
+                          "requirement": "embedding_model field must be present and correct (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -2010,7 +2010,7 @@
                         }
                       ]
                     },
-                    "description": "Embedding tests",
+                    "description": "Embedding tests (see EPIC-008-F-011-S-004-REQ-B-001)",
                     "size": "S",
                     "status": "in_progress",
                     "orphan": false,
@@ -2112,7 +2112,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-005-F-004-S-006-REQ-B-001",
-                          "requirement": "90%+ of SpecialtyMetaData must have embeddings",
+                          "requirement": "90%+ of SpecialtyMetaData must have embeddings (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -3278,7 +3278,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-002-S-001-REQ-T-001",
-                          "requirement": "Search for specialty type is an AI vector search using text-embedding-3-large. No regular expressions, no string matching, no classify LLM call, no fallback. The user's prompt is embedded and matched against SpecialtyMetaData embeddings via cosine similarity. The embedding and scoring MUST be tuned so that specific injury or condition queries return medically appropriate specialties, not just semantically similar ones. Known bug: BUG-SEARCH-001.",
+                          "requirement": "Search for specialty type is an AI vector search using the canonical embedding model. No regular expressions, no string matching, no classify LLM call, no fallback. The user's prompt is embedded and matched against SpecialtyMetaData embeddings via cosine similarity. The embedding and scoring MUST be tuned so that specific injury or condition queries return medically appropriate specialties, not just semantically similar ones. Known bug: BUG-SEARCH-001. (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -3292,12 +3292,12 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "AI vector specialty search using text-embedding-3-large, cosine, no fallback",
+                          "name": "AI vector specialty search using the canonical embedding model, cosine, no fallback",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-006-F-002-S-001-REQ-T-002",
-                          "requirement": "Results are ranked 1-to-n by cosine similarity. The query vector is built by embedding the last 5 user prompts concatenated. Each result gets a unique integer rank. All matching results are returned — numCandidates must be large enough to capture the full result set.",
+                          "requirement": "Results are ranked 1-to-n by cosine similarity. The query vector is built by embedding the last 5 user prompts concatenated. Each result gets a unique integer rank. All matching results are returned — numCandidates must be large enough to capture the full result set. (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -3900,7 +3900,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-005-S-001-REQ-T-001",
-                          "requirement": "provider_vector_index must exist on providers in dev, qa, and prod with vector on embedding (3072d, cosine) and filter fields: practice_address.state, practice_address.city, practice_address.zip, county.name, county.fips.",
+                          "requirement": "provider_vector_index must exist on providers in dev, qa, and prod with vector on embedding (cosine) and filter fields: practice_address.state, practice_address.city, practice_address.zip, county.name, county.fips. (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -3914,12 +3914,12 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Add provider_vector_index on providers with 3072d cosine embedding and location",
+                          "name": "Add provider_vector_index on providers with cosine embedding and location filters",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-006-F-005-S-001-REQ-T-002",
-                          "requirement": "specialty_vector_index must exist on SpecialtyMetaData in dev, qa, and prod with vector on embedding (3072d, cosine).",
+                          "requirement": "specialty_vector_index must exist on SpecialtyMetaData in dev, qa, and prod with vector on embedding (cosine). (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -3933,7 +3933,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Add specialty_vector_index on SpecialtyMetaData with 3072d embedding (cosine)",
+                          "name": "Add specialty_vector_index on SpecialtyMetaData (cosine)",
                           "depends_on": []
                         },
                         {
@@ -3963,7 +3963,7 @@
                   },
                   {
                     "story_id": "EPIC-006-F-005-S-002",
-                    "description": "Resume pipeline cluster, audit current indexes, read all pipeline code (enrichment, embedding, copy operations), and propose an index strategy. Pipeline indexes exist only to support enrichment workflows. Present proposal to human for approval before creating anything.",
+                    "description": "Resume pipeline cluster, audit current indexes, read all pipeline code (enrichment, embedding, copy operations), and propose an index strategy. Pipeline indexes exist only to support enrichment workflows. Present proposal to human for approval before creating anything. (see EPIC-008-F-011-S-004-REQ-B-001)",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
@@ -4677,7 +4677,7 @@
                   },
                   {
                     "story_id": "EPIC-006-F-006-S-015",
-                    "description": "When the last reservation is released, ClusterLifecycleManager.release() must send a pause request to Atlas. This is the single place that decides when to pause — no orchestrator should pause directly.",
+                    "description": "When the last reservation is released, ClusterLifecycleManager.release must send a pause request to Atlas. This is the single place that decides when to pause — no orchestrator should pause directly.",
                     "size": "S",
                     "status": "to_test",
                     "requirements": {
@@ -4703,7 +4703,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-015-REQ-T-001",
-                          "requirement": "When release() removes the last reservation for a cluster, it must call _send_pause(cluster_name). Boolean test: release last reservation → Atlas API receives PATCH {paused: true}.",
+                          "requirement": "When release removes the last reservation for a cluster, it must call _send_pause(cluster_name). Boolean test: release last reservation → Atlas API receives PATCH {paused: true}.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -4717,12 +4717,12 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "release() triggers _send_pause when last cluster reservation is removed",
+                          "name": "release triggers _send_pause when last cluster reservation is removed",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-006-F-006-S-015-REQ-T-002",
-                          "requirement": "No orchestrator may call _send_pause or pause_cluster directly. Only ClusterLifecycleManager.release() and force_release_all() may pause. Boolean test: grep all orchestrator functions for 'pause' → zero matches.",
+                          "requirement": "No orchestrator may call _send_pause or pause_cluster directly. Only ClusterLifecycleManager.release and force_release_all may pause. Boolean test: grep all orchestrator functions for 'pause' → zero matches.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -4785,14 +4785,14 @@
                   },
                   {
                     "story_id": "EPIC-006-F-006-S-016",
-                    "description": "reserve() calls time.sleep() in a loop for up to 10 minutes inside a Durable Functions activity. Activities must complete quickly. Wake and poll must be separated: reserve() sends wake + registers reservation and returns immediately. The orchestrator polls via check_cluster_state_activity + create_timer.",
+                    "description": "reserve calls time.sleep in a loop for up to 10 minutes inside a Durable Functions activity. Activities must complete quickly. Wake and poll must be separated: reserve sends wake + registers reservation and returns immediately. The orchestrator polls via check_cluster_state_activity + create_timer.",
                     "size": "M",
                     "status": "not_started",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-006-S-016-REQ-T-001",
-                          "requirement": "ClusterLifecycleManager.reserve() must NOT call time.sleep(). It must send the wake request and register the reservation, then return immediately. Boolean test: reserve() completes in under 5 seconds.",
+                          "requirement": "ClusterLifecycleManager.reserve must NOT call time.sleep. It must send the wake request and register the reservation, then return immediately. Boolean test: reserve completes in under 5 seconds.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -4806,7 +4806,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "reserve() must not sleep; send wake, register, and return within 5 seconds",
+                          "name": "reserve must not sleep; send wake, register, and return within 5 seconds",
                           "depends_on": []
                         },
                         {
@@ -4832,7 +4832,7 @@
                     },
                     "orphan": false,
                     "approval": "approved",
-                    "name": "ClusterLifecycleManager.reserve() must not block with sleep"
+                    "name": "ClusterLifecycleManager.reserve must not block with sleep"
                   }
                 ]
               },
@@ -4854,14 +4854,14 @@
                 "story": [
                   {
                     "story_id": "EPIC-006-F-007-S-001",
-                    "description": "County enrichment, economic enrichment, and embedding must write directly to the provider record. No separate enriched collection. One document per provider, enrichment adds fields.",
+                    "description": "County enrichment, economic enrichment, and embedding must write directly to the provider record. No separate enriched collection. One document per provider, enrichment adds fields. (see EPIC-008-F-011-S-004-REQ-B-001)",
                     "size": "M",
                     "status": "not_started",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-007-S-001-REQ-T-001",
-                          "requirement": "All enrichment (county, economic, embedding) must use updateOne/updateMany on the providers collection. No separate enrichment collection.",
+                          "requirement": "All enrichment (county, economic, embedding) must use updateOne/updateMany on the providers collection. No separate enrichment collection. (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -5964,7 +5964,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Filter panel header shows Universe, Types, and Selected counts, updating on any "
+                          "name": "Filter panel header shows Universe, Types, and Selected counts, updating on any"
                         },
                         {
                           "req_id": "EPIC-006-F-010-S-004-REQ-B-017",
@@ -6173,7 +6173,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-010-S-004-REQ-T-007",
-                          "requirement": "Prescriber pipeline must dual-write CMS Part D drug data to both provider_quality (EvaluateCare scoring) and providers.can_prescribe.drugs (FindCare filter + embedding)",
+                          "requirement": "Prescriber pipeline must dual-write CMS Part D drug data to both provider_quality (EvaluateCare scoring) and providers.can_prescribe.drugs (FindCare filter + embedding) (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [
@@ -6225,7 +6225,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-010-S-004-REQ-T-009",
-                          "requirement": "Provider embedding text must include can_prescribe flag and prescriber_drugs (molecules + indications + ICD-10 codes) for vector search",
+                          "requirement": "Provider embedding text must include can_prescribe flag and prescriber_drugs (molecules + indications + ICD-10 codes) for vector search (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [
@@ -6325,7 +6325,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-010-S-004-REQ-T-013",
-                          "requirement": "Provider embedding text must include generic_ratio_band and on_label_band for vector search clustering. Banding reduces cardinality from continuous floats to 20 discrete values for cleaner embedding clusters.",
+                          "requirement": "Provider embedding text must include generic_ratio_band and on_label_band for vector search clustering. Banding reduces cardinality from continuous floats to 20 discrete values for cleaner embedding clusters. (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "in_progress",
                           "depends_on": [
@@ -6659,7 +6659,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-006-F-011-S-001-REQ-T-001",
-                          "requirement": "QualityGate.enforce() must raise QualityGateFailure if row count < min_rows",
+                          "requirement": "QualityGate.enforce must raise QualityGateFailure if row count < min_rows",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -6674,12 +6674,12 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "QualityGate.enforce() raises QualityGateFailure if row count < min_rows",
+                          "name": "QualityGate.enforce raises QualityGateFailure if row count < min_rows",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-006-F-011-S-001-REQ-T-002",
-                          "requirement": "QualityGate.enforce() must pass when row count >= min_rows",
+                          "requirement": "QualityGate.enforce must pass when row count >= min_rows",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -6694,7 +6694,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "QualityGate.enforce() passes if row count >= min_rows",
+                          "name": "QualityGate.enforce passes if row count >= min_rows",
                           "depends_on": []
                         },
                         {
@@ -6960,7 +6960,7 @@
             {
               "feature_id": "EPIC-006-F-015",
               "name": "v4-001D Compliance (DataFetcherBase Discipline)",
-              "description": "No raw HTTP, no .readall(), no hardcoded URLs in pipeline code.",
+              "description": "No raw HTTP, no.readall, no hardcoded URLs in pipeline code.",
               "priority": "HIGH",
               "status": "done",
               "stories": {
@@ -6992,7 +6992,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-015-S-001-REQ-T-002",
-                          "requirement": "Pipeline files must not contain .readall() calls",
+                          "requirement": "Pipeline files must not contain.readall calls",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -7007,7 +7007,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": ".readall() calls forbidden in pipeline files",
+                          "name": ".readall calls forbidden in pipeline files",
                           "depends_on": []
                         },
                         {
@@ -7220,7 +7220,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-016-S-002-REQ-T-003",
-                          "requirement": "CopyToFrontEnd scripts must be 100% hard-coded per environment (dev, qa, prod) — separate scripts for each environment. No parameterized environment switching. The only secret fetched at runtime is the MongoDB connection string from Azure Key Vault (or .env locally). All collection names, cluster targets, index definitions, and pipeline steps must be explicit in each script. This eliminates the risk of accidentally copying dev data to prod or vice versa through a misconfigured parameter.",
+                          "requirement": "CopyToFrontEnd scripts must be 100% hard-coded per environment (dev, qa, prod) — separate scripts for each environment. No parameterized environment switching. The only secret fetched at runtime is the MongoDB connection string from Azure Key Vault (or.env locally). All collection names, cluster targets, index definitions, and pipeline steps must be explicit in each script. This eliminates the risk of accidentally copying dev data to prod or vice versa through a misconfigured parameter.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -7500,7 +7500,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "pipeline_trigger.py uses bearer token for Router auth, returns 202 and status ​",
+                          "name": "pipeline_trigger.py uses bearer token for Router auth, returns 202 and status ​",
                           "depends_on": []
                         },
                         {
@@ -9993,7 +9993,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-002",
                           "name": "Manager class and exit codes",
-                          "requirement": "ChatHealthyEnforcementManager lives at projectRoot/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py. Single class. Single main(). Constructor signature __init__(hook_name: str). run() returns int. The manager module defines the following named exit-code constants and run() returns one of them: EXIT_OK = 0 (all matched enforcements passed), EXIT_VIOLATIONS_FOUND = 1 (at least one worker reported violations; commit/push must block), EXIT_MANAGER_ERROR = 2 (manager-level failure: cannot read engineering_rules.json, malformed schema, unknown hook name, or any other pre-dispatch error), EXIT_WORKER_SPAWN_FAILURE = 3 (one or more workers could not be launched: missing executable_path, executable not found, permission denied, OSError on subprocess), EXIT_WORKER_TIMEOUT = 4 (one or more workers exceeded the configured subprocess timeout), EXIT_WORKER_INTERNAL_ERROR = 5 (a worker exited with a non-0 / non-1 status — i.e. anything ≥ 3 from a worker is treated as an internal worker failure rather than a violation). Aggregation by precedence (highest wins): 2 > 3 > 5 > 4 > 1 > 0. Manager-level errors trump worker errors trump violations trump success, so the caller can immediately tell whether the issue is in the framework or in the user's code. Worker exit codes follow the same convention for the worker's subset: 0 = clean, 1 = violations, 2 = worker error; any worker exit ≥ 3 is promoted by the manager to EXIT_WORKER_INTERNAL_ERROR.",
+                          "requirement": "ChatHealthyEnforcementManager lives at projectRoot/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py. Single class. Single main. Constructor signature __init__(hook_name: str). run returns int. The manager module defines the following named exit-code constants and run returns one of them: EXIT_OK = 0 (all matched enforcements passed), EXIT_VIOLATIONS_FOUND = 1 (at least one worker reported violations; commit/push must block), EXIT_MANAGER_ERROR = 2 (manager-level failure: cannot read engineering_rules.json, malformed schema, unknown hook name, or any other pre-dispatch error), EXIT_WORKER_SPAWN_FAILURE = 3 (one or more workers could not be launched: missing executable_path, executable not found, permission denied, OSError on subprocess), EXIT_WORKER_TIMEOUT = 4 (one or more workers exceeded the configured subprocess timeout), EXIT_WORKER_INTERNAL_ERROR = 5 (a worker exited with a non-0 / non-1 status — i.e. anything ≥ 3 from a worker is treated as an internal worker failure rather than a violation). Aggregation by precedence (highest wins): 2 > 3 > 5 > 4 > 1 > 0. Manager-level errors trump worker errors trump violations trump success, so the caller can immediately tell whether the issue is in the framework or in the user's code. Worker exit codes follow the same convention for the worker's subset: 0 = clean, 1 = violations, 2 = worker error; any worker exit ≥ 3 is promoted by the manager to EXIT_WORKER_INTERNAL_ERROR.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -10031,7 +10031,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-004",
                           "name": "EnforcementWorker base class",
-                          "requirement": "EnforcementWorker (abstract base) lives at architecture/EngineeringRuleEnforcement/code/enforcement_worker.py. It owns: __init__(enforcement_id), _load_enforcement(), is_in_scope(resource), main() (CLI entry that parses enforcement_id, instantiates the subclass, calls run(), returns its exit code), violation emission, telemetry emission, and structured error handling. Subclasses implement run() and any private helper methods their domain requires.",
+                          "requirement": "EnforcementWorker (abstract base) lives at architecture/EngineeringRuleEnforcement/code/enforcement_worker.py. It owns: __init__(enforcement_id), _load_enforcement, is_in_scope(resource), main (CLI entry that parses enforcement_id, instantiates the subclass, calls run, returns its exit code), violation emission, telemetry emission, and structured error handling. Subclasses implement run and any private helper methods their domain requires.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -10145,7 +10145,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-003-REQ-T-010",
                           "name": "Hook plumbing",
-                          "requirement": "Hook plumbing. .git/hooks/{pre-commit, commit-msg, post-commit, pre-push} each invoke `python <repo-root>/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py --hook <hook>`. .claude/settings.json registers the same invocation under SessionStart, UserPromptSubmit, PreToolUse, Stop, SessionEnd, InstructionsLoaded with the matching `--hook <hook_name>` flag. A pytest under architecture/EngineeringRuleEnforcement/tests/ MUST verify, for every hook named above: (a) hard assert the wire-up exists when the hook carries at least one enforcement entry in engineering_rules.json; (b) advisory warning when the wire-up is missing and the hook has no enforcement (reserved for future Phase-6 workers). The test runs in the F-002 suite and the hard assertions gate pre-push.",
+                          "requirement": "Hook plumbing..git/hooks/{pre-commit, commit-msg, post-commit, pre-push} each invoke `python <repo-root>/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py --hook <hook>`..claude/settings.json registers the same invocation under SessionStart, UserPromptSubmit, PreToolUse, Stop, SessionEnd, InstructionsLoaded with the matching `--hook <hook_name>` flag. A pytest under architecture/EngineeringRuleEnforcement/tests/ MUST verify, for every hook named above: (a) hard assert the wire-up exists when the hook carries at least one enforcement entry in engineering_rules.json; (b) advisory warning when the wire-up is missing and the hook has no enforcement (reserved for future Phase-6 workers). The test runs in the F-002 suite and the hard assertions gate pre-push.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -10187,7 +10187,7 @@
                   {
                     "story_id": "EPIC-008-F-002-S-004",
                     "name": "Scanning: file enumeration on hooks, SCOPES evaluation, scope precedence",
-                    "description": "Per V20 §4.5 and §4.9. Workers receive resource candidates (staged or about-to-push files for the V1 ScanFilesEnforcementWorker), evaluate each via the base-class is_in_scope() walk against the SCOPES rows on the enforcement entry, and dispatch matched check methods. Scope precedence is fixed and lives entirely in the base class.",
+                    "description": "Per V20 §4.5 and §4.9. Workers receive resource candidates (staged or about-to-push files for the V1 ScanFilesEnforcementWorker), evaluate each via the base-class is_in_scope walk against the SCOPES rows on the enforcement entry, and dispatch matched check methods. Scope precedence is fixed and lives entirely in the base class.",
                     "size": "M",
                     "status": "done",
                     "approval": "approved",
@@ -10216,7 +10216,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-004-REQ-T-002",
                           "name": "ScanFilesEnforcementWorker",
-                          "requirement": "ScanFilesEnforcementWorker (worked example, V1) lives at projectRoot/architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py. It is a standalone Python script with a main() that takes enforcement_id as a CLI argument and exits with a status code. Its run() implements two domain checks synchronously, in this order, on every in-scope file: (a) _scan_http(file) — the HTTP-vs-HTTPS regex scan ported from preCommitScan.py; (b) _validate_json(file) — the JSON schema validation ported from validate_all_json.py. Both run inside the same subprocess. Multi-threading inside run() is a documented future enhancement, not V1. requires_lock = false (read-only worker; the manager dispatches without acquiring a lock). ScanFilesEnforcementWorker's scope-list rules live in its enforcement entry in engineering_rules.json under the scopes field (see §4.6); the worker inherits the default _load_scopes() from EnforcementWorker, which returns self.entry.get(\"scopes\", []). It does NOT override _load_scopes() and contributes no SCOPES class attribute (see §4.5 for the mechanism, §4.9.1 for the per-method spec, and §4.9.2 for the worked-example rows).",
+                          "requirement": "ScanFilesEnforcementWorker (worked example, V1) lives at projectRoot/architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py. It is a standalone Python script with a main that takes enforcement_id as a CLI argument and exits with a status code. Its run implements two domain checks synchronously, in this order, on every in-scope file: (a) _scan_http(file) — the HTTP-vs-HTTPS regex scan ported from preCommitScan.py; (b) _validate_json(file) — the JSON schema validation ported from validate_all_json.py. Both run inside the same subprocess. Multi-threading inside run is a documented future enhancement, not V1. requires_lock = false (read-only worker; the manager dispatches without acquiring a lock). ScanFilesEnforcementWorker's scope-list rules live in its enforcement entry in engineering_rules.json under the scopes field (see §4.6); the worker inherits the default _load_scopes from EnforcementWorker, which returns self.entry.get(\"scopes\", []). It does NOT override _load_scopes and contributes no SCOPES class attribute (see §4.5 for the mechanism, §4.9.1 for the per-method spec, and §4.9.2 for the worked-example rows).",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -10235,7 +10235,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-004-REQ-T-003",
                           "name": "Scope rows on enforcement entry",
-                          "requirement": "ScanFilesEnforcementWorker scope rules are expressed as a flat three-column list in its enforcement entry in engineering_rules.json under the scopes field. Each row has the shape [function_name: str, scope_list_type: str, list_of_terms: list[str]] where scope_list_type is one of the four canonical terms (allowed_exact, allowed_pattern, excluded_exact, excluded_pattern) and function_name is the name of a check method on the worker (e.g. _scan_http, _validate_json). The EnforcementWorker base class loads the list at worker startup through the virtual _load_scopes() method, whose default implementation returns self.entry.get(\"scopes\", []); ScanFilesEnforcementWorker inherits that default and does NOT override it. The base class then resolves function_name to a bound method via getattr(self, row[0]) at startup, so a typo in function_name fails loudly rather than silently dropping a rule. The ordered precedence of the four types is fixed in the base class per TR-5 and is described in narrative form in §4.5. The SCOPE_DEFAULT class attribute is per-check: False for _scan_http (don't flag a path that no rule matched), True for _validate_json (every governed JSON is in scope unless explicitly excluded). The canonical worked example — exactly the rows used by V1 — is in §4.9.2.",
+                          "requirement": "ScanFilesEnforcementWorker scope rules are expressed as a flat three-column list in its enforcement entry in engineering_rules.json under the scopes field. Each row has the shape [function_name: str, scope_list_type: str, list_of_terms: list[str]] where scope_list_type is one of the four canonical terms (allowed_exact, allowed_pattern, excluded_exact, excluded_pattern) and function_name is the name of a check method on the worker (e.g. _scan_http, _validate_json). The EnforcementWorker base class loads the list at worker startup through the virtual _load_scopes method, whose default implementation returns self.entry.get(\"scopes\", []); ScanFilesEnforcementWorker inherits that default and does NOT override it. The base class then resolves function_name to a bound method via getattr(self, row[0]) at startup, so a typo in function_name fails loudly rather than silently dropping a rule. The ordered precedence of the four types is fixed in the base class per TR-5 and is described in narrative form in §4.5. The SCOPE_DEFAULT class attribute is per-check: False for _scan_http (don't flag a path that no rule matched), True for _validate_json (every governed JSON is in scope unless explicitly excluded). The canonical worked example — exactly the rows used by V1 — is in §4.9.2.",
                           "priority": "must-have",
                           "status": "done",
                           "approval": "approved",
@@ -10616,7 +10616,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-001-REQ-T-001",
-                          "requirement": "The boot class MUST be a single Python file with __main__ and a chathealthy_devops_boot class. main() dispatches to the class by mode (prompt, tool_call, prompt_result, session_end). There is no boot mode — boot is triggered by the prompt handler on first call. Every mode handler MUST be wrapped in try/except/finally. The finally block MUST always call sys.exit() to return control to Cursor/Claude Code. All modes MUST fail open on exception.",
+                          "requirement": "The boot class MUST be a single Python file with __main__ and a chathealthy_devops_boot class. main dispatches to the class by mode (prompt, tool_call, prompt_result, session_end). There is no boot mode — boot is triggered by the prompt handler on first call. Every mode handler MUST be wrapped in try/except/finally. The finally block MUST always call sys.exit to return control to Cursor/Claude Code. All modes MUST fail open on exception.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -10636,7 +10636,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-001-REQ-T-002",
-                          "requirement": "inform_claude() MUST serialize singleton state (version, framework, build, brain file list, constraints, non-allow governance matrix cells) and the orphan table into additionalContext in the hook response. Called from the prompt() path on first boot.",
+                          "requirement": "inform_claude MUST serialize singleton state (version, framework, build, brain file list, constraints, non-allow governance matrix cells) and the orphan table into additionalContext in the hook response. Called from the prompt path on first boot.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -10676,7 +10676,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-001-REQ-T-004",
-                          "requirement": "Boot MUST only occur once per session. On SessionEnd, the boot flag in .claude/ChatHealthySettings.json MUST be set to FALSE. On a successful boot from within Anthropic's UserPromptSubmit hook, the flag MUST be set to TRUE. Each subsequent call from the hook MUST check the flag to determine whether the session needs to be booted. If ChatHealthySettings.json or the boot flag cannot be found, an error message MUST be output to the user and no boot is attempted. If SessionEnd does not fire (crash, force-quit), the next session's first prompt will hit the error state and inform the user.",
+                          "requirement": "Boot MUST only occur once per session. On SessionEnd, the boot flag in.claude/ChatHealthySettings.json MUST be set to FALSE. On a successful boot from within Anthropic's UserPromptSubmit hook, the flag MUST be set to TRUE. Each subsequent call from the hook MUST check the flag to determine whether the session needs to be booted. If ChatHealthySettings.json or the boot flag cannot be found, an error message MUST be output to the user and no boot is attempted. If SessionEnd does not fire (crash, force-quit), the next session's first prompt will hit the error state and inform the user.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -10696,7 +10696,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-001-REQ-T-005",
-                          "requirement": "SessionEnd hook MUST clear the booted flag in .claude/ChatHealthySettings.json on every invocation. SessionEnd MUST be wrapped in try/except/finally and MUST fail open. SessionEnd is known not to fire on Cursor window-close or auto-compaction; the SessionStart hook (REQ-007) is the primary clearer, and SessionEnd is the secondary clearer for clean exits (/logout, /exit, /clear).",
+                          "requirement": "SessionEnd hook MUST clear the booted flag in.claude/ChatHealthySettings.json on every invocation. SessionEnd MUST be wrapped in try/except/finally and MUST fail open. SessionEnd is known not to fire on Cursor window-close or auto-compaction; the SessionStart hook (REQ-007) is the primary clearer, and SessionEnd is the secondary clearer for clean exits (/logout, /exit, /clear).",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -10788,7 +10788,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Verify context-resident artifacts using four-step diagnostic with strict error, ",
+                          "name": "Verify context-resident artifacts using four-step diagnostic with strict error,",
                           "depends_on": []
                         },
                         {
@@ -10807,7 +10807,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Boot sequence must use only repository-resident artifacts, no external files or ",
+                          "name": "Boot sequence must use only repository-resident artifacts, no external files or",
                           "depends_on": []
                         }
                       ]
@@ -10818,7 +10818,7 @@
                   },
                   {
                     "story_id": "EPIC-008-F-003-S-002",
-                    "description": "Runtime requirements for the brain — specifically WHERE ChatHealthy.AI brain content is persisted on disk and WHERE it must be at runtime (i.e. loaded into Claude's active context). Brain content lives under brain/machine_artifacts/content/. Files outside that tree, including Claude Code's and Cursor's harness-managed Markdown files (CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md, .claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/), are NOT brain storage regardless of their content type. At runtime, brain content MUST be accessible to Claude without a disk Read (context-resident, per EPIC-008-F-003-S-001-REQ-T-006). The mechanism is harness-level @-imports from a project-root file (CLAUDE.md) that point at the brain JSONs and derived JSON views of brain JSONs.",
+                    "description": "Runtime requirements for the brain — specifically WHERE ChatHealthy.AI brain content is persisted on disk and WHERE it must be at runtime (i.e. loaded into Claude's active context). Brain content lives under brain/machine_artifacts/content/. Files outside that tree, including Claude Code's and Cursor's harness-managed Markdown files (CLAUDE.md, CLAUDE.local.md,.claude/CLAUDE.md,.claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/), are NOT brain storage regardless of their content type. At runtime, brain content MUST be accessible to Claude without a disk Read (context-resident, per EPIC-008-F-003-S-001-REQ-T-006). The mechanism is harness-level @-imports from a project-root file (CLAUDE.md) that point at the brain JSONs and derived JSON views of brain JSONs.",
                     "size": "S",
                     "status": "in_progress",
                     "requirements": {
@@ -10870,7 +10870,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-002-REQ-T-001",
-                          "requirement": "ChatHealthy.AI brain content MUST be persisted on disk under brain/machine_artifacts/content/ and nowhere else. Claude Code's and Cursor's harness-managed Markdown files — CLAUDE.md, CLAUDE.local.md, .claude/CLAUDE.md, .claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/ — are NOT brain storage. Those MD files are reserved for harness instructions (CLAUDE.md family) or Claude's ungoverned working memory (MEMORY.md, per v4-037) and MUST NOT carry brain content. @-imports from CLAUDE.md that point at brain JSON files are the required mechanism to make brain content runtime-resident — they do not move the content into the MD file; the content stays on disk in JSON under brain/machine_artifacts/content/. Governing rule: v4-040.",
+                          "requirement": "ChatHealthy.AI brain content MUST be persisted on disk under brain/machine_artifacts/content/ and nowhere else. Claude Code's and Cursor's harness-managed Markdown files — CLAUDE.md, CLAUDE.local.md,.claude/CLAUDE.md,.claude/rules/*.md, MEMORY.md and Claude's auto-memory topic files under ~/.claude/projects/<project>/memory/ — are NOT brain storage. Those MD files are reserved for harness instructions (CLAUDE.md family) or Claude's ungoverned working memory (MEMORY.md, per v4-037) and MUST NOT carry brain content. @-imports from CLAUDE.md that point at brain JSON files are the required mechanism to make brain content runtime-resident — they do not move the content into the MD file; the content stays on disk in JSON under brain/machine_artifacts/content/. Governing rule: v4-040.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -11676,7 +11676,7 @@
                         {
                           "req_id": "EPIC-008-F-004-S-006-REQ-B-006",
                           "name": "Step 04 — Splash renders welcome words",
-                          "requirement": "The chat iframe loads. The first 10 words of the canonical welcome message (per `_get_welcome_words()`) MUST appear in the iframe body text.",
+                          "requirement": "The chat iframe loads. The first 10 words of the canonical welcome message (per `_get_welcome_words`) MUST appear in the iframe body text.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -13580,7 +13580,7 @@
                               }
                             ]
                           },
-                          "name": "POST utterance to localhost sidecar; fallback log if unreachable; complete <100 ",
+                          "name": "POST utterance to localhost sidecar; fallback log if unreachable; complete <100",
                           "depends_on": []
                         },
                         {
@@ -13811,7 +13811,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Review daily_punch_list_with_results_and_accomplishments.json for accuracy and r",
+                          "name": "Review daily_punch_list_with_results_and_accomplishments.json for accuracy and r",
                           "depends_on": []
                         },
                         {
@@ -14435,7 +14435,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-008-F-007-S-019-REQ-T-001",
-                          "requirement": "All ChatHealthy JSON content files MUST reference a published schema on chathealthy.ai/schemas/{env}/ via a $schema field. All ChatHealthy JSON schema files MUST reference the JSON Schema spec at https://json-schema.org/draft/2020-12/schema — not the ChatHealthy website. Schemas define the spec. Content references the schema. On each check-in each JSON content file MUST be validated against its schema. All schemas MUST be published on ChatHealthy's static web site in the directory /schemas/{env}/. Third-party JSON files (e.g. VS Code, npm, .NET, Anthropic) are exempt.",
+                          "requirement": "All ChatHealthy JSON content files MUST reference a published schema on chathealthy.ai/schemas/{env}/ via a $schema field. All ChatHealthy JSON schema files MUST reference the JSON Schema spec at https://json-schema.org/draft/2020-12/schema — not the ChatHealthy website. Schemas define the spec. Content references the schema. On each check-in each JSON content file MUST be validated against its schema. All schemas MUST be published on ChatHealthy's static web site in the directory /schemas/{env}/. Third-party JSON files (e.g. VS Code, npm,.NET, Anthropic) are exempt.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -15272,6 +15272,45 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-011-S-004",
+                    "name": "AI embedding Model must be Uniform across the entire application",
+                    "description": "Establishes the single canonical embedding model used across ChatHealthy.AI. Any embedding-generation use-site requirement MUST reference the canonical requirement here rather than restate the model name. (see EPIC-008-F-011-S-004-REQ-B-001)",
+                    "size": "S",
+                    "status": "done",
+                    "approval": "approved",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-011-S-004-REQ-B-001",
+                          "name": "Single canonical embedding model for ChatHealthy.AI",
+                          "requirement": "ChatHealthy.AI's only embedding model is OpenAI text-embedding-3-large (vector dimension 3072). Every requirement that mandates embedding generation MUST reference this requirement (EPIC-008-F-011-S-004-REQ-B-001) rather than restate the model name. Code that generates embeddings MUST use this model.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-011-S-004-REQ-B-001-PYTEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
+                              },
+                              {
+                                "test_id": "EPIC-008-F-011-S-004-REQ-B-001-PYTEST-2",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
                   }
                 ]
               }
@@ -15594,7 +15633,7 @@
                         },
                         {
                           "req_id": "EPIC-009-F-001-S-002-REQ-T-004",
-                          "requirement": "URLGuardian must use AI content verification (Claude Haiku) to confirm reachable URLs show expected content. Pages with wrong content treated as broken.",
+                          "requirement": "URLGuardian must use AI content verification to confirm reachable URLs show expected content. Pages with wrong content treated as broken.",
                           "priority": "should-have",
                           "status": "done",
                           "orphan": false,
@@ -15609,7 +15648,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "AI content verification for reachable URLs using Claude Haiku",
+                          "name": "AI content verification for reachable URLs",
                           "depends_on": []
                         },
                         {
@@ -16097,14 +16136,14 @@
                   },
                   {
                     "story_id": "EPIC-009-F-001-S-012",
-                    "description": "EmbeddingClient provides text-embedding-3-large (provider vector search), text-embedding-3-small (specialty matching), and Claude Haiku query expansion (regex pipeline).",
+                    "description": "EmbeddingClient provides the canonical embedding model for both provider vector search and specialty matching, plus Claude Haiku query expansion (regex pipeline). (see EPIC-008-F-011-S-004-REQ-B-001)",
                     "size": "M",
                     "status": "done",
                     "requirements": {
                       "requirement": [
                         {
                           "req_id": "EPIC-009-F-001-S-012-REQ-T-001",
-                          "requirement": "get_query_embedding must return a vector from text-embedding-3-large for provider vector search.",
+                          "requirement": "get_query_embedding must return a vector from the canonical embedding model for provider vector search. (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -16119,12 +16158,12 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "get_query_embedding returns text-embedding-3-large vector for provider search",
+                          "name": "get_query_embedding returns a vector from the canonical embedding model for provider search",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-009-F-001-S-012-REQ-T-002",
-                          "requirement": "get_specialty_vector must return a vector from text-embedding-3-small for specialty matching.",
+                          "requirement": "get_specialty_vector must return a vector from the canonical embedding model for specialty matching. (see EPIC-008-F-011-S-004-REQ-B-001)",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -16139,7 +16178,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Return text-embedding-3-small vector for specialty matching",
+                          "name": "get_specialty_vector returns a vector from the canonical embedding model for specialty matching",
                           "depends_on": []
                         },
                         {

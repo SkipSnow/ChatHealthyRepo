@@ -354,11 +354,6 @@
               "statement_number": 3,
               "statement_body": "Every text-based file committed to the repository MUST NOT reference an insecure http:// URL unless the specific URL is explicitly listed as permitted on the enforcement entry.",
               "req_id": "Orphan"
-            },
-            {
-              "statement_number": 4,
-              "statement_body": "Regular expressions MUST NOT be in ChatHealthy.AI's executable front-end or Pipeline code.",
-              "req_id": "Orphan"
             }
           ]
         },
