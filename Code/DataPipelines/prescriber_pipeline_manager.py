@@ -18,6 +18,7 @@ import sys
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
+from embedding_worker import EMBED_MODEL
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
@@ -352,7 +353,7 @@ def _embed_prescriber_data(env_prefix: str, states: list):
 
         try:
             resp = oai.embeddings.create(
-                model="text-embedding-3-small",
+                model=EMBED_MODEL,
                 input=text,
             )
             vector = resp.data[0].embedding

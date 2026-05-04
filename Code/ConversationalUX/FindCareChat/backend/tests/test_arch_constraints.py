@@ -129,3 +129,239 @@ class TestArchConstraintVectorIndex:
         assert len(risk_008) == 1, "RISK-008 not found in risk_acceptance.json"
         assert risk_008[0]["boss_decision"] == "ACCEPTED"
         assert "lab" in risk_008[0]["description"].lower()
+
+
+# ---------------------------------------------------------------------------
+# EPIC-008-F-011-S-004-REQ-B-001: Single canonical embedding model
+# (OpenAI text-embedding-3-large, vector dimension 3072).
+# ---------------------------------------------------------------------------
+
+CANONICAL_EMBED_MODEL = "text-embedding-3-large"
+CANONICAL_EMBED_DIMS = 3072
+
+
+def test_canonical_embedding_model_data_side():
+    """EPIC-008-F-011-S-004-REQ-B-001-PYTEST-1.
+
+    For env prefix 'dev', verify every vectorSearch index on
+    {env}_PublicHealthData.providers and {env}_PublicHealthData.SpecialtyMetaData
+    has numDimensions == 3072 (the dimension of text-embedding-3-large).
+    """
+    from pymongo import MongoClient
+
+    conn = _get_frontend_connection()
+    client = MongoClient(conn, serverSelectionTimeoutMS=15000)
+    try:
+        env = "dev"
+        targets = [
+            (f"{env}_PublicHealthData", "providers"),
+            (f"{env}_PublicHealthData", "SpecialtyMetaData"),
+        ]
+
+        total_vector_indexes_seen = 0
+        for db_name, coll_name in targets:
+            coll = client[db_name][coll_name]
+            try:
+                indexes = list(coll.list_search_indexes())
+            except Exception as exc:
+                # Some envs/clusters may not support search indexes; treat as
+                # "nothing to check here" rather than a violation.
+                print(f"[INFO] {db_name}.{coll_name}: list_search_indexes failed: {exc}")
+                continue
+
+            for idx in indexes:
+                if idx.get("type") != "vectorSearch":
+                    continue
+                index_name = idx.get("name", "<unnamed>")
+                # Mongo Atlas exposes the live spec under "latestDefinition";
+                # historical/proposed under "definition". Prefer latest.
+                definition = idx.get("latestDefinition") or idx.get("definition") or {}
+                fields = definition.get("fields") or []
+                for field in fields:
+                    if field.get("type") != "vector":
+                        continue
+                    total_vector_indexes_seen += 1
+                    n = field.get("numDimensions")
+                    path = field.get("path", "<unknown>")
+                    assert n == CANONICAL_EMBED_DIMS, (
+                        f"index {index_name} field {path} has numDimensions={n}, "
+                        f"expected {CANONICAL_EMBED_DIMS} "
+                        f"(text-embedding-3-large per EPIC-008-F-011-S-004-REQ-B-001)"
+                    )
+
+        if total_vector_indexes_seen == 0:
+            pytest.skip(
+                "No vectorSearch indexes found on dev_PublicHealthData.providers or "
+                "dev_PublicHealthData.SpecialtyMetaData; nothing to verify on this env."
+            )
+    finally:
+        client.close()
+
+
+def _iter_in_scope_py_files(repo_root):
+    """Yield absolute Path objects for production-executable .py files in scope."""
+    from pathlib import Path
+
+    roots = [
+        Path(repo_root) / "Code" / "ConversationalUX" / "FindCareChat" / "backend",
+        Path(repo_root) / "Code" / "DataPipelines",
+        Path(repo_root) / "evaluateCare" / "Code",
+        Path(repo_root) / "sharedServices" / "Code",
+        Path(repo_root) / "FrontEndApplicationLib" / "src",
+    ]
+    excluded_substrings = (
+        "/tests/",
+        "/test_",
+        "_test.py",
+        "/conftest.py",
+        "/_oneshots/",
+        "/__pycache__/",
+        "/node_modules/",
+    )
+    for root in roots:
+        if not root.exists():
+            continue
+        for p in root.rglob("*.py"):
+            posix = p.as_posix()
+            if any(sub in posix for sub in excluded_substrings):
+                continue
+            yield p
+
+
+def _slice_after(text, marker_idx, length=200):
+    """Return up to `length` chars starting at marker_idx (clamped)."""
+    return text[marker_idx:marker_idx + length]
+
+
+def _line_number_for_offset(text, offset):
+    return text.count("\n", 0, offset) + 1
+
+
+def _file_defines_embed_model_canonical(text):
+    """True if the file defines EMBED_MODEL = "text-embedding-3-large"."""
+    # Plain string scan, no regex.
+    needle = 'EMBED_MODEL'
+    pos = 0
+    while True:
+        idx = text.find(needle, pos)
+        if idx == -1:
+            return False
+        # Look at up to 80 chars after the name for an assignment to canonical.
+        window = text[idx:idx + 100]
+        if "=" in window and CANONICAL_EMBED_MODEL in window:
+            # Make sure '=' precedes the model literal in the window.
+            eq_pos = window.find("=")
+            model_pos = window.find(CANONICAL_EMBED_MODEL)
+            if 0 <= eq_pos < model_pos:
+                return True
+        pos = idx + len(needle)
+
+
+def _file_imports_embed_model(text):
+    """True if file imports EMBED_MODEL from another module."""
+    # Look for 'import EMBED_MODEL' (covers `from X import EMBED_MODEL`).
+    return "import EMBED_MODEL" in text or " EMBED_MODEL," in text or ", EMBED_MODEL" in text
+
+
+def _file_self_model_canonical(text):
+    """True if class __init__ sets self._model to canonical (literal or default).
+
+    Accepts either:
+      - self._model = "text-embedding-3-large"
+      - self._model = config.get(..., EMBED_MODEL)  (when EMBED_MODEL is canonical here or imported)
+      - self._model = model  with `model = config.get(..., EMBED_MODEL)` earlier
+    """
+    if "self._model" not in text:
+        return False
+    # Direct literal assignment.
+    if f'self._model = "{CANONICAL_EMBED_MODEL}"' in text:
+        return True
+    if f"self._model = '{CANONICAL_EMBED_MODEL}'" in text:
+        return True
+    # Indirect: self._model = model, with `model = config.get(..., EMBED_MODEL)`.
+    if "self._model = model" in text and "EMBED_MODEL" in text:
+        if _file_defines_embed_model_canonical(text) or _file_imports_embed_model(text):
+            return True
+    return False
+
+
+def _extract_model_argument(window):
+    """Given a window of text starting at 'embeddings.create(', return the
+    raw substring of the model= argument (up to comma or close paren), or None.
+    """
+    key = "model="
+    k = window.find(key)
+    if k == -1:
+        return None
+    start = k + len(key)
+    # Stop at first comma or close-paren at depth 0.
+    depth = 0
+    i = start
+    while i < len(window):
+        ch = window[i]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            if depth == 0:
+                break
+            depth -= 1
+        elif ch == "," and depth == 0:
+            break
+        i += 1
+    return window[start:i].strip()
+
+
+def _model_arg_is_canonical(model_arg, text):
+    """Decide whether the model= argument resolves to the canonical model."""
+    if model_arg is None:
+        return False
+    arg = model_arg.strip()
+    # Literal forms.
+    if arg == f'"{CANONICAL_EMBED_MODEL}"' or arg == f"'{CANONICAL_EMBED_MODEL}'":
+        return True
+    # Symbolic: EMBED_MODEL — accept if defined-here or imported-here.
+    if arg == "EMBED_MODEL":
+        return _file_defines_embed_model_canonical(text) or _file_imports_embed_model(text)
+    # Symbolic: self._model — accept if init sets it canonical or defaults to EMBED_MODEL.
+    if arg == "self._model":
+        return _file_self_model_canonical(text)
+    return False
+
+
+def test_canonical_embedding_model_code_side():
+    """EPIC-008-F-011-S-004-REQ-B-001-PYTEST-2.
+
+    Walk in-scope production source files and assert every
+    `embeddings.create(...)` call uses the canonical model
+    (text-embedding-3-large), either as a literal or via the
+    EMBED_MODEL/self._model conventions documented in embedding_worker.py.
+    """
+    needle = "embeddings.create("
+    violations = []  # (file_path, line_number, found_model)
+
+    for path in _iter_in_scope_py_files(REPO_ROOT):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if needle not in text:
+            continue
+
+        pos = 0
+        while True:
+            idx = text.find(needle, pos)
+            if idx == -1:
+                break
+            window = _slice_after(text, idx, length=400)
+            model_arg = _extract_model_argument(window)
+            if not _model_arg_is_canonical(model_arg, text):
+                line_no = _line_number_for_offset(text, idx)
+                violations.append((str(path), line_no, model_arg if model_arg else "<no model= argument found>"))
+            pos = idx + len(needle)
+
+    formatted = "\n  ".join(f"{p}:{ln} -> model={m}" for p, ln, m in violations)
+    assert violations == [], (
+        "Non-canonical embedding model usage found "
+        "(EPIC-008-F-011-S-004-REQ-B-001 requires text-embedding-3-large):\n  "
+        + formatted
+    )

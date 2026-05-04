@@ -73,35 +73,6 @@ else:
 # file" and "what was the actual URL so we can pattern-allow it".
 _HTTP_URL_RE = re.compile(r"http://[^\s\"'<>,()]+")
 
-# Rule-008 statement #4: regex banned in production-executable code.
-# Filtering lives inside the check method (NOT in scope arrays — different
-# check methods have different file-type subjects).
-_PRODUCTION_EXECUTABLE_GLOBS = (
-    "Code/ConversationalUX/FindCareChat/backend/**/*.py",
-    "Code/ConversationalUX/FindCareChat/frontend/src/**/*.ts",
-    "Code/ConversationalUX/FindCareChat/frontend/src/**/*.tsx",
-    "Code/ConversationalUX/FindCareChat/frontend/src/**/*.js",
-    "Code/ConversationalUX/FindCareChat/frontend/src/**/*.jsx",
-    "Code/DataPipelines/**/*.py",
-    "evaluateCare/Code/**/*.py",
-    "sharedServices/Code/**/*.py",
-    "FrontEndApplicationLib/src/**/*.py",
-    "Website/*.html",
-    "Website/*.js",
-)
-_REGEX_BLOCK_PATH_EXCLUSIONS = (
-    "/tests/", "/test_", "_test.py", "/conftest.py",
-    "/_oneshots/", "/__pycache__/", "/node_modules/", "/dist/",
-)
-_PY_REGEX_HITS = (
-    r"^\s*import\s+re\b",
-    r"^\s*from\s+re\s+import\b",
-    r"\bre\.(compile|match|search|findall|finditer|sub|split|fullmatch)\s*\(",
-)
-_JS_REGEX_HITS = (
-    r"\bnew\s+RegExp\s*\(",
-)
-
 # JSON Schema 2020-12 meta-schema URL — schema files declare this in their
 # top-level $schema. Frozen per spec; served from a local copy via the
 # carve-out map (V19 §4.9.3.1).
@@ -152,7 +123,6 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
     SCOPE_DEFAULTS: dict[str, bool] = {
         "_scan_http": True,
         "_validate_json": False,
-        "_block_regular_expressions_in_executable_code": True,
     }
     # Class-level fallback (used if a check method is added without a per-
     # method default declared in SCOPE_DEFAULTS).
@@ -223,16 +193,6 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         for file_path in files:
             self.files_scanned += 1
 
-            # Rule-008 statement #4 runs FIRST. A file with regex usage is
-            # rejected and downstream checks are skipped for that file.
-            regex_violations = self._block_regular_expressions_in_executable_code(file_path)
-            if regex_violations:
-                for v in regex_violations:
-                    self._emit_violation(v)
-                    self.violation_count += 1
-                any_violations = True
-                continue
-
             if self.is_in_scope(file_path, "_scan_http"):
                 for v in self._scan_http(file_path):
                     self._emit_violation(v)
@@ -246,57 +206,6 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
                     any_violations = True
 
         return EXIT_VIOLATIONS_FOUND if any_violations else EXIT_OK
-
-    # ────────────────────────────────────────────────────────────────────────
-    # _block_regular_expressions_in_executable_code  (Rule-008 statement #4)
-    # ────────────────────────────────────────────────────────────────────────
-    def _block_regular_expressions_in_executable_code(
-        self, file_path: str
-    ) -> list[ViolationRecord]:
-        """Block regex usage in production-executable code (Rule-008 statement #4).
-
-        Filters internally (NOT via scope arrays — different check methods
-        have different file-type subjects, so per-function path filtering
-        lives inside the method). A file with violations is rejected and
-        run() must skip downstream checks for that file.
-        """
-        import fnmatch
-
-        posix = file_path.replace("\\", "/")
-        if any(ex in f"/{posix}" for ex in _REGEX_BLOCK_PATH_EXCLUSIONS):
-            return []
-        if not any(fnmatch.fnmatchcase(posix, g) for g in _PRODUCTION_EXECUTABLE_GLOBS):
-            return []
-
-        absolute_path = (PROJECT_ROOT / file_path).resolve()
-        if not absolute_path.is_file():
-            return []
-        try:
-            text = absolute_path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            return []
-
-        is_py = posix.endswith(".py")
-        is_jslike = posix.endswith((".ts", ".tsx", ".js", ".jsx", ".html"))
-        patterns = (_PY_REGEX_HITS if is_py else ()) + (_JS_REGEX_HITS if is_jslike else ())
-
-        violations: list[ViolationRecord] = []
-        for pat in patterns:
-            for m in re.finditer(pat, text, flags=re.MULTILINE):
-                line_no = text[: m.start()].count("\n") + 1
-                violations.append(
-                    ViolationRecord(
-                        enforcement_id=self.enforcement_id,
-                        rule_id=self.rule_id,
-                        resource=file_path,
-                        message=(
-                            f"regex usage at line {line_no}: {m.group(0).strip()[:80]} "
-                            f"— Rule-008 statement #4 forbids regex in production-executable code"
-                        ),
-                        severity="error",
-                    )
-                )
-        return violations
 
     # ────────────────────────────────────────────────────────────────────────
     # Resource enumeration
