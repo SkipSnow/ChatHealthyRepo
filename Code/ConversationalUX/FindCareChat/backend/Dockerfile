@@ -28,7 +28,7 @@ COPY Code/ConversationalUX/FindCareChat/backend/requirements.txt /app/requiremen
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Recreate the host's directory tree inside the container so the application
-# code's relative-path lookups in main.py resolve unmodified:
+# code's relative-path lookups in app.py resolve unmodified:
 #   sys.path.insert(0, backend/../../../Shared)              -> /app/Code/Shared
 #   _brain_dir = backend/../../../../brain                   -> /app/brain
 #   _ME_DIR = backend/../../ChatHealthyWhoAmIChat/me         -> /app/Code/ConversationalUX/ChatHealthyWhoAmIChat/me
@@ -42,8 +42,8 @@ COPY brain /app/brain
 COPY FrontEndApplicationLib /app/FrontEndApplicationLib
 RUN pip install --no-cache-dir /app/FrontEndApplicationLib
 
-# Run as the host process would: WORKDIR == backend/, exec `python main.py`.
-# main.py's __main__ block reads SSL_CERTFILE/SSL_KEYFILE/PORT env to bind
+# Run as the host process would: WORKDIR == backend/, exec `python app.py`.
+# app.py's __main__ block reads SSL_CERTFILE/SSL_KEYFILE/PORT env to bind
 # uvicorn over HTTPS, matching the host-port HTTPS contract that
 # LocalDeploy._wait_for_all_components / _verify_components probe.
 WORKDIR /app/Code/ConversationalUX/FindCareChat/backend
@@ -51,4 +51,4 @@ ENV PORT=7860 \
     SSL_CERTFILE=/certs/findcare.crt \
     SSL_KEYFILE=/certs/findcare.key
 EXPOSE 7860
-CMD ["python", "main.py"]
+CMD ["python", "app.py"]

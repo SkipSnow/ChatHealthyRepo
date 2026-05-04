@@ -125,7 +125,7 @@ jobs:
           # Recreate the repo tree under hf_space/ so the FindCare backend
           # Dockerfile's COPY paths (Code/Shared, brain, etc.) resolve. The
           # Dockerfile was authored for the local build (context = repo root)
-          # and main.py's relative imports (sys.path.insert(0, ../../../Shared)
+          # and app.py's relative imports (sys.path.insert(0, ../../../Shared)
           # etc.) work unmodified when /app mirrors the host tree.
 
           mkdir -p hf_space/Code/ConversationalUX/FindCareChat/backend
@@ -135,7 +135,7 @@ jobs:
             --exclude='*.pyc' \
             Code/ConversationalUX/FindCareChat/backend/ hf_space/Code/ConversationalUX/FindCareChat/backend/
 
-          # Pre-built React frontend → backend/static (where main.py mounts it)
+          # Pre-built React frontend → backend/static (where app.py mounts it)
           cp -r Code/ConversationalUX/FindCareChat/frontend/dist hf_space/Code/ConversationalUX/FindCareChat/backend/static
 
           # Code/Shared/ — preserve subdirs (ops/, agent_framework/, ux/, tests/)
