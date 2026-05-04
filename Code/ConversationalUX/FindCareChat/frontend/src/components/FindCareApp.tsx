@@ -163,7 +163,11 @@ export default function FindCareApp() {
       if (classified.error || !classified.specialties?.length) {
         if (timerRef.current) clearInterval(timerRef.current)
         sendToParent('gui:timer-clear')
-        setError(classified.error || 'Could not identify relevant specialties')
+        const msg = classified.error || 'Could not identify relevant specialties'
+        // EPIC-008-F-011-S-001-REQ-B-001: fatal errors render full-screen
+        // at the parent wrapper (index.html) — not inline in the iframe.
+        sendToParent('gui:fatal-error', { message: msg })
+        setError(msg)
         setPhase('error')
         return
       }
@@ -211,7 +215,9 @@ export default function FindCareApp() {
     } catch (err: any) {
       if (timerRef.current) clearInterval(timerRef.current)
       sendToParent('gui:timer-clear')
-      setError(err.message || 'Search failed')
+      const msg = err.message || 'Search failed'
+      sendToParent('gui:fatal-error', { message: msg })
+      setError(msg)
       setPhase('error')
     }
   }, [])
@@ -240,8 +246,10 @@ export default function FindCareApp() {
       }
       setPhase('results')
     } catch {
+      const msg = 'Failed to fetch providers'
+      sendToParent('gui:fatal-error', { message: msg })
       setPhase('error')
-      setError('Failed to fetch providers')
+      setError(msg)
     }
   }, [])
 

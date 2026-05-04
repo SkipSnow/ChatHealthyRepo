@@ -1171,6 +1171,15 @@
         if (!msg || typeof msg !== 'object') return;
 
         console.log('[ControlFrame] Received message:', msg.type);
+        // EPIC-008-F-011-S-001-REQ-B-001: full-screen fatal-error splash.
+        // Iframe forwards backend error strings via postMessage; the wrapper
+        // owns the rendering surface (per the requirement: "index.html is to
+        // display the following"). The chFatalError() helper above renders
+        // the spec-mandated 5-line layout including the error text from the API.
+        if (msg.type === 'gui:fatal-error') {
+          window.chFatalError(String(msg.message == null ? '' : msg.message));
+          return;
+        }
         if (msg.type === 'gui:render') {
           frame.innerHTML = msg.html || '';
           var actions = frame.querySelectorAll('[data-gui-action]');
