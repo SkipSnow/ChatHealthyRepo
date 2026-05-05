@@ -37,3 +37,45 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_ACCOUN_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy Website --project-name=chathealthy-website-qa --branch=qa
+
+      # Poll backend HF Space /health endpoints until 200 before running
+      # smoke. If a backend is paused or unhealthy, fail loudly here rather
+      # than letting smoke produce a non-deterministic failure pattern.
+      - name: Poll backend health before smoke
+        run: |
+          for URL in \
+              "https://skipsnow-qa-chathealthyspace.hf.space" \
+              "https://skipsnow-qa-evaluatecarespace.hf.space" \
+              "https://skipsnow-qa-sharedservicesspace.hf.space"; do
+            echo "Polling ${URL}/health..."
+            for i in $(seq 1 30); do
+              HTTP_CODE=$(curl -s -o /tmp/h.json -w "%{http_code}" -X POST "${URL}/health" -m 8)
+              if [ "$HTTP_CODE" = "200" ]; then
+                echo "  ${URL}/health 200 (poll $i)"
+                break
+              fi
+              echo "  poll $i/30: http=$HTTP_CODE"
+              if [ $i -eq 30 ]; then
+                echo "TIMED OUT waiting for ${URL}/health (last: $HTTP_CODE)"
+                cat /tmp/h.json
+                exit 1
+              fi
+              sleep 10
+            done
+          done
+
+      # EPIC-008-F-004-S-001-REQ-B-004: deploy script invokes the master
+      # smoke test (S-006) against the target env after the deploy.
+      - name: Install smoke test dependencies
+        run: |
+          pip install --quiet pytest pytest-playwright httpx cryptography psutil python-dotenv jsonschema anyio
+          playwright install --with-deps chromium
+
+      - name: Run master smoke test against deployed env
+        env:
+          SMOKE_TEST_ENV: qa
+          CHATHEALTHY_PROJECT_ROOT: ${{ github.workspace }}
+        run: |
+          # Smoke runs against the env we just deployed to. No deselects,
+          # no marker filters per Skip's "100% comply" directive (2026-05-04).
+          python -m pytest Code/deploy/localSmokeTestPyTest.py -v
