@@ -271,16 +271,16 @@ class RemoteDeploy:
     def _configure_cloudflare(self, failures: list[str]) -> None:
         """Auto-configure Cloudflare to satisfy V11 S-003-REQ-T-002/T-003.
 
-        Requires CLOUDFLARE_API_TOKEN + CLOUDFLARE_ZONE_ID env vars (the
+        Requires CLOUDFLARE_ACCOUN_TOKEN + CLOUDFLARE_ZONE_ID env vars (the
         same secrets that GitHub Actions uses for deploy workflows). If
         either is missing, abort with operator-actionable message — no
         fallback to skip-and-pretend.
         """
-        token = os.environ.get("CLOUDFLARE_API_TOKEN")
+        token = os.environ.get("CLOUDFLARE_ACCOUN_TOKEN")
         zone_id = os.environ.get("CLOUDFLARE_ZONE_ID")
         if not token:
             sys.exit(
-                "ERROR: CLOUDFLARE_API_TOKEN env var required to auto-"
+                "ERROR: CLOUDFLARE_ACCOUN_TOKEN env var required to auto-"
                 "configure Cloudflare. Set it and re-run, OR fix the "
                 "settings via Cloudflare dashboard manually."
             )
