@@ -259,14 +259,9 @@ jobs:
           CHATHEALTHY_PROJECT_ROOT: ${{ github.workspace }}
         run: |
           # Smoke runs against the env we just deployed to (dev/qa/prod).
-          # Exclusions:
-          #   - mtls_required: HF doesn't support mTLS for dev/qa/prod (env
-          #     config mtls_enabled=False; BUG-SEC-002 deferred to Beta).
-          #   - TestStep00BuildGate: compares local vs dev — meaningless in CI.
-          #   - TestStep15 + TestStep27: localhost-bound mTLS handshakes —
-          #     no localhost services exist in the GH runner.
-          python -m pytest Code/deploy/localSmokeTestPyTest.py -v \
-            -m "not mtls_required" \
-            --deselect Code/deploy/localSmokeTestPyTest.py::TestStep00BuildGate \
-            --deselect Code/deploy/localSmokeTestPyTest.py::TestStep15 \
-            --deselect Code/deploy/localSmokeTestPyTest.py::TestStep27
+          # No deselects, no marker filters — every test in the master smoke
+          # is in scope per Skip's "100% comply" directive (2026-05-04).
+          # Tests that have hardcoded localhost assumptions or local-vs-dev
+          # build comparisons will fail honestly until they are fixed at
+          # the test source, not silenced at the invocation site.
+          python -m pytest Code/deploy/localSmokeTestPyTest.py -v
