@@ -1198,8 +1198,12 @@ class chathealthy_devops_boot:
         """EPIC-008-F-003-S-001-REQ-B-004 (BUG-GOV-011): Emit ONLY the mode-selection
         directive at boot. Orphan-triage directive is emitted in prompt() on the
         turn the user replies 1/2/3 — keeps SessionStart additionalContext small
-        enough to survive the preview-truncation window."""
-        return "\n".join([
+        enough to survive the preview-truncation window.
+
+        Skip 2026-05-05: append any pending hf-mtls-poll alerts (new replies on
+        forum thread 175767) so Skip sees them in chat. The polling itself runs
+        out-of-process via Windows Task Scheduler — see _ensure_hf_mtls_poll_task()."""
+        lines = [
             "BOOT DIRECTIVE — MODE SELECTION (ARCH-ORPHAN-001-REQ-010):",
             "You MUST ask the user to select an operating mode before doing anything else.",
             "Present exactly this prompt:",
@@ -1210,7 +1214,79 @@ class chathealthy_devops_boot:
             "  3 = Idiot (human reviews every action, Claude explains everything)",
             "",
             "Do NOT proceed until the user replies with 1, 2, or 3.",
-        ])
+        ]
+        new_alerts = self._read_recent_poll_log()
+        if new_alerts:
+            lines.append("")
+            lines.append("HF-MTLS-POLL — new entries since last session:")
+            lines.append(new_alerts.rstrip())
+        return "\n".join(lines)
+
+    def _ensure_hf_mtls_poll_task(self) -> None:
+        """Idempotent: register the Windows Scheduled Task that polls the HF
+        forum thread every 2 hours. Skip 2026-05-05: cron-via-Claude was
+        unreliable (durable flag ignored, cost per fire). OS scheduler runs
+        the standalone hf_mtls_poll.py with no Claude dependency."""
+        import subprocess
+        task_name = "ChatHealthy_HFMTLSPoll"
+        script_path = Path(__file__).parent / "hf_mtls_poll.py"
+        if not script_path.exists():
+            _log.warning("hf_mtls_poll: script missing at %s, skipping task register", script_path)
+            return
+        try:
+            q = subprocess.run(
+                ["schtasks", "/Query", "/TN", task_name],
+                capture_output=True, text=True, timeout=10,
+            )
+            if q.returncode == 0:
+                return  # already registered
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return  # schtasks unavailable (non-Windows or timeout) — skip silently
+        tr = f'"{sys.executable}" "{script_path}"'
+        try:
+            r = subprocess.run(
+                ["schtasks", "/Create",
+                 "/SC", "HOURLY", "/MO", "2",
+                 "/TN", task_name,
+                 "/TR", tr,
+                 "/F"],
+                capture_output=True, text=True, timeout=15,
+            )
+            if r.returncode == 0:
+                _log.info("hf_mtls_poll: registered scheduled task %s", task_name)
+            else:
+                _log.warning("hf_mtls_poll: schtasks /Create failed rc=%s: %s",
+                             r.returncode, (r.stderr or r.stdout).strip()[:200])
+        except Exception as e:
+            _log.warning("hf_mtls_poll: registration raised: %s", e)
+
+    def _read_recent_poll_log(self) -> str:
+        """Return any hf_mtls_poll log content appended since last surfacing.
+        Tracks read position in %TEMP%/hf_mtls_poll_log_pos.txt so the same
+        entries aren't surfaced twice across SessionStarts."""
+        log_path = Path(tempfile.gettempdir()) / "hf_mtls_poll.log"
+        pos_path = Path(tempfile.gettempdir()) / "hf_mtls_poll_log_pos.txt"
+        if not log_path.exists():
+            return ""
+        last_pos = 0
+        if pos_path.exists():
+            try:
+                last_pos = int(pos_path.read_text(encoding="utf-8").strip() or "0")
+            except Exception:
+                last_pos = 0
+        try:
+            with open(log_path, "r", encoding="utf-8") as f:
+                f.seek(last_pos)
+                content = f.read()
+                new_pos = f.tell()
+        except Exception as e:
+            _log.warning("hf_mtls_poll: log read failed: %s", e)
+            return ""
+        try:
+            pos_path.write_text(str(new_pos), encoding="utf-8")
+        except Exception:
+            pass
+        return content
 
     def dispatch_code_controlled(self, hook_input: dict, action_event: str) -> dict:
         """Dispatch to child class workers for code_controlled cells in the grid.
@@ -1340,6 +1416,7 @@ def main():
             boot._verify_coverage()
             boot._extract_constraints()
             boot_result = boot.boot()
+            boot._ensure_hf_mtls_poll_task()
             claude_context = boot.inform_claude(boot_result)
             output = {
                 "hookSpecificOutput": {
