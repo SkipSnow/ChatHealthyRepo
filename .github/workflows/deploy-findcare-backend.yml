@@ -67,11 +67,17 @@ jobs:
           fi
           VITE_API_URL="" VITE_EVALCARE_URL="$EVALCARE_URL" npm run build
 
-      - name: Set HF Space variables (peer URLs, env)
+      - name: Set HF Space variables + secrets (peer URLs, env, certs, signing key)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE: ${{ steps.space.outputs.name }}
           ENV: ${{ steps.space.outputs.env }}
+          # Private signing key sourced from GH repo secret (one value used
+          # across dev/qa/prod per Skip 2026-05-04 — pre-alpha). Required for
+          # FINDCARE_SIGNING_KEY_PEM bootstrap at container start; without it
+          # _startup_security_verification abends with exit=78 (see
+          # EPIC-002-F-001-S-012-REQ-T-004).
+          FINDCARE_SIGNING_KEY_B64: ${{ secrets.FINDCARE_SIGNING_KEY_B64 }}
         run: |
           # Derive per-env peer URLs. Prod has no prefix; dev/qa prepend env.
           if [ "$ENV" = "prod" ]; then PREFIX=""; else PREFIX="${ENV}-"; fi
@@ -90,21 +96,55 @@ jobs:
               -H "Authorization: Bearer $HF_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"key\":\"${K}\",\"value\":\"${V}\",\"description\":\"Set by deploy workflow\"}" \
-              -o /dev/null && echo "  set ${K}=${V}"
+              -o /dev/null && echo "  set var ${K}"
+          }
+          set_secret() {
+            # Mirror of set_var but POSTs to /secrets endpoint. For values
+            # that must NOT be visible in HF Space settings as plaintext
+            # (private keys). Same DELETE-then-POST pattern (HF rejects
+            # collision between a variable and a secret of the same name).
+            K="$1"; V="$2"
+            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
+              -H "Authorization: Bearer $HF_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${K}\"}" -o /dev/null
+            curl -sf -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
+              -H "Authorization: Bearer $HF_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${K}\",\"value\":\"${V}\",\"description\":\"Set by deploy workflow\"}" \
+              -o /dev/null && echo "  set secret ${K}"
           }
           set_var "ENV_PREFIX"          "${ENV}"
           set_var "EVALCARE_URL"        "${EVALCARE_URL}"
           set_var "SHARED_SERVICES_URL" "${SHARED_URL}"
 
-          # SEC-HTTPS-001-REQ-021: FindCare must verify tokens minted by peer
-          # services (SharedServices, EvaluateCare). Bootstrap their public
-          # certs from the repo so /verify-token resolves shared.crt and
-          # evalcare.crt at runtime. .crt files are public (gitignore excludes
-          # only .key); base64-encoded for env-var transport per REQ-016.
+          # Public certs — bootstrap material for token-level mutual auth
+          # (EPIC-002-F-001-S-012-REQ-T-002). FindCare needs:
+          #   - its own findcare.crt (FINDCARE_CERT_PEM) — peers verify
+          #     FindCare-signed tokens against this
+          #   - peer certs (SHARED_CERT_PEM, EVALCARE_CERT_PEM) — FindCare
+          #     verifies peer-signed tokens against these
+          #   - the CA cert (CA_CERT_PEM) — chain verification
+          # All .crt files are public (gitignore only excludes .key) so we
+          # read them directly from the repo and ship as HF Space variables.
+          FINDCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/findcare.crt)
           SHARED_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/shared.crt)
           EVALCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/evalcare.crt)
+          CA_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/ca.crt)
+          set_var "FINDCARE_CERT_PEM" "${FINDCARE_CERT_PEM_B64}"
           set_var "SHARED_CERT_PEM"   "${SHARED_CERT_PEM_B64}"
           set_var "EVALCARE_CERT_PEM" "${EVALCARE_CERT_PEM_B64}"
+          set_var "CA_CERT_PEM"       "${CA_CERT_PEM_B64}"
+
+          # Private signing key — secret, sourced from GH repo secret.
+          # Fail loudly if the GH secret was never created.
+          if [ -z "$FINDCARE_SIGNING_KEY_B64" ]; then
+            echo "ERROR: GH repo secret FINDCARE_SIGNING_KEY_B64 is empty or unset."
+            echo "Create it at https://github.com/SkipSnow/ChatHealthyRepo/settings/secrets/actions"
+            echo "Value: base64 -w0 of Code/Shared/ops/certs/findcare.key"
+            exit 1
+          fi
+          set_secret "FINDCARE_SIGNING_KEY_PEM" "${FINDCARE_SIGNING_KEY_B64}"
 
       - name: Push to HuggingFace Space
         env:
