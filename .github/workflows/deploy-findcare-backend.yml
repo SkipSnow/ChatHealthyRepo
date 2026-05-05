@@ -191,3 +191,82 @@ jobs:
             git push
             echo "Deployed successfully."
           fi
+
+      # EPIC-008-F-004-S-001-REQ-B-003: build/start/verify gate.
+      # HF Spaces rebuild asynchronously after the git push above. Poll
+      # the HF API for runtime.stage = RUNNING, then poll /health on each
+      # of the three backends until 200.
+      - name: Wait for HF Space rebuild + verify /health on all three backends
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ steps.space.outputs.name }}
+          ENV: ${{ steps.space.outputs.env }}
+        run: |
+          if [ "$ENV" = "prod" ]; then
+            FINDCARE_URL="https://skipsnow-chathealthyspace.hf.space"
+            EVALCARE_URL="https://skipsnow-evaluatecarespace.hf.space"
+            SHARED_URL="https://skipsnow-sharedservicesspace.hf.space"
+          else
+            FINDCARE_URL="https://skipsnow-${ENV}-chathealthyspace.hf.space"
+            EVALCARE_URL="https://skipsnow-${ENV}-evaluatecarespace.hf.space"
+            SHARED_URL="https://skipsnow-${ENV}-sharedservicesspace.hf.space"
+          fi
+          echo "Waiting for HF Space SkipSnow/${HF_SPACE} to reach RUNNING..."
+          for i in $(seq 1 60); do
+            STAGE=$(curl -s -H "Authorization: Bearer $HF_TOKEN" \
+              "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}" \
+              | jq -r '.runtime.stage // ""')
+            echo "  poll $i/60: stage=$STAGE"
+            if [ "$STAGE" = "RUNNING" ]; then break; fi
+            if [ "$STAGE" = "RUNTIME_ERROR" ] || [ "$STAGE" = "BUILD_ERROR" ]; then
+              echo "HF Space failed: stage=$STAGE"; exit 1
+            fi
+            if [ $i -eq 60 ]; then
+              echo "TIMED OUT after 10 min (final stage: $STAGE)"; exit 1
+            fi
+            sleep 10
+          done
+          for URL in "$FINDCARE_URL" "$EVALCARE_URL" "$SHARED_URL"; do
+            echo "Polling ${URL}/health..."
+            for i in $(seq 1 30); do
+              HTTP_CODE=$(curl -s -o /tmp/h.json -w "%{http_code}" \
+                -X POST "${URL}/health" -m 8)
+              if [ "$HTTP_CODE" = "200" ]; then
+                echo "  ${URL}/health 200 (poll $i):"
+                cat /tmp/h.json; echo
+                break
+              fi
+              echo "  poll $i/30: http=$HTTP_CODE"
+              if [ $i -eq 30 ]; then
+                echo "TIMED OUT waiting for ${URL}/health (last: $HTTP_CODE)"
+                cat /tmp/h.json
+                exit 1
+              fi
+              sleep 10
+            done
+          done
+
+      # EPIC-008-F-004-S-001-REQ-B-004: deploy script invokes the master
+      # smoke test (S-006) against the target env after build/start/verify.
+      - name: Install smoke test dependencies
+        run: |
+          pip install --quiet pytest pytest-playwright httpx cryptography psutil python-dotenv jsonschema anyio
+          playwright install --with-deps chromium
+
+      - name: Run master smoke test against deployed env
+        env:
+          SMOKE_TEST_ENV: ${{ steps.space.outputs.env }}
+          CHATHEALTHY_PROJECT_ROOT: ${{ github.workspace }}
+        run: |
+          # Smoke runs against the env we just deployed to (dev/qa/prod).
+          # Exclusions:
+          #   - mtls_required: HF doesn't support mTLS for dev/qa/prod (env
+          #     config mtls_enabled=False; BUG-SEC-002 deferred to Beta).
+          #   - TestStep00BuildGate: compares local vs dev — meaningless in CI.
+          #   - TestStep15 + TestStep27: localhost-bound mTLS handshakes —
+          #     no localhost services exist in the GH runner.
+          python -m pytest Code/deploy/localSmokeTestPyTest.py -v \
+            -m "not mtls_required" \
+            --deselect Code/deploy/localSmokeTestPyTest.py::TestStep00BuildGate \
+            --deselect Code/deploy/localSmokeTestPyTest.py::TestStep15 \
+            --deselect Code/deploy/localSmokeTestPyTest.py::TestStep27
