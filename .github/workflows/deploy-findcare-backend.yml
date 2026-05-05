@@ -104,6 +104,10 @@ jobs:
             # MUST delete BOTH a same-named variable AND a same-named secret
             # before POSTing — HF rejects var/secret collision AND rejects
             # POST to /secrets if a secret of that name already exists.
+            #
+            # Build the JSON body via python -c rather than bash -d so a
+            # 2KB+ value with shell-special chars (none in base64, but
+            # belt+suspenders) cannot break the request shape.
             K="$1"; V="$2"
             curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
               -H "Authorization: Bearer $HF_TOKEN" \
@@ -113,11 +117,23 @@ jobs:
               -H "Authorization: Bearer $HF_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"key\":\"${K}\"}" -o /dev/null
-            curl -sf -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
+            BODY=$(python3 -c "import json,sys; print(json.dumps({'key':sys.argv[1],'value':sys.argv[2],'description':'Set by deploy workflow'}))" "$K" "$V")
+            HTTP=$(curl -s -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
               -H "Authorization: Bearer $HF_TOKEN" \
               -H "Content-Type: application/json" \
-              -d "{\"key\":\"${K}\",\"value\":\"${V}\",\"description\":\"Set by deploy workflow\"}" \
-              -o /dev/null && echo "  set secret ${K}"
+              --data "$BODY" \
+              -o /tmp/hf_resp.txt -w "%{http_code}")
+            if [ "$HTTP" = "200" ] || [ "$HTTP" = "201" ]; then
+              echo "  set secret ${K} (http=$HTTP)"
+            else
+              echo "  ERROR set secret ${K}: http=$HTTP"
+              echo "  response body:"
+              cat /tmp/hf_resp.txt
+              echo
+              echo "  body length sent: ${#BODY}"
+              echo "  value length: ${#V}"
+              return 1
+            fi
           }
           set_var "ENV_PREFIX"          "${ENV}"
           set_var "EVALCARE_URL"        "${EVALCARE_URL}"
