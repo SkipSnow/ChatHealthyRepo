@@ -690,15 +690,18 @@
       var env = isLocal ? 'LOCAL'
         : host.indexOf('dev.') === 0 ? 'DEV'
         : host.indexOf('qa.') === 0 ? 'QA'
-        : '';
-      if (!env) return;
-      var banner = document.getElementById('envBanner');
-      banner.textContent = env;
-      banner.style.display = 'block';
-      if (env !== 'LOCAL') banner.style.background = '#dc2626';
+        : 'PROD';
 
-      // Per-env service URL roots — exposed for refreshBanner + token enrichment.
-      // Uses REQ-015 standard ports for local; HF Space pattern for non-local.
+      // _envServiceUrls + _envLabel — set on EVERY env (including prod).
+      // BUG 2026-05-04 EOD: previously this lived after `if (!env) return`
+      // which made it skip on prod (host = chathealthy.ai matched neither
+      // 'dev.' nor 'qa.', env was '', IIFE returned early). Effects on prod:
+      //   - window._envServiceUrls undefined → Evaluate-click handler used
+      //     fallback '' → fetch('/splash') → 404 from chathealthy.ai → 503
+      //     splash. Same path broke refreshTokenPanels (fell back to
+      //     https://localhost:8001 → fetch failed → 503 splash).
+      // Fix: derive prefix from host directly (independent of env), set
+      // _envServiceUrls before any env-gated branch.
       window._envLabel = env;
       window._envServiceUrls = (function() {
         if (isLocal) {
@@ -708,13 +711,24 @@
             sharedservices: 'https://localhost:8002',
           };
         }
-        var prefix = env === 'PROD' ? '' : env.toLowerCase() + '-';
+        var prefix = host.indexOf('dev.') === 0 ? 'dev-'
+                   : host.indexOf('qa.') === 0 ? 'qa-'
+                   : '';   // prod or unknown host -> no prefix
         return {
           findcare:        'https://skipsnow-' + prefix + 'chathealthyspace.hf.space',
           evaluatecare:    'https://skipsnow-' + prefix + 'evaluatecarespace.hf.space',
           sharedservices:  'https://skipsnow-' + prefix + 'sharedservicesspace.hf.space',
         };
       })();
+
+      // Banner display: hidden in prod per S-002-REQ-B-002. The element
+      // exists in the DOM so subsequent `getElementById('envBanner')` calls
+      // never null-deref, but the chrome stays invisible to end users.
+      if (env === 'PROD') return;
+      var banner = document.getElementById('envBanner');
+      banner.textContent = env;
+      banner.style.display = 'block';
+      if (env !== 'LOCAL') banner.style.background = '#dc2626';
 
       // Banner refresh: switches build/version/framework display to whichever
       // service currently owns the page. Per Skip directive 2026-04-20 — fixes
