@@ -1,0 +1,58 @@
+name: Deploy FindCare Website (Prod)
+
+# Mirror of deploy-findcare-website-dev.yml / deploy-findcare-website-qa.yml,
+# but targets the prod `chathealthywebsite` Cloudflare Pages project (which
+# serves https://chathealthy.ai as a custom-domain alias).
+#
+# Caveat (per Skip 2026-05-04, "we'll straighten it out tomorrow"): the
+# `chathealthywebsite` Pages project is also configured to auto-deploy from
+# the SkipSnow/ChatHealthyWebSite repo's `master` branch via the
+# Cloudflare-GitHub integration. If anyone pushes to that other repo, that
+# integration will overwrite this workflow's deploy. The clean fix is to
+# either (a) point the Pages project's GitHub integration at this repo's
+# `main` branch + Website/ subfolder, or (b) add a cross-repo sync workflow
+# that pushes Website/ from here into ChatHealthyWebSite/master on push to
+# main here. Either way, this file becomes redundant. Tonight it gets prod
+# unstuck without touching the other repo.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'Website/**'
+      - '.github/workflows/deploy-findcare-website-prod.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Build-counter bump removed per Rule-063 + BUG-001:
+      # the build is now incremented by a post-commit engineering rule on
+      # every non-deploy commit, and deploys do NOT bump.
+
+      - name: Create Pages project (idempotent)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create chathealthywebsite --production-branch master
+        continue-on-error: true
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # --branch=master so the deploy is treated as a Production
+          # deployment (the production_branch on this Pages project is
+          # `master` per the Cloudflare dashboard screenshot 2026-05-04).
+          # That's what makes chathealthy.ai (the alias) update.
+          command: pages deploy Website --project-name=chathealthywebsite --branch=master
