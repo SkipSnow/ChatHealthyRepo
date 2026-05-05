@@ -886,6 +886,11 @@
       //     verifies FC tokens when FC owns the page).
       // owner: 'findcare' | 'evaluatecare' | 'sharedservices'
       window.refreshTokenPanels = function(owner) {
+        // EPIC-008-F-004-S-004-REQ-B-002: no security token panel in prod.
+        // Client-side defense-in-depth; server-side hard-fail is the trust
+        // boundary. _envLabel is set unconditionally at IIFE start (line 705)
+        // so this guard is safe on every env including prod.
+        if (window._envLabel === 'PROD') return;
         var apiBase = window._hfBaseUrl || '';
         var urls = window._envServiceUrls || {};
         var sharedUrl = urls.sharedservices || 'https://localhost:8002';
