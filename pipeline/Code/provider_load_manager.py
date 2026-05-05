@@ -51,31 +51,60 @@ def _get_mongo_client() -> MongoClient:
 NPPES_INDEX_URL = "https://download.cms.gov/nppes/NPI_Files.html"
 
 # Last-known URL used as fallback when CMS page scraping fails.
-# Update this whenever the scraper is repaired or a manual download is done.
+# WARNING: this fallback is currently STALE (April 2025; today is mid-2026).
+# The scraper logic was rewritten 2026-05-05 to be order-independent — once
+# the scraper succeeds against the current CMS page, update this fallback to
+# match that month so a future scraper failure doesn't quietly load year-old data.
 NPPES_FALLBACK_URL = (
     "https://download.cms.gov/nppes/NPPES_Data_Dissemination_April_2025.zip"
 )
 
 
+_MONTH_NAME_TO_NUM = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+}
+
+
 def _discover_nppes_url() -> tuple[str, str]:
-    """Scrape CMS NPPES page and return (zip_url, version_string) for the latest full file."""
+    """Scrape CMS NPPES page and return (zip_url, version_string) for the latest full file.
+
+    Collects every `NPPES_Data_Dissemination_<Month>_<Year>.zip` link on the page,
+    parses month + year, and returns the chronologically latest. Order-independent:
+    does NOT trust the page's source order (which has historically varied).
+    """
     resp = requests.get(NPPES_INDEX_URL, timeout=30)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
+    candidates: list[tuple[int, int, str, str]] = []  # (year, month, version, url)
     for link in soup.find_all("a", href=True):
         href = link["href"]
-        # Full dissemination file — matches e.g. NPPES_Data_Dissemination_March_2026.zip
         match = re.search(
-            r"NPPES_Data_Dissemination_(\w+_\d{4})\.zip", href, re.IGNORECASE
+            r"NPPES_Data_Dissemination_([A-Za-z]+)_(\d{4})\.zip", href
         )
-        if match:
-            version = match.group(1).replace("_", "-").lower()  # e.g. "march-2026"
-            url = href if href.startswith("http") else f"https://download.cms.gov/nppes/{href}"
-            logging.info("Discovered NPPES file: %s (version: %s)", url, version)
-            return url, version
+        if not match:
+            continue
+        month_name = match.group(1).lower()
+        year = int(match.group(2))
+        month = _MONTH_NAME_TO_NUM.get(month_name)
+        if not month:
+            logging.warning("NPPES discovery: unrecognized month %r in %r", match.group(1), href)
+            continue
+        version = f"{month_name}-{year}"
+        url = href if href.startswith("http") else f"https://download.cms.gov/nppes/{href}"
+        candidates.append((year, month, version, url))
 
-    raise RuntimeError("Could not find NPPES full dissemination zip on CMS page.")
+    if not candidates:
+        raise RuntimeError("Could not find NPPES full dissemination zip on CMS page.")
+
+    candidates.sort(reverse=True)  # newest first by (year, month)
+    year, month, version, url = candidates[0]
+    logging.info(
+        "NPPES discovery: %d candidate file(s) found; selected latest = %s (%s)",
+        len(candidates), url, version,
+    )
+    return url, version
 
 
 class NppesFetcher(DataFetcherBase):
@@ -158,7 +187,7 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         "partition_file_activity", {**config, "csv_path": csv_path}
     )
 
-    # Step 4: Drain staging — drop unless incremental=true (BUG-PIPE-003)
+    # Step 4: Drain staging — drop unless incremental=true
     if not config.get("incremental", False):
         context.set_custom_status("Step 4/10: Draining staging collection (full load)")
         yield context.call_activity("drain_staging_activity", config)
@@ -167,7 +196,7 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
 
     # Step 5: Pre-load index only — unique compound index for idempotency on retry.
     # Only needed for incremental loads. Full loads drop the collection (Step 4),
-    # so there's nothing to deduplicate against. BUG-PIPE-007: skip on full load
+    # so there's nothing to deduplicate against. Skip on full load
     # to avoid DuplicateKeyError in post-load index creation.
     if config.get("incremental", False):
         context.set_custom_status("Step 5/10: Ensuring pre-load index (incremental)")
@@ -387,7 +416,7 @@ def ensure_postload_indexes_fn(config: dict) -> None:
     db_name, coll_name = provider_collection.split(".", 1)
     collection = _get_mongo_client()[db_name][coll_name]
     # load_record_unique only needed for incremental retry idempotency.
-    # Full loads have npi_unique as the natural key. BUG-PIPE-007.
+    # Full loads have npi_unique as the natural key.
     if config.get("incremental", False):
         collection.create_index(
             [("load_id", 1), ("record_id", 1)],
@@ -493,19 +522,52 @@ def reconcile_fn(config: dict) -> dict:
 
 
 def drain_staging_fn(config: dict) -> dict:
-    """Drop providers_staging before loading new data.
+    """Drain the providers staging collection before loading new data.
 
-    Uses drop() instead of delete_many() — drop immediately returns disk space
-    to Atlas. delete_many() leaves WiredTiger holding the allocated space as
-    fragmented free pages, which does not reduce billed storage.
+    EPIC-010-F-006-S-001 / S-003 — state-scope semantics across the entire
+    provider pipeline. Uses the shared state_filter helper so the predicate is
+    100% uniform with load, enrichment, and embedding (REQ-T-001).
+
+    Three modes:
+      - incremental=True   -> no-op (defensive; orchestrator already skipped)
+      - states == ["ALL"]  -> drop()  (full-load sentinel, REQ-B-002 / T-004)
+      - states non-empty   -> delete_many() with the multi-state-bearing-field
+                              predicate (REQ-T-003). Out-of-scope records survive.
+
+    Raises ValueError if `states` is missing, empty, or malformed (REQ-T-002) —
+    every step in the pipeline must raise on this; drain is no exception.
+
+    drop() vs delete_many() trade-off: drop() returns disk space to Atlas
+    immediately; delete_many() leaves WiredTiger holding the allocated space as
+    fragmented free pages. The space cost is the price of preserving out-of-scope
+    records when a load is state-scoped.
 
     Called after download/extract/partition succeed so we know the new data is viable.
     """
+    from state_filter import normalize_states, is_full_load, mongo_state_filter
+
     provider_collection = config.get("provider_collection", "dev_PublicHealthData.providers")
     db_name, coll_name = provider_collection.split(".", 1)
-    _get_mongo_client()[db_name][coll_name].drop()
-    logging.info("Dropped staging collection %s — disk space returned to Atlas.", provider_collection)
-    return {"drained": True}
+    coll = _get_mongo_client()[db_name][coll_name]
+
+    if config.get("incremental", False):
+        logging.info("drain_staging_fn: incremental=True — skipping drain on %s", provider_collection)
+        return {"drained": False, "mode": "incremental_skip"}
+
+    states = normalize_states(config)  # raises on missing/empty/malformed
+
+    if is_full_load(states):
+        coll.drop()
+        logging.info("drain_staging_fn: full drop of %s (states=ALL) — disk space returned to Atlas.", provider_collection)
+        return {"drained": True, "mode": "full_drop", "states": states}
+
+    predicate = mongo_state_filter(states)
+    result = coll.delete_many(predicate)
+    logging.info(
+        "drain_staging_fn: state-scoped delete on %s — states=%s deleted=%d (out-of-scope records preserved).",
+        provider_collection, states, result.deleted_count,
+    )
+    return {"drained": True, "mode": "state_scoped", "deleted": result.deleted_count, "states": states}
 
 
 def report_fn(config: dict) -> dict:
@@ -533,7 +595,7 @@ def stamp_embedding_version_fn(config: dict) -> dict:
     db_name, coll_name = provider_collection.split(".", 1)
     collection = _get_mongo_client()[db_name][coll_name]
 
-    sf = _build_states_filter(config)  # BUG-PIPE-001: mandatory state filter
+    sf = _build_states_filter(config)  # mandatory state filter
     result = collection.update_many(
         {"embedding": {"$exists": True}, "embedding_version": {"$exists": False}, **sf},
         {"$set": {"embedding_version": EMBED_VERSION, "embedding_model": EMBED_MODEL}},
@@ -582,9 +644,9 @@ def create_vector_index_fn(config: dict) -> dict:
 # ── Full Pipeline Orchestrator ────────────────────────────────────────────────
 
 def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Top-level orchestrator: health check → specialty data → load → enrichment → embeddings → copy to frontend.
+    """Top-level orchestrator: health check → specialty data → load → enrichment → embeddings.
 
-    start_step (3–10): skip optional steps before this number. Default 1 (full run).
+    start_step (3–9): skip optional steps before this number. Default 1 (full run).
     Steps 0, 1 are MANDATORY. Step 2 controlled by specialty_metadata (default True).
 
     Steps:
@@ -598,7 +660,6 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
       7  — County enrichment Pass 4: Google Maps, final fallback (google_maps_enabled=True)
       8  — County enrichment Pass 6: NPPES registry lookup
       9  — Generate embeddings + create Atlas Vector Search index (embedding_enabled=True)
-      10 — CopyToFrontEnd: providers + SpecialtyMetaData + vector indexes (copy_to_frontend=True)
     """
     from county_enrichment_job import _build_enrichment_reconcile
 
@@ -638,7 +699,7 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
         next_check = context.current_utc_datetime + datetime.timedelta(seconds=30)
         yield context.create_timer(next_check)
 
-    # BUG-PIPE-002: all steps wrapped so reservation is released on any failure
+    # All steps wrapped so reservation is released on any failure
     # EPIC-006-F-006-S-002-REQ-T-002: each step reports status
     load_result = {"status": "skipped"}
     pass1_result = pass2_result = pass3_result = pass4_result = pass6_result = None
@@ -749,29 +810,12 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "create_vector_index_activity", {"provider_collection": provider_collection}
             )
 
-        # Step 10: Copy to frontend — providers + SpecialtyMetaData + vector indexes
-        if start_step <= 10 and config.get("copy_to_frontend", True):
-            env_prefix = config.get("env_prefix", "dev")
-            context.set_custom_status("Step 10/10: CopyToFrontEnd — providers + SpecialtyMetaData + indexes")
-            copy_config = {
-                "env_prefix": env_prefix,
-                "cluster_name": cluster_name,
-                "states": config.get("states"),
-                "chunk_size": config.get("copy_chunk_size", 50_000),
-                "expected_duration_minutes": 120,
-                "job_id": f"copy_{load_id}",
-            }
-            copy_result = yield context.call_sub_orchestrator(
-                "copy_to_frontend_orchestrator", copy_config
-            )
-            step_statuses.append({"step": 10, "name": "copy_to_frontend", "status": "completed_success"})
-
     except Exception as exc:
         pipeline_error = str(exc)
         step_statuses.append({"step": "unknown", "name": "exception", "status": "completed_fail", "error": pipeline_error[:200]})
         context.set_custom_status(f"FAILED: {pipeline_error[:200]}")
 
-    # BUG-PIPE-002: ALWAYS release reservation — success or failure
+    # ALWAYS release reservation — success or failure
     context.set_custom_status("Releasing cluster reservation")
     yield context.call_activity("release_reservation_activity", {"job_id": load_id})
 

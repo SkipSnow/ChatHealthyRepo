@@ -416,12 +416,12 @@ class TestFailure03_ServiceRestart:
         time.sleep(3)
 
         # Step 4: Verify NO Python processes remain in Services session
-        # BUG-LOG-002: The service MUST kill child processes on stop
+        # The service MUST kill child processes on stop
         pids_after = _get_python_pids_under_services()
         # Filter to only PIDs that were present before (avoid false positives from other services)
         zombie_pids = [p for p in pids_before if p in pids_after]
         assert len(zombie_pids) == 0, \
-            f"BUG-LOG-002 REGRESSION: Zombie Python processes after service stop: {zombie_pids}"
+            f"REGRESSION: Zombie Python processes after service stop: {zombie_pids}"
 
     def test_service_start_brings_both_pids_back(self):
         """Start service after stop, verify both PIDs and sidecar health."""

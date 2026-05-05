@@ -7,8 +7,6 @@
 # cluster's providers collection. If any state is short, the test
 # fails and reports which states are missing records and how many.
 #
-# BUG-LOAD-001: This test would have caught the CopyToFrontEnd bug.
-#
 # Requires: MONGO_connectionString (pipeline cluster) + AZURE_STORAGE_CONNECTION_STRING
 # Run: pytest Code/DataPipelines/tests/test_load_parity.py -v -s
 

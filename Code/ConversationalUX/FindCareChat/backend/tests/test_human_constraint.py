@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# BUG-GOV-002: Human prompt instructions take precedence over all other rules.
+# Human prompt instructions take precedence over all other rules.
 #
 # Requirement: If human constrained Claude from changing state in any way
 # in the last 3 hours in the transcript, Claude must respect that constraint.
@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 
 class TestBossConstraint(unittest.TestCase):
-    """BUG-GOV-002: Human prompt constraint enforcement."""
+    """Human prompt constraint enforcement."""
 
     def _make_transcript(self, messages):
         """Create a temp transcript JSONL with given messages."""

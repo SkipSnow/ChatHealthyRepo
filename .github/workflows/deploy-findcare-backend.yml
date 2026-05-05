@@ -207,7 +207,7 @@ jobs:
             --exclude='*.pyc' \
             Code/Shared/ hf_space/Code/Shared/
 
-          # PKI certs deferred to Beta (BUG-SEC-002) — HF doesn't support mTLS
+          # PKI certs deferred to Beta — HF doesn't support mTLS
 
           # Brain artifacts needed at runtime — copy the entire content/ dir so
           # any new JSON the backend reads (prompts.json for SpecialtyFilter,

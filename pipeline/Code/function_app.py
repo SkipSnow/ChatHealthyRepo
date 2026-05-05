@@ -28,17 +28,9 @@ import azure.durable_functions as df
 import azure.functions as func
 
 from auth import require_auth
-from otp_manager import exchange_otp
 from load_specialty_data import run_load_specialty_data
 from icd10_loader import load_icd10
-from sync_gateway_agent import run_promote_to_frontend
-from copy_to_frontend import (run_copy_to_frontend, snapshot_collection_fn, create_frontend_vector_index_fn,
-                              partition_source, copy_chunk, drop_destination,
-                              migrate_small_collections, migrate_chunk, verify_parity,
-                              copy_providers_only)
-from promote_data_fn import run_promote_data
 from count_providers_by_state import count_providers_by_state
-from gpt_reader import handle_gpt_reader
 from pipeline_health import check_mongo_health
 # from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
 from county_enrichment_job import (
@@ -93,21 +85,14 @@ PIPELINE_ROUTE = "Router"
 SYNC_TASK_HANDLERS = {
     "LoadSpecialtyData": run_load_specialty_data,
     "LoadICD10": load_icd10,
-    "CreateFrontendVectorIndex": create_frontend_vector_index_fn,
     "CheckMongoHealth": check_mongo_health,
     "StampEmbeddingVersion": stamp_embedding_version_fn,
-    "PromoteData": run_promote_data,
-    "CopyToFrontEndSync": run_copy_to_frontend,
-    "CopyProvidersOnly": copy_providers_only,
-    "PromoteToFrontEnd": run_promote_to_frontend,
-    "VerifyParity": verify_parity,
     "CountProvidersByState": count_providers_by_state,
 }
 
 # Ops Manager tasks — infrastructure only, no pipeline business logic
 def _get_mongo_conn():
-    return os.environ.get("MONGO_FRONTEND_connectionString",
-                          os.environ.get("MONGO_connectionString", ""))
+    return os.environ.get("MONGO_connectionString", "")
 
 def _get_ops_manager():
     from cluster_lifecycle_manager import ClusterLifecycleManager
@@ -197,8 +182,6 @@ ASYNC_TASK_ORCHESTRATORS = {
     "CountyEnrichment": "county_enrichment_orchestrator",
     "FindCarePipeline": "findcare_pipeline_orchestrator",
     "SnapshotCollection": "snapshot_collection_orchestrator",
-    "CopyToFrontEnd": "copy_to_frontend_orchestrator",
-    "MigrateEnvironment": "migrate_environment_orchestrator",
     "PrescriberEvaluateCarePipeline": "prescriber_pipeline_orchestrator",
 }
 
@@ -215,8 +198,8 @@ PIPELINE_STEP_REGISTRY = {
         },
     },
     "FindCarePipeline": {
-        "valid_steps": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-        "step_names": {0: "reserve", 1: "health_check", 2: "specialty_metadata", 3: "load", 4: "county_pass1", 5: "county_pass2", 6: "county_pass3", 7: "county_pass4_maps", 8: "county_pass6_nppes", 9: "embed", 10: "copy_to_frontend"},
+        "valid_steps": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        "step_names": {0: "reserve", 1: "health_check", 2: "specialty_metadata", 3: "load", 4: "county_pass1", 5: "county_pass2", 6: "county_pass3", 7: "county_pass4_maps", 8: "county_pass6_nppes", 9: "embed"},
         "preconditions": {},
     },
 }
@@ -361,62 +344,6 @@ async def dev_pipeline_management(
         return func.HttpResponse(body="Internal server error", status_code=500, mimetype="text/plain")
 
 
-# ── GPT Reader — Read-only broker for GPT ────────────────────────────────────
-
-@app.function_name(name="GPTReader")
-@app.route(route="GPTReader", methods=["POST"])
-def gpt_reader_route(req: func.HttpRequest) -> func.HttpResponse:
-    """Read-only query service for GPT. Separate auth from Router (R4)."""
-    try:
-        # Extract Bearer token from Authorization header
-        auth_header = req.headers.get("Authorization", "")
-        token = auth_header.replace("Bearer ", "").strip() if auth_header.startswith("Bearer ") else ""
-
-        try:
-            config = req.get_json()
-        except ValueError:
-            return json_response({"error": "Request body must be valid JSON"}, 400)
-
-        status_code, response = handle_gpt_reader(config, token)
-        return json_response(response, status_code)
-
-    except Exception:
-        logging.exception("Unhandled error in GPTReader")
-        return func.HttpResponse(body="Internal server error", status_code=500, mimetype="text/plain")
-
-
-# ── OTP Key Exchange ──────────────────────────────────────────────────────────
-
-@app.function_name(name="ExchangeOTP")
-@app.route(route="ExchangeOTP", methods=["GET"])
-def exchange_otp_route(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    Exchange a one-time password for a permanent Brain API Bearer key.
-
-    GET /api/ExchangeOTP?code=XXXX-XXXX
-
-    Returns 200 + {"bearer_token": "...", "agent": "..."} on success.
-    Returns 401 on invalid/expired/used OTP.
-    OTP is consumed on first use. Expires after 30 minutes.
-    """
-    code = req.params.get("code", "").strip().upper()
-    if not code:
-        return json_response({"error": "Missing ?code= parameter"}, 400)
-
-    success, agent, bearer_key = exchange_otp(code)
-
-    if not success:
-        logging.warning(f"[ExchangeOTP] Failed exchange — reason: {agent}")
-        return json_response({"error": agent}, 401)
-
-    logging.info(f"[ExchangeOTP] Key issued to agent: {agent}")
-    return json_response({
-        "bearer_token": bearer_key,
-        "agent": agent,
-        "message": "OTP accepted. Use this bearer_token in all Brain API calls: Authorization: Bearer <token>",
-    }, 200)
-
-
 # ── Idle Monitor (Timer Trigger) ──────────────────────────────────────────────
 
 # Idle monitor disabled — paused cluster mid-run (fix: pipeline lock needed before re-enabling)
@@ -466,286 +393,6 @@ def provider_load_orchestrator(context: df.DurableOrchestrationContext):
     return provider_load_orchestrator_fn(context)
 
 
-@app.orchestration_trigger(context_name="context")
-def copy_to_frontend_orchestrator(context: df.DurableOrchestrationContext):
-    """Async CopyToFrontEnd — count, partition, fan out workers by _id range.
-
-    Pattern: reserve → poll → static collections → drop destination →
-             partition source → fan out N workers (one per chunk) →
-             vector index → release.
-
-    Each worker copies a fixed-size _id range. Every worker is identical.
-    No special cases for first/last. Job number tracks each worker.
-
-    payload:
-        env_prefix             — "dev" (default)
-        cluster_name           — "ChatHealthyDataPipelines" (default)
-        chunk_size             — records per worker (default: 50,000)
-        expected_duration_minutes — reservation duration (default: 120)
-    """
-    import datetime as dt
-
-    config = context.get_input() or {}
-    cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
-    env_prefix = config.get("env_prefix", "dev")
-    chunk_size = config.get("chunk_size", 50_000)
-    job_id = config.get("job_id", f"copy_to_frontend_{int(time.time())}")
-
-    # Build state filter for provider query — only copy requested states
-    states = config.get("states")
-    if isinstance(states, list) and states:
-        provider_query = {"practice_address.state": {"$in": states}}
-    else:
-        provider_query = {}
-
-    # Step 1: Reserve cluster
-    reservation = {
-        "job_id": job_id,
-        "requester": "CopyToFrontEnd",
-        "cluster_name": cluster_name,
-        "expected_duration_minutes": config.get("expected_duration_minutes", 120),
-    }
-    context.set_custom_status("Reserving cluster")
-    yield context.call_activity("register_reservation_activity", reservation)
-
-    # BUG-PIPE-002: try/finally guarantees reservation release on any failure
-    pipeline_error = None
-    total_copied = 0
-    results = []
-    parity = {}
-    chunks = []
-    try:
-        # Step 2: Wait for cluster IDLE
-        deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
-        while context.current_utc_datetime < deadline:
-            context.set_custom_status("Waiting for cluster IDLE")
-            status = yield context.call_activity("check_cluster_state_activity",
-                                                  {"cluster_name": cluster_name})
-            if status.get("cluster_state") == "IDLE":
-                break
-            next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
-            yield context.create_timer(next_check)
-
-        # Step 3: Copy static collections
-        context.set_custom_status("Copying static collections")
-        yield context.call_activity("copy_to_frontend_activity", {
-            "env_prefix": env_prefix,
-            "states": [],
-        })
-
-        # Step 4: Clear destination providers (state-specific or full drop)
-        context.set_custom_status("Clearing destination providers")
-        yield context.call_activity("drop_destination_activity", {
-            "env_prefix": env_prefix,
-            "collection": "providers",
-            "states": states if isinstance(states, list) and states else None,
-        })
-
-        # Step 5: Partition source into chunks by _id range
-        context.set_custom_status(f"Partitioning source (states: {states or 'all'})")
-        partition = yield context.call_activity("partition_source_activity", {
-            "env_prefix": env_prefix,
-            "collection": "providers",
-            "chunk_size": chunk_size,
-            "query": provider_query,
-        })
-        chunks = partition.get("chunks", [])
-        total = partition.get("total", 0)
-
-        # Step 5.5: Pre-warm instances so each worker gets its own container
-        if chunks:
-            context.set_custom_status(f"Pre-warming {len(chunks)} instances")
-            yield context.call_activity("warm_instances_activity", {
-                "num_instances": min(len(chunks), 10),
-            })
-
-        # Step 6: Fan out — parallel workers, one per chunk
-        context.set_custom_status(f"Copying {total:,} providers across {len(chunks)} workers")
-        copy_tasks = []
-        for chunk in chunks:
-            copy_tasks.append(context.call_activity("copy_chunk_activity", {
-                "env_prefix": env_prefix,
-                "collection": "providers",
-                "job_number": chunk["job_number"],
-                "start_id": chunk["start_id"],
-                "end_id": chunk["end_id"],
-            }))
-        results = yield context.task_all(copy_tasks)
-        total_copied = sum(r.get("copied", 0) for r in results)
-
-        # Step 6.5: Cool down instances
-        yield context.call_activity("cool_instances_activity", {})
-
-        # Step 7: Create vector indexes (BUG-PIPE-008: BOTH provider AND specialty)
-        context.set_custom_status("Creating vector search indexes")
-        try:
-            yield context.call_activity("create_frontend_vector_index_activity", {
-                "env_prefix": env_prefix,
-            })
-        except Exception as idx_err:
-            logging.error("Vector index creation failed: %s", idx_err)
-
-        # Step 8: Parity verification
-        context.set_custom_status("Verifying parity")
-        parity = yield context.call_activity("verify_parity_activity", {
-            "env_prefix": env_prefix,
-            "states": states if isinstance(states, list) and states else None,
-        })
-        parity_pass = parity.get("all_pass", False)
-        if not parity_pass:
-            context.set_custom_status(f"PARITY FAILURE — {parity}")
-            logging.error("CopyToFrontEnd parity check FAILED: %s", parity)
-
-    except Exception as exc:
-        pipeline_error = str(exc)
-        logging.error("CopyToFrontEnd FAILED: %s", exc)
-        context.set_custom_status(f"FAILED — {pipeline_error[:100]}")
-
-    # Step 9: ALWAYS release reservation — success or failure (BUG-PIPE-002)
-    context.set_custom_status("Releasing cluster")
-    yield context.call_activity("release_reservation_activity", reservation)
-
-    if pipeline_error:
-        context.set_custom_status(f"FAILED — {pipeline_error[:100]}")
-        return {"status": "failed", "error": pipeline_error, "total_copied": total_copied}
-
-    context.set_custom_status(f"Done — {total_copied:,} providers in {len(chunks)} chunks")
-    return {"status": "complete", "total_copied": total_copied, "chunks": len(chunks), "results": results, "parity": parity}
-
-
-@app.orchestration_trigger(context_name="context")
-def migrate_environment_orchestrator(context: df.DurableOrchestrationContext):
-    """Migrate all PublicHealthData collections from one env to another.
-
-    Small collections: $out (single activity, fast).
-    Large collections (providers): partition by _id range, one chunk per activity.
-
-    payload:
-        src_env      — "dev" (default)
-        dst_env      — "qa" (default)
-        cluster_name — "ChatHealthyDataPipelines" (default)
-        chunk_size   — records per chunk for large collections (default: 50,000)
-    """
-    import datetime as dt
-
-    config = context.get_input() or {}
-    src_env = config.get("src_env", "dev")
-    dst_env = config.get("dst_env", "qa")
-    chunk_size = config.get("chunk_size", 50_000)
-    cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
-
-    # Reserve cluster
-    reservation = {
-        "job_id": f"migrate_{src_env}_to_{dst_env}_{int(time.time())}",
-        "requester": "MigrateEnvironment",
-        "cluster_name": cluster_name,
-        "expected_duration_minutes": config.get("expected_duration_minutes", 120),
-    }
-    context.set_custom_status("Reserving cluster")
-    yield context.call_activity("register_reservation_activity", reservation)
-
-    # Wait for IDLE
-    deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
-    while context.current_utc_datetime < deadline:
-        context.set_custom_status("Waiting for cluster IDLE")
-        status = yield context.call_activity("check_cluster_state_activity",
-                                              {"cluster_name": cluster_name})
-        if status.get("cluster_state") == "IDLE":
-            break
-        next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
-        yield context.create_timer(next_check)
-
-    # PIPE-LC-007: try/finally guarantees reservation release on success or failure
-    pipeline_error = None
-    total_copied = 0
-    small_result = {}
-    chunks = []
-    src_db_name = f"{src_env}_PublicHealthData"
-    dst_db_name = f"{dst_env}_PublicHealthData"
-
-    try:
-        # Step 1: Migrate small collections via $out
-        context.set_custom_status(f"Migrating small collections {src_env} → {dst_env}")
-        small_result = yield context.call_activity("migrate_small_collections_activity", {
-            "src_env": src_env,
-            "dst_env": dst_env,
-        })
-
-        # Step 2: Chunked copy for providers
-        context.set_custom_status("Partitioning providers")
-
-        partition = yield context.call_activity("partition_source_activity", {
-            "env_prefix": src_env,
-            "collection": "providers",
-            "chunk_size": chunk_size,
-        })
-        chunks = partition.get("chunks", [])
-        total = partition.get("total", 0)
-
-        # Drop destination providers before copying
-        context.set_custom_status("Dropping destination providers")
-        yield context.call_activity("drop_destination_activity", {
-            "env_prefix": dst_env,
-            "collection": "providers",
-            "use_pipeline_cluster": True,
-        })
-
-        # Fan out — one chunk at a time
-        for chunk in chunks:
-            jn = chunk["job_number"]
-            context.set_custom_status(f"Providers {jn+1}/{len(chunks)} — {total_copied:,}/{total:,}")
-            r = yield context.call_activity("migrate_chunk_activity", {
-                "src_env": src_env,
-                "dst_env": dst_env,
-                "collection": "providers",
-                "job_number": jn,
-                "start_id": chunk["start_id"],
-                "end_id": chunk["end_id"],
-            })
-            total_copied += r.get("copied", 0)
-
-    except Exception as exc:
-        pipeline_error = str(exc)
-        logging.error("MigrateEnvironment FAILED: %s", exc)
-        context.set_custom_status(f"FAILED — {pipeline_error[:100]}")
-
-    finally:
-        # ALWAYS release reservation — cluster pauses when last reservation drops
-        context.set_custom_status("Releasing cluster")
-        yield context.call_activity("release_reservation_activity", reservation)
-
-    if pipeline_error:
-        context.set_custom_status(f"FAILED — {pipeline_error[:100]}")
-        return {
-            "status": "failed",
-            "error": pipeline_error,
-            "src": src_db_name,
-            "dst": dst_db_name,
-            "providers_copied": total_copied,
-        }
-
-    context.set_custom_status(f"Done — {total_copied:,} providers + small collections")
-    return {
-        "status": "complete",
-        "src": src_db_name,
-        "dst": dst_db_name,
-        "providers_copied": total_copied,
-        "chunks": len(chunks),
-        "small_collections": small_result,
-    }
-
-
-@app.orchestration_trigger(context_name="context")
-def snapshot_collection_orchestrator(context: df.DurableOrchestrationContext):
-    config = context.get_input() or {}
-    src = config.get("source", "providers")
-    dst = config.get("destination", "?")
-    context.set_custom_status(f"Copying {src} → {dst}")
-    result = yield context.call_activity("snapshot_collection_activity", config)
-    context.set_custom_status(f"Done — {result.get('copied', 0):,} docs in {dst}")
-    return result
-
-
 # ── Durable Activities ────────────────────────────────────────────────────────
 
 @app.activity_trigger(input_name="config")
@@ -754,55 +401,10 @@ def check_mongo_health_activity(config: dict) -> dict:
 
 
 @app.activity_trigger(input_name="config")
-def copy_to_frontend_activity(config: dict) -> dict:
-    return run_copy_to_frontend(config)
-
-
-@app.activity_trigger(input_name="config")
-def migrate_small_collections_activity(config: dict) -> dict:
-    return migrate_small_collections(config)
-
-
-@app.activity_trigger(input_name="config")
-def migrate_chunk_activity(config: dict) -> dict:
-    return migrate_chunk(config)
-
-
-@app.activity_trigger(input_name="config")
-def drop_destination_activity(config: dict) -> dict:
-    return drop_destination(config)
-
-
-@app.activity_trigger(input_name="config")
-def partition_source_activity(config: dict) -> dict:
-    return partition_source(config)
-
-
-@app.activity_trigger(input_name="config")
-def copy_chunk_activity(config: dict) -> dict:
-    return copy_chunk(config)
-
-
-@app.activity_trigger(input_name="config")
-def verify_parity_activity(config: dict) -> dict:
-    return verify_parity(config)
-
-
-@app.activity_trigger(input_name="config")
-def create_frontend_vector_index_activity(config: dict) -> dict:
-    return create_frontend_vector_index_fn(config)
-
-
-@app.activity_trigger(input_name="config")
 def check_cluster_state_activity(config: dict) -> dict:
     """Return cluster state for orchestrator polling."""
     mgr = _get_ops_manager()
     return mgr.status(config.get("cluster_name", "ChatHealthyDataPipelines"))
-
-
-@app.activity_trigger(input_name="config")
-def snapshot_collection_activity(config: dict) -> dict:
-    return snapshot_collection_fn(config)
 
 
 @app.activity_trigger(input_name="config")

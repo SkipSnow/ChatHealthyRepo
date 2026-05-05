@@ -530,7 +530,7 @@ class RemoteDeploy:
             sys.executable, "-m", "pytest", "-v",
             str(self.deploy_dir / "localSmokeTestPyTest.py"),
             f"--smoke-env={self.env}",
-            # HF-deployed envs do not support mTLS per BUG-SEC-002; deselect
+            # HF-deployed envs do not support mTLS; deselect
             # the mtls_required marker at invocation time. This replaces the
             # in-test pytest.skip (BUG-003 item #5) — invocation-level
             # contract decision, not test-side branching.

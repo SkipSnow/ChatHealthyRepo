@@ -155,7 +155,7 @@ jobs:
             --exclude='*.pyc' \
             FrontEndApplicationLib/ hf_space/FrontEndApplicationLib/
 
-          # PKI certs deferred to Beta (BUG-SEC-002) — HF doesn't support mTLS
+          # PKI certs deferred to Beta — HF doesn't support mTLS
 
           cd hf_space
           git add .

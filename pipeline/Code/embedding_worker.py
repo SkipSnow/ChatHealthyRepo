@@ -95,7 +95,7 @@ class EmbeddingWorker(PipelineWorkerBase):
         self.provider_collection = config.get(
             "provider_collection", f"{_env}_PublicHealthData.providers"
         )
-        self._states_filter = _build_states_filter(config)  # BUG-PIPE-001: strict, raises if missing
+        self._states_filter = _build_states_filter(config)  # strict, raises if missing
         self._batch_size = config.get("embed_batch_size", EMBED_BATCH_SIZE)
         self._jitter_max = config.get("embed_initial_jitter", JITTER_MAX_DEFAULT)
 

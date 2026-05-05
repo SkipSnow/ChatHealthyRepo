@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# BUG-BA-001 / UAT-FILTER-001: Filter panel three-number labels display correctly.
+# UAT-FILTER-001: Filter panel three-number labels display correctly.
 # Playwright SIT test against full parent page (DR-019).
 #
 # The three numbers must be:
@@ -45,11 +45,11 @@ def _get_left_panel(page: Page):
 
 
 class TestFilterPanelDisplay:
-    """BUG-BA-001 / UAT-FILTER-001: Filter panel displays correct specialty type counts."""
+    """UAT-FILTER-001: Filter panel displays correct specialty type counts."""
 
     def test_filter_header_shows_specialty_counts_not_provider_counts(self, page: Page):
         """Three numbers in filter header must be specialty type counts.
-        BUG-BA-001: First number was showing provider count (4,676) instead of
+        First number was showing provider count (4,676) instead of
         specialty type count. Must be fixed."""
         frame = _get_chat_frame(page)
 
@@ -89,7 +89,7 @@ class TestFilterPanelDisplay:
         # Provider counts would be in hundreds or thousands
         assert all_val < 100, (
             f"'All possible' shows {all_val} — looks like a provider count, not specialty type count. "
-            f"BUG-BA-001: must show specialty TYPE count."
+            f"must show specialty TYPE count."
         )
         assert presc_val <= all_val, (
             f"Prescribers ({presc_val}) cannot exceed All possible ({all_val})"

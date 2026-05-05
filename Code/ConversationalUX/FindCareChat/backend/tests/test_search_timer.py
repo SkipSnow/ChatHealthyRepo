@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # EPIC-006-F-001-S-001-REQ-B-006: Search timer runs continuously until results displayed.
-# BUG-UX-013: Timer must not stall between classify and DB search.
+# Timer must not stall between classify and DB search.
 #
 # Playwright SIT test against full parent page (DR-019).
 #
@@ -36,7 +36,7 @@ class TestSearchTimer:
 
     def test_timer_runs_until_results_displayed(self, page: Page):
         """Timer counts continuously from search submit to results render.
-        Must not stall between classify and DB search (BUG-UX-013)."""
+        Must not stall between classify and DB search."""
         frame = _get_chat_frame(page)
 
         # Type a search query
@@ -65,7 +65,7 @@ class TestSearchTimer:
             current_seconds = int(current_text.replace("s", ""))
             assert current_seconds > first_seconds, (
                 f"Timer stalled at {first_seconds}s — did not advance after 3 seconds. "
-                f"BUG-UX-013: timer clears too early between classify and DB search."
+                f"timer clears too early between classify and DB search."
             )
 
         # Wait for results to appear (max 30s for slow DB without vector index)

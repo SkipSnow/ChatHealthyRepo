@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# BUG-UX-008: Environment banner must show labeled version info.
+# Environment banner must show labeled version info.
 # Playwright SIT test against full parent page (DR-019).
 
 import os
@@ -15,7 +15,7 @@ os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 
 class TestEnvironmentBanner:
-    """BUG-UX-008: Banner must display environment, version, framework, build, commit with labels."""
+    """Banner must display environment, version, framework, build, commit with labels."""
 
     def test_banner_visible(self, page: Page):
         """Banner is visible on non-prod environments."""

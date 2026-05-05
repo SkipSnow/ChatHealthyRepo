@@ -11,8 +11,8 @@ be 200.
 
 Negative matrix (6 tests): same 6 calls with no client cert. Under full
 mTLS enforcement the server MUST reject the handshake. Currently marked
-xfail because mTLS enforcement at the TLS layer is deferred per
-BUG-SEC-002 (browser traffic shares the same port). When mTLS moves to
+xfail because mTLS enforcement at the TLS layer is deferred
+(browser traffic shares the same port). When mTLS moves to
 a dedicated service-to-service port, flip these tests to expect pass.
 
 Debug logging (SMOKE_DEBUG=1): for each attempt, log caller cert subject
@@ -157,10 +157,10 @@ def test_mtls_handshake_with_client_cert(caller, callee):
 
 
 # ── Negative matrix: missing client cert MUST be rejected under real mTLS ───
-# xfail until BUG-SEC-002's dedicated mTLS port lands (browser port sharing
+# xfail until a dedicated mTLS port lands (browser port sharing
 # currently forces ssl_cert_reqs=CERT_NONE so anonymous connections succeed).
 @pytest.mark.xfail(
-    reason="BUG-SEC-002 (deferred to Beta): browser-facing port cannot enforce CERT_REQUIRED",
+    reason="deferred to Beta: browser-facing port cannot enforce CERT_REQUIRED",
     strict=False,
 )
 @pytest.mark.parametrize("caller,callee", _PAIRS)

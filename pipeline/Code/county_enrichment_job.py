@@ -318,7 +318,7 @@ def reset_geocoder_failed_fn(config: dict) -> dict:
     """
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
-    sf = _build_states_filter(config)  # BUG-PIPE-001
+    sf = _build_states_filter(config)
     result = _get_mongo_client()[db_name][coll_name].update_many(
         {"county.source": "geocoder_failed", "bad_data.flagged": {"$ne": True}, "out_of_scope.flagged": {"$ne": True}, **sf},
         {"$set": {"county": {"fips": None}}},
@@ -533,10 +533,10 @@ def get_distinct_zips_fn(config: dict) -> dict:
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
-    state_filter = _build_states_filter(config)  # BUG-PIPE-001
+    state_filter = _build_states_filter(config)
     total = coll.count_documents(state_filter)
     pipeline = [
-        {"$match": state_filter},  # BUG-PIPE-001
+        {"$match": state_filter},
         {"$project": {"zip5": {"$substr": [
             {"$ifNull": [{"$toString": "$practice_address.zip"}, ""]},
             0, 5
@@ -576,7 +576,7 @@ class ZipEnrichmentWorker(PipelineWorkerBase):
         super().__init__(config)
         self.zip_batch = config["zip_batch"]
         self.provider_collection = config.get("provider_collection", PROVIDERS_COLLECTION)
-        self._state_filter = _build_states_filter(config)  # BUG-PIPE-001: required
+        self._state_filter = _build_states_filter(config)  # required
         self._idx: int = -1
         self._collection = None
         self._total_modified: int = 0
@@ -602,7 +602,7 @@ class ZipEnrichmentWorker(PipelineWorkerBase):
             "bad_data.flagged": {"$ne": True},
             "out_of_scope.flagged": {"$ne": True},
             "practice_address.zip": {"$regex": f"^{zip5}"},
-            **self._state_filter,  # BUG-PIPE-001
+            **self._state_filter,
         }
         result = self._collection.update_many(
             query,
@@ -658,7 +658,7 @@ def mark_out_of_scope_fn(config: dict) -> dict:
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
-    sf = _build_states_filter(config)  # BUG-PIPE-001
+    sf = _build_states_filter(config)
     _base = {
         "county.fips": None,
         "bad_data.flagged": {"$ne": True},
@@ -749,7 +749,7 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
                 zip_to_state[zip_code] = abbrev
 
     # Aggregate distinct (zip, state) pairs from unenriched, non-excluded providers
-    sf = _build_states_filter(config)  # BUG-PIPE-001
+    sf = _build_states_filter(config)
     pipeline = [
         {"$match": {
             "county.fips": None,
@@ -919,7 +919,7 @@ def mark_prescriber_fn(config: dict) -> dict:
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
-    sf = _build_states_filter(config)  # BUG-PIPE-001
+    sf = _build_states_filter(config)
 
     # Only process providers without the flag
     base_filter = {
@@ -1014,7 +1014,7 @@ def get_unenriched_fn(config: dict) -> dict:
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
-    sf = _build_states_filter(config)  # BUG-PIPE-001
+    sf = _build_states_filter(config)
     enrichment_filter = {**_UNENRICHED_FILTER, **sf}
     total_providers = coll.count_documents(sf)
     unenriched = coll.count_documents(enrichment_filter)
@@ -1099,7 +1099,7 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
-    sf = _build_states_filter(config)  # BUG-PIPE-001: defense-in-depth
+    sf = _build_states_filter(config)  # defense-in-depth
     id_filter: dict = {"_id": {"$gte": ObjectId(start_id_hex)}}
     if end_id_hex:
         id_filter["_id"]["$lt"] = ObjectId(end_id_hex)
@@ -1190,7 +1190,7 @@ def get_billing_retryable_fn(config: dict) -> dict:
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
-    sf = _build_states_filter(config)  # BUG-PIPE-001
+    sf = _build_states_filter(config)
     ids = [
         str(doc["_id"])
         for doc in coll.find(
@@ -1325,7 +1325,7 @@ def get_maps_retryable_fn(config: dict) -> dict:
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
-    sf = _build_states_filter(config)  # BUG-PIPE-001
+    sf = _build_states_filter(config)
     ids = [
         str(doc["_id"])
         for doc in coll.find(
@@ -1437,23 +1437,14 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
 def _build_states_filter(config: dict) -> dict:
     """Build a MongoDB query filter for state restriction. REQUIRED — raises if missing.
 
-    BUG-PIPE-001: every enrichment step must filter by states. No default to all records.
+    Delegates to the shared state_filter helper so the predicate is identical to
+    the one drain and load use (EPIC-010-F-006-S-001 REQ-T-001 uniform predicate,
+    REQ-T-002 raise on missing, REQ-T-004 ALL sentinel returns {} = match all).
     """
-    states = config.get("states")
-    if not states:
-        raise ValueError("BUG-PIPE-001: states parameter is REQUIRED for enrichment. Cannot process all records.")
-    if isinstance(states, list):
-        return {"practice_address.state": {"$in": states}}
-    if isinstance(states, dict):
-        state_list = states.get("list", [])
-        if not state_list:
-            raise ValueError("BUG-PIPE-001: states.list is empty. Cannot process all records.")
-        mode = states.get("mode", "include").lower()
-        if mode == "include":
-            return {"practice_address.state": {"$in": state_list}}
-        if mode == "exclude":
-            return {"practice_address.state": {"$nin": state_list}}
-    raise ValueError(f"BUG-PIPE-001: invalid states format: {states}")
+    import sys as _sys, os as _os
+    _sys.path.insert(0, _os.path.dirname(__file__))
+    from state_filter import normalize_states, mongo_state_filter
+    return mongo_state_filter(normalize_states(config))
 
 
 
@@ -1479,7 +1470,7 @@ def get_nppes_retryable_fn(config: dict) -> dict:
         "bad_data.flagged": {"$ne": True},
         "out_of_scope.flagged": {"$ne": True},
         "npi": {"$nin": [None, ""]},
-        **_build_states_filter(config),  # BUG-PIPE-001: mandatory
+        **_build_states_filter(config),  # mandatory
     }
 
     providers = [
@@ -1713,7 +1704,7 @@ def enrichment_report_fn(config: dict) -> dict:
     client = _get_mongo_client()
 
     staging_coll = client[db_name_s][coll_name_s]
-    sf = _build_states_filter(config)  # BUG-PIPE-001: mandatory state filter
+    sf = _build_states_filter(config)  # mandatory state filter
 
     # Live count by county.source (null source = never touched)
     source_counts: dict = {
