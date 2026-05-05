@@ -115,6 +115,13 @@
                 ],
                 [
                   "_block_regular_expressions_in_executable_code",
+                  "excluded_exact",
+                  [
+                    "architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py"
+                  ]
+                ],
+                [
+                  "_block_regular_expressions_in_executable_code",
                   "excluded_pattern",
                   [
                     "(^|/)tests/",
