@@ -73,6 +73,18 @@ else:
 # file" and "what was the actual URL so we can pattern-allow it".
 _HTTP_URL_RE = re.compile(r"http://[^\s\"'<>,()]+")
 
+# Rule-008 statement #4: regex API usage detection patterns. File-selection
+# (which files this method scans) lives in the scope array on
+# Rule-008-ENF-001. The detection patterns are content-only.
+_PY_REGEX_HITS = (
+    r"^\s*import\s+re\b",
+    r"^\s*from\s+re\s+import\b",
+    r"\bre\.(compile|match|search|findall|finditer|sub|split|fullmatch)\s*\(",
+)
+_JS_REGEX_HITS = (
+    r"\bnew\s+RegExp\s*\(",
+)
+
 # JSON Schema 2020-12 meta-schema URL — schema files declare this in their
 # top-level $schema. Frozen per spec; served from a local copy via the
 # carve-out map (V19 §4.9.3.1).
@@ -123,6 +135,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
     SCOPE_DEFAULTS: dict[str, bool] = {
         "_scan_http": True,
         "_validate_json": False,
+        "_block_regular_expressions_in_executable_code": False,
     }
     # Class-level fallback (used if a check method is added without a per-
     # method default declared in SCOPE_DEFAULTS).
@@ -193,6 +206,17 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         for file_path in files:
             self.files_scanned += 1
 
+            # Rule-008 statement #4 runs FIRST. Regex usage in production
+            # code rejects the file; downstream checks are skipped.
+            if self.is_in_scope(file_path, "_block_regular_expressions_in_executable_code"):
+                regex_violations = self._block_regular_expressions_in_executable_code(file_path)
+                if regex_violations:
+                    for v in regex_violations:
+                        self._emit_violation(v)
+                        self.violation_count += 1
+                    any_violations = True
+                    continue
+
             if self.is_in_scope(file_path, "_scan_http"):
                 for v in self._scan_http(file_path):
                     self._emit_violation(v)
@@ -206,6 +230,50 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
                     any_violations = True
 
         return EXIT_VIOLATIONS_FOUND if any_violations else EXIT_OK
+
+    # ────────────────────────────────────────────────────────────────────────
+    # _block_regular_expressions_in_executable_code  (Rule-008 statement #4)
+    # ────────────────────────────────────────────────────────────────────────
+    def _block_regular_expressions_in_executable_code(
+        self, file_path: str
+    ) -> list[ViolationRecord]:
+        """Block regex API usage in production-executable code.
+
+        File-selection lives in the scope array on Rule-008-ENF-001. This
+        method only does content detection on whatever files the base
+        class passes through. A file with violations is rejected and
+        run() must skip downstream checks for that file.
+        """
+        absolute_path = (PROJECT_ROOT / file_path).resolve()
+        if not absolute_path.is_file():
+            return []
+        try:
+            text = absolute_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            return []
+
+        posix = file_path.replace("\\", "/")
+        is_py = posix.endswith(".py")
+        is_jslike = posix.endswith((".ts", ".tsx", ".js", ".jsx", ".html"))
+        patterns = (_PY_REGEX_HITS if is_py else ()) + (_JS_REGEX_HITS if is_jslike else ())
+
+        violations: list[ViolationRecord] = []
+        for pat in patterns:
+            for m in re.finditer(pat, text, flags=re.MULTILINE):
+                line_no = text[: m.start()].count("\n") + 1
+                violations.append(
+                    ViolationRecord(
+                        enforcement_id=self.enforcement_id,
+                        rule_id=self.rule_id,
+                        resource=file_path,
+                        message=(
+                            f"regex usage at line {line_no}: {m.group(0).strip()[:80]} "
+                            f"— Rule-008 statement #4 forbids regex in production-executable code"
+                        ),
+                        severity="error",
+                    )
+                )
+        return violations
 
     # ────────────────────────────────────────────────────────────────────────
     # Resource enumeration
