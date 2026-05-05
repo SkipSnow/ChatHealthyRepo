@@ -7,7 +7,7 @@ on:
       - qa
       - main
     paths:
-      - 'Code/DataPipelines/**'
+      - 'pipeline/Code/**'
       - '.github/workflows/deploy-pipelines.yml'
 
 jobs:
@@ -27,9 +27,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd Code/DataPipelines
+          cd pipeline/Code
           pip install -r requirements-pipeline.txt
-          pip install -r Code/Shared/ops/tools/requirements.txt
+          pip install -r ../../Code/Shared/ops/tools/requirements.txt
 
       - name: Derive environment from branch
         id: env
@@ -129,7 +129,7 @@ jobs:
 
       - name: Deploy to Azure Functions
         run: |
-          cd Code/DataPipelines
+          cd pipeline/Code
           cp requirements-pipeline.txt requirements.txt
           zip -r deploy.zip . --exclude "*.pyc" --exclude "__pycache__/*" --exclude "venv/*" --exclude "venv_func/*" --exclude "local.settings.json" --exclude ".env"
           az functionapp deployment source config-zip \
