@@ -43,33 +43,84 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Set HF Space variables (peer URLs, env)
+      - name: Set HF Space variables + secrets (peer URLs, env, certs, signing key)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE: ${{ steps.space.outputs.name }}
           ENV: ${{ steps.space.outputs.env }}
+          # GH repo secret holding base64(shared.key) — same value across
+          # dev/qa/prod (pre-alpha; Skip 2026-05-04). Required by SharedServices'
+          # _bootstrap_certs_from_env() to materialize shared.key into
+          # CERTS_DIR for session-token signing.
+          SHARED_SIGNING_KEY_B64: ${{ secrets.SHARED_SIGNING_KEY_B64 }}
         run: |
           if [ "$ENV" = "prod" ]; then PREFIX=""; else PREFIX="${ENV}-"; fi
           FINDCARE_URL="https://skipsnow-${PREFIX}chathealthyspace.hf.space"
           EVALCARE_URL="https://skipsnow-${PREFIX}evaluatecarespace.hf.space"
           set_var() {
             K="$1"; V="$2"
-            # Delete any pre-existing secret with the same name — HF rejects
-            # collision between a variable and a secret, causing CONFIG_ERROR.
             curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
               -H "Authorization: Bearer $HF_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"key\":\"${K}\"}" -o /dev/null
-            # Now set the variable (authoritative per-env value from this workflow).
             curl -sf -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
               -H "Authorization: Bearer $HF_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"key\":\"${K}\",\"value\":\"${V}\",\"description\":\"Set by deploy workflow\"}" \
-              -o /dev/null && echo "  set ${K}=${V}"
+              -o /dev/null && echo "  set var ${K}"
+          }
+          set_secret() {
+            # MUST delete same-named variable + same-named secret before POST
+            # — HF rejects var/secret collision and rejects POST-on-existing.
+            # JSON body via python -c to immunize against shell quoting.
+            K="$1"; V="$2"
+            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
+              -H "Authorization: Bearer $HF_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${K}\"}" -o /dev/null
+            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
+              -H "Authorization: Bearer $HF_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${K}\"}" -o /dev/null
+            BODY=$(python3 -c "import json,sys; print(json.dumps({'key':sys.argv[1],'value':sys.argv[2],'description':'Set by deploy workflow'}))" "$K" "$V")
+            HTTP=$(curl -s -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
+              -H "Authorization: Bearer $HF_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "$BODY" \
+              -o /tmp/hf_resp.txt -w "%{http_code}")
+            if [ "$HTTP" = "200" ] || [ "$HTTP" = "201" ]; then
+              echo "  set secret ${K} (http=$HTTP)"
+            else
+              echo "  ERROR set secret ${K}: http=$HTTP"
+              cat /tmp/hf_resp.txt; echo
+              return 1
+            fi
           }
           set_var "ENV_PREFIX"     "${ENV}"
           set_var "FINDCARE_URL"   "${FINDCARE_URL}"
           set_var "EVALCARE_URL"   "${EVALCARE_URL}"
+
+          # Public certs for token-level mutual auth (per SharedServices'
+          # app.py _bootstrap_certs_from_env, lines 33-36):
+          #   FINDCARE_CERT_PEM      peer (verifies FindCare-signed tokens)
+          #   SHARED_CERT_PEM        own
+          #   CA_CERT_PEM            chain
+          # All public — read from repo, base64, ship as variables.
+          FINDCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/findcare.crt)
+          SHARED_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/shared.crt)
+          CA_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/ca.crt)
+          set_var "FINDCARE_CERT_PEM" "${FINDCARE_CERT_PEM_B64}"
+          set_var "SHARED_CERT_PEM"   "${SHARED_CERT_PEM_B64}"
+          set_var "CA_CERT_PEM"       "${CA_CERT_PEM_B64}"
+
+          # Private signing key — secret, sourced from GH repo secret.
+          if [ -z "$SHARED_SIGNING_KEY_B64" ]; then
+            echo "ERROR: GH repo secret SHARED_SIGNING_KEY_B64 is empty or unset."
+            echo "Create it at https://github.com/SkipSnow/ChatHealthyRepo/settings/secrets/actions"
+            echo "Value: base64 -w0 of Code/Shared/ops/certs/shared.key"
+            exit 1
+          fi
+          set_secret "SHARED_SIGNING_KEY_PEM" "${SHARED_SIGNING_KEY_B64}"
 
       - name: Push to HuggingFace Space
         env:
