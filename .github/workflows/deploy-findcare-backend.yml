@@ -99,12 +99,17 @@ jobs:
               -o /dev/null && echo "  set var ${K}"
           }
           set_secret() {
-            # Mirror of set_var but POSTs to /secrets endpoint. For values
-            # that must NOT be visible in HF Space settings as plaintext
-            # (private keys). Same DELETE-then-POST pattern (HF rejects
-            # collision between a variable and a secret of the same name).
+            # Mirror of set_var but POSTs to /secrets. For values that must
+            # NOT be plaintext-visible in HF Space settings (private keys).
+            # MUST delete BOTH a same-named variable AND a same-named secret
+            # before POSTing — HF rejects var/secret collision AND rejects
+            # POST to /secrets if a secret of that name already exists.
             K="$1"; V="$2"
             curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
+              -H "Authorization: Bearer $HF_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${K}\"}" -o /dev/null
+            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
               -H "Authorization: Bearer $HF_TOKEN" \
               -H "Content-Type: application/json" \
               -d "{\"key\":\"${K}\"}" -o /dev/null
