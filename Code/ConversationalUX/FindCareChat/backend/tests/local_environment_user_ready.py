@@ -255,7 +255,7 @@ class TestEvaluateCareHandoff:
             page.wait_for_timeout(3000)
         _screenshot(page, "08_after_evaluate")
 
-    @pytest.mark.xfail(reason="BUG-EVAL-001: lastProvidersRef empty — deferred")
+    @pytest.mark.xfail(reason="lastProvidersRef empty — deferred")
     def test_right_panel_has_providers(self, shared_page):
         page = shared_page["page"]
         right_text = page.locator("#rightPanel").inner_text()
@@ -266,7 +266,7 @@ class TestEvaluateCareHandoff:
             any(w in right_text for w in ["Dr.", "MD", "DO", "DPM", "NPI", "provider"])
         assert has_content, f"Right panel should show providers. Text: {right_text[:400]}"
 
-    @pytest.mark.xfail(reason="BUG-EVAL-001: lastProvidersRef empty — deferred")
+    @pytest.mark.xfail(reason="lastProvidersRef empty — deferred")
     def test_session_token_visible(self, shared_page):
         page = shared_page["page"]
         session_el = page.locator("#guiSessionId")
@@ -278,7 +278,7 @@ class TestEvaluateCareHandoff:
         _screenshot(page, "10_session_token")
         assert has_token, f"Session token (CH_) not found"
 
-    @pytest.mark.xfail(reason="BUG-EVAL-001: lastProvidersRef empty — deferred")
+    @pytest.mark.xfail(reason="lastProvidersRef empty — deferred")
     def test_session_verification_in_right_panel(self, shared_page):
         page = shared_page["page"]
         right_text = page.locator("#rightPanel").inner_text()
@@ -300,7 +300,7 @@ class TestKnownGaps:
     def test_gap_https_redirect(self, shared_page):
         page = shared_page["page"]
         if not page.url.startswith("https://"):
-            _record_bug("BUG-TLS-001", f"No HTTPS redirect. URL: {page.url}")
+            _record_bug("GAP-TLS-001-redirect", f"No HTTPS redirect. URL: {page.url}")
 
 
 # ── Report ─────────────────────────────────────────────────────────────────

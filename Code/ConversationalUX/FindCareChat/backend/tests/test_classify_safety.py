@@ -1,5 +1,5 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
-# test_classify_safety.py — BUG-SAFETY-001: /classify must run safety check.
+# test_classify_safety.py — /classify must run safety check.
 #
 # Regression test: emergency messages through /classify must trigger
 # CALL 911, not return provider cards.
@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 
 class TestClassifySafetyGate:
-    """BUG-SAFETY-001: /classify endpoint must check for emergencies."""
+    """/classify endpoint must check for emergencies."""
 
     @pytest.fixture(autouse=True)
     def setup(self):

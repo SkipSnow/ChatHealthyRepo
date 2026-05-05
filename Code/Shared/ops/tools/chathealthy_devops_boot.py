@@ -80,7 +80,7 @@ def _propensity_response(label: str, json_stem: str = "", reason: str = "") -> d
 class governance_worker_base(BaseModel if BaseModel is not object else object):
     """Base class for all pydantic governance worker objects.
     Every worker inherits human constraint check and risk acceptance validation.
-    BUG-GOV-002: Human prompt instructions take precedence over all other rules."""
+    Human prompt instructions take precedence over all other rules."""
 
     risk_acceptance_id: str = None
 
@@ -101,7 +101,7 @@ class governance_worker_base(BaseModel if BaseModel is not object else object):
             return {
                 "comply": False,
                 "action": "escalate",
-                "reason": f"BUG-GOV-002: Human constraint active — '{boss_check['constraint']}'",
+                "reason": f"Human constraint active — '{boss_check['constraint']}'",
             }
         return {"comply": True}
 
@@ -307,7 +307,7 @@ class engineering_rules_worker(governance_worker_base):
                         lines.append(f"[POLICY] {text[:200]}")
         return "\n".join(lines)
 
-    # Structured output schemas for GPT calls (BUG-GOV-006)
+    # Structured output schemas for GPT calls
     _STATE_CHANGE_SCHEMA = {
         "type": "json_schema",
         "json_schema": {
@@ -955,7 +955,7 @@ class chathealthy_devops_boot:
         """Print hook execution visibly."""
         print(f"🔒 GUARD | {method}() | source={source} | destination={destination}", file=sys.stderr)
 
-    # ── BUG-GOV-002: Human prompt constraint check ──────────────────────────
+    # ── Human prompt constraint check ──────────────────────────
 
     @staticmethod
     def _boss_has_active_constraint(transcript_path: str, window_hours: int = 3) -> dict:
@@ -1121,7 +1121,7 @@ class chathealthy_devops_boot:
         self._booted = True
         settings = self._read_settings()
         settings["booted"] = True
-        settings["mode_selected"] = False  # BUG-GOV-011: reset per session
+        settings["mode_selected"] = False  # reset per session
         self._write_settings(settings)
         self._state["boot_complete"] = True
 
@@ -1195,7 +1195,7 @@ class chathealthy_devops_boot:
         }
 
     def inform_claude(self, boot_result: dict) -> str:
-        """EPIC-008-F-003-S-001-REQ-B-004 (BUG-GOV-011): Emit ONLY the mode-selection
+        """EPIC-008-F-003-S-001-REQ-B-004: Emit ONLY the mode-selection
         directive at boot. Orphan-triage directive is emitted in prompt() on the
         turn the user replies 1/2/3 — keeps SessionStart additionalContext small
         enough to survive the preview-truncation window.
@@ -1489,7 +1489,7 @@ def main():
                 f.write(f"\n{'='*60}\n")
         except Exception:
             pass
-        print(f"BUG-GOV-001: Guard crashed — stack logged to {LOG_PATH}", file=sys.stderr)
+        print(f"Guard crashed — stack logged to {LOG_PATH}", file=sys.stderr)
         # Don't block on crash — fail open so plugin doesn't die
         exit_code = 0
     finally:

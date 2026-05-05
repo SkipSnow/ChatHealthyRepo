@@ -73,7 +73,8 @@
                     "^architecture/EngineeringRuleEnforcement/tests/fixtures/",
                     "^Website/schemas/standard/",
                     "^evaluateCare/APICatalogue/",
-                    "^sharedServices/APICatalogue/"
+                    "^sharedServices/APICatalogue/",
+                    "host\\.json$"
                   ]
                 ],
                 [

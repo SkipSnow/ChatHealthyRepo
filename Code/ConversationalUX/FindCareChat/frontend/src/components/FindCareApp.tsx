@@ -53,7 +53,7 @@ function checkSecurityViolation(resp: Response, url: string): void {
 // ── Session token ────────────────────────────────────────────────
 // No client-side fallback. If the server cannot mint a signed token the
 // flow MUST fail — synthesizing a CH_{uuid} placeholder here is the kind
-// of silent security regression that masked BUG-SEC-007.
+// of silent security regression to be avoided.
 let _sessionToken: any = null
 async function getSessionToken(): Promise<any> {
   const resp = await fetch(`${API_URL}/session`, { method: 'POST' })
@@ -108,7 +108,7 @@ export default function FindCareApp() {
       const msg = event.data
       if (!msg || typeof msg !== 'object') return
 
-      // BUG-UX-022/023: RestoreState=false — reset to welcome, focus input
+      // RestoreState=false — reset to welcome, focus input
       if (msg.type === 'gui:reset') {
         setPhase('welcome')
         setQuestion('')

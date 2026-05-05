@@ -30,7 +30,7 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "mtls_required: test requires mTLS to be enabled in the env "
-        "(local only; HF-deployed envs do not support mTLS per BUG-SEC-002). "
+        "(local only; HF-deployed envs do not support mTLS). "
         "Deploy classes filter this marker via -m 'not mtls_required' for "
         "non-local envs (BUG-003 item #5)."
     )

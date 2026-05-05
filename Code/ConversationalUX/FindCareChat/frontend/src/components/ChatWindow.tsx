@@ -31,7 +31,7 @@ const LOADING_MESSAGE: Message = {
 // Session token — fetched from FindCare backend, signed with x509 cert.
 // Client carries the opaque signed blob, passes it on cross-component calls.
 // No client-side fallback: a failed /session call MUST surface as an error,
-// never a CH_{uuid} placeholder (that was the third layer of BUG-SEC-007).
+// never a CH_{uuid} placeholder.
 let _sessionToken: any = null
 async function getSessionToken(apiUrl: string) {
   if (_sessionToken) return _sessionToken
@@ -553,7 +553,6 @@ export default function ChatWindow() {
 
       // FC-RESULT-MSG / GOV-011: system-built summary — suppressed when selection panel active
       // The specialty list and provider counts are shown in the filter panel, not chat
-      // BUG-UX-010: was dumping full specialty list as garbage text in chat
 
       // Clinical trials summary — same GOV-011 pattern
       if (data.trials?.summary_message) {

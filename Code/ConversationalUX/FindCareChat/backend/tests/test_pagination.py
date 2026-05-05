@@ -585,7 +585,7 @@ class TestSearchResultPresentation(unittest.TestCase):
             specialty_searched="surgeons")
         self.assertIn("#action:next-page", msg)
 
-    # ── BUG-MSG-001: LLM must not duplicate system summary ──
+    # ── LLM must not duplicate system summary ──
 
     def test_strip_redundant_summary(self):
         """_strip_redundant_summary must remove LLM pagination language."""
@@ -624,7 +624,7 @@ class TestSearchResultPresentation(unittest.TestCase):
         self.assertIn("1234567890", cleaned)
         self.assertNotIn("Here are the first", cleaned)
 
-    # ── BUG-MSG-002: Summary must use user's term, not LLM's ──
+    # ── Summary must use user's term, not LLM's ──
 
     def test_summary_uses_user_term_not_llm(self):
         """summary_message must use user's original words, not LLM-translated terms."""

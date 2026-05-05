@@ -143,7 +143,7 @@ def _get_py_files(directory):
 def enforce_file_scan(rule_id, enforcement):
     pattern = enforcement.get("pattern", "")
     if pattern:
-        print(f"  WARN: {rule_id}: regex scan skipped (BUG-GOV-004 — GPT enforcement pending)")
+        print(f"  WARN: {rule_id}: regex scan skipped (GPT enforcement pending)")
     return []
 
 

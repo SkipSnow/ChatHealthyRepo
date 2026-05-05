@@ -3,7 +3,7 @@
 #
 # localSmokeTestPyTest.py — DEVOPS-LOCAL-B009
 # 34-step Playwright smoke test. Each step maps to a requirement.
-# Steps 31-33 added for BUG-UX-020: all 6 component handoff permutations.
+# Steps 31-33 cover all 6 component handoff permutations.
 # Every assertion is strict. No silent passes. No conditional assertions.
 #
 # Prerequisites: deploy_localhost.sh must be running (all servers up).
@@ -153,7 +153,7 @@ REQ_015_TIMEOUT_S = 30  # EPIC-002-F-001-S-012-REQ-B-008 configurable timeout.
 
 
 def _wait_for_verified_resolution(page, handoff_label, timeout_s=REQ_015_TIMEOUT_S):
-    """BUG-TEST-036 (EPIC-002-F-001-S-012-REQ-B-008): after a handoff, the Verified value
+    """EPIC-002-F-001-S-012-REQ-B-008: after a handoff, the Verified value
     in the session verification panel MUST resolve to a definitive positive or
     negative state (YES / VERIFIED / FAILED) within `timeout_s`. If it does
     not, a Fatal Error splash MUST appear in the center panel. Indefinite
@@ -394,7 +394,7 @@ class TestStep03:
         if IS_PROD:
             pytest.skip("S-002-REQ-B-002: service buttons live in banner, suppressed in prod")
         page = env["page"]
-        # BUG-UX-021: Must be a <button> inside #envBanner, not a link in header nav
+        # Must be a <button> inside #envBanner, not a link in header nav
         # Banner button rendered by renderBannerButtons uses data-service="sharedservices",
         # text label "SharedServices" (PascalCase, no space). Per Skip directive 2026-04-19.
         _verify_button_in_parent(page, "[data-service='sharedservices']", "#envBanner", "SharedServices")
@@ -497,7 +497,7 @@ class TestStep08:
         page = env["page"]
         left = page.locator("#leftPanel")
 
-        # BUG-TEST-033 (FINDCARE-UX-002): left panel MUST have 4 cells with
+        # FINDCARE-UX-002: left panel MUST have 4 cells with
         # reactive percentage heights 18/40/20/22. Structure-agnostic — accepts
         # any tag that carries [data-cell="N"]. Pixel heights MUST NOT be used.
         cells = left.locator("[data-cell]")
@@ -520,7 +520,7 @@ class TestStep08:
                 f"FINDCARE-UX-002: cell {i+1} MUST NOT use pixel height/flex-basis. Got {style!r}"
             )
 
-        # BUG-TEST-034 (EPIC-006-F-002-S-001-REQ-B-008): Uncheck All MUST sit inside
+        # EPIC-006-F-002-S-001-REQ-B-008: Uncheck All MUST sit inside
         # cell 1 (the 18% green header), to the left of Prescribers and
         # Homeopathic filter checkboxes.
         cell1_toggle = left.locator("[data-cell='1'] [data-gui-action='toggle-all']")

@@ -3,7 +3,7 @@
 #
 # localSmokeTestPyTest.py — DEVOPS-LOCAL-B009
 # 34-step Playwright smoke test. Each step maps to a requirement.
-# Steps 31-33 added for BUG-UX-020: all 6 component handoff permutations.
+# Steps 31-33 cover all 6 component handoff permutations.
 # Every assertion is strict. No silent passes. No conditional assertions.
 #
 # Prerequisites: deploy_localhost.sh must be running (all servers up).
@@ -43,7 +43,7 @@ _ENV_CONFIG = {
         "shared_url":         "https://skipsnow-dev-sharedservicesspace.hf.space",
         "http_redirect_host": None,                    # HF/Cloudflare don't serve HTTP
         "banner_label":       "DEV",
-        "mtls_enabled":       False,                   # BUG-SEC-002: HF does not support mTLS (deferred to Beta)
+        "mtls_enabled":       False,                   # HF does not support mTLS (deferred to Beta)
         "shared_port":        None,
         "evalcare_port":      None,
     },
@@ -153,7 +153,7 @@ REQ_015_TIMEOUT_S = 30  # EPIC-002-F-001-S-012-REQ-B-008 configurable timeout.
 
 
 def _wait_for_verified_resolution(page, handoff_label, timeout_s=REQ_015_TIMEOUT_S):
-    """BUG-TEST-036 (EPIC-002-F-001-S-012-REQ-B-008): after a handoff, the Verified value
+    """EPIC-002-F-001-S-012-REQ-B-008: after a handoff, the Verified value
     in the session verification panel MUST resolve to a definitive positive or
     negative state (YES / VERIFIED / FAILED) within `timeout_s`. If it does
     not, a Fatal Error splash MUST appear in the center panel. Indefinite
@@ -361,7 +361,7 @@ class TestStep02:
 class TestStep03:
     def test_shared_services_button(self, env):
         page = env["page"]
-        # BUG-UX-021: Must be a <button> inside #envBanner, not a link in header nav
+        # Must be a <button> inside #envBanner, not a link in header nav
         # Banner button rendered by renderBannerButtons uses data-service="sharedservices",
         # text label "SharedServices" (PascalCase, no space). Per Skip directive 2026-04-19.
         _verify_button_in_parent(page, "[data-service='sharedservices']", "#envBanner", "SharedServices")
@@ -441,7 +441,7 @@ class TestStep08:
         page = env["page"]
         left = page.locator("#leftPanel")
 
-        # BUG-TEST-033 (FINDCARE-UX-002): left panel MUST have 4 cells with
+        # FINDCARE-UX-002: left panel MUST have 4 cells with
         # reactive percentage heights 18/40/20/22. Structure-agnostic — accepts
         # any tag that carries [data-cell="N"]. Pixel heights MUST NOT be used.
         cells = left.locator("[data-cell]")
@@ -464,7 +464,7 @@ class TestStep08:
                 f"FINDCARE-UX-002: cell {i+1} MUST NOT use pixel height/flex-basis. Got {style!r}"
             )
 
-        # BUG-TEST-034 (EPIC-006-F-002-S-001-REQ-B-008): Uncheck All MUST sit inside
+        # EPIC-006-F-002-S-001-REQ-B-008: Uncheck All MUST sit inside
         # cell 1 (the 18% green header), to the left of Prescribers and
         # Homeopathic filter checkboxes.
         cell1_toggle = left.locator("[data-cell='1'] [data-gui-action='toggle-all']")
@@ -496,7 +496,7 @@ class TestStep08:
             if cb_box and cb_box["y"] >= cell2_box["y"] and cb_box["y"] + cb_box["height"] <= cell2_box["y"] + cell2_box["height"]:
                 specialty_visible += 1
         assert specialty_visible <= 12, \
-            f"BUG-UX-017: {specialty_visible} specialties visible without scrolling. Prescribers: {prescriber_count}. Max 12 required."
+            f"{specialty_visible} specialties visible without scrolling. Prescribers: {prescriber_count}. Max 12 required."
         assert specialty_visible > 0, "No specialties visible"
         _screenshot(page, "08")
         _screenshot(page, "08")
@@ -580,7 +580,7 @@ class TestStep14:
 # Step 15 [EPIC-002-F-001-S-012-REQ-T-002]
 class TestStep15:
     def test_mtls_evaluatecare_tls12(self):
-        # DEV: HF Spaces don't expose mTLS publicly (BUG-SEC-002, mtls_enabled=False
+        # DEV: HF Spaces don't expose mTLS publicly (mtls_enabled=False
         # in _ENV_CONFIG['dev']). Replaced localhost-mTLS check with HTTPS TLS 1.2+
         # check against the dev EvaluateCare URL. Per Skip directive 2026-04-20.
         from urllib.parse import urlparse
@@ -815,7 +815,7 @@ class TestStep26:
 # Step 27 [EPIC-002-F-001-S-012-REQ-T-002]
 class TestStep27:
     def test_mtls_shared_services_tls12(self):
-        # DEV: HF Spaces don't expose mTLS publicly (BUG-SEC-002). Replaced
+        # DEV: HF Spaces don't expose mTLS publicly. Replaced
         # localhost-mTLS with HTTPS TLS 1.2+ check on dev SharedServices URL.
         # Per Skip directive 2026-04-20.
         from urllib.parse import urlparse

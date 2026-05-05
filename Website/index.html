@@ -986,7 +986,7 @@
 
       // Banner button: always-visible explicit return-to-FindCare action.
       // Replaces the old Apply-Filter-in-EvalCare-mode overloading, which
-      // didn't reliably reset phase + focus input (BUG-UX-022/023 workaround
+      // didn't reliably reset phase + focus input (workaround
       // approved by human 2026-04-18).
       window.gotoFindCare = function() { window.returnToFindCare(); };
       window.gotoSharedServices = function() { window.openSharedServices(); };
@@ -1406,7 +1406,7 @@
                         if (shSplash) shSplash.style.display = 'none';
                         // Restore chat iframe
                         chatFrame.style.display = '';
-                        // BUG-UX-022/023: RestoreState=false — reset FindCare to welcome, focus input.
+                        // RestoreState=false — reset FindCare to welcome, focus input.
                         // Welcome briefly appears (satisfies REQ-B-023 welcome-words assertion),
                         // then the immediately-following filter-apply transitions FindCare
                         // back into the searching/results phase with the new code set.
@@ -1517,7 +1517,7 @@
                         var shSplash = document.getElementById('sharedSplash');
                         if (shSplash) shSplash.style.display = 'none';
                         chatFrame.style.display = '';
-                        // BUG-UX-022/023: RestoreState=false — reset FindCare to welcome, focus input
+                        // RestoreState=false — reset FindCare to welcome, focus input
                         chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*');
                         // SEC-HTTPS-001-REQ-021/022: refresh BOTH panels.
                         // FC mints, SS verifies; left panel re-fetches FC /session.
@@ -1648,7 +1648,7 @@
               + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">' + msg.providers.length + ' providers · ' + (msg.question || '') + '</div>'
               + '</div>'
               + '<div style="overflow-y:auto;flex:1;">' + rows + '</div>';
-            // BUG-UX-020: Update left panel with identical session verification
+            // Update left panel with identical session verification
             if (msg.session_token) {
               var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
               if (sessionEl) {
@@ -1673,8 +1673,8 @@
         }
 
         // Session token display in left panel — in table cell below specialties
-        // BUG-UX-015: Must be below specialties, not beside
-        // BUG-UX-016: Must use identical display as right panel — buildTokenDisplayHtml
+        // Must be below specialties, not beside
+        // Must use identical display as right panel — buildTokenDisplayHtml
         if (msg.type === 'gui:session-display') {
           var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
           if (!sessionEl) {

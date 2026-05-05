@@ -72,7 +72,7 @@ class DataFetcherBase:
         remote_sig = self._remote_signature()
 
         if registry and remote_sig and registry.get("remote_signature") == remote_sig:
-            # BUG-PIPE-006: verify blob actually exists before skipping
+            # verify blob actually exists before skipping
             blob_path = registry["blob_path"]
             try:
                 service = get_blob_service()

@@ -263,7 +263,7 @@ register_fatal_handler(app, service_name="FindCare")
 #   77 (EX_NOPERM)    — permission denied on cert/key
 #   70 (EX_SOFTWARE)  — unexpected internal error
 # The underscore check guards against regression to the old silent-fallback
-# placeholder CH_{uuid} (BUG-SEC-007).
+# placeholder CH_{uuid}.
 def _bootstrap_certs_from_env():
     """Write PKI material from env vars to a runtime dir and point CERTS_DIR at it.
 
@@ -422,7 +422,7 @@ async def classify(body: ClassifyRequest, request: Request):
     Replaces the GPT classify call with embedding + vector search.
     Returns specialty codes ranked by cosine similarity + location extracted by simple parsing."""
 
-    # BUG-SAFETY-001: Safety gate — emergency detection must run on every user input,
+    # Safety gate — emergency detection must run on every user input,
     # regardless of which endpoint the frontend calls.
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
@@ -613,7 +613,7 @@ def get_session():
     fails, the caller must NOT proceed with a placeholder. Any failure
     propagates to a 500 so the client sees the problem and halts instead
     of running with a token that has no nonce and no signature. See
-    BUG-SEC-007 (dev tokens missing nonce) and feedback_no_security_fallbacks.
+    feedback_no_security_fallbacks.
     """
     import sys as _sys
     # Local layout: Shared/ is three levels up from backend/.

@@ -234,18 +234,12 @@ class ProviderWorker(PipelineWorkerBase):
         self.metadata_collection = config.get("metadata_collection", "admin.DataLoadMetadata")
         self.blob_container = config.get("blob_container", "provider-data")
 
-        # BUG-PIPE-001: state filter is REQUIRED for all pipeline steps
-        states = config.get("states")
-        if not states:
-            raise ValueError("BUG-PIPE-001: states parameter is REQUIRED. Cannot load all records.")
-        if isinstance(states, list):
-            self._allowed_states = set(s.upper() for s in states)
-        elif isinstance(states, dict):
-            self._allowed_states = set(s.upper() for s in states.get("list", []))
-        else:
-            raise ValueError(f"BUG-PIPE-001: invalid states format: {states}")
-        if not self._allowed_states:
-            raise ValueError("BUG-PIPE-001: states list is empty. Cannot load all records.")
+        # State scope — uses shared state_filter helper so the row-level matcher
+        # is identical to the Mongo predicate every other step uses
+        # (EPIC-010-F-006-S-001 REQ-T-001 uniform predicate, REQ-T-002 raise on
+        # missing, REQ-T-003 multi-state-bearing-field load, REQ-T-004 ALL sentinel).
+        from state_filter import normalize_states
+        self._states = normalize_states(config)  # raises on missing/empty/malformed
         self._skipped_states = 0
 
         # ENH-PIPE-001: incremental mode — replace_one with upsert instead of insert
@@ -313,9 +307,10 @@ class ProviderWorker(PipelineWorkerBase):
 
         doc = _normalize_row(self.header, row)
 
-        # BUG-PIPE-001: skip records not in allowed states
-        state = (doc.get("practice_address") or {}).get("state", "").upper()
-        if state not in self._allowed_states:
+        # Multi-state-bearing-field row check — mirrors the Mongo $or predicate
+        # used by drain/enrichment/embedding so load and drain stay symmetrical.
+        from state_filter import doc_matches_state
+        if not doc_matches_state(doc, self._states):
             self._skipped_states += 1
             return
 
