@@ -62,7 +62,8 @@
                   "excluded_exact",
                   [
                     "package-lock.json",
-                    ".claude/settings.json"
+                    ".claude/settings.json",
+                    "pipeline/Code/host.json"
                   ]
                 ],
                 [
@@ -73,8 +74,7 @@
                     "^architecture/EngineeringRuleEnforcement/tests/fixtures/",
                     "^Website/schemas/standard/",
                     "^evaluateCare/APICatalogue/",
-                    "^sharedServices/APICatalogue/",
-                    "host\\.json$"
+                    "^sharedServices/APICatalogue/"
                   ]
                 ],
                 [
