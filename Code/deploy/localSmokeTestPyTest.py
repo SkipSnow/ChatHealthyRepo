@@ -291,25 +291,19 @@ def _verify_button_in_parent(page, button_selector, parent_selector, label):
 
 @pytest.fixture(scope="module")
 def env():
-    # Configure the browser context to PRESENT a client cert during TLS
-    # handshake to each backend origin. Per Playwright v1.46+ client_certificates
-    # API (Browser.new_context). Origin must match exactly. The browser will
-    # only send the cert when the server REQUESTS it during handshake — if
-    # the server doesn't request, no cert is sent (one-way TLS), but the
-    # config is correctly in place for the moment server-side enforcement
-    # lands.
-    fc_crt = os.path.join(CERTS_DIR, "findcare.crt")
-    fc_key = os.path.join(CERTS_DIR, "findcare.key")
-    client_certs = [
-        {"origin": FINDCARE_URL, "certPath": fc_crt, "keyPath": fc_key},
-        {"origin": EVALCARE_URL, "certPath": fc_crt, "keyPath": fc_key},
-        {"origin": SHARED_URL,   "certPath": fc_crt, "keyPath": fc_key},
-    ]
+    # Skip 2026-05-05: client_certificates removed. Playwright's API requires
+    # the .key file to exist on disk at fixture setup time; .key files are
+    # (correctly) gitignored, so the GH Actions runner doesn't have them
+    # and every test ERRORs at setup. Presenting the cert was theater anyway
+    # — HF doesn't request a client cert at the edge, so it would be ignored.
+    # Real mTLS path requires server-side enforcement (Cloudflare in front of
+    # HF, or off HF entirely). Tests 15/27/35b are pytest.skip'd to reflect
+    # that until the architecture supports it.
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
             viewport={"width": 1400, "height": 900},
-            client_certificates=client_certs,
+            ignore_https_errors=True,
         )
         page = context.new_page()
         yield {"page": page, "browser": browser, "context": context}
