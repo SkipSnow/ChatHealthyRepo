@@ -44,11 +44,25 @@ PROPAGATION_MULTIPLIER = 3
 
 
 def _msi_token() -> str:
-    resp = requests.get(
-        "http://169.254.169.254/metadata/identity/oauth2/token"
-        "?api-version=2019-08-01&resource=https://management.azure.com/",
-        headers={"Metadata": "true"},
-        timeout=10,
+    """Fetch an ARM-scope access token via Service Principal client_credentials.
+
+    IMDS (169.254.169.254) is unreachable from Flex Consumption Python activity
+    workers (every prior run logged "Connection refused" in admin.WarmUpMetrics).
+    We use a dedicated SP with Website Contributor on the function app site;
+    its credentials live in app settings and the local .env. No fallback.
+    """
+    tenant = os.environ["AZURE_TENANT_ID"]
+    client_id = os.environ["AZURE_PIPELINE_CLIENT_ID"]
+    client_secret = os.environ["AZURE_PIPELINE_CLIENT_SECRET"]
+    resp = requests.post(
+        f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
+        data={
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "scope": "https://management.azure.com/.default",
+        },
+        timeout=15,
     )
     resp.raise_for_status()
     return resp.json()["access_token"]
@@ -65,26 +79,24 @@ def _patch_always_ready(token: str, count: int) -> None:
         f"/providers/Microsoft.Web/sites/{site}"
         "?api-version=2023-12-01"
     )
-    body = {
-        "properties": {
-            "functionAppConfig": {
-                "scaleAndConcurrency": {
-                    "alwaysReady": (
-                        # Flex Consumption per-function scaling: Durable Functions activity
-                        # triggers belong to the scale group named "durable" (per Microsoft Learn).
-                        # Targeting the function name silently no-ops the PATCH.
-                        [{"name": "durable", "instanceCount": count}]
-                        if count > 0 else []
-                    )
-                }
-            }
-        }
-    }
-    resp = requests.patch(
-        url, json=body,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-        timeout=30,
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    # Azure's PATCH on Microsoft.Web/sites validates the whole functionAppConfig
+    # block — sending just scaleAndConcurrency.alwaysReady returns 400 because
+    # required peers (runtime, deployment.storage) resolve to empty. Round-trip:
+    # GET current config → modify alwaysReady only → PATCH the full block.
+    get_resp = requests.get(url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
+    get_resp.raise_for_status()
+    fac = get_resp.json()["properties"]["functionAppConfig"]
+    fac.setdefault("scaleAndConcurrency", {})["alwaysReady"] = (
+        # Flex Consumption per-function scaling: Durable Functions activity
+        # triggers belong to the scale group named "durable" (per Microsoft Learn).
+        [{"name": "durable", "instanceCount": count}]
+        if count > 0 else []
     )
+
+    body = {"properties": {"functionAppConfig": fac}}
+    resp = requests.patch(url, json=body, headers=headers, timeout=30)
     resp.raise_for_status()
 
 
