@@ -20,7 +20,7 @@ _log = logging.getLogger("ChatHealthyClaudeLogManagementAnthropicAgent")
 MONGO_DB = "ClaudeCodeLog"
 MONGO_COLLECTION = "conversation_log_archive"
 
-REPO_ROOT = Path(r"c:\chatHealthy\findCare")
+REPO_ROOT = Path(os.environ['CHATHEALTHY_PROJECT_ROOT'])
 
 CH_GUID_PATTERN = re.compile(
     r"^CH-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"

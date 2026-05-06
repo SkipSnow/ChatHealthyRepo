@@ -1,6 +1,6 @@
 You are analyzing the git history of AI/LLM call sites in ChatHealthy.ai.
 
-Working directory: c:\chatHealthy\findCare
+Working directory: $CHATHEALTHY_PROJECT_ROOT
 
 For each file below, run: git log --oneline --all -- <file>
 Then examine key commits to trace how AI calls evolved.

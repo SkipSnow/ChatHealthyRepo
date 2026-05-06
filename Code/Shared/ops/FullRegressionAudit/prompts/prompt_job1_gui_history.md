@@ -1,6 +1,6 @@
 You are analyzing the git history of ChatHealthy.ai GUI files to identify lost capabilities.
 
-Working directory: c:\chatHealthy\findCare
+Working directory: $CHATHEALTHY_PROJECT_ROOT
 
 For each of these files, run: git log --oneline --all -- <file>
 Then for significant commits (especially ones that add or remove functions/features), run: git show <commit>:<file>

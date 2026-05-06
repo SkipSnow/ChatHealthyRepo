@@ -11,7 +11,7 @@
 # generator is built. This ensures milestones stay in sync with the brain.
 #
 # Usage: python Code/Shared/ops/generate_roadmap_page.py
-# Run from repo root (c:\chatHealthy\findCare)
+# Run from repo root ($CHATHEALTHY_PROJECT_ROOT)
 
 import json
 import os

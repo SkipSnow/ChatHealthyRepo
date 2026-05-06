@@ -30,11 +30,12 @@
 # channel + ToolMessage, subgraph per capability, Safety as shared subgraph,
 # deep_research as reusable subgraph, 4-file layout).
 
+import os
 from pathlib import Path
 from docx import Document
 from docx.shared import Pt, Inches
 
-OUT = Path(r"c:\chatHealthy\findCare\findCare\ArchitectureAndDesign\codebase-reorganization-V4.docx")
+OUT = Path(os.environ['CHATHEALTHY_PROJECT_ROOT']) / "findCare" / "ArchitectureAndDesign" / "codebase-reorganization-V4.docx"
 
 doc = Document()
 
@@ -372,7 +373,7 @@ HR()
 # 5. Section A -- Current-state analysis (refreshed; UX as real shared scope)
 # -----------------------------------------------------------------------------
 H2("5. Section A -- Current-state analysis")
-P("Walk of the actual file tree at c:/chatHealthy/findCare/ on 2026-04-28. Every cited path verified by direct filesystem listing. This section is intentionally compressed relative to V3 -- V3's full inventory remains valid and is incorporated by reference; V4 only refreshes the surfaces the corrections changed.")
+P("Walk of the actual file tree at the project root on 2026-04-28. Every cited path verified by direct filesystem listing. This section is intentionally compressed relative to V3 -- V3's full inventory remains valid and is incorporated by reference; V4 only refreshes the surfaces the corrections changed.")
 
 H3("5.1 UX is a real shared concern (refresh)")
 P("V3 treated UX as 'no current cross-epic consumer' -- correct for Code/Shared/ux/ taken in isolation, but incomplete because Website/index.html is itself the cross-epic UX consumer. Refreshed inventory:")

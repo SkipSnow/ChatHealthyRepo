@@ -1,6 +1,6 @@
 You are analyzing the ChatHealthy.ai brain artifacts to extract every intended capability.
 
-Working directory: c:\chatHealthy\findCare
+Working directory: $CHATHEALTHY_PROJECT_ROOT
 
 Read ALL JSON files in brain/machine_artifacts/content/ (there are ~29 files). Also read any .md files in that directory.
 

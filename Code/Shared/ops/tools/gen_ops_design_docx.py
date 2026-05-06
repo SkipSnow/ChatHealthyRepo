@@ -1,6 +1,8 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Generate ops-manager-design-EPIC3-V1.docx from design content.
 
+import os
+
 from docx import Document
 from docx.shared import Pt, RGBColor
 
@@ -376,6 +378,6 @@ add_table(
     ],
 )
 
-OUT = r"C:\chatHealthy\findCare\brain\BusinessArtifacts\ops-manager-design-EPIC3-V1.docx"
+OUT = os.path.join(os.environ['CHATHEALTHY_PROJECT_ROOT'], "brain", "BusinessArtifacts", "ops-manager-design-EPIC3-V1.docx")
 doc.save(OUT)
 print(f"Saved: {OUT}")

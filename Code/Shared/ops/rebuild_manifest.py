@@ -1,7 +1,7 @@
 import os, json, hashlib
 
 manifest = []
-root_dir = "c:/chatHealthy/findCare"
+root_dir = os.environ['CHATHEALTHY_PROJECT_ROOT']
 skip_dirs = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "BusinessArtifacts", "test_screenshots", ".claude"}
 
 for root, dirs, files in os.walk(root_dir):

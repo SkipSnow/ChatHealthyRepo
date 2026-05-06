@@ -21,7 +21,7 @@ from collections import defaultdict
 from docx import Document
 from docx.shared import Pt
 
-REPO = r"c:/chatHealthy/findCare"
+REPO = os.environ['CHATHEALTHY_PROJECT_ROOT']
 BACKLOG = os.path.join(REPO, "brain/machine_artifacts/content/agile_backlog.json")
 OUT = os.path.join(
     REPO, "findCare/ArchitectureAndDesign/codebase-reorganization-V7.docx"

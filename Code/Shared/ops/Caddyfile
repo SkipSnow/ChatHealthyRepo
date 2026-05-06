@@ -39,7 +39,7 @@
 
 # ── Public Website (HTTPS only) ───────────────────────
 :443 {
-	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.key
+	tls {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/localhost.crt {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/localhost.key
 
 	# API proxy — same origin, no mixed content
 	handle /api/* {
@@ -49,29 +49,29 @@
 
 	# Static website
 	handle {
-		root * {$WEBSITE_ROOT:C:/chatHealthy/findCare/Website}
+		root * {$CHATHEALTHY_PROJECT_ROOT}/Website
 		file_server
 	}
 }
 
 # ── React Frontend (HTTPS proxy to Vite dev server) ───
 :3000 {
-	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/localhost.key
+	tls {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/localhost.crt {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/localhost.key
 	reverse_proxy localhost:5173
 }
 
 # ── FindCare API (findcare cert, no client auth for consumers) ─
 :8080 {
-	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/findcare.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/findcare.key
+	tls {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/findcare.crt {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/findcare.key
 	reverse_proxy localhost:8000
 }
 
 # ── EvaluateCare API (evalcare cert, mTLS required) ────
 :8081 {
-	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/evalcare.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/evalcare.key {
+	tls {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/evalcare.crt {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/evalcare.key {
 		client_auth {
 			mode require_and_verify
-			trust_pool file {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/ca.crt
+			trust_pool file {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/ca.crt
 		}
 	}
 	reverse_proxy localhost:8001
@@ -79,10 +79,10 @@
 
 # ── Shared Services API (shared cert, mTLS required) ───
 :8082 {
-	tls {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/shared.crt {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/shared.key {
+	tls {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/shared.crt {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/shared.key {
 		client_auth {
 			mode require_and_verify
-			trust_pool file {$CERTS_DIR:C:/chatHealthy/findCare/Code/Shared/ops/certs}/ca.crt
+			trust_pool file {$CHATHEALTHY_PROJECT_ROOT}/Code/Shared/ops/certs/ca.crt
 		}
 	}
 	reverse_proxy localhost:8002
