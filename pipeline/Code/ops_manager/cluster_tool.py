@@ -48,6 +48,10 @@ class ClusterTool(BaseTool):
                 "job_id": {"type": "string"},
                 "requester": {"type": "string"},
                 "expected_duration_minutes": {"type": "integer"},
+                "reservation_class": {
+                    "type": "string",
+                    "enum": ["automated", "human"],
+                },
             },
             "required": ["action"],
         }
@@ -67,6 +71,7 @@ class ClusterTool(BaseTool):
                     job_id=params["job_id"],
                     requester=params["requester"],
                     expected_duration_minutes=params.get("expected_duration_minutes", 120),
+                    reservation_class=params.get("reservation_class", "automated"),
                 )
                 return ToolResult(success=True, data=data)
 

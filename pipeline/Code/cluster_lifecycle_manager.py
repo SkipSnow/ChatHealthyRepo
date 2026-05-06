@@ -35,6 +35,11 @@ class ResourceReservation:
 
     Dev Manager creates a reservation before starting work.
     Dev Manager releases in finally. Ops Manager manages the cluster.
+
+    Live-only data store: rows exist while a job (or human) holds the cluster
+    and are deleted on release. No 'released' state is persisted; the only
+    value `status` ever holds is "active". Forensic / audit needs are served
+    by Atlas database auditing, Azure Activity Log, and Application Insights.
     """
     job_id: str
     requester: str
@@ -43,7 +48,10 @@ class ResourceReservation:
     expected_min_minutes: int = 0       # min — WARNING if completed faster
     start_time: str = ""
     expected_end_time: str = ""
-    status: str = "active"  # active | released
+    status: str = "active"
+    # Runtime classification on the live row only. The 5-min ops timer reaps
+    # overdue automated rows by deletion; human-class rows are NEVER auto-reaped.
+    reservation_class: str = "automated"  # "automated" | "human"
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -115,12 +123,19 @@ class ClusterLifecycleManager:
     # ── v0.1 API: WakeCluster ────────────────────────────────
 
     def reserve(self, cluster_name: str, job_id: str, requester: str,
-                expected_duration_minutes: int, expected_min_minutes: int = 0) -> dict:
+                expected_duration_minutes: int, expected_min_minutes: int = 0,
+                reservation_class: str = "automated") -> dict:
         """Reserve a cluster. Sends wake request (non-blocking). Returns reservation.
 
         Called by pipeline tasks before starting work.
         The caller must poll status() until cluster is IDLE before doing work.
+        `reservation_class` is "automated" by default; pass "human" to mark the
+        reservation as held by a human operator (the timer will not auto-reap it).
         """
+        if reservation_class not in ("automated", "human"):
+            raise ValueError(
+                f"reservation_class must be 'automated' or 'human', got {reservation_class!r}"
+            )
         now = datetime.now(timezone.utc)
         reservation = ResourceReservation(
             job_id=job_id,
@@ -131,6 +146,7 @@ class ClusterLifecycleManager:
             start_time=now.isoformat(),
             expected_end_time=(now + timedelta(minutes=expected_duration_minutes)).isoformat(),
             status="active",
+            reservation_class=reservation_class,
         )
 
         # Wake cluster FIRST — must be up before we can write reservation to MongoDB
@@ -230,20 +246,6 @@ class ClusterLifecycleManager:
                         )
             except (ValueError, TypeError):
                 pass
-
-    def check_idle_shutdown(self):
-        """Called by 5-minute timer. Shut down clusters with zero reservations."""
-        state = self._get_state()
-        if not state["reservations"]:
-            return  # nothing to check
-
-        # Group by cluster
-        clusters = set(r.get("cluster_name", "") for r in state["reservations"])
-        for cluster in clusters:
-            cluster_res = [r for r in state["reservations"] if r.get("cluster_name") == cluster]
-            if not cluster_res:
-                _log.info("No reservations for %s — shutting down", cluster)
-                self._send_pause(cluster)
 
     # ── Kill switch ──────────────────────────────────────────
 
