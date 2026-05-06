@@ -337,7 +337,6 @@ class ProviderWorker(PipelineWorkerBase):
             # ENH-PIPE-001: replace_one with upsert — force re-enrichment and re-evaluation
             doc["bad_data"] = None       # force re-evaluation by mark_out_of_scope_fn
             doc["out_of_scope"] = None   # force re-evaluation by mark_out_of_scope_fn
-            npi = doc.get("npi")
 
             # ENH-PIPE-002 / PIPE-INC-002: deactivated records in incremental files
             # get out_of_scope flag instead of being deleted. Log NPI for audit.
@@ -345,14 +344,16 @@ class ProviderWorker(PipelineWorkerBase):
                 doc["out_of_scope"] = {"flagged": True, "reason": "deactivated"}
                 logging.info(
                     "ENH-PIPE-002: deactivated NPI=%s flagged out_of_scope (incremental)",
-                    npi or "unknown",
+                    doc.get("npi") or "unknown",
                 )
 
-            if npi:
-                self._batch.append(ReplaceOne({"npi": npi}, doc, upsert=True))
-                logging.debug("ENH-PIPE-001: incremental replace_one for NPI=%s", npi)
-            else:
-                self._batch.append(InsertOne(doc))
+        # Both incremental and non-incremental: upsert by NPI to avoid duplicate-key
+        # collisions when state-scoped drain misses cross-state-licensed records.
+        # Per Skip 2026-05-06: never lose records; ReplaceOne(upsert=True) ensures
+        # the new version always lands without npi_unique violations.
+        npi = doc.get("npi")
+        if npi:
+            self._batch.append(ReplaceOne({"npi": npi}, doc, upsert=True))
         else:
             self._batch.append(InsertOne(doc))
 
