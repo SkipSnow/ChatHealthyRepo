@@ -25,13 +25,16 @@
 #   - Back-end services not directly serving a user-observable behavior.
 #   - Capabilities the V2 BRs explicitly recover (FULL or PARTIAL).
 
+import os
+
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.table import WD_ALIGN_VERTICAL
 
-OUT = (
-    r"c:/chatHealthy/findCare/architecture/ChatHealthyApplicationDesign/"
-    r"ArchitectureDesignAndAuditDocs/destroyed-capabilities-audit-A.docx"
+OUT = os.path.join(
+    os.environ['CHATHEALTHY_PROJECT_ROOT'],
+    "architecture", "ChatHealthyApplicationDesign",
+    "ArchitectureDesignAndAuditDocs", "destroyed-capabilities-audit-A.docx",
 )
 
 PRE_EVENT_COMMIT = "be14579a9200ba23227181b716589be6267ef63b"

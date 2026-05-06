@@ -13,7 +13,7 @@ import os
 import time
 from pathlib import Path
 
-PROJECT = Path(os.environ.get("CLAUDE_PROJECT_DIR", r"c:/chatHealthy/findCare"))
+PROJECT = Path(os.environ['CHATHEALTHY_PROJECT_ROOT'])
 SRC = PROJECT / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
 OUT = PROJECT / "test_output" / "backlog_stories.json"
 

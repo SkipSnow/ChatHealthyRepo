@@ -1,6 +1,6 @@
 You are producing the final audit report for ChatHealthy.ai codebase history.
 
-Working directory: c:\chatHealthy\findCare
+Working directory: $CHATHEALTHY_PROJECT_ROOT
 
 Read these checkpoint files:
 - test_output/lineage/00_brain_intent.json

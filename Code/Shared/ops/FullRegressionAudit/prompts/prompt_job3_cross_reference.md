@@ -1,6 +1,6 @@
 You are producing a cross-reference gap analysis for ChatHealthy.ai.
 
-Working directory: c:\chatHealthy\findCare
+Working directory: $CHATHEALTHY_PROJECT_ROOT
 
 Read these checkpoint files from previous jobs:
 - test_output/lineage/00_brain_intent.json (what was intended)

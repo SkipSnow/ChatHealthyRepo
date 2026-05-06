@@ -8,7 +8,7 @@
 #   - brain/machine_artifacts/content/policies.json (GOV-005, DC-GOV-02)
 #
 # Usage: python Code/Shared/ops/generate_security_page.py
-# Run from repo root (c:\chatHealthy\findCare)
+# Run from repo root ($CHATHEALTHY_PROJECT_ROOT)
 
 import json
 import os

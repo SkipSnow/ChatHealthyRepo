@@ -20,13 +20,16 @@
 # `git diff` / `git log --grep` against the dev branch. No checkouts,
 # no commits, no working tree mutations.
 
+import os
+
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.table import WD_ALIGN_VERTICAL
 
-OUT = (
-    r"c:/chatHealthy/findCare/architecture/ChatHealthyApplicationDesign/"
-    r"ArchitectureDesignAndAuditDocs/baseline-build-research-V1.docx"
+OUT = os.path.join(
+    os.environ['CHATHEALTHY_PROJECT_ROOT'],
+    "architecture", "ChatHealthyApplicationDesign",
+    "ArchitectureDesignAndAuditDocs", "baseline-build-research-V1.docx",
 )
 
 # ---------------------------------------------------------------------------

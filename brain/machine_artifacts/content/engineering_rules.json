@@ -173,12 +173,12 @@
       {
         "id": "Rule-064",
         "name": "Block tool actions targeting the legacy c:\\chatHealthy tree",
-        "description": "All Claude tool actions (Bash commands, Write, Edit, NotebookEdit) that reference the legacy `c:\\chatHealthy\findCare` or `c:\\chatHealthy\\Resources` tree are denied at the Claude Code permission layer (PreToolUse). Triggered after a Claude session (or code Claude wrote) was found to have recreated the deleted legacy directory tree on 2026-05-02 17:27 UTC and written `c:\\chatHealthy\findCare\\code\\LoadDB.ipynb` 85 minutes after Skip deleted the directory at 16:02:20 UTC. The current project lives at `c:\\CHATHealthyLLC` and that root must never be left.",
+        "description": "All Claude tool actions (Bash commands, Write, Edit, NotebookEdit) that reference the legacy `{CHATHEALTHY_PROJECT_ROOT}` or `c:\\chatHealthy\\Resources` tree are denied at the Claude Code permission layer (PreToolUse). Triggered after a Claude session (or code Claude wrote) was found to have recreated the deleted legacy directory tree on 2026-05-02 17:27 UTC and written `{CHATHEALTHY_PROJECT_ROOT}/code/LoadDB.ipynb` 85 minutes after Skip deleted the directory at 16:02:20 UTC. The current project lives at `c:\\CHATHealthyLLC` and that root must never be left.",
         "rule_statements": {
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "Bash command containing the substring `c:/chatHealthy/findCare` or `c:\\chatHealthy\findCare` (case-insensitive) MUST be denied at PreToolUse.",
+              "statement_body": "Bash command containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
               "req_id": "Orphan"
             },
             {
@@ -193,7 +193,7 @@
             },
             {
               "statement_number": 4,
-              "statement_body": "Write tool with `file_path` containing the substring `c:/chatHealthy/findCare` or `c:\\chatHealthy\findCare` (case-insensitive) MUST be denied at PreToolUse.",
+              "statement_body": "Write tool with `file_path` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
               "req_id": "Orphan"
             },
             {
@@ -208,12 +208,12 @@
             },
             {
               "statement_number": 7,
-              "statement_body": "Write tool with `content` containing the substring `c:/chatHealthy/findCare` or `c:\\chatHealthy\findCare` (case-insensitive) MUST be denied at PreToolUse.",
+              "statement_body": "Write tool with `content` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
               "req_id": "Orphan"
             },
             {
               "statement_number": 8,
-              "statement_body": "Edit tool with `file_path` containing the substring `c:/chatHealthy/findCare` or `c:\\chatHealthy\findCare` (case-insensitive) MUST be denied at PreToolUse.",
+              "statement_body": "Edit tool with `file_path` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
               "req_id": "Orphan"
             },
             {
@@ -223,7 +223,7 @@
             },
             {
               "statement_number": 10,
-              "statement_body": "Edit tool with `new_string` containing the substring `c:/chatHealthy/findCare` or `c:\\chatHealthy\findCare` (case-insensitive) MUST be denied at PreToolUse.",
+              "statement_body": "Edit tool with `new_string` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
               "req_id": "Orphan"
             },
             {
