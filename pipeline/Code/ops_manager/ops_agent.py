@@ -8,7 +8,7 @@
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "Shared"))
 from agent_framework.base_agent import BaseAgent
@@ -25,6 +25,24 @@ _log = logging.getLogger("ops.agent")
 # Config defaults — will move to Brain config
 DEFAULT_MAX_DIAGNOSE_ITERATIONS = 3
 DEFAULT_MAX_REPAIR_ATTEMPTS = 3
+
+# Grace beyond a reservation's expected_end_time before the timer reaps it.
+# Only applies to reservation_class == "automated"; human-class reservations
+# are never auto-reaped. (BUG-006 fix R4 + F-029-S-001 REQ-T-008.)
+GRACE_MINUTES = 30
+
+
+def _is_overdue(reservation: dict, grace_minutes: int = GRACE_MINUTES) -> bool:
+    """True if `now` is past expected_end_time + grace_minutes."""
+    expected_end = reservation.get("expected_end_time", "")
+    if not expected_end:
+        return False
+    try:
+        end_dt = datetime.fromisoformat(expected_end)
+    except (ValueError, TypeError):
+        return False
+    grace = timedelta(minutes=grace_minutes)
+    return datetime.now(timezone.utc) > end_dt + grace
 
 
 class OpsManagerAgent(BaseAgent):
@@ -75,7 +93,18 @@ class OpsManagerAgent(BaseAgent):
     # ── Timer ───────────────────────────────────────────────
 
     def _handle_timer(self, event: dict) -> ToolResult:
-        """5-minute timer. Infrastructure checks only. No task execution."""
+        """5-minute timer. Infrastructure checks only. No task execution.
+
+        Order matters:
+          (1) Per-overdue alerts (fired every tick while overdue, regardless of class).
+          (2) Reaper — DELETE rows that are overdue past GRACE_MINUTES AND class=='automated'.
+              Reaping is the sole state-changing recovery action; deletion is via
+              ClusterLifecycleManager.release(), which preserves the live-only contract
+              and triggers the existing pause-on-last-release path.
+          (3) Pause gate (class-aware) — pauses the cluster when no row is currently
+              blocking. A row blocks if it is active AND not (overdue past grace AND
+              class=='automated'). Human-class reservations always block until released.
+        """
         cluster_name = event.get("cluster_name", "ChatHealthyDataPipelines")
 
         # Check cluster status
@@ -87,25 +116,78 @@ class OpsManagerAgent(BaseAgent):
         cluster_state = data.get("cluster_state", "UNKNOWN")
         reservations = data.get("reservations", [])
 
-        # Check 1: Overdue reservations
+        # (1) Per-overdue alerts (informational; fired every tick while a row is past expected_end).
         self._check_overdue(reservations)
 
-        # Check 2: Suspiciously fast completions (released but duration < min)
-        # This is handled at release time, not timer
+        # (2) Reaper. Delete overdue automated rows; emit a one-time reap alert per row.
+        reaped_ids: list[str] = []
+        for r in reservations:
+            if r.get("reservation_class", "automated") != "automated":
+                continue
+            if not _is_overdue(r):
+                continue
+            job_id = r.get("job_id", "")
+            if not job_id:
+                continue
+            release_result = self.tools.execute("cluster", action="release", job_id=job_id)
+            if release_result.success:
+                reaped_ids.append(job_id)
+                self.tools.execute(
+                    "alert", event_type="job_reaped", subject_id=job_id,
+                    title="Reservation Reaped",
+                    message=(
+                        f"Job {job_id} ({r.get('requester','')}) reaped after "
+                        f"{GRACE_MINUTES}+ min past expected end. Row deleted; cluster "
+                        f"will pause if it was the last reservation."
+                    ),
+                )
+                self._audit.log_notification(
+                    "human", "job_reaped",
+                    f"Job {job_id} reaped (overdue past {GRACE_MINUTES} min grace)", True,
+                )
+            else:
+                _log.warning("Reaper: release(%s) failed: %s",
+                             job_id, release_result.error_message)
 
-        # Check 3: Orphan cluster — running with zero reservations
-        if cluster_state == "IDLE" and not reservations:
-            _log.info("Cluster %s is IDLE with zero reservations — pausing", cluster_name)
+        # If we reaped anything, the live reservations list changed underneath us.
+        if reaped_ids:
+            reaped_set = set(reaped_ids)
+            reservations = [r for r in reservations if r.get("job_id") not in reaped_set]
+
+        # (3) Class-aware pause gate. A row is "blocking" if it is active AND
+        # we should NOT auto-pause around it: human rows always block; automated
+        # rows block only while they are not overdue past grace.
+        live_blocking = [
+            r for r in reservations
+            if r.get("status", "active") == "active"
+            and not (
+                _is_overdue(r)
+                and r.get("reservation_class", "automated") == "automated"
+            )
+        ]
+        if cluster_state == "IDLE" and not live_blocking:
+            _log.info(
+                "Cluster %s is IDLE with no blocking reservations (%d total live rows, "
+                "%d reaped this tick) — pausing",
+                cluster_name, len(reservations), len(reaped_ids),
+            )
             self.tools.execute("cluster", action="force_release", cluster_name=cluster_name)
 
-        # Check 4: Stuck cluster
-        if cluster_state not in ("IDLE", "PAUSED") and not reservations:
-            self.tools.execute("alert", event_type="cluster_stuck", subject_id=cluster_name,
-                               title="Cluster Stuck",
-                               message=f"{cluster_name} is {cluster_state} with no reservations")
+        # (4) Stuck cluster (running, but nothing is blocking pause).
+        if cluster_state not in ("IDLE", "PAUSED") and not live_blocking:
+            self.tools.execute(
+                "alert", event_type="cluster_stuck", subject_id=cluster_name,
+                title="Cluster Stuck",
+                message=f"{cluster_name} is {cluster_state} with no blocking reservations",
+            )
 
-        return ToolResult(success=True, data={"timer_check": "complete", "cluster_state": cluster_state,
-                                               "active_reservations": len(reservations)})
+        return ToolResult(success=True, data={
+            "timer_check": "complete",
+            "cluster_state": cluster_state,
+            "live_rows": len(reservations),
+            "blocking_rows": len(live_blocking),
+            "reaped_this_tick": len(reaped_ids),
+        })
 
     def _check_overdue(self, reservations: list):
         """Check for overdue jobs. Notify human with cooldown."""
