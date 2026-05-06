@@ -386,9 +386,13 @@ def partition_file_fn(config: dict) -> list:
             "worker_id": i + 1,
             "start_byte": boundaries[i],
             "end_byte": boundaries[i + 1],
-            "header": header,
         })
 
+    # NPPES header (~330 columns, ~7 KB JSON) is no longer embedded in each
+    # partition dict — at 16+ workers the cumulative orchestrator outbox
+    # exceeds the Durable 45 KB largemessages spill threshold and dispatch
+    # stalls. Each worker fetches the header from the CSV blob at startup
+    # (first 32 KB read, ~milliseconds) — see provider_worker._pipeline_open.
     logging.info("Computed %d partitions from %d bytes of data", len(partitions), data_size)
     return partitions
 
@@ -674,6 +678,8 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
         "reset_failed": config.get("reset_failed", False),
         "nppes_batch_size": config.get("nppes_batch_size", 5_000),
         "states": config.get("states"),  # optional state filter for NPPES pass
+        "provider_collection": config.get("provider_collection"),
+        "metadata_collection": config.get("metadata_collection"),
     }
 
     # Step 0: Reserve cluster through manager — manager wakes the cluster
@@ -731,6 +737,8 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "blob_container": config.get("blob_container", "provider-data"),
                 "states": config.get("states"),
                 "incremental": config.get("incremental", False),
+                "provider_collection": config.get("provider_collection"),
+                "metadata_collection": config.get("metadata_collection"),
             }
             load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
             step_statuses.append({"step": 3, "name": "load_data", "status": "completed_success"})

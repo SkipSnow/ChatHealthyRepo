@@ -178,7 +178,6 @@ OPS_TASK_HANDLERS = {
 
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
 ASYNC_TASK_ORCHESTRATORS = {
-    "LoadProviderData": "provider_load_orchestrator",
     "CountyEnrichment": "county_enrichment_orchestrator",
     "FindCarePipeline": "findcare_pipeline_orchestrator",
     "SnapshotCollection": "snapshot_collection_orchestrator",

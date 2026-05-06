@@ -223,7 +223,10 @@ class ProviderWorker(PipelineWorkerBase):
         self.worker_id = config["worker_id"]
         self.start_byte = config["start_byte"]
         self.end_byte = config["end_byte"]
-        self.header = config["header"]
+        # header is fetched from the CSV blob in _pipeline_open() — not embedded
+        # in per-partition config (kept the orchestrator outbox over the Durable
+        # 45 KB largemessages spill threshold at 16+ workers).
+        self.header: list = []
         self.csv_path = config["csv_path"]
         self.load_id = config["load_id"]
         self.metadata_id = config["metadata_id"]
@@ -271,6 +274,16 @@ class ProviderWorker(PipelineWorkerBase):
             service.get_container_client(self.blob_container)
             .get_blob_client(self.csv_path)
         )
+
+        # Fetch the CSV header from the first 32 KB of the blob (~12 KB header
+        # for NPPES; 32 KB guarantees we capture the full first line).
+        header_bytes = blob_client.download_blob(offset=0, length=32768).readall()
+        header_text = header_bytes.decode("utf-8", errors="replace")
+        if "\n" not in header_text:
+            raise RuntimeError("CSV header line exceeds 32 KB — unexpected file format.")
+        header_line = header_text.split("\n")[0]
+        self.header = list(csv.reader([header_line]))[0]
+
         stop_after = self.end_byte - self.start_byte
         length = stop_after + BOUNDARY_EXTRA
         stream = blob_client.download_blob(offset=self.start_byte, length=length)
