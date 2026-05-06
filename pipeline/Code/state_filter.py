@@ -89,6 +89,29 @@ def mongo_state_filter(states) -> dict:
     return {"$or": [{f: {"$in": states}} for f in STATE_BEARING_MONGO_FIELDS]}
 
 
+def _practice_states(doc: dict) -> list[str]:
+    """Return the list of upper-cased states across all practice addresses.
+
+    `practice_address` is a list of address dicts post-multi-address support
+    (each element is one practice location). Pre-multi-address docs may still
+    carry a single dict — handled for backward compatibility.
+    """
+    pa = doc.get("practice_address")
+    if not pa:
+        return []
+    if isinstance(pa, dict):
+        st = (pa.get("state") or "").upper()
+        return [st] if st else []
+    out: list[str] = []
+    if isinstance(pa, list):
+        for entry in pa:
+            if isinstance(entry, dict):
+                st = (entry.get("state") or "").upper()
+                if st:
+                    out.append(st)
+    return out
+
+
 def doc_matches_state(doc: dict, states) -> bool:
     """Row-level matcher equivalent to `mongo_state_filter(states)`.
 
@@ -100,13 +123,17 @@ def doc_matches_state(doc: dict, states) -> bool:
         return True
     if isinstance(states, dict):
         lst = states["list"]
-        st = (doc.get("practice_address") or {}).get("state", "").upper()
-        in_list = st in lst
-        return in_list if states["mode"] == "include" else not in_list
+        # Legacy include/exclude only checks practice_address.state. For the
+        # multi-practice-address shape, "the practice state" is ambiguous —
+        # treat any element as a match.
+        for st in _practice_states(doc):
+            if st in lst:
+                return states["mode"] == "include"
+        return states["mode"] != "include"
 
-    pa = (doc.get("practice_address") or {}).get("state", "").upper()
-    if pa in states:
-        return True
+    for st in _practice_states(doc):
+        if st in states:
+            return True
     ma = (doc.get("mailing_address") or {}).get("state", "").upper()
     if ma in states:
         return True

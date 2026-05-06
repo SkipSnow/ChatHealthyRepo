@@ -417,6 +417,12 @@ def extract_csv_activity(config: dict) -> str:
 
 
 @app.activity_trigger(input_name="config")
+def extract_and_load_pl_pfile_activity(config: dict) -> dict:
+    from provider_load_manager import extract_and_load_pl_pfile_fn
+    return extract_and_load_pl_pfile_fn(config)
+
+
+@app.activity_trigger(input_name="config")
 def partition_file_activity(config: dict) -> list:
     return partition_file_fn(config)
 

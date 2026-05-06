@@ -181,6 +181,18 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         "extract_csv_activity", {**config, "zip_path": zip_path}
     )
 
+    # Step 2.5: Extract pl_pfile (NPPES Practice Location Reference File) from
+    # the same zip and load it into the secondary-practice-location lookup
+    # collection. CMS publishes non-primary practice locations only here
+    # (Readme §2.3); without this step every provider's practice_address
+    # array is silently capped at the primary location from the main file.
+    # Workers read from the lookup at startup; county enrichment runs against
+    # the populated practice_address array (post-load).
+    context.set_custom_status("Step 2.5/10: Loading pl_pfile (secondary practice locations)")
+    pl_lookup_summary = yield context.call_activity(
+        "extract_and_load_pl_pfile_activity", {**config, "zip_path": zip_path}
+    )
+
     # Step 3: Compute byte-aligned partitions
     context.set_custom_status("Step 3/10: Partitioning file")
     partitions = yield context.call_activity(
@@ -333,6 +345,129 @@ def extract_csv_fn(config: dict) -> str:
     os.unlink(tmp_path)
     logging.info("CSV extracted to blob: %s", csv_blob_name)
     return csv_blob_name
+
+
+def extract_and_load_pl_pfile_fn(config: dict) -> dict:
+    """Extract `pl_pfile_*.csv` from the NPPES zip, then load it into the
+    secondary-practice-location lookup collection (one document per NPI).
+
+    Background — CMS NPPES Data Dissemination Readme §2.3:
+      "NPPES now collects multiple Practice Location associated with Type 1
+       and Type 2 NPIs. The Data File contains the first Primary Practice
+       Location, and the Practice Location Reference File will contain all
+       of the non-primary Practice Locations."
+
+    Without this step, the load worker has only the main file's primary
+    practice location and silently drops every secondary location.
+
+    The lookup collection is dropped + repopulated on each run (live-only —
+    no history retained, consistent with the Pipeline Infrastructure live-only
+    rule). Workers read it once at _pipeline_open() into an in-memory dict.
+
+    Returns: {"npis_with_secondary": int, "rows_loaded": int}
+    """
+    import csv as _csv
+
+    zip_blob_name = config["zip_path"]
+    container = config.get("blob_container", "provider-data")
+    pl_lookup_collection = config.get(
+        "pl_lookup_collection", "dev_PublicHealthData.pl_pfile_lookup"
+    )
+    db_name, coll_name = pl_lookup_collection.split(".", 1)
+
+    # Field-name map mirrors the published pl_pfile_*_fileheader.csv.
+    # See _oneshots/nppes_main_file_address_columns.md for the full list.
+    PL_FIELDS = {
+        "Provider Secondary Practice Location Address- Address Line 1":   "line1",
+        "Provider Secondary Practice Location Address-  Address Line 2":  "line2",
+        "Provider Secondary Practice Location Address - City Name":       "city",
+        "Provider Secondary Practice Location Address - State Name":      "state",
+        "Provider Secondary Practice Location Address - Postal Code":     "zip",
+        "Provider Secondary Practice Location Address - Country Code (If outside U.S.)": "country",
+        "Provider Secondary Practice Location Address - Telephone Number":            "phone",
+        "Provider Secondary Practice Location Address - Telephone Extension":         "phone_ext",
+        "Provider Practice Location Address -  Fax Number":              "fax",
+    }
+
+    service = get_blob_service()
+    container_client = service.get_container_client(container)
+
+    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+        tmp_path = tmp.name
+        container_client.get_blob_client(zip_blob_name).download_blob().readinto(tmp)
+
+    # Locate the pl_pfile inside the zip.
+    pl_csv_name = None
+    with zipfile.ZipFile(tmp_path) as zf:
+        for n in zf.namelist():
+            low = n.lower()
+            if low.startswith("pl_pfile") and low.endswith(".csv"):
+                pl_csv_name = n
+                break
+
+    if pl_csv_name is None:
+        os.unlink(tmp_path)
+        logging.warning(
+            "No pl_pfile_*.csv found in zip %s — secondary practice locations "
+            "will be unavailable for this run.", zip_blob_name,
+        )
+        # Fail loud per the no-fallback rule: return zero so callers can detect
+        # the empty case, but raise so the orchestrator marks the step failed
+        # rather than silently shipping single-address-only data.
+        raise RuntimeError(
+            f"pl_pfile_*.csv not found in {zip_blob_name}. CMS publishes the "
+            "Practice Location Reference File alongside the main NPPES data; "
+            "absence here indicates a malformed source zip."
+        )
+
+    # Drop + recreate the lookup collection (live-only contract; see REQ-T-008).
+    coll = _get_mongo_client()[db_name][coll_name]
+    coll.drop()
+
+    # Stream-parse pl_pfile, group by NPI, batch-upsert.
+    npi_to_addrs: dict[str, list[dict]] = {}
+    rows_loaded = 0
+    with zipfile.ZipFile(tmp_path) as zf:
+        with zf.open(pl_csv_name) as raw:
+            text = (line.decode("utf-8", errors="replace") for line in raw)
+            reader = _csv.DictReader(text)
+            for row in reader:
+                npi = (row.get("NPI") or "").strip()
+                if not npi:
+                    continue
+                # Build the address dict from the known fields, dropping blanks.
+                addr = {}
+                for src, sub in PL_FIELDS.items():
+                    v = (row.get(src) or "").strip()
+                    if v:
+                        addr[sub] = v
+                if not addr:
+                    continue  # blank row — skip
+                if "zip" in addr:
+                    addr["zip"] = addr["zip"][:5]
+                npi_to_addrs.setdefault(npi, []).append(addr)
+                rows_loaded += 1
+
+    os.unlink(tmp_path)
+
+    # Bulk insert one doc per NPI ({_id: NPI, addresses: [...]}).
+    if npi_to_addrs:
+        from pymongo import InsertOne
+        ops = [InsertOne({"_id": npi, "addresses": addrs})
+               for npi, addrs in npi_to_addrs.items()]
+        # Mongo's max BSON-doc size is 16 MB and per-op limit is 1000 by default;
+        # batch in chunks for safety.
+        BATCH = 1000
+        for i in range(0, len(ops), BATCH):
+            coll.bulk_write(ops[i:i + BATCH], ordered=False)
+
+    summary = {
+        "npis_with_secondary": len(npi_to_addrs),
+        "rows_loaded": rows_loaded,
+        "lookup_collection": pl_lookup_collection,
+    }
+    logging.info("pl_pfile loaded: %s", summary)
+    return summary
 
 
 def partition_file_fn(config: dict) -> list:
@@ -739,6 +874,9 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "incremental": config.get("incremental", False),
                 "provider_collection": config.get("provider_collection"),
                 "metadata_collection": config.get("metadata_collection"),
+                "pl_lookup_collection": config.get(
+                    "pl_lookup_collection", "dev_PublicHealthData.pl_pfile_lookup"
+                ),
             }
             load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
             step_statuses.append({"step": 3, "name": "load_data", "status": "completed_success"})
