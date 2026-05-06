@@ -70,7 +70,10 @@ def _patch_always_ready(token: str, count: int) -> None:
             "functionAppConfig": {
                 "scaleAndConcurrency": {
                     "alwaysReady": (
-                        [{"name": "provider_worker_activity", "instanceCount": count}]
+                        # Flex Consumption per-function scaling: Durable Functions activity
+                        # triggers belong to the scale group named "durable" (per Microsoft Learn).
+                        # Targeting the function name silently no-ops the PATCH.
+                        [{"name": "durable", "instanceCount": count}]
                         if count > 0 else []
                     )
                 }
