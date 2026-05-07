@@ -9,13 +9,9 @@
 All I/O lives in activity functions. The orchestrator is deterministic
 and replayable (no direct I/O).
 
-Pipeline steps (referenced by start_step config key):
-  1 — Download, extract, and partition NPPES zip → Blob Storage
-  2 — Load partitions into providers_staging (fan-out across num_workers)
-  3 — County enrichment Pass 1: out-of-scope filter + ZIP-code bulk lookup
-  4 — County enrichment Pass 2: Census Geocoder batch (primary location)
-  5 — County enrichment Pass 3: billing address retry
-  6 — Generate provider embeddings + create Atlas Vector Search index
+Pipeline step labels are exposed as the `start_step` API value AND as the
+`set_custom_status` display string — one canonical string per stage. See
+FINDCARE_PIPELINE_STEPS at the top of this module for the parent ordering.
 """
 
 import csv
@@ -144,6 +140,52 @@ def _ensure_container(container: str) -> None:
         pass  # already exists
 
 
+# ── Step labels (one canonical string per stage; used as both the
+#    set_custom_status display and the start_step API value) ─────────────────
+FINDCARE_LABEL_RESERVE   = "Step 1: Reserving cluster"
+FINDCARE_LABEL_HEALTH    = "Step 2: Checking MongoDB health"
+FINDCARE_LABEL_SPECIALTY = "Step 3: Loading SpecialtyMetaData"
+FINDCARE_LABEL_LOAD      = "Step 4: Loading provider data"
+FINDCARE_LABEL_ATTACH_PL = "Step 5: Attaching secondary practice locations"
+FINDCARE_LABEL_PASS1     = "Step 6: County enrichment Pass 1 — ZIP crosswalk"
+FINDCARE_LABEL_PASS2     = "Step 7: County enrichment Pass 2 — Census Geocoder, practice address"
+FINDCARE_LABEL_PASS3     = "Step 8: County enrichment Pass 3 — Census Geocoder, billing address"
+FINDCARE_LABEL_PASS4     = "Step 9: County enrichment Pass 4 — Google Maps"
+FINDCARE_LABEL_PASS6     = "Step 10: County enrichment Pass 6 — NPPES registry lookup"
+FINDCARE_LABEL_EMBED     = "Step 11: Generating embeddings + vector index"
+
+FINDCARE_PIPELINE_STEPS = [
+    FINDCARE_LABEL_RESERVE,
+    FINDCARE_LABEL_HEALTH,
+    FINDCARE_LABEL_SPECIALTY,
+    FINDCARE_LABEL_LOAD,
+    FINDCARE_LABEL_ATTACH_PL,
+    FINDCARE_LABEL_PASS1,
+    FINDCARE_LABEL_PASS2,
+    FINDCARE_LABEL_PASS3,
+    FINDCARE_LABEL_PASS4,
+    FINDCARE_LABEL_PASS6,
+    FINDCARE_LABEL_EMBED,
+]
+
+
+LOAD_LABEL_RESERVE       = "Step 1: Registering cluster reservation"
+LOAD_LABEL_DOWNLOAD      = "Step 2: Downloading NPI zip from CMS"
+LOAD_LABEL_EXTRACT       = "Step 3: Extracting CSV"
+LOAD_LABEL_PARTITION     = "Step 4: Partitioning file"
+LOAD_LABEL_DRAIN         = "Step 5: Draining staging collection"
+LOAD_LABEL_DRAIN_SKIP    = "Step 5: Skipping drain (incremental=true)"
+LOAD_LABEL_PRELOAD_IDX   = "Step 6: Ensuring pre-load index"
+LOAD_LABEL_PRELOAD_SKIP  = "Step 6: Skipping pre-load index (full load)"
+LOAD_LABEL_METADATA      = "Step 7: Writing metadata"
+LOAD_LABEL_WARM          = "Step 8: Pre-warming instances"
+LOAD_LABEL_WORKERS       = "Step 9: Loading workers"
+LOAD_LABEL_COOL          = "Step 10: Resetting always_ready"
+LOAD_LABEL_INDEXES       = "Step 11: Building indexes + reconciling"
+LOAD_LABEL_REPORT        = "Step 12: Writing report"
+LOAD_LABEL_RELEASE       = "Step 13: Releasing cluster reservation"
+
+
 # ── Orchestrators ─────────────────────────────────────────────────────────────
 
 def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
@@ -166,76 +208,59 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
         "cluster_name": config.get("pipeline_cluster", "ChatHealthyDataPipelines"),
         "expected_duration_minutes": config.get("expected_duration_minutes", 240),
     }
-    context.set_custom_status("Step 0/10: Registering cluster reservation")
+    context.set_custom_status(LOAD_LABEL_RESERVE)
     yield context.call_activity("register_reservation_activity", reservation)
 
-    # Step 1: Download zip to blob (auto-discovers URL + version if not supplied)
-    context.set_custom_status("Step 1/10: Downloading NPI zip from CMS")
+    context.set_custom_status(LOAD_LABEL_DOWNLOAD)
     download_result = yield context.call_activity("download_zip_activity", config)
     zip_path = download_result["zip_path"]
     config = {**config, "version": download_result["version"]}
 
-    # Step 2: Extract CSV from zip to blob
-    context.set_custom_status(f"Step 2/10: Extracting CSV (version: {config['version']})")
+    context.set_custom_status(LOAD_LABEL_EXTRACT)
     csv_path = yield context.call_activity(
         "extract_csv_activity", {**config, "zip_path": zip_path}
     )
 
-    # Step 2.5: Extract pl_pfile (NPPES Practice Location Reference File) from
-    # the same zip and load it into the secondary-practice-location lookup
-    # collection. CMS publishes non-primary practice locations only here
-    # (Readme §2.3); without this step every provider's practice_address
-    # array is silently capped at the primary location from the main file.
-    # Workers read from the lookup at startup; county enrichment runs against
-    # the populated practice_address array (post-load).
-    context.set_custom_status("Step 2.5/10: Loading pl_pfile (secondary practice locations)")
-    pl_lookup_summary = yield context.call_activity(
-        "extract_and_load_pl_pfile_activity", {**config, "zip_path": zip_path}
-    )
-
-    # Step 3: Compute byte-aligned partitions
-    context.set_custom_status("Step 3/10: Partitioning file")
+    context.set_custom_status(LOAD_LABEL_PARTITION)
     partitions = yield context.call_activity(
         "partition_file_activity", {**config, "csv_path": csv_path}
     )
 
-    # Step 4: Drain staging — drop unless incremental=true
     if not config.get("incremental", False):
-        context.set_custom_status("Step 4/10: Draining staging collection (full load)")
+        context.set_custom_status(LOAD_LABEL_DRAIN)
         yield context.call_activity("drain_staging_activity", config)
     else:
-        context.set_custom_status("Step 4/10: Skipping drain (incremental=true)")
+        context.set_custom_status(LOAD_LABEL_DRAIN_SKIP)
 
-    # Step 5: Pre-load index only — unique compound index for idempotency on retry.
-    # Only needed for incremental loads. Full loads drop the collection (Step 4),
+    # Pre-load index only — unique compound index for idempotency on retry.
+    # Only needed for incremental loads. Full loads drop the collection (drain step),
     # so there's nothing to deduplicate against. Skip on full load
     # to avoid DuplicateKeyError in post-load index creation.
     if config.get("incremental", False):
-        context.set_custom_status("Step 5/10: Ensuring pre-load index (incremental)")
+        context.set_custom_status(LOAD_LABEL_PRELOAD_IDX)
         yield context.call_activity("ensure_preload_indexes_activity", config)
     else:
-        context.set_custom_status("Step 5/10: Skipping pre-load index (full load)")
+        context.set_custom_status(LOAD_LABEL_PRELOAD_SKIP)
 
-    # Step 6: Write one metadata record per worker
-    context.set_custom_status(f"Step 6/10: Writing metadata ({len(partitions)} workers)")
+    context.set_custom_status(LOAD_LABEL_METADATA)
     metadata_ids = yield context.call_activity(
         "write_metadata_activity",
         {**config, "csv_path": csv_path, "partitions": partitions},
     )
 
-    # Step 6.5: Pre-warm Flex Consumption instances before fan-out.
-    # Sets always_ready = num_workers via Azure Management API (MSI auth), then waits
+    # Pre-warm Flex Consumption instances before fan-out.
+    # Sets always_ready = num_workers via Azure Management API (SP-OAuth), then waits
     # 3× PATCH latency for propagation. Prevents cold-start stacking (OOM, two-wave pattern).
-    # Non-fatal if MSI role not yet assigned — warm-up is skipped and fan-out proceeds.
-    context.set_custom_status(f"Step 6.5/10: Pre-warming {config.get('num_workers', 32)} instances")
+    # Non-fatal if SP role not yet assigned — warm-up is skipped and fan-out proceeds.
+    context.set_custom_status(LOAD_LABEL_WARM)
     warm_metrics = yield context.call_activity("warm_instances_activity", config)
     logging.info("Warm-up metrics: %s", warm_metrics)
 
-    # Step 7: Fan-out — all workers run simultaneously (no chunking).
+    # Fan-out — all workers run simultaneously (no chunking).
     # 32 partitions → 32 concurrent MongoDB writers → ~25% WiredTiger write ticket utilization.
     # Sub-orchestrators are avoided (direct activity calls) to prevent Durable Functions
     # history explosion (~15K events for 200 workers vs ~600 with direct calls).
-    context.set_custom_status(f"Step 7/10: Loading — {len(partitions)} workers")
+    context.set_custom_status(LOAD_LABEL_WORKERS)
     worker_tasks = [
         context.call_activity(
             "provider_worker_activity",
@@ -245,11 +270,12 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     ]
     worker_results = yield context.task_all(worker_tasks)
 
-    # Step 7.5: Reset always_ready = 0 — no standby cost between runs.
+    # Reset always_ready = 0 — no standby cost between runs.
+    context.set_custom_status(LOAD_LABEL_COOL)
     yield context.call_activity("cool_instances_activity", config)
 
-    # Steps 8+9 run in parallel: index build (MongoDB) and reconcile (blob read) are independent.
-    context.set_custom_status("Step 8-9/10: Building indexes + reconciling (parallel)")
+    # Index build (MongoDB) and reconcile (blob read) run in parallel — independent I/O.
+    context.set_custom_status(LOAD_LABEL_INDEXES)
     postload_task = context.call_activity("ensure_postload_indexes_activity", config)
     reconcile_task = context.call_activity(
         "reconcile_activity",
@@ -258,8 +284,8 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     parallel_results = yield context.task_all([postload_task, reconcile_task])
     reconcile_result = parallel_results[1]
 
-    # Step 10: Report — write to admin.PipelineDiscrepancyReport → SparkPost email
-    context.set_custom_status("Step 10/10: Writing report")
+    # Report — write to admin.PipelineDiscrepancyReport → SparkPost email
+    context.set_custom_status(LOAD_LABEL_REPORT)
     yield context.call_activity(
         "report_activity",
         {**config, "worker_results": worker_results, "reconcile_result": reconcile_result},
@@ -268,15 +294,21 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     total = sum(r.get("num_records", 0) for r in worker_results)
     any_failed = any(not r.get("success", True) for r in worker_results)
     status = "failed" if any_failed else "complete"
-    context.set_custom_status(f"Done — {status}, {total:,} records loaded")
 
     # Release cluster reservation — always runs after pipeline completes.
     # If orchestrator fails mid-way, ClusterLifecycleManager timer catches
     # the overdue reservation and alerts human.
-    context.set_custom_status("Step 11/10: Releasing cluster reservation")
+    context.set_custom_status(LOAD_LABEL_RELEASE)
     yield context.call_activity("release_reservation_activity", reservation)
 
-    return {"status": status, "records_loaded": total}
+    context.set_custom_status(f"Done — {status}, {total:,} records loaded")
+
+    return {
+        "status": status,
+        "records_loaded": total,
+        "version": config.get("version"),
+        "zip_path": zip_path,
+    }
 
 
 # ── Activity implementations ──────────────────────────────────────────────────
@@ -347,9 +379,9 @@ def extract_csv_fn(config: dict) -> str:
     return csv_blob_name
 
 
-def extract_and_load_pl_pfile_fn(config: dict) -> dict:
-    """Extract `pl_pfile_*.csv` from the NPPES zip, then load it into the
-    secondary-practice-location lookup collection (one document per NPI).
+def attach_practice_locations_fn(config: dict) -> dict:
+    """Enrichment-phase activity: attach NPPES secondary practice locations
+    to providers via a server-side `$merge`.
 
     Background — CMS NPPES Data Dissemination Readme §2.3:
       "NPPES now collects multiple Practice Location associated with Type 1
@@ -357,26 +389,43 @@ def extract_and_load_pl_pfile_fn(config: dict) -> dict:
        Location, and the Practice Location Reference File will contain all
        of the non-primary Practice Locations."
 
-    Without this step, the load worker has only the main file's primary
-    practice location and silently drops every secondary location.
+    Two phases, both server-side (no documents leave Atlas):
+      A. Stream `pl_pfile_*.csv` from the NPPES zip in blob, drop+recreate the
+         per-NPI lookup collection ({_id: NPI, addresses: [...]}). Live-only —
+         no history retained.
+      B. `providers.aggregate($lookup pl_pfile_lookup → $set practice_address →
+         $merge providers)` — concatenates secondary addresses onto each
+         provider's `practice_address` array, scoped by the run's state filter.
 
-    The lookup collection is dropped + repopulated on each run (live-only —
-    no history retained, consistent with the Pipeline Infrastructure live-only
-    rule). Workers read it once at _pipeline_open() into an in-memory dict.
+    Self-contained: the activity invokes `download_zip_fn(config)` (idempotent;
+    skips if the zip is already in blob) so it works whether or not the load
+    sub-orchestrator ran in the same invocation. This lets a caller resume the
+    pipeline at `start_step="Step 5: Attaching secondary practice locations"`
+    without requiring a fresh NPPES download.
 
-    Returns: {"npis_with_secondary": int, "rows_loaded": int}
+    Returns: {"npis_with_secondary": int, "rows_loaded": int,
+              "providers_modified": int, "lookup_collection": str}
     """
     import csv as _csv
+    from state_filter import normalize_states, is_full_load, mongo_state_filter
 
-    zip_blob_name = config["zip_path"]
     container = config.get("blob_container", "provider-data")
     pl_lookup_collection = config.get(
         "pl_lookup_collection", "dev_PublicHealthData.pl_pfile_lookup"
     )
-    db_name, coll_name = pl_lookup_collection.split(".", 1)
+    pl_db_name, pl_coll_name = pl_lookup_collection.split(".", 1)
+    provider_collection = config.get(
+        "provider_collection", "dev_PublicHealthData.providers"
+    )
+    prov_db_name, prov_coll_name = provider_collection.split(".", 1)
+
+    # Phase 0: ensure the NPPES zip is in blob. download_zip_fn is idempotent —
+    # it skips if the file is already landed for this version.
+    download_result = download_zip_fn(config)
+    zip_blob_name = download_result["zip_path"]
+    version = download_result["version"]
 
     # Field-name map mirrors the published pl_pfile_*_fileheader.csv.
-    # See _oneshots/nppes_main_file_address_columns.md for the full list.
     PL_FIELDS = {
         "Provider Secondary Practice Location Address- Address Line 1":   "line1",
         "Provider Secondary Practice Location Address-  Address Line 2":  "line2",
@@ -396,7 +445,6 @@ def extract_and_load_pl_pfile_fn(config: dict) -> dict:
         tmp_path = tmp.name
         container_client.get_blob_client(zip_blob_name).download_blob().readinto(tmp)
 
-    # Locate the pl_pfile inside the zip.
     pl_csv_name = None
     with zipfile.ZipFile(tmp_path) as zf:
         for n in zf.namelist():
@@ -407,24 +455,18 @@ def extract_and_load_pl_pfile_fn(config: dict) -> dict:
 
     if pl_csv_name is None:
         os.unlink(tmp_path)
-        logging.warning(
-            "No pl_pfile_*.csv found in zip %s — secondary practice locations "
-            "will be unavailable for this run.", zip_blob_name,
-        )
-        # Fail loud per the no-fallback rule: return zero so callers can detect
-        # the empty case, but raise so the orchestrator marks the step failed
-        # rather than silently shipping single-address-only data.
+        # Fail loud — CMS publishes the Practice Location Reference File alongside
+        # the main NPPES data; absence indicates a malformed source zip.
         raise RuntimeError(
-            f"pl_pfile_*.csv not found in {zip_blob_name}. CMS publishes the "
-            "Practice Location Reference File alongside the main NPPES data; "
-            "absence here indicates a malformed source zip."
+            f"pl_pfile_*.csv not found in {zip_blob_name} (version {version}). "
+            "CMS publishes the Practice Location Reference File alongside the "
+            "main NPPES data; absence here indicates a malformed source zip."
         )
 
-    # Drop + recreate the lookup collection (live-only contract; see REQ-T-008).
-    coll = _get_mongo_client()[db_name][coll_name]
-    coll.drop()
+    # Phase A: drop + recreate the lookup collection (live-only contract).
+    pl_coll = _get_mongo_client()[pl_db_name][pl_coll_name]
+    pl_coll.drop()
 
-    # Stream-parse pl_pfile, group by NPI, batch-upsert.
     npi_to_addrs: dict[str, list[dict]] = {}
     rows_loaded = 0
     with zipfile.ZipFile(tmp_path) as zf:
@@ -435,14 +477,13 @@ def extract_and_load_pl_pfile_fn(config: dict) -> dict:
                 npi = (row.get("NPI") or "").strip()
                 if not npi:
                     continue
-                # Build the address dict from the known fields, dropping blanks.
                 addr = {}
                 for src, sub in PL_FIELDS.items():
                     v = (row.get(src) or "").strip()
                     if v:
                         addr[sub] = v
                 if not addr:
-                    continue  # blank row — skip
+                    continue
                 if "zip" in addr:
                     addr["zip"] = addr["zip"][:5]
                 npi_to_addrs.setdefault(npi, []).append(addr)
@@ -450,23 +491,67 @@ def extract_and_load_pl_pfile_fn(config: dict) -> dict:
 
     os.unlink(tmp_path)
 
-    # Bulk insert one doc per NPI ({_id: NPI, addresses: [...]}).
     if npi_to_addrs:
         from pymongo import InsertOne
         ops = [InsertOne({"_id": npi, "addresses": addrs})
                for npi, addrs in npi_to_addrs.items()]
-        # Mongo's max BSON-doc size is 16 MB and per-op limit is 1000 by default;
-        # batch in chunks for safety.
         BATCH = 1000
         for i in range(0, len(ops), BATCH):
-            coll.bulk_write(ops[i:i + BATCH], ordered=False)
+            pl_coll.bulk_write(ops[i:i + BATCH], ordered=False)
 
+    # Phase B: server-side `providers.aggregate → $merge providers` —
+    # concat secondary addresses onto each provider's practice_address array.
+    # State-scoped via the same predicate every other step uses (REQ-T-001).
+    states = normalize_states(config)
+    state_match = {} if is_full_load(states) else mongo_state_filter(states)
+
+    prov_coll = _get_mongo_client()[prov_db_name][prov_coll_name]
+    pipeline = [
+        {"$match": state_match} if state_match else {"$match": {}},
+        {"$lookup": {
+            "from": pl_coll_name,
+            "localField": "npi",
+            "foreignField": "_id",
+            "as": "_pl",
+        }},
+        {"$match": {"_pl.0": {"$exists": True}}},
+        {"$set": {
+            "practice_address": {
+                "$concatArrays": [
+                    {"$cond": [
+                        {"$isArray": "$practice_address"},
+                        "$practice_address",
+                        {"$cond": [
+                            {"$ifNull": ["$practice_address", False]},
+                            ["$practice_address"],
+                            [],
+                        ]},
+                    ]},
+                    {"$ifNull": [{"$arrayElemAt": ["$_pl.addresses", 0]}, []]},
+                ],
+            },
+        }},
+        {"$unset": "_pl"},
+        {"$merge": {
+            "into": prov_coll_name,
+            "whenMatched": "replace",
+            "whenNotMatched": "discard",
+        }},
+    ]
+    # NB: $merge writes the cursor docs back into the same collection.
+    # Server reads from a snapshot before the writes start; no infinite-loop risk.
+    list(prov_coll.aggregate(pipeline, allowDiskUse=True))
+
+    # We can't get a precise modified count from $merge directly; report the
+    # set of NPIs that had a non-empty secondary list.
     summary = {
         "npis_with_secondary": len(npi_to_addrs),
         "rows_loaded": rows_loaded,
+        "providers_targeted": len(npi_to_addrs),
         "lookup_collection": pl_lookup_collection,
+        "version": version,
     }
-    logging.info("pl_pfile loaded: %s", summary)
+    logging.info("attach_practice_locations: %s", summary)
     return summary
 
 
@@ -783,28 +868,33 @@ def create_vector_index_fn(config: dict) -> dict:
 # ── Full Pipeline Orchestrator ────────────────────────────────────────────────
 
 def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Top-level orchestrator: health check → specialty data → load → enrichment → embeddings.
+    """Top-level orchestrator: reserve → health check → specialty → load →
+    attach pl_pfile → enrichment passes → embeddings.
 
-    start_step (3–9): skip optional steps before this number. Default 1 (full run).
-    Steps 0, 1 are MANDATORY. Step 2 controlled by specialty_metadata (default True).
+    start_step (str, optional): the canonical step LABEL where execution should
+    begin. Steps before this label are skipped; the label itself runs. The
+    same string is what appears in `customStatus`. Defaults to the first step
+    (full run). Steps 1 (Reserving) and 2 (Health check) are MANDATORY and
+    always run regardless of start_step. Step 3 (SpecialtyMetaData) is
+    additionally gated on `specialty_metadata` (default True).
 
-    Steps:
-      0  — Reserve cluster, wake DB (MANDATORY — always runs)
-      1  — MongoDB health check (MANDATORY — always runs)
-      2  — Load SpecialtyMetaData from NUCC taxonomy (specialty_metadata=True)
-      3  — Download + extract + load provider records
-      4  — County enrichment Pass 1: ZIP crosswalk (bulk updateMany per ZIP)
-      5  — County enrichment Pass 2: Census Geocoder, practice address
-      6  — County enrichment Pass 3: Census Geocoder, billing address
-      7  — County enrichment Pass 4: Google Maps, final fallback (google_maps_enabled=True)
-      8  — County enrichment Pass 6: NPPES registry lookup
-      9  — Generate embeddings + create Atlas Vector Search index (embedding_enabled=True)
+    See FINDCARE_PIPELINE_STEPS / FINDCARE_LABEL_* at the top of this module
+    for the canonical ordering.
     """
     from county_enrichment_job import _build_enrichment_reconcile
 
     config = context.get_input() or {}
     load_id = context.instance_id
-    start_step = config.get("start_step", 1)
+
+    start_label = config.get("start_step", FINDCARE_PIPELINE_STEPS[0])
+    if start_label not in FINDCARE_PIPELINE_STEPS:
+        raise ValueError(
+            f"Unknown start_step {start_label!r}. Valid: {FINDCARE_PIPELINE_STEPS}"
+        )
+    start_idx = FINDCARE_PIPELINE_STEPS.index(start_label)
+
+    def _run(label: str) -> bool:
+        return FINDCARE_PIPELINE_STEPS.index(label) >= start_idx
 
     enrich_config = {
         "load_id": load_id,
@@ -812,12 +902,11 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
         "addr_batch_size": config.get("addr_batch_size", 5_000),
         "reset_failed": config.get("reset_failed", False),
         "nppes_batch_size": config.get("nppes_batch_size", 5_000),
-        "states": config.get("states"),  # optional state filter for NPPES pass
+        "states": config.get("states"),
         "provider_collection": config.get("provider_collection"),
         "metadata_collection": config.get("metadata_collection"),
     }
 
-    # Step 0: Reserve cluster through manager — manager wakes the cluster
     cluster_name = config.get("pipeline_cluster", "ChatHealthyDataPipelines")
     reservation = {
         "job_id": load_id,
@@ -825,14 +914,12 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
         "cluster_name": cluster_name,
         "expected_duration_minutes": config.get("expected_duration_minutes", 480),
     }
-    context.set_custom_status("Step 0/7: Reserving cluster — manager waking DB")
+    context.set_custom_status(FINDCARE_LABEL_RESERVE)
     yield context.call_activity("register_reservation_activity", reservation)
 
-    # Poll until cluster is IDLE (manager is waking it)
     import datetime
     deadline = context.current_utc_datetime + datetime.timedelta(minutes=15)
     while context.current_utc_datetime < deadline:
-        context.set_custom_status("Step 0/7: Waiting for cluster to become IDLE")
         status = yield context.call_activity("check_cluster_state_activity",
                                               {"cluster_name": cluster_name})
         if status.get("cluster_state") == "IDLE":
@@ -840,32 +927,29 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
         next_check = context.current_utc_datetime + datetime.timedelta(seconds=30)
         yield context.create_timer(next_check)
 
-    # All steps wrapped so reservation is released on any failure
-    # EPIC-006-F-006-S-002-REQ-T-002: each step reports status
     load_result = {"status": "skipped"}
     pass1_result = pass2_result = pass3_result = pass4_result = pass6_result = None
+    attach_result = None
     reconcile = None
     embed_results = []
     pipeline_error = None
     step_statuses = []
 
     try:
-        # Step 1: MongoDB health check — MANDATORY, always runs regardless of start_step
-        context.set_custom_status("Step 1/10: Checking MongoDB health")
+        # Health check is MANDATORY — runs regardless of start_step.
+        context.set_custom_status(FINDCARE_LABEL_HEALTH)
         yield context.call_activity("check_mongo_health_activity", config)
-        step_statuses.append({"step": 1, "name": "health_check", "status": "completed_success"})
+        step_statuses.append({"step": FINDCARE_LABEL_HEALTH, "status": "completed_success"})
 
-        # Step 2: Load SpecialtyMetaData (NUCC taxonomy → pipeline DB)
         if config.get("specialty_metadata", True):
-            context.set_custom_status("Step 2/10: Loading SpecialtyMetaData")
+            context.set_custom_status(FINDCARE_LABEL_SPECIALTY)
             yield context.call_activity("load_specialty_data_activity", {
                 "env_prefix": config.get("env_prefix", "dev"),
             })
-            step_statuses.append({"step": 2, "name": "load_specialty_data", "status": "completed_success"})
+            step_statuses.append({"step": FINDCARE_LABEL_SPECIALTY, "status": "completed_success"})
 
-        # Step 3: Load provider data
-        if start_step <= 3:
-            context.set_custom_status("Step 3/10: Loading provider data")
+        if _run(FINDCARE_LABEL_LOAD):
+            context.set_custom_status(FINDCARE_LABEL_LOAD)
             load_config = {
                 "num_workers": config.get("num_workers", 32),
                 "batch_size": config.get("batch_size", 5000),
@@ -874,54 +958,61 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "incremental": config.get("incremental", False),
                 "provider_collection": config.get("provider_collection"),
                 "metadata_collection": config.get("metadata_collection"),
+            }
+            load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
+            step_statuses.append({"step": FINDCARE_LABEL_LOAD, "status": "completed_success"})
+
+        if _run(FINDCARE_LABEL_ATTACH_PL):
+            context.set_custom_status(FINDCARE_LABEL_ATTACH_PL)
+            attach_config = {
+                "blob_container": config.get("blob_container", "provider-data"),
+                "states": config.get("states"),
+                "provider_collection": config.get("provider_collection", "dev_PublicHealthData.providers"),
                 "pl_lookup_collection": config.get(
                     "pl_lookup_collection", "dev_PublicHealthData.pl_pfile_lookup"
                 ),
+                "version": load_result.get("version") if isinstance(load_result, dict) else None,
             }
-            load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
-            step_statuses.append({"step": 3, "name": "load_data", "status": "completed_success"})
+            attach_result = yield context.call_activity(
+                "attach_practice_locations_activity", attach_config
+            )
+            step_statuses.append({"step": FINDCARE_LABEL_ATTACH_PL, "status": "completed_success"})
 
-        # Step 4: County enrichment — Pass 1: ZIP crosswalk
-        if start_step <= 4:
-            context.set_custom_status("Step 4/10: County enrichment — Pass 1: ZIP crosswalk")
+        if _run(FINDCARE_LABEL_PASS1):
+            context.set_custom_status(FINDCARE_LABEL_PASS1)
             pass1_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass1_orchestrator", enrich_config
             )
-            step_statuses.append({"step": 4, "name": "pass1_crosswalk", "status": "completed_success"})
+            step_statuses.append({"step": FINDCARE_LABEL_PASS1, "status": "completed_success"})
 
-        # Step 5: County enrichment — Pass 2: Census Geocoder, practice address
-        if start_step <= 5:
-            context.set_custom_status("Step 5/10: County enrichment — Pass 2: Census Geocoder, practice address")
+        if _run(FINDCARE_LABEL_PASS2):
+            context.set_custom_status(FINDCARE_LABEL_PASS2)
             pass2_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass2_orchestrator", enrich_config
             )
-            step_statuses.append({"step": 5, "name": "pass2_geocoder", "status": "completed_success"})
+            step_statuses.append({"step": FINDCARE_LABEL_PASS2, "status": "completed_success"})
 
-        # Step 6: County enrichment — Pass 3: Census Geocoder, billing address
-        if start_step <= 6:
-            context.set_custom_status("Step 6/10: County enrichment — Pass 3: Census Geocoder, billing address")
+        if _run(FINDCARE_LABEL_PASS3):
+            context.set_custom_status(FINDCARE_LABEL_PASS3)
             pass3_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass3_orchestrator", enrich_config
             )
-            step_statuses.append({"step": 6, "name": "pass3_billing", "status": "completed_success"})
+            step_statuses.append({"step": FINDCARE_LABEL_PASS3, "status": "completed_success"})
 
-        # Step 7: County enrichment — Pass 4: Google Maps, final fallback
-        if start_step <= 7 and config.get("google_maps_enabled", False):
-            context.set_custom_status("Step 7/10: County enrichment — Pass 4: Google Maps, final fallback")
+        if _run(FINDCARE_LABEL_PASS4) and config.get("google_maps_enabled", False):
+            context.set_custom_status(FINDCARE_LABEL_PASS4)
             pass4_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass4_orchestrator", enrich_config
             )
-            step_statuses.append({"step": 7, "name": "pass4_maps", "status": "completed_success"})
+            step_statuses.append({"step": FINDCARE_LABEL_PASS4, "status": "completed_success"})
 
-        # Step 8: County enrichment — Pass 6: NPPES public registry lookup
-        if start_step <= 8:
-            context.set_custom_status("Step 8/10: County enrichment — Pass 6: NPPES registry lookup")
+        if _run(FINDCARE_LABEL_PASS6):
+            context.set_custom_status(FINDCARE_LABEL_PASS6)
             pass6_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass6_nppes_orchestrator", enrich_config
             )
-            step_statuses.append({"step": 8, "name": "pass6_nppes", "status": "completed_success"})
+            step_statuses.append({"step": FINDCARE_LABEL_PASS6, "status": "completed_success"})
 
-        # Enrichment reconcile report
         if pass1_result or pass2_result or pass3_result or pass6_result:
             reconcile = _build_enrichment_reconcile(
                 pass1_result or {}, pass2_result or {}, pass3_result or {},
@@ -931,11 +1022,10 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
             )
 
-        # Step 9: Generate embeddings
-        if start_step <= 9 and config.get("embedding_enabled", False):
+        if _run(FINDCARE_LABEL_EMBED) and config.get("embedding_enabled", False):
             num_workers = config.get("num_workers", 32)
             provider_collection = config.get("provider_collection", "dev_PublicHealthData.providers")
-            context.set_custom_status(f"Step 9/10: Generating embeddings ({num_workers} workers)")
+            context.set_custom_status(FINDCARE_LABEL_EMBED)
             embed_tasks = [
                 context.call_activity(
                     "embed_worker_activity",
@@ -951,14 +1041,13 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 for i in range(num_workers)
             ]
             embed_results = yield context.task_all(embed_tasks)
-            context.set_custom_status("Step 9/10: Creating vector search index")
             yield context.call_activity(
                 "create_vector_index_activity", {"provider_collection": provider_collection}
             )
 
     except Exception as exc:
         pipeline_error = str(exc)
-        step_statuses.append({"step": "unknown", "name": "exception", "status": "completed_fail", "error": pipeline_error[:200]})
+        step_statuses.append({"step": "unknown", "status": "completed_fail", "error": pipeline_error[:200]})
         context.set_custom_status(f"FAILED: {pipeline_error[:200]}")
 
     # ALWAYS release reservation — success or failure
