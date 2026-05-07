@@ -301,21 +301,29 @@ def county_enrichment_pass1_orchestrator_fn(context):
 
 
 def reset_geocoder_failed_fn(config: dict) -> dict:
-    """Reset providers marked geocoder_failed so the batch geocoder can retry them.
+    """Reset practice_address elements flagged geocoder_failed so the batch
+    geocoder can retry them. Operates per-element (multi-practice-address
+    shape).
 
-    Previous runs using individual geocoder calls marked 499K providers as
-    geocoder_failed due to rate limiting — not genuine address failures.
-    This clears that flag so get_unenriched_fn picks them up again.
-    Only call this when switching geocoder strategy; not on routine reruns.
+    Previous runs that used individual geocoder calls marked many elements as
+    geocoder_failed due to rate limiting — not genuine address failures. This
+    clears that flag so get_unenriched_fn picks them up again. Only call this
+    when switching geocoder strategy; not on routine reruns.
     """
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     sf = _build_states_filter(config)
     result = _get_mongo_client()[db_name][coll_name].update_many(
-        {"county.source": "geocoder_failed", "bad_data.flagged": {"$ne": True}, "out_of_scope.flagged": {"$ne": True}, **sf},
-        {"$set": {"county": {"fips": None}}},
+        {
+            "practice_address": {"$elemMatch": {"county.source": "geocoder_failed"}},
+            "bad_data.flagged": {"$ne": True},
+            "out_of_scope.flagged": {"$ne": True},
+            **sf,
+        },
+        {"$set": {"practice_address.$[elem].county": {"fips": None}}},
+        array_filters=[{"elem.county.source": "geocoder_failed"}],
     )
-    logging.info("Reset %d geocoder_failed records for retry", result.modified_count)
+    logging.info("Reset geocoder_failed elements on %d providers for retry", result.modified_count)
     return {"reset": result.modified_count}
 
 
@@ -810,7 +818,18 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
         ))
 
         for p in mismatched_providers:
-            zip5 = (p.get("practice_address", {}).get("zip") or "")[:5]
+            # Multi-practice-address shape: read the PRIMARY (element 0) for the
+            # mismatch check. Legacy dict shape: read the dict directly.
+            pa_raw = p.get("practice_address")
+            if isinstance(pa_raw, list):
+                primary = pa_raw[0] if pa_raw and isinstance(pa_raw[0], dict) else {}
+                primary_state_path = "practice_address.0.state"
+            elif isinstance(pa_raw, dict):
+                primary = pa_raw
+                primary_state_path = "practice_address.state"
+            else:
+                continue
+            zip5 = (primary.get("zip") or "")[:5]
             expected_state = zip_to_state.get(zip5)
             if not expected_state:
                 continue
@@ -842,7 +861,7 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
                 ops.append(UpdateOne(
                     {"_id": p["_id"]},
                     {"$set": {
-                        "practice_address.state": expected_state,
+                        primary_state_path: expected_state,
                         "bad_data": None,
                     }},
                 ))
@@ -1004,11 +1023,80 @@ def mark_prescriber_fn(config: dict) -> dict:
 
 
 _UNENRICHED_FILTER = {
-    "county.fips": None,
-    "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
+    # At least one practice_address element still needs county and hasn't been
+    # classified by a prior pass. Multi-practice-address shape (list of dicts).
+    # Legacy single-dict-shape records are skipped here — Pass 1 has its own
+    # legacy path that handles them; passes 2-6 only target list-shape records.
+    "practice_address": {"$elemMatch": {
+        "county.fips": None,
+        "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
+    }},
     "bad_data.flagged": {"$ne": True},
     "out_of_scope.flagged": {"$ne": True},
 }
+
+
+def _unenriched_elements(provider: dict):
+    """Yield (idx, addr_dict) for each practice_address element of `provider`
+    that still needs county enrichment (county.fips null and not classified
+    as geocoder_failed / geocoder_no_address / out_of_scope).
+
+    Yields nothing for legacy single-dict shape — those are handled by Pass 1's
+    legacy path. Passes 2-6 operate on list-shape records exclusively.
+    """
+    pa = provider.get("practice_address")
+    if not isinstance(pa, list):
+        return
+    for idx, addr in enumerate(pa):
+        if not isinstance(addr, dict):
+            continue
+        c = addr.get("county") or {}
+        if c.get("fips"):
+            continue
+        if c.get("source") in ("geocoder_failed", "geocoder_no_address", "out_of_scope"):
+            continue
+        yield idx, addr
+
+
+def _failed_elements(provider: dict):
+    """Yield (idx, addr_dict) for each practice_address element flagged
+    geocoder_failed by an earlier pass. Used by Pass 3/4 retry logic."""
+    pa = provider.get("practice_address")
+    if not isinstance(pa, list):
+        return
+    for idx, addr in enumerate(pa):
+        if not isinstance(addr, dict):
+            continue
+        if (addr.get("county") or {}).get("source") == "geocoder_failed":
+            yield idx, addr
+
+
+def _census_batch_geocode(rows: list) -> dict:
+    """rows: list of (composite_id_str, line1, city, state, zip5). Returns
+    dict[composite_id_str -> "5-digit-FIPS"] for matches only. Raises on
+    HTTP/network errors so the caller can leave elements unenriched for retry.
+    """
+    buf = io.StringIO()
+    writer = csv.writer(buf, quoting=csv.QUOTE_ALL)
+    for cid, line1, city, state, zip5 in rows:
+        writer.writerow([cid, line1, city, state, zip5])
+    resp = requests.post(
+        CENSUS_BATCH_URL,
+        files={"addressFile": ("addresses.csv", buf.getvalue().encode("utf-8"), "text/csv")},
+        data={"benchmark": "Public_AR_Current", "vintage": "Current_Current"},
+        timeout=300,
+    )
+    resp.raise_for_status()
+    matched: dict = {}
+    for row in csv.reader(io.StringIO(resp.text)):
+        if len(row) < 10:
+            continue
+        cid, match, state_fp, county_fp = row[0].strip(), row[2].strip(), row[8].strip(), row[9].strip()
+        if match not in ("Match", "Tie") or not state_fp or not county_fp:
+            continue
+        matched.setdefault(cid, state_fp + county_fp)
+    logging.info("Census batch geocoder: %d/%d matched", len(matched), len(rows))
+    return matched
 
 
 def get_unenriched_fn(config: dict) -> dict:
@@ -1037,154 +1125,110 @@ def get_unenriched_fn(config: dict) -> dict:
     return {"count": unenriched, "total_providers": total_providers, "min_id": min_id, "max_id": max_id}
 
 
-def _geocode_batch(providers: list[dict]) -> dict:
-    """Batch geocode providers via Census Geocoder batch API.
-
-    Sends one CSV POST (up to 5K rows). Returns {str(_id): {"fips", "source"}}
-    for matched providers only. Raises on HTTP/network errors so the caller
-    can leave providers unenriched and retry on the next run.
-
-    Response CSV columns (0-indexed):
-      0  Unique ID   2  Match   8  State FIPS   9  County FIPS
-    """
-    buf = io.StringIO()
-    writer = csv.writer(buf, quoting=csv.QUOTE_ALL)
-    id_to_billing: dict[str, bool] = {}
-
-    for p in providers:
-        practice = p.get("practice_address") or {}
-        street   = practice.get("line1", "").strip()
-        city     = practice.get("city",  "").strip()
-        state    = practice.get("state", "").strip()
-        zip_code = practice.get("zip",   "").strip()
-        using_billing = False
-
-        if not street and not city:
-            mailing  = p.get("mailing_address") or {}
-            street   = mailing.get("line1", "").strip()
-            city     = mailing.get("city",  "").strip()
-            state    = mailing.get("state", "").strip()
-            zip_code = mailing.get("zip",   "").strip()
-            using_billing = True
-
-        pid = str(p["_id"])
-        id_to_billing[pid] = using_billing
-        writer.writerow([pid, street, city, state, zip_code[:5] if zip_code else ""])
-
-    resp = requests.post(
-        CENSUS_BATCH_URL,
-        files={"addressFile": ("addresses.csv", buf.getvalue().encode("utf-8"), "text/csv")},
-        data={"benchmark": "Public_AR_Current", "vintage": "Current_Current"},
-        timeout=300,
-    )
-    resp.raise_for_status()
-
-    results: dict[str, dict] = {}
-    for row in csv.reader(io.StringIO(resp.text)):
-        if len(row) < 10:
-            continue
-        pid, match, state_fp, county_fp = row[0].strip(), row[2].strip(), row[8].strip(), row[9].strip()
-        if match not in ("Match", "Tie") or not state_fp or not county_fp:
-            continue
-        if pid in results:
-            continue  # keep first match on Tie
-        source = "geocoder_pass2_batch_billing" if id_to_billing.get(pid) else "geocoder_pass2_batch"
-        results[pid] = {"fips": state_fp + county_fp, "source": source}
-
-    logging.info("Census batch geocoder: %d/%d matched", len(results), len(providers))
-    return results
-
-
 def enrich_by_address_batch_fn(config: dict) -> dict:
-    """Pass 2: Census Geocoder batch API — up to 5K providers per activity.
+    """Pass 2: Census Geocoder batch API — per-practice-address-element.
 
-    Uses skip/limit with _id sort so no large ID list is passed through
-    Durable Functions activity I/O (which has size limits).
-    Each activity independently queries its own slice of unenriched providers.
+    For each provider in this _id range, iterates every practice_address element
+    that still needs a county. Each element gets one CSV row in the Census batch
+    keyed by composite ID `<provider_oid>_<elem_idx>`. Results are written back
+    via per-element `practice_address.<idx>.county` updates.
+
+    Elements with no usable address (no line1 and no city) are flagged
+    `geocoder_no_address`. Elements the geocoder couldn't match are flagged
+    `geocoder_failed` (Pass 3 will retry these via the doc's mailing address).
+
+    Billing-fallback that the old Pass 2 did per-provider has moved entirely to
+    Pass 3 — Pass 2 now ONLY tries the practice address.
     """
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.monotonic()
     start_id_hex = config["start_id"]
-    end_id_hex   = config.get("end_id")       # None for the last batch (open upper bound)
+    end_id_hex   = config.get("end_id")
     collection   = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
-    sf = _build_states_filter(config)  # defense-in-depth
+    sf = _build_states_filter(config)
     id_filter: dict = {"_id": {"$gte": ObjectId(start_id_hex)}}
     if end_id_hex:
         id_filter["_id"]["$lt"] = ObjectId(end_id_hex)
 
     providers = list(coll.find(
         {**_UNENRICHED_FILTER, **id_filter, **sf},
-        {"_id": 1, "practice_address": 1, "mailing_address": 1, "licenses": 1},
+        {"_id": 1, "practice_address": 1},
     ))
 
-    # Pre-screen: flag providers with no usable address
-    geocodable: list[dict] = []
+    # Per-element fan-out
+    geocode_rows: list = []                           # (cid, line1, city, state, zip5)
+    composite_to_pidx: dict[str, tuple] = {}          # cid -> (provider_oid, elem_idx)
     ops: list = []
     no_address = 0
-    for p in providers:
-        practice = p.get("practice_address") or {}
-        mailing  = p.get("mailing_address")  or {}
-        if (practice.get("line1") or practice.get("city") or
-                mailing.get("line1") or mailing.get("city")):
-            geocodable.append(p)
-        else:
-            ops.append(UpdateOne(
-                {"_id": p["_id"]},
-                {"$set": {"county": {"fips": None, "source": "geocoder_no_address"}}},
-            ))
-            no_address += 1
 
-    # Batch geocode — on error, leave providers unenriched for retry
-    modified = billing_modified = geocoder_failed = 0
-    if geocodable:
+    for p in providers:
+        pid_obj = p["_id"]
+        pid_str = str(pid_obj)
+        for idx, addr in _unenriched_elements(p):
+            line1 = (addr.get("line1") or "").strip()
+            city  = (addr.get("city")  or "").strip()
+            state = (addr.get("state") or "").strip()
+            zip5  = (addr.get("zip")   or "").strip()[:5]
+            if line1 or city:
+                cid = f"{pid_str}_{idx}"
+                geocode_rows.append((cid, line1, city, state, zip5))
+                composite_to_pidx[cid] = (pid_obj, idx)
+            else:
+                ops.append(UpdateOne(
+                    {"_id": pid_obj},
+                    {"$set": {f"practice_address.{idx}.county": {
+                        "fips": None, "source": "geocoder_no_address",
+                    }}},
+                ))
+                no_address += 1
+
+    modified = geocoder_failed = 0
+    if geocode_rows:
         batch_ok = False
         matched: dict = {}
         try:
-            matched  = _geocode_batch(geocodable)
+            matched = _census_batch_geocode(geocode_rows)
             batch_ok = True
         except Exception as exc:
             logging.error(
-                "Census batch geocoder failed (%d providers left for retry): %s",
-                len(geocodable), exc,
+                "Pass 2 Census batch geocoder failed (%d elements left for retry): %s",
+                len(geocode_rows), exc,
             )
 
         if batch_ok:
-            for p in geocodable:
-                pid = str(p["_id"])
-                if pid in matched:
-                    r = matched[pid]
+            for cid, *_ in geocode_rows:
+                pid_obj, idx = composite_to_pidx[cid]
+                if cid in matched:
+                    fips = matched[cid]
                     ops.append(UpdateOne(
-                        {"_id": p["_id"]},
-                        {"$set": {"county": {
-                            "fips": r["fips"],
-                            "name": _get_fips_to_name().get(r["fips"], ""),
-                            "source": r["source"],
+                        {"_id": pid_obj},
+                        {"$set": {f"practice_address.{idx}.county": {
+                            "fips": fips,
+                            "name": _get_fips_to_name().get(fips, ""),
+                            "source": "geocoder_pass2_batch",
                         }}},
                     ))
-                    if "billing" in r["source"]:
-                        billing_modified += 1
-                    else:
-                        modified += 1
+                    modified += 1
                 else:
-                    # Batch succeeded but address had no match — permanent failure
                     ops.append(UpdateOne(
-                        {"_id": p["_id"]},
-                        {"$set": {"county": {"fips": None, "source": "geocoder_failed"}}},
+                        {"_id": pid_obj},
+                        {"$set": {f"practice_address.{idx}.county": {
+                            "fips": None, "source": "geocoder_failed",
+                        }}},
                     ))
                     geocoder_failed += 1
 
     if ops:
         coll.bulk_write(ops, ordered=False)
 
-    succeeded = modified + billing_modified
     return {
         "assigned":         len(providers),
-        "succeeded":        succeeded,
+        "succeeded":        modified,
         "modified":         modified,
-        "billing_modified": billing_modified,
+        "billing_modified": 0,            # back-compat key — billing moved to Pass 3
         "geocoder_failed":  geocoder_failed,
         "no_address":       no_address,
         "started_at":       started_at,
@@ -1194,9 +1238,10 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
 
 
 def get_billing_retryable_fn(config: dict) -> dict:
-    """Return _id list of geocoder_failed providers that have a usable mailing/billing address.
+    """Return _id list of providers that have at least one practice_address
+    element flagged geocoder_failed AND a usable mailing/billing address.
 
-    Excludes deactivated and foreign providers — same rules as Pass 2.
+    Excludes deactivated and foreign providers (same rules as Pass 2).
     """
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
@@ -1206,7 +1251,7 @@ def get_billing_retryable_fn(config: dict) -> dict:
         str(doc["_id"])
         for doc in coll.find(
             {
-                "county.source": "geocoder_failed",
+                "practice_address": {"$elemMatch": {"county.source": "geocoder_failed"}},
                 "bad_data.flagged": {"$ne": True},
                 "out_of_scope.flagged": {"$ne": True},
                 **sf,
@@ -1233,11 +1278,14 @@ def get_billing_retryable_fn(config: dict) -> dict:
 
 
 def enrich_by_billing_batch_fn(config: dict) -> dict:
-    """Pass 3: geocode geocoder_failed providers using mailing/billing address.
+    """Pass 3: For each provider with one or more geocoder_failed practice_address
+    elements, geocode the doc's mailing/billing address ONCE. On match, apply
+    that billing-derived county to every element flagged geocoder_failed.
 
-    Sends the mailing/billing address to the Census batch geocoder. On success,
-    sets county.fips and source = geocoder_pass3_billing. On failure, leaves
-    county.source = geocoder_failed unchanged (no write needed).
+    Rationale: the doc has a single mailing address; a successful billing
+    geocode gives one fallback county we can apply to every still-unresolved
+    practice location. Element-specific geocoding (per-element address) is
+    Pass 4's job (Maps).
     """
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.monotonic()
@@ -1249,79 +1297,69 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
     object_ids = [ObjectId(i) for i in id_batch]
     providers  = list(coll.find(
         {"_id": {"$in": object_ids}},
-        {"_id": 1, "mailing_address": 1},
+        {"_id": 1, "mailing_address": 1, "practice_address": 1},
     ))
 
-    geocodable = [
-        p for p in providers
-        if (p.get("mailing_address") or {}).get("line1") or
-           (p.get("mailing_address") or {}).get("city")
-    ]
+    geocodable = []  # list of (pid_str, mailing_dict, provider_doc)
+    for p in providers:
+        m = p.get("mailing_address") or {}
+        if m.get("line1") or m.get("city"):
+            geocodable.append((str(p["_id"]), m, p))
 
-    modified = geocoder_failed = 0
+    modified_elements = providers_failed = 0
     ops: list = []
 
     if geocodable:
-        buf = io.StringIO()
-        writer = csv.writer(buf, quoting=csv.QUOTE_ALL)
-        for p in geocodable:
-            mailing  = p.get("mailing_address") or {}
-            street   = mailing.get("line1", "").strip()
-            city     = mailing.get("city",  "").strip()
-            state    = mailing.get("state", "").strip()
-            zip_code = mailing.get("zip",   "").strip()
-            writer.writerow([str(p["_id"]), street, city, state, zip_code[:5] if zip_code else ""])
+        rows = []
+        for pid, m, _p in geocodable:
+            line1 = (m.get("line1") or "").strip()
+            city  = (m.get("city")  or "").strip()
+            state = (m.get("state") or "").strip()
+            zip5  = (m.get("zip")   or "").strip()[:5]
+            rows.append((pid, line1, city, state, zip5))
 
         batch_ok = False
         matched: dict = {}
         try:
-            resp = requests.post(
-                CENSUS_BATCH_URL,
-                files={"addressFile": ("addresses.csv", buf.getvalue().encode("utf-8"), "text/csv")},
-                data={"benchmark": "Public_AR_Current", "vintage": "Current_Current"},
-                timeout=300,
-            )
-            resp.raise_for_status()
-            for row in csv.reader(io.StringIO(resp.text)):
-                if len(row) < 10:
-                    continue
-                pid, match, state_fp, county_fp = row[0].strip(), row[2].strip(), row[8].strip(), row[9].strip()
-                if match not in ("Match", "Tie") or not state_fp or not county_fp:
-                    continue
-                if pid not in matched:
-                    matched[pid] = state_fp + county_fp
+            matched = _census_batch_geocode(rows)
             batch_ok = True
         except Exception as exc:
             logging.error(
                 "Pass 3 billing batch geocoder failed (%d providers left for retry): %s",
-                len(geocodable), exc,
+                len(rows), exc,
             )
 
         if batch_ok:
-            for p in geocodable:
-                pid = str(p["_id"])
-                if pid in matched:
+            for pid_str, _m, p in geocodable:
+                if pid_str not in matched:
+                    providers_failed += 1
+                    continue
+                fips = matched[pid_str]
+                county_subdoc = {
+                    "fips": fips,
+                    "name": _get_fips_to_name().get(fips, ""),
+                    "source": "geocoder_pass3_billing",
+                }
+                # Apply to every still-failed element on this provider.
+                for idx, _addr in _failed_elements(p):
                     ops.append(UpdateOne(
                         {"_id": p["_id"]},
-                        {"$set": {"county": {
-                            "fips": matched[pid],
-                            "name": _get_fips_to_name().get(matched[pid], ""),
-                            "source": "geocoder_pass3_billing",
-                        }}},
+                        {"$set": {f"practice_address.{idx}.county": county_subdoc}},
                     ))
-                    modified += 1
-                else:
-                    geocoder_failed += 1  # leave county.source = geocoder_failed unchanged
+                    modified_elements += 1
 
     if ops:
         coll.bulk_write(ops, ordered=False)
 
-    logging.info("Pass 3 billing batch: %d matched, %d still failed", modified, geocoder_failed)
+    logging.info(
+        "Pass 3 billing batch: %d elements matched across providers, %d providers still failed",
+        modified_elements, providers_failed,
+    )
     return {
         "assigned":         len(providers),
-        "succeeded":        modified,
-        "modified":         modified,
-        "geocoder_failed":  geocoder_failed,
+        "succeeded":        modified_elements,
+        "modified":         modified_elements,
+        "geocoder_failed":  providers_failed,
         "started_at":       started_at,
         "finished_at":      datetime.now(timezone.utc).isoformat(),
         "duration_seconds": round(time.monotonic() - start_time, 2),
@@ -1329,10 +1367,8 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
 
 
 def get_maps_retryable_fn(config: dict) -> dict:
-    """Return _id list of geocoder_failed providers eligible for Google Maps retry.
-
-    Any provider with a usable address string (practice or mailing) is eligible.
-    """
+    """Return _id list of providers with at least one practice_address element
+    flagged geocoder_failed (eligible for per-element Google Maps retry)."""
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
@@ -1341,16 +1377,10 @@ def get_maps_retryable_fn(config: dict) -> dict:
         str(doc["_id"])
         for doc in coll.find(
             {
-                "county.source": "geocoder_failed",
+                "practice_address": {"$elemMatch": {"county.source": "geocoder_failed"}},
                 "bad_data.flagged": {"$ne": True},
                 "out_of_scope.flagged": {"$ne": True},
                 **sf,
-                "$or": [
-                    {"practice_address.line1": {"$nin": [None, ""]}},
-                    {"practice_address.city":  {"$nin": [None, ""]}},
-                    {"mailing_address.line1":  {"$nin": [None, ""]}},
-                    {"mailing_address.city":   {"$nin": [None, ""]}},
-                ],
             },
             {"_id": 1},
         )
@@ -1360,15 +1390,15 @@ def get_maps_retryable_fn(config: dict) -> dict:
 
 
 def enrich_by_maps_batch_fn(config: dict) -> dict:
-    """Pass 4: Google Maps Geocoding API for providers still geocoder_failed after Pass 3.
+    """Pass 4: Google Maps Geocoding API per failed practice_address element.
 
-    Calls Maps API individually (no batch endpoint). Rate-limited by
-    maps_call_delay_seconds (default 0.1s → ~10 calls/s per worker).
-    With default 5 workers the pipeline runs at ~50 calls/s, at the Maps QPS limit.
+    For each provider in id_batch, iterates every practice_address element
+    flagged geocoder_failed and calls Maps for that element's address. Resolves
+    Maps (county_name, state_abbr) -> FIPS via ZipCountyCrosswalk and writes
+    per-element `practice_address.<idx>.county`. Elements that Maps can't
+    resolve stay flagged geocoder_failed (Pass 6 / NPPES is the next try).
 
-    Resolves Maps (county_name, state_abbr) → FIPS via the ZipCountyCrosswalk lookup.
-    On success: county.source = "geocoder_pass4_maps", county.fips set.
-    On failure: county.source = "geocoder_failed" unchanged (no write).
+    Rate-limited by maps_call_delay_seconds (default 0.1 -> ~10 calls/s/worker).
     """
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.monotonic()
@@ -1383,7 +1413,7 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
     object_ids = [ObjectId(i) for i in id_batch]
     providers  = list(coll.find(
         {"_id": {"$in": object_ids}},
-        {"_id": 1, "practice_address": 1, "mailing_address": 1},
+        {"_id": 1, "practice_address": 1},
     ))
 
     lookup = _get_maps_county_lookup()
@@ -1391,49 +1421,45 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
     modified = maps_failed = 0
 
     for p in providers:
-        practice = p.get("practice_address") or {}
-        mailing  = p.get("mailing_address")  or {}
+        for idx, addr in _failed_elements(p):
+            line1 = (addr.get("line1") or "").strip()
+            city  = (addr.get("city")  or "").strip()
+            state = (addr.get("state") or "").strip()
+            zip5  = (addr.get("zip")   or "").strip()[:5]
+            address = ", ".join(part for part in (line1, city, state, zip5) if part)
 
-        addr_parts = [
-            practice.get("line1") or mailing.get("line1", ""),
-            practice.get("city")  or mailing.get("city",  ""),
-            practice.get("state") or mailing.get("state", ""),
-            (practice.get("zip")  or mailing.get("zip",   ""))[:5],
-        ]
-        address = ", ".join(part for part in addr_parts if part)
+            if not address:
+                maps_failed += 1
+                continue
 
-        if not address.strip():
-            maps_failed += 1
-            continue
+            county_name, state_abbr = _geocode_single_maps(address, api_key)
 
-        county_name, state_abbr = _geocode_single_maps(address, api_key)
+            fips = None
+            if county_name and state_abbr:
+                state_fips = _STATE_ABBR_TO_FIPS.get(state_abbr.upper())
+                if state_fips:
+                    fips = lookup.get((state_fips, county_name.lower().strip()))
 
-        fips = None
-        if county_name and state_abbr:
-            state_fips = _STATE_ABBR_TO_FIPS.get(state_abbr.upper())
-            if state_fips:
-                fips = lookup.get((state_fips, county_name.lower().strip()))
+            if fips:
+                ops.append(UpdateOne(
+                    {"_id": p["_id"]},
+                    {"$set": {f"practice_address.{idx}.county": {
+                        "fips": fips,
+                        "name": county_name or "",
+                        "source": "geocoder_pass4_maps",
+                    }}},
+                ))
+                modified += 1
+            else:
+                maps_failed += 1
 
-        if fips:
-            ops.append(UpdateOne(
-                {"_id": p["_id"]},
-                {"$set": {"county": {
-                    "fips": fips,
-                    "name": county_name or "",
-                    "source": "geocoder_pass4_maps",
-                }}},
-            ))
-            modified += 1
-        else:
-            maps_failed += 1
-
-        if delay:
-            time.sleep(delay)
+            if delay:
+                time.sleep(delay)
 
     if ops:
         coll.bulk_write(ops, ordered=False)
 
-    logging.info("Pass 4 Maps batch: %d matched, %d still failed", modified, maps_failed)
+    logging.info("Pass 4 Maps batch: %d elements matched, %d still failed", modified, maps_failed)
     return {
         "assigned":         len(providers),
         "succeeded":        modified,
@@ -1476,8 +1502,7 @@ def get_nppes_retryable_fn(config: dict) -> dict:
     coll = _get_mongo_client()[db_name][coll_name]
 
     query: dict = {
-        "county.fips": None,
-        "county.source": {"$ne": "out_of_scope"},
+        "practice_address": {"$elemMatch": {"county.fips": None}},
         "bad_data.flagged": {"$ne": True},
         "out_of_scope.flagged": {"$ne": True},
         "npi": {"$nin": [None, ""]},
@@ -1493,19 +1518,24 @@ def get_nppes_retryable_fn(config: dict) -> dict:
 
 
 def enrich_by_nppes_batch_fn(config: dict) -> dict:
-    """Pass 6: NPPES public registry lookup for providers with no county.fips.
+    """Pass 6: NPPES public registry lookup, per-element.
 
-    Calls the free NPPES API (no key required) to fetch the canonical practice
-    address registered with CMS for each NPI. On a new address, tries the ZIP
-    crosswalk. Skips providers where NPPES returns the same address we already
-    have (already failed geocoding, won't help to retry).
+    For each provider in provider_batch with at least one practice_address
+    element still missing county, calls the NPPES API ONCE per NPI to fetch
+    the canonical CMS-registered addresses. Then for each unenriched element
+    (county.fips null), looks for an NPPES address with a different ZIP from
+    the element's ZIP and the same state — applies the ZIP crosswalk to that
+    NPPES ZIP and writes the per-element county.
+
+    Skips elements where the only matching NPPES address has the same ZIP we
+    already failed to resolve (no benefit to retry).
 
     Rate-limited by nppes_call_delay_seconds (default 0.2 s = 5 calls/s).
-    Keep nppes_batch_size large (default 5000) so few activities fan out —
-    all workers share the same outbound IP and hit the same rate limit.
+    Keep nppes_batch_size large so few activities fan out — workers share the
+    same outbound IP and hit the same NPPES rate limit.
 
     county.source values written:
-      geocoder_pass6_nppes  — resolved via NPPES canonical address + crosswalk
+      geocoder_pass6_nppes  - resolved via NPPES canonical address + crosswalk
     """
     NPPES_API = "https://npiregistry.cms.hhs.gov/api/"
 
@@ -1560,50 +1590,65 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
                 time.sleep(delay)
             continue
 
-        addrs = results[0].get("addresses", [])
-        nppes_addr = next(
-            (a for a in addrs if a.get("address_purpose") == "LOCATION"),
-            addrs[0] if addrs else None,
-        )
+        nppes_locations = [
+            a for a in results[0].get("addresses", [])
+            if a.get("address_purpose") == "LOCATION"
+        ]
+        if not nppes_locations:
+            # Fall back to whatever NPPES has
+            nppes_locations = results[0].get("addresses", [])
 
-        if not nppes_addr:
+        if not nppes_locations:
             nppes_failed += 1
             if delay:
                 time.sleep(delay)
             continue
 
-        nppes_zip   = (nppes_addr.get("postal_code") or "")[:5].strip()
-        nppes_state = (nppes_addr.get("state") or "").upper().strip()
+        # Per-element retry: for each unenriched element, try to find a
+        # different ZIP in NPPES (same state) and apply the crosswalk.
+        any_modified = False
+        for idx, addr in _unenriched_elements(doc):
+            our_zip   = (addr.get("zip") or "")[:5].strip()
+            our_state = (addr.get("state") or "").upper().strip()
 
-        # If NPPES ZIP matches what we already have, geocoding it again won't help
-        our_addr    = doc.get("practice_address") or {}
-        our_zip     = (our_addr.get("zip") or "")[:5].strip()
-        if nppes_zip and nppes_zip == our_zip:
-            nppes_same_address += 1
-            if delay:
-                time.sleep(delay)
-            continue
+            candidate = None
+            for n in nppes_locations:
+                n_zip   = (n.get("postal_code") or "")[:5].strip()
+                n_state = (n.get("state") or "").upper().strip()
+                if not n_zip:
+                    continue
+                if our_state and n_state and n_state != our_state:
+                    continue
+                if n_zip == our_zip:
+                    continue  # same ZIP — won't help
+                candidate = n
+                break
 
-        # Try ZIP crosswalk on NPPES canonical ZIP
-        fips = None
-        cw = crosswalk.get(nppes_zip)
-        if cw and not cw.get("is_split"):
-            state_fips = _STATE_ABBR_TO_FIPS.get(nppes_state)
-            if state_fips and cw["fips"][:2] == state_fips:
-                fips = cw["fips"]
+            if candidate is None:
+                nppes_same_address += 1
+                continue
 
-        if fips:
+            n_zip   = (candidate.get("postal_code") or "")[:5].strip()
+            n_state = (candidate.get("state") or "").upper().strip()
+            cw = crosswalk.get(n_zip)
+            if not cw or cw.get("is_split"):
+                nppes_failed += 1
+                continue
+            state_fips = _STATE_ABBR_TO_FIPS.get(n_state)
+            if not state_fips or cw["fips"][:2] != state_fips:
+                nppes_failed += 1
+                continue
+
             ops.append(UpdateOne(
                 {"_id": ObjectId(pid)},
-                {"$set": {"county": {
-                    "fips": fips,
+                {"$set": {f"practice_address.{idx}.county": {
+                    "fips": cw["fips"],
                     "name": cw.get("name", ""),
                     "source": "geocoder_pass6_nppes",
                 }}},
             ))
             modified += 1
-        else:
-            nppes_failed += 1
+            any_modified = True
 
         if delay:
             time.sleep(delay)
@@ -1612,7 +1657,7 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
         coll.bulk_write(ops, ordered=False)
 
     logging.info(
-        "Pass 6 NPPES batch: %d matched, %d same address skipped, "
+        "Pass 6 NPPES batch: %d elements matched, %d same address skipped, "
         "%d not in NPPES, %d failed",
         modified, nppes_same_address, nppes_not_found, nppes_failed,
     )
