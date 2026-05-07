@@ -118,8 +118,20 @@ def check_pipeline(assignment):
     }
 
 
-def resubmit_pipeline(assignment, start_step=1):
-    """Resubmit the pipeline from a specific step."""
+# Canonical FindCarePipeline step labels — kept in lock-step with
+# pipeline/Code/provider_load_manager.py:FINDCARE_PIPELINE_STEPS.
+FINDCARE_LABEL_RESERVE   = "Step 1: Reserving cluster"
+FINDCARE_LABEL_HEALTH    = "Step 2: Checking MongoDB health"
+FINDCARE_LABEL_SPECIALTY = "Step 3: Loading SpecialtyMetaData"
+FINDCARE_LABEL_LOAD      = "Step 4: Loading provider data"
+
+
+def resubmit_pipeline(assignment, start_step=FINDCARE_LABEL_RESERVE):
+    """Resubmit the pipeline from a specific step label.
+
+    `start_step` is the canonical step LABEL string (same string the
+    orchestration shows in customStatus), not an integer.
+    """
     inst = assignment["instructions"]
     api_url = inst["api_url"]
     token = inst["bearer_token"]
@@ -207,18 +219,19 @@ def execute_once():
                 _append_log({"time": _now(), "action": "stuck_after_3_retries"})
                 return "stuck"
 
-            # Determine start_step from error
-            start_step = 1  # default: restart from beginning
-            if "Step 0" in custom or "Reserving cluster" in custom:
-                start_step = 1  # cluster issue, retry from health check
-            elif "Step 1" in custom or "health" in custom.lower():
-                start_step = 1
-            elif "Step 2" in custom or "Loading" in custom:
-                start_step = 2
-            elif "Step 3" in custom:
-                start_step = 3
+            # Determine start_step label from where the orchestration failed.
+            # The canonical label that appears in customStatus IS the API value.
+            start_step = FINDCARE_LABEL_RESERVE  # default: restart from beginning
+            if "Reserving cluster" in custom or FINDCARE_LABEL_RESERVE in custom:
+                start_step = FINDCARE_LABEL_RESERVE
+            elif FINDCARE_LABEL_HEALTH in custom or "health" in custom.lower():
+                start_step = FINDCARE_LABEL_HEALTH
+            elif FINDCARE_LABEL_SPECIALTY in custom or "Specialty" in custom:
+                start_step = FINDCARE_LABEL_SPECIALTY
+            elif FINDCARE_LABEL_LOAD in custom or "Loading provider" in custom:
+                start_step = FINDCARE_LABEL_LOAD
 
-            log.info("Resubmitting from step %d (retry %d/3)", start_step, retries + 1)
+            log.info("Resubmitting from %r (retry %d/3)", start_step, retries + 1)
             resub = resubmit_pipeline(assignment, start_step)
             _append_log({"time": _now(), "action": "resubmitted", **resub})
             return "resubmitted"

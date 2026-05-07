@@ -145,7 +145,16 @@ def main():
     parser.add_argument("--copy-to-frontend", action="store_true", default=True, help="Copy to frontend (default: true)")
     parser.add_argument("--no-copy-to-frontend", action="store_true", help="Skip CopyToFrontEnd")
     parser.add_argument("--embedding", action="store_true", help="Enable embeddings")
-    parser.add_argument("--start-step", type=int, default=1, help="Start from step N")
+    parser.add_argument(
+        "--start-step",
+        type=str,
+        default=None,
+        help=(
+            "Canonical step LABEL string to start from (e.g. "
+            '"Step 4: Loading provider data"). Same string the orchestrator '
+            "displays in customStatus. Omit to start at Step 1."
+        ),
+    )
     parser.add_argument("--poll", type=int, default=15, help="Poll interval seconds (default 15)")
     parser.add_argument("--no-cleanup", action="store_true", help="Don't delete pipeline.http after run")
     parser.add_argument("--status", type=str, help="Check status of instance ID (don't trigger new)")
@@ -162,15 +171,16 @@ def main():
         "specialty_metadata": not args.no_specialty_metadata,
         "copy_to_frontend": not args.no_copy_to_frontend,
         "embedding_enabled": args.embedding,
-        "start_step": args.start_step,
     }
+    if args.start_step is not None:
+        payload["start_step"] = args.start_step
 
     print(f"FindCarePipeline trigger")
     print(f"  States: {payload['states']}")
     print(f"  Specialty metadata: {payload['specialty_metadata']}")
     print(f"  Copy to frontend: {payload['copy_to_frontend']}")
     print(f"  Embeddings: {payload['embedding_enabled']}")
-    print(f"  Start step: {payload['start_step']}")
+    print(f"  Start step: {payload.get('start_step', '(default — first step)')}")
     print()
 
     instance_id, status_url, trigger_data = trigger(payload, token)

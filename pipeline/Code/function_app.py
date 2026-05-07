@@ -58,6 +58,8 @@ from county_enrichment_job import (
 )
 from instance_warmer import cool_instances_fn, warm_instances_fn
 from provider_load_manager import (
+    FINDCARE_PIPELINE_STEPS,
+    attach_practice_locations_fn,
     create_vector_index_fn,
     download_zip_fn,
     drain_staging_fn,
@@ -184,56 +186,95 @@ ASYNC_TASK_ORCHESTRATORS = {
     "PrescriberEvaluateCarePipeline": "prescriber_pipeline_orchestrator",
 }
 
-# Pipeline step registry — valid steps per pipeline, with preconditions.
-# Used by Router to validate steps[] before dispatching.
+# ── Prescriber pipeline step labels (one canonical string per stage) ─────────
+PRESCRIBER_LABEL_VALIDATE  = "Step 1: Validate preconditions"
+PRESCRIBER_LABEL_RESERVE   = "Step 2: Reserving cluster"
+PRESCRIBER_LABEL_FETCH     = "Step 3: Fetch CMS Part D + OIG LEIE + SAM.gov"
+PRESCRIBER_LABEL_LOAD      = "Step 4: Load provider_quality"
+PRESCRIBER_LABEL_CROSSWALK = "Step 5: Crosswalk — molecule→indication→ICD-10"
+PRESCRIBER_LABEL_ENRICH    = "Step 6: Exclusion flags — OIG/SAM"
+PRESCRIBER_LABEL_SPECIALTY = "Step 7: Specialty baselines"
+PRESCRIBER_LABEL_EMBED     = "Step 8: Embed prescriber drug/molecule"
+PRESCRIBER_LABEL_RELEASE   = "Step 9: Releasing cluster"
+
+PRESCRIBER_PIPELINE_STEPS = [
+    PRESCRIBER_LABEL_VALIDATE,
+    PRESCRIBER_LABEL_RESERVE,
+    PRESCRIBER_LABEL_FETCH,
+    PRESCRIBER_LABEL_LOAD,
+    PRESCRIBER_LABEL_CROSSWALK,
+    PRESCRIBER_LABEL_ENRICH,
+    PRESCRIBER_LABEL_SPECIALTY,
+    PRESCRIBER_LABEL_EMBED,
+    PRESCRIBER_LABEL_RELEASE,
+]
+
+
+# Pipeline step registry — valid step labels per pipeline, with preconditions.
+# Used by Router to validate steps[] (or start_step) before dispatching.
+# All step values are canonical label strings — same string used as the
+# set_custom_status display and the API value (one variable, not two).
 PIPELINE_STEP_REGISTRY = {
     "PrescriberEvaluateCarePipeline": {
-        "valid_steps": [0, 1, 2, 3, 4],
-        "step_names": {0: "validate", 1: "fetch", 2: "load", 3: "enrich", 4: "embed"},
+        "valid_steps": PRESCRIBER_PIPELINE_STEPS,
         "preconditions": {
-            2: {"requires_collection": "providers", "min_docs": 1, "note": "Step 2 builds from providers — need provider data loaded first"},
-            3: {"requires_collection": "provider_quality", "min_docs": 1, "note": "Step 3 requires provider_quality records from step 2"},
-            4: {"requires_collection": "provider_quality", "min_docs": 1, "note": "Step 4 requires enriched provider_quality from step 3"},
+            PRESCRIBER_LABEL_LOAD:      {"requires_collection": "providers",        "min_docs": 1, "note": "Load builds from providers — need provider data loaded first"},
+            PRESCRIBER_LABEL_CROSSWALK: {"requires_collection": "provider_quality", "min_docs": 1, "note": "Crosswalk requires provider_quality records"},
+            PRESCRIBER_LABEL_ENRICH:    {"requires_collection": "provider_quality", "min_docs": 1, "note": "Enrich requires provider_quality records"},
         },
     },
     "FindCarePipeline": {
-        "valid_steps": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-        "step_names": {0: "reserve", 1: "health_check", 2: "specialty_metadata", 3: "load", 4: "county_pass1", 5: "county_pass2", 6: "county_pass3", 7: "county_pass4_maps", 8: "county_pass6_nppes", 9: "embed"},
+        "valid_steps": FINDCARE_PIPELINE_STEPS,
         "preconditions": {},
     },
 }
 
 
 def _validate_pipeline_steps(task: str, payload: dict) -> tuple:
-    """Validate steps[] array against pipeline registry. Returns (valid, error_response)."""
+    """Validate `steps[]` (prescriber) or `start_step` (findcare) against the
+    pipeline registry. Returns (valid, error_response)."""
     registry = PIPELINE_STEP_REGISTRY.get(task)
     if not registry:
-        return True, None  # No registry entry — skip validation (legacy pipelines)
-
-    steps = payload.get("steps")
-    if steps is None:
-        return True, None  # No steps specified — run all (default behavior)
-
-    if not isinstance(steps, list):
-        return False, json_response({
-            "error": "InvalidStepError",
-            "message": "steps must be an array of integers",
-            "task": task,
-        }, 400)
+        return True, None
 
     valid_steps = registry["valid_steps"]
-    for s in steps:
+    requested: list = []
+
+    # Prescriber accepts a list of step labels via `steps`; FindCare accepts a
+    # single starting label via `start_step`.
+    steps = payload.get("steps")
+    if steps is not None:
+        if not isinstance(steps, list) or not all(isinstance(s, str) for s in steps):
+            return False, json_response({
+                "error": "InvalidStepError",
+                "message": "steps must be an array of canonical step label strings",
+                "task": task,
+                "valid_steps": valid_steps,
+            }, 400)
+        requested = list(steps)
+
+    start_step = payload.get("start_step")
+    if start_step is not None:
+        if not isinstance(start_step, str):
+            return False, json_response({
+                "error": "InvalidStepError",
+                "message": "start_step must be a canonical step label string",
+                "task": task,
+                "valid_steps": valid_steps,
+            }, 400)
+        requested.append(start_step)
+
+    for s in requested:
         if s not in valid_steps:
             return False, json_response({
                 "error": "InvalidStepError",
-                "message": f"Step {s} does not exist in {task}. Valid steps: {valid_steps}",
-                "valid_steps": {str(k): v for k, v in registry["step_names"].items()},
+                "message": f"Step {s!r} does not exist in {task}.",
+                "valid_steps": valid_steps,
                 "task": task,
             }, 400)
 
-    # Check preconditions for requested steps
     env_prefix = payload.get("env_prefix", "dev")
-    for s in steps:
+    for s in requested:
         precond = registry.get("preconditions", {}).get(s)
         if precond and precond.get("min_docs", 0) > 0:
             try:
@@ -243,11 +284,11 @@ def _validate_pipeline_steps(task: str, payload: dict) -> tuple:
                 if count < precond["min_docs"]:
                     return False, json_response({
                         "error": "PreconditionError",
-                        "message": f"Step {s} ({registry['step_names'].get(s, '?')}) requires {coll_name} to have records. {precond.get('note', '')}",
+                        "message": f"Step {s!r} requires {coll_name} to have records. {precond.get('note', '')}",
                         "task": task,
                     }, 400)
             except Exception as e:
-                logging.warning("Precondition check failed for step %d: %s", s, e)
+                logging.warning("Precondition check failed for %r: %s", s, e)
 
     return True, None
 
@@ -417,9 +458,8 @@ def extract_csv_activity(config: dict) -> str:
 
 
 @app.activity_trigger(input_name="config")
-def extract_and_load_pl_pfile_activity(config: dict) -> dict:
-    from provider_load_manager import extract_and_load_pl_pfile_fn
-    return extract_and_load_pl_pfile_fn(config)
+def attach_practice_locations_activity(config: dict) -> dict:
+    return attach_practice_locations_fn(config)
 
 
 @app.activity_trigger(input_name="config")
@@ -612,48 +652,54 @@ def enrichment_report_activity(config: dict) -> dict:
 
 @app.orchestration_trigger(context_name="context")
 def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
-    """Prescriber behavior pipeline — 6 steps, sequential.
-    Step 1: Fetch CMS Part D + OIG LEIE + SAM.gov → Blob Storage
-    Step 2: Load → provider_quality (left outer join from providers)
-    Step 3: Crosswalk — molecule→indication→ICD-10 (RxNorm + UMLS)
-    Step 4: Enrich — OIG/SAM exclusion flags
-    Step 5: Specialty normalization — peer benchmarks + cost bands
-    Step 6: Embed — vector embeddings (text-embedding-3-large)
+    """Prescriber behavior pipeline — sequential. See PRESCRIBER_PIPELINE_STEPS
+    for the canonical ordering.
 
-    Cluster lifecycle: reserve → poll IDLE → try work → finally release.
+    `steps` (list[str], optional): canonical step labels to run. Defaults to
+    every label except the validate-only short-circuit. Reserve and release
+    are NOT in `steps` — they always run.
+
+    `start_step` is not used here (use `steps` to skip).
     """
     import datetime as dt
 
     config = context.get_input() or {}
     env_prefix = config.get("env_prefix", "dev")
     states = config.get("states", ["DE"])
-    steps = config.get("steps", [1, 2, 3, 4, 5, 6])
     cluster_name = config.get("cluster_name", "ChatHealthyDataPipelines")
+
+    default_steps = [
+        PRESCRIBER_LABEL_FETCH,
+        PRESCRIBER_LABEL_LOAD,
+        PRESCRIBER_LABEL_CROSSWALK,
+        PRESCRIBER_LABEL_ENRICH,
+        PRESCRIBER_LABEL_SPECIALTY,
+        PRESCRIBER_LABEL_EMBED,
+    ]
+    steps = config.get("steps", default_steps)
 
     results = {}
 
-    # Step 0: Validate — check preconditions, return status, don't execute
-    if 0 in steps:
+    # Validate is a short-circuit step — runs alone returns immediately.
+    if PRESCRIBER_LABEL_VALIDATE in steps:
+        context.set_custom_status(PRESCRIBER_LABEL_VALIDATE)
         results["validate"] = yield context.call_activity(
             "prescriber_validate_activity",
             {"env_prefix": env_prefix, "states": states, "steps": steps})
-        if steps == [0]:
+        if steps == [PRESCRIBER_LABEL_VALIDATE]:
             return results
 
-    # Reserve cluster (wakes it if paused)
     reservation = {
         "job_id": f"prescriber_{env_prefix}_{int(time.time())}",
         "requester": "PrescriberPipeline",
         "cluster_name": cluster_name,
         "expected_duration_minutes": config.get("expected_duration_minutes", 120),
     }
-    context.set_custom_status("Reserving cluster")
+    context.set_custom_status(PRESCRIBER_LABEL_RESERVE)
     yield context.call_activity("register_reservation_activity", reservation)
 
-    # Poll until cluster is IDLE
     deadline = context.current_utc_datetime + dt.timedelta(minutes=30)
     while context.current_utc_datetime < deadline:
-        context.set_custom_status("Waiting for cluster IDLE")
         status = yield context.call_activity("check_cluster_state_activity",
                                               {"cluster_name": cluster_name})
         if status.get("cluster_state") == "IDLE":
@@ -661,47 +707,40 @@ def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
         next_check = context.current_utc_datetime + dt.timedelta(seconds=15)
         yield context.create_timer(next_check)
 
-    # try/finally guarantees reservation release on success or failure
     pipeline_error = None
     try:
-        # Step 1: Fetch
-        if 1 in steps:
-            context.set_custom_status("Step 1: Fetch")
+        if PRESCRIBER_LABEL_FETCH in steps:
+            context.set_custom_status(PRESCRIBER_LABEL_FETCH)
             results["fetch"] = yield context.call_activity(
                 "prescriber_fetch_activity",
                 {"env_prefix": env_prefix})
 
-        # Step 2: Load
-        if 2 in steps:
-            context.set_custom_status("Step 2: Load")
+        if PRESCRIBER_LABEL_LOAD in steps:
+            context.set_custom_status(PRESCRIBER_LABEL_LOAD)
             results["load"] = yield context.call_activity(
                 "prescriber_load_activity",
                 {"env_prefix": env_prefix, "states": states})
 
-        # Step 3: Crosswalk — molecule→indication→ICD-10 (RxNorm + UMLS)
-        if 3 in steps:
-            context.set_custom_status("Step 3: Crosswalk")
+        if PRESCRIBER_LABEL_CROSSWALK in steps:
+            context.set_custom_status(PRESCRIBER_LABEL_CROSSWALK)
             results["crosswalk"] = yield context.call_activity(
                 "prescriber_crosswalk_activity",
                 {"env_prefix": env_prefix, "states": states})
 
-        # Step 4: Enrich — OIG/SAM exclusion flags
-        if 4 in steps:
-            context.set_custom_status("Step 4: Exclusion flags")
+        if PRESCRIBER_LABEL_ENRICH in steps:
+            context.set_custom_status(PRESCRIBER_LABEL_ENRICH)
             results["enrich"] = yield context.call_activity(
                 "prescriber_enrich_activity",
                 {"env_prefix": env_prefix, "states": states})
 
-        # Step 5: Specialty normalization — peer benchmarks
-        if 5 in steps:
-            context.set_custom_status("Step 5: Specialty baselines")
+        if PRESCRIBER_LABEL_SPECIALTY in steps:
+            context.set_custom_status(PRESCRIBER_LABEL_SPECIALTY)
             results["specialty"] = yield context.call_activity(
                 "prescriber_specialty_activity",
                 {"env_prefix": env_prefix, "states": states})
 
-        # Step 6: Embed — vector embeddings (text-embedding-3-large)
-        if 6 in steps:
-            context.set_custom_status("Step 6: Embed")
+        if PRESCRIBER_LABEL_EMBED in steps:
+            context.set_custom_status(PRESCRIBER_LABEL_EMBED)
             results["embed"] = yield context.call_activity(
                 "prescriber_embed_activity",
                 {"env_prefix": env_prefix, "states": states})
@@ -712,8 +751,7 @@ def prescriber_pipeline_orchestrator(context: df.DurableOrchestrationContext):
         context.set_custom_status(f"FAILED — {pipeline_error[:100]}")
 
     finally:
-        # ALWAYS release reservation — cluster pauses when last reservation drops
-        context.set_custom_status("Releasing cluster")
+        context.set_custom_status(PRESCRIBER_LABEL_RELEASE)
         yield context.call_activity("release_reservation_activity", reservation)
 
     if pipeline_error:

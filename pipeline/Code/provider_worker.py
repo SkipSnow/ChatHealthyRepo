@@ -98,17 +98,14 @@ MAILING_ADDRESS_FIELDS = {
 }
 
 
-def _normalize_row(header: list, row: list, pl_pfile_lookup: dict | None = None) -> dict:
+def _normalize_row(header: list, row: list) -> dict:
     """Convert a flat NPI CSV row into a normalized MongoDB document.
 
-    `pl_pfile_lookup` (optional): mapping of NPI -> list[address-dict] holding
-    non-primary practice locations from the NPPES Practice Location Reference
-    File (`pl_pfile_*.csv`). When supplied, any non-blank address rows for this
-    NPI are appended to `practice_address` after the primary location from the
-    main NPPES file. CMS publishes secondary practice locations only in this
-    supplemental file (per the NPPES Data Dissemination Readme §2.3); without
-    the lookup every provider's `practice_address` is silently capped at one
-    entry regardless of how many locations they actually have.
+    `practice_address` is always emitted as a list with element 0 = primary
+    practice location from the main NPPES file. Non-primary practice
+    locations live in the NPPES Practice Location Reference File
+    (`pl_pfile_*.csv`) and are attached separately by the parent pipeline's
+    Step 5: Attaching secondary practice locations (server-side `$merge`).
     """
     raw = dict(zip(header, row))
     doc = {}
@@ -163,12 +160,8 @@ def _normalize_row(header: list, row: list, pl_pfile_lookup: dict | None = None)
             doc[key] = values
 
     # Practice addresses are always a list. Element 0 is the primary practice
-    # location from the main NPPES file (npidata_pfile). Subsequent elements,
-    # when a `pl_pfile_lookup` is supplied for this NPI, are non-primary
-    # practice locations from the NPPES Practice Location Reference File.
-    # Blank entries are skipped (a row whose address fields are all empty
-    # contributes nothing).
-    practice_list: list[dict] = []
+    # location from the main NPPES file (npidata_pfile). Secondary locations
+    # are attached server-side in a later pipeline step from pl_pfile_*.csv.
     primary = {
         sub: raw[field].strip()
         for field, sub in PRACTICE_ADDRESS_FIELDS.items()
@@ -178,24 +171,7 @@ def _normalize_row(header: list, row: list, pl_pfile_lookup: dict | None = None)
     if "zip" in primary:
         primary["zip"] = primary["zip"][:5]
     if primary:
-        practice_list.append(primary)
-
-    if pl_pfile_lookup is not None:
-        npi = raw.get("NPI", "").strip()
-        if npi:
-            for extra in pl_pfile_lookup.get(npi, ()):
-                if not extra:
-                    continue  # blank/null entry — skip
-                # Defensive copy so callers can reuse the lookup dict safely
-                cleaned = {k: v for k, v in extra.items()
-                           if isinstance(v, str) and v.strip()}
-                if cleaned:
-                    if "zip" in cleaned:
-                        cleaned["zip"] = cleaned["zip"][:5]
-                    practice_list.append(cleaned)
-
-    if practice_list:
-        doc["practice_address"] = practice_list
+        doc["practice_address"] = [primary]
 
     # Collapse mailing address fields into sub-document
     mailing = {
@@ -278,16 +254,6 @@ class ProviderWorker(PipelineWorkerBase):
         self._states = normalize_states(config)  # raises on missing/empty/malformed
         self._skipped_states = 0
 
-        # NPPES secondary-practice-location lookup. CMS publishes non-primary
-        # practice locations in `pl_pfile_*.csv` (separate from the main
-        # `npidata_pfile_*.csv`). The orchestrator's load-pl-pfile step writes
-        # one document per NPI into pl_lookup_collection; the worker reads only
-        # the rows for NPIs in its byte slice — fetched lazily at first use.
-        self.pl_lookup_collection = config.get(
-            "pl_lookup_collection", "dev_PublicHealthData.pl_pfile_lookup"
-        )
-        self._pl_lookup: dict | None = None  # populated in _pipeline_open()
-
         # ENH-PIPE-001: incremental mode — replace_one with upsert instead of insert
         self._incremental = config.get("incremental", False)
 
@@ -337,35 +303,6 @@ class ProviderWorker(PipelineWorkerBase):
 
         self._npi_idx = self.header.index("NPI") if "NPI" in self.header else None
 
-        # Load the per-NPI secondary-practice-location lookup once per worker.
-        # Populated by the orchestrator's load_pl_pfile_activity from the
-        # NPPES Practice Location Reference File (pl_pfile_*.csv). Each
-        # document in the lookup collection has shape:
-        #   { "_id": <NPI>, "addresses": [ {line1, line2, city, state, zip,
-        #                                   country, phone, phone_ext, fax}, ... ] }
-        # If the lookup collection is empty (orchestrator step skipped or no
-        # secondary locations exist for this batch), self._pl_lookup is
-        # left as an empty dict and the worker behaves identically to the
-        # pre-multi-address-fix code path.
-        self._pl_lookup = {}
-        try:
-            pl_db_name, pl_coll_name = self.pl_lookup_collection.split(".", 1)
-            pl_coll = _get_mongo_client()[pl_db_name][pl_coll_name]
-            for d in pl_coll.find({}, {"_id": 1, "addresses": 1}):
-                addrs = d.get("addresses") or []
-                if addrs:
-                    self._pl_lookup[str(d["_id"])] = addrs
-            logging.info(
-                "Worker %d: loaded pl_pfile lookup with %d NPIs having secondary practice locations.",
-                self.worker_id, len(self._pl_lookup),
-            )
-        except Exception as exc:
-            logging.warning(
-                "Worker %d: pl_pfile lookup load skipped (%s). Continuing with primary-address-only.",
-                self.worker_id, exc,
-            )
-            self._pl_lookup = {}
-
     def _pipeline_has_next(self) -> bool:
         # Advance the iterator, silently skipping blank lines and the partial
         # leading row that can appear on non-first workers due to byte-range
@@ -390,7 +327,7 @@ class ProviderWorker(PipelineWorkerBase):
                 f"sample={sample}"
             )
 
-        doc = _normalize_row(self.header, row, pl_pfile_lookup=self._pl_lookup)
+        doc = _normalize_row(self.header, row)
 
         # Multi-state-bearing-field row check — mirrors the Mongo $or predicate
         # used by drain/enrichment/embedding so load and drain stay symmetrical.
