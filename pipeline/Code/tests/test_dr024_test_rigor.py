@@ -70,7 +70,7 @@ def _parse_test_functions(filepath):
 
 EPIC_PIPE_TEST_FILES = {
     "test_compliance.py", "test_quality_gates.py", "test_error_alerting.py",
-    "test_idempotency.py", "test_schema_drift.py", "test_copy_to_frontend.py",
+    "test_idempotency.py", "test_schema_drift.py",
     "test_traceability.py", "test_pipeline_rename_compliance.py",
     "test_dr024_test_rigor.py",
 }

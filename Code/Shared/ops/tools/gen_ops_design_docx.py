@@ -136,7 +136,6 @@ h3("Concurrent Reservations Example")
 add_table(
     ["Reservation", "Requester", "Min", "Max", "Status"],
     [
-        ["copy_47_states", "CopyToFrontEnd", "30 min", "120 min", "active"],
         ["county_enrich", "CountyEnrichment", "15 min", "60 min", "active"],
         ["embed_va", "EmbeddingWorker", "5 min", "30 min", "active"],
     ],

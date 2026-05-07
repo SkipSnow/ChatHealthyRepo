@@ -463,6 +463,12 @@ def attach_practice_locations_activity(config: dict) -> dict:
 
 
 @app.activity_trigger(input_name="config")
+def stamp_urban_flag_activity(config: dict) -> dict:
+    from urban_flag import stamp_urban_flag_fn
+    return stamp_urban_flag_fn(config)
+
+
+@app.activity_trigger(input_name="config")
 def partition_file_activity(config: dict) -> list:
     return partition_file_fn(config)
 

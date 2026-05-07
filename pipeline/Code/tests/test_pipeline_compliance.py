@@ -246,16 +246,6 @@ class TestFanOutRequired:
 class TestParityRequirements:
     """Pipeline must include parity verification code."""
 
-    def test_copy_to_frontend_has_parity_check(self):
-        """CopyToFrontEnd code must verify record counts match."""
-        path = os.path.join(PIPELINE_DIR, "copy_to_frontend.py")
-        if not os.path.exists(path):
-            pytest.skip("copy_to_frontend.py not found")
-        source = _read(path)
-        has_count = "count_documents" in source
-        has_parity = "parity" in source.lower() or "verify" in source.lower() or "match" in source.lower()
-        assert has_count, "copy_to_frontend.py must count documents for parity"
-
     def test_prescriber_evaluate_care_pipeline_has_parity(self):
         """prescriber_evaluate_care_pipeline.py must include parity verification step."""
         path = os.path.join(PIPELINE_DIR, "prescriber_evaluate_care_pipeline.py")
