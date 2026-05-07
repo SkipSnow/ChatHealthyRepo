@@ -16,6 +16,27 @@ from typing import Optional
 
 _log = logging.getLogger("findcare.provider_search")
 
+
+def _primary_practice_address(p: dict) -> dict:
+    """Return the primary practice_address as a dict.
+    Handles list-of-addresses (post-multi-practice-address) and legacy single-dict shapes."""
+    pa = p.get("practice_address")
+    if isinstance(pa, list):
+        return pa[0] if pa and isinstance(pa[0], dict) else {}
+    if isinstance(pa, dict):
+        return pa
+    return {}
+
+
+def _primary_county(p: dict) -> dict:
+    """Return the primary county sub-doc; prefers per-element county on the
+    primary practice address, falls back to doc-level county for legacy records."""
+    addr = _primary_practice_address(p)
+    if isinstance(addr.get("county"), dict):
+        return addr["county"]
+    return p.get("county") or {}
+
+
 SUPPORTED_STATES = {"CA", "DE", "MS", "VA"}
 DEFAULT_LIMIT = 25  # F-10: raised from 10
 
@@ -58,11 +79,30 @@ class FindCareService:
         if db is None:
             return
         try:
-            pairs = db[f"{self._env}_PublicHealthData"]["providers"].aggregate([
-                {"$match": {"county.fips": {"$exists": True}, "county.name": {"$exists": True}}},
-                {"$group": {"_id": "$county.fips", "name": {"$first": "$county.name"}}},
-            ])
-            db_map = {p["_id"]: p["name"] for p in pairs}
+            # Multi-practice-address: collect (fips, name) pairs from BOTH the
+            # legacy doc-level county field AND every practice_address element's
+            # county sub-doc. $unwind expands the array (preserves docs without
+            # an array via preserveNullAndEmptyArrays). $facet runs both arms in
+            # one round-trip so the lookup builds in a single pass.
+            agg = list(db[f"{self._env}_PublicHealthData"]["providers"].aggregate([
+                {"$facet": {
+                    "doc_level": [
+                        {"$match": {"county.fips": {"$exists": True}, "county.name": {"$exists": True}}},
+                        {"$group": {"_id": "$county.fips", "name": {"$first": "$county.name"}}},
+                    ],
+                    "per_address": [
+                        {"$unwind": {"path": "$practice_address", "preserveNullAndEmptyArrays": False}},
+                        {"$match": {"practice_address.county.fips": {"$exists": True},
+                                    "practice_address.county.name": {"$exists": True}}},
+                        {"$group": {"_id": "$practice_address.county.fips",
+                                    "name": {"$first": "$practice_address.county.name"}}},
+                    ],
+                }},
+                {"$project": {"all": {"$concatArrays": ["$doc_level", "$per_address"]}}},
+                {"$unwind": "$all"},
+                {"$group": {"_id": "$all._id", "name": {"$first": "$all.name"}}},
+            ]))
+            db_map = {p["_id"]: p["name"] for p in agg if p.get("_id")}
             self._fips_to_county.update(db_map)
             _log.info("HACK ASN-4AFBDA: loaded %d FIPS mappings (%d from DB)", len(self._fips_to_county), len(db_map))
         except Exception as exc:
@@ -70,11 +110,22 @@ class FindCareService:
 
     def _make_county_filter(self, county: str) -> dict:
         term = county.strip().lower()
-        name_filter = {"county.name": {"$regex": county.strip(), "$options": "i"}}
+        regex = {"$regex": county.strip(), "$options": "i"}
+        # Match providers whose county sits at the doc-level (legacy) OR on any
+        # practice_address element (post-multi-practice-address). Mongo's implicit
+        # array-element match handles practice_address.county.* across both array
+        # and dict shapes.
+        clauses = [
+            {"county.name": regex},
+            {"practice_address.county.name": regex},
+        ]
         matching_fips = [fips for fips, name in self._fips_to_county.items() if term in name.lower()]
         if matching_fips:
-            return {"$or": [name_filter, {"county.fips": {"$in": matching_fips}}]}
-        return name_filter
+            clauses.extend([
+                {"county.fips": {"$in": matching_fips}},
+                {"practice_address.county.fips": {"$in": matching_fips}},
+            ])
+        return {"$or": clauses}
 
     def _format_provider(self, p: dict) -> dict:
         if p.get("entity_type_code") == "1":
@@ -88,10 +139,10 @@ class FindCareService:
                 name += f", {p['provider_credential_text']}"
         else:
             name = p.get("provider_organization_name_legal_business_name") or "Unknown Organization"
-        addr = p.get("practice_address", {})
+        addr = _primary_practice_address(p)
         address = ", ".join(x for x in [addr.get("line1"), addr.get("city"), addr.get("state"), addr.get("zip")] if x)
         primary = next((t for t in p.get("taxonomies", []) if t.get("primary")), None)
-        county_obj = p.get("county", {})
+        county_obj = _primary_county(p)
         county_name = county_obj.get("name") or self._fips_to_county.get(county_obj.get("fips", ""), "")
         raw_phone = addr.get("phone", "")
         phone = f"({raw_phone[:3]}) {raw_phone[3:6]}-{raw_phone[6:]}" if len(raw_phone) == 10 else raw_phone
@@ -102,8 +153,8 @@ class FindCareService:
             "address": address,
             "phone": phone,
             "county": county_name,
-            "lat": p.get("practice_address", {}).get("lat"),
-            "lng": p.get("practice_address", {}).get("lng"),
+            "lat": addr.get("lat"),
+            "lng": addr.get("lng"),
         }
 
     def _facet_query(self, collection, base_filter: dict, after_npi: str, safe_limit: int) -> tuple:

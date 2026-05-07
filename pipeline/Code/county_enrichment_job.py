@@ -518,7 +518,14 @@ def county_enrichment_orchestrator_fn(context):
 # ── Activity implementations ──────────────────────────────────────────────────
 
 def get_distinct_zips_fn(config: dict) -> dict:
-    """Return total provider count and list of distinct 5-digit ZIPs."""
+    """Return total provider count and list of distinct 5-digit ZIPs across
+    every practice_address element of every in-scope provider.
+
+    Handles both shapes (list of addresses post-multi-practice-address; legacy
+    single-dict) by $unwind-ing practice_address — Mongo's $unwind treats a
+    non-array field as a single-element list, so legacy records fall through
+    the same path. preserveNullAndEmptyArrays=False drops records with no
+    practice_address at all (those have no ZIP to enrich anyway)."""
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
@@ -526,13 +533,14 @@ def get_distinct_zips_fn(config: dict) -> dict:
     total = coll.count_documents(state_filter)
     pipeline = [
         {"$match": state_filter},
+        {"$unwind": {"path": "$practice_address", "preserveNullAndEmptyArrays": False}},
         {"$project": {"zip5": {"$substr": [
             {"$ifNull": [{"$toString": "$practice_address.zip"}, ""]},
             0, 5
         ]}}},
         {"$group": {"_id": "$zip5"}},
     ]
-    zips = [doc["_id"] for doc in coll.aggregate(pipeline) if doc["_id"]]
+    zips = [doc["_id"] for doc in coll.aggregate(pipeline, allowDiskUse=True) if doc["_id"]]
     logging.info("Found %d providers, %d distinct ZIPs (states: %s)", total, len(zips), state_filter)
     return {"total_providers": total, "distinct_zips": zips}
 
@@ -767,131 +775,74 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
             if abbrev:
                 zip_to_state[zip_code] = abbrev
 
-    # Aggregate distinct (zip, state) pairs from unenriched, non-excluded providers
     sf = _build_states_filter(config)
-    pipeline = [
-        {"$match": {
-            "county.fips": None,
+
+    # Normalize every dict-shape practice_address to a list-of-1 first.
+    # After this, every record in scope has list-shape practice_address —
+    # one canonical shape, one code path, no bifurcation downstream.
+    norm = coll.update_many(
+        {"practice_address": {"$type": "object", "$not": {"$type": "array"}}, **sf},
+        [{"$set": {"practice_address": ["$practice_address"]}}],
+    )
+    if norm.modified_count:
+        logging.info(
+            "PIPE-DQ-003: normalized %d dict-shape practice_address records to list-of-1",
+            norm.modified_count,
+        )
+
+    # Pull every candidate provider once, then iterate every practice_address
+    # element. The single-address evaluator below is the same logic that used
+    # to run against the primary address — called once per element, no shortcuts.
+    candidates = list(coll.find(
+        {
             "out_of_scope.flagged": {"$ne": True},
             "bad_data.flagged": {"$ne": True},
-            "county.source": {"$ne": "out_of_scope"},
-            "practice_address.zip":   {"$exists": True},
             "practice_address.state": {"$exists": True},
+            "practice_address.zip":   {"$exists": True},
             **sf,
-        }},
-        {"$group": {"_id": {
-            "zip":   "$practice_address.zip",
-            "state": "$practice_address.state",
-        }}},
-    ]
+        },
+        {"_id": 1, "practice_address": 1, "licenses": 1},
+    ))
 
-    # Build state → [mismatched ZIPs] index
-    from collections import defaultdict
-    mismatch_by_state: dict[str, list[str]] = defaultdict(list)
-    for doc in coll.aggregate(pipeline, allowDiskUse=True):
-        raw_zip = str(doc["_id"].get("zip") or "").strip()
-        state   = str(doc["_id"].get("state") or "").strip().upper()
-        zip5    = raw_zip[:5]
-        if not zip5 or not state:
-            continue
-        expected = zip_to_state.get(zip5)
-        if expected and expected != state:
-            mismatch_by_state[state].append(zip5)
-
-    # Process each mismatched provider individually to attempt license-based repair
     total_repaired = 0
     total_bad_data = 0
     ops: list = []
 
-    for state, zip_list in mismatch_by_state.items():
-        mismatched_providers = list(coll.find(
-            {
-                "county.fips": None,
-                "out_of_scope.flagged": {"$ne": True},
-                "bad_data.flagged": {"$ne": True},
-                "county.source": {"$ne": "out_of_scope"},
-                "practice_address.state": state,
-                "practice_address.zip":   {"$in": zip_list},
-                **sf,
-            },
-            {"_id": 1, "practice_address": 1, "licenses": 1},
-        ))
+    for p in candidates:
+        licenses = p.get("licenses") or []
+        pa = p.get("practice_address") or []
+        if not isinstance(pa, list):
+            continue  # normalize() above ensures this never fires
 
-        for p in mismatched_providers:
-            # Multi-practice-address shape: read the PRIMARY (element 0) for the
-            # mismatch check. Legacy dict shape: read the dict directly.
-            pa_raw = p.get("practice_address")
-            if isinstance(pa_raw, list):
-                primary = pa_raw[0] if pa_raw and isinstance(pa_raw[0], dict) else {}
-                primary_state_path = "practice_address.0.state"
-            elif isinstance(pa_raw, dict):
-                primary = pa_raw
-                primary_state_path = "practice_address.state"
-            else:
+        for idx, addr in enumerate(pa):
+            if not isinstance(addr, dict):
                 continue
-            zip5 = (primary.get("zip") or "")[:5]
-            expected_state = zip_to_state.get(zip5)
-            if not expected_state:
+            decision, reason, repaired_state = _evaluate_zip_state_mismatch(
+                addr, licenses, zip_to_state,
+            )
+            if decision == "ok":
                 continue
-
-            licenses = p.get("licenses") or []
-            if not licenses:
-                # PIPE-DQ-003: no license data — cannot repair
+            if decision == "repair":
                 ops.append(UpdateOne(
                     {"_id": p["_id"]},
-                    {"$set": {
-                        "bad_data": {"flagged": True, "reason": "zip_state_mismatch_no_license"},
-                        "county": {"fips": None},
-                    }},
-                ))
-                total_bad_data += 1
-                continue
-
-            # Extract unique license states
-            license_states = set()
-            for lic in licenses:
-                ls = (lic.get("state") or "").strip().upper()
-                if ls:
-                    license_states.add(ls)
-
-            matching_license_states = {ls for ls in license_states if ls == expected_state}
-
-            if len(matching_license_states) == 1:
-                # Exactly one license state matches the zip's expected state → repair
-                ops.append(UpdateOne(
-                    {"_id": p["_id"]},
-                    {"$set": {
-                        primary_state_path: expected_state,
-                        "bad_data": None,
-                    }},
+                    {"$set": {f"practice_address.{idx}.state": repaired_state}},
                 ))
                 total_repaired += 1
                 logging.info(
-                    "PIPE-DQ-003: repaired provider %s state %s→%s via license data",
-                    p["_id"], state, expected_state,
+                    "PIPE-DQ-003: repaired provider %s element %d state→%s via license data",
+                    p["_id"], idx, repaired_state,
                 )
-            elif len(license_states) > 1 and len(matching_license_states) >= 1:
-                # Multiple license states — ambiguous
+            else:  # "bad"
                 ops.append(UpdateOne(
                     {"_id": p["_id"]},
-                    {"$set": {
-                        "bad_data": {"flagged": True, "reason": "zip_state_mismatch_multiple_licenses"},
-                        "county": {"fips": None},
-                    }},
-                ))
-                total_bad_data += 1
-            else:
-                # License data present but doesn't resolve the mismatch
-                ops.append(UpdateOne(
-                    {"_id": p["_id"]},
-                    {"$set": {
-                        "bad_data": {"flagged": True, "reason": "zip_state_mismatch"},
-                        "county": {"fips": None},
-                    }},
+                    {"$set": {f"practice_address.{idx}.county": {
+                        "fips": None,
+                        "source": "out_of_scope_zip_state_mismatch",
+                        "reason": reason,
+                    }}},
                 ))
                 total_bad_data += 1
 
-        # Flush ops in batches
         if len(ops) >= 1000:
             coll.bulk_write(ops, ordered=False)
             ops = []
@@ -900,13 +851,57 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
         coll.bulk_write(ops, ordered=False)
 
     logging.info(
-        "PIPE-DQ-003: %d providers repaired via license, %d flagged as bad_data (zip_state_mismatch) across %d states",
-        total_repaired, total_bad_data, len(mismatch_by_state),
+        "PIPE-DQ-003: %d addresses repaired via license, %d addresses flagged as bad_data (zip_state_mismatch)",
+        total_repaired, total_bad_data,
     )
     return {
         "marked_zip_state_mismatch": total_bad_data,
         "repaired_via_license": total_repaired,
     }
+
+
+def _evaluate_zip_state_mismatch(
+    addr: dict,
+    licenses: list,
+    zip_to_state: dict,
+) -> tuple:
+    """Single-address evaluator. Called once per practice_address element.
+
+    Returns (decision, reason, repaired_state):
+      decision in {"ok", "repair", "bad"}
+      reason is the bad_data reason string when decision == "bad", else None
+      repaired_state is the new state value when decision == "repair", else None
+
+    Logic (preserved from the pre-multi-address tested behavior):
+      - No zip OR no state on this address → "ok" (nothing to check)
+      - Zip not in crosswalk → "ok" (different concern; Pass 2-6 will try to geocode)
+      - Zip's expected_state matches address.state → "ok"
+      - Mismatch + no licenses → "bad" (zip_state_mismatch_no_license)
+      - Mismatch + exactly one license state and it equals expected_state → "repair"
+      - Mismatch + multiple license states with at least one matching → "bad" (zip_state_mismatch_multiple_licenses)
+      - Mismatch + license data but none matches expected → "bad" (zip_state_mismatch)
+    """
+    zip5 = (addr.get("zip") or "")[:5]
+    elem_state = (addr.get("state") or "").strip().upper()
+    if not zip5 or not elem_state:
+        return ("ok", None, None)
+    expected = zip_to_state.get(zip5)
+    if not expected:
+        return ("ok", None, None)
+    if expected == elem_state:
+        return ("ok", None, None)
+
+    license_states = {(lic.get("state") or "").strip().upper() for lic in licenses}
+    license_states.discard("")
+    if not license_states:
+        return ("bad", "zip_state_mismatch_no_license", None)
+
+    matching = {s for s in license_states if s == expected}
+    if len(license_states) == 1 and len(matching) == 1:
+        return ("repair", None, expected)
+    if matching:
+        return ("bad", "zip_state_mismatch_multiple_licenses", None)
+    return ("bad", "zip_state_mismatch", None)
 
 
 # ── NUCC taxonomy prefixes with prescribing authority ──────────────────────
@@ -1022,6 +1017,18 @@ def mark_prescriber_fn(config: dict) -> dict:
     }
 
 
+# Per-element county.source values that mean "do not touch this element" —
+# either it's been geocoded already, classified as out-of-scope, or has bad
+# source data. Pass 1's crosswalk and Passes 2-6 all skip elements with any
+# of these source values via array_filters / $elemMatch.
+_CLASSIFIED_ELEMENT_SOURCES = [
+    "geocoder_failed",
+    "geocoder_no_address",
+    "out_of_scope",
+    "out_of_scope_zip_state_mismatch",
+]
+
+
 _UNENRICHED_FILTER = {
     # At least one practice_address element still needs county and hasn't been
     # classified by a prior pass. Multi-practice-address shape (list of dicts).
@@ -1029,7 +1036,7 @@ _UNENRICHED_FILTER = {
     # legacy path that handles them; passes 2-6 only target list-shape records.
     "practice_address": {"$elemMatch": {
         "county.fips": None,
-        "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
+        "county.source": {"$nin": _CLASSIFIED_ELEMENT_SOURCES},
     }},
     "bad_data.flagged": {"$ne": True},
     "out_of_scope.flagged": {"$ne": True},

@@ -7,7 +7,7 @@
 #
 # Usage:
 #   python pipeline_trigger.py --states MS --specialty-metadata
-#   python pipeline_trigger.py --states MS DE --copy-to-frontend
+#   python pipeline_trigger.py --states MS DE
 #   python pipeline_trigger.py --status <instance_id>
 
 import argparse
@@ -142,8 +142,6 @@ def main():
     parser.add_argument("--states", nargs="+", help="State codes to load (e.g. MS DE)")
     parser.add_argument("--specialty-metadata", action="store_true", default=True, help="Load SpecialtyMetaData (default: true)")
     parser.add_argument("--no-specialty-metadata", action="store_true", help="Skip SpecialtyMetaData load")
-    parser.add_argument("--copy-to-frontend", action="store_true", default=True, help="Copy to frontend (default: true)")
-    parser.add_argument("--no-copy-to-frontend", action="store_true", help="Skip CopyToFrontEnd")
     parser.add_argument("--embedding", action="store_true", help="Enable embeddings")
     parser.add_argument(
         "--start-step",
@@ -169,7 +167,6 @@ def main():
     payload = {
         "states": args.states or [],
         "specialty_metadata": not args.no_specialty_metadata,
-        "copy_to_frontend": not args.no_copy_to_frontend,
         "embedding_enabled": args.embedding,
     }
     if args.start_step is not None:
@@ -178,7 +175,6 @@ def main():
     print(f"FindCarePipeline trigger")
     print(f"  States: {payload['states']}")
     print(f"  Specialty metadata: {payload['specialty_metadata']}")
-    print(f"  Copy to frontend: {payload['copy_to_frontend']}")
     print(f"  Embeddings: {payload['embedding_enabled']}")
     print(f"  Start step: {payload.get('start_step', '(default — first step)')}")
     print()

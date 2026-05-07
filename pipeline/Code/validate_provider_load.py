@@ -28,6 +28,17 @@ import requests
 from dotenv import load_dotenv
 from pymongo import MongoClient
 
+
+def _primary_practice_address(provider: dict) -> dict:
+    """Return the primary practice_address as a dict. Handles both shapes:
+    list-of-addresses (post-multi-practice-address) and legacy single-dict."""
+    pa = provider.get("practice_address")
+    if isinstance(pa, list):
+        return pa[0] if pa and isinstance(pa[0], dict) else {}
+    if isinstance(pa, dict):
+        return pa
+    return {}
+
 load_dotenv(Path(__file__).parent.parent / ".env")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
@@ -152,7 +163,7 @@ def _compare(our_doc: dict, nppes: dict) -> dict:
         (a for a in nppes.get("addresses", []) if a.get("address_purpose") == "LOCATION"),
         None,
     )
-    our_addr = our_doc.get("practice_address", {})
+    our_addr = _primary_practice_address(our_doc)
 
     if nppes_location:
         # City

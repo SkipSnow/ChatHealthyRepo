@@ -23,6 +23,26 @@ from pipeline_db import get_db
 _log = logging.getLogger("prescriber_enrichment")
 
 
+def _primary_practice_address(provider: dict) -> dict:
+    """Return the primary practice_address as a dict. Handles list-of-addresses
+    (post-multi-practice-address) and legacy single-dict shapes."""
+    pa = provider.get("practice_address")
+    if isinstance(pa, list):
+        return pa[0] if pa and isinstance(pa[0], dict) else {}
+    if isinstance(pa, dict):
+        return pa
+    return {}
+
+
+def _primary_county(provider: dict) -> dict:
+    """Return the primary county sub-doc; prefers per-element county on the
+    primary address, falls back to doc-level county for legacy records."""
+    addr = _primary_practice_address(provider)
+    if isinstance(addr.get("county"), dict):
+        return addr["county"]
+    return provider.get("county") or {}
+
+
 # ── Drug Indication Cache ──────────────────────────────────────────────────
 
 def _get_cached_indication(env_prefix, drug_name):
@@ -223,8 +243,8 @@ def enrich_all(env_prefix: str = "dev", states: list = None, batch_size: int = 1
         }
 
         if provider:
-            addr = provider.get("practice_address", {})
-            county = provider.get("county", {})
+            addr = _primary_practice_address(provider)
+            county = _primary_county(provider)
             update_fields["location"] = {
                 "state": addr.get("state", ""),
                 "city": addr.get("city", ""),

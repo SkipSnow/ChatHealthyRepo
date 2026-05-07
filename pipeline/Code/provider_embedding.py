@@ -58,6 +58,17 @@ def _clean(value: Any) -> str | None:
     return None if (not s or s.upper() in _PLACEHOLDER_VALUES) else s
 
 
+def _practice_address_list(record: dict) -> list:
+    """Normalize practice_address to a list of address dicts.
+    Handles list-of-addresses (post-multi-practice-address) and legacy single-dict shapes."""
+    pa = record.get("practice_address")
+    if isinstance(pa, list):
+        return [a for a in pa if isinstance(a, dict)]
+    if isinstance(pa, dict):
+        return [pa]
+    return []
+
+
 def _format_address(addr: dict | None) -> str | None:
     if not addr:
         return None
@@ -192,7 +203,12 @@ def project(record: dict) -> dict:
     System fields (_id, load_id, record_id, worker_id) are excluded.
     Blank and placeholder values are normalised to None.
     """
-    county      = record.get("county") or {}
+    # Per-element county (post-multi-practice-address) takes precedence over
+    # the doc-level county field. Embedding describes the primary location's
+    # county trust + source.
+    _primary = next(iter(_practice_address_list(record)), {})
+    county      = (_primary.get("county") if isinstance(_primary.get("county"), dict)
+                   else None) or record.get("county") or {}
     is_indiv    = record.get("entity_type_code") == "1"
 
     # --- derived: name ---
@@ -211,9 +227,12 @@ def project(record: dict) -> dict:
     ) or None
 
     # --- derived: addresses ---
-    practice_addr = _format_address(record.get("practice_address"))
+    # Format every practice_address element so the embedding text reflects
+    # all locations a multi-site provider works at (not just the primary).
+    practice_addrs = [s for s in (_format_address(a) for a in _practice_address_list(record)) if s]
+    practice_addr = " | ".join(practice_addrs) if practice_addrs else None
     mailing_addr  = _format_address(record.get("mailing_address"))
-    if mailing_addr == practice_addr:   # omit if identical
+    if mailing_addr and mailing_addr in practice_addrs:   # omit if duplicate of any practice
         mailing_addr = None
 
     # --- derived: county ---
@@ -229,11 +248,14 @@ def project(record: dict) -> dict:
     npi_status = "inactive" if deactivated else "active"
 
     # --- derived: flags ---
-    practice_country = (record.get("practice_address") or {}).get("country")
-    foreign_provider = (
-        "yes" if practice_country and practice_country.upper() not in ("US", "")
-        else "no"
-    )
+    # Multi-practice-address: the provider is foreign if ANY practice_address element
+    # has a non-US country code (matches the Pass-1 out-of-scope semantics).
+    foreign_provider = "no"
+    for _addr in _practice_address_list(record):
+        _country = _addr.get("country")
+        if _country and _country.upper() not in ("US", ""):
+            foreign_provider = "yes"
+            break
 
     sole_prop = _clean(record.get("is_sole_proprietor"))
     sole_prop = ("yes" if sole_prop == "Y" else "no") if sole_prop else None

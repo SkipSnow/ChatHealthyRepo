@@ -96,7 +96,7 @@ class TestHappyPath(unittest.TestCase):
             "params": {
                 "cluster_name": "ChatHealthyDataPipelines",
                 "job_id": "test_copy_001",
-                "requester": "CopyToFrontEnd",
+                "requester": "TestRequester",
                 "expected_duration_minutes": 120,
             },
         })
@@ -230,7 +230,7 @@ class TestErrorFlow(unittest.TestCase):
             "error_message": "Could not connect to MongoDB",
             "cluster_name": "ChatHealthyDataPipelines",
             "job_id": "test_job_001",
-            "requester": "CopyToFrontEnd",
+            "requester": "TestRequester",
         })
         # Since mock always returns IDLE, repair should succeed
         self.assertTrue(result.success)

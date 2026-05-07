@@ -152,7 +152,8 @@ FINDCARE_LABEL_PASS2     = "Step 7: County enrichment Pass 2 — Census Geocoder
 FINDCARE_LABEL_PASS3     = "Step 8: County enrichment Pass 3 — Census Geocoder, billing address"
 FINDCARE_LABEL_PASS4     = "Step 9: County enrichment Pass 4 — Google Maps"
 FINDCARE_LABEL_PASS6     = "Step 10: County enrichment Pass 6 — NPPES registry lookup"
-FINDCARE_LABEL_EMBED     = "Step 11: Generating embeddings + vector index"
+FINDCARE_LABEL_URBAN     = "Step 11: Stamping urban flag from Census 2020_UA_COUNTY"
+FINDCARE_LABEL_EMBED     = "Step 12: Generating embeddings + vector index"
 
 FINDCARE_PIPELINE_STEPS = [
     FINDCARE_LABEL_RESERVE,
@@ -165,6 +166,7 @@ FINDCARE_PIPELINE_STEPS = [
     FINDCARE_LABEL_PASS3,
     FINDCARE_LABEL_PASS4,
     FINDCARE_LABEL_PASS6,
+    FINDCARE_LABEL_URBAN,
     FINDCARE_LABEL_EMBED,
 ]
 
@@ -1021,6 +1023,21 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
             yield context.call_activity(
                 "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
             )
+
+        if _run(FINDCARE_LABEL_URBAN):
+            context.set_custom_status(FINDCARE_LABEL_URBAN)
+            urban_config = {
+                "blob_container": config.get("blob_container", "provider-data"),
+                "states": config.get("states"),
+                "provider_collection": config.get(
+                    "provider_collection", "dev_PublicHealthData.providers"
+                ),
+            }
+            urban_result = yield context.call_activity(
+                "stamp_urban_flag_activity", urban_config
+            )
+            step_statuses.append({"step": FINDCARE_LABEL_URBAN, "status": "completed_success",
+                                  "summary": urban_result})
 
         if _run(FINDCARE_LABEL_EMBED) and config.get("embedding_enabled", False):
             num_workers = config.get("num_workers", 32)

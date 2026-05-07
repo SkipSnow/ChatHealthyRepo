@@ -21,6 +21,28 @@ from pipeline_db import get_db
 
 _log = logging.getLogger("prescriber_load")
 
+
+def _primary_practice_address(provider: dict) -> dict:
+    """Return the primary practice_address as a dict. Handles both shapes:
+    list-of-addresses (post-multi-practice-address) and legacy single-dict."""
+    pa = provider.get("practice_address")
+    if isinstance(pa, list):
+        return pa[0] if pa and isinstance(pa[0], dict) else {}
+    if isinstance(pa, dict):
+        return pa
+    return {}
+
+
+def _primary_county(provider: dict) -> dict:
+    """Return the primary county sub-doc for the provider.
+    Prefers per-element county on the primary practice address; falls back to
+    the doc-level county field for legacy records."""
+    addr = _primary_practice_address(provider)
+    if isinstance(addr.get("county"), dict):
+        return addr["county"]
+    return provider.get("county") or {}
+
+
 # CMS Part D CSV columns
 COL_NPI = "Prscrbr_NPI"
 COL_STATE = "Prscrbr_State_Abrvtn"
@@ -156,8 +178,8 @@ class PrescriberLoadWorker(PipelineWorkerBase):
         if not npi:
             return
 
-        addr = provider.get("practice_address", {})
-        county = provider.get("county", {})
+        addr = _primary_practice_address(provider)
+        county = _primary_county(provider)
 
         # Location — always populated from provider record
         location = {
