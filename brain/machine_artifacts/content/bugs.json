@@ -65,7 +65,7 @@
     },
     {
       "bugid": "BUG-004",
-      "title": "HuggingFace FastAPI's core routing patterns and infrastructure code initiating the fast API servers are unacaptable",
+      "title": "HuggingFace Not seemingly capable of PKI mutual authentication",
       "description": "the current fastAPI deployment files, e.g {project root}\\evaluateCare\\Code\u0007pp.py are multi functional, mixiing server initation with the API definitions and without proper encapsualtion. In addtion there is no clean destinction between Public APIs and private internal APIs within the routing tables. FindCare's main.py needs a total refactor.",
       "environments": [
         "local",
@@ -112,29 +112,58 @@
     },
     {
       "bugid": "BUG-006",
-      "title": "Pipeline cluster does not pause after job; pause-when-idle implementation is failing",
-      "description": "After every ChatHealthy.ai Pipeline job, the Atlas Pipeline cluster must be paused if and only if no other automated work is taking place and no human has reserved the cluster. The software that was intended to implement this requirement is failing.",
+      "title": "Incremental load never deletes records missing from a full source file",
+      "description": "EPIC-010-F-007-S-004-REQ-B-002 says: when `incremental=true`, no provider record shall be deleted or altered unless (a) the source row changed (record altered to match), or (b) the source is a full file and the record is missing from it (record deleted).\n\nThe implementation only does (a). When `incremental=true`, `pipeline/Code/provider_load_manager.py:231-235` skips drain entirely, and `pipeline/Code/provider_worker.py:345-367` upserts each present row by NPI via `ReplaceOne({\"npi\": npi}, doc, upsert=True)`. There is NO post-load reconciliation pass that detects NPIs in the collection but missing from the source file and deletes them.\n\nNPPES is always a full dissemination file when the monthly file is used, so REQ branch (b) applies on every full-file incremental run, but no code path implements it. Stale and CMS-retired NPIs accumulate indefinitely in incremental mode.",
       "environments": [
         "dev",
         "qa",
         "prod"
       ],
-      "status": "in_analysis",
-      "severity": "show_stopper",
-      "req_id": "EPIC-010-F-029-S-001-REQ-B-001",
-      "story_id": "EPIC-010-F-029-S-001",
-      "test_id": "BUG-006-TEST-1",
+      "status": "deferred",
+      "severity": "medium",
+      "req_id": "EPIC-010-F-007-S-004-REQ-B-002",
+      "story_id": "EPIC-010-F-007-S-004",
+      "test_id": "",
       "test_success_criteria": [
-        "After every ChatHealthy.ai Pipeline job completes, when no other automated work is taking place against ChatHealthyDataPipelines and no human has reserved the cluster, the cluster transitions to the PAUSED state within the operational tolerance defined for the cluster lifecycle manager.",
-        "When other automated work IS taking place against the cluster, or a human reservation is held, the cluster does NOT pause."
+        "An `incremental=true` run against an NPPES dissemination file MUST delete every provider record whose NPI is not present in the source file.",
+        "Boolean test: pre-load count = N, source file count = N - K (K NPIs missing), post-load count = N - K, and the K specific NPIs are no longer in the collection."
       ],
-      "discovery_date": "2026-05-06",
-      "due_date": "2026-05-10",
-      "reproduction": "1. Run any ChatHealthy.ai Pipeline job to completion (success, failure, or termination). 2. Confirm no other automated work is in Running / Pending state for the cluster, and no human reservation is held. 3. Observe the Atlas cluster ChatHealthyDataPipelines in the MongoDB Atlas console: the cluster remains in a non-PAUSED state.",
+      "discovery_date": "2026-05-08",
+      "due_date": "2026-10-30",
+      "reproduction": "1. Run a full load of state X with `incremental=false` - collection holds 1000 NPIs for X.\n2. Wait one NPPES dissemination cycle in which CMS retires/merges 50 of those NPIs.\n3. Operator runs `incremental=true`. Two source-file paths exist:\n   3.a. Weekly NPPES incremental file: contains only records that changed since last weekly/full. The 50 retired NPIs appear in the diff with their NPI Deactivation Date populated. The code upserts each present row by NPI via `ReplaceOne({\"npi\": npi}, doc, upsert=True)`. The deactivation date is stored on the document but no logic acts on it: no out_of_scope flag is set, no record is deleted, no downstream signal is emitted. (REQ-B-002 branch (b) does not apply here because the source is not a full file; this exposes an orthogonal deactivation-flag-handling gap, and the system has no enforced way to distinguish weekly vs full source.)\n   3.b. Monthly NPPES full file: contains every currently-disseminated record (active + deactivated-but-not-yet-purged); long-retired NPIs are absent entirely (CMS-purged). The code only upserts rows present in the file. There is NO post-load pass that scans the collection for NPIs absent from the source file. Long-retired (CMS-purged) NPIs remain in the collection indefinitely; recently-deactivated NPIs (still in the file with deactivation dates) remain 'active' in collection state. Direct violation of REQ-B-002 branch (b).\n4. FindCare search returns providers CMS has retired.",
+      "orphan": false,
       "next_action": [
-        "Investigate why the existing cluster-lifecycle implementation is not delivering the pause-when-idle behavior, and fix."
+        "Deferred. No fix planned.",
+        "If a real business need to use incremental loading arises (currently every load is full), this bug must be fixed before the first incremental run.",
+        "Until then, all loads are `incremental=false` (drain -> reload), which is correct behavior under REQ-B-002 for full-loads and avoids the gap entirely."
+      ]
+    },
+    {
+      "bugid": "BUG-007",
+      "title": "Cluster lifecycle reaper does not delete overdue automated reservations",
+      "description": "EPIC-010-F-029-S-006-REQ-T-003 says the reaper MUST delete overdue automated reservations (deletion is the only state change). Two reservations registered by an urban-flag-backfill one-shot on 2026-05-07 21:02 and 21:03 UTC, with expected_duration_minutes=30 and reservation_class='automated', remained status='active' in dev_System.cluster_lifecycle ~24 hours later. They were ~23h past their expected_end_time and should have been deleted by the reaper.\n\nCombined effect: T-006 also violated. With no live work, the cluster should auto-pause; the stale reservations keep it unpaused, generating paid Atlas runtime.",
+      "environments": [
+        "dev",
+        "qa",
+        "prod"
       ],
-      "orphan": false
+      "status": "new",
+      "severity": "medium",
+      "req_id": "EPIC-010-F-029-S-006-REQ-T-003",
+      "story_id": "EPIC-010-F-029-S-006",
+      "test_id": "",
+      "test_success_criteria": [
+        "For any reservation with reservation_class='automated' whose expected_end_time plus a 30-minute grace has passed, the reaper MUST delete the reservation entry from dev_System.cluster_lifecycle.reservations[] within one timer-trigger cycle (<=5 minutes after the grace expires).",
+        "When the resulting reservations[] becomes empty for a given cluster, the DB manager MUST pause that cluster."
+      ],
+      "discovery_date": "2026-05-08",
+      "due_date": "2026-10-30",
+      "reproduction": "1. Run any script that calls register_reservation_activity with a small expected_duration_minutes (e.g., 30) and reservation_class='automated'.\n2. Have the script exit without calling release_reservation_activity (crash, kill, missing finally, etc.).\n3. Wait expected_duration_minutes + 30 min grace.\n4. Observe: the reservation row in dev_System.cluster_lifecycle.reservations[] still has status='active'. The cluster is not paused even if it is the only live reservation.",
+      "orphan": false,
+      "next_action": [
+        "Verify the reaper rewrite (commit pending) actually deletes overdue automated reservations on the next 5-min tick after deploy. Application Insights log line `Reaper tick: reaped=N, live_remaining=M, cluster_state=X` is the realized-mode evidence.",
+        "Mitigation while reaper is broken: manually purge stale reservations from dev_System.cluster_lifecycle.reservations[] before they cost paid-Atlas runtime."
+      ]
     }
   ]
 }
