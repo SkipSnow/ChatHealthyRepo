@@ -239,7 +239,7 @@ class ProviderWorker(PipelineWorkerBase):
         self.csv_path = config["csv_path"]
         self.load_id = config["load_id"]
         self.metadata_id = config["metadata_id"]
-        self.batch_size = config.get("batch_size", 10_000)
+        self.batch_size = config["batch_size"]
         self.provider_collection = config.get(
             "provider_collection", "dev_PublicHealthData.providers"
         )

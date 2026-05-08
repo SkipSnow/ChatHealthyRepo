@@ -462,10 +462,27 @@ def attach_practice_locations_activity(config: dict) -> dict:
     return attach_practice_locations_fn(config)
 
 
+_US_STATES_DC_TERRITORIES = [
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+    "DC", "PR", "VI", "GU", "AS", "MP",
+]
+
+
 @app.activity_trigger(input_name="config")
 def stamp_urban_flag_activity(config: dict) -> dict:
     from urban_flag import stamp_urban_flag_fn
-    return stamp_urban_flag_fn(config)
+    from state_filter import normalize_states, is_full_load
+
+    states = normalize_states(config)
+    if isinstance(states, dict):
+        raise ValueError("urban_flag does not support legacy dict states; pass a list")
+    if is_full_load(states):
+        states = list(_US_STATES_DC_TERRITORIES)
+    return stamp_urban_flag_fn({**config, "states": states})
 
 
 @app.activity_trigger(input_name="config")

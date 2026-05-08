@@ -888,7 +888,7 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
     config = context.get_input() or {}
     load_id = context.instance_id
 
-    start_label = config.get("start_step", FINDCARE_PIPELINE_STEPS[0])
+    start_label = config["start_step"]
     if start_label not in FINDCARE_PIPELINE_STEPS:
         raise ValueError(
             f"Unknown start_step {start_label!r}. Valid: {FINDCARE_PIPELINE_STEPS}"
@@ -900,21 +900,21 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
 
     enrich_config = {
         "load_id": load_id,
-        "num_workers": config.get("enrich_workers", 200),
-        "addr_batch_size": config.get("addr_batch_size", 5_000),
-        "reset_failed": config.get("reset_failed", False),
-        "nppes_batch_size": config.get("nppes_batch_size", 5_000),
-        "states": config.get("states"),
-        "provider_collection": config.get("provider_collection"),
-        "metadata_collection": config.get("metadata_collection"),
+        "num_workers": config["enrich_workers"],
+        "addr_batch_size": config["addr_batch_size"],
+        "reset_failed": config["reset_failed"],
+        "nppes_batch_size": config["nppes_batch_size"],
+        "states": config["states"],
+        "provider_collection": config["provider_collection"],
+        "metadata_collection": config["metadata_collection"],
     }
 
-    cluster_name = config.get("pipeline_cluster", "ChatHealthyDataPipelines")
+    cluster_name = config["pipeline_cluster"]
     reservation = {
         "job_id": load_id,
         "requester": "FindCarePipeline",
         "cluster_name": cluster_name,
-        "expected_duration_minutes": config.get("expected_duration_minutes", 480),
+        "expected_duration_minutes": config["expected_duration_minutes"],
     }
     context.set_custom_status(FINDCARE_LABEL_RESERVE)
     yield context.call_activity("register_reservation_activity", reservation)
@@ -943,23 +943,23 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
         yield context.call_activity("check_mongo_health_activity", config)
         step_statuses.append({"step": FINDCARE_LABEL_HEALTH, "status": "completed_success"})
 
-        if config.get("specialty_metadata", True):
+        if config["specialty_metadata"]:
             context.set_custom_status(FINDCARE_LABEL_SPECIALTY)
             yield context.call_activity("load_specialty_data_activity", {
-                "env_prefix": config.get("env_prefix", "dev"),
+                "env_prefix": config["env_prefix"],
             })
             step_statuses.append({"step": FINDCARE_LABEL_SPECIALTY, "status": "completed_success"})
 
         if _run(FINDCARE_LABEL_LOAD):
             context.set_custom_status(FINDCARE_LABEL_LOAD)
             load_config = {
-                "num_workers": config.get("num_workers", 32),
-                "batch_size": config.get("batch_size", 5000),
-                "blob_container": config.get("blob_container", "provider-data"),
-                "states": config.get("states"),
-                "incremental": config.get("incremental", False),
-                "provider_collection": config.get("provider_collection"),
-                "metadata_collection": config.get("metadata_collection"),
+                "num_workers": config["num_workers"],
+                "batch_size": config["batch_size"],
+                "blob_container": config["blob_container"],
+                "states": config["states"],
+                "incremental": config["incremental"],
+                "provider_collection": config["provider_collection"],
+                "metadata_collection": config["metadata_collection"],
             }
             load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
             step_statuses.append({"step": FINDCARE_LABEL_LOAD, "status": "completed_success"})
@@ -967,12 +967,10 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
         if _run(FINDCARE_LABEL_ATTACH_PL):
             context.set_custom_status(FINDCARE_LABEL_ATTACH_PL)
             attach_config = {
-                "blob_container": config.get("blob_container", "provider-data"),
-                "states": config.get("states"),
-                "provider_collection": config.get("provider_collection", "dev_PublicHealthData.providers"),
-                "pl_lookup_collection": config.get(
-                    "pl_lookup_collection", "dev_PublicHealthData.pl_pfile_lookup"
-                ),
+                "blob_container": config["blob_container"],
+                "states": config["states"],
+                "provider_collection": config["provider_collection"],
+                "pl_lookup_collection": config["pl_lookup_collection"],
                 "version": load_result.get("version") if isinstance(load_result, dict) else None,
             }
             attach_result = yield context.call_activity(
@@ -1001,7 +999,7 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
             )
             step_statuses.append({"step": FINDCARE_LABEL_PASS3, "status": "completed_success"})
 
-        if _run(FINDCARE_LABEL_PASS4) and config.get("google_maps_enabled", False):
+        if _run(FINDCARE_LABEL_PASS4) and config["google_maps_enabled"]:
             context.set_custom_status(FINDCARE_LABEL_PASS4)
             pass4_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass4_orchestrator", enrich_config
@@ -1027,11 +1025,10 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
         if _run(FINDCARE_LABEL_URBAN):
             context.set_custom_status(FINDCARE_LABEL_URBAN)
             urban_config = {
-                "blob_container": config.get("blob_container", "provider-data"),
-                "states": config.get("states"),
-                "provider_collection": config.get(
-                    "provider_collection", "dev_PublicHealthData.providers"
-                ),
+                "blob_container": config["blob_container"],
+                "states": config["states"],
+                "provider_collection": config["provider_collection"],
+                "bulk_batch_size": config["bulk_batch_size"],
             }
             urban_result = yield context.call_activity(
                 "stamp_urban_flag_activity", urban_config
@@ -1039,9 +1036,9 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
             step_statuses.append({"step": FINDCARE_LABEL_URBAN, "status": "completed_success",
                                   "summary": urban_result})
 
-        if _run(FINDCARE_LABEL_EMBED) and config.get("embedding_enabled", False):
-            num_workers = config.get("num_workers", 32)
-            provider_collection = config.get("provider_collection", "dev_PublicHealthData.providers")
+        if _run(FINDCARE_LABEL_EMBED) and config["embedding_enabled"]:
+            num_workers = config["num_workers"]
+            provider_collection = config["provider_collection"]
             context.set_custom_status(FINDCARE_LABEL_EMBED)
             embed_tasks = [
                 context.call_activity(
@@ -1049,10 +1046,10 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                     {
                         "worker_id": i + 1,
                         "provider_collection": provider_collection,
-                        "states": config.get("states"),
-                        "embed_model": config.get("embed_model", "text-embedding-3-large"),
-                        "embed_batch_size": config.get("embed_batch_size", 100),
-                        "embed_initial_jitter": config.get("embed_initial_jitter", 5.0),
+                        "states": config["states"],
+                        "embed_model": config["embed_model"],
+                        "embed_batch_size": config["embed_batch_size"],
+                        "embed_initial_jitter": config["embed_initial_jitter"],
                     },
                 )
                 for i in range(num_workers)
