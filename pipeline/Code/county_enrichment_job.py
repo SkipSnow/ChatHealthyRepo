@@ -790,10 +790,10 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
             norm.modified_count,
         )
 
-    # Pull every candidate provider once, then iterate every practice_address
-    # element. The single-address evaluator below is the same logic that used
-    # to run against the primary address — called once per element, no shortcuts.
-    candidates = list(coll.find(
+    # Stream the cursor element-wise. Materializing the full result set with
+    # list() blows the worker's heap on large multi-state runs (TX+CA+NY+VA+MS
+    # ≈ 700K docs × ~10KB → ~7GB → OOM exit 137).
+    cursor = coll.find(
         {
             "out_of_scope.flagged": {"$ne": True},
             "bad_data.flagged": {"$ne": True},
@@ -802,13 +802,13 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
             **sf,
         },
         {"_id": 1, "practice_address": 1, "licenses": 1},
-    ))
+    )
 
     total_repaired = 0
     total_bad_data = 0
     ops: list = []
 
-    for p in candidates:
+    for p in cursor:
         licenses = p.get("licenses") or []
         pa = p.get("practice_address") or []
         if not isinstance(pa, list):
