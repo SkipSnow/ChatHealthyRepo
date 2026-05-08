@@ -19,10 +19,11 @@ class UrbanFlagStamper:
     CENSUS_BLOB_NAME = "census_2020_ua_county.xlsx"
     URBAN_THRESHOLD = 0.5
 
-    def __init__(self, blob_container, states, provider_collection):
+    def __init__(self, blob_container, states, provider_collection, bulk_batch_size):
         self.blob_container = blob_container
         self.states = states
         self.provider_collection = provider_collection
+        self.bulk_batch_size = bulk_batch_size
         self.census = {}
         self.stats = {
             "providers_scanned": 0,
@@ -91,7 +92,8 @@ class UrbanFlagStamper:
             }
 
     def write_data_to_collection(self):
-        from pymongo import MongoClient
+        from pymongo import MongoClient, UpdateOne
+        from pymongo.errors import BulkWriteError
 
         db_name, coll_name = self.provider_collection.split(".", 1)
         client = MongoClient(
@@ -99,11 +101,13 @@ class UrbanFlagStamper:
             serverSelectionTimeoutMS=120_000,
             socketTimeoutMS=900_000,
         )
+        ops = []
         try:
             self.coll = client[db_name][coll_name]
             print(f"urban_flag: states arg = {self.states} "
                   f"(iterating one cursor per state; only practice_address "
-                  f"elements whose own .state matches get stamped)",
+                  f"elements whose own .state matches get stamped; "
+                  f"bulk_write batches of {self.bulk_batch_size})",
                   flush=True)
             for state in self.states:
                 print(f"urban_flag: state={state} "
@@ -130,11 +134,10 @@ class UrbanFlagStamper:
                                     if urban is None:
                                         self.stats["elements_unmatched_census"] += 1
                                         continue
-                                    self.coll.update_one(
+                                    ops.append(UpdateOne(
                                         {"_id": provider["_id"]},
                                         {"$set": {f"practice_address.{idx}.county.urban": urban}},
-                                    )
-                                    self.stats["elements_stamped"] += 1
+                                    ))
                                 except Exception as exc:
                                     self.stats["element_exceptions"].append({
                                         "npi": provider.get("npi"),
@@ -142,6 +145,20 @@ class UrbanFlagStamper:
                                         "type": type(exc).__name__,
                                         "message": str(exc),
                                     })
+                                if len(ops) >= self.bulk_batch_size:
+                                    try:
+                                        result = self.coll.bulk_write(ops, ordered=False)
+                                        self.stats["elements_stamped"] += result.modified_count
+                                    except BulkWriteError as exc:
+                                        details = exc.details or {}
+                                        self.stats["elements_stamped"] += details.get("nModified", 0)
+                                        for werr in details.get("writeErrors", []):
+                                            self.stats["element_exceptions"].append({
+                                                "type": "BulkWriteError",
+                                                "code": werr.get("code"),
+                                                "message": str(werr.get("errmsg", ""))[:200],
+                                            })
+                                    ops = []
                         except Exception as exc:
                             self.stats["provider_exceptions"].append({
                                 "npi": provider.get("npi"),
@@ -154,5 +171,18 @@ class UrbanFlagStamper:
                         "type": type(exc).__name__,
                         "message": str(exc),
                     })
+            if ops:
+                try:
+                    result = self.coll.bulk_write(ops, ordered=False)
+                    self.stats["elements_stamped"] += result.modified_count
+                except BulkWriteError as exc:
+                    details = exc.details or {}
+                    self.stats["elements_stamped"] += details.get("nModified", 0)
+                    for werr in details.get("writeErrors", []):
+                        self.stats["element_exceptions"].append({
+                            "type": "BulkWriteError",
+                            "code": werr.get("code"),
+                            "message": str(werr.get("errmsg", ""))[:200],
+                        })
         finally:
             client.close()
