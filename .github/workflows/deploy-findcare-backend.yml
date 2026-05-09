@@ -13,7 +13,6 @@ on:
       - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**'
       - 'Code/Shared/ChatHealthyMongoUtilities.py'
       - 'Code/Shared/prompt_system_maker.py'
-      - 'findCare/Code/**'
       - 'brain/machine_artifacts/content/emergency_keywords.json'
       - '.github/workflows/deploy-findcare-backend.yml'
 
@@ -229,15 +228,6 @@ jobs:
             --exclude='__pycache__' \
             --exclude='*.pyc' \
             FrontEndApplicationLib/ hf_space/FrontEndApplicationLib/
-
-          # findCare/ — per-service code home (SpecialtyFilter currently).
-          # The Dockerfile COPYs findCare/ into the container; this rsync
-          # stages it into the HF build context.
-          mkdir -p hf_space/findCare/Code
-          rsync -av \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            findCare/Code/ hf_space/findCare/Code/
 
           # Dockerfile lives at the build-context root for HF.
           cp Code/ConversationalUX/FindCareChat/backend/Dockerfile hf_space/Dockerfile

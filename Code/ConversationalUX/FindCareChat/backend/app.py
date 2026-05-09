@@ -25,19 +25,7 @@ from url_guardian import URLGuardian
 from application.tool_router import ToolRouter
 from application.facades.evaluate_care_facade import EvaluateCareFacade
 from domain.find_care.provider_search_service import FindCareService
-# SpecialtyFilter lives in its new home findCare/Code/SpecialtyFilter (per
-# the per-service refactor). Reach it via repo-root path insert so both
-# local-dev (from Code/.../backend) and HF/container layouts resolve the
-# same relative ../../../../findCare/Code path.
-_findcare_code_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                  "..", "..", "..", "..", "findCare", "Code")
-if not os.path.isdir(_findcare_code_dir):
-    raise RuntimeError(
-        f"findCare/Code not found at {_findcare_code_dir} — SpecialtyFilter "
-        "module unreachable. Check Dockerfile COPY of findCare/ and HF rsync."
-    )
-sys.path.insert(0, _findcare_code_dir)
-from SpecialtyFilter.filter import SpecialtyFilter  # noqa: E402
+from domain.find_care.specialty_filter.filter import SpecialtyFilter
 from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
 from domain.evaluate_care_quality.provider_detail_service import ProviderDetailService
 from domain.shared.safety.safety_service import SafetyService

@@ -148,7 +148,7 @@
         "prod"
       ],
       "status": "new",
-      "severity": "medium",
+      "severity": "high",
       "req_id": "EPIC-010-F-029-S-006-REQ-T-003",
       "story_id": "EPIC-010-F-029-S-006",
       "test_id": "",
