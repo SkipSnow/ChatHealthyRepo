@@ -49,7 +49,7 @@ jobs:
           HF_SPACE: ${{ steps.space.outputs.name }}
           ENV: ${{ steps.space.outputs.env }}
           # GH repo secret holding base64(evalcare.key) — same value across
-          # dev/qa/prod (pre-alpha; Skip 2026-05-04). Required by EvaluateCare's
+          # dev/qa/prod (pre-alpha). Required by EvaluateCare's
           # _bootstrap_certs_from_env() to materialize evalcare.key into
           # CERTS_DIR for session-token signing.
           EVALCARE_SIGNING_KEY_B64: ${{ secrets.EVALCARE_SIGNING_KEY_B64 }}

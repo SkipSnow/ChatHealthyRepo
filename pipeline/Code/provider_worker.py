@@ -358,7 +358,7 @@ class ProviderWorker(PipelineWorkerBase):
 
         # Both incremental and non-incremental: upsert by NPI to avoid duplicate-key
         # collisions when state-scoped drain misses cross-state-licensed records.
-        # Per Skip 2026-05-06: never lose records; ReplaceOne(upsert=True) ensures
+        # Per 2026-05-06 directive: never lose records; ReplaceOne(upsert=True) ensures
         # the new version always lands without npi_unique violations.
         npi = doc.get("npi")
         if npi:

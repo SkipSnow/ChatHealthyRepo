@@ -8,8 +8,8 @@ Writes to a TEMP file (not the live file). Saves incrementally after every
 single requirement so progress is visible by inspecting the temp file.
 Prints flush per requirement so stdout is live.
 
-Per Skip directive 2026-04-19. Final promotion (rename temp -> live) is a
-separate decision after Skip reviews the migrated file.
+Per directive 2026-04-19. Final promotion (rename temp -> live) is a
+separate decision after the migrated file is reviewed.
 """
 from __future__ import annotations
 import json

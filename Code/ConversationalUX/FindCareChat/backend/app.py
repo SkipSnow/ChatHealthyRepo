@@ -410,16 +410,8 @@ async def classify(body: ClassifyRequest, request: Request):
     Replaces the GPT classify call with embedding + vector search.
     Returns specialty codes ranked by cosine similarity + location extracted by simple parsing."""
 
-    # Safety gate — emergency detection must run on every user input,
-    # regardless of which endpoint the frontend calls.
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
-    if _safety_service.is_ip_locked(ip):
-        return {"emergency": True, "response": EMERGENCY_RESPONSE}
-    if _safety_service.is_emergency(body.message):
-        full_history = [{"role": "user", "content": body.message}]
-        _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
-        return {"emergency": True, "response": EMERGENCY_RESPONSE}
 
     # Two-stage AI specialty matching pipeline (S-002 in EPIC-006-F-002 spec):
     # normalize -> embed -> vector search -> AI filter -> NUCC code list

@@ -2,7 +2,7 @@
 with structured output, and write a NEW file that conforms to the
 EngineeringRulesSchema.
 
-Per Skip directive 2026-04-19. Per Idiot Mode plan approval. Output
+Per directive 2026-04-19. Per Idiot Mode plan approval. Output
 goes to Code/_pending/engineering_rules_redesign/output/engineering_rules.NEW.json.
 The live brain/machine_artifacts/content/engineering_rules.json is NOT
 overwritten by this script.
@@ -32,7 +32,7 @@ OUT_FILE = OUT_DIR / "engineering_rules.NEW.json"
 MAPPING_FILE = OUT_DIR / "id_mapping.json"
 SCHEMA_FILE = REPO / "Website" / "schemas" / "dev" / "EngineeringRulesSchema.json"
 
-MODEL = "gpt-4.1"  # not mini, per Skip
+MODEL = "gpt-4.1"  # not mini
 
 # Strict-mode response_format schema for ONE rule (without id/req_id —
 # we assign id sequentially; req_id placeholder added post-hoc since

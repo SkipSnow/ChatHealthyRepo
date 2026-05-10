@@ -72,7 +72,7 @@ jobs:
           HF_SPACE: ${{ steps.space.outputs.name }}
           ENV: ${{ steps.space.outputs.env }}
           # Private signing key sourced from GH repo secret (one value used
-          # across dev/qa/prod per Skip 2026-05-04 — pre-alpha). Required for
+          # across dev/qa/prod — pre-alpha, 2026-05-04). Required for
           # FINDCARE_SIGNING_KEY_PEM bootstrap at container start; without it
           # _startup_security_verification abends with exit=78 (see
           # EPIC-002-F-001-S-012-REQ-T-004).
@@ -311,7 +311,7 @@ jobs:
         run: |
           # Smoke runs against the env we just deployed to (dev/qa/prod).
           # No deselects, no marker filters — every test in the master smoke
-          # is in scope per Skip's "100% comply" directive (2026-05-04).
+          # is in scope per the "100% comply" directive (2026-05-04).
           # Tests that have hardcoded localhost assumptions or local-vs-dev
           # build comparisons will fail honestly until they are fixed at
           # the test source, not silenced at the invocation site.

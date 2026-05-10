@@ -97,7 +97,7 @@ def _screenshot(page, name):
 def _retry(label, attempts, sleep_ms, action):
     """Retry `action` (zero-arg callable) up to `attempts` times. Sleep
     `sleep_ms` ms between tries. Print '[retry] LABEL: attempt N/M' on each.
-    Re-raise the last exception if all attempts fail. Per Skip directive
+    Re-raise the last exception if all attempts fail. Per directive
     2026-04-20 — Playwright's internal polling is opaque; explicit retry
     + per-attempt log makes failures diagnosable."""
     import time as _t
@@ -291,7 +291,7 @@ def _verify_button_in_parent(page, button_selector, parent_selector, label):
 
 @pytest.fixture(scope="module")
 def env():
-    # Skip 2026-05-05: client_certificates removed. Playwright's API requires
+    # 2026-05-05: client_certificates removed. Playwright's API requires
     # the .key file to exist on disk at fixture setup time; .key files are
     # (correctly) gitignored, so the GH Actions runner doesn't have them
     # and every test ERRORs at setup. Presenting the cert was theater anyway
@@ -396,7 +396,7 @@ class TestStep03:
         page = env["page"]
         # Must be a <button> inside #envBanner, not a link in header nav
         # Banner button rendered by renderBannerButtons uses data-service="sharedservices",
-        # text label "SharedServices" (PascalCase, no space). Per Skip directive 2026-04-19.
+        # text label "SharedServices" (PascalCase, no space). Per directive 2026-04-19.
         _verify_button_in_parent(page, "[data-service='sharedservices']", "#envBanner", "SharedServices")
         btn = page.locator("[data-service='sharedservices']")
         expect(btn).to_be_visible()
@@ -529,7 +529,7 @@ class TestStep08:
             "(the green header), not in any other cell."
         )
 
-        # Per Skip 2026-05-05: gate on specialty TYPES (not prescriber count).
+        # Per 2026-05-05 spec: gate on specialty TYPES (not prescriber count).
         # Two-branch logic:
         #   - If specialty_total <= 12: all specialty types MUST be visible
         #     without scrolling.
@@ -577,7 +577,7 @@ class TestStep08:
         visible_before = _count_visible_in_cell2()
 
         if total_sp <= 12:
-            # Per Skip's spec: when total <=12, just verify all specialty
+            # Per spec: when total <=12, just verify all specialty
             # types are present (data check). Whether each one perfectly
             # fits the viewport pixel-wise is a layout concern, not a
             # specialty-completeness concern.
@@ -816,7 +816,7 @@ class TestStep21:
         # MUST be a specialty filter-toggle, NOT a filter-provider-type. The
         # provider-type handler (Website/index.html:1280) returns ownership to
         # FindCare immediately when EvaluateCare owns, which would skip the
-        # gui:reset path TestStep22 depends on. Per Skip 2026-04-20.
+        # gui:reset path TestStep22 depends on (2026-04-20).
         checkbox = page.locator("#leftPanel input[data-gui-action='filter-toggle']").first
         assert checkbox.count() > 0, "No specialty filter-toggle checkboxes found"
         # REQ-B-022: click MUST register — assert checked-state actually
