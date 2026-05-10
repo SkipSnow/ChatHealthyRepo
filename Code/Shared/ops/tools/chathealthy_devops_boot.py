@@ -1200,9 +1200,10 @@ class chathealthy_devops_boot:
         turn the user replies 1/2/3 — keeps SessionStart additionalContext small
         enough to survive the preview-truncation window.
 
-        Skip 2026-05-05: append any pending hf-mtls-poll alerts (new replies on
-        forum thread 175767) so Skip sees them in chat. The polling itself runs
-        out-of-process via Windows Task Scheduler — see _ensure_hf_mtls_poll_task()."""
+        2026-05-05: append any pending hf-mtls-poll alerts (new replies on
+        forum thread 175767) so the operator sees them in chat. The polling
+        itself runs out-of-process via Windows Task Scheduler — see
+        _ensure_hf_mtls_poll_task()."""
         lines = [
             "BOOT DIRECTIVE — MODE SELECTION (ARCH-ORPHAN-001-REQ-010):",
             "You MUST ask the user to select an operating mode before doing anything else.",
@@ -1224,7 +1225,7 @@ class chathealthy_devops_boot:
 
     def _ensure_hf_mtls_poll_task(self) -> None:
         """Idempotent: register the Windows Scheduled Task that polls the HF
-        forum thread every 2 hours. Skip 2026-05-05: cron-via-Claude was
+        forum thread every 2 hours. 2026-05-05: cron-via-Claude was
         unreliable (durable flag ignored, cost per fire). OS scheduler runs
         the standalone hf_mtls_poll.py with no Claude dependency."""
         import subprocess

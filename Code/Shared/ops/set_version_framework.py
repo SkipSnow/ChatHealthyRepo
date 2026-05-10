@@ -4,8 +4,8 @@
 
 Per BUG-001 and Rule-063: build is auto-incremented on every
 non-deploy commit. version and framework are set ONLY by humans, only at
-prod UAT sign-off. Claude invokes this routine when Skip authorizes a
-version or framework update.
+prod UAT sign-off. Claude invokes this routine when the operator authorizes
+a version or framework update.
 
 Pattern matches the post-commit bump:
     1. Read latest admin.Versions record.

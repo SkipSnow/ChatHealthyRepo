@@ -14,7 +14,7 @@ Satisfies V11 stories:
 Deploy mechanism: GitHub Actions workflows (`gh workflow run`). HF / Cloudflare
 credentials live as GitHub Secrets in the repo, not on the operator's machine.
 
-Five design constraints (Skip 2026-05-01):
+Five design constraints (2026-05-01):
   1. Each deploy script encapsulated in a class.
   2. Conventional main: parse args -> construct class -> call .run().
   3. Two scripts only — this is the remote one (local_deploy.py is the other).
@@ -127,7 +127,7 @@ class RemoteDeploy:
         })
 
     # ── Human auth gate (S-001-REQ-B-006) ──────────────────────────────
-    # OVERNIGHT WAIVER per Skip 2026-05-01 — call site in run() is commented
+    # OVERNIGHT WAIVER (2026-05-01) — call site in run() is commented
     # out. Restore that call before morning UAT.
     def _human_authorization_gate(self) -> None:
         ans = input(
@@ -556,12 +556,12 @@ class RemoteDeploy:
         sys.stderr.write(banner + "\n")
 
     # ── Human verify before teardown (S-001-REQ-B-004) ─────────────────
-    # OVERNIGHT WAIVER per Skip 2026-05-01 — restore before morning UAT.
+    # OVERNIGHT WAIVER (2026-05-01) — restore before morning UAT.
     # For remote: teardown means redeploying or destroying the Space, which
     # we never do automatically. Method body stays so restoration is
     # one-line uncomment.
     def _human_verify_before_teardown(self) -> None:
-        # OVERNIGHT WAIVER per Skip 2026-05-01 — restore before morning UAT
+        # OVERNIGHT WAIVER (2026-05-01) — restore before morning UAT
         ans = input(
             f"Smoke failed on {self.env}. Tear down the Space? (y/n): "
         ).strip().lower()
@@ -570,7 +570,7 @@ class RemoteDeploy:
 
     # ── Prod-only: version/framework ID assignment (S-004-REQ-B-001) ───
     def _prompt_human_for_version_framework(self) -> None:
-        # OVERNIGHT WAIVER per Skip 2026-05-01 — prod deploys are off-limits
+        # OVERNIGHT WAIVER (2026-05-01) — prod deploys are off-limits
         # tonight (RemoteDeploy.__init__ refuses env=prod). Method exists so
         # the V11 contract is honestly represented in code. Restored when
         # prod deploys are re-enabled.

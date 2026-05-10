@@ -731,8 +731,8 @@
       if (env !== 'LOCAL') banner.style.background = '#dc2626';
 
       // Banner refresh: switches build/version/framework display to whichever
-      // service currently owns the page. Per Skip directive 2026-04-20 — fixes
-      // banner-only-from-FindCare bug. Service argument is one of:
+      // service currently owns the page (directive 2026-04-20 — fixes
+      // banner-only-from-FindCare bug). Service argument is one of:
       //   'findcare' | 'evaluatecare' | 'sharedservices'
       window.refreshBanner = function(serviceKey) {
         var key = serviceKey || 'findcare';

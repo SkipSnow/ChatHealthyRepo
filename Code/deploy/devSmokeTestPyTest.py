@@ -97,7 +97,7 @@ def _screenshot(page, name):
 def _retry(label, attempts, sleep_ms, action):
     """Retry `action` (zero-arg callable) up to `attempts` times. Sleep
     `sleep_ms` ms between tries. Print '[retry] LABEL: attempt N/M' on each.
-    Re-raise the last exception if all attempts fail. Per Skip directive
+    Re-raise the last exception if all attempts fail. Per directive
     2026-04-20 — Playwright's internal polling is opaque; explicit retry
     + per-attempt log makes failures diagnosable."""
     import time as _t
@@ -363,7 +363,7 @@ class TestStep03:
         page = env["page"]
         # Must be a <button> inside #envBanner, not a link in header nav
         # Banner button rendered by renderBannerButtons uses data-service="sharedservices",
-        # text label "SharedServices" (PascalCase, no space). Per Skip directive 2026-04-19.
+        # text label "SharedServices" (PascalCase, no space). Per directive 2026-04-19.
         _verify_button_in_parent(page, "[data-service='sharedservices']", "#envBanner", "SharedServices")
         btn = page.locator("[data-service='sharedservices']")
         expect(btn).to_be_visible()
@@ -582,7 +582,7 @@ class TestStep15:
     def test_mtls_evaluatecare_tls12(self):
         # DEV: HF Spaces don't expose mTLS publicly (mtls_enabled=False
         # in _ENV_CONFIG['dev']). Replaced localhost-mTLS check with HTTPS TLS 1.2+
-        # check against the dev EvaluateCare URL. Per Skip directive 2026-04-20.
+        # check against the dev EvaluateCare URL. Per directive 2026-04-20.
         from urllib.parse import urlparse
         parsed = urlparse(EVALCARE_URL)
         host = parsed.hostname
@@ -684,7 +684,7 @@ class TestStep21:
         # MUST be a specialty filter-toggle, NOT a filter-provider-type. The
         # provider-type handler (Website/index.html:1280) returns ownership to
         # FindCare immediately when EvaluateCare owns, which would skip the
-        # gui:reset path TestStep22 depends on. Per Skip 2026-04-20.
+        # gui:reset path TestStep22 depends on (2026-04-20).
         checkbox = page.locator("#leftPanel input[data-gui-action='filter-toggle']").first
         assert checkbox.count() > 0, "No specialty filter-toggle checkboxes found"
         checkbox.click()
@@ -817,7 +817,7 @@ class TestStep27:
     def test_mtls_shared_services_tls12(self):
         # DEV: HF Spaces don't expose mTLS publicly. Replaced
         # localhost-mTLS with HTTPS TLS 1.2+ check on dev SharedServices URL.
-        # Per Skip directive 2026-04-20.
+        # Per directive 2026-04-20.
         from urllib.parse import urlparse
         parsed = urlparse(SHARED_URL)
         host = parsed.hostname

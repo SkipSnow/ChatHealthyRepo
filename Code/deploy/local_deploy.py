@@ -9,7 +9,7 @@ Satisfies V11 stories:
          MongoDB cluster)
   Plus invokes S-006 (the master smoke test) with env=local.
 
-Five design constraints (Skip 2026-05-01):
+Five design constraints (2026-05-01):
   1. Each deploy script encapsulated in a class.
   2. Conventional main: parse args -> construct class -> call .run().
   3. Two scripts only — this is the local one (remote_deploy.py is the other).
@@ -94,7 +94,7 @@ class LocalDeploy:
         })
 
     # ── Human auth gate (S-001-REQ-B-006) ──────────────────────────────
-    # OVERNIGHT WAIVER per Skip 2026-05-01 — call site in run() is commented
+    # OVERNIGHT WAIVER (2026-05-01) — call site in run() is commented
     # out. Restore that call before morning UAT. The function body stays so
     # restoration is a single-line uncomment, not a function-rewrite.
     def _human_authorization_gate(self) -> None:
@@ -616,7 +616,7 @@ class LocalDeploy:
     # script not invoking teardown post-smoke. Restored implicitly when
     # someone wires automatic teardown into run() in a future iteration.
     def _human_verify_before_teardown(self) -> None:
-        # OVERNIGHT WAIVER per Skip 2026-05-01 — restore before morning UAT
+        # OVERNIGHT WAIVER (2026-05-01) — restore before morning UAT
         ans = input("Smoke failed. Tear down anyway? (y/n): ").strip().lower()
         if ans != "y":
             sys.exit("Teardown aborted at human verify gate.")

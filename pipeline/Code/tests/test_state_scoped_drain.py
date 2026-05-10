@@ -5,7 +5,7 @@
 #
 # End-to-end test of the state-scoped drain semantic.
 #
-# Flow (Skip 2026-05-05 spec):
+# Flow (2026-05-05 spec):
 #   A. Load 2 small states (DC + RI by default) into a uniquely-named test
 #      collection. Embeddings off. Single env (dev_PublicHealthData test slot).
 #   B. Capture record count for the "survivor" state (RI) — this is the count
@@ -15,7 +15,7 @@
 #      survivor (RI) records must persist. Loader inserts DC fresh.
 #   D. Assert survivor's record count is identical to the captured-in-B count.
 #
-# Test does NOT drop the test collections after — Skip directive 2026-05-05.
+# Test does NOT drop the test collections after — directive 2026-05-05.
 # Operator can inspect or drop manually:
 #     test_DataPipelines.test_providers_<uuid>
 #     test_DataPipelines.test_DataLoadMetadata_<uuid>
@@ -197,7 +197,7 @@ def test_d_survivor_count_unchanged(mongo, survivor_count_before):
 # ── Step E: confirm distinct load timestamps via DataLoadMetadata ──────────
 def test_e_distinct_load_timestamps(mongo):
     """Confirm the two loads (AB and C) registered as distinct events with
-    different timestamps in DataLoadMetadata. Per Skip 2026-05-05: provider
+    different timestamps in DataLoadMetadata. Per 2026-05-05 spec: provider
     docs carry load_id but no direct timestamp — the indirect proof goes
     through metadata.date keyed by load_id.
     """
@@ -216,7 +216,7 @@ def test_e_distinct_load_timestamps(mongo):
     print(f"\n[Step E] AB.date={rec_ab['date']}  C.date={rec_c['date']}  (distinct, AB<C)")
 
 
-# Step F (cleanup) intentionally omitted per Skip 2026-05-05.
+# Step F (cleanup) intentionally omitted per 2026-05-05 directive.
 # Test collections persist for inspection:
 #   test_DataPipelines.test_providers_<uuid>
 #   test_DataPipelines.test_DataLoadMetadata_<uuid>

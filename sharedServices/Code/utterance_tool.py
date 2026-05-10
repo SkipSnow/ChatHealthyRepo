@@ -3,7 +3,7 @@
 #
 # Utterance tool — SharedServices front-door per the 2026-05-09 architecture.
 # Realizes EPIC-002 (was EPIC-009)-F-001-S-005 — Tool Router with Pydantic
-# input/output validation. Per Skip's 2026-05-09 design:
+# input/output validation. Per 2026-05-09 design:
 #   • Pydantic-AI as framework
 #   • Per-tool internal parallelism (safety + intent classifier in parallel)
 #   • User object in, NEW User object out
@@ -45,7 +45,7 @@ class User(BaseModel):
     Output form: same as input PLUS response/intent/branch/safety_verdict
     populated, and conversation_history extended with this turn's pair.
     """
-    # Identity / auth (passed through unchanged per Skip 2026-05-09 — security
+    # Identity / auth (passed through unchanged per 2026-05-09 design — security
     # architecture changes happen separately).
     session_token: dict = Field(
         default_factory=dict,
@@ -127,7 +127,7 @@ async def _dispatch_branch(branch: Branch, user: User) -> str:
 async def process_utterance(user_in: User) -> User:
     """Take a User in, return a NEW User out. Internal parallelism on the
     two pre-handlers (safety + intent). Neither network nor Mongo here yet —
-    Skip's session-state-in-Mongo pattern is deferred."""
+    the session-state-in-Mongo pattern is deferred."""
 
     safety_task = asyncio.create_task(_classify_safety(user_in.utterance))
     intent_task = asyncio.create_task(_classify_intent(user_in.utterance))

@@ -49,7 +49,7 @@ jobs:
           HF_SPACE: ${{ steps.space.outputs.name }}
           ENV: ${{ steps.space.outputs.env }}
           # GH repo secret holding base64(shared.key) — same value across
-          # dev/qa/prod (pre-alpha; Skip 2026-05-04). Required by SharedServices'
+          # dev/qa/prod (pre-alpha, 2026-05-04). Required by SharedServices'
           # _bootstrap_certs_from_env() to materialize shared.key into
           # CERTS_DIR for session-token signing.
           SHARED_SIGNING_KEY_B64: ${{ secrets.SHARED_SIGNING_KEY_B64 }}

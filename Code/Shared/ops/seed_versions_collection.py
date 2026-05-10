@@ -17,7 +17,7 @@ Refuses to run if the collection already has any documents — protects
 against double-seeding.
 
 Authorization: BUG-001 step "Seed routine".
-Implements the canonical-collection direction approved by Skip 2026-05-01.
+Implements the canonical-collection direction approved 2026-05-01.
 """
 import json
 import logging

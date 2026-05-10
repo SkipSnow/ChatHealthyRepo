@@ -1,6 +1,6 @@
 # FindCare — user journey (POC for LangGraph Studio).
 #
-# Principles (Skip 2026-04-20):
+# Principles (2026-04-20):
 #   - The graph IS the user journey.
 #   - Every box is a decision point OR a business-meaningful action.
 #     No plumbing nodes.
