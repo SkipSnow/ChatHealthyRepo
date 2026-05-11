@@ -1,0 +1,212 @@
+/* Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+ * Licensed under the FindCare Evaluation License (FEL-1.0).
+ *
+ * SpecialtyFilter — dedicated stylesheet.
+ * Built to EPIC-006-F-002-S-001-REQ-B-001 (the master comprehensive UX spec).
+ *
+ * Layout: header (light green, three rows: title 20% / count 50% / controls 30%)
+ * over a scrollable body whose first 10 rows fit before scrolling engages
+ * (REQ-T-013). The widget itself is height-fluid; the parent decides whether
+ * it occupies the 58% slice of the left panel (REQ-T-004).
+ */
+
+.specialty-filter {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  font-family: system-ui, sans-serif;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+/* ── Header (light green) ──────────────────────────────────────── */
+/* REQ-B-001: header uses a light green background.
+ * REQ-T-004: header laid out as embedded table-like grid, three rows
+ * sized 20% / 50% / 30%. Implemented as CSS grid because grid keeps
+ * the three-row percentage split reactive without the layout-thrash
+ * cost of an HTML <table>. */
+.specialty-filter__header {
+  display: grid;
+  grid-template-rows: 20% 50% 30%;
+  background: #e6f5ec; /* light green — matches existing brand teal ecosystem */
+  border-bottom: 2px solid #0b7a75;
+  flex: 0 0 auto;
+}
+
+/* Row 1 — title */
+.specialty-filter__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 4px 10px;
+  box-sizing: border-box;
+}
+
+.specialty-filter__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0b7a75;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+/* Row 2 — three counts. Label OVER value, two-line stack (REQ-T-015). */
+.specialty-filter__count-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  border-top: 1px solid #c9e0d3;
+  border-bottom: 1px solid #c9e0d3;
+  box-sizing: border-box;
+}
+
+.specialty-filter__count-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.specialty-filter__count-cell + .specialty-filter__count-cell {
+  border-left: 1px solid #c9e0d3;
+}
+
+.specialty-filter__count-label {
+  font-size: 9px;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.specialty-filter__count-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.1;
+}
+
+.specialty-filter__count-value--your-choices {
+  color: #0b7a75;
+}
+
+/* Row 3 — controls. Two columns: full-height Uncheck-All button on the left,
+ * stacked Prescribers / Homeopathic checkboxes on the right (REQ-T-004 row 3
+ * geometry). The checkbox column is right-aligned per REQ-T-009 / REQ-T-010. */
+.specialty-filter__controls-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.specialty-filter__toggle-all-cell {
+  display: flex;
+  align-items: stretch;
+  padding: 4px 8px;
+  box-sizing: border-box;
+}
+
+.specialty-filter__toggle-all-btn {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #0b7a75;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #0b7a75;
+  cursor: pointer;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.specialty-filter__toggle-all-btn:hover:not(:disabled) {
+  background: #f0fffe;
+}
+
+.specialty-filter__toggle-all-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  background: #f4f6f7;
+  color: #8a9290;
+  border-color: #c0c8c6;
+}
+
+.specialty-filter__macro-checkbox-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end; /* right-aligned per REQ-T-009 / REQ-T-010 */
+  padding: 2px 8px;
+  gap: 2px;
+  box-sizing: border-box;
+}
+
+.specialty-filter__macro-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #1f2937;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.specialty-filter__macro-checkbox input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+  accent-color: #0b7a75;
+  margin: 0;
+}
+
+/* ── Body — rows ───────────────────────────────────────────────── */
+/* REQ-T-013: up to 10 rows visible before scrolling.
+ * --row-height + --visible-rows make that count configurable. */
+.specialty-filter__body {
+  --row-height: 26px;
+  --visible-rows: 10;
+  flex: 1 1 auto;
+  max-height: calc(var(--row-height) * var(--visible-rows));
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.specialty-filter__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--row-height);
+  padding: 0 10px;
+  border-bottom: 1px solid #f0f0f0;
+  box-sizing: border-box;
+  font-size: 11px;
+  color: #1f2937;
+}
+
+.specialty-filter__row:hover {
+  background: #f8fffe;
+}
+
+.specialty-filter__row-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  padding-right: 6px;
+}
+
+.specialty-filter__row-checkbox {
+  width: 13px;
+  height: 13px;
+  accent-color: #0b7a75;
+  cursor: pointer;
+  margin: 0;
+  flex: 0 0 auto;
+}

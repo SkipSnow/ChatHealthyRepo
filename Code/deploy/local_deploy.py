@@ -642,8 +642,13 @@ class LocalDeploy:
         self._step_notice("old environment torn down and ready")
 
         self._validate_prerequisites()
-        self._build_backend_containers()                    # S-002-REQ-T-001
+        # React build MUST run before backend container build: the Dockerfile
+        # COPYs backend/, which contains backend/static/ (where the React
+        # build output lands). If docker build runs first, the image bakes
+        # in the PREVIOUS deploy's frontend and the operator sees stale UI
+        # even after code edits + a successful deploy.
         self._build_react_frontend()                        # S-001-REQ-T-008
+        self._build_backend_containers()                    # S-002-REQ-T-001
         self._start_backend_processes()                     # S-002-REQ-T-001+T-002
         self._wait_for_all_components()                     # S-001-REQ-B-003
         self._verify_components()                           # S-001-REQ-B-003

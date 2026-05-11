@@ -27,6 +27,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useSelectionState } from '../ux/hooks/useSelectionState'
 import { ProviderCard } from '../ux/components/ProviderCard'
 import type { Provider } from '../ux/types/provider'
+import SpecialtyFilter, { type SpecialtyRecord } from './SpecialtyFilter'
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 const EVALCARE_URL = import.meta.env.VITE_EVALCARE_URL ?? ''
@@ -85,6 +86,13 @@ export default function FindCareApp() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // EPIC-006-F-002-S-001-REQ-B-001: SpecialtyFilter rows (the cached client
+  // list — see "Cache Results on client" in REQ-B-001) and a live ref to
+  // the codes the user currently has checked, so a parent-driven
+  // filter-apply postMessage submits exactly that set.
+  const [specialtyRows, setSpecialtyRows] = useState<SpecialtyRecord[]>([])
+  const checkedCodesRef = useRef<string[]>([])
+
   // Fetch welcome message on mount
   useEffect(() => {
     fetch(`${API_URL}/welcome`, { method: 'POST' })
@@ -119,9 +127,24 @@ export default function FindCareApp() {
       }
 
       if (msg.type === 'gui:event') {
+        if (msg.action === 'filter-selection-change') {
+          // Option B: filter sub-iframe reports user's current checked
+          // codes; we cache them so the next filter-apply submits exactly
+          // that set.
+          if (Array.isArray(msg.codes)) {
+            checkedCodesRef.current = msg.codes
+          }
+        }
         if (msg.action === 'filter-apply' && searchParamsRef.current) {
-          // EPIC-006-F-002-S-001-REQ-T-005: Re-query with filtered codes
-          const params = { ...searchParamsRef.current, specialty_codes: JSON.parse(msg.value || '[]') }
+          // EPIC-006-F-002-S-001-REQ-B-001 submission rule: the codes submitted
+          // are the SpecialtyFilter's currently-checked rows. Fall back to
+          // msg.value for back-compat with the parent's legacy HTML panel
+          // until the parent stops sending it.
+          let codes: string[] = checkedCodesRef.current
+          if (!codes.length && msg.value) {
+            try { codes = JSON.parse(msg.value) } catch { codes = [] }
+          }
+          const params = { ...searchParamsRef.current, specialty_codes: codes }
           fetchProviders(params, questionRef.current)
         }
         if (msg.action === 'evaluate-providers') {
@@ -210,7 +233,40 @@ export default function FindCareApp() {
           homeopathic: true,
           homeopathic_general: true,
         }))
-        sendFilterToParent(filterOptions, params, homeoGeneralists)
+        // EPIC-006-F-002-S-001-REQ-B-001 "Two logical lists":
+        //   List one = AI-matched specialties for THIS query (V5 picks)
+        //   List two = static homeopathic-generalist fallback set
+        // Both are part of the result set the SpecialtyFilter renders.
+        // homeopathic_general flag distinguishes list-two members so the
+        // component can sort/section them per the spec's [AGENT-FLAG]
+        // resolution (default: single merged ranked list with list-one
+        // floating above list-two).
+        const rows: SpecialtyRecord[] = [
+          ...classified.specialties.map(
+            (s: any, i: number) => ({
+              code: s.code,
+              name: s.name,
+              can_prescribe: s.can_prescribe ?? true,
+              homeopathic: s.homeopathic ?? false,
+              homeopathic_general: false,
+              rank: typeof s.rank === 'number' ? s.rank : i,
+            }),
+          ),
+          ...(classified.homeopathic_generalists || []).map(
+            (s: any, i: number) => ({
+              code: s.code,
+              name: s.name,
+              can_prescribe: s.can_prescribe ?? false,
+              homeopathic: true,
+              homeopathic_general: true,
+              rank: typeof s.rank === 'number' ? s.rank : i,
+            }),
+          ),
+        ]
+        setSpecialtyRows(rows)
+        sendFilterToParent(filterOptions, params, homeoGeneralists, rows)
+      } else {
+        setSpecialtyRows([])
       }
     } catch (err: any) {
       if (timerRef.current) clearInterval(timerRef.current)
@@ -280,7 +336,7 @@ export default function FindCareApp() {
   }, [searchParams, lastNpi, isLoadingMore, selection.state.available])
 
   // ── Send filter panel to parent ────────────────────────────────
-  const sendFilterToParent = useCallback((options: any[], params: any, homeoGeneralists?: any[]) => {
+  const sendFilterToParent = useCallback((options: any[], params: any, homeoGeneralists?: any[], rows?: SpecialtyRecord[]) => {
     const prescCount = options.filter((o: any) => o.can_prescribe).length
     const allCount = options.length
 
@@ -349,7 +405,19 @@ export default function FindCareApp() {
           <div data-cell="4" id="guiSessionCell" style="flex:0 0 22%;padding:4px 8px;border-top:1px solid #e5e7eb;box-sizing:border-box;overflow:hidden;"></div>
       </div>`
 
-    sendToParent('gui:filter', { html, searchParams: JSON.stringify(params), applyInitialFilter: true, homeopathicGeneralists: homeoGeneralists || [] })
+    sendToParent('gui:filter', {
+      html,
+      searchParams: JSON.stringify(params),
+      applyInitialFilter: true,
+      homeopathicGeneralists: homeoGeneralists || [],
+      // Option B: structured rows for the parent to forward into the
+      // filter sub-iframe (which renders SpecialtyFilter against them).
+      specialties: rows ?? options.map((o, i) => ({
+        code: o.code, name: o.name,
+        can_prescribe: !!o.can_prescribe, homeopathic: !!o.homeopathic,
+        homeopathic_general: false, rank: i,
+      })),
+    })
   }, [])
 
   // ── Evaluate handoff ───────────────────────────────────────────
@@ -444,6 +512,11 @@ export default function FindCareApp() {
               {totalCount} providers found
             </span>
           </div>
+
+          {/* SpecialtyFilter is now hosted in the parent's leftPanel
+              (legacy HTML render of the 4-cell grid). React component
+              version disabled inside the iframe until placement is
+              resolved at the architecture layer. */}
 
           {/* Available providers — scrollable top half */}
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>

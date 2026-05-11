@@ -6,6 +6,7 @@
 # ARCH-001: All business logic in domain/ services. All config in PromptSystemMaker.
 # This file: FastAPI setup, service wiring, chat loop. Nothing else.
 
+import asyncio
 import json
 import logging
 import os
@@ -45,6 +46,12 @@ load_dotenv(override=True)
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared"))
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
 from prompt_system_maker import PromptSystemMaker
+
+# V5 SpecialtyFilter tool — canonical home in findCare/ per the
+# feature-mirrors-agile_backlog layout. Importable in the container
+# because Dockerfile COPYs findCare/ into /app/findCare.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "findCare", "Code"))
+from specialty_filter.find_specialists import find_specialists
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -413,37 +420,49 @@ async def classify(body: ClassifyRequest, request: Request):
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
 
-    # Two-stage AI specialty matching pipeline (S-002 in EPIC-006-F-002 spec):
-    # normalize -> embed -> vector search -> AI filter -> NUCC code list
-    result = _specialty_service.find_specialties(body.message)
-
-    if "error" in result:
-        # EPIC-008-F-011-S-001-REQ-B-002: externally-returned error MUST NOT
-        # reveal application facts (file paths, errno, internal exception
-        # messages). Strip filter.py's "<stage>: <ExcType>: <leaky msg>"
-        # down to just the API + stage + time + request id.
-        # REQ-B-003: detailed message is logged server-side for debugging.
-        import uuid as _uuid
-        from datetime import datetime as _dt, timezone as _tz
+    # V5 LLM-picks specialty matching (EPIC-006-F-002):
+    # one Gemini call walks the full enriched NUCC corpus and returns
+    # picks with scores in [0, 1].
+    import uuid as _uuid
+    from datetime import datetime as _dt, timezone as _tz
+    try:
+        _db_for_class = _get_db()
+        if _db_for_class is None:
+            raise RuntimeError("Mongo unavailable")
+        spec_col = _db_for_class[f"{_ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"]
+        # find_specialists uses pydantic-ai's run_sync internally; FastAPI's
+        # /classify is async and already inside an event loop, so direct
+        # call deadlocks ("this event loop is already running"). Run in a
+        # worker thread.
+        out = await asyncio.to_thread(find_specialists, body.message, spec_col)
+    except Exception as exc:
+        # EPIC-008-F-011-S-001-REQ-B-002/B-003: sanitized external error +
+        # full detail logged server-side keyed by req_id.
         req_id = _uuid.uuid4().hex[:8]
         ts = _dt.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        raw = result["error"]
-        stage = (raw.split(":", 1)[0].strip() if ":" in raw else "unknown")
+        stage = type(exc).__name__
         _log.error("classify req_id=%s ip=%s stage=%s detail=%r message=%r",
-                   req_id, ip, stage, raw, body.message)
+                   req_id, ip, stage, repr(exc)[:300], body.message)
         sanitized = (
             f"FindCare /classify temporarily unavailable "
             f"(stage: {stage}) at {ts}. Ref: {req_id}"
         )
         return {"specialties": [], "error": sanitized}
 
-    # Map to the format the frontend expects
+    # EPIC-006-F-002: the tool owns the all-possible union (list-one V5
+    # picks + list-two static homeopathic generalists, both enriched
+    # with Display Name + flags from SpecialtyMetaData). /classify is
+    # a thin pass-through; no enrichment or generalists fetch here.
     specialties = [
-        {"code": s["Code"], "name": s["Display Name"],
-         "can_prescribe": s.get("can_prescribe", False),
-         "homeopathic": s.get("homeopathic", False),
-         "rank": s.get("rank", 0)}
-        for s in result.get("specialties", [])
+        {
+            "code": r.code,
+            "name": r.name,
+            "can_prescribe": r.can_prescribe,
+            "homeopathic": r.homeopathic,
+            "rank": r.rank,
+        }
+        for r in out.all_possible
+        if not r.homeopathic_general
     ]
 
     # Simple location extraction — no LLM needed
@@ -463,33 +482,18 @@ async def classify(body: ClassifyRequest, request: Request):
             state = code
             break
 
-    # Load homeopathic generalists for client-side cache
-    homeo_generalists = []
-    try:
-        db = _get_db()
-        if db:
-            for doc in db[f"{_ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"].find(
-                {"homeopathic_general": True, "Section": "Individual"},
-                {"_id": 0, "Code": 1, "Display Name": 1, "can_prescribe": 1, "homeopathic": 1}
-            ):
-                homeo_generalists.append({
-                    "code": doc.get("Code", ""),
-                    "name": doc.get("Display Name", ""),
-                    "can_prescribe": doc.get("can_prescribe", False),
-                    "homeopathic": True,
-                    "homeopathic_general": True,
-                })
-    except Exception as exc:
-        # NO silent swallow: surface the read failure to the caller via a
-        # typed error field on the response. Caller can render a visible
-        # warning rather than mistaking an empty list for "no homeopathic
-        # generalists exist."
-        _log.warning("classify: homeopathic_generalists Mongo read failed: %s", exc)
-        homeo_generalists = []
-        homeo_generalists_error = f"{type(exc).__name__}: {exc}"
-    else:
-        homeo_generalists_error = None
-
+    # Homeopathic generalists list-two — also delivered by the tool now.
+    homeo_generalists = [
+        {
+            "code": r.code,
+            "name": r.name,
+            "can_prescribe": r.can_prescribe,
+            "homeopathic": r.homeopathic,
+            "homeopathic_general": True,
+        }
+        for r in out.all_possible
+        if r.homeopathic_general
+    ]
     response = {
         "specialties": specialties,
         "homeopathic_generalists": homeo_generalists,
@@ -498,8 +502,6 @@ async def classify(body: ClassifyRequest, request: Request):
         "county": county,
         "model": "text-embedding-3-large (vector search)",
     }
-    if homeo_generalists_error is not None:
-        response["homeopathic_generalists_error"] = homeo_generalists_error
     return response
 
 @app.post("/welcome")

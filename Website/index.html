@@ -1356,6 +1356,29 @@
           if (window.innerWidth <= 600) {
             leftPanel.classList.add('mobile-filter-open');
           }
+          // EPIC-006-F-002 Option B: leftPanel renders a sub-iframe that
+          // hosts the React SpecialtyFilter (with its 4-cell grid). The
+          // legacy HTML in msg.html is no longer used — we only need the
+          // structured msg.specialties to feed into the sub-iframe.
+          window._latestFilterSpecialties = msg.specialties || [];
+          window._homeoGeneralists = msg.homeopathicGeneralists || [];
+          leftPanel.dataset.searchParams = msg.searchParams || '{}';
+          var filterFrame = leftPanel.querySelector('iframe[data-filter-frame]');
+          if (!filterFrame) {
+            var baseUrl = window._hfBaseUrl || 'https://localhost:7860';
+            leftPanel.innerHTML = '<iframe data-filter-frame src="' + baseUrl + '/?mode=filter" style="width:100%;height:100%;border:none;display:block;" title="Specialty Filter"></iframe>';
+            // gui:filter-data will be pushed by the filter-iframe message
+            // listener below once the iframe sends gui:filter-ready.
+          } else if (filterFrame.contentWindow) {
+            // Iframe already mounted — push fresh data
+            filterFrame.contentWindow.postMessage({
+              type: 'gui:filter-data',
+              specialties: window._latestFilterSpecialties,
+            }, '*');
+          }
+          return;  // Skip the legacy event-attach loop below
+        }
+        if (false) {
           leftPanel.innerHTML = msg.html || '';
           // Store search params for filter-apply
           leftPanel.dataset.searchParams = msg.searchParams || '{}';
@@ -1497,6 +1520,17 @@
                     type: 'gui:event',
                     action: 'evaluate-providers'
                   }, '*');
+                });
+              }
+              // EPIC-006-F-002-S-001-REQ-T-007: Your Choices count MUST
+              // track the user's check/uncheck on individual specialty
+              // checkboxes. The macro/toggle-all handlers update the
+              // count; the individual filter-toggle did not until now.
+              if (el.getAttribute('data-gui-action') === 'filter-toggle') {
+                el.addEventListener('change', function() {
+                  var checkedCount = leftPanel.querySelectorAll('input[data-gui-action="filter-toggle"]:checked').length;
+                  var showingEl = leftPanel.querySelector('#filterShowing');
+                  if (showingEl) showingEl.textContent = checkedCount;
                 });
               }
               if (el.getAttribute('data-gui-action') === 'filter-provider-type') {
@@ -1754,6 +1788,52 @@
           leftPanel.classList.remove('filter-active');
           leftPanel.classList.remove('mobile-filter-open');
           leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>';
+        }
+      });
+
+      // ══════════════════════════════════════════════════════════════
+      // Filter sub-iframe broker — EPIC-006-F-002 Option B
+      // The filter sub-iframe at /?mode=filter posts back here. Parent
+      // forwards data + events between the chat iframe and the filter
+      // sub-iframe so they don't have to know about each other.
+      window.addEventListener('message', function(event) {
+        var msg = event.data;
+        if (!msg || typeof msg !== 'object') return;
+        var leftPanel = document.getElementById('leftPanel');
+        var filterFrame = leftPanel ? leftPanel.querySelector('iframe[data-filter-frame]') : null;
+        if (!filterFrame || event.source !== filterFrame.contentWindow) return;
+
+        if (msg.type === 'gui:filter-ready') {
+          // Filter iframe just mounted — push the latest specialty data.
+          if (filterFrame.contentWindow && window._latestFilterSpecialties) {
+            filterFrame.contentWindow.postMessage({
+              type: 'gui:filter-data',
+              specialties: window._latestFilterSpecialties,
+            }, '*');
+          }
+        }
+        if (msg.type === 'gui:filter-selection-change') {
+          // User toggled rows; forward the current checked-codes to chat
+          // iframe so its checkedCodesRef is in sync for filter-apply.
+          var chatFrame = document.getElementById('coreChatFrame');
+          if (chatFrame && chatFrame.contentWindow) {
+            chatFrame.contentWindow.postMessage({
+              type: 'gui:event',
+              action: 'filter-selection-change',
+              codes: msg.codes || [],
+            }, '*');
+          }
+        }
+        if (msg.type === 'gui:filter-apply-click') {
+          // User clicked Apply Filter; tell chat iframe to fetchProviders
+          // against the cached checked-codes.
+          var chatFrame = document.getElementById('coreChatFrame');
+          if (chatFrame && chatFrame.contentWindow) {
+            chatFrame.contentWindow.postMessage({
+              type: 'gui:event',
+              action: 'filter-apply',
+            }, '*');
+          }
         }
       });
     })();

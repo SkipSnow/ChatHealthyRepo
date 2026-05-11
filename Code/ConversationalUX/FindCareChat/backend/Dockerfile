@@ -37,6 +37,9 @@ COPY Code/ConversationalUX/FindCareChat/backend /app/Code/ConversationalUX/FindC
 COPY Code/Shared /app/Code/Shared
 COPY Code/ConversationalUX/ChatHealthyWhoAmIChat/me /app/Code/ConversationalUX/ChatHealthyWhoAmIChat/me
 COPY brain /app/brain
+# findCare: per-feature canonical home for the V5 SpecialtyFilter tool
+# (find_specialists). Backend imports via a sys.path insertion in app.py.
+COPY findCare /app/findCare
 # EPIC-003: install chathealthy-frontend-lib from the bundled source.
 COPY FrontEndApplicationLib /app/FrontEndApplicationLib
 RUN pip install --no-cache-dir /app/FrontEndApplicationLib
