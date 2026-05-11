@@ -3,62 +3,78 @@
 #
 # find_specialists — the FindCare specialty filter tool.
 #
-# Two-LLM-call pipeline:
-#   1. Normalize agent (Gemini Flash Lite, cheap rewrite step) emits
-#      `NormalizedQuery { include, exclude }` — both required, both
-#      ≥50 chars, contrastive precision lever.
-#   2. Embed include + exclude with OpenAI text-embedding-3-large,
-#      compute include_vec − λ·exclude_vec, run Atlas $vectorSearch
-#      against SpecialtyMetaData (Section: Individual + Code $nin
-#      static admin-exclusion list), return top-30 candidates with
-#      cosine scores.
-#   3. Filter agent (GPT-4.1-mini, performance-tier model) walks the
-#      30 candidates with the user query + normalize criteria and
-#      drops the ones that share surface vocabulary but don't
-#      actually match the clinical intent — the precision lever
-#      vector search alone can't provide.
+# V5 architecture (LLM-picks):
+#   Single Pydantic-AI agent (Gemini Flash Lite preview) walks the FULL
+#   enriched NUCC corpus (Section=Individual minus the 38 static admin /
+#   non-clinical codes minus Deactivated entries) in one LLM call and
+#   directly picks the codes that match the user's clinical intent.
+#   The same call emits natural-language `include` / `exclude`
+#   paragraphs (audit fields) and a list of `nucc_codes` with LLM-judged
+#   relevance scores in [0,1]. No embedding step. No Atlas $vectorSearch.
+#   No normalize-then-filter pipeline.
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
-from openai import OpenAI
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pymongo.collection import Collection
 
 
 # ── Pydantic I/O contracts ────────────────────────────────────────────
-class NormalizedQuery(BaseModel):
-    """Stage-1 output: positive + negative query strings for the
-    contrastive embedding."""
-    include: str = Field(..., min_length=50,
-                         description="Positive query for the embedding (≥50 chars)")
-    exclude: str = Field(..., min_length=50,
-                         description="Negative query subtracted from include (≥50 chars; substantive contrastive signal)")
-
-
 class NuccCodePick(BaseModel):
-    """One NUCC code retained after the filter step."""
+    """One NUCC code picked by the LLM."""
     code: str = Field(..., min_length=10, max_length=10,
                       description="NUCC 10-character alphanumeric code")
     score: float = Field(..., ge=0.0, le=1.0,
-                         description="Final relevance score after filter [0.0, 1.0]")
+                         description="LLM-judged relevance likelihood [0.0, 1.0]")
 
 
-class _FilterOutput(BaseModel):
-    """Stage-3 output (internal): the filtered list of NUCC picks."""
-    nucc_codes: list[NuccCodePick] = Field(..., min_length=0)
+class AllPossibleRecord(BaseModel):
+    """One row in the enriched 'all possible' union the tool delivers to the
+    SpecialtyFilter CSS. `homeopathic_general=False` is a list-one member
+    (the LLM picked it for THIS query); `homeopathic_general=True` is a
+    list-two member (the static homeopathic-generalist fallback set,
+    same for every query). Both lists are always present in the union.
+    """
+    code: str = Field(..., min_length=10, max_length=10)
+    name: str = Field(..., description="Display Name from SpecialtyMetaData")
+    can_prescribe: bool
+    homeopathic: bool
+    homeopathic_general: bool
+    rank: int = Field(..., description="Ordering hint; list-one first then list-two")
 
 
 class FindSpecialistsOutput(BaseModel):
-    """Tool output. Single list of NUCC matches (with `score` reflecting
-    the filter's refined relevance), plus `include`/`exclude` audit
-    fields capturing the Stage-1 reasoning.
+    """Tool output.
+
+    `include` and `exclude` are natural-language paragraphs the LLM emits
+    alongside its picks — they describe, in clinical terms, what kinds of
+    providers the LLM judged to be in-scope vs. out-of-scope for the
+    user's request. They are audit fields, not retrieval inputs (V5 does
+    not embed them; the single LLM call already produced the picks).
+
+    `nucc_codes` is the flat list of picked codes with their LLM-judged
+    scores in [0,1], ordered highest first. This is the V5 picks only —
+    it does NOT include the homeopathic-generalist fallback set.
+
+    `all_possible` is the union the SpecialtyFilter CSS renders directly:
+    list-one (LLM picks, homeopathic_general=False) followed by list-two
+    (static homeopathic generalists, homeopathic_general=True), each
+    enriched with Display Name + can_prescribe + homeopathic flags from
+    SpecialtyMetaData. The tool owns this assembly per EPIC-006-F-002 —
+    the CSS gets everything it needs to deterministically render from a
+    single tool result.
     """
-    include: str
-    exclude: str
-    nucc_codes: list[NuccCodePick]
+    include: str = Field(..., min_length=50,
+                         description="Natural-language paragraph describing the in-scope clinical intent (≥50 chars)")
+    exclude: str = Field(..., min_length=50,
+                         description="Natural-language paragraph describing what is out-of-scope (≥50 chars; substantive contrastive signal)")
+    nucc_codes: list[NuccCodePick] = Field(..., min_length=0)
+    all_possible: list[AllPossibleRecord] = Field(default_factory=list,
+                                                  description="Enriched union of LLM picks + static homeopathic generalists")
 
 
 # ── Static admin/non-clinical NUCC code exclusion (day-1) ─────────────
@@ -72,236 +88,163 @@ EXCLUDED_CODES: list[str] = [
     "2470A2800X", "247000000X", "2472B0301X", "2472D0500X", "2472V0600X",
     "246Z00000X", "247200000X", "390200000X",
 ]
+_EXCLUDED_SET: frozenset[str] = frozenset(EXCLUDED_CODES)
 
 
-# ── Defaults ──────────────────────────────────────────────────────────
-NORMALIZE_MODEL_ID = "google-gla:gemini-3.1-flash-lite-preview"
-FILTER_MODEL_ID = "openai:gpt-4.1-mini"
-EMBED_MODEL = "text-embedding-3-large"
-LAMBDA = 0.5
-NUM_CANDIDATES = 800
-TOP_K_RETRIEVAL = 30
+# ── Model wiring ──────────────────────────────────────────────────────
+PICK_MODEL_ID = "google-gla:gemini-3.1-flash-lite-preview"
 
 
-# ── Stage 1: normalize prompt ─────────────────────────────────────────
-_NORMALIZE_PROMPT = """
-You are part of a healthcare-provider directory search.
+# ── Prompt ────────────────────────────────────────────────────────────
+_PICK_SYSTEM_PROMPT = """
+You are the FindCare specialty filter. In ONE step, given a vernacular
+user healthcare request and the FULL enriched NUCC provider-taxonomy
+corpus (filtered to individual human practitioners, with day-1 admin
+codes and Deactivated entries already removed), you must:
 
-PURPOSE — what your output is used for:
-The user has typed a vernacular healthcare request. Your job is to
-translate that request into TWO short pieces of text:
-  - `include`: the POSITIVE query, embedded as the search vector
-    against an enriched 'NUCC' database derived from
-    https://www.nucc.org/index.php/code-sets-mainmenu-41/provider-taxonomy-mainmenu-40
-  - `exclude`: the NEGATIVE query, whose embedding is SUBTRACTED
-    from the include vector to push the search away from off-target
-    specialties.
-We are optimizing for EXCELLENT RECALL AND PRECISION on that
-semantic search. We only care about INDIVIDUAL HUMAN PRACTITIONERS
-in the result set; institutions, agencies, facilities, clinics,
-suppliers, and other non-individual NUCC entries are filtered out
-at retrieval time.
+  1. Decide which NUCC codes match the user's clinical intent.
+  2. Emit a natural-language `include` paragraph describing the kinds
+     of providers that ARE in scope.
+  3. Emit a natural-language `exclude` paragraph describing the kinds
+     of providers that are OUT of scope (the contrastive signal).
+  4. Emit a flat `nucc_codes` list of the codes you picked, each with a
+     LLM-judged relevance score in [0.0, 1.0].
 
-WHAT YOU ARE MATCHING AGAINST:
-The corpus is the NUCC provider taxonomy. Each record is embedded
-from a string of the shape
-    "Classification | Specialization | Display Name | Definition"
+We are optimizing for EXCELLENT RECALL AND PRECISION. We only care about
+INDIVIDUAL HUMAN PRACTITIONERS in the result set; institutions, agencies,
+facilities, clinics, suppliers, and other non-individual NUCC entries
+are already filtered out of the corpus you receive.
+
+CORPUS RECORD SHAPE — each record you receive has:
+  Code, Display Name, Grouping, Classification, Specialization, Definition
 
 IMPORTANT — `Grouping` and `Classification` are HINTS, not
-determinative. The user's clinical intent can be served by records
-whose grouping has nothing to do with the words the user used. For
-example, "Pediatric Surgery Physician" sits under
-`Classification: Surgery`, NOT `Pediatrics`. Anchor on intent.
+determinative. The user's clinical intent can be served by records whose
+grouping has nothing to do with the words the user used. For example,
+"Pediatric Surgery Physician" sits under `Classification: Surgery`, NOT
+`Pediatrics`. Anchor on intent.
 
 INFER GENDER AND AGE WHEN POSSIBLE:
 If the user's wording lets you infer the patient's gender or age
 (e.g. "my husband's prostate" → adult male; "kid's doc" → pediatric
 population; "for my mom, she's 78" → elderly female), factor those
-into your include and exclude reasoning. If gender or age is NOT
-inferable, do NOT invent either.
+into your picks and your include/exclude reasoning. If gender or age
+is NOT inferable, do NOT invent either — keep variants in.
 
 CAM / HOLISTIC SAFEGUARD:
 Do NOT push away from complementary, alternative, integrative, or
-holistic medicine providers in your `exclude` (acupuncturists,
-naturopaths, chiropractors, naprapaths, homeopaths, mechanotherapists,
-massage therapists, midwives, etc.). They are part of the corpus,
-are licensed in many U.S. jurisdictions, and may be the right
-answer. Let the embedding decide.
+holistic medicine providers (acupuncturists, naturopaths, chiropractors,
+naprapaths, homeopaths, mechanotherapists, massage therapists, midwives,
+etc.) just because they are CAM. They are licensed in many U.S.
+jurisdictions and may be the right answer. Drop them only if they are
+clinically off-target for the user's specific request.
 
-OUTPUT — strict, typed: a JSON object with exactly two string
-fields, `include` and `exclude`. BOTH FIELDS ARE REQUIRED and BOTH
-MUST BE SUBSTANTIVE — at least 50 characters each. The reason for
-this is PRECISION: the contrastive signal between include and
-exclude is what lets the embedding distinguish near-neighbor
-specialties that share surface vocabulary. A short or empty
-exclude collapses the search back to plain cosine similarity over
-the include alone, which is exactly the imprecise behavior we are
-trying to fix. A meaty, specific exclude is how we earn precision.
-No preamble, no markdown fences, no explanation.
+SCORING — `score` is YOUR judgment of relevance for each picked code:
+  1.0 = exactly what they asked for
+  0.7 = strong adjacent option
+  0.4 = borderline kept for recall
+When in doubt, KEEP a candidate with a lower score. Missing a true
+match is worse than including a borderline one. Use ONLY codes that
+appear in the supplied corpus — do not invent codes.
 
-NORMALIZATION RULES for `include`:
-- Use authentic medical vocabulary — terms that appear in NUCC
-  Definitions for the specialties that match the user's intent.
-- Keep the meaningful clinical context the user provided.
+OUTPUT — strict, typed JSON object with three fields:
+  - `include`: string, ≥50 characters, substantive natural-language
+    paragraph describing the in-scope clinical intent.
+  - `exclude`: string, ≥50 characters, substantive contrastive
+    natural-language paragraph describing what is out-of-scope.
+  - `nucc_codes`: list of objects, each `{ "code": <NUCC 10-char>,
+    "score": <float 0.0–1.0> }`. Order by score, highest first.
 
-NORMALIZATION RULES for `exclude`:
-- Name vernacular categories or wrong-context specialties that
-  surface-vocabulary overlap would otherwise drag in.
-- Substantive (≥50 chars). Honor the CAM safeguard above.
+Both `include` and `exclude` MUST be substantive (≥50 chars). A short
+or empty `exclude` collapses the contrastive signal and is rejected.
+No preamble, no markdown fences, no explanation outside the JSON.
 """.strip()
 
 
-# ── Stage 3: filter prompt template (formatted per call) ──────────────
-_FILTER_PROMPT_TEMPLATE = """
-You are the precision filter for the FindCare specialty search.
-
-A vector search has already returned the top-{top_k} candidates
-for the user's request. Your job: walk that candidate list and
-keep only the codes that actually match the user's clinical
-intent. Drop the ones that scored well only because they share
-surface vocabulary with the query but aren't a fit (e.g.
-"sports medicine" appearing for a wrist-injury query, or
-pediatric variants for an adult patient).
-
-We are still optimizing for EXCELLENT RECALL — when in doubt
-about a candidate, keep it with a lower score. Missing a true
-match is worse than including a borderline one. The point of
-this filter is to remove the OBVIOUSLY OFF-TARGET candidates,
-not to second-guess every borderline call.
-
-INFER GENDER AND AGE WHEN POSSIBLE — same rule as the normalize
-step. If the user's wording implies adult, drop pediatric-only
-variants; if elderly, drop pediatric; if female-specific, drop
-male-specific; etc. If demographics are not inferable, keep age/
-gender variants in.
-
-CAM / HOLISTIC SAFEGUARD — do not drop CAM/holistic practitioners
-just because they're CAM. Drop them only if they're clinically
-off-target for the user's specific request.
-
-OUTPUT — strict, typed: a JSON object with one field
-`nucc_codes` — a list of objects, each {{ "code": <NUCC 10-char
-code>, "score": <float 0.0–1.0> }}. Score reflects YOUR refined
-judgment of relevance: 1.0 = exactly what they asked for, 0.7 =
-strong adjacent option, 0.4 = borderline kept for recall. Order
-by score, highest first. Use ONLY codes that appear in the
-candidate list below — do not invent codes, do not emit codes
-absent from the candidates.
-
+_PICK_USER_TEMPLATE = """
 USER QUERY:
 {user_query}
 
-NORMALIZE STAGE INCLUDE CRITERIA:
-{include}
+NUCC CORPUS ({n_records} records — Section=Individual, minus 38 admin
+codes, minus Deactivated). One JSON object per record:
+{corpus_block}
 
-NORMALIZE STAGE EXCLUDE CRITERIA:
-{exclude}
-
-CANDIDATES (top-{top_k} from the vectorSearch, with cosine
-scores):
-{candidates_block}
-
-Emit ONLY the JSON object. No preamble, no markdown fences, no
-explanation.
+Emit ONLY the JSON object described in the system prompt.
 """.strip()
 
 
-# ── Module-level singletons ───────────────────────────────────────────
-_normalize_agent: Agent | None = None
-_filter_agent: Agent | None = None
-_openai_client: OpenAI | None = None
+# ── Module-level agent singleton ──────────────────────────────────────
+_pick_agent: Agent | None = None
 
 
-def _get_normalize_agent() -> Agent:
-    global _normalize_agent
-    if _normalize_agent is None:
+def _get_pick_agent() -> Agent:
+    global _pick_agent
+    if _pick_agent is None:
         if not os.getenv("GEMINI_API_KEY"):
-            raise RuntimeError("GEMINI_API_KEY not set; required for find_specialists.")
-        _normalize_agent = Agent(
-            NORMALIZE_MODEL_ID,
-            output_type=NormalizedQuery,
-            system_prompt=_NORMALIZE_PROMPT,
+            raise RuntimeError(
+                "GEMINI_API_KEY not set; required for find_specialists.")
+        _pick_agent = Agent(
+            PICK_MODEL_ID,
+            output_type=FindSpecialistsOutput,
+            system_prompt=_PICK_SYSTEM_PROMPT,
             model_settings={"temperature": 0.3},
+            # V5 needs retries=5: at retries=1 one of the 38 runs in the
+            # benchmark exceeded the max output-retries limit. Bump to 5
+            # to absorb the same class of transient schema-validation
+            # retry that benchmark-grade runs require.
             retries=5,
         )
-    return _normalize_agent
+    return _pick_agent
 
 
-def _get_filter_agent() -> Agent:
-    """Filter agent uses GPT-4.1-mini — performance-tier model for
-    the precision step. Reasoning quality matters more here than
-    cost/latency: the filter is what differentiates 'shares surface
-    vocabulary' from 'actually matches clinical intent'."""
-    global _filter_agent
-    if _filter_agent is None:
-        if not os.getenv("OPENAI_API_KEY"):
-            raise RuntimeError("OPENAI_API_KEY not set; required for filter agent.")
-        _filter_agent = Agent(
-            FILTER_MODEL_ID,
-            output_type=_FilterOutput,
-            model_settings={"temperature": 0.2},
-            retries=5,
-        )
-    return _filter_agent
+# ── Corpus load ───────────────────────────────────────────────────────
+def _load_corpus(col: Collection) -> list[dict[str, Any]]:
+    """Load the enriched NUCC corpus the LLM will walk.
+
+    Filter: Section=Individual, Code not in EXCLUDED_CODES, and any
+    record whose Display Name starts with 'Deactivated' is dropped.
+    """
+    projection = {
+        "_id": 0,
+        "Code": 1,
+        "Display Name": 1,
+        "Grouping": 1,
+        "Classification": 1,
+        "Specialization": 1,
+        "Definition": 1,
+    }
+    cursor = col.find(
+        {
+            "Section": "Individual",
+            "Code": {"$nin": EXCLUDED_CODES},
+        },
+        projection,
+    )
+    out: list[dict[str, Any]] = []
+    for d in cursor:
+        if (d.get("Display Name") or "").startswith("Deactivated"):
+            continue
+        if d.get("Code") in _EXCLUDED_SET:
+            # belt-and-suspenders in case server-side $nin missed
+            continue
+        out.append({
+            "Code": d.get("Code", ""),
+            "Display Name": d.get("Display Name", ""),
+            "Grouping": d.get("Grouping", ""),
+            "Classification": d.get("Classification", ""),
+            "Specialization": d.get("Specialization", ""),
+            "Definition": (d.get("Definition") or "").strip(),
+        })
+    return out
 
 
-def _get_openai() -> OpenAI:
-    global _openai_client
-    if _openai_client is None:
-        key = os.getenv("OPENAI_API_KEY")
-        if not key:
-            raise RuntimeError("OPENAI_API_KEY not set; required for embedding.")
-        _openai_client = OpenAI(api_key=key)
-    return _openai_client
-
-
-def _embed(text: str) -> list[float]:
-    return _get_openai().embeddings.create(
-        model=EMBED_MODEL, input=text
-    ).data[0].embedding
-
-
-def _vec_combine(inc: list[float], exc: list[float], lam: float) -> list[float]:
-    return [a - lam * b for a, b in zip(inc, exc)]
-
-
-def _vector_search(col: Collection, qvec: list[float], top_k: int) -> list[dict[str, Any]]:
-    pipeline: list[dict[str, Any]] = [
-        {"$vectorSearch": {
-            "index": "specialty_vector_index",
-            "path": "embedding",
-            "queryVector": qvec,
-            "numCandidates": NUM_CANDIDATES,
-            "limit": top_k,
-            "filter": {
-                "Section": "Individual",
-                "Code": {"$nin": EXCLUDED_CODES},
-            },
-        }},
-        {"$project": {
-            "_id": 0,
-            "Code": 1,
-            "Display Name": 1,
-            "Definition": 1,
-            "score": {"$meta": "vectorSearchScore"},
-        }},
-    ]
-    raw = list(col.aggregate(pipeline))
-    return [h for h in raw
-            if not (h.get("Display Name") or "").startswith("Deactivated")]
-
-
-def _format_candidates(candidates: list[dict[str, Any]]) -> str:
-    """One line per candidate, with cosine score, code, display name,
-    and definition trimmed for the filter LLM's context."""
-    lines = []
-    for c in candidates:
-        defn = (c.get("Definition") or "").strip().replace("\n", " ")
-        lines.append(
-            f"[{c.get('Code', '')}] cosine={c.get('score', 0):.4f} | "
-            f"{c.get('Display Name', '')} | {defn}"
-        )
-    return "\n".join(lines)
+def _format_corpus(corpus: list[dict[str, Any]]) -> str:
+    """One compact JSON object per line — cheap on tokens, easy for the
+    LLM to walk, preserves all the fields the system prompt names."""
+    return "\n".join(
+        json.dumps(rec, ensure_ascii=False, separators=(",", ":"))
+        for rec in corpus
+    )
 
 
 # ── Public API ────────────────────────────────────────────────────────
@@ -312,33 +255,79 @@ def find_specialists(
     """Resolve a vernacular healthcare request to a ranked list of NUCC
     specialty codes.
 
-    Pipeline: Stage-1 normalize → embed + vectorSearch → Stage-3 filter.
+    V5 LLM-picks pipeline: a single Pydantic-AI agent call against the
+    full enriched NUCC corpus. Returns LLM-picked codes with LLM-judged
+    relevance scores in [0,1], plus natural-language include/exclude
+    audit paragraphs.
     """
-    nq = _get_normalize_agent().run_sync(user_query).output
-
-    inc_vec = _embed(nq.include)
-    exc_vec = _embed(nq.exclude)
-    qvec = _vec_combine(inc_vec, exc_vec, LAMBDA)
-    candidates = _vector_search(
-        specialty_metadata_collection, qvec, TOP_K_RETRIEVAL
-    )
-
-    if not candidates:
-        return FindSpecialistsOutput(
-            include=nq.include, exclude=nq.exclude, nucc_codes=[],
-        )
-
-    filter_user_msg = _FILTER_PROMPT_TEMPLATE.format(
-        top_k=TOP_K_RETRIEVAL,
+    corpus = _load_corpus(specialty_metadata_collection)
+    user_msg = _PICK_USER_TEMPLATE.format(
         user_query=user_query,
-        include=nq.include,
-        exclude=nq.exclude,
-        candidates_block=_format_candidates(candidates),
+        n_records=len(corpus),
+        corpus_block=_format_corpus(corpus),
     )
-    filtered = _get_filter_agent().run_sync(filter_user_msg).output
+    result = _get_pick_agent().run_sync(user_msg).output
+
+    # Defensive: filter any LLM-emitted code that isn't in the corpus
+    # (the system prompt forbids invented codes, but enforce server-side).
+    corpus_codes: frozenset[str] = frozenset(rec["Code"] for rec in corpus)
+    cleaned_picks = [
+        p for p in result.nucc_codes
+        if p.code in corpus_codes and p.code not in _EXCLUDED_SET
+    ]
+    cleaned_picks.sort(key=lambda p: p.score, reverse=True)
+
+    # ── Build the enriched `all_possible` union owned by the tool ────
+    # List-one: the LLM picks, enriched with Display Name + flags from
+    # SpecialtyMetaData. Lookup is keyed by Code; we project the same
+    # fields the SpecialtyFilter CSS consumes.
+    pick_codes = [p.code for p in cleaned_picks]
+    meta_by_code: dict[str, dict[str, Any]] = {}
+    if pick_codes:
+        for d in specialty_metadata_collection.find(
+            {"Code": {"$in": pick_codes}},
+            {"_id": 0, "Code": 1, "Display Name": 1,
+             "can_prescribe": 1, "homeopathic": 1},
+        ):
+            meta_by_code[d["Code"]] = d
+    list_one: list[AllPossibleRecord] = []
+    for i, p in enumerate(cleaned_picks):
+        m = meta_by_code.get(p.code, {})
+        list_one.append(AllPossibleRecord(
+            code=p.code,
+            name=m.get("Display Name", ""),
+            can_prescribe=bool(m.get("can_prescribe", False)),
+            homeopathic=bool(m.get("homeopathic", False)),
+            homeopathic_general=False,
+            rank=i,
+        ))
+
+    # List-two: the static homeopathic-generalist fallback set. Same
+    # SpecialtyMetaData collection; selected by the homeopathic_general
+    # flag. This set is query-independent.
+    list_two: list[AllPossibleRecord] = []
+    list_one_codes = {p.code for p in cleaned_picks}
+    for i, d in enumerate(specialty_metadata_collection.find(
+        {"homeopathic_general": True, "Section": "Individual"},
+        {"_id": 0, "Code": 1, "Display Name": 1,
+         "can_prescribe": 1, "homeopathic": 1},
+    )):
+        code = d.get("Code", "")
+        if not code or code in list_one_codes:
+            # A pick can also be a generalist; keep it in list-one only.
+            continue
+        list_two.append(AllPossibleRecord(
+            code=code,
+            name=d.get("Display Name", ""),
+            can_prescribe=bool(d.get("can_prescribe", False)),
+            homeopathic=True,
+            homeopathic_general=True,
+            rank=len(list_one) + i,
+        ))
 
     return FindSpecialistsOutput(
-        include=nq.include,
-        exclude=nq.exclude,
-        nucc_codes=filtered.nucc_codes,
+        include=result.include,
+        exclude=result.exclude,
+        nucc_codes=cleaned_picks,
+        all_possible=list_one + list_two,
     )
