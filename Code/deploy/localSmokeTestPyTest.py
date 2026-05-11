@@ -313,17 +313,11 @@ def env():
 
 # Step 0 [EPIC-008-F-004-S-001-REQ-T-003]: cross-environment build-gate.
 # Proves that local and dev are running the same code + configuration before
-# any further comparison is attempted. Only meaningful when SMOKE_TEST_ENV=local
-# — that is the only context where the test host has both local and dev
-# reachable. From a CI runner (SMOKE_TEST_ENV=dev|qa|prod) localhost is not
-# routable, so the gate is N/A and skips.
+# any further comparison is attempted. Independent of SMOKE_TEST_ENV — always
+# runs local-vs-dev. If builds differ, the rest of the smoke would compare
+# apples-to-oranges and produce meaningless signals.
 class TestStep00BuildGate:
     def test_local_and_dev_have_identical_build(self):
-        if SMOKE_ENV != "local":
-            pytest.skip(
-                "BuildGate is N/A when not running from a host with local "
-                "reachable; SMOKE_TEST_ENV=" + SMOKE_ENV
-            )
         # URLs pulled from _ENV_CONFIG — no hardcodes. Real cross-env
         # comparison: local build must match dev build before smoke proceeds.
         local_url = f"{_ENV_CONFIG['local']['findcare_url']}/health"
