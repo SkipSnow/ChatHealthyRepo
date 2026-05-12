@@ -25,7 +25,7 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 
-BASE_URL = "https://localhost/"
+BASE_URL = os.environ.get("SMOKE_TEST_URL", "https://localhost/")
 SEARCH_QUERY = "find me a bone doc in DE"
 HEADED = os.environ.get("HEADED") in ("1", "true", "TRUE", "yes")
 SLOW_MO = 250 if HEADED else 0  # slow mode helps watch the suite
