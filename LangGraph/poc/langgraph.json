@@ -1,7 +1,0 @@
-{
-  "dependencies": ["."],
-  "graphs": {
-    "find_care_user_journey": "./user_journey.py:user_journey"
-  },
-  "env": ".env"
-}
