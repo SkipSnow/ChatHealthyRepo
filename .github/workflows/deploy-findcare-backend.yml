@@ -166,6 +166,17 @@ jobs:
           fi
           set_secret "FINDCARE_SIGNING_KEY_PEM" "${FINDCARE_SIGNING_KEY_B64}"
 
+          # GEMINI_API_KEY: find_specialists (the V5 SpecialtyFilter tool)
+          # uses pydantic-ai's google-gla gemini model and raises
+          # RuntimeError without this key, which surfaces as
+          # /classify "temporarily unavailable" and cascades the smoke.
+          if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "ERROR: GH repo secret GEMINI_API_KEY is empty or unset."
+            echo "Create it at https://github.com/SkipSnow/ChatHealthyRepo/settings/secrets/actions"
+            exit 1
+          fi
+          set_secret "GEMINI_API_KEY" "${{ secrets.GEMINI_API_KEY }}"
+
       - name: Push to HuggingFace Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
