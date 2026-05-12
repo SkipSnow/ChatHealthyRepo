@@ -63,6 +63,21 @@ async function getSessionToken(): Promise<any> {
   return _sessionToken
 }
 
+// HuggingFace Spaces sleep after idle and return 503 on the first wake
+// request. Retry once with a short backoff so transient infrastructure
+// stalls don't surface as a fatal error. 500s (real server errors,
+// including the entity_type fail-hard) are NOT retried.
+async function fetchWithColdStartRetry(
+  url: string, init: RequestInit, retries = 1, backoffMs = 2000,
+): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const resp = await fetch(url, init)
+    if (resp.status !== 503 || attempt === retries) return resp
+    await new Promise(r => setTimeout(r, backoffMs))
+  }
+  return fetch(url, init)
+}
+
 // ── Main Component ───────────────────────────────────────────────
 export default function FindCareApp() {
   const [phase, setPhase] = useState<Phase>('welcome')
@@ -231,7 +246,7 @@ export default function FindCareApp() {
     try {
       // GOV-011: One AI call to classify, then system queries DB
       // Step 1: AI translates question → structured specialties + location
-      const classifyResp = await fetch(`${API_URL}/classify`, {
+      const classifyResp = await fetchWithColdStartRetry(`${API_URL}/classify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
@@ -342,7 +357,7 @@ export default function FindCareApp() {
   const fetchProviders = useCallback(async (params: any, q: string) => {
     const ac = searchAbortRef.current
     try {
-      const resp = await fetch(`${API_URL}/search`, {
+      const resp = await fetchWithColdStartRetry(`${API_URL}/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
@@ -385,7 +400,7 @@ export default function FindCareApp() {
     if (!searchParams || !lastNpi || isLoadingMore) return
     setIsLoadingMore(true)
     try {
-      const resp = await fetch(`${API_URL}/search`, {
+      const resp = await fetchWithColdStartRetry(`${API_URL}/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...searchParams, after_npi: lastNpi, limit: 25 }),
