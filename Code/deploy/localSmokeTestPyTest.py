@@ -135,17 +135,27 @@ def _get_welcome_words():
 
 
 def _get_fresh_token():
+    """Fetch a freshly stamped FindCare-origin session token.
+
+    Per the authentication architecture, SharedServices is the sole token
+    (GUID) issuer. FindCare /session takes an inbound SS-minted token and
+    restamps the nonce + signature as FindCare. So a "fresh FC token" is
+    obtained by chaining SS /auth/issue → FC /session.
+    """
     c = httpx.Client(verify=False, timeout=10)
     try:
-        return c.post(f"{FINDCARE_URL}/session").json()
+        ss_token = c.post(f"{SHARED_URL}/auth/issue").json()
+        return c.post(f"{FINDCARE_URL}/session",
+                      json={"session_token": ss_token}).json()
     finally:
         c.close()
 
 
 def _parse_token(token_str):
-    """Parse CH{nonce:34}{guid:32} into nonce and guid."""
-    if len(token_str) >= 68:
-        return token_str[2:36], token_str[36:]
+    if not isinstance(token_str, str):
+        return "", ""
+    if len(token_str) >= 69:
+        return token_str[2:37], token_str[37:]
     return token_str, ""
 
 

@@ -9,7 +9,8 @@
 #   /app/app.py                     entry point
 #   /app/healthcheck/               /health
 #   /app/displayChrome/             /splash, /transfer/to-findcare
-#   /app/security/                  /session, /verify-token, session_token
+#   /app/authentication/            /auth/issue, /session, /verify-token,
+#                                   MintableSessionToken (the SS-only mint child class)
 #   /app/externalInterface/         placeholder for future external interfaces
 #   /app/secretsManager/            /secrets/{key}
 #   /app/runtimeGovernance/         ChatHealthyFatalError + register_fatal_handler
@@ -29,7 +30,7 @@ RUN pip install --no-cache-dir /app/FrontEndApplicationLib
 COPY app.py             /app/app.py
 COPY healthcheck        /app/healthcheck
 COPY displayChrome      /app/displayChrome
-COPY security           /app/security
+COPY authentication     /app/authentication
 COPY externalInterface  /app/externalInterface
 COPY secretsManager     /app/secretsManager
 

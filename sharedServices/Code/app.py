@@ -25,7 +25,7 @@ _log = logging.getLogger("shared_services")
 
 def _bootstrap_certs_from_env():
     """EPIC-002-F-001-S-012-REQ-T-005: decode PEM certs from HF Space Secrets
-    into a runtime directory so session_token.verify_session_token can find
+    into a runtime directory so SessionToken.verify can find
     them on HF. No-op locally where /certs is bind-mounted and CERTS_DIR is
     already set."""
     runtime_dir = os.path.join(tempfile.gettempdir(), "ch_certs")
@@ -99,10 +99,13 @@ app.add_middleware(
 from healthcheck.health_endpoint import HealthEndpoint
 from displayChrome.splash_endpoint import SplashEndpoint
 from displayChrome.transfer_to_findcare_endpoint import TransferToFindCareEndpoint
-from security.session_endpoint import SessionEndpoint
-from security.verify_token_endpoint import VerifyTokenEndpoint, VerifyTokenRequest, VerifyTokenResponse
 from secretsManager.secrets_endpoint import SecretsEndpoint
-from chathealthy_frontend_lib.session_token import SessionToken
+from chathealthy_frontend_lib.authentication import (
+    AuthToken, SessionRestampRequest, SessionToken, VerifyTokenResponse,
+)
+from authentication.mintable_auth_token import MintableAuthToken
+
+_ORIGIN = "SharedServices"
 
 
 def _impl(cls_name, file_subpath):
@@ -124,16 +127,25 @@ def splash():
     return SplashEndpoint()()
 
 
-@app.post("/session", operation_id="SessionEndpoint", response_model=SessionToken,
-          openapi_extra=_impl("SessionEndpoint", "security/session_endpoint.py"))
-def session():
-    return SessionEndpoint()()
+_ENV = os.getenv("ENV_PREFIX", "dev")
 
 
-@app.post("/verify-token", operation_id="VerifyTokenEndpoint", response_model=VerifyTokenResponse,
-          openapi_extra=_impl("VerifyTokenEndpoint", "security/verify_token_endpoint.py"))
-def verify_token(body: VerifyTokenRequest):
-    return VerifyTokenEndpoint()(body)
+@app.post("/auth/issue", operation_id="AuthIssue", response_model=SessionToken,
+          openapi_extra=_impl("MintableAuthToken", "authentication/mintable_auth_token.py"))
+def auth_issue():
+    return MintableAuthToken.manufacture(server_env=_ENV).to_wire()
+
+
+@app.post("/session", operation_id="Session", response_model=SessionToken,
+          openapi_extra=_impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
+def session(body: SessionRestampRequest):
+    return AuthToken.handle_session(body, origin=_ORIGIN, server_env=_ENV)
+
+
+@app.post("/verify-token", operation_id="VerifyToken", response_model=VerifyTokenResponse,
+          openapi_extra=_impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
+def verify_token(body: SessionRestampRequest):
+    return AuthToken.handle_verify(body, origin=_ORIGIN, server_env=_ENV)
 
 
 @app.post("/transfer/to-findcare", operation_id="TransferToFindCareEndpoint",

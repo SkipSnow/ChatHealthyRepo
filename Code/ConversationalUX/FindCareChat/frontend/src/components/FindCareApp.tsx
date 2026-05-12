@@ -52,15 +52,66 @@ function checkSecurityViolation(resp: Response, url: string): void {
 }
 
 // ── Session token ────────────────────────────────────────────────
-// No client-side fallback. If the server cannot mint a signed token the
-// flow MUST fail — synthesizing a CH_{uuid} placeholder here is the kind
-// of silent security regression to be avoided.
+// SharedServices is the sole auth-token (GUID) issuer. The chat iframe
+// calls SS /auth/issue directly; the resulting signed token is carried on
+// cross-component calls. No client-side fallback: a failed /auth/issue
+// MUST surface as an error, never a placeholder.
+function _sharedServicesUrl(apiUrl: string): string {
+  // When VITE_API_URL is unset, apiUrl is '' and a relative fetch would hit
+  // the iframe's own origin (FindCare). Fall back to window.location.origin
+  // to derive a usable base, then point at SharedServices' port/host.
+  const base = apiUrl || (typeof window !== 'undefined' ? window.location.origin : '')
+  if (base.includes('find-care-chat')) {
+    return base.replace('find-care-chat', 'shared-services')
+  }
+  // Local: SS on :8002 regardless of incoming port (FC :7860, Caddy :443).
+  if (base.includes('localhost')) {
+    return base.replace(/(\/\/localhost)(:\d+)?/, '$1:8002')
+  }
+  return base
+}
 let _sessionToken: any = null
+function _requestParentAuth(timeoutMs: number): Promise<any> {
+  return new Promise(resolve => {
+    if (typeof window === 'undefined' || window.parent === window) { resolve(null); return }
+    const handler = (e: MessageEvent) => {
+      if (e.data && e.data.type === 'auth:boot' && e.data.token) {
+        window.removeEventListener('message', handler)
+        resolve(e.data.token)
+      }
+    }
+    window.addEventListener('message', handler)
+    try { window.parent.postMessage({type: 'auth:boot-request'}, '*') } catch { }
+    setTimeout(() => { window.removeEventListener('message', handler); resolve(null) }, timeoutMs)
+  })
+}
 async function getSessionToken(): Promise<any> {
-  const resp = await fetch(`${API_URL}/session`, { method: 'POST' })
-  checkSecurityViolation(resp, `${API_URL}/session`)
-  _sessionToken = await resp.json()
-  return _sessionToken
+  if (_sessionToken) return _sessionToken
+  // The page-session GUID belongs to the parent. Per S-012-REQ-T-003 the
+  // GUID is stable per session, so the iframe MUST share the parent's —
+  // never mint independently. Standalone iframe runs are not supported.
+  if (typeof window === 'undefined' || window.parent === window) {
+    const ssUrl = _sharedServicesUrl(API_URL)
+    const resp = await fetch(`${ssUrl}/auth/issue`, { method: 'POST' })
+    checkSecurityViolation(resp, `${ssUrl}/auth/issue`)
+    _sessionToken = await resp.json()
+    return _sessionToken
+  }
+  const parentTok = await _requestParentAuth(10000)
+  if (!parentTok) {
+    throw new Error('iframe could not obtain auth:boot from parent within 10s')
+  }
+  _sessionToken = parentTok
+  return parentTok
+}
+// Unsolicited auth:boot pushes from the parent ALWAYS overwrite — parent
+// is the canonical source of the page-session GUID.
+if (typeof window !== 'undefined' && window.parent !== window) {
+  window.addEventListener('message', (e: MessageEvent) => {
+    if (e.data && e.data.type === 'auth:boot' && e.data.token) {
+      _sessionToken = e.data.token
+    }
+  })
 }
 
 // HuggingFace Spaces sleep after idle and return 503 on the first wake
@@ -515,7 +566,6 @@ export default function FindCareApp() {
     }
 
     const token = await getSessionToken()
-    sendToParent('gui:session-display', { token: token.token || '' })
 
     try {
       const resp = await fetch(`${EVALCARE_URL}/evaluate/providers`, {
@@ -534,11 +584,6 @@ export default function FindCareApp() {
         question,
         session_token: data.session_token || null,
       })
-
-      // Update left panel with verified token (new nonce from EvaluateCare)
-      if (data.session_token) {
-        sendToParent('gui:session-display', { session_token: data.session_token })
-      }
     } catch (err: any) {
       alert(`EvaluateCare error: ${err.message}`)
     }

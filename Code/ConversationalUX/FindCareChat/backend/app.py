@@ -251,14 +251,12 @@ from chathealthy_frontend_lib.runtime_governance import ChatHealthyFatalError, r
 register_fatal_handler(app, service_name="FindCare")
 
 # ── EPIC-002-F-001-S-012-REQ-T-004: startup security-primitive verification ──
-# /session depends on session_token.generate_session_token producing a
-# well-formed (68-char, "CH"-prefixed) token. If the primitive cannot
-# initialize here, serving MUST NOT continue. Exit codes per sysexits.h:
-#   78 (EX_CONFIG)    — missing library, missing config, malformed output
+# FindCare's security primitives are nonce restamp (signs with findcare.key)
+# and verify (reads peer certs). The probe loads both findcare.key and
+# findcare.crt to confirm CERTS_DIR is bootstrapped. Exit codes per sysexits.h:
+#   78 (EX_CONFIG)    — missing key or cert file
 #   77 (EX_NOPERM)    — permission denied on cert/key
 #   70 (EX_SOFTWARE)  — unexpected internal error
-# The underscore check guards against regression to the old silent-fallback
-# placeholder CH_{uuid}.
 def _bootstrap_certs_from_env():
     """Write PKI material from env vars to a runtime dir and point CERTS_DIR at it.
 
@@ -307,33 +305,39 @@ def _bootstrap_certs_from_env():
                   ",".join(wrote), runtime_dir, runtime_dir)
 
 def _startup_security_verification():
+    """EPIC-002-F-001-S-012-REQ-T-004: exercise the security primitives this
+    service uses. FindCare does NOT manufacture auth tokens — that's
+    SharedServices's /auth/issue. FindCare's primitives are nonce restamp
+    (signs with findcare.key) and verify (reads the page-owner's cert).
+    Probe loads both to confirm CERTS_DIR is bootstrapped and the
+    cryptography primitives can parse them."""
     import sys as _sys
     _bootstrap_certs_from_env()
     try:
-        from chathealthy_frontend_lib.session_token import generate_session_token
+        from chathealthy_frontend_lib.authentication.session_token import _cert_basename
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.x509 import load_pem_x509_certificate
     except ImportError as _imp:
-        _log.error("STARTUP ABEND exit=78 primitive=session_token reason=import_failed: %s", _imp)
+        _log.error("STARTUP ABEND exit=78 primitive=crypto reason=import_failed: %s", _imp)
+        _sys.exit(78)
+    certs_dir = os.environ.get("CERTS_DIR", "/certs")
+    key_path = os.path.join(certs_dir, f"{_cert_basename('FindCare')}.key")
+    cert_path = os.path.join(certs_dir, f"{_cert_basename('FindCare')}.crt")
+    try:
+        with open(key_path, "rb") as _f:
+            serialization.load_pem_private_key(_f.read(), password=None)
+        with open(cert_path, "rb") as _f:
+            load_pem_x509_certificate(_f.read())
+    except FileNotFoundError as _fnf:
+        _log.error("STARTUP ABEND exit=78 primitive=session_token reason=missing_cert_or_key: %s", _fnf)
         _sys.exit(78)
     except PermissionError as _perm:
         _log.error("STARTUP ABEND exit=77 primitive=session_token reason=permission: %s", _perm)
         _sys.exit(77)
-    try:
-        _probe = generate_session_token("FindCare")
-    except FileNotFoundError as _fnf:
-        _log.error("STARTUP ABEND exit=78 primitive=session_token reason=missing_key: %s", _fnf)
-        _sys.exit(78)
-    except PermissionError as _perm:
-        _log.error("STARTUP ABEND exit=77 primitive=session_token reason=permission_on_key: %s", _perm)
-        _sys.exit(77)
     except Exception as _exc:
-        _log.error("STARTUP ABEND exit=70 primitive=session_token reason=generator_raised: %s", _exc)
+        _log.error("STARTUP ABEND exit=70 primitive=session_token reason=key_or_cert_unreadable: %s", _exc)
         _sys.exit(70)
-    _tok = (_probe or {}).get("token", "")
-    if not _tok.startswith("CH") or len(_tok) < 68 or "_" in _tok:
-        _log.error("STARTUP ABEND exit=78 primitive=session_token reason=malformed_token: %r", _probe)
-        _sys.exit(78)
-    _log.info("startup security check PASSED — session_token OK (len=%d signed=%s)",
-              len(_tok), (_probe or {}).get("signed"))
+    _log.info("startup security check PASSED — findcare.key + findcare.crt OK at %s", certs_dir)
 
 _startup_security_verification()
 
@@ -584,78 +588,21 @@ def health():
         result["version_error"] = _version_error
     return result
 
-# ── Session token — signed with FindCare's x509 cert ──────────
-# graph-exempt: session token read, no LLM — security primitive; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.post("/session")
-def get_session():
-    """Generate a signed session token for this browser session.
-    Client stores it in memory, passes it on cross-component calls.
+from chathealthy_frontend_lib.authentication import (
+    AuthToken, SessionRestampRequest, SessionToken, VerifyTokenResponse,
+)
 
-    NO FALLBACK. Session token generation is a security primitive — if it
-    fails, the caller must NOT proceed with a placeholder. Any failure
-    propagates to a 500 so the client sees the problem and halts instead
-    of running with a token that has no nonce and no signature. See
-    feedback_no_security_fallbacks.
-    """
-    import sys as _sys
-    # Local layout: Shared/ is three levels up from backend/.
-    from chathealthy_frontend_lib.session_token import generate_session_token
-    token = generate_session_token("FindCare")
-    # EPIC-002-F-001-S-012-REQ-B-010: server-asserted env (FindCare's deployment env).
-    # `origin` field stays "FindCare" for cryptographic signature verification
-    # (REQ-017); this added `server_env` carries the display-semantic value.
-    token["server_env"] = _ENV_PREFIX
-    return token
+_ORIGIN = "FindCare"
 
-# Body model for /verify-token (callers POST {session_token: {...}}).
-class EvaluateRequest(BaseModel):
-    providers: list[dict] = []
-    session_token: Optional[dict] = None
-    question_summary: str = ""
 
-# SEC-HTTPS-001-REQ-021: FindCare verifies tokens minted by peer services.
-# When SharedServices or EvaluateCare owns the page, the browser fetches
-# /session from THAT service (so the token is signed with the page-owning
-# service's key), then sends the signed token here for FindCare to verify
-# with the corresponding peer cert. Acts as the independent third-party
-# verifier — preserves mutual authentication when the minter is a peer.
-# graph-exempt: mTLS/session security primitive, no LLM; per BUG-ARCH-GRAPH-EXEMPT-001
-@app.post("/verify-token")
-def verify_token(body: EvaluateRequest):
-    """Verify a session token signed by FindCare, SharedServices, or EvaluateCare.
+@app.post("/session", response_model=SessionToken)
+def post_session(body: SessionRestampRequest):
+    return AuthToken.handle_session(body, origin=_ORIGIN, server_env=_ENV_PREFIX)
 
-    The expected origin is read from the token itself; the cert lookup in
-    session_token resolves `{origin.lower()}.crt` from CERTS_DIR. If the
-    signature doesn't match the cert for the claimed origin, verification
-    fails — so a caller can't lie about origin.
-    """
-    if not body.session_token:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=400, detail="session_token is required")
-    from chathealthy_frontend_lib.session_token import verify_session_token
-    token_origin = body.session_token.get("origin", "unknown")
-    try:
-        token_valid = verify_session_token(body.session_token, token_origin)
-    except ValueError as e:
-        _log.warning("FindCare verify-token 400: %s", e)
-        from fastapi import HTTPException
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    _log.info("FindCare verify-token: origin=%s valid=%s",
-              token_origin, token_valid)
-    return {
-        "status": "verified" if token_valid else "failed",
-        "session_token": {
-            "token_received": body.session_token.get("token", ""),
-            "signature_received": (body.session_token.get("signature", "") or "")[:40] + "..." if body.session_token.get("signature") else "none",
-            # EPIC-002-F-001-S-012-REQ-B-010: origin field is the name of the
-            # RESPONDING service (self-identification). Distinct from
-            # the cryptographic signer (REQ-017, always FindCare).
-            "origin": "FindCare",
-            "verified": token_valid,
-            "created_at": body.session_token.get("created_at", "") or "",
-            "server_env": body.session_token.get("server_env"),
-        },
-    }
+
+@app.post("/verify-token", response_model=VerifyTokenResponse)
+def verify_token(body: SessionRestampRequest):
+    return AuthToken.handle_verify(body, origin=_ORIGIN, server_env=_ENV_PREFIX)
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):

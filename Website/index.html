@@ -964,15 +964,46 @@
         }
       };
 
-      // SEC-HTTPS-001-REQ-021/022: refresh BOTH token panels on every
-      // page-ownership change.
-      //   • LEFT panel always shows FindCare's own /session token (FC's
-      //     permanent territory, REQ-022). Verified by SharedServices so
-      //     the panel honestly reports verified-state with each rotation.
-      //   • RIGHT panel shows the page-owning service's own /session token
-      //     (REQ-021). Verified by an independent third party so mutual
-      //     authentication is meaningful (FC verifies SS/EC tokens; SS
-      //     verifies FC tokens when FC owns the page).
+      // Boot-once: ask SharedServices to manufacture the auth token
+      // (the GUID-bearing session token). Cached for the page lifetime;
+      // every panel refresh restamps THIS token rather than minting fresh.
+      // SharedServices is the sole token issuer per the canonical auth model.
+      // Broadcast the cached boot token to every iframe so they share ONE
+      // GUID with the parent (REQ-T-003 stable-GUID-per-session).
+      window._broadcastAuthBoot = function() {
+        if (!window._authBoot) return;
+        var msg = {type: 'auth:boot', token: window._authBoot};
+        try { document.querySelectorAll('iframe').forEach(function(f){
+          if (f.contentWindow) f.contentWindow.postMessage(msg, '*');
+        }); } catch (e) {}
+      };
+      window._getAuthBoot = function() {
+        if (window._authBoot) return Promise.resolve(window._authBoot);
+        var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
+        return fetch(sharedUrl + '/auth/issue', { method: 'POST' })
+          .then(function(r) {
+            if (!r.ok) throw new Error('SharedServices /auth/issue HTTP ' + r.status);
+            return r.json();
+          })
+          .then(function(t) { window._authBoot = t; window._broadcastAuthBoot(); return t; });
+      };
+      // Iframe-on-load asks parent for the cached boot token; we answer
+      // with whatever's in cache (mint if needed first).
+      window.addEventListener('message', function(e) {
+        var d = e.data;
+        if (!d || d.type !== 'auth:boot-request') return;
+        window._getAuthBoot().then(function(t) {
+          try { e.source.postMessage({type: 'auth:boot', token: t}, '*'); } catch (_) {}
+        }).catch(function() {});
+      });
+
+      // SEC-HTTPS-001-REQ-021/022: refresh the panel for the current
+      // page-owner. The owning service STAMPS the boot auth-token with its
+      // own key + origin; an independent peer VERIFIES. Mutual auth across
+      // the owner↔peer boundary.
+      //   • LEFT panel  (owner='findcare')      : FC stamps,    SS verifies.
+      //   • RIGHT panel (owner='evaluatecare')  : EC stamps,    FC verifies (via SS for now).
+      //   • RIGHT panel (owner='sharedservices'): SS stamps,    FC verifies (via SS for now).
       // owner: 'findcare' | 'evaluatecare' | 'sharedservices'
       window.refreshTokenPanels = function(owner) {
         // EPIC-008-F-004-S-004-REQ-B-002: no security token panel in prod.
@@ -985,33 +1016,41 @@
         var sharedUrl = urls.sharedservices || 'https://localhost:8002';
         var evalUrl   = urls.evaluatecare   || 'https://localhost:8001';
 
-        // FC always mints; the COLD service (current owner, or an independent
-        // peer when FC owns) verifies. Browser → cold service direct per V11
-        // EPIC-002-F-001-S-012 "browser must call cold-button service directly
-        // for verify-token (no FindCare proxy)".
-        // Both LEFT and RIGHT panels render the SAME verification result so
-        // their nonces match (smoke asserts cross-panel nonce equality).
-        var coldUrl, color, label, bg;
+        // Stamping service = the owner of the panel being rendered.
+        // Verifying service:
+        //   • Right panel (owner = EC or SS — page has been handed off): the
+        //     cold service directly per S-012-REQ-T-007.
+        //   • Left panel  (owner = FC — FC owns the page, no cold service):
+        //     FC itself, so the displayed token data comes from the server
+        //     that actually stamped it. Otherwise the panel's "Server,
+        //     serving security token" label would read the wrong service.
+        var stampUrl, verifyUrl, color, label, bg;
         if (owner === 'sharedservices') {
-          coldUrl = sharedUrl; color = '#0b7a75'; label = 'Shared Services'; bg = '#f0fffe';
+          stampUrl = sharedUrl; verifyUrl = sharedUrl; color = '#0b7a75'; label = 'Shared Services'; bg = '#f0fffe';
         } else if (owner === 'evaluatecare') {
-          coldUrl = evalUrl;   color = '#d97706'; label = 'EvaluateCare';   bg = '#fff7ed';
+          stampUrl = evalUrl;   verifyUrl = evalUrl;   color = '#d97706'; label = 'EvaluateCare';    bg = '#fff7ed';
         } else {
-          coldUrl = sharedUrl; color = '#0b7a75'; label = 'FindCare';       bg = '#f0fffe';
+          stampUrl = apiBase;   verifyUrl = apiBase;   color = '#0b7a75'; label = 'FindCare';        bg = '#f0fffe';
         }
 
-        fetch(apiBase + '/session', { method: 'POST' })
-          .then(function(r) {
-            if (!r.ok) throw new Error('FindCare /session HTTP ' + r.status);
-            return r.json();
-          })
-          .then(function(token) {
-            return fetch(coldUrl + '/verify-token', {
+        window._getAuthBoot()
+          .then(function(t0) {
+            return fetch(stampUrl + '/session', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({session_token: token})
+              body: JSON.stringify({session_token: t0})
             }).then(function(r) {
-              if (!r.ok) throw new Error(coldUrl + ' /verify-token HTTP ' + r.status);
+              if (!r.ok) throw new Error(stampUrl + ' /session HTTP ' + r.status);
+              return r.json();
+            });
+          })
+          .then(function(stamped) {
+            return fetch(verifyUrl + '/verify-token', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({session_token: stamped})
+            }).then(function(r) {
+              if (!r.ok) throw new Error(verifyUrl + ' /verify-token HTTP ' + r.status);
               return r.json();
             });
           })
@@ -1231,52 +1270,26 @@
       // Page ownership: 'findcare', 'evaluatecare', or 'sharedservices'
       if (!window._pageOwner) window._pageOwner = 'findcare';
 
-      // EPIC-002-F-001-S-012-REQ-B-007: Parse token into nonce and GUID, build display HTML
-      // Defined on window so all IIFEs can access it
+      // Pure render: every value comes verbatim from the server's
+      // SessionTokenVerification. The widget does no manipulation.
       window.buildTokenDisplayHtml = function(st) {
-        var token = st.token_received || '';
-        // Token format: CH{nonce:17}{created:17}{guid:32} = 68 chars
-        var nonce = token.length >= 36 ? token.substring(2, 36) : token;
-        var guid = token.length >= 68 ? token.substring(36) : '';
-        // EPIC-002-F-001-S-012-REQ-B-009 — Env + PST Time rows.
-        // Env comes from the website's environment label (set during banner init).
-        var envLabel = window._envLabel || 'UNKNOWN';
-        // Time: parse ISO created_at from the server. NO FALLBACK to
-        // browser time — if the server forgot to send created_at, render
-        // "?" so the operator sees the missing field instead of being
-        // misled by a browser-time substitute. The browser clock is not
-        // a trusted source for security-token display.
-        var pstTime = '?';
-        if (st.created_at) {
-            var ts = new Date(st.created_at);
-            if (!isNaN(ts.getTime())) {
-                try {
-                    pstTime = ts.toLocaleString('en-US', {
-                        timeZone: 'America/Los_Angeles',
-                        year: 'numeric', month: '2-digit', day: '2-digit',
-                        hour: '2-digit', minute: '2-digit', second: '2-digit',
-                        hour12: false,
-                    });
-                } catch (e) { pstTime = '?'; }
-            }
-        }
         return '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
           + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
           + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
-          + '<b style="color:#6366f1;">Signed token:</b> <span style="color:#6366f1;">' + (st.signature_received || 'none') + '</span></div>'
+          + '<b style="color:#6366f1;">Signed token:</b> <span style="color:#6366f1;">' + st.signature_received + '</span></div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
-          + '<b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + nonce + '</span></div>'
+          + '<b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + st.nonce + '</span></div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
-          + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + guid + '</span></div>'
+          + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + st.guid + '</span></div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-          + '<b>Origin:</b> ' + (st.origin || 'unknown')
-          + ' &middot; <b>Verified:</b> <span style="color:' + (st.verified ? '#059669' : '#dc2626') + ';font-weight:700;">' + (st.verified ? 'YES ✓' : 'FAILED ✗') + '</span></div>'
+          + '<b>Origin:</b> ' + st.origin
+          + ' &middot; <b>Verified:</b> <span style="font-weight:700;">' + st.verified + '</span></div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-          + '<b>Server, serving security token:</b> ' + (st.origin || 'unknown') + '</div>'
+          + '<b>Server, serving security token:</b> ' + st.origin + '</div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-          + '<b>Env:</b> <span style="color:#7c3aed;font-weight:700;">' + envLabel + '</span></div>'
+          + '<b>Env:</b> <span style="color:#7c3aed;font-weight:700;">' + st.server_env + '</span></div>'
           + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-          + '<b>Time:</b> PST <span style="color:#374151;">' + pstTime + '</span></div>'
+          + '<b>Time:</b> ' + st.created_at + '</div>'
           + '</div>';
       }
 
@@ -1830,67 +1843,17 @@
         // Must be below specialties, not beside
         // Must use identical display as right panel — buildTokenDisplayHtml
         if (msg.type === 'gui:session-display') {
+          if (!(msg.session_token && typeof msg.session_token === 'object')) {
+            window.chFatalError('gui:session-display message missing session_token object');
+            return;
+          }
           var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
           if (!sessionEl) {
             leftPanel.insertAdjacentHTML('beforeend',
               '<div id="guiSessionId" style="padding:4px 8px;border-top:1px solid #e5e7eb;"></div>');
             sessionEl = document.getElementById('guiSessionId');
           }
-          if (sessionEl) {
-            if (msg.session_token && typeof msg.session_token === 'object') {
-              sessionEl.innerHTML = window.buildTokenDisplayHtml(msg.session_token);
-            } else if (sessionEl.innerHTML.indexOf('YES ✓') !== -1) {
-              // Already in verified state (refreshTokenPanels painted it).
-              // A late iframe-side Pending message must not clobber it.
-            } else {
-              var __renderPending = function() {
-                var token = msg.token || '';
-                var nonce = token.length >= 36 ? token.substring(2, 36) : token;
-                var guid = token.length >= 68 ? token.substring(36) : '';
-                var pstTime = '?';
-                if (token.length >= 36) {
-                  var c = token.substring(19, 36);
-                  try {
-                    var d = new Date(Date.UTC(
-                      parseInt(c.substring(4, 8), 10),
-                      parseInt(c.substring(0, 2), 10) - 1,
-                      parseInt(c.substring(2, 4), 10),
-                      parseInt(c.substring(8, 10), 10),
-                      parseInt(c.substring(10, 12), 10),
-                      parseInt(c.substring(12, 14), 10)
-                    ));
-                    if (!isNaN(d.getTime())) {
-                      pstTime = d.toLocaleString('en-US', {
-                        timeZone: 'America/Los_Angeles',
-                        year: 'numeric', month: '2-digit', day: '2-digit',
-                        hour: '2-digit', minute: '2-digit', second: '2-digit',
-                        hour12: false,
-                      });
-                    }
-                  } catch (e) { pstTime = '?'; }
-                }
-                var envLabel = window._envLabel || 'UNKNOWN';
-                sessionEl.innerHTML = '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
-                  + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
-                  + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
-                  + '<b style="color:#6366f1;">Signed token:</b> <span style="color:#6366f1;">Pending…</span></div>'
-                  + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
-                  + '<b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + nonce + '</span></div>'
-                  + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
-                  + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + guid + '</span></div>'
-                  + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-                  + '<b>Verified:</b> <span style="color:#6b7280;">Pending…</span></div>'
-                  + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-                  + '<b>Server, serving security token:</b> Pending…</div>'
-                  + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-                  + '<b>Env:</b> <span style="color:#7c3aed;font-weight:700;">' + envLabel + '</span></div>'
-                  + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
-                  + '<b>Time:</b> PST <span style="color:#374151;">' + pstTime + '</span></div>'
-                  + '</div>';
-              };
-              __renderPending();
-            }
-          }
+          sessionEl.innerHTML = window.buildTokenDisplayHtml(msg.session_token);
         }
 
         if (msg.type === 'gui:event' && msg.action === 'highlight-filter') {
