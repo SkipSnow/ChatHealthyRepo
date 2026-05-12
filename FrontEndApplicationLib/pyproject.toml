@@ -1,6 +1,6 @@
 [project]
 name = "chathealthy-frontend-lib"
-version = "0.1.4"
+version = "0.1.7"
 description = "Shared Python code consumed by ChatHealthy.ai's front-end-facing services (FindCare, EvaluateCare, SharedServices). Owned by EPIC-003. Per the auth-token caveat: token MANAGEMENT (verify, parse, advance nonce) lives here; token MANUFACTURE belongs 100% to SharedServices and is intentionally NOT in this package."
 requires-python = ">=3.12"
 dependencies = [

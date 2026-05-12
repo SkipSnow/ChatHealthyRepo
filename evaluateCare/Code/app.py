@@ -25,7 +25,7 @@ _log = logging.getLogger("evaluate_care")
 
 def _bootstrap_certs_from_env():
     """EPIC-002-F-001-S-012-REQ-T-005: decode PEM certs from HF Space Secrets
-    into a runtime directory so session_token.verify_session_token can find
+    into a runtime directory so SessionToken.verify can find
     them on HF. No-op locally where /certs is bind-mounted and CERTS_DIR is
     already set."""
     runtime_dir = os.path.join(tempfile.gettempdir(), "ch_certs")
@@ -99,8 +99,6 @@ app.add_middleware(
 from healthcheck.health_endpoint import HealthEndpoint
 from displayChrome.splash_endpoint import SplashEndpoint
 from displayChrome.transfer_to_findcare_endpoint import TransferToFindCareEndpoint
-from security.session_endpoint import SessionEndpoint
-from security.verify_token_endpoint import VerifyTokenEndpoint, VerifyTokenRequest, VerifyTokenResponse
 from security.debug_verify_live_endpoint import DebugVerifyLiveEndpoint
 from security.debug_bootstrap_endpoint import DebugBootstrapEndpoint
 from externalInterface.evaluate_providers_endpoint import (
@@ -108,7 +106,12 @@ from externalInterface.evaluate_providers_endpoint import (
     EvaluateProvidersRequest,
     EvaluateProvidersResponse,
 )
-from chathealthy_frontend_lib.session_token import SessionToken
+from chathealthy_frontend_lib.authentication import (
+    AuthToken, SessionRestampRequest, SessionToken, VerifyTokenResponse,
+)
+
+_ORIGIN = "EvaluateCare"
+_ENV = os.getenv("ENV_PREFIX", "dev")
 
 
 def _impl(cls_name, file_subpath):
@@ -130,16 +133,16 @@ def splash():
     return SplashEndpoint()()
 
 
-@app.post("/session", operation_id="SessionEndpoint", response_model=SessionToken,
-          openapi_extra=_impl("SessionEndpoint", "security/session_endpoint.py"))
-def session():
-    return SessionEndpoint()()
+@app.post("/session", operation_id="Session", response_model=SessionToken,
+          openapi_extra=_impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
+def session(body: SessionRestampRequest):
+    return AuthToken.handle_session(body, origin=_ORIGIN, server_env=_ENV)
 
 
-@app.post("/verify-token", operation_id="VerifyTokenEndpoint", response_model=VerifyTokenResponse,
-          openapi_extra=_impl("VerifyTokenEndpoint", "security/verify_token_endpoint.py"))
-def verify_token(body: VerifyTokenRequest):
-    return VerifyTokenEndpoint()(body)
+@app.post("/verify-token", operation_id="VerifyToken", response_model=VerifyTokenResponse,
+          openapi_extra=_impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
+def verify_token(body: SessionRestampRequest):
+    return AuthToken.handle_verify(body, origin=_ORIGIN, server_env=_ENV)
 
 
 @app.post("/evaluate/providers", operation_id="EvaluateProvidersEndpoint", response_model=EvaluateProvidersResponse,

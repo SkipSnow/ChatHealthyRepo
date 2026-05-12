@@ -143,9 +143,10 @@ def _get_fresh_token():
 
 
 def _parse_token(token_str):
-    """Parse CH{nonce:34}{guid:32} into nonce and guid."""
-    if len(token_str) >= 68:
-        return token_str[2:36], token_str[36:]
+    if not isinstance(token_str, str):
+        return "", ""
+    if len(token_str) >= 69:
+        return token_str[2:37], token_str[37:]
     return token_str, ""
 
 

@@ -12,7 +12,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, HttpUrl
 
-from chathealthy_frontend_lib.session_token import SessionToken
+from chathealthy_frontend_lib.authentication.session_token import SessionToken
 
 
 # ── Plan + portal access ───────────────────────────────────────────────

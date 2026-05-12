@@ -431,7 +431,7 @@
                         },
                         {
                           "req_id": "EPIC-002-F-001-S-012-REQ-B-004",
-                          "requirement": "No HTTP URLs anywhere in production code, CORS, or config. All traffic MUST be HTTPS with mutual authentication.",
+                          "requirement": "No HTTP URLs anywhere in production code, CORS, or config. All traffic MUST be HTTPS. Mutual-authentication enforcement is defined in EPIC-002-F-003-S-003-REQ-B-005.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -446,7 +446,7 @@
                             ]
                           },
                           "approval": "proposed",
-                          "name": "Enforce HTTPS with mutual auth; no HTTP URLs in code, CORS, or config",
+                          "name": "Enforce HTTPS-only — no HTTP URLs in code, CORS, or config",
                           "depends_on": []
                         },
                         {
@@ -489,45 +489,6 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-001-S-012-REQ-B-007",
-                          "requirement": "The session token display MUST separate the nonce from the GUID so a human can visually verify each part. The display MUST show: (1) Signed token (the encrypted signature), (2) Nonce (the two timestamps extracted from the token), (3) GUID (the session identifier extracted from the token). The nonce and GUID MUST be displayed as separate labeled fields. The presentation in the right panel (after EvaluateCare or SharedServices handoff) MUST be identical to the presentation in the left panel. Both panels MUST use the same labels, layout, and format. But the value of the NONCE will be updated correctly with the new time where it belongs, in the right panel if ownership is passed to EvaluateCare or Shared Services, and in the Left Panel if control is passed to FindCare. Only the owning service Shall update the NONCE.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-B-007-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "name": "Display nonce and GUID as separate labeled fields with identical format in both panels",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-001-S-012-REQ-B-008",
-                          "requirement": "For non-production environments (local, dev, qa), if session-token verification or mutual-authentication handshake (per EPIC-002-F-001-S-012-REQ-T-002) fails to complete or does not return a definitive VERIFIED/FAILED result within 30 seconds, the state is illegal. The UI MUST render a 'Fatal Error' splash in the center panel and display Verified: FAILED in the session verification panel. The UI MUST NOT display 'Pending' for longer than 30 seconds. In production, any runtime security-primitive failure MUST cause the hard process exit defined in EPIC-002-F-001-S-012-REQ-T-004.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Render Fatal Error splash if session authentication fails or times out in nonâ€‘PR",
-                          "depends_on": []
-                        },
-                        {
                           "req_id": "EPIC-002-F-001-S-012-REQ-B-009",
                           "requirement": "The session-verification panel rendered in the left and right panels MUST match the mock at {projectRoot}/brain/machine_artifacts/diagramsAndImages/GUIImagesAndMockUps/NonProdSecuriytToken.jpg.",
                           "priority": "must-have",
@@ -548,103 +509,6 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-001-S-012-REQ-B-010",
-                          "requirement": "The session_token.origin field returned by /verify-token (and any equivalent endpoint that returns a session_token object) MUST be set to the name of the RESPONDING service (e.g., \"EvaluateCare\" for EvaluateCare's /verify-token; \"SharedServices\" for SharedServices'). This origin field is the SELF-IDENTIFICATION of the service that produced THIS response object â€” it is distinct from the cryptographic token signer (REQ-017, which always identifies FindCare). One service MUST NOT assert another service's identity in any field rendered to the operator. The wrapper's session-verification panel MUST render this origin value as-is, treating it as the responding service's authoritative claim of its own identity. The display proves that the named component received and updated the nonce and token and produced this verification result.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-B-010-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "name": "verify-token response origin field self-identifies the responding service",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-001-S-012-REQ-T-001",
-                          "requirement": "Session token mutual authentication MUST pass for SharedServices. The same token FindCare created MUST be the same one SharedServices received.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "playwright",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Enforce SharedServices mutual auth using FindCare-created session token",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-001-S-012-REQ-T-002",
-                          "requirement": "Any call from FindCare, EvaluateCare, or SharedServices to one another MUST complete a mutual-authentication TLS 1.2+ handshake. A failed or incomplete handshake is a fatal error per EPIC-002-F-001-S-012-REQ-B-008.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "unit",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Mutual-authentication TLS 1.2+ for FindCare, EvaluateCare, SharedServices inter-",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-001-S-012-REQ-T-003",
-                          "requirement": "The session token MUST use a stable GUID that identifies the session for its lifetime. The nonce (timestamps) MUST be regenerated fresh on every inter-service call. The GUID MUST NOT change between calls within the same session. The nonce MUST NOT be reused across calls. Every ChatHealthy component (FindCare, EvaluateCare, SharedServices) that receives a token MUST update the last_used timestamp in the nonce to prove it processed the token at that time. Reusing a nonce is a replay attack vector and fails NIST 800-53 SC-23 (Session Authenticity).",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-T-003-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "name": "Session token uses stable GUID and freshly regenerated nonce on each call",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-001-S-012-REQ-T-004",
-                          "requirement": "On startup every server MUST exercise each security primitive it uses (session-token generation, signature signing and verification, credential redaction, mTLS handshake, key decryption, authentication check). If any exercise fails the process MUST exit with a non-zero code. A server MUST NOT serve any request after a failed startup exercise. Exit codes: 78 (configuration failure â€” missing library, missing cert, missing env var, malformed primitive output), 77 (permission denied on cert or key file), 70 (unexpected internal error). Stderr MUST name the primitive that failed.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Startup must test security primitives; exit on failure with specific codes",
-                          "depends_on": []
-                        },
-                        {
                           "req_id": "EPIC-002-F-001-S-012-REQ-T-005",
                           "requirement": "EvaluateCare and SharedServices HF Space deploys MUST include findcare.crt (base64-PEM) as an HF Space Secret named FINDCARE_CERT_PEM. On startup, each backend MUST decode this secret and write it to CERTS_DIR so session_token.verify_session_token can validate incoming tokens signed by FindCare. Absence of this secret is a fatal error per EPIC-002-F-001-S-012-REQ-B-008.",
                           "priority": "must-have",
@@ -661,46 +525,6 @@
                             ]
                           },
                           "name": "Deploy findcare.crt as FINDCARE_CERT_PEM secret and decode to CERTS_DIR on start",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-001-S-012-REQ-T-006",
-                          "requirement": "Every session token generated by a ChatHealthy service MUST include an `origin` field whose value is the name of the originating service (FindCare, EvaluateCare, or SharedServices). The token's signature MUST be produced with that service's own private key. Any service receiving a token MUST verify the signature using the named origin's public certificate and MUST reject the token if the origin field does not match the signing key. The session token display â€” both the left panel at creation and the right panel after a cross-service handoff â€” MUST render the origin value as a labeled field so a human can visually confirm which service signed the token.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-T-006-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "name": "Session token must include and display service origin, signed and verified per-service",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-001-S-012-REQ-T-007",
-                          "requirement": "When the user transfers page ownership to EvaluateCare or SharedServices, the right-panel mutual-authentication request (/verify-token) MUST be issued by the browser directly to the cold-button service (the new owner) and MUST NOT be proxied through FindCare. The browser MUST use the cold service's environment-specific URL (HF Space URL for dev/qa/prod, https://localhost:PORT for local) as the request target. The cold service's /verify-token response â€” including the verified session token â€” MUST be the source of the data rendered in the right panel. This ensures the right panel reflects the actual active service's verification, not FindCare's proxied view of it, and is independently verifiable by inspecting the browser DevTools Network tab. CORS on EvaluateCare and SharedServices MUST allow the wrapper origins (localhost, dev.chathealthy.ai, qa.chathealthy.ai, chathealthy.ai). The /session call (token issuance) MUST continue to target FindCare since FindCare is the sole token issuer. Verification: Code/deploy/localSmokeTestPyTest.py and Code/deploy/devSmokeTestPyTest.py TestStep25.test_push_shared_services MUST register a network listener before the SharedServices banner button click and assert (a) at least one POST to SHARED_URL+'/verify-token' (direct call) and (b) zero POSTs ending in '/shared/verify-token' (no proxy). See BUG-VERIFY-TOKEN-PROXY-001.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-001-S-012-REQ-T-007-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Browser must call cold-button service directly for verify-token (no FindCare proxy)",
                           "depends_on": []
                         }
                       ]
@@ -1112,28 +936,7 @@
                     "size": "S",
                     "status": "done",
                     "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-009-F-001-S-004-REQ-B-001",
-                          "requirement": "GET /session must return a signed session token with origin=FindCare. Falls back to unsigned token if cert unavailable.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-009-F-001-S-004-REQ-B-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "GET /session returns signed token with origin=FindCare; fallback to unsigned if",
-                          "depends_on": []
-                        }
-                      ]
+                      "requirement": []
                     },
                     "orphan": false,
                     "approval": "proposed",
@@ -1612,6 +1415,442 @@
               "orphan": false,
               "approval": "proposed",
               "due_date": "2026-06-01"
+            },
+            {
+              "feature_id": "EPIC-002-F-003",
+              "name": "Authorizations and Authentications",
+              "description": "The feature defines the complete requirements for human Authorizations and Authentications that use '{env}.chathealthy.ai' and chathealthy.ai. The scope of this excludes how users in the Dev Ops pipelines and processes manage their entitlements and identities.",
+              "priority": "must-have",
+              "status": "in_progress",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-002-F-003-S-001",
+                    "name": "GUID — stable per-session auth credential",
+                    "description": "The stable 32-char session identifier carried inside the security token. Manufactured once per page session and preserved across every cross-service hop.",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-003-S-001-REQ-T-001",
+                          "requirement": "The session token MUST use a stable GUID that identifies the session for its lifetime. The GUID MUST NOT change between calls within the same session.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-001-REQ-T-001-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "GUID is stable across all inter-service calls in a session",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-001-REQ-T-002",
+                          "requirement": "The GUID MUST be 16 bytes (128 bits) generated by the UUID version 4 algorithm (RFC 4122), rendered as 32 lowercase hexadecimal characters with no separators.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-001-REQ-T-002-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "GUID is 16 bytes",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-003-S-001",
+                              "reason": "RFC 4122"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "approved"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-003-S-002",
+                    "name": "NONCE — fresh-per-hop replay defense",
+                    "description": "The 17-char timestamp stamped freshly by every server on receive. Defends against replay per NIST 800-53 SC-23. Distinct from the GUID; only the nonce changes per hop.",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-003-S-002-REQ-T-001",
+                          "requirement": "The nonce (timestamps) MUST be regenerated fresh on every inter-service call. The nonce MUST NOT be reused across calls. Every ChatHealthy component (FindCare, EvaluateCare, SharedServices) that receives a token MUST update the last_used timestamp in the nonce to prove it processed the token at that time. Reusing a nonce is a replay attack vector and fails NIST 800-53 SC-23 (Session Authenticity).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-002-REQ-T-001-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "Nonce regenerated fresh per hop and stamped by every receiving service",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-002-REQ-B-001",
+                          "requirement": "But the value of the NONCE will be updated correctly with the new time where it belongs, in the right panel if ownership is passed to EvaluateCare or Shared Services, and in the Left Panel if control is passed to FindCare. Only the owning service Shall update the NONCE.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-002-REQ-B-001-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "Only the owning service updates the displayed nonce; updated panel is the one that owns the page",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-002-REQ-T-002",
+                          "requirement": "The nonce field MUST be 35 bytes in the exact TimeByteOrder YYYYMMDDHHMMSSmmmXYYYYMMDDHHMMSSmmm - two UTC wall-clock timestamps in YYYYMMDDHHMMSSmmm format (17 bytes each: year 4, month 2, day 2, hour 2, minute 2, second 2, millisecond 3 bytes; ASCII digits, no separators) separated by a single literal uppercase ASCII 'X' pad character at byte position 18. The first 17 bytes are the original mint time; the pad 'X' is byte 18; the next 17 bytes are the most-recent restamp time.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-002-REQ-T-002-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "Nonce is 35 bytes",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-002-REQ-B-002",
+                          "requirement": "Bytes 1-17 of the nonce field hold the original mint timestamp. Bytes 19-35 hold the most-recent restamp timestamp. Both values are identical at mint; the latter advances on each restamp while the former is preserved.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-002-REQ-B-002-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "Nonce byte order: original 1-17, latest 19-35",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "approved"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-003-S-003",
+                    "name": "Security Token — signed wire envelope",
+                    "description": "The wire object and its content exchanged between services: { origin, token (CH{nonce}{created}{guid}), signature, created_at, signed, server_env }. Binds the GUID and nonce under an RSA PKCS1v15 SHA256 signature by the current stamping origin.",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-T-001",
+                          "requirement": "Every session token generated by a ChatHealthy service MUST include an `origin` field whose value is the name of the originating service (FindCare, EvaluateCare, or SharedServices). The token's signature MUST be produced with that service's own private key. Any service receiving a token MUST verify the signature using the named origin's public certificate and MUST reject the token if the origin field does not match the signing key. The session token display — both the left panel at creation and the right panel after a cross-service handoff — MUST render the origin value as a labeled field so a human can visually confirm which service signed the token.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-003-REQ-T-001-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "Session token must include and display service origin, signed and verified per-service",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-B-001",
+                          "requirement": "The session_token.origin field returned by /verify-token (and any equivalent endpoint that returns a session_token object) MUST be set to the name of the RESPONDING service (e.g., \"EvaluateCare\" for EvaluateCare's /verify-token; \"SharedServices\" for SharedServices'). This origin field is the SELF-IDENTIFICATION of the service that produced THIS response object — it is distinct from the cryptographic token signer (REQ-017, which always identifies FindCare). One service MUST NOT assert another service's identity in any field rendered to the operator. The wrapper's session-verification panel MUST render this origin value as-is, treating it as the responding service's authoritative claim of its own identity. The display proves that the named component received and updated the nonce and token and produced this verification result.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-003-REQ-B-001-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "verify-token response origin field self-identifies the responding service",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-T-002",
+                          "requirement": "Session token mutual authentication MUST pass for SharedServices. The same token FindCare created MUST be the same one SharedServices received.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "playwright",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "name": "Enforce SharedServices mutual auth using FindCare-created session token",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-T-003",
+                          "requirement": "Any call from FindCare, EvaluateCare, or SharedServices to one another MUST complete a mutual-authentication TLS 1.2+ handshake. A failed or incomplete handshake is a fatal error per EPIC-002-F-003-S-003-REQ-B-002.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "unit",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "name": "Mutual-authentication TLS 1.2+ for FindCare, EvaluateCare, SharedServices inter-service calls",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-B-002",
+                          "requirement": "For non-production environments (local, dev, qa), if session-token verification or mutual-authentication handshake (per EPIC-002-F-003-S-003-REQ-T-003) fails to complete or does not return a definitive VERIFIED/FAILED result within 30 seconds, the state is illegal. The UI MUST render a 'Fatal Error' splash in the center panel and display Verified: FAILED in the session verification panel. The UI MUST NOT display 'Pending' for longer than 30 seconds. In production, any runtime security-primitive failure MUST cause the hard process exit defined in EPIC-002-F-003-S-003-REQ-T-004.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "name": "Render Fatal Error splash if session authentication fails or times out in non-prod",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-T-004",
+                          "requirement": "On startup every server MUST exercise each security primitive it uses (session-token generation, signature signing and verification, credential redaction, mTLS handshake, key decryption, authentication check). If any exercise fails the process MUST exit with a non-zero code. A server MUST NOT serve any request after a failed startup exercise. Exit codes: 78 (configuration failure — missing library, missing cert, missing env var, malformed primitive output), 77 (permission denied on cert or key file), 70 (unexpected internal error). Stderr MUST name the primitive that failed.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "name": "Startup must test security primitives; exit on failure with specific codes",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-T-005",
+                          "requirement": "When the user transfers page ownership to EvaluateCare or SharedServices, the right-panel mutual-authentication request (/verify-token) MUST be issued by the browser directly to the cold-button service (the new owner) and MUST NOT be proxied through FindCare. The browser MUST use the cold service's environment-specific URL (HF Space URL for dev/qa/prod, https://localhost:PORT for local) as the request target. The cold service's /verify-token response — including the verified session token — MUST be the source of the data rendered in the right panel. This ensures the right panel reflects the actual active service's verification, not FindCare's proxied view of it, and is independently verifiable by inspecting the browser DevTools Network tab. CORS on EvaluateCare and SharedServices MUST allow the wrapper origins (localhost, dev.chathealthy.ai, qa.chathealthy.ai, chathealthy.ai). The /session call (token issuance) MUST target the originating service per EPIC-002-F-003-S-003-REQ-T-001 (origin field signed with that service's private key). Verification: Code/deploy/localSmokeTestPyTest.py and Code/deploy/devSmokeTestPyTest.py TestStep25.test_push_shared_services MUST register a network listener before the SharedServices banner button click and assert (a) at least one POST to SHARED_URL+'/verify-token' (direct call) and (b) zero POSTs ending in '/shared/verify-token' (no proxy). See BUG-VERIFY-TOKEN-PROXY-001.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-003-REQ-T-005-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "name": "Browser must call cold-button service directly for verify-token (no FindCare proxy)",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-B-003",
+                          "requirement": "GET /session must return a signed session token with origin=FindCare. Falls back to unsigned token if cert unavailable.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-003-REQ-B-003-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "GET /session returns signed token with origin=FindCare; fallback to unsigned if cert unavailable",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-B-004",
+                          "requirement": "The session token display MUST separate the nonce from the GUID so a human can visually verify each part. The display MUST show: (1) Signed token (the encrypted signature), (2) Nonce (the two timestamps extracted from the token), (3) GUID (the session identifier extracted from the token). The nonce and GUID MUST be displayed as separate labeled fields. The presentation in the right panel (after EvaluateCare or SharedServices handoff) MUST be identical to the presentation in the left panel. Both panels MUST use the same labels, layout, and format.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-003-REQ-B-004-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "Signed-token panel renders signed token, nonce, GUID as separate labeled fields, identical in both panels",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-B-005",
+                          "requirement": "All traffic MUST be HTTPS with mutual authentication.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-003-REQ-B-005-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_https_security.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "All inter-service traffic uses mutual authentication over HTTPS",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-T-006",
+                          "requirement": "MUST comply with EPIC-002-F-003-S-001-REQ-T-002.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-003-REQ-T-006-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "Comply with the GUID specification",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-003-S-001",
+                              "reason": "EPIC-002-F-003-S-001-REQ-T-002"
+                            }
+                          ]
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-B-006",
+                          "requirement": "The session-verification widget MUST display the time in UTC.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-003-REQ-B-006-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "name": "Time displayed in UTC",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "approved"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-003-S-004",
+                    "name": "Create User With Google OAuth",
+                    "description": "ChatHealthy.ai MUST support the creation of users by using Google's OAuth capabilities and relying on Google as an identity provider. This story specifies all the technical and business requirements of this capability.",
+                    "size": "M",
+                    "status": "not_started",
+                    "requirements": {
+                      "requirement": []
+                    },
+                    "orphan": false,
+                    "approval": "approved"
+                  }
+                ]
+              },
+              "realized_by": [
+                "Google OAuth",
+                "PKI",
+                "MongoDB"
+              ],
+              "orphan": false,
+              "approval": "approved",
+              "due_date": "2026-05-13"
             }
           ]
         },
@@ -6947,27 +7186,7 @@
                     "size": "M",
                     "status": "not_started",
                     "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-027-S-001-REQ-T-001",
-                          "requirement": "FindCare authenticates to EvaluateCare via mutual TLS certificate, not bearer token",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "FindCare authenticates to EvaluateCare with mutual TLS, not bearer token",
-                          "depends_on": []
-                        }
-                      ]
+                      "requirement": []
                     },
                     "description": "mTLS for service-to-service communication",
                     "orphan": false,

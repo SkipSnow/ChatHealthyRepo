@@ -1,0 +1,188 @@
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+
+import base64
+import logging as _logging
+import os
+from datetime import datetime, timezone
+from typing import Optional
+
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.x509 import load_pem_x509_certificate
+from pydantic import BaseModel, Field
+
+from .nonce import Nonce
+
+
+_log = _logging.getLogger("chathealthy_frontend_lib.session_token")
+
+
+_TOKEN_PREFIX = "CH"
+_GUID_SIZE = 32
+_TOKEN_SIZE = len(_TOKEN_PREFIX) + Nonce.SIZE + _GUID_SIZE
+_NONCE_OFFSET = len(_TOKEN_PREFIX)
+_GUID_OFFSET = _NONCE_OFFSET + Nonce.SIZE
+
+
+class TokenWidgetData(BaseModel):
+    signed_token: str
+    nonce: str
+    guid: str
+    origin: str
+    verified: Optional[bool] = None
+    server_origin: str
+    server_env: str
+    time_iso: str
+
+
+class SessionTokenVerification(BaseModel):
+    token_received: str
+    signature_received: str
+    origin: str
+    verified: bool
+    created_at: str = ""
+    server_env: Optional[str] = None
+    guid: str = ""
+    nonce: str = ""
+
+
+class TokenInfraError(RuntimeError):
+    pass
+
+
+CERTS_DIR = os.environ.get("CERTS_DIR", "/certs")
+
+
+_SERVICE_TO_CERT_NAME = {
+    "FindCare":       "findcare",
+    "EvaluateCare":   "evalcare",
+    "SharedServices": "shared",
+}
+
+
+def _cert_basename(origin: str) -> str:
+    if origin not in _SERVICE_TO_CERT_NAME:
+        raise ValueError(
+            f"Invalid token origin {origin!r}; "
+            f"must be one of {sorted(_SERVICE_TO_CERT_NAME)}."
+        )
+    return _SERVICE_TO_CERT_NAME[origin]
+
+
+class SessionToken(BaseModel):
+    origin: str
+    token: str
+    signature: str
+    created_at: str
+    signed: bool
+    server_env: Optional[str] = None
+    last_used: Optional[str] = None
+
+    def get_auth_token(self) -> str:
+        if len(self.token) < _TOKEN_SIZE:
+            raise ValueError(
+                f"token length {len(self.token)} < {_TOKEN_SIZE}; cannot extract GUID"
+            )
+        return self.token[_GUID_OFFSET:]
+
+    def get_nonce(self) -> str:
+        if len(self.token) < _GUID_OFFSET:
+            raise ValueError(
+                f"token length {len(self.token)} < {_GUID_OFFSET}; cannot extract nonce"
+            )
+        return self.token[_NONCE_OFFSET:_GUID_OFFSET]
+
+    def put_nonce(self, origin: str) -> None:
+        if len(self.token) < _TOKEN_SIZE or not self.token.startswith(_TOKEN_PREFIX):
+            raise ValueError(f"malformed token; cannot restamp: {self.token!r}")
+        guid = self.get_auth_token()
+        new_nonce_field = Nonce.restamp(self.get_nonce())
+        original_stamp = Nonce.original_stamp(new_nonce_field)
+
+        certs_dir = os.environ.get("CERTS_DIR", CERTS_DIR)
+        key_path = os.path.join(certs_dir, f"{_cert_basename(origin)}.key")
+        if not os.path.exists(key_path):
+            raise FileNotFoundError(
+                f"signing key not found: {key_path}"
+            )
+        with open(key_path, "rb") as f:
+            private_key = serialization.load_pem_private_key(f.read(), password=None)
+
+        payload = f"{origin}:{original_stamp}:{guid}".encode()
+        sig_bytes = private_key.sign(payload, padding.PKCS1v15(), hashes.SHA256())
+
+        now = datetime.now(timezone.utc)
+        self.origin = origin
+        self.token = f"{_TOKEN_PREFIX}{new_nonce_field}{guid}"
+        self.signature = base64.b64encode(sig_bytes).decode()
+        self.created_at = now.isoformat()
+        self.signed = True
+
+    def verify(self, expected_origin: str) -> bool:
+        if not self.signed:
+            raise ValueError(f"verify: signed == {self.signed!r}")
+        if self.origin != expected_origin:
+            raise ValueError(f"verify: origin={self.origin!r} expected={expected_origin!r}")
+        if not self.token:
+            raise ValueError("verify: empty token")
+        if not self.signature:
+            raise ValueError("verify: empty signature")
+        if len(self.token) < _TOKEN_SIZE:
+            raise ValueError(f"verify: token length {len(self.token)} < {_TOKEN_SIZE}")
+
+        nonce_field = self.get_nonce()
+        original_stamp = Nonce.original_stamp(nonce_field)
+        guid = self.get_auth_token()
+
+        certs_dir = os.environ.get("CERTS_DIR", CERTS_DIR)
+        cert_path = os.path.join(certs_dir, f"{_cert_basename(self.origin)}.crt")
+        if not os.path.exists(cert_path):
+            raise TokenInfraError(
+                f"cert file missing at {cert_path} (CERTS_DIR={certs_dir})"
+            )
+        try:
+            with open(cert_path, "rb") as f:
+                cert_pem = f.read()
+            cert = load_pem_x509_certificate(cert_pem)
+        except Exception as exc:
+            raise TokenInfraError(
+                f"failed to load cert at {cert_path}: {type(exc).__name__}: {exc}"
+            ) from exc
+
+        public_key = cert.public_key()
+        payload = f"{self.origin}:{original_stamp}:{guid}".encode()
+        try:
+            sig_bytes = base64.b64decode(self.signature)
+        except Exception as exc:
+            raise ValueError(
+                f"verify: signature is not valid base64: {type(exc).__name__}: {exc}"
+            ) from exc
+
+        try:
+            public_key.verify(sig_bytes, payload, padding.PKCS1v15(), hashes.SHA256())
+        except InvalidSignature:
+            _log.warning("verify: InvalidSignature for origin=%s cert=%s", self.origin, cert_path)
+            return False
+        except Exception as exc:
+            raise TokenInfraError(
+                f"crypto.verify raised {type(exc).__name__}: {exc}"
+            ) from exc
+
+        self.last_used = datetime.now(timezone.utc).isoformat()
+        return True
+
+    def to_widget_data(self, server_env: str, server_origin: str,
+                       verified: Optional[bool] = None) -> TokenWidgetData:
+        now = datetime.now(timezone.utc)
+        return TokenWidgetData(
+            signed_token=self.token,
+            nonce=self.get_nonce(),
+            guid=self.get_auth_token(),
+            origin=self.origin,
+            verified=verified,
+            server_origin=server_origin,
+            server_env=server_env,
+            time_iso=now.isoformat(),
+        )

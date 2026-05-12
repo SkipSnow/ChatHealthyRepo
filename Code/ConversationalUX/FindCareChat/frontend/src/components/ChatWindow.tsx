@@ -28,16 +28,60 @@ const LOADING_MESSAGE: Message = {
   content: 'Loading...',
 }
 
-// Session token — fetched from FindCare backend, signed with x509 cert.
-// Client carries the opaque signed blob, passes it on cross-component calls.
-// No client-side fallback: a failed /session call MUST surface as an error,
-// never a CH_{uuid} placeholder.
+// Session token — SharedServices is the sole auth-token (GUID) issuer.
+// The chat iframe calls SS /auth/issue directly and carries the resulting
+// signed token on cross-component calls. No client-side fallback: a failed
+// /auth/issue MUST surface as an error, never a placeholder.
+function _sharedServicesUrl(apiUrl: string): string {
+  // When VITE_API_URL is unset, apiUrl is '' and a relative fetch would hit
+  // the iframe's own origin (FindCare). Fall back to window.location.origin
+  // to derive a usable base, then point at SharedServices' port/host.
+  const base = apiUrl || (typeof window !== 'undefined' ? window.location.origin : '')
+  if (base.includes('find-care-chat')) {
+    return base.replace('find-care-chat', 'shared-services')
+  }
+  if (base.includes('localhost')) {
+    return base.replace(/(\/\/localhost)(:\d+)?/, '$1:8002')
+  }
+  return base
+}
 let _sessionToken: any = null
+function _requestParentAuth(timeoutMs: number): Promise<any> {
+  return new Promise(resolve => {
+    if (typeof window === 'undefined' || window.parent === window) { resolve(null); return }
+    const handler = (e: MessageEvent) => {
+      if (e.data && e.data.type === 'auth:boot' && e.data.token) {
+        window.removeEventListener('message', handler)
+        resolve(e.data.token)
+      }
+    }
+    window.addEventListener('message', handler)
+    try { window.parent.postMessage({type: 'auth:boot-request'}, '*') } catch { }
+    setTimeout(() => { window.removeEventListener('message', handler); resolve(null) }, timeoutMs)
+  })
+}
 async function getSessionToken(apiUrl: string) {
   if (_sessionToken) return _sessionToken
-  const resp = await fetch(`${apiUrl}/session`, { method: 'POST' })
-  _sessionToken = await resp.json()
-  return _sessionToken
+  // Parent owns the page-session GUID — iframe shares, never mints itself.
+  if (typeof window === 'undefined' || window.parent === window) {
+    const ssUrl = _sharedServicesUrl(apiUrl)
+    const resp = await fetch(`${ssUrl}/auth/issue`, { method: 'POST' })
+    _sessionToken = await resp.json()
+    return _sessionToken
+  }
+  const parentTok = await _requestParentAuth(10000)
+  if (!parentTok) {
+    throw new Error('iframe could not obtain auth:boot from parent within 10s')
+  }
+  _sessionToken = parentTok
+  return parentTok
+}
+if (typeof window !== 'undefined' && window.parent !== window) {
+  window.addEventListener('message', (e: MessageEvent) => {
+    if (e.data && e.data.type === 'auth:boot' && e.data.token) {
+      _sessionToken = e.data.token
+    }
+  })
 }
 
 export default function ChatWindow() {
@@ -257,16 +301,6 @@ export default function ChatWindow() {
         content: '**Evaluating providers...**',
       }])
 
-      // Show unencrypted token below the evaluate button
-      getSessionToken(API_URL).then(st => {
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({
-            type: 'gui:session-display',
-            token: st.token || '',
-          }, '*')
-        }
-      })
-
       getSessionToken(API_URL).then(sessionToken => {
         return fetch(`${EVALCARE_URL}/evaluate/providers`, {
           method: 'POST',
@@ -298,13 +332,6 @@ export default function ChatWindow() {
                 providers: lastProvidersRef.current,
                 question: data.question_summary || '',
                 session_token: data.session_token || null,
-              }, '*')
-            }
-            // Show session GUID in control frame
-            if (window.parent && window.parent !== window && _sessionToken) {
-              window.parent.postMessage({
-                type: 'gui:session-display',
-                token: _sessionToken.token || '',
               }, '*')
             }
           }
