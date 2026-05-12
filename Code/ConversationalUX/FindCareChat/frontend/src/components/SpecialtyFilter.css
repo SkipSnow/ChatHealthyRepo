@@ -27,24 +27,28 @@
  * the three-row percentage split reactive without the layout-thrash
  * cost of an HTML <table>. */
 .specialty-filter__header {
-  display: flex;
-  flex-direction: column;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
   background: #e6f5ec;
   border-bottom: 2px solid #0b7a75;
   flex: 0 0 auto;
+}
+.specialty-filter__header td {
+  vertical-align: middle;
+  padding: 6px 8px;
+  box-sizing: border-box;
 }
 
 /* Row 1 — 4 cells (title | spacer | spacer | close-to-providers). The
    close button is desktop-hidden; on phone it gives the user a clear
    exit from the filter overlay. */
-.specialty-filter__title-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto;
-  align-items: center;
-  padding: 6px 10px;
-  box-sizing: border-box;
-  gap: 4px;
-  flex: 0 0 auto;
+.specialty-filter__title-cell {
+  text-align: left;
+}
+.specialty-filter__close-cell {
+  text-align: right;
+  white-space: nowrap;
 }
 
 .specialty-filter__title {
@@ -75,29 +79,21 @@
 }
 
 /* Row 2 — three counts. Label OVER value, two-line stack (REQ-T-015). */
-.specialty-filter__count-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: center;
+.specialty-filter__count-row td {
   border-top: 1px solid #c9e0d3;
   border-bottom: 1px solid #c9e0d3;
-  box-sizing: border-box;
-  padding: 6px 0;
-  flex: 0 0 auto;
 }
-
 .specialty-filter__count-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2px 4px;
-  box-sizing: border-box;
-  min-width: 0;
+  text-align: center;
+  vertical-align: middle;
+  padding: 4px 4px !important;
 }
-
 .specialty-filter__count-cell + .specialty-filter__count-cell {
   border-left: 1px solid #c9e0d3;
+}
+.specialty-filter__count-label,
+.specialty-filter__count-value {
+  display: block;
 }
 
 .specialty-filter__count-label {
@@ -123,20 +119,8 @@
 /* Row 3 — controls. Two columns: full-height Uncheck-All button on the left,
  * stacked Prescribers / Homeopathic checkboxes on the right (REQ-T-004 row 3
  * geometry). The checkbox column is right-aligned per REQ-T-009 / REQ-T-010. */
-.specialty-filter__controls-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  padding: 6px 0;
-  box-sizing: border-box;
-  flex: 0 0 auto;
-}
-
 .specialty-filter__toggle-all-cell {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  box-sizing: border-box;
+  vertical-align: middle;
 }
 
 .specialty-filter__toggle-all-btn {
@@ -166,13 +150,16 @@
 }
 
 .specialty-filter__macro-checkbox-cell {
+  vertical-align: middle;
+  text-align: right;
+  white-space: nowrap;
+}
+.specialty-filter__macro-checkbox-cell .specialty-filter__macro-checkbox + .specialty-filter__macro-checkbox {
+  margin-top: 2px;
+}
+.specialty-filter__macro-checkbox-cell .specialty-filter__macro-checkbox {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-end; /* right-aligned per REQ-T-009 / REQ-T-010 */
-  padding: 2px 8px;
-  gap: 2px;
-  box-sizing: border-box;
+  justify-content: flex-end;
 }
 
 .specialty-filter__macro-checkbox {
