@@ -318,6 +318,15 @@ def env():
 # apples-to-oranges and produce meaningless signals.
 class TestStep00BuildGate:
     def test_local_and_dev_have_identical_build(self):
+        # This step compares local-vs-dev builds — it is structurally an
+        # operator-workstation check (needs BOTH a local backend AND
+        # reachability to dev). GitHub-Actions runners have no local
+        # backend; on CI the local-side curl returns ECONNREFUSED. Skip
+        # there so the deploy gate isn't permanently red on a structural
+        # mismatch. Operators running smoke locally still get the
+        # comparison they need.
+        if os.environ.get("GITHUB_ACTIONS"):
+            pytest.skip("TestStep00BuildGate is an operator-workstation check; CI has no local backend.")
         # URLs pulled from _ENV_CONFIG — no hardcodes. Real cross-env
         # comparison: local build must match dev build before smoke proceeds.
         local_url = f"{_ENV_CONFIG['local']['findcare_url']}/health"
