@@ -5,7 +5,7 @@
 # the Epic→Feature→Story shape of the backlog without the full 521K
 # tokens of requirement text.
 #
-# Output: test_output/backlog_stories.json
+# Output: _oneshots/test_output/backlog_stories.json
 #
 # Canonical source is untouched: brain/machine_artifacts/content/agile_backlog.json
 import json
@@ -15,7 +15,7 @@ from pathlib import Path
 
 PROJECT = Path(os.environ['CHATHEALTHY_PROJECT_ROOT'])
 SRC = PROJECT / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
-OUT = PROJECT / "test_output" / "backlog_stories.json"
+OUT = PROJECT / "_oneshots/test_output" / "backlog_stories.json"
 
 STORY_KEYS = ("story_id", "title", "description", "parent_feature", "sprint",
               "size", "status", "accepted_by", "orphan", "approval")

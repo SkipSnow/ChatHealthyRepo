@@ -11,7 +11,7 @@
 #   python Code/Shared/ops/tools/lineage_orchestrator.py
 #
 # Control:
-#   Edit test_output/lineage/control.json
+#   Edit _oneshots/test_output/lineage/control.json
 #     "command": "continue" — keep working (default)
 #     "command": "stop" — exit after current job
 #     "command": "report" — write status, then continue
@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
-LINEAGE_DIR = REPO_ROOT / "test_output" / "lineage"
+LINEAGE_DIR = REPO_ROOT / "_oneshots/test_output" / "lineage"
 CONTROL_FILE = LINEAGE_DIR / "control.json"
 PROMPTS_DIR = LINEAGE_DIR / "prompts"
 

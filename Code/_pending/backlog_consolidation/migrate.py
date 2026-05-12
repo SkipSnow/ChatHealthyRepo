@@ -1,7 +1,7 @@
 """
 EPIC-008-F-002 backlog consolidation.
 Source-of-truth: V18 design doc (BR-1..14, TR-1..17).
-Inventory: test_output/scan_validate_relevance.json (71 flagged entities).
+Inventory: _oneshots/test_output/scan_validate_relevance.json (71 flagged entities).
 Outputs: in-place edit of agile_backlog.json, plus mapping table to JSON file.
 """
 import json
@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 BACKLOG = ROOT / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
-FLAGGED_FILE = ROOT / "test_output" / "scan_validate_relevance.json"
+FLAGGED_FILE = ROOT / "_oneshots/test_output" / "scan_validate_relevance.json"
 MAPPING_OUT = ROOT / "Code" / "_pending" / "backlog_consolidation" / "id_mapping.json"
 
 # ---- 4 new stories under EPIC-008-F-002 ----

@@ -22,7 +22,7 @@ For each file:
 
 Also check: which component is actually mounted? Is ChatWindow used or is FindCareApp used? Are there dead components?
 
-Write your output as valid JSON to: test_output/lineage/01_gui_history.json
+Write your output as valid JSON to: _oneshots/test_output/lineage/01_gui_history.json
 
 Schema:
 {

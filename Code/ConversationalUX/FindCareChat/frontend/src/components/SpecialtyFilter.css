@@ -210,3 +210,17 @@
   margin: 0;
   flex: 0 0 auto;
 }
+
+@media (max-width: 600px) {
+  .specialty-filter__row {
+    min-height: 44px;
+    height: auto;
+  }
+  .specialty-filter__macro-checkbox {
+    min-height: 44px;
+    padding: 4px 8px;
+  }
+  .specialty-filter__toggle-all-btn {
+    min-height: 44px;
+  }
+}

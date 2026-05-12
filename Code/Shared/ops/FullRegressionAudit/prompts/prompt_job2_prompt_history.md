@@ -25,7 +25,7 @@ For each AI call site found in any version:
 Also search the current codebase for any remaining LLM calls:
   grep -rn "chat.completions\|messages.create\|embeddings.create" Code/
 
-Write your output as valid JSON to: test_output/lineage/02_prompt_history.json
+Write your output as valid JSON to: _oneshots/test_output/lineage/02_prompt_history.json
 
 Schema:
 {

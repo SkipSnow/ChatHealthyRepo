@@ -158,7 +158,17 @@ class FindCareService:
         }
 
     def _facet_query(self, collection, base_filter: dict, after_npi: str, safe_limit: int) -> tuple:
-        """Single-query count + page using $facet. Returns (providers, total_count)."""
+        """Single-query count + page using $facet. Returns (providers, total_count).
+
+        EPIC-006-F-002-S-002-REQ-T-005: results MUST NOT include institutions,
+        facilities, agencies, or non-individual entries. Enforced two ways:
+        (1) the Mongo query is forced to entity_type_code='1' (individuals);
+        (2) after retrieval each returned doc is asserted as type-1 — if any
+        is not, this is a data-integrity bug and we fail hard (no silent
+        filtering, per Skip's 'no allowances for mistakes' rule).
+        """
+        base_filter = dict(base_filter)
+        base_filter["entity_type_code"] = "1"
         query_filter = dict(base_filter)
         if after_npi:
             query_filter["npi"] = {"$gt": after_npi}
@@ -182,14 +192,30 @@ class FindCareService:
             ] + ([{"$limit": safe_limit}] if safe_limit > 0 else []) + [
                 {"$project": self._PROJECTION},
             ]))
+            self._assert_individuals_only(result)
             return [self._format_provider(p) for p in result], total_count
 
         result = list(collection.aggregate(pipeline))
         if not result:
             return [], 0
         total_count = result[0]["count"][0]["total"] if result[0]["count"] else 0
+        self._assert_individuals_only(result[0]["page"])
         providers = [self._format_provider(p) for p in result[0]["page"]]
         return providers, total_count
+
+    def _assert_individuals_only(self, docs) -> None:
+        """REQ-T-005 fail-hard: every returned provider MUST be
+        entity_type_code='1'. A non-individual leaking through indicates a
+        data-integrity bug; the app must abend so the operator sees it.
+        """
+        for p in docs:
+            etc = p.get("entity_type_code")
+            if etc != "1":
+                raise RuntimeError(
+                    "REQ-T-005 violation: non-individual provider returned by /search "
+                    f"(npi={p.get('npi')!r}, entity_type_code={etc!r}). "
+                    "Data-integrity bug — fail-hard per spec."
+                )
 
     _PROJECTION = {
         "_id": 0, "npi": 1, "entity_type_code": 1,
@@ -362,8 +388,12 @@ class FindCareService:
 
         # ── Route 1: NPI exact lookup ──
         if npi:
-            provider = collection.find_one({"npi": npi}, self._PROJECTION)
+            # REQ-T-005: individuals only. Filter at the query level so an
+            # institution-NPI lookup returns "no provider found", and assert
+            # post-fetch as a fail-hard guard against mislabeled records.
+            provider = collection.find_one({"npi": npi, "entity_type_code": "1"}, self._PROJECTION)
             if provider:
+                self._assert_individuals_only([provider])
                 return {"supported": True, "search_mode": "npi", "count": 1,
                         "providers": [self._format_provider(provider)]}
             return {"supported": True, "providers": [], "message": f"No provider found for NPI {npi}."}
@@ -409,19 +439,10 @@ class FindCareService:
             except Exception:
                 pass
 
-            # Add relevant homeopathic specialties for the filter panel
-            try:
-                from domain.find_care.homeopathic_resolver import resolve_homeopathic_specialties
-                existing = {o["code"] for o in specialization_options}
-                homeo_options = resolve_homeopathic_specialties(
-                    query=specialty_query or filtered_term,
-                    existing_codes=existing,
-                    db=db,
-                    env_prefix=self._env,
-                )
-                specialization_options.extend(homeo_options)
-            except Exception as _he:
-                _log.warning("Homeopathic resolver failed: %s", _he)
+            # EPIC-006-F-002-S-002-REQ-T-012: the AI pipeline (incl. the
+            # homeopathic resolver) runs once during /classify; results
+            # are cached client-side per S-003-REQ-T-010. Apply Filter
+            # MUST be a parameterized DB query only — no further LLM calls.
 
             # Build filtered search term from selected specialty names
             selected_names = [o["name"] for o in specialization_options if o.get("name")]

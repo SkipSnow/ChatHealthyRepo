@@ -82,7 +82,7 @@ class RemoteDeploy:
         self.env = env
         self.repo_root = REPO_ROOT
         self.deploy_dir = self.repo_root / "Code" / "deploy"
-        self.output_dir = self.repo_root / "test_output" / "deploy"
+        self.output_dir = self.repo_root / "_oneshots/test_output" / "deploy"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%SZ")
         self.output_path = self.output_dir / f"deploy_{env}_{ts}.json"

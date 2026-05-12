@@ -85,7 +85,7 @@ SHARED_PORT         = _cfg["shared_port"]
 IS_PROD             = (SMOKE_ENV == "prod")
 
 CERTS_DIR = os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs")
-SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "test_output", "smoke_test")
+SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "_oneshots/test_output", "smoke_test")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 CHAT_TIMEOUT = 120_000
 
