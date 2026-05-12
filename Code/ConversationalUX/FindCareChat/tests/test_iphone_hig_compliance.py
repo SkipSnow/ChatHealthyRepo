@@ -132,8 +132,7 @@ class Test_EPIC_006_F_019_S_004_REQ_B_001_touch_targets_44x44:
     def test_EPIC_006_F_019_S_004_REQ_B_001(self, env):
         page = env["page"]
         # Trigger a search so the providers + filter render.
-        chat = next((f for f in page.frames
-                     if ":7860" in (f.url or "") and "mode=filter" not in (f.url or "")), None)
+        chat = page.locator("#coreChatFrame").content_frame
         assert chat is not None, "chat iframe missing"
         chat.locator("input[placeholder*='Type a message'], textarea").first.fill(SEARCH_QUERY)
         chat.locator("input[placeholder*='Type a message'], textarea").first.press("Enter")
@@ -200,8 +199,7 @@ class Test_EPIC_006_F_019_S_003_REQ_B_004_no_horizontal_scroll_360:
         if env["label"] != "GalaxyS21":
             pytest.skip("This REQ pins Galaxy S21 (360x800). Skip on iPhone14.")
         page = env["page"]
-        chat = next((f for f in page.frames
-                     if ":7860" in (f.url or "") and "mode=filter" not in (f.url or "")), None)
+        chat = page.locator("#coreChatFrame").content_frame
         assert chat is not None
         chat.locator("input[placeholder*='Type a message'], textarea").first.fill(SEARCH_QUERY)
         chat.locator("input[placeholder*='Type a message'], textarea").first.press("Enter")
