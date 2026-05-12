@@ -88,6 +88,9 @@ export default function SpecialtyFilterFrame() {
               '*',
             )
           }}
+          onCloseRequest={() => {
+            window.parent.postMessage({ type: 'gui:filter-close-request' }, '*')
+          }}
         />
       </div>
 
