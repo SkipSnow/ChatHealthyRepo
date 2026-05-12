@@ -31,6 +31,11 @@ on:
 jobs:
   promote-build:
     runs-on: ubuntu-latest
+    # Promotion merges source branch into target branch and pushes. The
+    # default GITHUB_TOKEN is read-only on workflow_dispatch; contents:write
+    # is required for `git push origin <target>` to land.
+    permissions:
+      contents: write
 
     steps:
       - name: Validate promotion path
