@@ -556,6 +556,10 @@
         padding: 16px;
         overflow-y: auto;
       }
+      #mobileFilterClose { display: none; }
+      body.filter-overlay-open #mobileFilterClose {
+        display: flex; align-items: center; justify-content: center;
+      }
       /* EPIC-006-F-002-S-001-REQ-T-003 + EPIC-006-F-019 mobile usability:
          A persistent re-open control lets the user return to the filter
          overlay after Apply Filter auto-closes it. Visible only when a
@@ -569,6 +573,14 @@
     #mobileFilterReopen {
       position: fixed; right: 14px; bottom: 76px; z-index: 999;
       width: 56px; height: 56px; border-radius: 28px;
+      background: linear-gradient(180deg, #0b9a94, #0b7a75);
+      color: #fff; border: none; font-size: 11px; font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25); cursor: pointer;
+      display: none;
+    }
+    #mobileFilterClose {
+      position: fixed; right: 14px; bottom: 76px; z-index: 1001;
+      min-width: 56px; height: 56px; padding: 0 14px; border-radius: 28px;
       background: linear-gradient(180deg, #0b9a94, #0b7a75);
       color: #fff; border: none; font-size: 11px; font-weight: 700;
       box-shadow: 0 4px 12px rgba(0,0,0,0.25); cursor: pointer;
@@ -695,6 +707,7 @@
        Allows the user to return to the filter overlay after Apply Filter closes
        it on phone. CSS keeps it hidden until a filter is loaded. -->
   <button id="mobileFilterReopen" type="button" aria-label="Open filter" data-testid="mobile-filter-reopen">Filter</button>
+  <button id="mobileFilterClose" type="button" aria-label="Back to providers" data-testid="mobile-filter-close">Providers</button>
 
   <!-- Mobile nav drawer -->
   <nav class="mobile-nav" id="mobileNav">
@@ -1983,6 +1996,14 @@
           lp.classList.add('mobile-filter-open');
           document.body.classList.add('filter-overlay-open');
         }
+      });
+    }
+    const mobileFilterClose = document.getElementById('mobileFilterClose');
+    if (mobileFilterClose) {
+      mobileFilterClose.addEventListener('click', () => {
+        const lp = document.getElementById('leftPanel');
+        if (lp) lp.classList.remove('mobile-filter-open');
+        document.body.classList.remove('filter-overlay-open');
       });
     }
 
