@@ -192,6 +192,36 @@ class Test_EPIC_006_F_019_S_004_REQ_B_001_touch_targets_44x44:
 # REQ-B-004: provider cards readable, no horizontal scroll at 360 width.
 # ════════════════════════════════════════════════════════════════════
 
+class Test_EPIC_006_F_019_S_003_REQ_B_001_providers_visible_first_on_phone:
+    """On phone, the first results land with providers visible — NOT
+    occluded by an auto-opened filter overlay. Matches the desktop model
+    where providers are the primary surface."""
+    def test_phone_providers_visible_first(self, env):
+        page = env["page"]
+        chat = page.locator("#coreChatFrame").content_frame
+        assert chat is not None, "chat iframe missing"
+        chat.locator("input[placeholder*='Type a message'], textarea").first.fill(SEARCH_QUERY)
+        chat.locator("input[placeholder*='Type a message'], textarea").first.press("Enter")
+        chat.locator("[data-testid='available-providers']").wait_for(timeout=45000)
+        page.wait_for_timeout(800)
+        # leftPanel must NOT have mobile-filter-open after first results
+        lp_class = page.locator("#leftPanel").get_attribute("class") or ""
+        assert "mobile-filter-open" not in lp_class, (
+            f"[{env['label']}] Filter overlay auto-opened on first results — occludes providers. "
+            f"leftPanel.class={lp_class!r}"
+        )
+        # body must NOT have filter-overlay-open
+        body_class = page.locator("body").get_attribute("class") or ""
+        assert "filter-overlay-open" not in body_class, (
+            f"[{env['label']}] body.filter-overlay-open set on first results"
+        )
+        # Filter FAB MUST be visible (the gate body.has-filter-results
+        # without filter-overlay-open).
+        fab = page.locator("#mobileFilterReopen")
+        assert fab.count() > 0, f"[{env['label']}] mobile-filter FAB missing"
+        assert fab.is_visible(), f"[{env['label']}] mobile-filter FAB not visible after first results"
+
+
 class Test_EPIC_006_F_019_S_003_REQ_B_004_no_horizontal_scroll_360:
     """At 360px width (Galaxy S21), the rendered provider list must
     not require horizontal scroll."""
@@ -204,9 +234,11 @@ class Test_EPIC_006_F_019_S_003_REQ_B_004_no_horizontal_scroll_360:
         chat.locator("input[placeholder*='Type a message'], textarea").first.fill(SEARCH_QUERY)
         chat.locator("input[placeholder*='Type a message'], textarea").first.press("Enter")
         chat.locator("[data-testid='available-providers']").wait_for(timeout=40000)
-        # Measure document scroll dimensions in the chat iframe
-        info = chat.evaluate(
-            "() => ({sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth})"
+        # Measure document scroll dimensions in the chat iframe.
+        # FrameLocator has no evaluate(); read via the iframe's html
+        # element locator instead.
+        info = chat.locator("html").evaluate(
+            "el => ({sw: el.scrollWidth, cw: el.clientWidth})"
         )
         assert info["sw"] <= info["cw"] + 1, (
             f"Horizontal scroll on 360px: scrollWidth={info['sw']} clientWidth={info['cw']}"

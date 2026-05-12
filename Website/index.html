@@ -1426,14 +1426,12 @@
           leftPanel.style.alignItems = 'stretch';
           leftPanel.style.justifyContent = 'stretch';
           leftPanel.classList.add('filter-active');
-          // EPIC-006-F-019: body.has-filter-results gates the mobile
-          // re-open FAB.
+          // body.has-filter-results gates the mobile re-open FAB so the
+          // user can pull up the filter when they want it. On phone we
+          // DO NOT auto-open the overlay on first results — the user
+          // needs to see the providers first (parallel to the desktop
+          // model where providers are the primary surface).
           document.body.classList.add('has-filter-results');
-          // Mobile: show as fullscreen overlay
-          if (window.innerWidth <= 600) {
-            leftPanel.classList.add('mobile-filter-open');
-            document.body.classList.add('filter-overlay-open');
-          }
           // EPIC-006-F-002 Option B: leftPanel renders a sub-iframe that
           // hosts the React SpecialtyFilter (with its 4-cell grid). The
           // legacy HTML in msg.html is no longer used — we only need the
