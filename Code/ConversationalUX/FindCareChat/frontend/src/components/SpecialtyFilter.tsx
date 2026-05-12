@@ -242,76 +242,75 @@ export default function SpecialtyFilter({
   // ── Render ──────────────────────────────────────────────────────
   return (
     <div className="specialty-filter" data-testid="specialty-filter">
-      <div className="specialty-filter__header">
-        {/* Row 1 — title (cell 1) + 2 spacer cells + back-to-providers (cell 4) */}
-        <div className="specialty-filter__title-row">
-          <span className="specialty-filter__title">Choose Specialties</span>
-          <span></span>
-          <span></span>
-          {onCloseRequest ? (
-            <button
-              type="button"
-              className="specialty-filter__close-btn"
-              data-testid="specialty-filter-close"
-              onClick={onCloseRequest}
-            >Providers</button>
-          ) : <span></span>}
-        </div>
-
-        {/* Row 2 — three counts, label OVER value (REQ-T-015) */}
-        <div className="specialty-filter__count-row">
-          <div className="specialty-filter__count-cell" data-testid="count-all-possible">
-            <span className="specialty-filter__count-label">All possible</span>
-            <span className="specialty-filter__count-value">{allPossibleCount}</span>
-          </div>
-          <div className="specialty-filter__count-cell" data-testid="count-all-prescribers">
-            <span className="specialty-filter__count-label">All prescribers</span>
-            <span className="specialty-filter__count-value">{allPrescribersCount}</span>
-          </div>
-          <div className="specialty-filter__count-cell" data-testid="count-your-choices">
-            <span className="specialty-filter__count-label">Your choices</span>
-            <span className="specialty-filter__count-value specialty-filter__count-value--your-choices">
-              {yourChoicesCount}
-            </span>
-          </div>
-        </div>
-
-        {/* Row 3 — controls */}
-        <div className="specialty-filter__controls-row">
-          <div className="specialty-filter__toggle-all-cell">
-            <button
-              type="button"
-              className="specialty-filter__toggle-all-btn"
-              onClick={handleToggleAll}
-              disabled={uncheckAllDisabled}
-              title={uncheckAllDisabled ? 'No specialties are checked' : ''}
-              data-testid="toggle-all-button"
-            >
-              {labelIsCheckAll ? 'Check All' : 'Uncheck All'}
-            </button>
-          </div>
-          <div className="specialty-filter__macro-checkbox-cell">
-            <label className="specialty-filter__macro-checkbox">
-              <input
-                type="checkbox"
-                checked={prescribersChecked}
-                onChange={() => handlePrescribersToggle()}
-                data-testid="macro-prescribers"
-              />
-              Prescribers
-            </label>
-            <label className="specialty-filter__macro-checkbox">
-              <input
-                type="checkbox"
-                checked={homeopathicChecked}
-                onChange={() => handleHomeopathicToggle()}
-                data-testid="macro-homeopathic"
-              />
-              Homeopathic
-            </label>
-          </div>
-        </div>
-      </div>
+      <table className="specialty-filter__header">
+        <tbody>
+          <tr className="specialty-filter__title-row">
+            <td className="specialty-filter__title-cell" colSpan={3}>
+              <span className="specialty-filter__title">Choose Specialties</span>
+            </td>
+            <td className="specialty-filter__close-cell">
+              {onCloseRequest && (
+                <button
+                  type="button"
+                  className="specialty-filter__close-btn"
+                  data-testid="specialty-filter-close"
+                  onClick={onCloseRequest}
+                >Providers</button>
+              )}
+            </td>
+          </tr>
+          <tr className="specialty-filter__count-row">
+            <td className="specialty-filter__count-cell" data-testid="count-all-possible">
+              <span className="specialty-filter__count-label">All possible</span>
+              <span className="specialty-filter__count-value">{allPossibleCount}</span>
+            </td>
+            <td className="specialty-filter__count-cell" data-testid="count-all-prescribers">
+              <span className="specialty-filter__count-label">All prescribers</span>
+              <span className="specialty-filter__count-value">{allPrescribersCount}</span>
+            </td>
+            <td className="specialty-filter__count-cell" data-testid="count-your-choices" colSpan={2}>
+              <span className="specialty-filter__count-label">Your choices</span>
+              <span className="specialty-filter__count-value specialty-filter__count-value--your-choices">
+                {yourChoicesCount}
+              </span>
+            </td>
+          </tr>
+          <tr className="specialty-filter__controls-row">
+            <td className="specialty-filter__toggle-all-cell" colSpan={2}>
+              <button
+                type="button"
+                className="specialty-filter__toggle-all-btn"
+                onClick={handleToggleAll}
+                disabled={uncheckAllDisabled}
+                title={uncheckAllDisabled ? 'No specialties are checked' : ''}
+                data-testid="toggle-all-button"
+              >
+                {labelIsCheckAll ? 'Check All' : 'Uncheck All'}
+              </button>
+            </td>
+            <td className="specialty-filter__macro-checkbox-cell" colSpan={2}>
+              <label className="specialty-filter__macro-checkbox">
+                <input
+                  type="checkbox"
+                  checked={prescribersChecked}
+                  onChange={() => handlePrescribersToggle()}
+                  data-testid="macro-prescribers"
+                />
+                Prescribers
+              </label>
+              <label className="specialty-filter__macro-checkbox">
+                <input
+                  type="checkbox"
+                  checked={homeopathicChecked}
+                  onChange={() => handleHomeopathicToggle()}
+                  data-testid="macro-homeopathic"
+                />
+                Homeopathic
+              </label>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* Body — one horizontal row per specialty (REQ-T-012, REQ-T-013) */}
       <div className="specialty-filter__body" data-testid="specialty-list">
