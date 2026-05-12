@@ -720,7 +720,7 @@
        it on phone. CSS keeps it hidden until a filter is loaded. -->
   <button id="mobileFilterReopen" type="button" aria-label="Open filter" data-testid="mobile-filter-reopen">Filter</button>
   <button id="mobileRightOpen" type="button" aria-label="Show evaluation panel" data-testid="mobile-right-open">Info</button>
-  <button id="mobileRightClose" type="button" aria-label="Close info" data-testid="mobile-right-close">Back</button>
+  <button id="mobileRightClose" type="button" aria-label="Return to FindCare" data-testid="mobile-right-close">FindCare</button>
 
   <!-- Mobile nav drawer -->
   <nav class="mobile-nav" id="mobileNav">
@@ -2049,9 +2049,27 @@
     const mobileRightClose = document.getElementById('mobileRightClose');
     if (mobileRightClose) {
       mobileRightClose.addEventListener('click', () => {
+        // State-preserving snap-back to FindCare (do NOT gui:reset; the
+        // user's search + selection must survive). Mirror of the cross-
+        // service path in gui:filter-apply-click.
         const rp = document.getElementById('rightPanel');
         if (rp) rp.classList.remove('mobile-rightpanel-open');
         document.body.classList.remove('right-overlay-open');
+        if (window._pageOwner && window._pageOwner !== 'findcare') {
+          window._pageOwner = 'findcare';
+          const ecSplash = document.getElementById('evalcareSplash');
+          if (ecSplash) ecSplash.style.display = 'none';
+          const shSplash = document.getElementById('sharedSplash');
+          if (shSplash) shSplash.style.display = 'none';
+          const chat = document.getElementById('coreChatFrame');
+          if (chat) chat.style.display = '';
+          if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
+          if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
+          if (typeof window.refreshTokenPanels === 'function') window.refreshTokenPanels('findcare');
+          if (chat && chat.contentWindow) {
+            chat.contentWindow.postMessage({ type: 'gui:request-selection-count' }, '*');
+          }
+        }
       });
     }
 
