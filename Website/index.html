@@ -813,12 +813,17 @@
         if (key === 'evaluatecare') document.body.classList.add('in-evalcare');
         else if (key === 'sharedservices') document.body.classList.add('in-sharedservices');
         else document.body.classList.add('in-findcare');
-        // Returning to FindCare must drop any open right-panel overlay
-        // (cross-service overlay is contextually wrong).
+        // Phone: entering EvaluateCare/SharedServices shows the right
+        // panel (token + selected providers) as the primary content
+        // instead of the unimplemented splash. Returning to FindCare
+        // drops the overlay.
+        var rp = document.getElementById('rightPanel');
         if (key === 'findcare') {
-          var rp = document.getElementById('rightPanel');
           if (rp) rp.classList.remove('mobile-rightpanel-open');
           document.body.classList.remove('right-overlay-open');
+        } else if (window.innerWidth <= 600) {
+          if (rp) rp.classList.add('mobile-rightpanel-open');
+          document.body.classList.add('right-overlay-open');
         }
         var root = (window._envServiceUrls || {})[key] || '';
         var healthUrl = root + '/health';
