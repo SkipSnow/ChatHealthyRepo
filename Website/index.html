@@ -569,6 +569,37 @@
       body.has-filter-results:not(.filter-overlay-open) #mobileFilterReopen {
         display: flex; align-items: center; justify-content: center;
       }
+      .side-panel#rightPanel.mobile-rightpanel-open {
+        display: flex !important;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100% !important;
+        z-index: 1000;
+        background: rgba(255,255,255,0.98);
+        padding: 16px;
+        overflow-y: auto;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+      }
+      #mobileRightOpen { display: none; }
+      body.in-evalcare:not(.right-overlay-open) #mobileRightOpen,
+      body.in-sharedservices:not(.right-overlay-open) #mobileRightOpen {
+        display: flex; align-items: center; justify-content: center;
+      }
+      #mobileRightClose { display: none; }
+      body.right-overlay-open #mobileRightClose {
+        display: flex; align-items: center; justify-content: center;
+      }
+    }
+    #mobileRightOpen,
+    #mobileRightClose {
+      position: fixed; right: 14px; top: 96px; z-index: 1001;
+      min-width: 64px; height: 32px; padding: 0 12px; border-radius: 16px;
+      background: linear-gradient(180deg, #d97706, #b45309);
+      color: #fff; border: none; font-size: 11px; font-weight: 700;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25); cursor: pointer;
+      display: none;
     }
     #mobileFilterReopen,
     #mobileFilterClose {
@@ -701,6 +732,8 @@
        it on phone. CSS keeps it hidden until a filter is loaded. -->
   <button id="mobileFilterReopen" type="button" aria-label="Open filter" data-testid="mobile-filter-reopen">Filter</button>
   <button id="mobileFilterClose" type="button" aria-label="Back to providers" data-testid="mobile-filter-close">Providers</button>
+  <button id="mobileRightOpen" type="button" aria-label="Show evaluation panel" data-testid="mobile-right-open">Info</button>
+  <button id="mobileRightClose" type="button" aria-label="Close info" data-testid="mobile-right-close">Back</button>
 
   <!-- Mobile nav drawer -->
   <nav class="mobile-nav" id="mobileNav">
@@ -787,6 +820,19 @@
       //   'findcare' | 'evaluatecare' | 'sharedservices'
       window.refreshBanner = function(serviceKey) {
         var key = serviceKey || 'findcare';
+        // Body class tracks the active service so phone CSS can show the
+        // right-panel FAB only inside EvaluateCare / SharedServices.
+        document.body.classList.remove('in-findcare', 'in-evalcare', 'in-sharedservices');
+        if (key === 'evaluatecare') document.body.classList.add('in-evalcare');
+        else if (key === 'sharedservices') document.body.classList.add('in-sharedservices');
+        else document.body.classList.add('in-findcare');
+        // Returning to FindCare must drop any open right-panel overlay
+        // (cross-service overlay is contextually wrong).
+        if (key === 'findcare') {
+          var rp = document.getElementById('rightPanel');
+          if (rp) rp.classList.remove('mobile-rightpanel-open');
+          document.body.classList.remove('right-overlay-open');
+        }
         var root = (window._envServiceUrls || {})[key] || '';
         var healthUrl = root + '/health';
         function paintBanner(version, framework, build) {
@@ -1997,6 +2043,24 @@
         const lp = document.getElementById('leftPanel');
         if (lp) lp.classList.remove('mobile-filter-open');
         document.body.classList.remove('filter-overlay-open');
+      });
+    }
+    const mobileRightOpen = document.getElementById('mobileRightOpen');
+    if (mobileRightOpen) {
+      mobileRightOpen.addEventListener('click', () => {
+        const rp = document.getElementById('rightPanel');
+        if (rp) {
+          rp.classList.add('mobile-rightpanel-open');
+          document.body.classList.add('right-overlay-open');
+        }
+      });
+    }
+    const mobileRightClose = document.getElementById('mobileRightClose');
+    if (mobileRightClose) {
+      mobileRightClose.addEventListener('click', () => {
+        const rp = document.getElementById('rightPanel');
+        if (rp) rp.classList.remove('mobile-rightpanel-open');
+        document.body.classList.remove('right-overlay-open');
       });
     }
 
