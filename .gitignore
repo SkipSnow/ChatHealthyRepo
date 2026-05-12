@@ -103,8 +103,3 @@ archive/
 # it never gets caught by pre-commit or accidentally committed.
 _oneshots/
 **/_oneshots/
-
-# Operational/runtime artifacts (not source)
-cls.json
-prod_runlog.txt
-prod_runlog_stream.txt
