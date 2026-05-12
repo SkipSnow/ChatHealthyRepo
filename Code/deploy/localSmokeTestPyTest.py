@@ -768,10 +768,7 @@ class TestStep22:
         if sh_splash.count() > 0:
             assert not sh_splash.is_visible(), "SharedServices splash still visible after return"
 
-        chat_frame = None
-        for f in page.frames:
-            if ":7860" in f.url and "mode=filter" not in (f.url or ""):
-                chat_frame = f; break
+        chat_frame = page.locator("#coreChatFrame").content_frame
         assert chat_frame is not None, "Chat iframe not found at TestStep22"
         env["chat_frame"] = chat_frame
 

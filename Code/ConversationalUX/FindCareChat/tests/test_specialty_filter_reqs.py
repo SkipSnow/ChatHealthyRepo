@@ -39,8 +39,7 @@ def env():
         ctx = browser.new_context(ignore_https_errors=True)
         page = ctx.new_page()
         page.goto(BASE_URL, wait_until="networkidle")
-        chat = next((f for f in page.frames
-                     if ":7860" in (f.url or "") and "mode=filter" not in (f.url or "")), None)
+        chat = page.locator("#coreChatFrame").content_frame
         assert chat is not None, "chat iframe not found"
         chat.locator("input[placeholder*='Type a message'], textarea").first.fill(SEARCH_QUERY)
         chat.locator("input[placeholder*='Type a message'], textarea").first.press("Enter")
