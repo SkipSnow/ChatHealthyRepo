@@ -54,12 +54,20 @@ export interface SpecialtyFilterProps {
    * component just emits authoritatively whenever its state moves.
    */
   onSelectionChange: (checkedCodes: string[]) => void
+  /**
+   * Optional. When provided, the title row renders a 4th cell containing
+   * a "Providers" close button (visible on phone viewports only). The
+   * frame host wires this to the parent so the user can leave the
+   * filter overlay back to the providers screen.
+   */
+  onCloseRequest?: () => void
 }
 
 // ── Component ──────────────────────────────────────────────────────
 export default function SpecialtyFilter({
   specialties,
   onSelectionChange,
+  onCloseRequest,
 }: SpecialtyFilterProps) {
   // Per-row checked state — code -> bool.
   // REQ-B-001 initial state: Prescribers macro is
@@ -235,9 +243,19 @@ export default function SpecialtyFilter({
   return (
     <div className="specialty-filter" data-testid="specialty-filter">
       <div className="specialty-filter__header">
-        {/* Row 1 — title */}
+        {/* Row 1 — title (cell 1) + 2 spacer cells + back-to-providers (cell 4) */}
         <div className="specialty-filter__title-row">
           <span className="specialty-filter__title">Choose Specialties</span>
+          <span></span>
+          <span></span>
+          {onCloseRequest ? (
+            <button
+              type="button"
+              className="specialty-filter__close-btn"
+              data-testid="specialty-filter-close"
+              onClick={onCloseRequest}
+            >Providers</button>
+          ) : <span></span>}
         </div>
 
         {/* Row 2 — three counts, label OVER value (REQ-T-015) */}
