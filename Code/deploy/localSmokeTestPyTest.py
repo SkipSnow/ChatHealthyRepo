@@ -197,15 +197,14 @@ def _verify_session_identity(page, env, handoff_label):
     change, so both panels carry the same verified state immediately after
     the handoff completes.
 
-    Checks (per EPIC-002-F-001-S-012):
-      REQ-B-007: both panels show Signed token + Nonce + GUID identically
-      REQ-B-009: Env + PST Time rows present in both panels; Time format is
-                 'PST <YYYY-MM-DD HH:MM:SS>' (not 'PST ?')
-      REQ-B-010: Server, serving security token row self-identifies the
-                 verifier (responding service)
-      REQ-T-002: Verified == YES (mutual-auth handshake completed)
-      REQ-T-003: nonce differs from every previous nonce in the run; GUID
-                 stays equal to the originating session GUID
+    Checks:
+      Both panels show Signed token + Nonce + GUID identically
+      Time row present in both panels; renders the server's created_at
+      (ISO 8601 UTC) per EPIC-002-F-003-S-003-REQ-B-006
+      Server, serving security token row self-identifies the
+      responding service per S-012-REQ-B-010
+      Verified is rendered (true / false) per S-012-REQ-T-002
+      GUID stays equal to the originating session GUID per S-012-REQ-T-003
     """
     _wait_for_verified_resolution(page, handoff_label)
     right = page.locator("#rightPanel").inner_text()
@@ -224,13 +223,12 @@ def _verify_session_identity(page, env, handoff_label):
     handoff_target_for_time = handoff_label.split("→")[-1].strip().lower()
     owning_text_for_time = left if "findcare" in handoff_target_for_time else right
     owning_label_for_time = "left" if "findcare" in handoff_target_for_time else "right"
-    m_time = re.search(r'Time:\s*PST\s*(\S+)', owning_text_for_time)
+    m_time = re.search(r'Time:\s*(\S+)', owning_text_for_time)
     assert m_time, f"[{handoff_label}] {owning_label_for_time} (owning) panel: could not parse Time"
     time_val = m_time.group(1)
-    assert time_val != "?" and re.match(r'\d{2}/\d{2}/\d{4}', time_val), \
+    assert time_val != "?" and re.match(r'\d{4}-\d{2}-\d{2}T', time_val), \
         (f"[{handoff_label}] {owning_label_for_time} (owning) panel Time={time_val!r} is "
-         f"not a PST timestamp. Per REQ-B-009 the verify-token response MUST include "
-         f"created_at and the panel MUST render it.")
+         f"not an ISO 8601 UTC timestamp per EPIC-002-F-003-S-003-REQ-B-006.")
     # Per REQ-B-007 amendment: only the owning panel updates per handoff.
     # Verified=YES is asserted on the OWNING panel only — the non-owning
     # panel may legitimately remain at its prior state (including Pending
