@@ -76,6 +76,12 @@ export default function FindCareApp() {
   const [lastNpi, setLastNpi] = useState('')
   const [hasMore, setHasMore] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  // EPIC-006-F-002-S-001-REQ-B-001 (Apply-Filter middle-screen behavior):
+  // during a filter-apply re-classify, the Available Providers area is
+  // emptied + shows the main-screen timer; Selected-for-Evaluation and
+  // the prompt row remain. Distinct from phase='searching' (initial search)
+  // which has nothing to preserve.
+  const [reclassifying, setReclassifying] = useState(false)
 
   const selection = useSelectionState()
   const selectedRef = useRef<Provider[]>([])
@@ -85,6 +91,10 @@ export default function FindCareApp() {
   const specialtyMapRef = useRef<Record<string, string>>({})
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Bug 1 (blocking input): allow a new search to abort the previous in-flight
+  // /classify + /search pair so the user can re-issue mid-flight without a
+  // stale response stomping the new one.
+  const searchAbortRef = useRef<AbortController | null>(null)
 
   // EPIC-006-F-002-S-001-REQ-B-001: SpecialtyFilter rows (the cached client
   // list — see "Cache Results on client" in REQ-B-001) and a live ref to
@@ -116,6 +126,17 @@ export default function FindCareApp() {
       const msg = event.data
       if (!msg || typeof msg !== 'object') return
 
+      // Bug 5: parent asks for the current selection count after returning
+      // to FindCare from EvaluateCare so it can re-render the Evaluate
+      // button. Reply with whatever the live selection holds.
+      if (msg.type === 'gui:request-selection-count') {
+        sendToParent('gui:selection-count', {
+          count: selectedRef.current.length,
+          max: selection.state.maxSelected,
+        })
+        return
+      }
+
       // RestoreState=false — reset to welcome, focus input
       if (msg.type === 'gui:reset') {
         setPhase('welcome')
@@ -145,7 +166,34 @@ export default function FindCareApp() {
             try { codes = JSON.parse(msg.value) } catch { codes = [] }
           }
           const params = { ...searchParamsRef.current, specialty_codes: codes }
-          fetchProviders(params, questionRef.current)
+          // EPIC-006-F-002-S-001-REQ-B-001 / S-004-REQ-T-001/T-002:
+          //   clear unpicked providers, start two timers, preserve selected
+          //   and the prompt. fetchProviders' .then() resets the state.
+          selection.setAvailable([])
+          setReclassifying(true)
+          setThinkSeconds(0)
+          if (timerRef.current) clearInterval(timerRef.current)
+          const start = Date.now()
+          timerRef.current = setInterval(() => {
+            const elapsed = Math.round((Date.now() - start) / 1000)
+            setThinkSeconds(elapsed)
+            sendToParent('gui:timer', { seconds: elapsed })
+          }, 1000)
+          fetchProviders(params, questionRef.current).finally(() => {
+            if (timerRef.current) {
+              clearInterval(timerRef.current)
+              timerRef.current = null
+            }
+            sendToParent('gui:timer-clear')
+            setReclassifying(false)
+            // Re-emit the LIVE selection count (selection.state.selected
+            // is captured by useEffect's mount-time closure and goes stale;
+            // selectedRef is updated on every render).
+            sendToParent('gui:selection-count', {
+              count: selectedRef.current.length,
+              max: selection.state.maxSelected,
+            })
+          })
         }
         if (msg.action === 'evaluate-providers') {
           handleEvaluate()
@@ -158,6 +206,13 @@ export default function FindCareApp() {
 
   // ── Search ─────────────────────────────────────────────────────
   const doSearch = useCallback(async (text: string) => {
+    // Bug 1: abort any in-flight search so a stale response cannot stomp
+    // the new one. The aborted fetch throws AbortError which the catch
+    // below recognises and swallows.
+    if (searchAbortRef.current) searchAbortRef.current.abort()
+    const ac = new AbortController()
+    searchAbortRef.current = ac
+
     setQuestion(text)
     setPhase('searching')
     setThinkSeconds(0)
@@ -166,6 +221,7 @@ export default function FindCareApp() {
 
     // Start timer — send elapsed seconds to parent control frame every second
     const start = Date.now()
+    if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
       const elapsed = Math.round((Date.now() - start) / 1000)
       setThinkSeconds(elapsed)
@@ -179,6 +235,7 @@ export default function FindCareApp() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
+        signal: ac.signal,
       })
       checkSecurityViolation(classifyResp, `${API_URL}/classify`)
       const classified = await classifyResp.json()
@@ -269,6 +326,9 @@ export default function FindCareApp() {
         setSpecialtyRows([])
       }
     } catch (err: any) {
+      // Bug 1: aborted requests are expected when the user re-issues
+      // mid-flight; swallow them so the new search runs cleanly.
+      if (err && (err.name === 'AbortError' || ac.signal.aborted)) return
       if (timerRef.current) clearInterval(timerRef.current)
       sendToParent('gui:timer-clear')
       const msg = err.message || 'Search failed'
@@ -280,14 +340,24 @@ export default function FindCareApp() {
 
   // ── Fetch providers (search or filter refresh) ─────────────────
   const fetchProviders = useCallback(async (params: any, q: string) => {
+    const ac = searchAbortRef.current
     try {
       const resp = await fetch(`${API_URL}/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
+        signal: ac ? ac.signal : undefined,
       })
       checkSecurityViolation(resp, `${API_URL}/search`)
+      // REQ-T-005 fail-hard: a non-200 from /search means the backend
+      // assertion fired (e.g. an institution slipped through). Don't paper
+      // over it — propagate as a fatal error.
+      if (!resp.ok) {
+        throw new Error(`Provider search failed: HTTP ${resp.status}`)
+      }
       const data = await resp.json()
+      // Bug 1: skip state updates if a newer search aborted us mid-flight.
+      if (ac && ac.signal.aborted) return
       if (data.providers) {
         // Enrich providers with specialty name from user's selection (FC-DISPLAY-001-REQ-002)
         // Provider's taxonomy_code is guaranteed to be in the selection (queried with $in)
@@ -301,7 +371,8 @@ export default function FindCareApp() {
         setHasMore((data.providers.length || 0) < (data.total_count || 0))
       }
       setPhase('results')
-    } catch {
+    } catch (err: any) {
+      if (err && (err.name === 'AbortError' || (ac && ac.signal.aborted))) return
       const msg = 'Failed to fetch providers'
       sendToParent('gui:fatal-error', { message: msg })
       setPhase('error')
@@ -519,7 +590,7 @@ export default function FindCareApp() {
               resolved at the architecture layer. */}
 
           {/* Available providers — scrollable top half */}
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} data-testid="available-providers">
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '4px 12px', background: '#fafafa', borderBottom: '1px solid #eee',
@@ -535,7 +606,21 @@ export default function FindCareApp() {
               </span>
             </div>
 
-            {selection.state.available.map((p: Provider) => (
+            {/* EPIC-006-F-002-S-001-REQ-B-001: during Apply-Filter re-classify,
+                the unpicked-providers list is turned 'white' and the main-screen
+                timer is shown in its place. */}
+            {reclassifying && (
+              <div
+                data-testid="reclassify-timer"
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 16px', gap: 12 }}
+              >
+                <div style={{ fontSize: 14, color: '#6b7280' }}>Re-querying providers…</div>
+                <div style={{ fontSize: 24, color: '#0b7a75', fontWeight: 700 }}>{thinkSeconds}s</div>
+                <div style={{ fontSize: 12, color: '#9ca3af' }}>Waiting for response...</div>
+              </div>
+            )}
+
+            {!reclassifying && selection.state.available.map((p: Provider) => (
               <ProviderCard
                 key={p.npi}
                 provider={p}
@@ -546,7 +631,7 @@ export default function FindCareApp() {
               />
             ))}
 
-            {hasMore && (
+            {!reclassifying && hasMore && (
               <div style={{ padding: 8, textAlign: 'center' }}>
                 <button
                   onClick={loadMore}
@@ -604,11 +689,24 @@ export default function FindCareApp() {
         </>
       )}
 
-      {/* Input bar — always visible */}
+      {/* Input bar — always visible.
+          EPIC-006-F-002-S-001-REQ-B-001 "Two timers" rule: a small timer is
+          shown to the LEFT of the user-prompt input whenever the
+          initial-search or re-classify timer is running. */}
       <form onSubmit={handleSend} style={{
-        padding: '12px 16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8,
+        padding: '12px 16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8, alignItems: 'center',
         background: '#fff',
       }}>
+        {(phase === 'searching' || reclassifying) && (
+          <div
+            data-testid="prompt-row-timer"
+            style={{
+              flex: '0 0 auto', minWidth: 44, padding: '6px 10px', borderRadius: 6,
+              background: '#f0fffe', border: '1px solid #0b7a75',
+              fontSize: 12, fontWeight: 700, color: '#0b7a75', textAlign: 'center',
+            }}
+          >{thinkSeconds}s</div>
+        )}
         <input
           ref={inputRef}
           value={input}
@@ -617,15 +715,16 @@ export default function FindCareApp() {
           style={{
             flex: 1, padding: '10px 14px', borderRadius: 8,
             border: '1px solid #d1d5db', fontSize: 15, outline: 'none',
+            minHeight: 44,
           }}
         />
         <button
           type="submit"
-          disabled={phase === 'searching'}
           style={{
             padding: '10px 20px', borderRadius: 8, border: 'none',
-            background: phase === 'searching' ? '#9ca3af' : '#0b7a75',
+            background: '#0b7a75',
             color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+            minHeight: 44, minWidth: 44,
           }}
         >Send</button>
       </form>

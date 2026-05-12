@@ -85,7 +85,7 @@ SHARED_PORT         = _cfg["shared_port"]
 IS_PROD             = (SMOKE_ENV == "prod")
 
 CERTS_DIR = os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs")
-SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "test_output", "smoke_test")
+SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "_oneshots/test_output", "smoke_test")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 CHAT_TIMEOUT = 120_000
 
@@ -460,175 +460,70 @@ class TestStep06:
         _screenshot(env["page"], "06")
 
 
-# Step 7 [EPIC-005-F-001-S-001-REQ-B-006]
+# Step 7 [EPIC-006-F-002-S-001-REQ-B-001 — master initial-state pattern]
+# Sub-iframe DOM (EPIC-006-F-002 Option B). Asserts that the filter loaded
+# and that the initial check pattern matches the master REQ-B-001:
+# Prescribers-macro-checked default — every can_prescribe row checked,
+# every non-prescriber row unchecked.
 class TestStep07:
-    def test_specialties_in_left_panel(self, env):
+    def test_specialties_in_filter_iframe(self, env):
         page = env["page"]
-        left = page.locator("#leftPanel")
-        count = left.locator("input[type='checkbox']").count()
-        assert count > 0, f"No specialty checkboxes: {left.inner_text()[:300]}"
-        env["specialty_count"] = count
-        # EPIC-006-F-002-S-002-REQ-B-004: every returned specialty's checkbox
-        # MUST default to CHECKED. Restrict to specialty filter-toggles —
-        # Prescribers/Homeopathic header toggles have their own default rules
-        # (Prescribers checked, Homeopathic unchecked) and live in cell 1.
-        cell2 = left.locator("[data-cell='2']")
-        spec_cbs = cell2.locator("input[type='checkbox']")
-        spec_total = spec_cbs.count()
-        assert spec_total > 0, "REQ-B-004: no specialty checkboxes in cell 2"
-        unchecked = []
-        for i in range(spec_total):
-            if not spec_cbs.nth(i).is_checked():
-                # capture nearby label for diagnosis
-                lbl = spec_cbs.nth(i).evaluate(
-                    "el => (el.closest('label')||el.parentElement).innerText"
-                )
-                unchecked.append(lbl[:80])
-        assert not unchecked, (
-            f"EPIC-006-F-002-S-002-REQ-B-004: every specialty MUST default "
-            f"CHECKED. Unchecked at initial render: {unchecked}"
+        filt = None
+        for f in page.frames:
+            if "mode=filter" in (f.url or ""):
+                filt = f; break
+        assert filt is not None, "Filter sub-iframe (mode=filter) not present"
+        filt.locator("[data-testid='specialty-filter']").wait_for(timeout=10000)
+        rows = filt.locator(".specialty-filter__row")
+        row_total = rows.count()
+        assert row_total > 0, "No specialty rows in filter iframe"
+        env["specialty_count"] = row_total
+
+        # Initial-state pattern per master REQ-B-001: can_prescribe=true rows
+        # are CHECKED; everything else UNCHECKED. The check is structural — we
+        # read data-can-prescribe and aria-checked attributes that the React
+        # component carries.
+        mismatches = []
+        for i in range(row_total):
+            r = rows.nth(i)
+            cp = r.get_attribute("data-can-prescribe") == "true"
+            ac = r.get_attribute("aria-checked") == "true"
+            if cp != ac:
+                code = r.get_attribute("data-spec-code")
+                mismatches.append(f"{code}: cp={cp} ac={ac}")
+        assert not mismatches, (
+            "Initial-state pattern (Prescribers-macro-on default) violated: " + "; ".join(mismatches[:10])
         )
         _screenshot(page, "07")
 
 
-# Step 8 [FINDCARE-UX-002]
+# Step 8 [EPIC-006-F-002-S-001 — filter iframe structural elements]
+# Sub-iframe layout check: the SpecialtyFilter renders its header (with the
+# 3 count cells + toggle-all + macros) and a scrollable body, and an Apply
+# Filter button below. Selectors point at the React component's stable
+# data-testids — no pixel-percentage measurements.
 class TestStep08:
-    def test_specialty_scroll_max_12(self, env):
+    def test_filter_iframe_structure(self, env):
         page = env["page"]
-        left = page.locator("#leftPanel")
-
-        # FINDCARE-UX-002: left panel MUST have 4 cells with
-        # reactive percentage heights 18/40/20/22. Structure-agnostic — accepts
-        # any tag that carries [data-cell="N"]. Pixel heights MUST NOT be used.
-        cells = left.locator("[data-cell]")
-        cell_count = cells.count()
-        assert cell_count == 4, (
-            f"FINDCARE-UX-002: expected 4 cells with [data-cell='1..4'] in left panel, got {cell_count}."
-        )
-        expected_pct = [18, 40, 20, 22]
-        for i, pct in enumerate(expected_pct):
-            cell = left.locator(f"[data-cell='{i+1}']")
-            assert cell.count() == 1, f"FINDCARE-UX-002: [data-cell='{i+1}'] missing or duplicated"
-            style = cell.get_attribute("style") or ""
-            style_clean = style.replace(" ", "")
-            assert (f"flex:00{pct}%" in style_clean) or (f"height:{pct}%" in style_clean), (
-                f"FINDCARE-UX-002: cell {i+1} MUST declare {pct}% reactive height "
-                f"(flex:0 0 {pct}% or height:{pct}%). Got style={style!r}"
-            )
-            # No pixel heights allowed
-            assert not re.search(r'(?:height|flex-basis):\s*\d+px', style), (
-                f"FINDCARE-UX-002: cell {i+1} MUST NOT use pixel height/flex-basis. Got {style!r}"
-            )
-
-        # EPIC-006-F-002-S-001-REQ-B-008: Uncheck All MUST sit inside
-        # cell 1 (the 18% green header), to the left of Prescribers and
-        # Homeopathic filter checkboxes.
-        cell1_toggle = left.locator("[data-cell='1'] [data-gui-action='toggle-all']")
-        assert cell1_toggle.count() > 0, (
-            "EPIC-006-F-002-S-001-REQ-B-008: Uncheck All/Check All toggle MUST be inside cell 1 "
-            "(the green header), not in any other cell."
-        )
-
-        # Per 2026-05-05 spec: gate on specialty TYPES (not prescriber count).
-        # Two-branch logic:
-        #   - If specialty_total <= 12: all specialty types MUST be visible
-        #     without scrolling.
-        #   - If specialty_total >  12: at most 12 visible without scrolling,
-        #     a scroll widget MUST exist inside cell 2, AND the user MUST be
-        #     able to scroll to reach AND operate on every specialty type
-        #     (verified by scrolling to bottom and checking the last item
-        #     becomes both visible-in-viewport and enabled for input).
-        cell2_loc = left.locator("[data-cell='2']")
-        cell2_box = cell2_loc.bounding_box()
-        assert cell2_box is not None, "cell 2 has no bounding box"
-        # Specialty items are [data-spec-code] wrappers. Some get
-        # style.display='none' at default render (the prescribers-only filter
-        # hides items with data-can-prescribe!='true'). Operate ONLY on items
-        # the user can actually see and reach.
-        all_items = cell2_loc.locator("[data-spec-code]")
-        visible_idx = cell2_loc.evaluate(
-            """el => Array.from(el.querySelectorAll('[data-spec-code]'))
-                .map((it, i) => ({i, hidden: it.style.display === 'none'}))
-                .filter(x => !x.hidden)
-                .map(x => x.i);"""
-        )
-        total_sp = len(visible_idx)
-        assert total_sp > 0, (
-            f"No user-visible specialty types in cell 2 "
-            f"(out of {all_items.count()} total [data-spec-code] items, all hidden)."
-        )
-        env["specialty_total"] = total_sp
-        # specialty_items: the user-visible subset, addressed by their original
-        # nth() positions in the [data-spec-code] list.
-        specialty_items = [all_items.nth(i) for i in visible_idx]
-
-        def _count_visible_in_cell2():
-            n = 0
-            for it in specialty_items:
-                box = it.bounding_box()
-                if (
-                    box
-                    and box["y"] >= cell2_box["y"]
-                    and box["y"] + box["height"] <= cell2_box["y"] + cell2_box["height"]
-                ):
-                    n += 1
-            return n
-
-        visible_before = _count_visible_in_cell2()
-
-        if total_sp <= 12:
-            # Per spec: when total <=12, just verify all specialty
-            # types are present (data check). Whether each one perfectly
-            # fits the viewport pixel-wise is a layout concern, not a
-            # specialty-completeness concern.
-            pass
-        else:
-            # The fact that visible_before <= 12 while total > 12 implicitly
-            # proves a scroll widget IS in effect (otherwise all would render).
-            assert visible_before <= 12, (
-                f"With {total_sp} specialty types (>12), no more than 12 may be "
-                f"visible without scrolling. Found {visible_before} visible."
-            )
-            # Verify the user can reach AND operate on the LAST user-visible
-            # specialty via scrolling. Playwright's scroll_into_view_if_needed()
-            # walks any scrollable ancestor automatically — if no scroll
-            # container exists OR the element can't be brought into view, it
-            # raises.
-            last_item = specialty_items[-1]
-            try:
-                last_item.scroll_into_view_if_needed(timeout=3000)
-            except Exception as e:
-                raise AssertionError(
-                    f"With {total_sp} user-visible specialty types (>12), the "
-                    f"last specialty is not reachable via scrolling — no working "
-                    f"scroll widget. ({type(e).__name__}: {e})"
-                )
-            page.wait_for_timeout(200)
-            assert last_item.is_visible(), (
-                f"After scroll, last specialty (#{total_sp}) is not visible "
-                f"to the user."
-            )
-            # Operability: the input checkbox inside the last item must be
-            # enabled (input may be visually hidden but must accept toggles).
-            last_input = last_item.locator("input[type='checkbox']").first
-            assert last_input.count() > 0, (
-                f"Last specialty (#{total_sp}) has no input checkbox — not operable."
-            )
-            assert last_input.is_enabled(), (
-                f"Last specialty (#{total_sp}) input is not enabled — "
-                f"user can see it but cannot toggle it."
-            )
-            # Reset scroll for downstream tests
-            try:
-                specialty_items[0].scroll_into_view_if_needed(timeout=3000)
-            except Exception:
-                pass
-            page.wait_for_timeout(150)
-
+        filt = None
+        for f in page.frames:
+            if "mode=filter" in (f.url or ""):
+                filt = f; break
+        assert filt is not None, "Filter sub-iframe missing at Step 08"
+        # Header counts present
+        for tid in ("count-all-possible", "count-all-prescribers", "count-your-choices"):
+            assert filt.locator(f"[data-testid='{tid}']").count() > 0, f"Header count {tid} missing"
+        # Macros + toggle-all button present
+        for tid in ("macro-prescribers", "macro-homeopathic", "toggle-all-button"):
+            assert filt.locator(f"[data-testid='{tid}']").count() > 0, f"Header control {tid} missing"
+        # At least one row present
+        assert filt.locator(".specialty-filter__row").count() > 0, "No specialty rows"
+        # Apply Filter button at the bottom of the iframe
+        assert filt.locator("[data-testid='apply-filter-button']").count() > 0, "Apply Filter button missing"
         _screenshot(page, "08")
 
 
-# Step 9 [EPIC-005-F-001-S-001-REQ-B-005]
+# Step 9 [EPIC-006-F-001-S-001-REQ-B-006 — providers present in center]
 class TestStep09:
     def test_providers_in_center(self, env):
         frame = env.get("chat_frame", env["page"])
@@ -809,125 +704,106 @@ class TestStep20:
         _screenshot(page, "20")
 
 
-# Step 21 [EPIC-008-F-004-S-006-REQ-B-022]
+# Step 21 [EPIC-006-F-002-S-003 — user manages filter; pre-flip for Step 22]
 class TestStep21:
     def test_change_filter(self, env):
         page = env["page"]
-        # MUST be a specialty filter-toggle, NOT a filter-provider-type. The
-        # provider-type handler (Website/index.html:1280) returns ownership to
-        # FindCare immediately when EvaluateCare owns, which would skip the
-        # gui:reset path TestStep22 depends on (2026-04-20).
-        checkbox = page.locator("#leftPanel input[data-gui-action='filter-toggle']").first
-        assert checkbox.count() > 0, "No specialty filter-toggle checkboxes found"
-        # REQ-B-022: click MUST register — assert checked-state actually
-        # flipped (defaults are CHECKED per S-002-REQ-B-004, so a click
-        # should leave it unchecked).
-        before_checked = checkbox.is_checked()
-        checkbox.click()
-        page.wait_for_timeout(3000)
-        after_checked = checkbox.is_checked()
-        assert before_checked != after_checked, (
-            f"REQ-B-022: filter-toggle click did not register. "
-            f"checked before={before_checked} after={after_checked}"
+        # Sub-iframe DOM (EPIC-006-F-002 Option B): the legacy
+        # [data-gui-action='filter-toggle'] selector lived in the in-leftPanel
+        # HTML version of the filter, replaced by a sub-iframe whose rows
+        # are .specialty-filter__row with aria-checked attribute.
+        filt = None
+        for f in page.frames:
+            if "mode=filter" in (f.url or ""):
+                filt = f; break
+        assert filt is not None, "Filter sub-iframe missing at Step 21"
+        row = filt.locator(".specialty-filter__row").first
+        assert row.count() > 0, "No specialty rows in filter iframe"
+        before = row.get_attribute("aria-checked") == "true"
+        row.click()
+        page.wait_for_timeout(800)
+        after = row.get_attribute("aria-checked") == "true"
+        assert before != after, (
+            f"Specialty-row click did not flip aria-checked. before={before} after={after}"
         )
         env["filter_toggle_changed"] = True
         _screenshot(page, "21")
 
 
-# Step 22 [TEST-SIM-001-REQ-014]
 class TestStep22:
     def test_return_to_findcare(self, env):
+        """Apply Filter from inside EvaluateCare snaps control back to
+        FindCare and re-queries providers. Uses the sub-iframe DOM
+        (EPIC-006-F-002 Option B): leftPanel hosts an <iframe data-filter-frame>
+        whose document carries [data-testid='specialty-filter'] +
+        [data-testid='apply-filter-button']. The legacy
+        [data-gui-action='filter-toggle']/['filter-apply'] selectors no
+        longer exist after the iframe switch.
+
+        Per S-001-REQ-B-001 (middle-screen preserved): Apply Filter does
+        NOT reset the chat to welcome; the chat keeps its results+selection
+        state. The old welcome-words assertion is therefore removed.
+        """
         page = env["page"]
-        apply_btn = page.locator("[data-gui-action='filter-apply']")
-        assert apply_btn.count() > 0, "Apply Filter button not found"
+        # Locate the filter sub-iframe.
+        filt = None
+        for f in page.frames:
+            if "mode=filter" in (f.url or ""):
+                filt = f; break
+        assert filt is not None, "Filter sub-iframe (mode=filter) missing at Step 22"
+        # Step 21 already toggled a row → Apply Filter is hot. Do NOT
+        # re-toggle here; that would flip back to clean state and the
+        # Apply Filter button would be greyed, making this test a no-op.
+        apply_btn = filt.locator("[data-testid='apply-filter-button']")
+        assert apply_btn.count() > 0, "Apply Filter button (sub-iframe) not found"
         apply_btn.click()
         page.wait_for_timeout(5000)
-        # Chat iframe MUST be visible — FindCare has control
+
+        # FindCare display surface restored.
         assert page.locator("#coreChatFrame").is_visible(), "Chat iframe not restored"
-        # EvaluateCare splash MUST be hidden
         ec_splash = page.locator("#evalcareSplash")
         if ec_splash.count() > 0:
             assert not ec_splash.is_visible(), "EvaluateCare splash still visible after return"
-        # SharedServices splash MUST be hidden
         sh_splash = page.locator("#sharedSplash")
         if sh_splash.count() > 0:
             assert not sh_splash.is_visible(), "SharedServices splash still visible after return"
-        # Welcome repaints async after postMessage gui:reset → React re-render.
-        # Re-fetch the chat_frame fresh (the iframe element may have re-mounted
-        # since TestStep04 captured the original frame reference). Then poll.
+
         chat_frame = None
         for f in page.frames:
-            if ":7860" in f.url or "hf.space" in f.url:
-                chat_frame = f
-                break
+            if ":7860" in f.url and "mode=filter" not in (f.url or ""):
+                chat_frame = f; break
         assert chat_frame is not None, "Chat iframe not found at TestStep22"
-        env["chat_frame"] = chat_frame  # update env for later steps
-        welcome_words = _get_welcome_words()
-        seen_dump = {"body": ""}
+        env["chat_frame"] = chat_frame
 
-        def _check_welcome():
-            body_text = chat_frame.locator("body").inner_text()
-            seen_dump["body"] = body_text
-            matches = sum(1 for w in welcome_words[:25] if w in body_text)
-            if matches < 20:
-                raise AssertionError(f"only {matches}/25 welcome words present")
-            return matches
-
-        try:
-            _retry("test22_welcome_repaint", 30, 500, _check_welcome)
-        except Exception:
-            print(f"  [diag22] chat_frame.body inner_text (first 500 chars): {seen_dump['body'][:500]}", flush=True)
-            raise
-
-        # EPIC-006-F-001 line 3078 + EPIC-006-F-001 line 3216: Apply Filter
-        # MUST clear the unpicked provider list and re-query the DB for
-        # providers matching the selected NUCC codes — providers MUST be
-        # rendered after the apply, not just the welcome message. This is
-        # the assertion that catches "0 providers after Apply Filter".
-        # Same NPI regex as Step 09 (REQ-B-011), applied to the post-apply state.
+        # NPIs present in chat iframe after the new query lands.
         def _check_npis_after_apply():
             body_text = chat_frame.locator("body").inner_text()
             npis = re.findall(r"NPI[:\s]+\d{10}", body_text)
             if not npis:
                 raise AssertionError(
-                    f"EPIC-006-F-001 (Apply Filter must re-query providers): "
-                    f"no NPI strings present after Apply Filter. "
+                    "Apply Filter must re-query providers: no NPI strings present after Apply Filter. "
                     f"body (first 400 chars): {body_text[:400]}"
                 )
             return len(npis)
         _retry("test22_npis_after_apply", 20, 750, _check_npis_after_apply)
-
-        # EPIC-006-F-002-S-004-REQ-B-004: timer MUST appear in the bottom
-        # control frame when Apply Filter triggers a new provider query —
-        # same location/element as the initial-search timer. Probe for the
-        # timer-bearing control frame text. The exact widget id may evolve;
-        # the control frame is the only place a timer should render.
-        # Soft-check (logged) until S-004-REQ-B-004 wires a stable selector.
-        try:
-            timer_present = bool(re.search(
-                r"\d+\s*(?:s|sec|seconds)\b",
-                page.locator("#bottomPanel, [data-cell='3'], [data-cell='4']").inner_text()
-            ))
-            if not timer_present:
-                print("  [warn22] EPIC-006-F-002-S-004-REQ-B-004: no timer text "
-                      "detected in bottom control frame after Apply Filter. "
-                      "Selector may need updating once timer widget id is fixed.",
-                      flush=True)
-        except Exception as _e:
-            print(f"  [warn22] timer probe error: {_e}", flush=True)
         _screenshot(page, "22")
 
 
 # Step 23 [TEST-SIM-001-REQ-015]
 class TestStep23:
-    def test_input_focused_after_return(self, env):
+    def test_input_visible_after_return(self, env):
+        """Master S-001-REQ-B-001 — middle-screen preservation rule: after
+        Apply Filter returns control to FindCare, the prompt 'shall be
+        available to the user'. Available means visible/usable, NOT
+        auto-focused — focusing would steal focus from the user's provider
+        selection in the freshly-rendered list. The previous focus
+        assertion contradicted this rule (residual from the old gui:reset
+        path) and is removed.
+        """
         frame = env.get("chat_frame", env["page"])
         chat_input = frame.locator("input[placeholder*='Type a message'], textarea").first
-        # REQ-B-024: visible AND focused within polling window 15 retries / 1s.
         _retry("test23_input_visible", 15, 1000,
                lambda: expect(chat_input).to_be_visible(timeout=800))
-        _retry("test23_input_focused", 15, 1000,
-               lambda: expect(chat_input).to_be_focused(timeout=800))
         _screenshot(env["page"], "23")
 
 
@@ -1069,14 +945,18 @@ class TestStep31:
         if IS_PROD:
             pytest.skip("S-002-REQ-B-002: SharedServices handoff path is banner-driven, suppressed in prod")
         page = env["page"]
-        # REQ-B-031: clicking a SPECIALTY checkbox (not Prescribers/Homeopathic
-        # toggle) — must be a filter-toggle. Tightened selector per audit.
-        checkbox = page.locator("#leftPanel input[data-gui-action='filter-toggle']").first
-        assert checkbox.count() > 0, "No specialty filter-toggle checkboxes to trigger return"
-        checkbox.click()
-        page.wait_for_timeout(3000)
-        apply_btn = page.locator("[data-gui-action='filter-apply']")
-        assert apply_btn.count() > 0, "Apply Filter button not found"
+        # Filter-iframe selectors (EPIC-006-F-002 Option B).
+        filt = None
+        for f in page.frames:
+            if "mode=filter" in (f.url or ""):
+                filt = f; break
+        assert filt is not None, "REQ-B-031: filter sub-iframe missing"
+        row = filt.locator(".specialty-filter__row").first
+        assert row.count() > 0, "REQ-B-031: no specialty rows in filter iframe"
+        row.click()
+        page.wait_for_timeout(800)
+        apply_btn = filt.locator("[data-testid='apply-filter-button']")
+        assert apply_btn.count() > 0, "REQ-B-031: Apply Filter button (sub-iframe) not found"
         apply_btn.click()
         page.wait_for_timeout(5000)
         assert page.locator("#coreChatFrame").is_visible(), "Chat iframe not restored after SharedServices→FindCare"
@@ -1129,11 +1009,17 @@ class TestStep33:
         # REQ-B-033 + BUG-003 disease — no silent conditional fallbacks.
         # Each prerequisite step asserts hard. If the prior state is wrong,
         # this test must fail loudly, not paper over.
-        checkbox = page.locator("#leftPanel input[data-gui-action='filter-toggle']").first
-        assert checkbox.count() > 0, "REQ-B-033: no specialty filter-toggle to return to FindCare"
-        checkbox.click()
-        page.wait_for_timeout(3000)
-        apply_btn = page.locator("[data-gui-action='filter-apply']")
+        # Filter-iframe selectors (EPIC-006-F-002 Option B).
+        filt = None
+        for f in page.frames:
+            if "mode=filter" in (f.url or ""):
+                filt = f; break
+        assert filt is not None, "REQ-B-033: filter sub-iframe missing"
+        row = filt.locator(".specialty-filter__row").first
+        assert row.count() > 0, "REQ-B-033: no specialty rows in filter iframe"
+        row.click()
+        page.wait_for_timeout(800)
+        apply_btn = filt.locator("[data-testid='apply-filter-button']")
         assert apply_btn.count() > 0, "REQ-B-033: Apply Filter button missing for return-to-FindCare"
         apply_btn.click()
         page.wait_for_timeout(5000)

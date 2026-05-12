@@ -11,7 +11,7 @@ import os
 import glob
 import pytest
 
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "test_output", "deploy")
+OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "_oneshots/test_output", "deploy")
 
 
 def _get_latest_log():

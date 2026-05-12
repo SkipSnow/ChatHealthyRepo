@@ -117,6 +117,7 @@ export default function SpecialtyFilterFrame() {
             color: isDirty ? '#fff' : '#6b7280',
             fontSize: 12, fontWeight: 600,
             cursor: isDirty ? 'pointer' : 'not-allowed',
+            minHeight: 44,
           }}
         >
           Apply Filter

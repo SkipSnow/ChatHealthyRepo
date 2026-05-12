@@ -7417,6 +7417,46 @@
                               "reason": "Scope of enforcement: all code, all Rule enforcements, and all Metadata inside ChatHealthy's brain's governed schemas."
                             }
                           ]
+                        },
+                        {
+                          "req_id": "EPIC-008-F-001-S-001-REQ-B-003",
+                          "requirement": "For form factors such as the iPhone and Galaxy, a reactive interface MUST support the phone. The reactive interface MUST use a style guide regarded as an industry standard.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-001-S-001-REQ-B-003-TEST-1",
+                                "file": "Code/ConversationalUX/FindCareChat/tests/test_iphone_hig_compliance.py",
+                                "orphan": false,
+                                "test_type": "playwright"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "name": "Reactive interface for iPhone and Galaxy MUST use an industry-standard style guide",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-001-S-001-REQ-T-001",
+                          "requirement": "ChatHealthy.ai phones and iPads MUST conform to the Apple Human Interface Guidelines (HIG), published by Apple Inc. at https://developer.apple.com/design/human-interface-guidelines. Baseline rules that MUST be observed in the reactive interface: (a) every interactive control presents a minimum 44x44pt hit target (HIG Inputs); (b) layouts honor safe-area insets via CSS env(safe-area-inset-*) with the document declaring <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\"> so content clears the Dynamic Island and home indicator (HIG Layout); (c) text contrast meets WCAG 2.2 AA (4.5:1 body, 3:1 large) as cross-referenced by HIG Accessibility; (d) body type sizes use rem so they honor user Dynamic Type / browser zoom settings; (e) primary actions on phone breakpoints (<= 600px) sit within the lower-third thumb zone of the viewport. The version of HIG in force is the current published edition; the citation MUST be re-pinned if Apple issues a major guide revision.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-001-S-001-REQ-T-001-TEST-1",
+                                "file": "Code/ConversationalUX/FindCareChat/tests/test_iphone_hig_compliance.py",
+                                "orphan": false,
+                                "test_type": "playwright"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "name": "Technical requirement MUST cite the exact best-practice phone/iPad style guide in use",
+                          "depends_on": []
                         }
                       ]
                     }
@@ -8546,7 +8586,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-001-REQ-T-006",
-                          "requirement": "Three context-resident artifacts MUST be loaded into the Claude Code session context at every session start, and MUST be re-injected after any context compaction: (1) brain/machine_artifacts/content/bugs.json â€” active bug register, loaded in full; (2) brain/machine_artifacts/content/engineering_rules.json â€” engineering rules, loaded in full; (3) test_output/backlog_stories.json â€” story-level pruned view of agile_backlog.json covering Epic â†’ Feature â†’ Story only. The story view carries story metadata (story_id, title, description, parent_feature, sprint, size, status, accepted_by, orphan, approval) plus an integer requirement_count per story. It does NOT carry requirement bodies, pytest pointers, realized_by arrays, or any node below story. The full agile_backlog.json (~521K tokens) is NOT context-resident; specific requirement bodies, pytest ids, and realized_by data MUST be fetched from the canonical brain/machine_artifacts/content/agile_backlog.json via Read when Claude needs them. Canonical brain content lives on disk under brain/machine_artifacts/content/ and is never stored anywhere else. The story view is a derived artifact â€” gitignored, regenerated at session start from the canonical source â€” it does not replace the source. A pytest MUST verify: (a) @-imports for the three context-resident artifacts are present in the root CLAUDE.md; (b) every current file under Code/DataPipelines/ matching the listed extensions (minus excluded dirs) has a corresponding @-import; (c) every @-imported file exists and is non-empty; (d) no @-imported path is stale. A git pre-commit hook MUST regenerate the DataPipelines @-import block when any file under Code/DataPipelines/ is added, moved, or deleted; if the block is stale, pre-commit MUST fail. Purpose: these artifacts are the ones Claude is most prone to shortcut-reasoning about â€” grepping instead of reading, guessing instead of checking, proposing duplicates because the original was never loaded. Making the backlog's high-level shape (9 epics / 83 features / 301 stories) context-resident removes the option to grep-and-punt for structure. Requirement bodies remain on-demand because loading the full backlog at ~521K tokens would consume more than half the 1M context window for content that is rarely needed in full. History: agile_backlog.json was attempted in context-residency 2026-04-18 and was replaced with the story-level view the same day. EPIC-008-F-003-S-002-REQ-T-003 (the flat pipe-delimited req_index.txt view) is deprecated in favor of this story-tree view. API source: Claude Code memory docs at https://code.claude.com/docs/en/memory.md â€” '@path/to/import' syntax, 'Imported files are expanded and loaded into context at launch', 'CLAUDE.md files are loaded in full regardless of length', 'Project-root CLAUDE.md survives compaction: after /compact, Claude re-reads it from disk and re-injects it into the session.' Hook-based injection is NOT a viable substitute because per https://code.claude.com/docs/en/hooks.md SessionStart and UserPromptSubmit hooks cap additionalContext at 10,000 characters with overflow saved to file + preview â€” too small for these artifacts.",
+                          "requirement": "Three context-resident artifacts MUST be loaded into the Claude Code session context at every session start, and MUST be re-injected after any context compaction: (1) brain/machine_artifacts/content/bugs.json â€” active bug register, loaded in full; (2) brain/machine_artifacts/content/engineering_rules.json â€” engineering rules, loaded in full; (3) _oneshots/test_output/backlog_stories.json â€” story-level pruned view of agile_backlog.json covering Epic â†’ Feature â†’ Story only. The story view carries story metadata (story_id, title, description, parent_feature, sprint, size, status, accepted_by, orphan, approval) plus an integer requirement_count per story. It does NOT carry requirement bodies, pytest pointers, realized_by arrays, or any node below story. The full agile_backlog.json (~521K tokens) is NOT context-resident; specific requirement bodies, pytest ids, and realized_by data MUST be fetched from the canonical brain/machine_artifacts/content/agile_backlog.json via Read when Claude needs them. Canonical brain content lives on disk under brain/machine_artifacts/content/ and is never stored anywhere else. The story view is a derived artifact â€” gitignored, regenerated at session start from the canonical source â€” it does not replace the source. A pytest MUST verify: (a) @-imports for the three context-resident artifacts are present in the root CLAUDE.md; (b) every current file under Code/DataPipelines/ matching the listed extensions (minus excluded dirs) has a corresponding @-import; (c) every @-imported file exists and is non-empty; (d) no @-imported path is stale. A git pre-commit hook MUST regenerate the DataPipelines @-import block when any file under Code/DataPipelines/ is added, moved, or deleted; if the block is stale, pre-commit MUST fail. Purpose: these artifacts are the ones Claude is most prone to shortcut-reasoning about â€” grepping instead of reading, guessing instead of checking, proposing duplicates because the original was never loaded. Making the backlog's high-level shape (9 epics / 83 features / 301 stories) context-resident removes the option to grep-and-punt for structure. Requirement bodies remain on-demand because loading the full backlog at ~521K tokens would consume more than half the 1M context window for content that is rarely needed in full. History: agile_backlog.json was attempted in context-residency 2026-04-18 and was replaced with the story-level view the same day. EPIC-008-F-003-S-002-REQ-T-003 (the flat pipe-delimited req_index.txt view) is deprecated in favor of this story-tree view. API source: Claude Code memory docs at https://code.claude.com/docs/en/memory.md â€” '@path/to/import' syntax, 'Imported files are expanded and loaded into context at launch', 'CLAUDE.md files are loaded in full regardless of length', 'Project-root CLAUDE.md survives compaction: after /compact, Claude re-reads it from disk and re-injects it into the session.' Hook-based injection is NOT a viable substitute because per https://code.claude.com/docs/en/hooks.md SessionStart and UserPromptSubmit hooks cap additionalContext at 10,000 characters with overflow saved to file + preview â€” too small for these artifacts.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -8738,7 +8778,7 @@
                         },
                         {
                           "req_id": "EPIC-008-F-003-S-002-REQ-T-003",
-                          "requirement": "The system MUST write a byte-stream copy of brain/machine_artifacts/content/agile_backlog.json to test_output/req_index.txt at every UserPromptSubmit boot and at every session_end. Each write MUST overwrite any prior file at that path. test_output/ MUST be a gitignored project-local folder. CLAUDE.md MUST @-import test_output/req_index.txt. The canonical agile_backlog.json MUST remain the single authoritative source of backlog content. session_end MUST delete the prior test_output/req_index.txt before writing its regenerated copy. The copy format MUST be newline-delimited pipe-separated fields, one requirement per line, columns in order: epic_id, feature_id, story_id, req_id, priority, status, approval, orphan, requirement_text.",
+                          "requirement": "The system MUST write a byte-stream copy of brain/machine_artifacts/content/agile_backlog.json to _oneshots/test_output/req_index.txt at every UserPromptSubmit boot and at every session_end. Each write MUST overwrite any prior file at that path. _oneshots/test_output/ MUST be a gitignored project-local folder. CLAUDE.md MUST @-import _oneshots/test_output/req_index.txt. The canonical agile_backlog.json MUST remain the single authoritative source of backlog content. session_end MUST delete the prior _oneshots/test_output/req_index.txt before writing its regenerated copy. The copy format MUST be newline-delimited pipe-separated fields, one requirement per line, columns in order: epic_id, feature_id, story_id, req_id, priority, status, approval, orphan, requirement_text.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -8753,7 +8793,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Write byte-stream copy of agile_backlog.json to test_output/req_index.txt on key",
+                          "name": "Write byte-stream copy of agile_backlog.json to _oneshots/test_output/req_index.txt on key",
                           "depends_on": []
                         }
                       ]
@@ -9018,7 +9058,7 @@
                         {
                           "req_id": "EPIC-008-F-004-S-001-REQ-T-006",
                           "name": "Structured deploy output",
-                          "requirement": "The script writes a structured output file Claude can read to {projectRoot}/test_output/deploy/ with the environment name and timestamp in the filename. Contents: pass/fail per test, container IDs (or PIDs for the Website wrapper), port assignments (per REQ-T-001), timestamps, and errors.",
+                          "requirement": "The script writes a structured output file Claude can read to {projectRoot}/_oneshots/test_output/deploy/ with the environment name and timestamp in the filename. Contents: pass/fail per test, container IDs (or PIDs for the Website wrapper), port assignments (per REQ-T-001), timestamps, and errors.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,

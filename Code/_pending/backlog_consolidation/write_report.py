@@ -23,7 +23,7 @@ with open(BACKLOG, encoding="utf-8") as f:
 
 # ---- Compute counts ----
 # Before: count flagged + count REQs in F-002 before
-with open(ROOT / "test_output" / "scan_validate_relevance.json", encoding="utf-8") as f:
+with open(ROOT / "_oneshots/test_output" / "scan_validate_relevance.json", encoding="utf-8") as f:
     flagged = json.load(f)
 flagged_count = len(flagged)
 flagged_reqs = sum(1 for e in flagged if e["entity_type"] == "requirement")
@@ -78,7 +78,7 @@ p.add_run("Source of truth: ").bold = True
 p.add_run("CH-EPIC8-Feachure-002-EngineeringRulesEnforcement-designV18.docx (BR-1..14, TR-1..17)")
 p = doc.add_paragraph()
 p.add_run("Inventory: ").bold = True
-p.add_run(f"test_output/scan_validate_relevance.json ({flagged_count} flagged entities)")
+p.add_run(f"_oneshots/test_output/scan_validate_relevance.json ({flagged_count} flagged entities)")
 
 # Executive summary
 doc.add_heading("1. Executive summary", level=2)

@@ -3,9 +3,9 @@ You are producing a cross-reference gap analysis for ChatHealthy.ai.
 Working directory: $CHATHEALTHY_PROJECT_ROOT
 
 Read these checkpoint files from previous jobs:
-- test_output/lineage/00_brain_intent.json (what was intended)
-- test_output/lineage/01_gui_history.json (what GUI lost)
-- test_output/lineage/02_prompt_history.json (what AI calls lost)
+- _oneshots/test_output/lineage/00_brain_intent.json (what was intended)
+- _oneshots/test_output/lineage/01_gui_history.json (what GUI lost)
+- _oneshots/test_output/lineage/02_prompt_history.json (what AI calls lost)
 
 Also read:
 - brain/machine_artifacts/content/bugs.json (search with grep for relevant bug IDs)
@@ -21,7 +21,7 @@ Categorize each finding as:
 - DOCUMENTED UNPLANNED: tracked as bug but no story to restore
 - INTENTIONAL REPLACEMENT: deliberately replaced (e.g. vector search for classify)
 
-Write your output as valid JSON to: test_output/lineage/03_cross_reference.json
+Write your output as valid JSON to: _oneshots/test_output/lineage/03_cross_reference.json
 
 Schema:
 {

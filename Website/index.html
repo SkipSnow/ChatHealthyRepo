@@ -9,7 +9,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>ChatHealthy.ai — Find Care with AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -37,6 +37,29 @@
       font-family: 'DM Sans', sans-serif;
       background: var(--surface);
       color: var(--ink);
+    }
+
+    body {
+      padding-top: env(safe-area-inset-top, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding-left: env(safe-area-inset-left, 0);
+      padding-right: env(safe-area-inset-right, 0);
+    }
+
+    @media (max-width: 600px) {
+      button,
+      input[type="checkbox"],
+      input[type="text"],
+      input[type="search"],
+      input[type="email"],
+      textarea,
+      [role="button"],
+      [data-gui-action],
+      a.cta,
+      .menu-toggle {
+        min-height: 44px;
+        min-width: 44px;
+      }
     }
 
     body {
@@ -533,6 +556,23 @@
         padding: 16px;
         overflow-y: auto;
       }
+      /* EPIC-006-F-002-S-001-REQ-T-003 + EPIC-006-F-019 mobile usability:
+         A persistent re-open control lets the user return to the filter
+         overlay after Apply Filter auto-closes it. Visible only when a
+         filter is loaded (leftPanel has filter-active) and not currently
+         open (leftPanel lacks mobile-filter-open). */
+      #mobileFilterReopen { display: none; }
+      body.has-filter-results:not(.filter-overlay-open) #mobileFilterReopen {
+        display: flex; align-items: center; justify-content: center;
+      }
+    }
+    #mobileFilterReopen {
+      position: fixed; right: 14px; bottom: 76px; z-index: 999;
+      width: 56px; height: 56px; border-radius: 28px;
+      background: linear-gradient(180deg, #0b9a94, #0b7a75);
+      color: #fff; border: none; font-size: 11px; font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25); cursor: pointer;
+      display: none;
     }
 
     /* Phone: tighten footer to 2×2 grid */
@@ -650,6 +690,11 @@
 
     </div>
   </header>
+
+  <!-- Mobile filter re-open FAB. EPIC-006-F-002-S-001-REQ-T-003 / EPIC-006-F-019:
+       Allows the user to return to the filter overlay after Apply Filter closes
+       it on phone. CSS keeps it hidden until a filter is loaded. -->
+  <button id="mobileFilterReopen" type="button" aria-label="Open filter" data-testid="mobile-filter-reopen">Filter</button>
 
   <!-- Mobile nav drawer -->
   <nav class="mobile-nav" id="mobileNav">
@@ -1059,12 +1104,21 @@
             // SEC-HTTPS-001-REQ-021: FindCare mints, SharedServices verifies.
             // Both panels refresh on every ownership change (REQ-022).
             window.refreshTokenPanels('findcare');
+            // Bug 5: returning to FindCare must restore the Evaluate button
+            // when a selection exists. Ask the chat iframe to re-emit its
+            // current selection count so the parent's handler re-renders
+            // the button. (A self-posted message wouldn't pass the
+            // event.source filter on the parent's listener.)
+            chatFrame.contentWindow.postMessage({ type: 'gui:request-selection-count' }, '*');
           });
       };
 
       window.openSharedServices = function() {
         // Transfer control to SharedServices (mirrors EvaluateCare pattern)
         window._pageOwner = 'sharedservices';
+        // Bug 5: same as EvalCare path — remove the Evaluate button.
+        var _eb = document.getElementById('guiEvalBtn');
+        if (_eb && _eb.parentElement) _eb.parentElement.remove();
         // Clear stale prior-service content (e.g., EvaluateCare's orange
         // "EVALUATECARE 2 providers" header) from #rightContent so the
         // right panel reflects the current owner, not the previous one.
@@ -1218,34 +1272,38 @@
         }
 
         // Timer — shows elapsed time in left side of control frame during LLM response
+        // EPIC-006-F-002-S-001-REQ-B-001 (middle-screen preserved) +
+        // EPIC-006-F-021-S-001-REQ-B-004 (control frame always visible):
+        // re-classify timer renders in its OWN container so the Evaluate
+        // button is NOT wiped during the wait. timer-clear removes only
+        // the container.
         if (msg.type === 'gui:timer') {
-          var timerEl = document.getElementById('guiTimer');
-          if (!timerEl) {
-            frame.style.justifyContent = 'flex-start';
+          var timerContainer = document.getElementById('guiTimerContainer');
+          if (!timerContainer) {
+            frame.style.justifyContent = 'space-between';
             frame.style.paddingLeft = '12px';
+            frame.style.paddingRight = '12px';
             frame.style.gap = '10px';
-            frame.innerHTML = '<div style="display:flex;align-items:center;gap:10px;background:#f0f4f8;border:1px solid #d8e2e1;border-radius:6px;padding:4px 14px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.06);">'
-              + '<span id="guiTimer" style="font-size:12px;color:#0b7a75;font-weight:600;min-width:40px;">Thinking\u2026</span>'
-              + '<button id="guiTimerStop" style="background:linear-gradient(180deg,#f5f5f4,#e7e5e4);border:1px solid #d1d5db;border-radius:4px;padding:3px 12px;font-size:11px;color:#57534e;cursor:pointer;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.1);"'
-              + ' onmousedown="this.style.transform=\'translateY(1px)\';this.style.boxShadow=\'none\'"'
-              + ' onmouseup="this.style.transform=\'\';this.style.boxShadow=\'0 1px 2px rgba(0,0,0,0.1)\'"'
-              + '>Stop</button></div>';
+            timerContainer = document.createElement('div');
+            timerContainer.id = 'guiTimerContainer';
+            timerContainer.style.cssText = 'display:flex;align-items:center;gap:10px;background:#f0f4f8;border:1px solid #d8e2e1;border-radius:6px;padding:4px 14px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.06);';
+            timerContainer.innerHTML = '<span id="guiTimer" style="font-size:12px;color:#0b7a75;font-weight:600;min-width:40px;">Thinking…</span>'
+              + '<button id="guiTimerStop" style="background:linear-gradient(180deg,#f5f5f4,#e7e5e4);border:1px solid #d1d5db;border-radius:4px;padding:3px 12px;font-size:11px;color:#57534e;cursor:pointer;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.1);">Stop</button>';
+            frame.insertBefore(timerContainer, frame.firstChild);
             document.getElementById('guiTimerStop').addEventListener('click', function() {
               chatFrame.contentWindow.postMessage({ type: 'gui:event', action: 'stop-thinking' }, '*');
             });
-            timerEl = document.getElementById('guiTimer');
           }
-          timerEl.textContent = 'Thinking\u2026 ' + msg.seconds + 's';
+          document.getElementById('guiTimer').textContent = 'Thinking… ' + msg.seconds + 's';
         }
 
         if (msg.type === 'gui:timer-clear') {
-          var timerEl = document.getElementById('guiTimer');
-          if (timerEl) {
-            timerEl.remove();
+          var timerContainer = document.getElementById('guiTimerContainer');
+          if (timerContainer) {
+            timerContainer.remove();
             frame.dataset.hasResults = 'true';
-            // Clear frame — evaluate button will be created by next gui:selection-count
-            frame.innerHTML = '';
             frame.style.justifyContent = 'flex-end';
+            frame.style.paddingLeft = '12px';
             frame.style.paddingRight = '12px';
           }
         }
@@ -1259,6 +1317,18 @@
         if (msg.type === 'gui:selection-count') {
           // Don't show button until we've had search results
           if (!frame.dataset.hasResults) return;
+          // Bug 5 (Skip 2026-05-11): The Evaluate button is a FindCare control
+          // — it triggers the handoff TO EvaluateCare. While EvaluateCare (or
+          // any non-FindCare service) owns the page, the button is contextually
+          // wrong and must not appear. Cache the latest count so gotoFindCare()
+          // can recreate the button on return.
+          window._lastSelectionCount = msg.count || 0;
+          window._lastSelectionMax = msg.max;
+          if (window._pageOwner && window._pageOwner !== 'findcare') {
+            var existing = document.getElementById('guiEvalBtn');
+            if (existing && existing.parentElement) existing.parentElement.remove();
+            return;
+          }
 
           var evalBtn = document.getElementById('guiEvalBtn');
           var count = msg.count || 0;
@@ -1271,7 +1341,7 @@
             frame.style.paddingRight = '12px';
             var btnContainer = document.createElement('div');
             btnContainer.style.cssText = 'display:flex;align-items:center;gap:8px;';
-            btnContainer.innerHTML = '<button id="guiEvalBtn" style="padding:6px 16px;border-radius:5px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;">Evaluate These Providers</button>';
+            btnContainer.innerHTML = '<button id="guiEvalBtn" style="padding:6px 16px;border-radius:5px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;min-height:44px;min-width:44px;">Evaluate These Providers</button>';
             frame.appendChild(btnContainer);
             evalBtn = document.getElementById('guiEvalBtn');
 
@@ -1294,6 +1364,10 @@
                 // Hot click — send to evaluate
                 // Transfer control to EvaluateCare
                 window._pageOwner = 'evaluatecare';
+                // Bug 5: remove the Evaluate button immediately on transfer;
+                // gui:selection-count won't fire again until something
+                // changes, so we must clean up the button here.
+                if (evalBtn && evalBtn.parentElement) evalBtn.parentElement.remove();
                 // Clear stale prior-service content from #rightContent;
                 // gui:evaluate-result will repaint with EvalCare providers.
                 window.ensureRightPanelStructure();
@@ -1352,9 +1426,13 @@
           leftPanel.style.alignItems = 'stretch';
           leftPanel.style.justifyContent = 'stretch';
           leftPanel.classList.add('filter-active');
+          // EPIC-006-F-019: body.has-filter-results gates the mobile
+          // re-open FAB.
+          document.body.classList.add('has-filter-results');
           // Mobile: show as fullscreen overlay
           if (window.innerWidth <= 600) {
             leftPanel.classList.add('mobile-filter-open');
+            document.body.classList.add('filter-overlay-open');
           }
           // EPIC-006-F-002 Option B: leftPanel renders a sub-iframe that
           // hosts the React SpecialtyFilter (with its 4-cell grid). The
@@ -1787,6 +1865,8 @@
           leftPanel.style.justifyContent = 'center';
           leftPanel.classList.remove('filter-active');
           leftPanel.classList.remove('mobile-filter-open');
+          document.body.classList.remove('has-filter-results');
+          document.body.classList.remove('filter-overlay-open');
           leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>';
         }
       });
@@ -1825,15 +1905,44 @@
           }
         }
         if (msg.type === 'gui:filter-apply-click') {
-          // User clicked Apply Filter; tell chat iframe to fetchProviders
-          // against the cached checked-codes.
+          // EPIC-006-F-002-S-003-REQ-T-009 (filter persists across service
+          // transfer) + Skip 2026-05-11: Apply Filter fired while another
+          // service owns the page MUST snap the view back to FindCare so
+          // the user sees the re-queried provider list. The FindCare chat
+          // iframe keeps its in-memory state (search results, selection,
+          // search params) across the EvalCare visit — DO NOT send
+          // gui:reset; that would wipe everything. Just swap the visible
+          // surface back to FindCare.
           var chatFrame = document.getElementById('coreChatFrame');
+          if (window._pageOwner && window._pageOwner !== 'findcare') {
+            window._pageOwner = 'findcare';
+            var ecSplash = document.getElementById('evalcareSplash');
+            if (ecSplash) ecSplash.style.display = 'none';
+            var shSplash = document.getElementById('sharedSplash');
+            if (shSplash) shSplash.style.display = 'none';
+            if (chatFrame) chatFrame.style.display = '';
+            if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
+            if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
+            window.refreshTokenPanels('findcare');
+            // Ask chat for current selection count so the Evaluate button
+            // (which Bug 5 hides while non-FindCare) repaints.
+            if (chatFrame && chatFrame.contentWindow) {
+              chatFrame.contentWindow.postMessage({ type: 'gui:request-selection-count' }, '*');
+            }
+          }
+          // Now forward the actual filter-apply work to the chat iframe.
           if (chatFrame && chatFrame.contentWindow) {
             chatFrame.contentWindow.postMessage({
               type: 'gui:event',
               action: 'filter-apply',
             }, '*');
           }
+          // Mobile filter overlay auto-close (EPIC-006-F-019).
+          var leftPanelMobile = document.getElementById('leftPanel');
+          if (leftPanelMobile) {
+            leftPanelMobile.classList.remove('mobile-filter-open');
+          }
+          document.body.classList.remove('filter-overlay-open');
         }
       });
     })();
@@ -1863,6 +1972,21 @@
       toggle.setAttribute('aria-expanded', open);
     });
     function closeMobileNav() { mobileNav.classList.remove('open'); }
+
+    // EPIC-006-F-002-S-001-REQ-T-003 + EPIC-006-F-019:
+    // Mobile filter re-open FAB. Re-attaches the mobile-filter-open class
+    // so the user can return to the filter overlay after Apply Filter
+    // closed it.
+    const mobileFilterReopen = document.getElementById('mobileFilterReopen');
+    if (mobileFilterReopen) {
+      mobileFilterReopen.addEventListener('click', () => {
+        const lp = document.getElementById('leftPanel');
+        if (lp) {
+          lp.classList.add('mobile-filter-open');
+          document.body.classList.add('filter-overlay-open');
+        }
+      });
+    }
 
     // Coming Soon — nav button
     document.querySelectorAll('.nav-coming-soon').forEach(btn => {

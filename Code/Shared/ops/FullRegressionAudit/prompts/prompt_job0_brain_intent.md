@@ -16,7 +16,7 @@ Focus especially on:
 - unrealized_ideas.json — ideas logged but not built
 - agile_backlog.json — use grep to search for feature names and story titles, do NOT read the whole file
 
-Write your output as valid JSON to: test_output/lineage/00_brain_intent.json
+Write your output as valid JSON to: _oneshots/test_output/lineage/00_brain_intent.json
 
 Schema:
 {

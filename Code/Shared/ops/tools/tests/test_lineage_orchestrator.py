@@ -18,7 +18,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[5]
 sys.path.insert(0, str(REPO_ROOT / "Code" / "Shared" / "ops" / "tools"))
 
-LINEAGE_DIR = REPO_ROOT / "test_output" / "lineage"
+LINEAGE_DIR = REPO_ROOT / "_oneshots/test_output" / "lineage"
 ORCHESTRATOR_PATH = REPO_ROOT / "Code" / "Shared" / "ops" / "tools" / "lineage_orchestrator.py"
 BRAIN_DIR = REPO_ROOT / "brain" / "machine_artifacts" / "content"
 
@@ -135,7 +135,7 @@ class TestB010_ReadOnly:
 
     def test_output_dir_is_gitignored(self):
         gitignore = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
-        assert "test_output" in gitignore
+        assert "_oneshots/test_output" in gitignore
 
 
 class TestB011_Autonomous:
@@ -273,7 +273,7 @@ class TestT005_DisposableWorkers:
     def test_worker_prompts_are_self_contained(self):
         for prompt_file in (LINEAGE_DIR / "prompts").glob("*.md"):
             text = prompt_file.read_text(encoding="utf-8")
-            assert "Write your output" in text or "Write output" in text or "test_output" in text
+            assert "Write your output" in text or "Write output" in text or "_oneshots/test_output" in text
 
 
 class TestT006_TokenTracking:

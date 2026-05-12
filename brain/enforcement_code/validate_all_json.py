@@ -14,7 +14,7 @@
 #   - the fetched schema body must be valid JSON (HTML fallback = fail)
 #   - the file must validate with zero errors
 #
-# Writes a JSON report to test_output/validate_all_json_report.json with
+# Writes a JSON report to _oneshots/test_output/validate_all_json_report.json with
 # every error. Also prints a human-readable summary to stdout.
 # Exit code 0 iff every non-gitignored JSON under brain content passed.
 #
@@ -34,7 +34,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BRAIN_CONTENT = REPO_ROOT / "brain" / "machine_artifacts" / "content"
-REPORT_PATH = REPO_ROOT / "test_output" / "validate_all_json_report.json"
+REPORT_PATH = REPO_ROOT / "_oneshots/test_output" / "validate_all_json_report.json"
 
 BROWSER_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -43,7 +43,7 @@ BROWSER_UA = (
 
 SKIP_DIRS = {
     ".venv", "node_modules", "__pycache__", ".git",
-    "test_output", ".iteration_cache", "dist", "build",
+    "_oneshots/test_output", ".iteration_cache", "dist", "build",
 }
 
 RELAXED_URL_SUBSTRINGS = (

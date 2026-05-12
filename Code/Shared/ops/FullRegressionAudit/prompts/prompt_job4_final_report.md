@@ -3,10 +3,10 @@ You are producing the final audit report for ChatHealthy.ai codebase history.
 Working directory: $CHATHEALTHY_PROJECT_ROOT
 
 Read these checkpoint files:
-- test_output/lineage/00_brain_intent.json
-- test_output/lineage/01_gui_history.json
-- test_output/lineage/02_prompt_history.json
-- test_output/lineage/03_cross_reference.json
+- _oneshots/test_output/lineage/00_brain_intent.json
+- _oneshots/test_output/lineage/01_gui_history.json
+- _oneshots/test_output/lineage/02_prompt_history.json
+- _oneshots/test_output/lineage/03_cross_reference.json
 
 Produce a final report with:
 
@@ -35,7 +35,7 @@ Produce a final report with:
 5. SUMMARY: Total capabilities intended, currently active, lost undocumented,
    lost documented, intentionally replaced. Token cost of this audit.
 
-Write your output as valid JSON to: test_output/lineage/04_final_report.json
+Write your output as valid JSON to: _oneshots/test_output/lineage/04_final_report.json
 
 Schema:
 {

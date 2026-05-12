@@ -2,7 +2,7 @@
 # EPIC-008-F-003-S-001-REQ-T-007/016/017 — InstructionsLoaded hook.
 #
 # For every instruction file the harness loads, append one line to
-# test_output/instructions_loaded.log. For the three context-resident
+# _oneshots/test_output/instructions_loaded.log. For the three context-resident
 # brain JSONs (bugs.json, engineering_rules.json, agile_backlog.json),
 # run the 4-step verification procedure from REQ-017:
 #   (1) validate JSON                  — fail reason: invalid_json
@@ -24,8 +24,8 @@ import time
 from pathlib import Path
 
 PROJECT = Path(os.environ.get("CLAUDE_PROJECT_DIR", "."))
-LOG = PROJECT / "test_output" / "instructions_loaded.log"
-PRECOMPACT = PROJECT / "test_output" / "brain_precompact_hashes.json"
+LOG = PROJECT / "_oneshots/test_output" / "instructions_loaded.log"
+PRECOMPACT = PROJECT / "_oneshots/test_output" / "brain_precompact_hashes.json"
 
 BRAIN_JSONS = {"bugs.json", "engineering_rules.json", "agile_backlog.json"}
 
