@@ -10576,6 +10576,18 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-004-S-009",
+                    "name": "Local Development File System & local Code Repository Management",
+                    "description": "This story specifies how the local file system will materialize on the disk and in the Cursor IDE. It will also specify the file system's relationship to the local Git, which is an exact mirror, when pushed, of the same repository on GitHub. Due 2026-05-22.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
                   }
                 ]
               },
