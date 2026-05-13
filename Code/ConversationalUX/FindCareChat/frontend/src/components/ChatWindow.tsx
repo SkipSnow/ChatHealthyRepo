@@ -494,6 +494,24 @@ export default function ChatWindow() {
 
     const elapsed = Math.round((Date.now() - startTime) / 1000)
 
+    // EPIC-002-F-003-S-004: backend detected register/sign-in intent.
+    // Show the short status message, then forward the OAuth trigger to
+    // the wrapper which owns the navigation to Google.
+    if (data.oauth_init === 'google') {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.response || 'Opening Google sign-in…',
+        thinkSeconds: elapsed,
+        tokensIn: data.tokens_in ?? undefined,
+      }])
+      try {
+        window.parent.postMessage({ type: 'gui:initiate-oauth-google' }, '*')
+      } catch (e) { /* defensive — never block UI on postMessage */ }
+      setIsLoading(false)
+      setThinkingDismissed(false)
+      return
+    }
+
     if (data.error) {
       const isRateLimit = data.error_type === 'rate_limit'
       if (isRateLimit && backendEnvRef.current === 'dev') {

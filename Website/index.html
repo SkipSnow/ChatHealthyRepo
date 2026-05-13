@@ -1118,6 +1118,47 @@
       // approved by human 2026-04-18).
       window.gotoFindCare = function() { window.returnToFindCare(); };
       window.gotoSharedServices = function() { window.openSharedServices(); };
+
+      // ── Google OAuth — EPIC-002-F-003-S-004 ────────────────────
+      // window.startGoogleOAuth(): fetches the Google authz URL from
+      // SharedServices (proxied via Cloudflare Pages Function so the HF
+      // Space URL stays out of client HTML), then navigates the browser
+      // there. SS callback (also proxied) 302s back here with
+      // ?auth_email=… on success or ?auth_error=… on failure.
+      window.startGoogleOAuth = function() {
+        fetch('/auth/google/start', { method: 'GET' })
+          .then(function(r) {
+            if (!r.ok) throw new Error('start ' + r.status);
+            return r.json();
+          })
+          .then(function(d) {
+            if (!d || !d.authz_url) throw new Error('start missing authz_url');
+            window.location = d.authz_url;
+          })
+          .catch(function(e) {
+            window.chFatalError('Google sign-in could not be initiated: ' + (e && e.message ? e.message : e));
+          });
+      };
+
+      // On wrapper init: surface OAuth round-trip result if the URL
+      // carries one. Email lands in window._authEmail; error in
+      // window._authError. Both removed from the address bar so a
+      // refresh doesn't replay them.
+      (function _hydrateAuthFromUrl() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var email = params.get('auth_email');
+          var err = params.get('auth_error');
+          if (email || err) {
+            if (email) window._authEmail = email;
+            if (err) window._authError = err;
+            params.delete('auth_email');
+            params.delete('auth_error');
+            var clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
+            history.replaceState(null, '', clean);
+          }
+        } catch (e) { /* defensive — never block load on URL parsing */ }
+      })();
       window.gotoEvaluateCare = function() {
         // DEVOPS-BANNER-B006: banner-initiated handoff to EvaluateCare.
         // Mirrors openSharedServices but hits /evaluate/* via FindCare proxy.
@@ -1308,6 +1349,13 @@
         // the spec-mandated 5-line layout including the error text from the API.
         if (msg.type === 'gui:fatal-error') {
           window.chFatalError(String(msg.message == null ? '' : msg.message));
+          return;
+        }
+        // EPIC-002-F-003-S-004: chat iframe asks the wrapper to begin
+        // the Google OAuth handshake. The chat detected the user's
+        // register intent; the wrapper owns the actual navigation.
+        if (msg.type === 'gui:initiate-oauth-google') {
+          window.startGoogleOAuth();
           return;
         }
         if (msg.type === 'gui:render') {

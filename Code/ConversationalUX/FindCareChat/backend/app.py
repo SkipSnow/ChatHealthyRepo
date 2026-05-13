@@ -389,6 +389,11 @@ class ChatResponse(BaseModel):
     tokens_out: Optional[int] = None
     pagination: Optional[PaginationMeta] = None
     trials: Optional[TrialsMeta] = None
+    # EPIC-002-F-003-S-004: when the chat detects a register/sign-in
+    # intent it sets this field instead of running the normal pipeline.
+    # The chat iframe forwards it to the wrapper as
+    # postMessage(type: "gui:initiate-oauth-google").
+    oauth_init: Optional[str] = None
 
 class SearchRequest(BaseModel):
     """Direct provider search — bypasses Claude. Used for pagination."""
@@ -714,6 +719,25 @@ async def _chat_inner(body: ChatRequest, request: Request):
         full_history = list(body.history) + [{"role": "user", "content": body.message}]
         _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
+
+    # EPIC-002-F-003-S-004: register/sign-in intent → short-circuit the
+    # chat pipeline and hand control back to the wrapper, which owns
+    # the navigation to Google. Cheap keyword match for MVP.
+    _msg_lower = body.message.lower()
+    _REGISTER_PHRASES = (
+        "i want to register", "want to register",
+        "i want to sign in", "want to sign in",
+        "i want to sign up", "want to sign up",
+        "i want to log in", "want to log in",
+        "i want to login", "want to login",
+        "register me", "sign me in", "sign me up",
+        "log me in",
+    )
+    if any(p in _msg_lower for p in _REGISTER_PHRASES):
+        return ChatResponse(
+            response="Opening Google sign-in…",
+            oauth_init="google",
+        )
 
     _CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
 
