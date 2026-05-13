@@ -104,6 +104,7 @@ from chathealthy_frontend_lib.authentication import (
     AuthToken, SessionRestampRequest, SessionToken, VerifyTokenResponse,
 )
 from authentication.mintable_auth_token import MintableAuthToken
+from authentication.google_oauth_endpoint import GoogleOAuthEndpoint
 
 _ORIGIN = "SharedServices"
 
@@ -158,6 +159,23 @@ def transfer_to_findcare():
          openapi_extra=_impl("SecretsEndpoint", "secretsManager/secrets_endpoint.py"))
 def get_secret(key: str):
     return SecretsEndpoint()(key)
+
+
+# ── Google OAuth handshake — EPIC-002-F-003-S-004 ──
+# /auth/google/start returns the Google authz URL the wrapper navigates to.
+# /auth/google/callback receives Google's redirect, exchanges the code,
+# verifies the ID token, extracts the email, and 302s back to the wrapper.
+
+@app.get("/auth/google/start", operation_id="GoogleOAuthStart",
+         openapi_extra=_impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
+def google_oauth_start():
+    return GoogleOAuthEndpoint.start(server_env=_ENV)
+
+
+@app.get("/auth/google/callback", operation_id="GoogleOAuthCallback",
+         openapi_extra=_impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
+def google_oauth_callback(code: str = None, state: str = None, error: str = None):
+    return GoogleOAuthEndpoint.callback(code=code, state=state, server_env=_ENV, error=error)
 
 
 # ── Run ─────────────────────────────────────────────────────
