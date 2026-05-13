@@ -15,7 +15,9 @@
     "strict": true,
     "baseUrl": "../../../../",
     "paths": {
-      "@providers/*": ["FindCare/ProviderManagement/*"]
+      "@providers/*": ["FindCare/ProviderManagement/*"],
+      "react": ["Code/ConversationalUX/FindCareChat/frontend/node_modules/@types/react"],
+      "react/*": ["Code/ConversationalUX/FindCareChat/frontend/node_modules/@types/react/*"]
     }
   },
   "include": ["src"]
