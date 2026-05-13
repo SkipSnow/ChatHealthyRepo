@@ -7225,205 +7225,6 @@
               "due_date": "2026-04-01"
             },
             {
-              "feature_id": "EPIC-006-F-027",
-              "name": "FindCare Service (HuggingFace Space)",
-              "description": "FindCare chat and provider search. Existing HF Space. Port 8000 local, 7860 on HF. Public API for end users, mTLS for service-to-service.",
-              "priority": "HIGH",
-              "status": "not_started",
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-006-F-027-S-001",
-                    "size": "M",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "description": "mTLS for service-to-service communication",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "mTLS for service-to-service communication"
-                  }
-                ]
-              },
-              "realized_by": [
-                "HuggingFace Spaces (cpu-upgrade)"
-              ],
-              "orphan": false,
-              "approval": "proposed",
-              "due_date": "2026-04-01"
-            },
-            {
-              "feature_id": "EPIC-006-F-029",
-              "name": "Local Development Topology",
-              "description": "Local dev environment with multi-port topology. Port 80: public site, Port 443: admin site (self-signed cert), Port 5173: React frontend, Port 8000: FindCare, Port 8001: EvaluateCare. All components runnable locally. Cloudflare provides free SSL in production.",
-              "priority": "MEDIUM",
-              "status": "not_started",
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-006-F-029-S-003",
-                    "size": "S",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-029-S-003-REQ-T-001",
-                          "requirement": "start_local.bat launches all 4 services in separate windows",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-029-S-003-REQ-T-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "start_local.bat launches four services in separate windows",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-029-S-003-REQ-T-003",
-                          "requirement": "start_local.bat must kill all orphaned python.exe processes running uvicorn before starting new instances",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "start_local.bat kills orphaned uvicorn python.exe before new instance launches",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-029-S-003-REQ-T-004",
-                          "requirement": "start_local.bat must kill all orphaned node.exe processes running vite/npm before starting new instances",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "start_local.bat kills orphaned node.exe (vite/npm) before starting new instances",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-029-S-003-REQ-T-005",
-                          "requirement": "start_local.bat must kill zombies on ALL service ports: 80, 443, 5173, 8000, 8001, 8002",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-029-S-003-REQ-T-005-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "start_local.bat kills zombies on ports 80, 443, 5173, 8000, 8001, 8002",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-029-S-003-REQ-T-006",
-                          "requirement": "start_local.bat must log all service output to %TEMP%/chathealthy_*.log so silent failures are diagnosable",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-029-S-003-REQ-T-006-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "start_local.bat logs all service output to %TEMP%/chathealthy_*.log",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-029-S-003-REQ-T-007",
-                          "requirement": "start_local.bat verification step must report which log file to check on failure",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-029-S-003-REQ-T-007-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Show log file path on start_local.bat verification failure",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-029-S-003-REQ-T-008",
-                          "requirement": "start_local.bat must verify EvaluateCare on :8001 is healthy before reporting success",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-029-S-003-REQ-T-008-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "start_local.bat checks EvaluateCare :8001 health before success report",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "One-click startup script for all services",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "One-click startup script for all services"
-                  }
-                ]
-              },
-              "realized_by": [
-                "Caddy 2.x",
-                "uvicorn",
-                "Vite 5"
-              ],
-              "orphan": false,
-              "approval": "proposed",
-              "due_date": "2026-04-01"
-            },
-            {
               "feature_id": "EPIC-006-F-030",
               "name": "Provider UX Display",
               "status": "not_started",
@@ -9112,1491 +8913,6 @@
               "priority": "must-have"
             },
             {
-              "feature_id": "EPIC-008-F-004",
-              "name": "DevOps â€” Build, Deploy, and Environment Management",
-              "status": "done_known_issue",
-              "description": "A software engineering discipline that unifies development and operations through automation, continuous delivery, and shared responsibility to accelerate the delivery of reliable software systems.",
-              "realized_by": [
-                "Python 3.11",
-                "GitHub Actions",
-                "HuggingFace Spaces",
-                "Cloudflare Pages"
-              ],
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-008-F-004-S-001",
-                    "name": "Universal deploy contract",
-                    "description": "The contract every deploy script obeys, regardless of environment. Port assignments, atomicity, version-document handling, build-bump rule, smoke-test invocation contract, and the human-authorization gate live here as the single source of truth.",
-                    "size": "L",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-T-001",
-                          "name": "Port table",
-                          "requirement": "Canonical port assignments, identical across all environments (local, dev, qa, prod): port 80 (HTTP â€” 301 redirects to HTTPS), port 443 (Website wrapper â€” public HTTPS entry), port 7860 (FindCare backend), port 8001 (EvaluateCare backend), port 8002 (SharedServices backend + React frontend). Every other requirement that names a port MUST refer to this requirement; MUST NOT restate the table.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-B-001",
-                          "name": "Atomic deploy",
-                          "requirement": "Each deploy script either succeeds totally or fails totally with the environment torn down. There is no half-deployed third state. Atomicity is enforced by tearing down the previous environment as the first step (precondition; the ports in REQ-T-001 cannot host two services simultaneously).",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-B-002",
-                          "name": "Target readiness check",
-                          "requirement": "Before any deploy action, the script verifies the target environment is reachable and able to receive a deployment. For local: every port in REQ-T-001 is reachable on the host. For deployed envs: the target HuggingFace Space exists and accepts GitHub Actions pushes.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-B-003",
-                          "name": "Build, start, verify",
-                          "requirement": "The script builds all components, starts them, then waits until every component responds as expected. The components are: FindCare backend, EvaluateCare backend, SharedServices backend (serving the React frontend), the public HTTPS entry (Website wrapper for local; Cloudflare Pages for deployed envs), and the front-end MongoDB cluster (tested as available, never deployed).",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-B-004",
-                          "name": "Smoke test invocation",
-                          "requirement": "After build/start/verify, the script invokes the master smoke test (S-006) with the target environment as parameter. On smoke-test failure the script MUST request explicit human verification before tearing down the environment, so the operator can inspect the failed state. Atomic teardown (REQ-B-001) proceeds only after the human authorizes it. Verification type = UAT (the human-verify gate on smoke failure cannot be auto-tested without stubbing the human, which defeats the requirement); UAT step lives in Code/deploy/local_deploy.py.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-B-005",
-                          "name": "Step notices",
-                          "requirement": "Between every significant deploy step the script emits a notice via the mechanism defined in S-007. No bell rings unless explicitly instructed by the operator per S-007.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-B-006",
-                          "name": "Human authorization gate",
-                          "requirement": "Every deploy â€” local, dev, qa, prod â€” pauses and requires explicit human authorization (interactive confirmation or signed approval token) before the production-affecting action begins. There are no unattended deploys now or in the foreseeable future. Production deploys carry the same gate as any other; what differs in prod is the version/framework ID assignment that follows (see S-004).",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-T-002",
-                          "name": "Version document",
-                          "requirement": "Build, version, and framework identifiers live as a single MongoDB document on the front-end cluster `chathealthyfrontend`, in the global database `admin`, in the collection literally named `Versions`. Each change inserts a new record carrying all three fields (build, version, framework) plus a `from` timestamp; the latest record by `from` is the current state. All three backend /health endpoints read the latest record. Build is incremented by the build-bump rule (REQ-T-003). Version and framework are set only by humans during prod deploy (S-004). Deploy pipelines never write these fields directly; the rule and the human routine are the only writers.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-T-003",
-                          "name": "Build-bump rule",
-                          "requirement": "An engineering rule (Rule-063 in `engineering_rules.json`) executes as a post-commit hook on every commit not part of a deploy pipeline. Statement 1: insert a new `admin.Versions` record with build incremented by exactly one; version and framework copied forward unchanged. Statement 2: push the new values to the running Kafka producer's `/version_bump` endpoint so subsequent messages carry the new build stamp without the producer re-reading MongoDB.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-001-REQ-T-003-TEST-1",
-                                "test_type": "integration",
-                                "orphan": false,
-                                "file": "Code/Shared/ops/tests/test_version_data_sit.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-T-005",
-                          "name": "Atomic teardown precondition",
-                          "requirement": "Before build, the script wipes prior artifacts and running processes (including Docker containers) and verifies every port in REQ-T-001 is clear. The wipe is the precondition that enables atomicity (REQ-B-001).",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-T-006",
-                          "name": "Structured deploy output",
-                          "requirement": "The script writes a structured output file Claude can read to {projectRoot}/_oneshots/test_output/deploy/ with the environment name and timestamp in the filename. Contents: pass/fail per test, container IDs (or PIDs for the Website wrapper), port assignments (per REQ-T-001), timestamps, and errors.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-T-007",
-                          "name": "Pytest exit propagation",
-                          "requirement": "When piping pytest output through tee, the script uses PIPESTATUS[0] (not $?) to capture the pytest exit code. On any pytest step failure, SMOKE TEST FAILED MUST be displayed to the human operator on the controlling terminal (not silently logged) so the operator can act before any teardown decision per REQ-B-004.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-001-REQ-T-008",
-                          "name": "React frontend build",
-                          "requirement": "Each deploy script builds the React frontend with the backend API URL for the target environment baked in, pointing to the service serving the React frontend per S-001-REQ-T-001 (post-S-008 migration: SharedServices on port 8002). Local and deployed envs differ only in the domain portion of the URL.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-008-F-004-S-002",
-                    "name": "Local-only deploy",
-                    "description": "What is unique to deploying on the developer's workstation. Backend services run as local Docker containers per the port table (S-001-REQ-T-001). MongoDB connections target the dev front-end cluster â€” the only resource shared with dev. The Website wrapper, which binds privileged ports 80 and 443, runs as a host-OS process (Docker exception). All other deploy facts live in S-001 and S-003.",
-                    "size": "M",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-002-REQ-T-001",
-                          "name": "Backend containers",
-                          "requirement": "All three backend services (FindCare, EvaluateCare, SharedServices) run as local Docker containers built from each backend's Dockerfile and requirements.txt. The local runtime MUST NOT import any Python package not installed by the container's pip install. Ports per S-001-REQ-T-001.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-002-REQ-T-002",
-                          "name": "Website wrapper on host OS",
-                          "requirement": "The Website wrapper, binding the privileged ports in S-001-REQ-T-001, MUST run as a host-OS process rather than a Docker container.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-002-REQ-B-001",
-                          "name": "Shared dev MongoDB",
-                          "requirement": "When deploying locally, all backend services connect to the dev front-end MongoDB cluster (cluster `chathealthyfrontend`, database `dev_*`). This is the only resource shared between local and dev. All other state, services, and ports are local.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-008-F-004-S-003",
-                    "name": "Deployed-env deploy (dev/qa/prod)",
-                    "description": "What is unique to deploying to the dev, qa, or prod environments. A single script accepts the environment as parameter and pushes to the matching HuggingFace paid Space (Docker, lowest tier) via GitHub Actions. Cloudflare Pages serves the static chathealthy.ai site for these envs.",
-                    "size": "M",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-003-REQ-B-001",
-                          "name": "Single parameterized script",
-                          "requirement": "One deploy script accepts an environment parameter (dev | qa | prod) and pushes to the corresponding HuggingFace paid Space. Logic is identical across the three environments except for prod-only behaviors (S-004) and the absence of non-prod display chrome (S-005) in prod.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-003-REQ-T-001",
-                          "name": "HuggingFace README preservation",
-                          "requirement": "Every HuggingFace Space deploy preserves the target Space's README.md across the push. README.md carries the HF Space frontmatter configuration (sdk, python_version, license) and MUST NOT be wiped. Missing README.md after a deploy is a violation.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-003-REQ-T-002",
-                          "name": "Cloudflare HTTPâ†’HTTPS",
-                          "requirement": "Every Cloudflare Pages deployment of chathealthy.ai (dev, qa, prod) 301-redirects every http:// request to its https:// equivalent. The redirect is immediate (no intermediate response, no caching delay) and applies to every path. The deploy script MUST verify this setting and configure it if absent.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-003-REQ-T-003",
-                          "name": "Cloudflare 404 error page",
-                          "requirement": "Cloudflare Pages returns HTTP 404 for unknown paths and renders a dedicated error page (not a blank response, not a redirect, not the home page). CloudFlare's default convention of redirecting unknown paths to the site root MUST be explicitly disabled. The deploy script verifies this setting and configures it if absent.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-008-F-004-S-004",
-                    "name": "Prod-only behaviors",
-                    "description": "The only differences between prod and the dev/qa environments, aside from their different addresses, are: (1) the chrome banner with versions and navigation between the servers does not appear in prod, and (2) the security GUI widget does not appear in prod.",
-                    "size": "S",
-                    "status": "not_started",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-004-REQ-B-001",
-                          "name": "Version & framework ID assignment",
-                          "requirement": "When environment=prod, after human UAT sign-off, the deploy script accepts human-supplied values for a new version ID (and potentially a new framework ID) and writes them to the version document (per S-001-REQ-T-002). Dev and qa deploys never change these fields. No automation, ever, sets version or framework.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-004-REQ-B-002",
-                          "name": "Display chrome OFF",
-                          "requirement": "In prod, the non-prod display chrome (S-005) MUST NOT render: no environment banner, no security token panel, no service-switching buttons. The smoke test (S-006) skips display-chrome checks when env=prod via its macro-variance dimension.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-008-F-004-S-005",
-                    "name": "Non-prod display chrome",
-                    "description": "Display chrome visible in local, dev, and qa; absent in prod (see S-004-REQ-B-002). Owns the environment banner, the security-token panel, and the three service-switching buttons. Banner reads /health from whichever service currently owns the page (FindCare, EvaluateCare, or SharedServices).",
-                    "size": "S",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-005-REQ-B-001",
-                          "name": "Banner contents",
-                          "requirement": "The environment banner displays environment label (LOCAL/DEV/QA), version, framework, and build, fetched from the /health endpoint of whichever service currently owns the page. All values render on one line with sufficient spacing for human readability. The banner displays the active service name in brackets (e.g., [evaluatecare]).",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-005-REQ-B-002",
-                          "name": "Banner re-fetches on ownership transfer",
-                          "requirement": "When page ownership transfers between services, the banner re-fetches /health from the new owner and updates inline.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-005-REQ-B-003",
-                          "name": "Service buttons + active is cold",
-                          "requirement": "Three service-switching buttons (FindCare, EvaluateCare, SharedServices) appear in the banner. The currently-active service's button is cold (greyed, disabled); on click it shows tooltip 'You are here already'. The other two buttons are hot (clickable, styled). Clicking a hot button transfers page ownership to that service, which then controls the entire frame. The content of this display must be served by the HuggingFace server that owns the content.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-005-REQ-B-004",
-                          "name": "Unimplemented placeholder",
-                          "requirement": "The center panel displays the service name and 'is still unimplemented.' when SharedServices or EvaluateCare has control, until those services have real implementations. The content of this display must be served by the HuggingFace server that owns the content.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-005-REQ-B-005",
-                          "name": "Security token panel",
-                          "requirement": "Each service displays a security token panel rendered per the mock at {projectRoot}/brain/machine_artifacts/diagramsAndImages/GUIImagesAndMockUps/NonProdSecuriytToken.jpg. Right panel and lower regions display the security information defined by EPIC-002-F-001-S-012-REQ-B-007. The content of this display must be served by the HuggingFace server that owns the content.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-008-F-004-S-006",
-                    "name": "Smoke test",
-                    "description": "One master Playwright pytest (`Code/deploy/localSmokeTestPyTest.py`) runs against any environment. The script varies along three dimensions: (1) environment â€” localhost / dev / qa / prod; (2) macro variance â€” display chrome (banner, token, service buttons) is exercised in non-prod and skipped in prod per S-004-REQ-B-002; (3) micro variance â€” PKI certificates differ across environments and the cert-verification step asserts the env-appropriate cert is in use. The actual script is the source of truth: where these requirements differ from the script's behavior, the script wins and these requirements MUST be reverse-engineered to match. Per-step requirements below (REQ-B-002 through REQ-B-037) capture each test class in the script.",
-                    "size": "L",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-001",
-                          "name": "Master smoke-test contract",
-                          "requirement": "`localSmokeTestPyTest.py` is the single master smoke test. It accepts the target environment as a parameter and exercises every step below in declared order. Every step MUST pass for the smoke test to PASS overall.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-001-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-002",
-                          "name": "Step 00 â€” Build gate: local and dev report identical build",
-                          "requirement": "Smoke test fetches /health from local FindCare and dev FindCare and asserts the `build` field matches across the two envs. Two environments on the same build MUST be running identical code and configuration; mismatched builds halt the smoke test before any further steps.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-002-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-003",
-                          "name": "Step 01 â€” HTTPâ†’HTTPS redirect",
-                          "requirement": "Browser navigation to http://{domain} MUST 301-redirect to https://{domain}. The smoke test deliberately probes the insecure scheme (constructed at runtime) and asserts the final URL is https://.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-003-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-004",
-                          "name": "Step 02 â€” Banner shows env label, version, framework, build",
-                          "requirement": "The environment banner element (`#envBanner`) MUST be visible and contain the env label (LOCAL/DEV/QA), and the literal strings `Version: <v>`, `Framework: <f>`, `Build: <b>` whose values match the response from the active service's /health.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-004-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-005",
-                          "name": "Step 03 â€” SharedServices button is a banner button",
-                          "requirement": "A `<button>` with `data-service='sharedservices'` MUST exist inside `#envBanner` (not in any header nav), MUST be visible, and its label MUST be `SharedServices` (PascalCase, no space).",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-005-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-006",
-                          "name": "Step 04 â€” Splash renders welcome words",
-                          "requirement": "The chat iframe loads. The first 10 words of the canonical welcome message (per `_get_welcome_words`) MUST appear in the iframe body text.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-006-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-007",
-                          "name": "Step 05 â€” Chat input enabled and focused on click",
-                          "requirement": "The chat input element (`input[placeholder*='Type a message']` or textarea) MUST be visible, MUST NOT carry a `disabled` attribute, and MUST become focused when clicked.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-007-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-008",
-                          "name": "Step 06 â€” Search returns providers",
-                          "requirement": "Submitting `Find me a bone doctor in Delaware` MUST yield results containing NPI strings (`NPI[:\\s]+\\d{10}`) in the iframe body within the chat timeout. The smoke test captures the originating session token for downstream nonce comparisons.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-008-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-009",
-                          "name": "Step 07 â€” Specialty checkboxes appear in left panel",
-                          "requirement": "After a search, `#leftPanel` MUST contain at least one `input[type='checkbox']` representing a specialty.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-009-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-010",
-                          "name": "Step 08 â€” Left panel cell layout and scroll cap",
-                          "requirement": "The left panel MUST contain exactly four `[data-cell]` cells (1..4) with reactive percentage heights 18/40/20/22 (declared via `flex:0 0 N%` or `height:N%` â€” pixel heights are forbidden). An Uncheck All / Check All toggle MUST live inside cell 1 (the green header). With more than 12 prescribers present, no more than 12 specialty checkboxes may be visible in cell 2 without scrolling.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-010-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-011",
-                          "name": "Step 09 â€” Provider NPIs in center frame",
-                          "requirement": "The chat iframe body MUST contain provider NPI strings (`NPI[:\\s]+\\d{10}`) after the search resolves.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-011-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-012",
-                          "name": "Step 10 â€” Bottom panel zero before selection",
-                          "requirement": "The chat iframe body MUST contain `0 / 5` (or `0/5`) reflecting an empty Selected for Evaluation panel before any provider is selected.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-012-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-013",
-                          "name": "Step 11 â€” Select up to three providers",
-                          "requirement": "Up to three provider Select-for-Evaluation buttons MUST be clickable; the smoke test clicks min(count, 3) of them.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-013-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-014",
-                          "name": "Step 12 â€” Selected providers appear in bottom panel",
-                          "requirement": "After selection, the iframe body MUST include the words `SELECTED` and `EVALUATION` and the count must read 1..5 / 5 (no longer 0).",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-014-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-015",
-                          "name": "Step 13 â€” Evaluate button click",
-                          "requirement": "An Evaluate button (`#guiEvalBtn` or text-matched `Evaluate`) MUST be present and clickable; the smoke test clicks it to trigger handoff to EvaluateCare.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-015-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-016",
-                          "name": "Step 14 â€” EvaluateCare has frame control",
-                          "requirement": "After the Evaluate click, the chat iframe (`#coreChatFrame`) MUST be hidden and `#evalcareSplash` MUST be visible â€” EvaluateCare owns the frame.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-016-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-T-001",
-                          "name": "Step 15 â€” mTLS to EvaluateCare TLS 1.2+",
-                          "requirement": "An mTLS handshake from the smoke test (using FindCare's client cert + key against the CA cert) to localhost:EVALCARE_PORT MUST succeed with TLS version 1.2 or higher. Failure of the handshake (SSLError) is a hard failure.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-T-001-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-017",
-                          "name": "Step 16 â€” Right panel shows EvaluateCare + provider NPIs",
-                          "requirement": "`#rightPanel` text MUST contain `EVALUATECARE` (case-insensitive substring) and at least one 10-digit NPI string after the EvaluateCare handoff.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-017-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-018",
-                          "name": "Step 17 â€” Token same sent/received; positioned below specialties",
-                          "requirement": "The handoff FindCareâ†’EvaluateCare MUST yield a fresh nonce; the session GUID MUST remain identical. The session token element (`#guiSessionCell` or `#guiSessionId`) MUST be positioned below the specialty list (its bounding-box `y` must be greater than the bottom of the scroll container), not beside it.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-018-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-019",
-                          "name": "Step 18 â€” Token components in distinct colors in both panels",
-                          "requirement": "Both right panel and left panel MUST show signed-token components in distinct colors: signed token in indigo (`#6366f1`), nonce in amber (`#d97706`), GUID in teal (`#0b7a75`). Right and left panels MUST present the same color treatment.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-019-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-020",
-                          "name": "Step 19 â€” Nonce changed after EvaluateCare handoff; GUID preserved",
-                          "requirement": "After the FindCareâ†’EvaluateCare handoff, the EvaluateCare-side nonce MUST differ from the original FindCare nonce; the EvaluateCare-side GUID MUST equal the original GUID.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-020-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-021",
-                          "name": "Step 20 â€” EvaluateCare splash text",
-                          "requirement": "`#evalcareSplash` MUST be visible and contain the literal strings `EvaluateCare` and `is still unimplemented`.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-021-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-022",
-                          "name": "Step 21 â€” Filter toggle change",
-                          "requirement": "Clicking the first specialty `[data-gui-action='filter-toggle']` checkbox MUST register and trigger the gui:reset path on apply. The toggle clicked MUST be a specialty filter-toggle (not a filter-provider-type) so that the return to FindCare proceeds via gui:reset.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-022-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-023",
-                          "name": "Step 22 â€” Apply filter returns control to FindCare",
-                          "requirement": "Clicking `[data-gui-action='filter-apply']` MUST: (1) restore visibility of `#coreChatFrame`; (2) hide both `#evalcareSplash` and `#sharedSplash`; (3) cause the FindCare welcome message to repaint (â‰¥20 of the first 25 welcome words present in the iframe body within ~15 seconds).",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-023-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-024",
-                          "name": "Step 23 â€” Chat input visible and focused after return",
-                          "requirement": "After return to FindCare, the chat input element MUST be visible and focused within the polling window (15 retries / 1s).",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-024-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-025",
-                          "name": "Step 24 â€” Nonce changed on EvaluateCareâ†’FindCare return",
-                          "requirement": "The handoff EvaluateCareâ†’FindCare MUST yield a fresh nonce different from both the original FindCare nonce and the EvaluateCare nonce; the GUID MUST remain unchanged.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-025-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-026",
-                          "name": "Step 25 â€” SharedServices button push: direct, not proxied",
-                          "requirement": "Clicking the SharedServices banner button MUST result in: (1) `#rightPanel` showing `Shared Services`; (2) at least one POST to `<SHARED_URL>/verify-token` directly (not proxied through FindCare's `/shared/verify-token`); (3) `#rightPanel` text containing `Server, serving security token: SharedServices` (self-identifying responding service, not the token signer).",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-026-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-027",
-                          "name": "Step 26 â€” SharedServices has frame control",
-                          "requirement": "After the SharedServices push, `#coreChatFrame` MUST be hidden and `#sharedSplash` MUST be visible.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-027-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-T-002",
-                          "name": "Step 27 â€” mTLS to SharedServices TLS 1.2+",
-                          "requirement": "An mTLS handshake from the smoke test (using FindCare's client cert + key against the CA cert) to localhost:SHARED_PORT MUST succeed with TLS version 1.2 or higher.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-T-002-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-028",
-                          "name": "Step 28 â€” SharedServices splash text",
-                          "requirement": "`#sharedSplash` MUST be visible and contain the literal strings `Shared Services` and `is still unimplemented`.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-028-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-029",
-                          "name": "Step 29 â€” SharedServices token auth: GUID preserved, nonce fresh",
-                          "requirement": "`#rightPanel` header MUST read `SHARED SERVICES` (case-insensitive). The handoff FindCareâ†’SharedServices MUST yield a fresh nonce; GUID MUST equal the original.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-029-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-030",
-                          "name": "Step 30 â€” SharedServices nonce/GUID stored and verified",
-                          "requirement": "The SharedServices-side nonce and GUID captured in step 29 MUST be present in test state; the GUID MUST equal the original FindCare GUID.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-030-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-031",
-                          "name": "Step 31 â€” Handoff 4: SharedServicesâ†’FindCare via filter",
-                          "requirement": "Clicking a specialty checkbox and Apply Filter MUST return control to FindCare (`#coreChatFrame` visible). The handoff MUST yield a fresh nonce.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-031-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-032",
-                          "name": "Step 32 â€” Handoff 5: EvaluateCareâ†’SharedServices direct",
-                          "requirement": "After re-selecting a provider and clicking Evaluate, then clicking the SharedServices banner button from the EvaluateCare context, `#rightPanel` MUST show `Shared Services`. The handoff MUST yield a fresh nonce.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-032-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-033",
-                          "name": "Step 33 â€” Handoff 6: SharedServicesâ†’EvaluateCare via re-evaluate",
-                          "requirement": "Returning to FindCare via filter, then re-selecting and clicking Evaluate, MUST hand control to EvaluateCare directly from the SharedServicesâ†’FindCare path. The handoff MUST yield a fresh nonce.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-033-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-B-034",
-                          "name": "Step 34 â€” All four services respond on HTTPS with expected JSON",
-                          "requirement": "Final assertion: `GET https://<BASE_URL>/` returns HTTP 200; `GET <FINDCARE_URL>/health` returns JSON with `status==\"ok\"`; `GET <EVALCARE_URL>/health` returns JSON with `service==\"evaluate_care\"`; `GET <SHARED_URL>/health` returns JSON with `service==\"shared_services\"`.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-B-034-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-006-REQ-T-003",
-                          "name": "Step 35 â€” Comprehensive PKI certificate verification (NEW)",
-                          "requirement": "The smoke test MUST hold the public certs of every server participating in mTLS (FindCare, EvaluateCare, SharedServices) and assert: (a) every cert file in {projectRoot}/Code/Shared/ops/certs/ parses as a valid PKI X.509 certificate, is signed by the project's CA cert (ca.crt), and is not expired; (b) for each ordered server pair (FindCareâ†”EvaluateCare, FindCareâ†”SharedServices, EvaluateCareâ†”SharedServices), an mTLS handshake succeeds in BOTH directions using the appropriate client cert against the CA. The point of the step is to assert real mutual-PKI rather than any subset (Steps 15 and 27 cover only FindCareâ†’EvaluateCare and FindCareâ†’SharedServices; this step fills the gap and adds explicit cert-validity checks).",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-004-S-006-REQ-T-003-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-008-F-004-S-007",
-                    "name": "Step notices and human-instructed bell",
-                    "description": "On-screen notices at significant deploy steps (the mechanism for S-001-REQ-B-005). The bell is HUMAN-INSTRUCTED ONLY: it never rings as default behavior. Default deploy behavior is silent except for the on-screen notices.",
-                    "size": "S",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-007-REQ-B-001",
-                          "name": "Step notices",
-                          "requirement": "At each significant deploy step the script MUST display an on-screen notice. Significant steps are: (1) deploy started for {environment}; (2) old environment torn down and ready to receive new; (3) new environment built; (4) smoke test started; (5) smoke test ended, with ratio (passed/total) of assertions and list of any failures.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-007-REQ-B-002",
-                          "name": "Bell rings only on explicit human instruction",
-                          "requirement": "The bell MUST NOT ring by default. The human operator may instruct Claude (via IDE prompt, command-line flag, or other explicit invocation) to ring the bell at specific times, in specific patterns. The operator chooses both WHEN and HOW. There is no requirement for unattended-deploy bell behavior; all deploys are human-supervised (per S-001-REQ-B-006).",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-008-F-004-S-008",
-                    "name": "React serving migration (opportunistic architectural evolution, one-time)",
-                    "description": "ONE-TIME architectural evolution included opportunistically in this deploy-management feature. Moves the React frontend serving responsibility from FindCare (port 7860) to SharedServices (port 8002). After this story ships, it is permanently done â€” it does NOT belong to the enduring deploy facts and never re-fires.",
-                    "size": "M",
-                    "status": "not_started",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-004-S-008-REQ-B-001",
-                          "name": "React serving moves to SharedServices",
-                          "requirement": "After this story ships, SharedServices (port 8002 per S-001-REQ-T-001) serves the React frontend in addition to its backend. FindCare (port 7860) serves only the FindCare backend. No other behavioral change.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-008-REQ-T-001",
-                          "name": "Build URLs updated",
-                          "requirement": "S-001-REQ-T-008 (the universal React build req) builds the React frontend with the SharedServices URL baked in. Pre-migration FindCare URL is removed from all build paths.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-004-S-008-REQ-T-002",
-                          "name": "Smoke test passes post-migration",
-                          "requirement": "The master smoke test (S-006) passes against an environment where SharedServices serves the React frontend, with no regression in any of the current step set (Step00..Step34 plus the cert-verification step in S-006-REQ-T-003 â€” currently 36 steps total).",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-008-F-004-S-009",
-                    "name": "Local Development File System & local Code Repository Management",
-                    "description": "This story specifies how the local file system will materialize on the disk and in the Cursor IDE. It will also specify the file system's relationship to the local Git, which is an exact mirror, when pushed, of the same repository on GitHub. Due 2026-05-22.",
-                    "size": "M",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": []
-                    }
-                  }
-                ]
-              },
-              "orphan": false,
-              "approval": "proposed",
-              "due_date": "2026-06-01",
-              "priority": "must-have"
-            },
-            {
               "feature_id": "EPIC-008-F-005",
               "name": "Audit â€” Technical, Business, Regulatory and Corporate Governance",
               "status": "in_progress",
@@ -11745,6 +10061,1688 @@
                   }
                 ]
               }
+            },
+            {
+              "feature_id": "EPIC-008-F-012",
+              "name": "Deployment",
+              "status": "in_progress",
+              "description": "TBD — Skip-authored.",
+              "realized_by": [],
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-008-F-012-S-001",
+                    "name": "Universal deploy contract",
+                    "description": "The contract every deploy script obeys, regardless of environment. Port assignments, atomicity, version-document handling, build-bump rule, smoke-test invocation contract, and the human-authorization gate live here as the single source of truth.",
+                    "size": "L",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-001",
+                          "name": "Port table",
+                          "requirement": "Canonical port assignments, identical across all environments (local, dev, qa, prod): port 80 (HTTP â€” 301 redirects to HTTPS), port 443 (Website wrapper â€” public HTTPS entry), port 7860 (FindCare backend), port 8001 (EvaluateCare backend), port 8002 (SharedServices backend + React frontend). Every other requirement that names a port MUST refer to this requirement; MUST NOT restate the table.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-001",
+                          "name": "Atomic deploy",
+                          "requirement": "Each deploy script either succeeds totally or fails totally with the environment torn down. There is no half-deployed third state. Atomicity is enforced by tearing down the previous environment as the first step (precondition; the ports in REQ-T-001 cannot host two services simultaneously).",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-002",
+                          "name": "Target readiness check",
+                          "requirement": "Before any deploy action, the script verifies the target environment is reachable and able to receive a deployment. For local: every port in REQ-T-001 is reachable on the host. For deployed envs: the target HuggingFace Space exists and accepts GitHub Actions pushes.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-003",
+                          "name": "Build, start, verify",
+                          "requirement": "The script builds all components, starts them, then waits until every component responds as expected. The components are: FindCare backend, EvaluateCare backend, SharedServices backend (serving the React frontend), the public HTTPS entry (Website wrapper for local; Cloudflare Pages for deployed envs), and the front-end MongoDB cluster (tested as available, never deployed).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-004",
+                          "name": "Smoke test invocation",
+                          "requirement": "After build/start/verify, the script invokes the master smoke test (S-006) with the target environment as parameter. On smoke-test failure the script MUST request explicit human verification before tearing down the environment, so the operator can inspect the failed state. Atomic teardown (REQ-B-001) proceeds only after the human authorizes it. Verification type = UAT (the human-verify gate on smoke failure cannot be auto-tested without stubbing the human, which defeats the requirement); UAT step lives in Code/deploy/local_deploy.py.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-005",
+                          "name": "Step notices",
+                          "requirement": "Between every significant deploy step the script emits a notice via the mechanism defined in S-007. No bell rings unless explicitly instructed by the operator per S-007.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-006",
+                          "name": "Human authorization gate",
+                          "requirement": "Every deploy â€” local, dev, qa, prod â€” pauses and requires explicit human authorization (interactive confirmation or signed approval token) before the production-affecting action begins. There are no unattended deploys now or in the foreseeable future. Production deploys carry the same gate as any other; what differs in prod is the version/framework ID assignment that follows (see S-004).",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-007",
+                          "name": "No commit, push, or deploy without explicit human authorization",
+                          "requirement": "No commit, push, or deploy CAN take place without explicit human authorization. This requirement shall be enforced as part of ChatHealthy's rule enforcement prior to an Anthropic hook for code-control integration.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-002",
+                          "name": "Version document",
+                          "requirement": "Build, version, and framework identifiers live as a single MongoDB document on the front-end cluster `chathealthyfrontend`, in the global database `admin`, in the collection literally named `Versions`. Each change inserts a new record carrying all three fields (build, version, framework) plus a `from` timestamp; the latest record by `from` is the current state. All three backend /health endpoints read the latest record. Build is incremented by the build-bump rule (REQ-T-003). Version and framework are set only by humans during prod deploy (S-004). Deploy pipelines never write these fields directly; the rule and the human routine are the only writers.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-003",
+                          "name": "Build-bump rule",
+                          "requirement": "An engineering rule (Rule-063 in `engineering_rules.json`) executes as a post-commit hook on every commit not part of a deploy pipeline. Statement 1: insert a new `admin.Versions` record with build incremented by exactly one; version and framework copied forward unchanged. Statement 2: push the new values to the running Kafka producer's `/version_bump` endpoint so subsequent messages carry the new build stamp without the producer re-reading MongoDB.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-001-REQ-T-003-TEST-1",
+                                "test_type": "integration",
+                                "orphan": false,
+                                "file": "Code/Shared/ops/tests/test_version_data_sit.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-005",
+                          "name": "Atomic teardown precondition",
+                          "requirement": "Before build, the script wipes prior artifacts and running processes (including Docker containers) and verifies every port in REQ-T-001 is clear. The wipe is the precondition that enables atomicity (REQ-B-001).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-006",
+                          "name": "Structured deploy output",
+                          "requirement": "The script writes a structured output file Claude can read to {projectRoot}/_oneshots/test_output/deploy/ with the environment name and timestamp in the filename. Contents: pass/fail per test, container IDs (or PIDs for the Website wrapper), port assignments (per REQ-T-001), timestamps, and errors.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-007",
+                          "name": "Pytest exit propagation",
+                          "requirement": "When piping pytest output through tee, the script uses PIPESTATUS[0] (not $?) to capture the pytest exit code. On any pytest step failure, SMOKE TEST FAILED MUST be displayed to the human operator on the controlling terminal (not silently logged) so the operator can act before any teardown decision per REQ-B-004.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-008",
+                          "name": "React frontend build",
+                          "requirement": "Each deploy script builds the React frontend with the backend API URL for the target environment baked in, pointing to the service serving the React frontend per S-001-REQ-T-001 (post-S-008 migration: SharedServices on port 8002). Local and deployed envs differ only in the domain portion of the URL.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-012-S-002",
+                    "name": "Local-only deploy",
+                    "description": "What is unique to deploying on the developer's workstation. Backend services run as local Docker containers per the port table (S-001-REQ-T-001). MongoDB connections target the dev front-end cluster â€” the only resource shared with dev. The Website wrapper, which binds privileged ports 80 and 443, runs as a host-OS process (Docker exception). All other deploy facts live in S-001 and S-003.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-002-REQ-T-001",
+                          "name": "Backend containers",
+                          "requirement": "All three backend services (FindCare, EvaluateCare, SharedServices) run as local Docker containers built from each backend's Dockerfile and requirements.txt. The local runtime MUST NOT import any Python package not installed by the container's pip install. Ports per S-001-REQ-T-001.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-002-REQ-T-002",
+                          "name": "Website wrapper on host OS",
+                          "requirement": "The Website wrapper, binding the privileged ports in S-001-REQ-T-001, MUST run as a host-OS process rather than a Docker container.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-002-REQ-B-001",
+                          "name": "Shared dev MongoDB",
+                          "requirement": "When deploying locally, all backend services connect to the dev front-end MongoDB cluster (cluster `chathealthyfrontend`, database `dev_*`). This is the only resource shared between local and dev. All other state, services, and ports are local.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-012-S-003",
+                    "name": "Deployed-env deploy (dev/qa/prod)",
+                    "description": "What is unique to deploying to the dev, qa, or prod environments. A single script accepts the environment as parameter and pushes to the matching HuggingFace paid Space (Docker, lowest tier) via GitHub Actions. Cloudflare Pages serves the static chathealthy.ai site for these envs.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-B-001",
+                          "name": "Single parameterized script",
+                          "requirement": "One deploy script accepts an environment parameter (dev | qa | prod) and pushes to the corresponding HuggingFace paid Space. Logic is identical across the three environments except for prod-only behaviors (S-004) and the absence of non-prod display chrome (S-005) in prod.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-T-001",
+                          "name": "HuggingFace README preservation",
+                          "requirement": "Every HuggingFace Space deploy preserves the target Space's README.md across the push. README.md carries the HF Space frontmatter configuration (sdk, python_version, license) and MUST NOT be wiped. Missing README.md after a deploy is a violation.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-T-002",
+                          "name": "Cloudflare HTTPâ†’HTTPS",
+                          "requirement": "Every Cloudflare Pages deployment of chathealthy.ai (dev, qa, prod) 301-redirects every http:// request to its https:// equivalent. The redirect is immediate (no intermediate response, no caching delay) and applies to every path. The deploy script MUST verify this setting and configure it if absent.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-T-003",
+                          "name": "Cloudflare 404 error page",
+                          "requirement": "Cloudflare Pages returns HTTP 404 for unknown paths and renders a dedicated error page (not a blank response, not a redirect, not the home page). CloudFlare's default convention of redirecting unknown paths to the site root MUST be explicitly disabled. The deploy script verifies this setting and configures it if absent.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-012-S-004",
+                    "name": "Prod-only behaviors",
+                    "description": "The only differences between prod and the dev/qa environments, aside from their different addresses, are: (1) the chrome banner with versions and navigation between the servers does not appear in prod, and (2) the security GUI widget does not appear in prod.",
+                    "size": "S",
+                    "status": "not_started",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-001",
+                          "name": "Version & framework ID assignment",
+                          "requirement": "When environment=prod, after human UAT sign-off, the deploy script accepts human-supplied values for a new version ID (and potentially a new framework ID) and writes them to the version document (per S-001-REQ-T-002). Dev and qa deploys never change these fields. No automation, ever, sets version or framework.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-004-REQ-B-002",
+                          "name": "Display chrome OFF",
+                          "requirement": "In prod, the non-prod display chrome (S-005) MUST NOT render: no environment banner, no security token panel, no service-switching buttons. The smoke test (S-006) skips display-chrome checks when env=prod via its macro-variance dimension.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-012-S-005",
+                    "name": "Non-prod display chrome",
+                    "description": "Display chrome visible in local, dev, and qa; absent in prod (see S-004-REQ-B-002). Owns the environment banner, the security-token panel, and the three service-switching buttons. Banner reads /health from whichever service currently owns the page (FindCare, EvaluateCare, or SharedServices).",
+                    "size": "S",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-005-REQ-B-001",
+                          "name": "Banner contents",
+                          "requirement": "The environment banner displays environment label (LOCAL/DEV/QA), version, framework, and build, fetched from the /health endpoint of whichever service currently owns the page. All values render on one line with sufficient spacing for human readability. The banner displays the active service name in brackets (e.g., [evaluatecare]).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-005-REQ-B-002",
+                          "name": "Banner re-fetches on ownership transfer",
+                          "requirement": "When page ownership transfers between services, the banner re-fetches /health from the new owner and updates inline.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-005-REQ-B-003",
+                          "name": "Service buttons + active is cold",
+                          "requirement": "Three service-switching buttons (FindCare, EvaluateCare, SharedServices) appear in the banner. The currently-active service's button is cold (greyed, disabled); on click it shows tooltip 'You are here already'. The other two buttons are hot (clickable, styled). Clicking a hot button transfers page ownership to that service, which then controls the entire frame. The content of this display must be served by the HuggingFace server that owns the content.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-005-REQ-B-004",
+                          "name": "Unimplemented placeholder",
+                          "requirement": "The center panel displays the service name and 'is still unimplemented.' when SharedServices or EvaluateCare has control, until those services have real implementations. The content of this display must be served by the HuggingFace server that owns the content.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-005-REQ-B-005",
+                          "name": "Security token panel",
+                          "requirement": "Each service displays a security token panel rendered per the mock at {projectRoot}/brain/machine_artifacts/diagramsAndImages/GUIImagesAndMockUps/NonProdSecuriytToken.jpg. Right panel and lower regions display the security information defined by EPIC-002-F-001-S-012-REQ-B-007. The content of this display must be served by the HuggingFace server that owns the content.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-012-S-006",
+                    "name": "Smoke test",
+                    "description": "One master Playwright pytest (`Code/deploy/localSmokeTestPyTest.py`) runs against any environment. The script varies along three dimensions: (1) environment â€” localhost / dev / qa / prod; (2) macro variance â€” display chrome (banner, token, service buttons) is exercised in non-prod and skipped in prod per S-004-REQ-B-002; (3) micro variance â€” PKI certificates differ across environments and the cert-verification step asserts the env-appropriate cert is in use. The actual script is the source of truth: where these requirements differ from the script's behavior, the script wins and these requirements MUST be reverse-engineered to match. Per-step requirements below (REQ-B-002 through REQ-B-037) capture each test class in the script.",
+                    "size": "L",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-001",
+                          "name": "Master smoke-test contract",
+                          "requirement": "`localSmokeTestPyTest.py` is the single master smoke test. It accepts the target environment as a parameter and exercises every step below in declared order. Every step MUST pass for the smoke test to PASS overall.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-001-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-002",
+                          "name": "Step 00 â€” Build gate: local and dev report identical build",
+                          "requirement": "Smoke test fetches /health from local FindCare and dev FindCare and asserts the `build` field matches across the two envs. Two environments on the same build MUST be running identical code and configuration; mismatched builds halt the smoke test before any further steps.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-002-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-003",
+                          "name": "Step 01 â€” HTTPâ†’HTTPS redirect",
+                          "requirement": "Browser navigation to http://{domain} MUST 301-redirect to https://{domain}. The smoke test deliberately probes the insecure scheme (constructed at runtime) and asserts the final URL is https://.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-003-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-004",
+                          "name": "Step 02 â€” Banner shows env label, version, framework, build",
+                          "requirement": "The environment banner element (`#envBanner`) MUST be visible and contain the env label (LOCAL/DEV/QA), and the literal strings `Version: <v>`, `Framework: <f>`, `Build: <b>` whose values match the response from the active service's /health.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-004-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-005",
+                          "name": "Step 03 â€” SharedServices button is a banner button",
+                          "requirement": "A `<button>` with `data-service='sharedservices'` MUST exist inside `#envBanner` (not in any header nav), MUST be visible, and its label MUST be `SharedServices` (PascalCase, no space).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-005-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-006",
+                          "name": "Step 04 â€” Splash renders welcome words",
+                          "requirement": "The chat iframe loads. The first 10 words of the canonical welcome message (per `_get_welcome_words`) MUST appear in the iframe body text.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-006-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-007",
+                          "name": "Step 05 â€” Chat input enabled and focused on click",
+                          "requirement": "The chat input element (`input[placeholder*='Type a message']` or textarea) MUST be visible, MUST NOT carry a `disabled` attribute, and MUST become focused when clicked.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-007-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-008",
+                          "name": "Step 06 â€” Search returns providers",
+                          "requirement": "Submitting `Find me a bone doctor in Delaware` MUST yield results containing NPI strings (`NPI[:\\s]+\\d{10}`) in the iframe body within the chat timeout. The smoke test captures the originating session token for downstream nonce comparisons.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-008-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-009",
+                          "name": "Step 07 â€” Specialty checkboxes appear in left panel",
+                          "requirement": "After a search, `#leftPanel` MUST contain at least one `input[type='checkbox']` representing a specialty.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-009-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-010",
+                          "name": "Step 08 â€” Left panel cell layout and scroll cap",
+                          "requirement": "The left panel MUST contain exactly four `[data-cell]` cells (1..4) with reactive percentage heights 18/40/20/22 (declared via `flex:0 0 N%` or `height:N%` â€” pixel heights are forbidden). An Uncheck All / Check All toggle MUST live inside cell 1 (the green header). With more than 12 prescribers present, no more than 12 specialty checkboxes may be visible in cell 2 without scrolling.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-010-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-011",
+                          "name": "Step 09 â€” Provider NPIs in center frame",
+                          "requirement": "The chat iframe body MUST contain provider NPI strings (`NPI[:\\s]+\\d{10}`) after the search resolves.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-011-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-012",
+                          "name": "Step 10 â€” Bottom panel zero before selection",
+                          "requirement": "The chat iframe body MUST contain `0 / 5` (or `0/5`) reflecting an empty Selected for Evaluation panel before any provider is selected.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-012-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-013",
+                          "name": "Step 11 â€” Select up to three providers",
+                          "requirement": "Up to three provider Select-for-Evaluation buttons MUST be clickable; the smoke test clicks min(count, 3) of them.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-013-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-014",
+                          "name": "Step 12 â€” Selected providers appear in bottom panel",
+                          "requirement": "After selection, the iframe body MUST include the words `SELECTED` and `EVALUATION` and the count must read 1..5 / 5 (no longer 0).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-014-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-015",
+                          "name": "Step 13 â€” Evaluate button click",
+                          "requirement": "An Evaluate button (`#guiEvalBtn` or text-matched `Evaluate`) MUST be present and clickable; the smoke test clicks it to trigger handoff to EvaluateCare.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-015-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-016",
+                          "name": "Step 14 â€” EvaluateCare has frame control",
+                          "requirement": "After the Evaluate click, the chat iframe (`#coreChatFrame`) MUST be hidden and `#evalcareSplash` MUST be visible â€” EvaluateCare owns the frame.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-016-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-T-001",
+                          "name": "Step 15 â€” mTLS to EvaluateCare TLS 1.2+",
+                          "requirement": "An mTLS handshake from the smoke test (using FindCare's client cert + key against the CA cert) to localhost:EVALCARE_PORT MUST succeed with TLS version 1.2 or higher. Failure of the handshake (SSLError) is a hard failure.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-T-001-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-017",
+                          "name": "Step 16 â€” Right panel shows EvaluateCare + provider NPIs",
+                          "requirement": "`#rightPanel` text MUST contain `EVALUATECARE` (case-insensitive substring) and at least one 10-digit NPI string after the EvaluateCare handoff.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-017-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-018",
+                          "name": "Step 17 â€” Token same sent/received; positioned below specialties",
+                          "requirement": "The handoff FindCareâ†’EvaluateCare MUST yield a fresh nonce; the session GUID MUST remain identical. The session token element (`#guiSessionCell` or `#guiSessionId`) MUST be positioned below the specialty list (its bounding-box `y` must be greater than the bottom of the scroll container), not beside it.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-018-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-019",
+                          "name": "Step 18 â€” Token components in distinct colors in both panels",
+                          "requirement": "Both right panel and left panel MUST show signed-token components in distinct colors: signed token in indigo (`#6366f1`), nonce in amber (`#d97706`), GUID in teal (`#0b7a75`). Right and left panels MUST present the same color treatment.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-019-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-020",
+                          "name": "Step 19 â€” Nonce changed after EvaluateCare handoff; GUID preserved",
+                          "requirement": "After the FindCareâ†’EvaluateCare handoff, the EvaluateCare-side nonce MUST differ from the original FindCare nonce; the EvaluateCare-side GUID MUST equal the original GUID.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-020-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-021",
+                          "name": "Step 20 â€” EvaluateCare splash text",
+                          "requirement": "`#evalcareSplash` MUST be visible and contain the literal strings `EvaluateCare` and `is still unimplemented`.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-021-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-022",
+                          "name": "Step 21 â€” Filter toggle change",
+                          "requirement": "Clicking the first specialty `[data-gui-action='filter-toggle']` checkbox MUST register and trigger the gui:reset path on apply. The toggle clicked MUST be a specialty filter-toggle (not a filter-provider-type) so that the return to FindCare proceeds via gui:reset.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-022-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-023",
+                          "name": "Step 22 â€” Apply filter returns control to FindCare",
+                          "requirement": "Clicking `[data-gui-action='filter-apply']` MUST: (1) restore visibility of `#coreChatFrame`; (2) hide both `#evalcareSplash` and `#sharedSplash`; (3) cause the FindCare welcome message to repaint (â‰¥20 of the first 25 welcome words present in the iframe body within ~15 seconds).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-023-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-024",
+                          "name": "Step 23 â€” Chat input visible and focused after return",
+                          "requirement": "After return to FindCare, the chat input element MUST be visible and focused within the polling window (15 retries / 1s).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-024-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-025",
+                          "name": "Step 24 â€” Nonce changed on EvaluateCareâ†’FindCare return",
+                          "requirement": "The handoff EvaluateCareâ†’FindCare MUST yield a fresh nonce different from both the original FindCare nonce and the EvaluateCare nonce; the GUID MUST remain unchanged.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-025-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-026",
+                          "name": "Step 25 â€” SharedServices button push: direct, not proxied",
+                          "requirement": "Clicking the SharedServices banner button MUST result in: (1) `#rightPanel` showing `Shared Services`; (2) at least one POST to `<SHARED_URL>/verify-token` directly (not proxied through FindCare's `/shared/verify-token`); (3) `#rightPanel` text containing `Server, serving security token: SharedServices` (self-identifying responding service, not the token signer).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-026-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-027",
+                          "name": "Step 26 â€” SharedServices has frame control",
+                          "requirement": "After the SharedServices push, `#coreChatFrame` MUST be hidden and `#sharedSplash` MUST be visible.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-027-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-T-002",
+                          "name": "Step 27 â€” mTLS to SharedServices TLS 1.2+",
+                          "requirement": "An mTLS handshake from the smoke test (using FindCare's client cert + key against the CA cert) to localhost:SHARED_PORT MUST succeed with TLS version 1.2 or higher.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-T-002-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-028",
+                          "name": "Step 28 â€” SharedServices splash text",
+                          "requirement": "`#sharedSplash` MUST be visible and contain the literal strings `Shared Services` and `is still unimplemented`.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-028-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-029",
+                          "name": "Step 29 â€” SharedServices token auth: GUID preserved, nonce fresh",
+                          "requirement": "`#rightPanel` header MUST read `SHARED SERVICES` (case-insensitive). The handoff FindCareâ†’SharedServices MUST yield a fresh nonce; GUID MUST equal the original.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-029-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-030",
+                          "name": "Step 30 â€” SharedServices nonce/GUID stored and verified",
+                          "requirement": "The SharedServices-side nonce and GUID captured in step 29 MUST be present in test state; the GUID MUST equal the original FindCare GUID.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-030-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-031",
+                          "name": "Step 31 â€” Handoff 4: SharedServicesâ†’FindCare via filter",
+                          "requirement": "Clicking a specialty checkbox and Apply Filter MUST return control to FindCare (`#coreChatFrame` visible). The handoff MUST yield a fresh nonce.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-031-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-032",
+                          "name": "Step 32 â€” Handoff 5: EvaluateCareâ†’SharedServices direct",
+                          "requirement": "After re-selecting a provider and clicking Evaluate, then clicking the SharedServices banner button from the EvaluateCare context, `#rightPanel` MUST show `Shared Services`. The handoff MUST yield a fresh nonce.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-032-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-033",
+                          "name": "Step 33 â€” Handoff 6: SharedServicesâ†’EvaluateCare via re-evaluate",
+                          "requirement": "Returning to FindCare via filter, then re-selecting and clicking Evaluate, MUST hand control to EvaluateCare directly from the SharedServicesâ†’FindCare path. The handoff MUST yield a fresh nonce.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-033-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-034",
+                          "name": "Step 34 â€” All four services respond on HTTPS with expected JSON",
+                          "requirement": "Final assertion: `GET https://<BASE_URL>/` returns HTTP 200; `GET <FINDCARE_URL>/health` returns JSON with `status==\"ok\"`; `GET <EVALCARE_URL>/health` returns JSON with `service==\"evaluate_care\"`; `GET <SHARED_URL>/health` returns JSON with `service==\"shared_services\"`.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-034-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-T-003",
+                          "name": "Step 35 â€” Comprehensive PKI certificate verification (NEW)",
+                          "requirement": "The smoke test MUST hold the public certs of every server participating in mTLS (FindCare, EvaluateCare, SharedServices) and assert: (a) every cert file in {projectRoot}/Code/Shared/ops/certs/ parses as a valid PKI X.509 certificate, is signed by the project's CA cert (ca.crt), and is not expired; (b) for each ordered server pair (FindCareâ†”EvaluateCare, FindCareâ†”SharedServices, EvaluateCareâ†”SharedServices), an mTLS handshake succeeds in BOTH directions using the appropriate client cert against the CA. The point of the step is to assert real mutual-PKI rather than any subset (Steps 15 and 27 cover only FindCareâ†’EvaluateCare and FindCareâ†’SharedServices; this step fills the gap and adds explicit cert-validity checks).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-T-003-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-012-S-007",
+                    "name": "Step notices and human-instructed bell",
+                    "description": "On-screen notices at significant deploy steps (the mechanism for S-001-REQ-B-005). The bell is HUMAN-INSTRUCTED ONLY: it never rings as default behavior. Default deploy behavior is silent except for the on-screen notices.",
+                    "size": "S",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-007-REQ-B-001",
+                          "name": "Step notices",
+                          "requirement": "At each significant deploy step the script MUST display an on-screen notice. Significant steps are: (1) deploy started for {environment}; (2) old environment torn down and ready to receive new; (3) new environment built; (4) smoke test started; (5) smoke test ended, with ratio (passed/total) of assertions and list of any failures.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-007-REQ-B-002",
+                          "name": "Bell rings only on explicit human instruction",
+                          "requirement": "The bell MUST NOT ring by default. The human operator may instruct Claude (via IDE prompt, command-line flag, or other explicit invocation) to ring the bell at specific times, in specific patterns. The operator chooses both WHEN and HOW. There is no requirement for unattended-deploy bell behavior; all deploys are human-supervised (per S-001-REQ-B-006).",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-012-S-008",
+                    "name": "React serving migration (opportunistic architectural evolution, one-time)",
+                    "description": "ONE-TIME architectural evolution included opportunistically in this deploy-management feature. Moves the React frontend serving responsibility from FindCare (port 7860) to SharedServices (port 8002). After this story ships, it is permanently done â€” it does NOT belong to the enduring deploy facts and never re-fires.",
+                    "size": "M",
+                    "status": "not_started",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-008-REQ-B-001",
+                          "name": "React serving moves to SharedServices",
+                          "requirement": "After this story ships, SharedServices (port 8002 per S-001-REQ-T-001) serves the React frontend in addition to its backend. FindCare (port 7860) serves only the FindCare backend. No other behavioral change.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-008-REQ-T-001",
+                          "name": "Build URLs updated",
+                          "requirement": "S-001-REQ-T-008 (the universal React build req) builds the React frontend with the SharedServices URL baked in. Pre-migration FindCare URL is removed from all build paths.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-008-REQ-T-002",
+                          "name": "Smoke test passes post-migration",
+                          "requirement": "The master smoke test (S-006) passes against an environment where SharedServices serves the React frontend, with no regression in any of the current step set (Step00..Step34 plus the cert-verification step in S-006-REQ-T-003 â€” currently 36 steps total).",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-012-S-009",
+                    "name": "Local Development File System & local Code Repository Management",
+                    "description": "This story specifies how the local file system will materialize on the disk and in the Cursor IDE. It will also specify the file system's relationship to the local Git, which is an exact mirror, when pushed, of the same repository on GitHub. Due 2026-05-22.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-009-REQ-B-001",
+                          "name": "Physical and IDE file system mirror agile_backlog hierarchy at root, free of deployment details and technical clutter",
+                          "requirement": "The physical file system, as well as the file system displayed in the project view of the IDE, MUST reflect the hierarchy defined by agile_backlog.json. It MUST do so at the root. It MUST NOT reflect any deployment details or be burdened with unnecessary technical clutter.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-012-S-010",
+                    "size": "M",
+                    "status": "not_started",
+                    "requirements": {
+                      "requirement": []
+                    },
+                    "description": "mTLS for service-to-service communication",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "mTLS for service-to-service communication"
+                  },
+                  {
+                    "story_id": "EPIC-008-F-012-S-011",
+                    "size": "S",
+                    "status": "not_started",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-012-S-011-REQ-T-001",
+                          "requirement": "start_local.bat launches all 4 services in separate windows",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-011-REQ-T-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "start_local.bat launches four services in separate windows",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-011-REQ-T-003",
+                          "requirement": "start_local.bat must kill all orphaned python.exe processes running uvicorn before starting new instances",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "start_local.bat kills orphaned uvicorn python.exe before new instance launches",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-011-REQ-T-004",
+                          "requirement": "start_local.bat must kill all orphaned node.exe processes running vite/npm before starting new instances",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "start_local.bat kills orphaned node.exe (vite/npm) before starting new instances",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-011-REQ-T-005",
+                          "requirement": "start_local.bat must kill zombies on ALL service ports: 80, 443, 5173, 8000, 8001, 8002",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-011-REQ-T-005-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "start_local.bat kills zombies on ports 80, 443, 5173, 8000, 8001, 8002",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-011-REQ-T-006",
+                          "requirement": "start_local.bat must log all service output to %TEMP%/chathealthy_*.log so silent failures are diagnosable",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-011-REQ-T-006-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "start_local.bat logs all service output to %TEMP%/chathealthy_*.log",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-011-REQ-T-007",
+                          "requirement": "start_local.bat verification step must report which log file to check on failure",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-011-REQ-T-007-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Show log file path on start_local.bat verification failure",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-011-REQ-T-008",
+                          "requirement": "start_local.bat must verify EvaluateCare on :8001 is healthy before reporting success",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-011-REQ-T-008-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_local_infrastructure.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "start_local.bat checks EvaluateCare :8001 health before success report",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "description": "One-click startup script for all services",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "One-click startup script for all services"
+                  }
+                ]
+              },
+              "orphan": false,
+              "approval": "approved",
+              "due_date": "2026-06-01",
+              "priority": "must-have"
             }
           ]
         },
