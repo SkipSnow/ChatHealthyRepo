@@ -59,7 +59,7 @@ class TestPaginationRequirements(unittest.TestCase):
 
     def test_r2_after_npi_not_in_tool_schema(self):
         """after_npi must NOT be in the tool definition the LLM sees."""
-        from application.tool_models.provider_search_models import ProviderSearchInput
+        from ProviderManagement.provider_search_models import ProviderSearchInput
         fields = ProviderSearchInput.model_fields
         self.assertNotIn("after_npi", fields, "after_npi must not be in LLM tool definition")
         self.assertNotIn("fetch_all", fields, "fetch_all must not be in LLM tool definition")
@@ -401,16 +401,16 @@ class TestSpecialtyRefinementRequirements(unittest.TestCase):
 
     # R29: Names from SpecialtyMetaData
     def test_r29_names_from_db(self):
-        src = os.path.join(os.path.dirname(__file__), "..", "domain", "find_care",
-                            "provider_search_service.py")
+        src = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..",
+                            "FindCare", "ProviderManagement", "provider_search_service.py")
         with open(src) as f:
             content = f.read()
         self.assertIn("SpecialtyMetaData", content, "Must look up names from SpecialtyMetaData")
 
     # R30: Log codes in non-prod
     def test_r30_log_codes_non_prod(self):
-        src = os.path.join(os.path.dirname(__file__), "..", "domain", "find_care",
-                            "provider_search_service.py")
+        src = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..",
+                            "FindCare", "ProviderManagement", "provider_search_service.py")
         with open(src) as f:
             content = f.read()
         self.assertIn("specialty_code_log", content, "Must log to specialty_code_log")
@@ -450,7 +450,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_summary_uses_search_term(self):
         """summary_message must contain the user's search term, not 'providers'."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
             specialty_searched="surgeons", specialization_options=[{"code": "1"}])
@@ -461,7 +461,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_summary_shows_remaining_count(self):
         """summary_message must show remaining (total - displayed), not total."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=17278, page_count=25,
             specialty_searched="surgeons")
@@ -472,7 +472,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_summary_shows_specialty_count(self):
         """summary_message must state how many types of providers."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         opts = [{"code": f"c{i}", "name": f"Spec {i}"} for i in range(12)]
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
@@ -483,7 +483,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_summary_contains_filter_link(self):
         """summary_message must contain a filter action link."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         opts = [{"code": "c1", "name": "Spec 1"}]
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
@@ -495,7 +495,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_summary_contains_next_page_link(self):
         """summary_message must contain a next page action link."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
             specialty_searched="surgeons")
@@ -506,7 +506,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_summary_echoes_search_term_in_links(self):
         """summary_message must echo the search term in the action links."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
             specialty_searched="shrinks", specialization_options=[{"code": "1"}])
@@ -535,7 +535,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_no_summary_when_no_more(self):
         """summary_message must be empty when has_more is False."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=False, total_count=5, page_count=5,
             specialty_searched="surgeons")
@@ -545,7 +545,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_no_specialty_count_when_no_options(self):
         """summary_message must not mention provider types when specialization_options is empty."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
             specialty_searched="Smith")
@@ -568,7 +568,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_filter_link_is_action_markdown(self):
         """Filter link must use #action:filter href for frontend interception."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         opts = [{"code": "c1"}]
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
@@ -579,7 +579,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_next_page_link_is_action_markdown(self):
         """Next page link must use #action:next-page href for frontend interception."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=100, page_count=25,
             specialty_searched="surgeons")
@@ -628,7 +628,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_summary_uses_user_term_not_llm(self):
         """summary_message must use user's original words, not LLM-translated terms."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         msg = FindCareService._build_summary_message(
             has_more=True, total_count=11772, page_count=25,
             specialty_searched="find me shrinks in VA",
@@ -641,7 +641,7 @@ class TestSearchResultPresentation(unittest.TestCase):
 
     def test_user_term_preserved_not_translated(self):
         """User's colloquial term must appear in summary, not professional equivalent."""
-        from domain.find_care.provider_search_service import FindCareService
+        from ProviderManagement.provider_search_service import FindCareService
         for user_term in ["shrinks", "heart doctors", "bone doctors", "eye docs"]:
             msg = FindCareService._build_summary_message(
                 has_more=True, total_count=100, page_count=25,

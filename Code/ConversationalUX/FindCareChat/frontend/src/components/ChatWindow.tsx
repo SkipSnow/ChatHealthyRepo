@@ -4,9 +4,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import MessageBubble from './MessageBubble'
 import { useGUIManager } from './GUIManager'
-import { SelectionManager } from '../ux/components/SelectionManager'
-import { useSelectionState } from '../ux/hooks/useSelectionState'
-import type { Provider } from '../ux/types/provider'
+import { SelectionManager } from '@providers/SelectionManager'
+import { useSelectionState } from '@providers/useSelectionState'
+import type { Provider } from '@providers/provider'
 
 export interface Message {
   role: 'user' | 'assistant'

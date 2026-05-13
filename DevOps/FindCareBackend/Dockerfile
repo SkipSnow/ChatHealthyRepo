@@ -24,7 +24,7 @@ FROM python:3.12-slim
 
 # Install requirements first so layer caching survives source edits.
 WORKDIR /app
-COPY Code/ConversationalUX/FindCareChat/backend/requirements.txt /app/requirements.txt
+COPY DevOps/FindCareBackend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Recreate the host's directory tree inside the container so the application

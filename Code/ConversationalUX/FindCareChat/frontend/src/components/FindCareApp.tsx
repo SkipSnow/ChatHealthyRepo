@@ -24,9 +24,9 @@
 //   - phase: 'welcome' | 'searching' | 'results'
 
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { useSelectionState } from '../ux/hooks/useSelectionState'
-import { ProviderCard } from '../ux/components/ProviderCard'
-import type { Provider } from '../ux/types/provider'
+import { useSelectionState } from '@providers/useSelectionState'
+import { ProviderCard } from '@providers/ProviderCard'
+import type { Provider } from '@providers/provider'
 import SpecialtyFilter, { type SpecialtyRecord } from './SpecialtyFilter'
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''

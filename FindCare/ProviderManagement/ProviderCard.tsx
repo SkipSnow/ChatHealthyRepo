@@ -6,7 +6,7 @@
 // Used by FindCare (search results) and EvaluateCare (scored results).
 
 import React from 'react'
-import type { Provider } from '../types/provider'
+import type { Provider } from './provider'
 
 interface ProviderCardProps {
   provider: Provider

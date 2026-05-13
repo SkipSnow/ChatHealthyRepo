@@ -260,7 +260,7 @@
             {
               "statement_number": 1,
               "statement_body": "No commit, push, or deploy CAN take place without explicit human authorization. This requirement shall be enforced as part of ChatHealthy's rule enforcement prior to an Anthropic hook for code-control integration.",
-              "req_id": "EPIC-008-F-004-S-001-REQ-B-007"
+              "req_id": "EPIC-008-F-012-S-001-REQ-B-007"
             }
           ]
         },

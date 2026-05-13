@@ -11,7 +11,7 @@
 import logging
 
 from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
-from domain.evaluate_care_quality.provider_detail_service import ProviderDetailService
+from ProviderManagement.provider_detail_service import ProviderDetailService
 
 _log = logging.getLogger("findcare.facade.evaluate_care")
 
