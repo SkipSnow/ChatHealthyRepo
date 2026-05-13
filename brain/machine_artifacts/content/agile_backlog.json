@@ -10220,8 +10220,8 @@
                         },
                         {
                           "req_id": "EPIC-008-F-012-S-001-REQ-B-007",
-                          "name": "No commit, push, or deploy without explicit human authorization",
-                          "requirement": "No commit, push, or deploy CAN take place without explicit human authorization. This requirement shall be enforced as part of ChatHealthy's rule enforcement prior to an Anthropic hook for code-control integration.",
+                          "name": "No commit or deploy without explicit human authorization",
+                          "requirement": "No commit or deploy CAN take place without explicit human authorization. A commit represents a human-vetted release candidate; the push that immediately follows is implicit in the commit's authorization and does not require a separate authorization event. This requirement shall be enforced as part of ChatHealthy's rule enforcement prior to an Anthropic hook for code-control integration.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
