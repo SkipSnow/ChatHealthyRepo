@@ -18,5 +18,5 @@
       "@providers/*": ["FindCare/ProviderManagement/*"]
     }
   },
-  "include": ["src", "../../../../FindCare/ProviderManagement"]
+  "include": ["src"]
 }
