@@ -250,6 +250,40 @@
             }
           ]
         }
+      },
+      {
+        "id": "Rule-065",
+        "name": "No commit, push, or deploy without explicit human authorization",
+        "description": "Every `git commit`, every `git push`, and every deploy invocation MUST be explicitly authorized by the human operator at the moment it fires. Interactive terminals satisfy this with an exact-match APPROVE token typed at a prompt that names the action and its affected artifacts; non-interactive contexts (CI runners, IDE integrations, headless shells) satisfy it with paired environment variables that name who authorized the action. The rule is enforced inside ChatHealthy's engineering-rules manager so it runs before any Anthropic / Claude Code hook for code-control integration ever sees the action.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "No commit, push, or deploy CAN take place without explicit human authorization. This requirement shall be enforced as part of ChatHealthy's rule enforcement prior to an Anthropic hook for code-control integration.",
+              "req_id": "EPIC-008-F-004-S-001-REQ-B-007"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-065-ENF-001",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/commit_authorization_worker.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 300
+            },
+            {
+              "enforcement_id": "Rule-065-ENF-002",
+              "hook": "pre-push",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/commit_authorization_worker.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 300
+            }
+          ]
+        }
       }
     ]
   }
