@@ -1840,6 +1840,57 @@
                     },
                     "orphan": false,
                     "approval": "approved"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-003-S-005",
+                    "name": "User State",
+                    "description": "Defines the User State object — the in-session and post-session representation of a ChatHealthy user.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-B-001",
+                          "requirement": "Every ChatHealthy session — Guest, Prospect, or Owner — MUST instantiate exactly one User State object on session start. The object MUST conform to the hierarchy specified in this story.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "name": "Every session instantiates exactly one User State object",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-B-002",
+                          "requirement": "The structure of every User State document MUST conform to the JSON Schema published at https://dev.chathealthy.ai/schemas/ChatHealthyUserStateSchema.json. The schema is the canonical contract; any divergence between schema and implementation is an engineering bug.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "name": "Schema governs the User State document's structure",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "approved"
                   }
                 ]
               },
