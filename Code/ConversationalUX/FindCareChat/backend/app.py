@@ -47,11 +47,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
 from prompt_system_maker import PromptSystemMaker
 
-# V5 SpecialtyFilter tool — canonical home in findCare/ per the
-# feature-mirrors-agile_backlog layout. Importable in the container
-# because Dockerfile COPYs findCare/ into /app/findCare.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "findCare", "Code"))
-from specialty_filter.find_specialists import find_specialists
+# V5 SpecialtyFilter tool — business-model home at FindCare/SpecialtyFilter/
+# (mirrors agile_backlog at the Epic/Feature level). Importable in the
+# container because Dockerfile COPYs FindCare/ into /app/FindCare.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "FindCare"))
+from SpecialtyFilter.find_specialists import find_specialists
 
 # ---------------------------------------------------------------------------
 # Logging
