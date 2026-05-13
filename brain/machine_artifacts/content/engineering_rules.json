@@ -272,7 +272,7 @@
               "executable_path": "architecture/EngineeringRuleEnforcement/code/commit_authorization_worker.py",
               "requires_lock": false,
               "scopes": [],
-              "timeout": 300
+              "timeout": 900
             },
             {
               "enforcement_id": "Rule-065-ENF-002",
@@ -280,7 +280,7 @@
               "executable_path": "architecture/EngineeringRuleEnforcement/code/commit_authorization_worker.py",
               "requires_lock": false,
               "scopes": [],
-              "timeout": 300
+              "timeout": 900
             }
           ]
         }
