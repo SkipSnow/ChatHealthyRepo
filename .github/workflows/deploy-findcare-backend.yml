@@ -240,14 +240,15 @@ jobs:
             --exclude='*.pyc' \
             FrontEndApplicationLib/ hf_space/FrontEndApplicationLib/
 
-          # findCare/: per-feature home for the V5 SpecialtyFilter tool
-          # (find_specialists). The Dockerfile COPY findCare /app/findCare
+          # FindCare/: business-model home (mirrors agile_backlog Epic/Feature
+          # tree). FindCare/SpecialtyFilter/ holds the V5 SpecialtyFilter tool
+          # (find_specialists). The Dockerfile COPY FindCare /app/FindCare
           # fails the HF build without this rsync.
-          mkdir -p hf_space/findCare
+          mkdir -p hf_space/FindCare
           rsync -av \
             --exclude='__pycache__' \
             --exclude='*.pyc' \
-            findCare/ hf_space/findCare/
+            FindCare/ hf_space/FindCare/
 
           # Dockerfile lives at the build-context root for HF.
           cp Code/ConversationalUX/FindCareChat/backend/Dockerfile hf_space/Dockerfile
