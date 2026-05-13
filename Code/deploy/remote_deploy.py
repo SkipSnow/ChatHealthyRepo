@@ -126,6 +126,45 @@ class RemoteDeploy:
             "msg": msg,
         })
 
+    # ── Workflow yaml lint (deploy precondition) ───────────────────────
+    # Every GitHub Actions workflow file under .github/workflows/ MUST be
+    # syntactically valid yaml before the deploy proceeds. A malformed
+    # workflow yaml has zero chance of dispatching successfully via
+    # `gh workflow run`; we fail loudly here instead of letting the deploy
+    # crash mid-stream. Parser: PyYAML's yaml.safe_load — the standard
+    # Python YAML library (no stdlib YAML module exists).
+    def _lint_workflow_yamls(self) -> None:
+        import glob
+        import yaml as _yaml
+        workflow_dir = os.path.join(
+            str(self.repo_root), ".github", "workflows"
+        )
+        if not os.path.isdir(workflow_dir):
+            return
+        paths = sorted(
+            glob.glob(os.path.join(workflow_dir, "*.yml"))
+            + glob.glob(os.path.join(workflow_dir, "*.yaml"))
+        )
+        failures: list[str] = []
+        for path in paths:
+            try:
+                with open(path, encoding="utf-8") as f:
+                    _yaml.safe_load(f)
+            except _yaml.YAMLError as exc:
+                failures.append(f"{path}: {exc}")
+            except OSError as exc:
+                failures.append(
+                    f"{path}: cannot read ({type(exc).__name__}: {exc})"
+                )
+        if failures:
+            sys.exit(
+                "Deploy aborted — workflow yaml lint failed:\n  "
+                + "\n  ".join(failures)
+            )
+        self._step_notice(
+            f"workflow yaml lint passed ({len(paths)} files)"
+        )
+
     # ── Human auth gate (S-001-REQ-B-006) ──────────────────────────────
     # OVERNIGHT WAIVER (2026-05-01) — call site in run() is commented
     # out. Restore that call before morning UAT.
@@ -135,6 +174,80 @@ class RemoteDeploy:
         ).strip().lower()
         if ans != "y":
             sys.exit(f"Deploy aborted by human at gate ({self.env}).")
+
+    # ── Source-branch contract (F-012-S-003-REQ-B-002) ─────────────────
+    # Dev/qa/prod deploys MUST come from the committed+pushed target branch
+    # at origin. The GHA dispatch uses --ref <branch>, which pulls from
+    # origin server-side and cannot see the operator's working tree. This
+    # check fails loudly when the operator might be surprised that their
+    # local edits are not part of the deploy.
+    #
+    # Contract per REQ-B-002:
+    #   dev  -> origin/dev   (HEAD must equal, working tree clean)
+    #   qa   -> origin/qa    (HEAD must equal, working tree clean)
+    #   prod -> origin/main  (HEAD must equal, working tree clean)
+    def _enforce_source_branch(self) -> None:
+        target_ref = "main" if self.env == "prod" else self.env
+
+        # Refresh origin so origin/{target_ref} is current.
+        fetch = subprocess.run(
+            ["git", "fetch", "origin", target_ref],
+            cwd=str(self.repo_root), capture_output=True, text=True,
+        )
+        if fetch.returncode != 0:
+            sys.exit(
+                f"ERROR (F-012-S-003-REQ-B-002): cannot fetch origin/"
+                f"{target_ref}: {fetch.stderr.strip()[:300]}"
+            )
+
+        # Current local branch must equal the target ref. Deploying qa from
+        # the dev branch (or vice versa) violates the source-branch contract.
+        current = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=str(self.repo_root), capture_output=True, text=True,
+        )
+        if current.returncode != 0 or current.stdout.strip() != target_ref:
+            sys.exit(
+                "ERROR (F-012-S-003-REQ-B-002): current branch "
+                f"'{current.stdout.strip()}' != target '{target_ref}'. "
+                f"Checkout {target_ref} before deploying {self.env}."
+            )
+
+        # Local HEAD must equal origin/{target_ref}. Unpushed commits would
+        # not be deployed and would mislead the operator.
+        local_head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(self.repo_root), capture_output=True, text=True,
+        ).stdout.strip()
+        origin_head = subprocess.run(
+            ["git", "rev-parse", f"origin/{target_ref}"],
+            cwd=str(self.repo_root), capture_output=True, text=True,
+        ).stdout.strip()
+        if local_head != origin_head:
+            sys.exit(
+                "ERROR (F-012-S-003-REQ-B-002): local HEAD "
+                f"{local_head[:7]} != origin/{target_ref} {origin_head[:7]}. "
+                f"Push to origin/{target_ref} before deploying."
+            )
+
+        # Working tree must be clean. Uncommitted changes would not be
+        # deployed but might mislead the operator.
+        status = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=str(self.repo_root), capture_output=True, text=True,
+        )
+        if status.stdout.strip():
+            sys.exit(
+                "ERROR (F-012-S-003-REQ-B-002): working tree has "
+                "uncommitted changes. Remote deploys deploy "
+                f"origin/{target_ref}, not your working tree. "
+                "Commit+push or stash before re-running."
+            )
+
+        self._step_notice(
+            f"source-branch contract OK: deploying origin/{target_ref} "
+            f"@ {origin_head[:7]}"
+        )
 
     # ── Target readiness check (S-001-REQ-B-002) ───────────────────────
     def _verify_target_hf_space(self) -> None:
@@ -592,7 +705,9 @@ class RemoteDeploy:
     def run(self) -> int:
         self._step_notice(f"deploy started for {self.env}")
 
+        self._lint_workflow_yamls()                         # hard-fail on bad yaml
         self._human_authorization_gate()                    # S-001-REQ-B-006
+        self._enforce_source_branch()                       # F-012-S-003-REQ-B-002
 
         self._verify_target_hf_space()                      # S-001-REQ-B-002
         self._verify_cloudflare_settings()                  # S-003-REQ-T-002+T-003

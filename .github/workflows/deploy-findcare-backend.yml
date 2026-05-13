@@ -15,6 +15,8 @@ on:
       - 'Code/Shared/prompt_system_maker.py'
       - 'brain/machine_artifacts/content/emergency_keywords.json'
       - '.github/workflows/deploy-findcare-backend.yml'
+      - 'FindCare/**'
+      - 'DevOps/FindCareBackend/**'
 
 jobs:
   deploy:
@@ -250,8 +252,21 @@ jobs:
             --exclude='*.pyc' \
             FindCare/ hf_space/FindCare/
 
+          # DevOps/FindCareBackend/: deployment-feature home for FC backend
+          # Dockerfile + requirements.txt + .dockerignore. The Dockerfile
+          # itself is copied to the hf_space root below (HF builds from
+          # repo-root context); requirements.txt is read by Dockerfile's
+          # COPY DevOps/FindCareBackend/requirements.txt instruction at
+          # HF build time, which requires this directory to be present
+          # in the staged build context.
+          mkdir -p hf_space/DevOps/FindCareBackend
+          rsync -av \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            DevOps/FindCareBackend/ hf_space/DevOps/FindCareBackend/
+
           # Dockerfile lives at the build-context root for HF.
-          cp Code/ConversationalUX/FindCareChat/backend/Dockerfile hf_space/Dockerfile
+          cp DevOps/FindCareBackend/Dockerfile hf_space/Dockerfile
 
           cd hf_space
           git lfs track "*.pdf"

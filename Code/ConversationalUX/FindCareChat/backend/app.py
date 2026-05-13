@@ -22,23 +22,30 @@ from pydantic import BaseModel
 import requests as _requests_lib
 from url_guardian import URLGuardian
 
+# FindCare/ on sys.path so business-model tools (SpecialtyFilter,
+# ProviderManagement) are importable. Must happen BEFORE the imports
+# below that pull from those packages. Dockerfile COPYs FindCare/ into
+# /app/FindCare so the same relative walk resolves in the container.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "FindCare"))
+
 # ARCH-001 — domain services
 from application.tool_router import ToolRouter
 from application.facades.evaluate_care_facade import EvaluateCareFacade
-from domain.find_care.provider_search_service import FindCareService
+from ProviderManagement.provider_search_service import FindCareService
 from domain.find_care.specialty_filter.filter import SpecialtyFilter
 from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
-from domain.evaluate_care_quality.provider_detail_service import ProviderDetailService
+from ProviderManagement.provider_detail_service import ProviderDetailService
 from domain.shared.safety.safety_service import SafetyService
 from domain.shared.consent.consent_service import ConsentService
 from domain.shared.lead_capture.lead_service import LeadService
 from domain.shared.unknowns.unknown_question_service import UnknownQuestionService
 from domain.shared.content.about_service import AboutService
-from application.tool_models.provider_search_models import ProviderSearchInput, SpecialtyInput
+from ProviderManagement.provider_search_models import ProviderSearchInput, SpecialtyInput
 from application.tool_models.clinical_trials_models import ClinicalTrialsInput, ProviderDetailInput
 from application.tool_models.consent_models import LeadInput, UnknownInput
 from infrastructure.embeddings.embedding_client import EmbeddingClient
 from infrastructure.debug_logger import DebugLogger
+from SpecialtyFilter.find_specialists import find_specialists
 
 load_dotenv(override=True)
 
@@ -46,12 +53,6 @@ load_dotenv(override=True)
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared"))
 from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
 from prompt_system_maker import PromptSystemMaker
-
-# V5 SpecialtyFilter tool — business-model home at FindCare/SpecialtyFilter/
-# (mirrors agile_backlog at the Epic/Feature level). Importable in the
-# container because Dockerfile COPYs FindCare/ into /app/FindCare.
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "FindCare"))
-from SpecialtyFilter.find_specialists import find_specialists
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -819,7 +820,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
     if last_provider_result and isinstance(last_provider_result, dict):
         total_count = last_provider_result.get("total_count", 0)
         if total_count > 0:
-            from domain.find_care.provider_search_service import FindCareService
+            from ProviderManagement.provider_search_service import FindCareService
             user_term = _extract_user_search_term(body.message)
             user_summary = FindCareService._build_summary_message(
                 has_more=last_provider_result.get("has_more", False),

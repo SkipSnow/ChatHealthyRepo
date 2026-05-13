@@ -14,8 +14,8 @@
 //   - Selection persists across pagination and filter changes
 
 import React, { useState } from 'react'
-import type { Provider, FilterOption } from '../types/provider'
-import type { SelectionState } from '../types/provider'
+import type { Provider, FilterOption } from './provider'
+import type { SelectionState } from './provider'
 import { ProviderCard } from './ProviderCard'
 
 interface SelectionManagerProps {

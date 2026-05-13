@@ -8,7 +8,7 @@
 // Garbage flushes on new chat question.
 
 import { useReducer, useCallback } from 'react'
-import type { Provider, SelectionState, SelectionAction } from '../types/provider'
+import type { Provider, SelectionState, SelectionAction } from './provider'
 
 const MAX_SELECTED = 5
 

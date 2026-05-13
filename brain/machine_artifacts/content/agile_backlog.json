@@ -10066,8 +10066,13 @@
               "feature_id": "EPIC-008-F-012",
               "name": "Deployment",
               "status": "in_progress",
-              "description": "TBD — Skip-authored.",
-              "realized_by": [],
+              "description": "The deployment feature is where ChatHealthy translates its business taxonomy (agile_backlog.json) into its digital taxonomy (architecture.json). Two models, one map. Every deployment-centric artifact lives here, nowhere else; deployment requirements from other features point at requirements inside this feature.",
+              "realized_by": [
+                "Python 3.11",
+                "GitHub Actions",
+                "HuggingFace Spaces",
+                "Cloudflare Pages"
+              ],
               "stories": {
                 "story": [
                   {
@@ -10438,6 +10443,25 @@
                           "status": "not_started",
                           "orphan": false,
                           "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-B-002",
+                          "name": "Deployments come from correct Code branches and file location",
+                          "requirement": "Local deployments must come from the local file system. Dev must come from the committed and pushed dev branch of the GitHub repository. QA must come from the committed and pushed QA branch of the repository. Production must come from the head of main.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
                           "tests": {
                             "test": [
                               {
@@ -11556,6 +11580,63 @@
                           "req_id": "EPIC-008-F-012-S-009-REQ-B-001",
                           "name": "Physical and IDE file system mirror agile_backlog hierarchy at root, free of deployment details and technical clutter",
                           "requirement": "The physical file system, as well as the file system displayed in the project view of the IDE, MUST reflect the hierarchy defined by agile_backlog.json. It MUST do so at the root. It MUST NOT reflect any deployment details or be burdened with unnecessary technical clutter.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-009-REQ-B-002",
+                          "name": "No code file spans more than one feature",
+                          "requirement": "No code file CAN span more than one feature. Each source file belongs to exactly one feature in the agile_backlog hierarchy.",
+                          "priority": "must-have",
+                          "status": "deferred",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-009-REQ-T-001",
+                          "name": "Python packaging artifacts live in the deployment feature, not in business-model paths",
+                          "requirement": "Files such as `__init__.py` MUST reside in a deployment-feature path and MUST NOT reside on a business-model → file system path. Other examples of such files are `pyproject.toml`, `__pycache__/`, and other Python packaging or runtime-tooling artifacts.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-009-REQ-T-002",
+                          "name": "IDE view = physical file system = agile_backlog hierarchy down to Feature level",
+                          "requirement": "All directories as reflected by the IDE MUST be a one-to-one reflection of the physical file system, which MUST be a mirror of the hierarchy of the agile_backlog to the level of the Features.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,

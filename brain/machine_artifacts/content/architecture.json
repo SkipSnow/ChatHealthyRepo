@@ -656,7 +656,7 @@
           "services": [
             {
               "class": "ProviderSearchService",
-              "file": "domain/find_care/provider_search_service.py",
+              "file": "FindCare/ProviderManagement/provider_search_service.py",
               "feature": "Provider Search (UAT Feature 1)",
               "responsibility": "Vector search, query expansion, FIPS county mapping, result formatting"
             },
@@ -685,7 +685,7 @@
             },
             {
               "class": "ProviderDetailService",
-              "file": "domain/evaluate_care_quality/provider_detail_service.py",
+              "file": "FindCare/ProviderManagement/provider_detail_service.py",
               "feature": "Provider Detail (UAT Feature 8)",
               "responsibility": "NPI lookup, external provider data aggregation"
             }

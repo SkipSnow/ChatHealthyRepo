@@ -93,6 +93,35 @@ class LocalDeploy:
             "msg": msg,
         })
 
+    # ── Workflow yaml lint (deploy precondition) ───────────────────────
+    # Every GitHub Actions workflow file under .github/workflows/ MUST be
+    # syntactically valid yaml before the deploy proceeds. A malformed
+    # workflow yaml has zero chance of working remotely and silently
+    # invalidates the migration; we fail loudly here instead.
+    def _lint_workflow_yamls(self) -> None:
+        import glob
+        import yaml as _yaml
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        workflow_dir = os.path.join(repo_root, ".github", "workflows")
+        if not os.path.isdir(workflow_dir):
+            return
+        failures: list[str] = []
+        for path in sorted(glob.glob(os.path.join(workflow_dir, "*.yml")) +
+                           glob.glob(os.path.join(workflow_dir, "*.yaml"))):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    _yaml.safe_load(f)
+            except _yaml.YAMLError as exc:
+                failures.append(f"{path}: {exc}")
+            except OSError as exc:
+                failures.append(f"{path}: cannot read ({type(exc).__name__}: {exc})")
+        if failures:
+            sys.exit(
+                "Deploy aborted — workflow yaml lint failed:\n  "
+                + "\n  ".join(failures)
+            )
+        self._step_notice(f"workflow yaml lint passed ({len(glob.glob(os.path.join(workflow_dir, '*.yml')) + glob.glob(os.path.join(workflow_dir, '*.yaml')))} files)")
+
     # ── Human auth gate (S-001-REQ-B-006) ──────────────────────────────
     # OVERNIGHT WAIVER (2026-05-01) — call site in run() is commented
     # out. Restore that call before morning UAT. The function body stays so
@@ -227,7 +256,7 @@ class LocalDeploy:
     # the Space root, which then becomes the build context).
     BACKEND_CONTAINERS = {
         "ch-findcare":  ("findcare",
-                         "Code/ConversationalUX/FindCareChat/backend",
+                         "DevOps/FindCareBackend",
                          "."),
         "ch-evalcare":  ("evalcare",
                          "evaluateCare/Code",
@@ -635,6 +664,7 @@ class LocalDeploy:
     def run(self) -> int:
         self._step_notice(f"deploy started for {self.env}")
 
+        self._lint_workflow_yamls()                         # hard-fail on bad yaml
         self._human_authorization_gate()                    # S-001-REQ-B-006
 
         self._ensure_docker_available()                     # S-002-REQ-T-001 prereq
