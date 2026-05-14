@@ -93,6 +93,59 @@ class LocalDeploy:
             "msg": msg,
         })
 
+    # ── Deployment-architecture gate (V18 substrate) ───────────────────
+    # The brain artifact at brain/machine_artifacts/content/
+    # deployment_architecture.json is the source of record for the
+    # deploy. Missing / empty / drifted artifact = REJECT before any
+    # other step runs. The gate runs the Crosswalk subchecks: target_id
+    # uniqueness, env_binding uniqueness, feature_id coverage, file
+    # drift (byte equality with disk), and no-secret-value leak.
+    def _deployment_architecture_gate(self) -> None:
+        import urllib.request as _urlreq
+        opener = _urlreq.build_opener()
+        opener.addheaders = [
+            ("User-Agent",
+             "Mozilla/5.0 (deployment-substrate-loader; +chathealthy.ai)")
+        ]
+        _urlreq.install_opener(opener)
+
+        substrate_code_dir = (
+            self.repo_root / "architecture"
+            / "DevOpsBuildDeployAndEnvironmentManagement" / "code"
+        )
+        sys.path.insert(0, str(substrate_code_dir))
+        try:
+            from agile_backlog import AgileBacklogLoader
+            from crosswalk import Crosswalk
+            from record_loader import RecordLoader
+            from secrets_resolver import SecretsResolver
+        finally:
+            if str(substrate_code_dir) in sys.path:
+                sys.path.remove(str(substrate_code_dir))
+
+        backlog_path = self.repo_root / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
+        backlog_schema = self.repo_root / "Website" / "schemas" / "ChatHealthyAgileBacklogSchema.json"
+        deployment_path = self.repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+        env_path = self.repo_root / "Code" / ".env"
+
+        backlog = AgileBacklogLoader(schema_uri=backlog_schema).load(backlog_path)
+        coll = RecordLoader().load_collection(deployment_path)
+        env_values: set[str] = set()
+        if env_path.is_file():
+            env_values = SecretsResolver().env_values_for_leak_check(env_path)
+
+        report = Crosswalk().check(
+            coll=coll, backlog=backlog,
+            repo_root=self.repo_root, env_values=env_values,
+        )
+        if not report.is_pass:
+            sys.stderr.write(report.format() + "\n")
+            sys.exit(report.exit_code())
+        self._step_notice(
+            f"deployment-architecture gate passed "
+            f"(targets={len(coll)}, violations=0)"
+        )
+
     # ── Workflow yaml lint (deploy precondition) ───────────────────────
     # Every GitHub Actions workflow file under .github/workflows/ MUST be
     # syntactically valid yaml before the deploy proceeds. A malformed
@@ -665,6 +718,7 @@ class LocalDeploy:
         self._step_notice(f"deploy started for {self.env}")
 
         self._lint_workflow_yamls()                         # hard-fail on bad yaml
+        self._deployment_architecture_gate()                # V18 substrate gate
         self._human_authorization_gate()                    # S-001-REQ-B-006
 
         self._ensure_docker_available()                     # S-002-REQ-T-001 prereq

@@ -10,9 +10,12 @@ a version or framework update.
 Pattern matches the post-commit bump:
     1. Read latest admin.Versions record.
     2. Insert a new record with the supplied version and/or framework, the
-       previous build (unchanged), and a fresh `from` timestamp.
+       previous `builds` array copied forward unchanged (per-env build slots
+       are not touched by this routine), and a fresh `from` timestamp.
     3. POST {build, version, framework} to the conversation-log producer's
-       /version_bump endpoint so its in-memory static updates.
+       /version_bump endpoint so its in-memory static updates. The `build`
+       in that payload is the dev slot, since the producer's static is a
+       single scalar.
 
 Usage:
     python set_version_framework.py --version 0.5.0
@@ -42,10 +45,26 @@ PRODUCER_URL = os.environ.get(
 PUSH_TIMEOUT_SECONDS = 5
 
 
+VALID_ENVS = ("local", "dev", "qa", "prod")
+
+
+def _carry_forward_builds(builds_array):
+    """Return the input builds array filtered + ordered. No values change."""
+    by_env = {}
+    for entry in builds_array or []:
+        env = entry.get("env")
+        if env in VALID_ENVS:
+            by_env[env] = int(entry["build"])
+    return [{"env": e, "build": by_env[e]} for e in VALID_ENVS if e in by_env]
+
+
 def set_version_framework(version: str | None, framework: str | None) -> dict:
     """Insert a new admin.Versions record with the supplied changes.
 
-    Returns the inserted record dict (build, version, framework, from).
+    The `builds` array is copied forward unchanged from the latest record;
+    this routine only updates version and/or framework.
+
+    Returns the inserted record dict (builds, version, framework, from).
     """
     if version is None and framework is None:
         raise ValueError("must supply at least one of version, framework")
@@ -63,25 +82,40 @@ def set_version_framework(version: str | None, framework: str | None) -> dict:
             "admin.Versions has no records. Run seed_versions_collection.py first."
         )
 
+    carried_builds = _carry_forward_builds(latest.get("builds", []))
+    if not carried_builds:
+        raise RuntimeError(
+            "latest admin.Versions record has no per-env builds array; "
+            "run migrate_versions_to_per_env.py first."
+        )
+
     record = {
-        "build": int(latest["build"]),  # preserved
+        "builds": carried_builds,  # preserved
         "version": version if version is not None else latest["version"],
         "framework": framework if framework is not None else latest["framework"],
         "from": datetime.now(timezone.utc).isoformat(),
     }
     coll.insert_one(record)
-    log.info("Inserted: build=%d version=%s framework=%s",
-             record["build"], record["version"], record["framework"])
+    log.info("Inserted: builds=%s version=%s framework=%s",
+             record["builds"], record["version"], record["framework"])
     return record
 
 
 def push_to_producer(record: dict) -> None:
-    """POST {build, version, framework} to the producer's /version_bump."""
+    """POST {build, version, framework} to the producer's /version_bump.
+
+    The `build` sent is the dev slot, since the producer maintains a single
+    scalar build in its in-memory static (reader-side concern).
+    """
     try:
         import requests
 
+        dev_build = next(
+            (int(b["build"]) for b in record.get("builds", []) if b.get("env") == "dev"),
+            None,
+        )
         payload = {
-            "build": record["build"],
+            "build": dev_build,
             "version": record["version"],
             "framework": record["framework"],
         }

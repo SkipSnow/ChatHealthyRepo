@@ -46,12 +46,21 @@ class HealthEndpoint:
                 "build": None, "version": None, "framework": None,
                 "error": f"{type(e).__name__}: {e}",
             }
+        # Per-env builds[] array shape: extract this container's env slot.
+        _builds_arr = doc.get("builds", [])
+        _build_for_env = None
+        if isinstance(_builds_arr, list):
+            _build_for_env = next(
+                (b.get("build") for b in _builds_arr
+                 if isinstance(b, dict) and b.get("env") == self.env_prefix),
+                None,
+            )
         return {
             "status": "ok",
             "service": "evaluate_care",
             "db": "connected",
             "env": self.env_prefix,
-            "build": doc.get("build"),
+            "build": _build_for_env,
             "version": doc.get("version"),
             "framework": doc.get("framework"),
         }

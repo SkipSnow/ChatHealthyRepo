@@ -68,7 +68,7 @@ class BuildBumpEnforcementWorker(EnforcementWorker):
         # Statement 1: bump the build field in admin.Versions.
         from Code.Shared.ops.bump_build import bump  # noqa: E402
 
-        record = bump()  # returns {build, version, framework, from}
+        record = bump()  # returns {builds[], version, framework, from}
 
         # Statement 2: push the new {build, version, framework} to the
         # producer's in-memory static. Push failure is loud — emit a
@@ -76,8 +76,20 @@ class BuildBumpEnforcementWorker(EnforcementWorker):
         # forbidden: any failure is a failure.
         import requests  # local import — only this branch needs it
 
+        # Extract dev slot from the per-env builds array (only dev is bumped
+        # at commit-time per the per-env counter design landed 2026-05-13).
+        dev_build = next(
+            (b["build"] for b in record.get("builds", []) if b.get("env") == "dev"),
+            None,
+        )
+        if dev_build is None:
+            raise RuntimeError(
+                "post-bump record missing dev slot in builds[]; "
+                "migrate_versions_to_per_env.py state corrupted."
+            )
+
         payload = {
-            "build": record["build"],
+            "build": dev_build,
             "version": record["version"],
             "framework": record["framework"],
         }

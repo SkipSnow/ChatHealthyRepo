@@ -573,7 +573,16 @@ def health():
     if db is not None:
         try:
             doc = db["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
-            _build = doc.get("build")
+            # Per-env builds[] array shape: extract this container's env slot.
+            # admin.Versions carries local|dev|qa|prod slots; local is bumped
+            # in lockstep with dev (local mirrors dev).
+            _builds_arr = doc.get("builds", [])
+            if isinstance(_builds_arr, list):
+                _build = next(
+                    (b.get("build") for b in _builds_arr
+                     if isinstance(b, dict) and b.get("env") == env_label),
+                    None,
+                )
             _version_str = doc.get("version")
             _framework_str = doc.get("framework")
         except Exception as _exc:
