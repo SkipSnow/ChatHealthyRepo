@@ -1,81 +1,50 @@
 name: Deploy FindCare Website (Prod)
-
-on:
-  workflow_dispatch:
+'on':
+  workflow_dispatch: null
   push:
-    branches: [main]
+    branches:
+    - main
     paths:
-      - 'Website/**'
-      - '.github/workflows/deploy-findcare-website-prod.yml'
-
+    - Website/**
+    - .github/workflows/deploy-findcare-website-prod.yml
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Create Pages project (idempotent)
+      uses: cloudflare/wrangler-action@v3
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_ACCOUN_TOKEN }}
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        command: pages project create chathealthywebsite --production-branch main
+      continue-on-error: true
+    - name: Deploy to Cloudflare Pages
+      uses: cloudflare/wrangler-action@v3
+      with:
+        apiToken: ${{ secrets.CLOUDFLARE_ACCOUN_TOKEN }}
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        command: pages deploy Website --project-name=chathealthywebsite --branch=main
+    - name: Poll backend health before smoke
+      run: "for URL in \\\n    \"https://skipsnow-chathealthyspace.hf.space\" \\\n    \"https://skipsnow-evaluatecarespace.hf.space\" \\\n    \"https://skipsnow-sharedservicesspace.hf.space\"; do\n  echo \"Polling ${URL}/health...\"\n  for i in $(seq 1 30); do\n    HTTP_CODE=$(curl -s -o /tmp/h.json -w \"%{http_code}\" -X POST \"${URL}/health\" -m 8)\n    if [ \"$HTTP_CODE\" = \"200\" ]; then\n      echo \"  ${URL}/health 200 (poll $i)\"\n      break\n    fi\n    echo \"  poll $i/30: http=$HTTP_CODE\"\n    if [ $i -eq 30 ]; then\n      echo \"TIMED OUT waiting for ${URL}/health (last: $HTTP_CODE)\"\n      cat /tmp/h.json\n      exit 1\n    fi\n    sleep 10\n  done\ndone\n"
+    - name: Install smoke test dependencies
+      run: 'pip install --quiet pytest pytest-playwright httpx cryptography psutil python-dotenv jsonschema anyio
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        playwright install --with-deps chromium
 
-      # Build-counter bump removed per Rule-063 + BUG-001:
-      # the build is now incremented by a post-commit engineering rule on
-      # every non-deploy commit, and deploys do NOT bump.
+        '
+    - name: Run master smoke test against deployed env
+      env:
+        SMOKE_TEST_ENV: prod
+        CHATHEALTHY_PROJECT_ROOT: ${{ github.workspace }}
+      run: '# Smoke runs against the env we just deployed to. No deselects,
 
-      - name: Create Pages project (idempotent)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_ACCOUN_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages project create chathealthywebsite --production-branch main
-        continue-on-error: true
+        # no marker filters per "100% comply" directive (2026-05-04).
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_ACCOUN_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy Website --project-name=chathealthywebsite --branch=main
+        python -m pytest architecture/DevOpsBuildDeployAndEnvironmentManagement/localSmokeTestPyTest.py -v
 
-      # Poll backend HF Space /health endpoints until 200 before running
-      # smoke. If a backend is paused or unhealthy, fail loudly here rather
-      # than letting smoke produce a non-deterministic failure pattern.
-      - name: Poll backend health before smoke
-        run: |
-          for URL in \
-              "https://skipsnow-chathealthyspace.hf.space" \
-              "https://skipsnow-evaluatecarespace.hf.space" \
-              "https://skipsnow-sharedservicesspace.hf.space"; do
-            echo "Polling ${URL}/health..."
-            for i in $(seq 1 30); do
-              HTTP_CODE=$(curl -s -o /tmp/h.json -w "%{http_code}" -X POST "${URL}/health" -m 8)
-              if [ "$HTTP_CODE" = "200" ]; then
-                echo "  ${URL}/health 200 (poll $i)"
-                break
-              fi
-              echo "  poll $i/30: http=$HTTP_CODE"
-              if [ $i -eq 30 ]; then
-                echo "TIMED OUT waiting for ${URL}/health (last: $HTTP_CODE)"
-                cat /tmp/h.json
-                exit 1
-              fi
-              sleep 10
-            done
-          done
-
-      # EPIC-008-F-004-S-001-REQ-B-004: deploy script invokes the master
-      # smoke test (S-006) against the target env after the deploy.
-      - name: Install smoke test dependencies
-        run: |
-          pip install --quiet pytest pytest-playwright httpx cryptography psutil python-dotenv jsonschema anyio
-          playwright install --with-deps chromium
-
-      - name: Run master smoke test against deployed env
-        env:
-          SMOKE_TEST_ENV: prod
-          CHATHEALTHY_PROJECT_ROOT: ${{ github.workspace }}
-        run: |
-          # Smoke runs against the env we just deployed to. No deselects,
-          # no marker filters per "100% comply" directive (2026-05-04).
-          python -m pytest architecture/DevOpsBuildDeployAndEnvironmentManagement/localSmokeTestPyTest.py -v
+        '

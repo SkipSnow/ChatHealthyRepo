@@ -1,354 +1,85 @@
 name: Deploy ChatHealthy Backend to HuggingFace
-
-on:
-  workflow_dispatch:
+'on':
+  workflow_dispatch: null
   push:
     branches:
-      - dev
-      - qa
-      - main
+    - dev
+    - qa
+    - main
     paths:
-      - 'Code/ConversationalUX/FindCareChat/backend/**'
-      - 'Code/ConversationalUX/FindCareChat/frontend/**'
-      - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**'
-      - 'Code/Shared/ChatHealthyMongoUtilities.py'
-      - 'Code/Shared/prompt_system_maker.py'
-      - 'brain/machine_artifacts/content/emergency_keywords.json'
-      - '.github/workflows/deploy-findcare-backend.yml'
-      - 'FindCare/**'
-      - 'DevOps/FindCareBackend/**'
-
+    - Code/ConversationalUX/FindCareChat/backend/**
+    - Code/ConversationalUX/FindCareChat/frontend/**
+    - Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**
+    - Code/Shared/ChatHealthyMongoUtilities.py
+    - Code/Shared/prompt_system_maker.py
+    - brain/machine_artifacts/content/emergency_keywords.json
+    - .github/workflows/deploy-findcare-backend.yml
+    - FindCare/**
+    - DevOps/FindCareBackend/**
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - name: Derive Space name and env from branch
+      id: space
+      run: "BRANCH=\"${GITHUB_REF_NAME}\"\nORG=\"SkipSnow\"\nBASE=\"ChatHealthySpace\"\nif [ \"$BRANCH\" = \"main\" ]; then\n  SPACE=\"${BASE}\"\n  ENV=\"prod\"\nelse\n  SPACE=\"${BRANCH}_${BASE}\"\n  ENV=\"${BRANCH}\"\nfi\necho \"name=${SPACE}\" >> $GITHUB_OUTPUT\necho \"env=${ENV}\" >> $GITHUB_OUTPUT\necho \"Deploying to: ${ORG}/${SPACE} (env=${ENV})\"\n"
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Build React frontend
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Install and build frontend
+      working-directory: Code/ConversationalUX/FindCareChat/frontend
+      env:
+        BRANCH: ${{ github.ref_name }}
+      run: "npm ci\nif [ \"$BRANCH\" = \"main\" ]; then\n  EVALCARE_URL=\"https://skipsnow-evaluatecarespace.hf.space\"\nelse\n  EVALCARE_URL=\"https://skipsnow-${BRANCH}-evaluatecarespace.hf.space\"\nfi\nVITE_API_URL=\"\" VITE_EVALCARE_URL=\"$EVALCARE_URL\" npm run build\n"
+    - name: Set HF Space variables + secrets (peer URLs, env, certs, signing key)
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        HF_SPACE: ${{ steps.space.outputs.name }}
+        ENV: ${{ steps.space.outputs.env }}
+        FINDCARE_SIGNING_KEY_B64: ${{ secrets.FINDCARE_SIGNING_KEY_B64 }}
+      run: "# Derive per-env peer URLs. Prod has no prefix; dev/qa prepend env.\nif [ \"$ENV\" = \"prod\" ]; then PREFIX=\"\"; else PREFIX=\"${ENV}-\"; fi\nEVALCARE_URL=\"https://skipsnow-${PREFIX}evaluatecarespace.hf.space\"\nSHARED_URL=\"https://skipsnow-${PREFIX}sharedservicesspace.hf.space\"\nset_var() {\n  K=\"$1\"; V=\"$2\"\n  # Delete any pre-existing secret with the same name — HF rejects\n  # collision between a variable and a secret, causing CONFIG_ERROR.\n  curl -s -X DELETE \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets\" \\\n    -H \"Authorization: Bearer $HF_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d \"{\\\"key\\\":\\\"${K}\\\"}\" -o /dev/null\n  # Now set the variable (authoritative per-env value from this workflow).\n  curl -sf -X POST \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables\" \\\n    -H \"Authorization: Bearer $HF_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d \"{\\\"key\\\":\\\"${K}\\\",\\\"value\\\":\\\"${V}\\\",\\\"description\\\":\\\"Set by deploy workflow\\\"}\" \\\n    -o /dev/null && echo \"  set var ${K}\"\n}\nset_secret() {\n  # Mirror of set_var but POSTs to /secrets. For values that must\n  # NOT be plaintext-visible in HF Space settings (private keys).\n  # MUST delete BOTH a same-named variable AND a same-named secret\n  # before POSTing — HF rejects var/secret collision AND rejects\n  # POST to /secrets if a secret of that name already exists.\n  #\n  # Build the JSON body via python -c rather than bash -d so a\n  # 2KB+ value with shell-special chars (none in base64, but\n  # belt+suspenders) cannot break the request shape.\n  K=\"$1\"; V=\"$2\"\n  curl -s -X DELETE \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables\" \\\n    -H \"Authorization: Bearer $HF_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d \"{\\\"key\\\":\\\"${K}\\\"}\" -o /dev/null\n  curl -s -X DELETE \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets\" \\\n    -H \"Authorization: Bearer $HF_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d \"{\\\"key\\\":\\\"${K}\\\"}\" -o /dev/null\n  BODY=$(python3 -c \"import json,sys; print(json.dumps({'key':sys.argv[1],'value':sys.argv[2],'description':'Set by deploy workflow'}))\" \"$K\" \"$V\")\n  HTTP=$(curl -s -X POST \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets\" \\\n    -H \"Authorization: Bearer $HF_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    --data \"$BODY\" \\\n    -o /tmp/hf_resp.txt -w \"%{http_code}\")\n  if [ \"$HTTP\" = \"200\" ] || [ \"$HTTP\" = \"201\" ]; then\n    echo \"  set secret ${K} (http=$HTTP)\"\n  else\n    echo \"  ERROR set secret ${K}: http=$HTTP\"\n    echo \"  response body:\"\n    cat /tmp/hf_resp.txt\n    echo\n    echo \"  body length sent: ${#BODY}\"\n    echo \"  value length: ${#V}\"\n    return 1\n  fi\n}\nset_var \"ENV_PREFIX\"          \"${ENV}\"\nset_var \"EVALCARE_URL\"        \"${EVALCARE_URL}\"\nset_var \"SHARED_SERVICES_URL\" \"${SHARED_URL}\"\n\n# Public certs — bootstrap material for token-level mutual auth\n# (EPIC-002-F-001-S-012-REQ-T-002). FindCare needs:\n#   - its own findcare.crt (FINDCARE_CERT_PEM) — peers verify\n#     FindCare-signed tokens against this\n#   - peer certs (SHARED_CERT_PEM, EVALCARE_CERT_PEM) — FindCare\n#     verifies peer-signed tokens against these\n#   - the CA cert (CA_CERT_PEM) — chain verification\n# All .crt files are public (gitignore only excludes .key) so we\n# read them directly from the repo and ship as HF Space variables.\nFINDCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/findcare.crt)\nSHARED_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/shared.crt)\nEVALCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/evalcare.crt)\nCA_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/ca.crt)\nset_var \"FINDCARE_CERT_PEM\" \"${FINDCARE_CERT_PEM_B64}\"\nset_var \"SHARED_CERT_PEM\"   \"${SHARED_CERT_PEM_B64}\"\nset_var \"EVALCARE_CERT_PEM\" \"${EVALCARE_CERT_PEM_B64}\"\nset_var \"CA_CERT_PEM\"       \"${CA_CERT_PEM_B64}\"\n\n# Private signing key — secret, sourced from GH repo secret.\n# Fail loudly if the GH secret was never created.\nif [ -z \"$FINDCARE_SIGNING_KEY_B64\" ]; then\n  echo \"ERROR: GH repo secret FINDCARE_SIGNING_KEY_B64 is empty or unset.\"\n  echo \"Create it at https://github.com/SkipSnow/ChatHealthyRepo/settings/secrets/actions\"\n  echo \"Value: base64 -w0 of Code/Shared/ops/certs/findcare.key\"\n  exit 1\nfi\nset_secret \"FINDCARE_SIGNING_KEY_PEM\" \"${FINDCARE_SIGNING_KEY_B64}\"\n\n# GEMINI_API_KEY: find_specialists (the V5 SpecialtyFilter tool)\n# uses pydantic-ai's google-gla gemini model and raises\n# RuntimeError without this key, which surfaces as\n# /classify \"temporarily unavailable\" and cascades the smoke.\nif [ -z \"${{ secrets.GEMINI_API_KEY }}\" ]; then\n  echo \"ERROR: GH repo secret GEMINI_API_KEY is empty or unset.\"\n  echo \"Create it at https://github.com/SkipSnow/ChatHealthyRepo/settings/secrets/actions\"\n  exit 1\nfi\nset_secret \"GEMINI_API_KEY\" \"${{ secrets.GEMINI_API_KEY }}\"\n"
+    - name: Push to HuggingFace Space
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        HF_SPACE: ${{ steps.space.outputs.name }}
+      run: "git config --global user.email \"skip.snow@gmail.com\"\ngit config --global user.name \"SkipSnow\"\ngit lfs install\n\necho \"Target Space: SkipSnow/${HF_SPACE}\"\ngit clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/${HF_SPACE} hf_space\n\n# Preserve README.md (HF Space config frontmatter)\ncp hf_space/README.md /tmp/hf_readme.md 2>/dev/null || true\nfind hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete\ncp /tmp/hf_readme.md hf_space/README.md 2>/dev/null || true\n\n# Recreate the repo tree under hf_space/ so the FindCare backend\n# Dockerfile's COPY paths (Code/Shared, brain, etc.) resolve. The\n# Dockerfile was authored for the local build (context = repo root)\n# and app.py's relative imports (sys.path.insert(0, ../../../Shared)\n# etc.) work unmodified when /app mirrors the host tree.\n\nmkdir -p hf_space/Code/ConversationalUX/FindCareChat/backend\nrsync -av \\\n  --exclude='.env' \\\n  --exclude='__pycache__' \\\n  --exclude='*.pyc' \\\n  Code/ConversationalUX/FindCareChat/backend/ hf_space/Code/ConversationalUX/FindCareChat/backend/\n\n# Pre-built React frontend → backend/static (where app.py mounts it)\ncp -r Code/ConversationalUX/FindCareChat/frontend/dist hf_space/Code/ConversationalUX/FindCareChat/backend/static\n\n# Code/Shared/ — preserve subdirs (ops/, agent_framework/, ux/, tests/)\nmkdir -p hf_space/Code/Shared\nrsync -av \\\n  --exclude='__pycache__' \\\n  --exclude='*.pyc' \\\n  Code/Shared/ hf_space/Code/Shared/\n\n# PKI certs deferred to Beta — HF doesn't support mTLS\n\n# Brain artifacts needed at runtime — copy the entire content/ dir so\n# any new JSON the backend reads (prompts.json for SpecialtyFilter,\n# emergency_keywords.json for SafetyService, future records) is\n# staged automatically. Cherry-picking individual files is how\n# prompts.json was missed when SpecialtyFilter wired it 2026-05-04;\n# the FileNotFoundError surfaced post-deploy instead of pre-deploy.\nmkdir -p hf_space/brain/machine_artifacts/content\nrsync -av brain/machine_artifacts/content/ hf_space/brain/machine_artifacts/content/\n\n# me/ context files (PDFs, summary, codebase)\nmkdir -p hf_space/Code/ConversationalUX/ChatHealthyWhoAmIChat/me\nrsync -av Code/ConversationalUX/ChatHealthyWhoAmIChat/me/ hf_space/Code/ConversationalUX/ChatHealthyWhoAmIChat/me/\n\n# EPIC-003: bring FrontEndApplicationLib into the build context so the\n# Dockerfile can pip-install chathealthy-frontend-lib from a local path.\nmkdir -p hf_space/FrontEndApplicationLib\nrsync -av \\\n  --exclude='__pycache__' \\\n  --exclude='*.pyc' \\\n  FrontEndApplicationLib/ hf_space/FrontEndApplicationLib/\n\n# FindCare/: business-model home (mirrors agile_backlog Epic/Feature\n# tree). FindCare/SpecialtyFilter/ holds the V5 SpecialtyFilter tool\n# (find_specialists). The Dockerfile COPY FindCare /app/FindCare\n# fails the HF build without this rsync.\nmkdir -p hf_space/FindCare\nrsync -av \\\n  --exclude='__pycache__' \\\n  --exclude='*.pyc' \\\n  FindCare/ hf_space/FindCare/\n\n# DevOps/FindCareBackend/: deployment-feature home for FC backend\n# Dockerfile + requirements.txt + .dockerignore. The Dockerfile\n# itself is copied to the hf_space root below (HF builds from\n# repo-root context); requirements.txt is read by Dockerfile's\n# COPY DevOps/FindCareBackend/requirements.txt instruction at\n# HF build time, which requires this directory to be present\n# in the staged build context.\nmkdir -p hf_space/DevOps/FindCareBackend\nrsync -av \\\n  --exclude='__pycache__' \\\n  --exclude='*.pyc' \\\n  DevOps/FindCareBackend/ hf_space/DevOps/FindCareBackend/\n\n# Dockerfile lives at the build-context root for HF.\ncp DevOps/FindCareBackend/Dockerfile hf_space/Dockerfile\n\ncd hf_space\ngit lfs track \"*.pdf\"\ngit add .\nif git diff --staged --quiet; then\n  echo \"No changes to deploy.\"\nelse\n  git commit -m \"Deploy from GitHub commit ${{ github.sha }}\"\n  git push\n  echo \"Deployed successfully.\"\nfi\n"
+    - name: Wait for HF Space rebuild + verify /health on all three backends
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        HF_SPACE: ${{ steps.space.outputs.name }}
+        ENV: ${{ steps.space.outputs.env }}
+      run: "if [ \"$ENV\" = \"prod\" ]; then\n  FINDCARE_URL=\"https://skipsnow-chathealthyspace.hf.space\"\n  EVALCARE_URL=\"https://skipsnow-evaluatecarespace.hf.space\"\n  SHARED_URL=\"https://skipsnow-sharedservicesspace.hf.space\"\nelse\n  FINDCARE_URL=\"https://skipsnow-${ENV}-chathealthyspace.hf.space\"\n  EVALCARE_URL=\"https://skipsnow-${ENV}-evaluatecarespace.hf.space\"\n  SHARED_URL=\"https://skipsnow-${ENV}-sharedservicesspace.hf.space\"\nfi\necho \"Waiting for HF Space SkipSnow/${HF_SPACE} to reach RUNNING...\"\nfor i in $(seq 1 60); do\n  STAGE=$(curl -s -H \"Authorization: Bearer $HF_TOKEN\" \\\n    \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}\" \\\n    | jq -r '.runtime.stage // \"\"')\n  echo \"  poll $i/60: stage=$STAGE\"\n  if [ \"$STAGE\" = \"RUNNING\" ]; then break; fi\n  if [ \"$STAGE\" = \"RUNTIME_ERROR\" ] || [ \"$STAGE\" = \"BUILD_ERROR\" ]; then\n    echo \"HF Space failed: stage=$STAGE\"; exit 1\n  fi\n  if [ $i -eq 60 ]; then\n    echo \"TIMED OUT after 10 min (final stage: $STAGE)\"; exit 1\n  fi\n  sleep 10\ndone\nfor URL in \"$FINDCARE_URL\" \"$EVALCARE_URL\" \"$SHARED_URL\"; do\n  echo \"Polling ${URL}/health...\"\n  for i in $(seq 1 30); do\n    HTTP_CODE=$(curl -s -o /tmp/h.json -w \"%{http_code}\" \\\n      -X POST \"${URL}/health\" -m 8)\n    if [ \"$HTTP_CODE\" = \"200\" ]; then\n      echo \"  ${URL}/health 200 (poll $i):\"\n      cat /tmp/h.json; echo\n      break\n    fi\n    echo \"  poll $i/30: http=$HTTP_CODE\"\n    if [ $i -eq 30 ]; then\n      echo \"TIMED OUT waiting for ${URL}/health (last: $HTTP_CODE)\"\n      cat /tmp/h.json\n      exit 1\n    fi\n    sleep 10\n  done\ndone\n"
+    - name: Install smoke test dependencies
+      run: 'pip install --quiet pytest pytest-playwright httpx cryptography psutil python-dotenv jsonschema anyio
 
-      - name: Derive Space name and env from branch
-        id: space
-        run: |
-          BRANCH="${GITHUB_REF_NAME}"
-          ORG="SkipSnow"
-          BASE="ChatHealthySpace"
-          if [ "$BRANCH" = "main" ]; then
-            SPACE="${BASE}"
-            ENV="prod"
-          else
-            SPACE="${BRANCH}_${BASE}"
-            ENV="${BRANCH}"
-          fi
-          echo "name=${SPACE}" >> $GITHUB_OUTPUT
-          echo "env=${ENV}" >> $GITHUB_OUTPUT
-          echo "Deploying to: ${ORG}/${SPACE} (env=${ENV})"
+        playwright install --with-deps chromium
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        '
+    - name: Run master smoke test against deployed env
+      env:
+        SMOKE_TEST_ENV: ${{ steps.space.outputs.env }}
+        CHATHEALTHY_PROJECT_ROOT: ${{ github.workspace }}
+      run: '# Smoke runs against the env we just deployed to (dev/qa/prod).
 
-      - name: Build React frontend
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+        # No deselects, no marker filters — every test in the master smoke
 
-      - name: Install and build frontend
-        working-directory: Code/ConversationalUX/FindCareChat/frontend
-        env:
-          BRANCH: ${{ github.ref_name }}
-        run: |
-          npm ci
-          if [ "$BRANCH" = "main" ]; then
-            EVALCARE_URL="https://skipsnow-evaluatecarespace.hf.space"
-          else
-            EVALCARE_URL="https://skipsnow-${BRANCH}-evaluatecarespace.hf.space"
-          fi
-          VITE_API_URL="" VITE_EVALCARE_URL="$EVALCARE_URL" npm run build
+        # is in scope per the "100% comply" directive (2026-05-04).
 
-      - name: Set HF Space variables + secrets (peer URLs, env, certs, signing key)
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_SPACE: ${{ steps.space.outputs.name }}
-          ENV: ${{ steps.space.outputs.env }}
-          # Private signing key sourced from GH repo secret (one value used
-          # across dev/qa/prod — pre-alpha, 2026-05-04). Required for
-          # FINDCARE_SIGNING_KEY_PEM bootstrap at container start; without it
-          # _startup_security_verification abends with exit=78 (see
-          # EPIC-002-F-001-S-012-REQ-T-004).
-          FINDCARE_SIGNING_KEY_B64: ${{ secrets.FINDCARE_SIGNING_KEY_B64 }}
-        run: |
-          # Derive per-env peer URLs. Prod has no prefix; dev/qa prepend env.
-          if [ "$ENV" = "prod" ]; then PREFIX=""; else PREFIX="${ENV}-"; fi
-          EVALCARE_URL="https://skipsnow-${PREFIX}evaluatecarespace.hf.space"
-          SHARED_URL="https://skipsnow-${PREFIX}sharedservicesspace.hf.space"
-          set_var() {
-            K="$1"; V="$2"
-            # Delete any pre-existing secret with the same name — HF rejects
-            # collision between a variable and a secret, causing CONFIG_ERROR.
-            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
-              -H "Authorization: Bearer $HF_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"key\":\"${K}\"}" -o /dev/null
-            # Now set the variable (authoritative per-env value from this workflow).
-            curl -sf -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
-              -H "Authorization: Bearer $HF_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"key\":\"${K}\",\"value\":\"${V}\",\"description\":\"Set by deploy workflow\"}" \
-              -o /dev/null && echo "  set var ${K}"
-          }
-          set_secret() {
-            # Mirror of set_var but POSTs to /secrets. For values that must
-            # NOT be plaintext-visible in HF Space settings (private keys).
-            # MUST delete BOTH a same-named variable AND a same-named secret
-            # before POSTing — HF rejects var/secret collision AND rejects
-            # POST to /secrets if a secret of that name already exists.
-            #
-            # Build the JSON body via python -c rather than bash -d so a
-            # 2KB+ value with shell-special chars (none in base64, but
-            # belt+suspenders) cannot break the request shape.
-            K="$1"; V="$2"
-            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
-              -H "Authorization: Bearer $HF_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"key\":\"${K}\"}" -o /dev/null
-            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
-              -H "Authorization: Bearer $HF_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"key\":\"${K}\"}" -o /dev/null
-            BODY=$(python3 -c "import json,sys; print(json.dumps({'key':sys.argv[1],'value':sys.argv[2],'description':'Set by deploy workflow'}))" "$K" "$V")
-            HTTP=$(curl -s -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
-              -H "Authorization: Bearer $HF_TOKEN" \
-              -H "Content-Type: application/json" \
-              --data "$BODY" \
-              -o /tmp/hf_resp.txt -w "%{http_code}")
-            if [ "$HTTP" = "200" ] || [ "$HTTP" = "201" ]; then
-              echo "  set secret ${K} (http=$HTTP)"
-            else
-              echo "  ERROR set secret ${K}: http=$HTTP"
-              echo "  response body:"
-              cat /tmp/hf_resp.txt
-              echo
-              echo "  body length sent: ${#BODY}"
-              echo "  value length: ${#V}"
-              return 1
-            fi
-          }
-          set_var "ENV_PREFIX"          "${ENV}"
-          set_var "EVALCARE_URL"        "${EVALCARE_URL}"
-          set_var "SHARED_SERVICES_URL" "${SHARED_URL}"
+        # Tests that have hardcoded localhost assumptions or local-vs-dev
 
-          # Public certs — bootstrap material for token-level mutual auth
-          # (EPIC-002-F-001-S-012-REQ-T-002). FindCare needs:
-          #   - its own findcare.crt (FINDCARE_CERT_PEM) — peers verify
-          #     FindCare-signed tokens against this
-          #   - peer certs (SHARED_CERT_PEM, EVALCARE_CERT_PEM) — FindCare
-          #     verifies peer-signed tokens against these
-          #   - the CA cert (CA_CERT_PEM) — chain verification
-          # All .crt files are public (gitignore only excludes .key) so we
-          # read them directly from the repo and ship as HF Space variables.
-          FINDCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/findcare.crt)
-          SHARED_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/shared.crt)
-          EVALCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/evalcare.crt)
-          CA_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/ca.crt)
-          set_var "FINDCARE_CERT_PEM" "${FINDCARE_CERT_PEM_B64}"
-          set_var "SHARED_CERT_PEM"   "${SHARED_CERT_PEM_B64}"
-          set_var "EVALCARE_CERT_PEM" "${EVALCARE_CERT_PEM_B64}"
-          set_var "CA_CERT_PEM"       "${CA_CERT_PEM_B64}"
+        # build comparisons will fail honestly until they are fixed at
 
-          # Private signing key — secret, sourced from GH repo secret.
-          # Fail loudly if the GH secret was never created.
-          if [ -z "$FINDCARE_SIGNING_KEY_B64" ]; then
-            echo "ERROR: GH repo secret FINDCARE_SIGNING_KEY_B64 is empty or unset."
-            echo "Create it at https://github.com/SkipSnow/ChatHealthyRepo/settings/secrets/actions"
-            echo "Value: base64 -w0 of Code/Shared/ops/certs/findcare.key"
-            exit 1
-          fi
-          set_secret "FINDCARE_SIGNING_KEY_PEM" "${FINDCARE_SIGNING_KEY_B64}"
+        # the test source, not silenced at the invocation site.
 
-          # GEMINI_API_KEY: find_specialists (the V5 SpecialtyFilter tool)
-          # uses pydantic-ai's google-gla gemini model and raises
-          # RuntimeError without this key, which surfaces as
-          # /classify "temporarily unavailable" and cascades the smoke.
-          if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
-            echo "ERROR: GH repo secret GEMINI_API_KEY is empty or unset."
-            echo "Create it at https://github.com/SkipSnow/ChatHealthyRepo/settings/secrets/actions"
-            exit 1
-          fi
-          set_secret "GEMINI_API_KEY" "${{ secrets.GEMINI_API_KEY }}"
+        python -m pytest architecture/DevOpsBuildDeployAndEnvironmentManagement/localSmokeTestPyTest.py -v
 
-      - name: Push to HuggingFace Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_SPACE: ${{ steps.space.outputs.name }}
-        run: |
-          git config --global user.email "skip.snow@gmail.com"
-          git config --global user.name "SkipSnow"
-          git lfs install
-
-          echo "Target Space: SkipSnow/${HF_SPACE}"
-          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/${HF_SPACE} hf_space
-
-          # Preserve README.md (HF Space config frontmatter)
-          cp hf_space/README.md /tmp/hf_readme.md 2>/dev/null || true
-          find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
-          cp /tmp/hf_readme.md hf_space/README.md 2>/dev/null || true
-
-          # Recreate the repo tree under hf_space/ so the FindCare backend
-          # Dockerfile's COPY paths (Code/Shared, brain, etc.) resolve. The
-          # Dockerfile was authored for the local build (context = repo root)
-          # and app.py's relative imports (sys.path.insert(0, ../../../Shared)
-          # etc.) work unmodified when /app mirrors the host tree.
-
-          mkdir -p hf_space/Code/ConversationalUX/FindCareChat/backend
-          rsync -av \
-            --exclude='.env' \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            Code/ConversationalUX/FindCareChat/backend/ hf_space/Code/ConversationalUX/FindCareChat/backend/
-
-          # Pre-built React frontend → backend/static (where app.py mounts it)
-          cp -r Code/ConversationalUX/FindCareChat/frontend/dist hf_space/Code/ConversationalUX/FindCareChat/backend/static
-
-          # Code/Shared/ — preserve subdirs (ops/, agent_framework/, ux/, tests/)
-          mkdir -p hf_space/Code/Shared
-          rsync -av \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            Code/Shared/ hf_space/Code/Shared/
-
-          # PKI certs deferred to Beta — HF doesn't support mTLS
-
-          # Brain artifacts needed at runtime — copy the entire content/ dir so
-          # any new JSON the backend reads (prompts.json for SpecialtyFilter,
-          # emergency_keywords.json for SafetyService, future records) is
-          # staged automatically. Cherry-picking individual files is how
-          # prompts.json was missed when SpecialtyFilter wired it 2026-05-04;
-          # the FileNotFoundError surfaced post-deploy instead of pre-deploy.
-          mkdir -p hf_space/brain/machine_artifacts/content
-          rsync -av brain/machine_artifacts/content/ hf_space/brain/machine_artifacts/content/
-
-          # me/ context files (PDFs, summary, codebase)
-          mkdir -p hf_space/Code/ConversationalUX/ChatHealthyWhoAmIChat/me
-          rsync -av Code/ConversationalUX/ChatHealthyWhoAmIChat/me/ hf_space/Code/ConversationalUX/ChatHealthyWhoAmIChat/me/
-
-          # EPIC-003: bring FrontEndApplicationLib into the build context so the
-          # Dockerfile can pip-install chathealthy-frontend-lib from a local path.
-          mkdir -p hf_space/FrontEndApplicationLib
-          rsync -av \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            FrontEndApplicationLib/ hf_space/FrontEndApplicationLib/
-
-          # FindCare/: business-model home (mirrors agile_backlog Epic/Feature
-          # tree). FindCare/SpecialtyFilter/ holds the V5 SpecialtyFilter tool
-          # (find_specialists). The Dockerfile COPY FindCare /app/FindCare
-          # fails the HF build without this rsync.
-          mkdir -p hf_space/FindCare
-          rsync -av \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            FindCare/ hf_space/FindCare/
-
-          # DevOps/FindCareBackend/: deployment-feature home for FC backend
-          # Dockerfile + requirements.txt + .dockerignore. The Dockerfile
-          # itself is copied to the hf_space root below (HF builds from
-          # repo-root context); requirements.txt is read by Dockerfile's
-          # COPY DevOps/FindCareBackend/requirements.txt instruction at
-          # HF build time, which requires this directory to be present
-          # in the staged build context.
-          mkdir -p hf_space/DevOps/FindCareBackend
-          rsync -av \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            DevOps/FindCareBackend/ hf_space/DevOps/FindCareBackend/
-
-          # Dockerfile lives at the build-context root for HF.
-          cp DevOps/FindCareBackend/Dockerfile hf_space/Dockerfile
-
-          cd hf_space
-          git lfs track "*.pdf"
-          git add .
-          if git diff --staged --quiet; then
-            echo "No changes to deploy."
-          else
-            git commit -m "Deploy from GitHub commit ${{ github.sha }}"
-            git push
-            echo "Deployed successfully."
-          fi
-
-      # EPIC-008-F-004-S-001-REQ-B-003: build/start/verify gate.
-      # HF Spaces rebuild asynchronously after the git push above. Poll
-      # the HF API for runtime.stage = RUNNING, then poll /health on each
-      # of the three backends until 200.
-      - name: Wait for HF Space rebuild + verify /health on all three backends
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_SPACE: ${{ steps.space.outputs.name }}
-          ENV: ${{ steps.space.outputs.env }}
-        run: |
-          if [ "$ENV" = "prod" ]; then
-            FINDCARE_URL="https://skipsnow-chathealthyspace.hf.space"
-            EVALCARE_URL="https://skipsnow-evaluatecarespace.hf.space"
-            SHARED_URL="https://skipsnow-sharedservicesspace.hf.space"
-          else
-            FINDCARE_URL="https://skipsnow-${ENV}-chathealthyspace.hf.space"
-            EVALCARE_URL="https://skipsnow-${ENV}-evaluatecarespace.hf.space"
-            SHARED_URL="https://skipsnow-${ENV}-sharedservicesspace.hf.space"
-          fi
-          echo "Waiting for HF Space SkipSnow/${HF_SPACE} to reach RUNNING..."
-          for i in $(seq 1 60); do
-            STAGE=$(curl -s -H "Authorization: Bearer $HF_TOKEN" \
-              "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}" \
-              | jq -r '.runtime.stage // ""')
-            echo "  poll $i/60: stage=$STAGE"
-            if [ "$STAGE" = "RUNNING" ]; then break; fi
-            if [ "$STAGE" = "RUNTIME_ERROR" ] || [ "$STAGE" = "BUILD_ERROR" ]; then
-              echo "HF Space failed: stage=$STAGE"; exit 1
-            fi
-            if [ $i -eq 60 ]; then
-              echo "TIMED OUT after 10 min (final stage: $STAGE)"; exit 1
-            fi
-            sleep 10
-          done
-          for URL in "$FINDCARE_URL" "$EVALCARE_URL" "$SHARED_URL"; do
-            echo "Polling ${URL}/health..."
-            for i in $(seq 1 30); do
-              HTTP_CODE=$(curl -s -o /tmp/h.json -w "%{http_code}" \
-                -X POST "${URL}/health" -m 8)
-              if [ "$HTTP_CODE" = "200" ]; then
-                echo "  ${URL}/health 200 (poll $i):"
-                cat /tmp/h.json; echo
-                break
-              fi
-              echo "  poll $i/30: http=$HTTP_CODE"
-              if [ $i -eq 30 ]; then
-                echo "TIMED OUT waiting for ${URL}/health (last: $HTTP_CODE)"
-                cat /tmp/h.json
-                exit 1
-              fi
-              sleep 10
-            done
-          done
-
-      # EPIC-008-F-004-S-001-REQ-B-004: deploy script invokes the master
-      # smoke test (S-006) against the target env after build/start/verify.
-      - name: Install smoke test dependencies
-        run: |
-          pip install --quiet pytest pytest-playwright httpx cryptography psutil python-dotenv jsonschema anyio
-          playwright install --with-deps chromium
-
-      - name: Run master smoke test against deployed env
-        env:
-          SMOKE_TEST_ENV: ${{ steps.space.outputs.env }}
-          CHATHEALTHY_PROJECT_ROOT: ${{ github.workspace }}
-        run: |
-          # Smoke runs against the env we just deployed to (dev/qa/prod).
-          # No deselects, no marker filters — every test in the master smoke
-          # is in scope per the "100% comply" directive (2026-05-04).
-          # Tests that have hardcoded localhost assumptions or local-vs-dev
-          # build comparisons will fail honestly until they are fixed at
-          # the test source, not silenced at the invocation site.
-          python -m pytest architecture/DevOpsBuildDeployAndEnvironmentManagement/localSmokeTestPyTest.py -v
+        '

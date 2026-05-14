@@ -1,71 +1,41 @@
 name: Promote Data Between Environments
-
-on:
+'on':
   workflow_dispatch:
     inputs:
       from_env:
-        description: 'Source environment'
+        description: Source environment
         required: true
         type: choice
         options:
-          - dev
-          - qa
+        - dev
+        - qa
       to_env:
-        description: 'Target environment'
+        description: Target environment
         required: true
         type: choice
         options:
-          - qa
-          - prod
+        - qa
+        - prod
       dry_run:
-        description: 'Dry run (print plan, no changes)'
+        description: Dry run (print plan, no changes)
         required: false
         type: boolean
         default: true
-
 jobs:
   promote-data:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Validate promotion path
-        run: |
-          FROM="${{ inputs.from_env }}"
-          TO="${{ inputs.to_env }}"
-          if [ "$FROM" = "dev" ] && [ "$TO" = "qa" ]; then
-            echo "Valid: dev -> qa"
-          elif [ "$FROM" = "qa" ] && [ "$TO" = "prod" ]; then
-            echo "Valid: qa -> prod"
-          else
-            echo "ERROR: Invalid promotion path: $FROM -> $TO"
-            echo "Valid paths: dev->qa, qa->prod"
-            exit 1
-          fi
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        run: pip install -r Code/Shared/ops/tools/requirements.txt
-
-      - name: Run data promotion
-        env:
-          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
-        run: |
-          DRY_RUN_FLAG=""
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            DRY_RUN_FLAG="--dry-run"
-          fi
-          python Code/Shared/ops/promote_data.py \
-            --from ${{ inputs.from_env }} \
-            --to ${{ inputs.to_env }} \
-            $DRY_RUN_FLAG
-
-      # Build-counter bump removed per Rule-063 + BUG-001:
-      # the build is now incremented by a post-commit engineering rule on
-      # every non-deploy commit, and deploys/promotions do NOT bump.
+    - name: Validate promotion path
+      run: "FROM=\"${{ inputs.from_env }}\"\nTO=\"${{ inputs.to_env }}\"\nif [ \"$FROM\" = \"dev\" ] && [ \"$TO\" = \"qa\" ]; then\n  echo \"Valid: dev -> qa\"\nelif [ \"$FROM\" = \"qa\" ] && [ \"$TO\" = \"prod\" ]; then\n  echo \"Valid: qa -> prod\"\nelse\n  echo \"ERROR: Invalid promotion path: $FROM -> $TO\"\n  echo \"Valid paths: dev->qa, qa->prod\"\n  exit 1\nfi\n"
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: pip install -r Code/Shared/ops/tools/requirements.txt
+    - name: Run data promotion
+      env:
+        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+      run: "DRY_RUN_FLAG=\"\"\nif [ \"${{ inputs.dry_run }}\" = \"true\" ]; then\n  DRY_RUN_FLAG=\"--dry-run\"\nfi\npython Code/Shared/ops/promote_data.py \\\n  --from ${{ inputs.from_env }} \\\n  --to ${{ inputs.to_env }} \\\n  $DRY_RUN_FLAG\n"
