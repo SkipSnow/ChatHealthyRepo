@@ -45,6 +45,13 @@ _HF_SPACE_BASE: dict[str, str] = {
 }
 _HF_ORG: str = "SkipSnow"
 
+# Branch mapping for deploy sources. The deploy snapshot comes from
+# origin/<branch>, not from the operator's working tree. This honors
+# the F-012-S-003 requirement "Deployments come from correct Code
+# branches and file location" — what gets deployed is the committed
+# state in git, no working-tree mutation (incl. Windows autocrlf).
+_BRANCH_MAP: dict[str, str] = {"dev": "dev", "qa": "qa", "prod": "main"}
+
 
 def _hf_space_name(target_id: str, env: str) -> str:
     base = _HF_SPACE_BASE[target_id]
@@ -64,6 +71,99 @@ def _hf_peer_url(target_id: str, env: str) -> str:
 # ── Step notice helper ─────────────────────────────────────────────────
 def _step(msg: str) -> None:
     print(f"[remote_deploy] {msg}", flush=True)
+
+
+# ── Committed-tree snapshot (origin/<branch>) ──────────────────────────
+def _resolve_committed_build_root(worktree_root: Path, env: str) -> tuple[Path, str, str]:
+    """Snapshot origin/<branch> for env into _oneshots/remote_deploy_build/.
+
+    Returns (workspace_path, branch, origin_sha). All subsequent
+    deploy operations should use workspace_path as their `repo_root`
+    so disk bytes are byte-identical to what Linux GHA / HF runners
+    see. The autocrlf=false override is critical on Windows — without
+    it, git autocrlf would inject CRLF into the extracted tree and
+    cause spurious Crosswalk drift against the LF-canonical JSON.
+
+    Gitignored runtime artifacts (the operator's local Code/.env and
+    Code/Shared/ops/certs/*.key signing keys + cert files) are copied
+    from the operator's local repo into the snapshot, because they
+    are not in git but the deploy needs them to authenticate to HF /
+    Cloudflare and to provision HF Space env vars/secrets.
+    """
+    branch = _BRANCH_MAP[env]
+    cflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+    # 1. Fetch
+    r = subprocess.run(
+        ["git", "fetch", "origin", branch],
+        cwd=str(worktree_root), capture_output=True, text=True,
+        creationflags=cflags,
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: git fetch origin {branch} failed: "
+            f"{r.stderr.strip()[:300]}"
+        )
+    # 2. Resolve origin SHA
+    r = subprocess.run(
+        ["git", "rev-parse", f"origin/{branch}"],
+        cwd=str(worktree_root), capture_output=True, text=True,
+        creationflags=cflags,
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: no origin/{branch}: {r.stderr.strip()[:300]}"
+        )
+    origin_sha = r.stdout.strip()
+    origin_sha7 = origin_sha[:7]
+    # 3. Workspace
+    workspace = (worktree_root / "_oneshots" / "remote_deploy_build"
+                 / env / origin_sha7)
+    if workspace.exists():
+        shutil.rmtree(workspace, ignore_errors=True)
+    workspace.mkdir(parents=True, exist_ok=True)
+    # 4. git archive | tar -x. autocrlf=false ensures LF bytes match
+    #    JSON's embedded_content (and what Linux runners check out).
+    archive_proc = subprocess.Popen(
+        ["git", "-c", "core.autocrlf=false",
+         "archive", f"origin/{branch}"],
+        cwd=str(worktree_root), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        creationflags=cflags,
+    )
+    tar_proc = subprocess.Popen(
+        ["tar", "-x", "-C", str(workspace)],
+        stdin=archive_proc.stdout, stderr=subprocess.PIPE,
+        creationflags=cflags,
+    )
+    if archive_proc.stdout is not None:
+        archive_proc.stdout.close()
+    tar_err = tar_proc.communicate()[1]
+    archive_proc.wait()
+    if archive_proc.returncode != 0:
+        sys.exit(
+            f"ERROR: git archive origin/{branch} failed: "
+            f"{(archive_proc.stderr.read().decode() if archive_proc.stderr else '')[:300]}"
+        )
+    if tar_proc.returncode != 0:
+        sys.exit(
+            f"ERROR: tar extract into {workspace} failed: "
+            f"{(tar_err.decode() if tar_err else '')[:300]}"
+        )
+    # 5. Copy gitignored runtime artifacts the deploy needs but git
+    #    doesn't track. The OPERATOR's local repo has these.
+    env_src = worktree_root / "Code" / ".env"
+    if env_src.is_file():
+        (workspace / "Code").mkdir(parents=True, exist_ok=True)
+        shutil.copy2(env_src, workspace / "Code" / ".env")
+    certs_src = worktree_root / "Code" / "Shared" / "ops" / "certs"
+    certs_dst = workspace / "Code" / "Shared" / "ops" / "certs"
+    certs_dst.mkdir(parents=True, exist_ok=True)
+    for pattern in ("*.key", "*.csr", "*.enc", "*.srl"):
+        for f in certs_src.glob(pattern):
+            shutil.copy2(f, certs_dst / f.name)
+    _step(
+        f"build root: origin/{branch} @ {origin_sha7} -> {workspace}"
+    )
+    return workspace, branch, origin_sha
 
 
 # ── HF API: variables + secrets ────────────────────────────────────────
@@ -317,6 +417,13 @@ def _push_to_hf_space(
         ["git", "clone", repo_url, str(hf_clone)],
         check=True, capture_output=True,
     )
+    # Install Git LFS for this repo. HF Spaces require LFS for any
+    # file over 10MB AND for "binary" types like .pdf regardless of
+    # size. Without LFS the pre-receive hook rejects the push.
+    subprocess.run(
+        ["git", "lfs", "install", "--local"],
+        cwd=str(hf_clone), check=True, capture_output=True,
+    )
     # Preserve README.md (HF Space config frontmatter)
     readme = hf_clone / "README.md"
     readme_bytes: bytes | None = readme.read_bytes() if readme.is_file() else None
@@ -335,6 +442,16 @@ def _push_to_hf_space(
             shutil.copytree(item, hf_clone / item.name, dirs_exist_ok=True)
         else:
             shutil.copy2(item, hf_clone / item.name)
+    # Track binary patterns under LFS BEFORE staging. Refresh .gitattributes
+    # each push so the pattern set is canonical regardless of what the
+    # previous deploy left on HF. Covers PDFs (me/ context docs) plus
+    # other binary types that may appear under target source dirs.
+    subprocess.run(
+        ["git", "lfs", "track",
+         "*.pdf", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.ico",
+         "*.zip", "*.gz", "*.tar", "*.7z"],
+        cwd=str(hf_clone), check=True, capture_output=True,
+    )
     # git-add, commit, push.
     subprocess.run(
         ["git", "-c", "user.email=skip.snow@gmail.com", "-c", "user.name=SkipSnow",
@@ -442,10 +559,19 @@ def main(argv: list[str] | None = None) -> int:
     env = args.env
 
     # Resolve repo root from this file's location: code/ -> code/.. -> .. -> .. -> repo
-    repo_root = Path(__file__).resolve().parents[3]
-    _step(f"repo_root={repo_root} env={env}")
+    worktree_root = Path(__file__).resolve().parents[3]
+    _step(f"worktree_root={worktree_root} env={env}")
 
-    # Load + validate
+    # The deploy reads from a snapshot of origin/<branch>, NOT from
+    # the operator's working tree. This is the F-012-S-003 contract:
+    # "Deployments come from correct Code branches and file location."
+    # On Windows the working tree may have autocrlf-mutated bytes that
+    # diverge from what Linux runners see; the snapshot kills that.
+    repo_root, deploy_branch, deploy_sha = _resolve_committed_build_root(
+        worktree_root, env,
+    )
+
+    # Load + validate against the snapshot.
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     backlog_schema = repo_root / "Website" / "schemas" / "ChatHealthyAgileBacklogSchema.json"
     backlog_path = repo_root / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
@@ -510,12 +636,19 @@ def main(argv: list[str] | None = None) -> int:
     smoke_env = dict(os.environ)
     smoke_env["SMOKE_TEST_ENV"] = env
     smoke_env["CHATHEALTHY_PROJECT_ROOT"] = str(repo_root)
+    # Smoke test lives next to this module (substrate sibling); use
+    # __file__-relative discovery so the path survives any future move
+    # of the substrate dir.
+    smoke_path = Path(__file__).resolve().parent / "localSmokeTestPyTest.py"
     rc = subprocess.call(
-        [sys.executable, "-m", "pytest",
-         str(repo_root / "Code" / "deploy" / "localSmokeTestPyTest.py"), "-v"],
+        [sys.executable, "-m", "pytest", str(smoke_path), "-v"],
         env=smoke_env,
     )
     _step(f"smoke test ended: rc={rc}")
+    # NOTE: build-counter bump for qa/prod is owned by the promote
+    # gate (promote-build.yml), not by the deploy script. The
+    # promotion IS the moment qa := dev (or prod := qa); the deploy
+    # is verification that the promotion's bytes work.
     return rc
 
 

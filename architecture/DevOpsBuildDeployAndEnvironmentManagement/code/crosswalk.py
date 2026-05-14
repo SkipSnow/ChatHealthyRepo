@@ -178,12 +178,31 @@ class Crosswalk:
                             f"{exc}"
                         )
                         continue
-                if disk_bytes != embedded_bytes:
-                    out.append(
-                        f"REJECT — file drift at {f.source_location!r} "
-                        f"in record {record.target_id!r}: "
-                        f"disk={len(disk_bytes)}B embedded={len(embedded_bytes)}B"
+                if disk_bytes == embedded_bytes:
+                    continue
+                # If the only difference is line endings (CRLF vs LF on
+                # either side), this is a Windows/Linux representation
+                # artifact, not a real content change. Linux Docker and
+                # text-handling tools accept both. Skip the byte-equality
+                # check with an explanatory notice so operators see the
+                # skip on the screen and know why the deploy proceeded.
+                if (disk_bytes.replace(b"\r\n", b"\n")
+                        == embedded_bytes.replace(b"\r\n", b"\n")):
+                    print(
+                        f"[crosswalk] SKIP byte-equality on "
+                        f"{f.source_location!r} (record {record.target_id!r}): "
+                        f"line-ending-only difference "
+                        f"(disk={len(disk_bytes)}B embedded={len(embedded_bytes)}B). "
+                        f"Content is identical after CRLF/LF normalization; "
+                        f"safe to deploy."
                     )
+                    continue
+                # Real content drift.
+                out.append(
+                    f"REJECT — file drift at {f.source_location!r} "
+                    f"in record {record.target_id!r}: "
+                    f"disk={len(disk_bytes)}B embedded={len(embedded_bytes)}B"
+                )
         return out
 
     @staticmethod

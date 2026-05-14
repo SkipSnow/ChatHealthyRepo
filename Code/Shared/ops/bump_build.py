@@ -82,20 +82,39 @@ def bump(env: str = "dev") -> dict:
         )
 
     builds_map = _builds_to_map(latest.get("builds", []))
-    if env not in builds_map:
-        raise RuntimeError(
-            f"latest admin.Versions record is missing the {env!r} slot; "
-            "run migrate_versions_to_per_env.py first."
+    # Per-env bump semantics. Every env catches up after its own deploy
+    # event; dev advances on commit (Rule-063):
+    #   dev   — increments dev by 1 (commit-driven Rule-063).
+    #   local — local := dev. Catches up after local deploy success.
+    #   qa    — qa := dev. Catches up after qa deploy success
+    #           (which follows a dev->qa branch merge).
+    #   prod  — prod := qa. Catches up after prod deploy success
+    #           (which follows a qa->main branch merge).
+    if env == "dev":
+        # Dev advances by 1. Local follows the operator-stated
+        # invariant: local ∈ {dev, dev-1}. Setting local := old_dev
+        # (which equals new_dev - 1) enforces "dev-1 when not caught
+        # up" automatically. The local deploy with a clean working
+        # tree later catches local up to dev.
+        old_dev = builds_map.get("dev", 0)
+        builds_map["dev"] = old_dev + 1
+        builds_map["local"] = old_dev
+    elif env == "local":
+        builds_map["local"] = builds_map.get("dev", 0)
+    elif env == "qa":
+        builds_map["qa"] = builds_map.get("dev", 0)
+    elif env == "prod":
+        builds_map["prod"] = builds_map.get("qa", 0)
+    else:
+        raise ValueError(
+            f"bump() is for {{dev, local, qa, prod}} — got {env!r}."
         )
-
-    builds_map[env] = builds_map[env] + 1
-    # Local mirrors dev — every dev bump also updates the local slot so
-    # local containers (which share the dev front-end MongoDB cluster) see
-    # the same build counter as dev. Per the per-env design: bumps only
-    # affect dev (and its local shadow); promotions copy forward to qa/prod.
-    if env == "dev" and "local" in builds_map:
-        builds_map["local"] = builds_map["dev"]
-    new_builds = [{"env": e, "build": builds_map[e]} for e in VALID_ENVS if e in builds_map]
+    # Every VALID_ENV is preserved in every record so readers never see
+    # null. Slots missing from the prior record default to 0.
+    new_builds = [
+        {"env": e, "build": builds_map.get(e, 0)}
+        for e in VALID_ENVS
+    ]
 
     record = {
         "builds": new_builds,

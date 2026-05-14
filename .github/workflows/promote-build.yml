@@ -70,10 +70,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r Code/Shared/ops/tools/requirements.txt
 
-      # Build-counter bump removed per Rule-063 + BUG-001:
-      # the build is now incremented by a post-commit engineering rule on
-      # every non-deploy commit, and deploys/promotions do NOT bump.
-
       - name: Merge source branch into target branch
         if: inputs.dry_run == false
         run: |
@@ -93,6 +89,24 @@ jobs:
           git checkout "$DST"
           git merge "origin/$SRC" -m "Promote ${{ inputs.from_env }} -> ${{ inputs.to_env }} (build promotion)"
           git push origin "$DST"
+
+      # Bump the target env's admin.Versions slot as part of the
+      # promote gate (Rule-063 per-env bump semantics). dev->qa sets
+      # qa := dev. qa->prod sets prod := qa. This must happen at
+      # promote time, not at deploy time, because the build counter
+      # IS what the promote operation conveys to the downstream env.
+      - name: Bump target env build counter
+        if: inputs.dry_run == false
+        env:
+          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, 'Code/Shared/ops')
+          from bump_build import bump
+          rec = bump(env='${{ inputs.to_env }}')
+          print('admin.Versions updated: builds=' + str(rec['builds']))
+          "
 
       - name: Dry run summary
         if: inputs.dry_run == true

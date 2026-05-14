@@ -736,6 +736,58 @@ class LocalDeploy:
         if ans != "y":
             sys.exit("Teardown aborted at human verify gate.")
 
+    # ── Bump local build counter (Rule-063 per-env) ───────────────────
+    # Local advances on each local deploy IF AND ONLY IF the working
+    # tree is byte-identical to origin/dev. Rule:
+    #   * dev has a DEV commit since last local bump (dev > local)
+    #   * working tree == origin/dev (no local-only changes)
+    # Both hold -> bump local := dev (catches up).
+    # Otherwise   -> local keeps the OLD number (a divergent local
+    #                build does NOT claim to be the dev commit).
+    # In every case, the new admin.Versions record carries every env
+    # slot forward so qa/prod stop dropping out.
+    def _bump_local_build_counter(self) -> None:
+        cflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        # 1. Fetch origin/dev to be sure we compare against the latest.
+        subprocess.run(
+            ["git", "fetch", "origin", "dev"],
+            cwd=str(self.repo_root), capture_output=True,
+            creationflags=cflags,
+        )
+        # 2. Tree-equality check: are tracked files in the working tree
+        #    byte-identical to origin/dev's tree?
+        diff = subprocess.run(
+            ["git", "diff", "origin/dev", "--quiet"],
+            cwd=str(self.repo_root), creationflags=cflags,
+        )
+        tree_matches_origin = (diff.returncode == 0)
+        if not tree_matches_origin:
+            self._step_notice(
+                "build counter NOT bumped: working tree differs from "
+                "origin/dev. Local keeps its prior build number."
+            )
+            self.results["build_after_bump"] = "skipped_tree_divergent"
+            return
+        # 3. Working tree matches origin/dev — bump local := dev.
+        ops_dir = self.repo_root / "Code" / "Shared" / "ops"
+        added = False
+        if str(ops_dir) not in sys.path:
+            sys.path.insert(0, str(ops_dir))
+            added = True
+        try:
+            from bump_build import bump as _bump
+            record = _bump(env="local")
+        finally:
+            if added and str(ops_dir) in sys.path:
+                sys.path.remove(str(ops_dir))
+        builds = {b["env"]: b["build"] for b in record["builds"]}
+        self.results["build_after_bump"] = builds
+        self._step_notice(
+            f"build counter bumped: local={builds.get('local')} "
+            f"(dev={builds.get('dev')}, qa={builds.get('qa')}, "
+            f"prod={builds.get('prod')})"
+        )
+
     # ── Structured deploy output (S-001-REQ-T-006) ─────────────────────
     def _write_structured_output(self) -> None:
         self.results["finished_at"] = datetime.now(timezone.utc).isoformat()
@@ -770,6 +822,12 @@ class LocalDeploy:
         self._wait_for_all_components()                     # S-001-REQ-B-003
         self._verify_components()                           # S-001-REQ-B-003
         self._step_notice("new environment built and verified")
+
+        # Rule-063: after a successful deploy (containers up + verified),
+        # recalculate the local build counter. Local "catches up" to dev's
+        # current value. The bump also carries every other env slot
+        # forward in the new admin.Versions record.
+        self._bump_local_build_counter()
 
         self._step_notice("smoke test started")
         smoke_rc = self._invoke_smoke_test()                # S-001-REQ-B-004
