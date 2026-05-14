@@ -351,4 +351,4 @@ jobs:
           # Tests that have hardcoded localhost assumptions or local-vs-dev
           # build comparisons will fail honestly until they are fixed at
           # the test source, not silenced at the invocation site.
-          python -m pytest architecture/DevOpsBuildDeployAndEnvironmentManagement/code/localSmokeTestPyTest.py -v
+          python -m pytest architecture/DevOpsBuildDeployAndEnvironmentManagement/localSmokeTestPyTest.py -v
