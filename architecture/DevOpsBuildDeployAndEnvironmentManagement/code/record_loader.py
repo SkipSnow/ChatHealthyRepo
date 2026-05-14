@@ -116,13 +116,12 @@ class RecordLoader:
                 f"{p} records array is empty; the deployment record collection "
                 f"has no entries. This is a hard reject."
             )
-        for i, doc in enumerate(records):
-            if not isinstance(doc, dict):
-                raise TypeError(
-                    f"{p}.records[{i}] must be a TargetRecord object, "
-                    f"got {type(doc).__name__}"
-                )
-            self._validate(doc)
+        # Validate the WHOLE envelope against the schema in one pass. The
+        # schema describes the envelope shape and its `records.items`
+        # sub-schema validates each record. Per-record validation against
+        # the envelope schema would fail (each record lacks the envelope
+        # top-level $schema/records fields).
+        self._validate(data)
         coll = DeploymentCollection()
         for doc in records:
             coll.add(TargetRecord.from_dict(doc))

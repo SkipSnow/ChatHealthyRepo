@@ -93,6 +93,141 @@ class LocalDeploy:
             "msg": msg,
         })
 
+    # ── Committed-tree snapshot (origin/<branch>) ──────────────────────
+    # The local deploy MUST build from the pushed bytes at
+    # `origin/<current-branch>`. The working tree, uncommitted edits, and
+    # unpushed commits are ALL invisible to a deploy — this mirrors the
+    # remote semantics where dev/qa/prod GHA workflows check out
+    # `origin/<branch>` server-side. The same code path applies on every
+    # branch (dev, qa, main, feature branches): whichever branch the
+    # operator is on, its `origin/` ref is the deploy source. HARD FAIL
+    # on detached HEAD or missing origin ref; no fallback to the working
+    # tree.
+    def _resolve_committed_build_root(self) -> None:
+        import subprocess as _sp
+        import shutil as _shutil
+
+        worktree_root = REPO_ROOT
+        cflags = (_sp.CREATE_NO_WINDOW
+                  if sys.platform == "win32" else 0)
+
+        # 1. Current branch
+        r = _sp.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=str(worktree_root), capture_output=True, text=True,
+            creationflags=cflags,
+        )
+        if r.returncode != 0:
+            sys.exit(
+                "ERROR: cannot resolve current git branch: "
+                f"{r.stderr.strip()[:300]}"
+            )
+        branch = r.stdout.strip()
+        if branch in ("", "HEAD"):
+            sys.exit(
+                "ERROR: detached HEAD; local deploy requires a branch so "
+                "origin/<branch> can be resolved. Checkout a branch and retry."
+            )
+
+        # 2. Fetch origin so origin/<branch> is current
+        r = _sp.run(
+            ["git", "fetch", "origin", branch],
+            cwd=str(worktree_root), capture_output=True, text=True,
+            creationflags=cflags,
+        )
+        if r.returncode != 0:
+            sys.exit(
+                f"ERROR: git fetch origin {branch} failed: "
+                f"{r.stderr.strip()[:300]}"
+            )
+
+        # 3. Resolve origin SHA
+        r = _sp.run(
+            ["git", "rev-parse", f"origin/{branch}"],
+            cwd=str(worktree_root), capture_output=True, text=True,
+            creationflags=cflags,
+        )
+        if r.returncode != 0:
+            sys.exit(
+                f"ERROR: no origin/{branch}; push the branch first: "
+                f"{r.stderr.strip()[:300]}"
+            )
+        origin_sha = r.stdout.strip()
+        origin_sha7 = origin_sha[:7]
+
+        # 4. Workspace at _oneshots/local_deploy_build/<branch>/<sha7>/
+        workspace = (worktree_root / "_oneshots" / "local_deploy_build"
+                     / branch / origin_sha7)
+        if workspace.exists():
+            _shutil.rmtree(workspace, ignore_errors=True)
+        workspace.mkdir(parents=True, exist_ok=True)
+
+        # 5. Snapshot origin/<branch> into the workspace
+        archive_proc = _sp.Popen(
+            ["git", "archive", f"origin/{branch}"],
+            cwd=str(worktree_root), stdout=_sp.PIPE, stderr=_sp.PIPE,
+            creationflags=cflags,
+        )
+        tar_proc = _sp.Popen(
+            ["tar", "-x", "-C", str(workspace)],
+            stdin=archive_proc.stdout, stderr=_sp.PIPE,
+            creationflags=cflags,
+        )
+        if archive_proc.stdout is not None:
+            archive_proc.stdout.close()
+        tar_err = tar_proc.communicate()[1]
+        archive_proc.wait()
+        if archive_proc.returncode != 0:
+            sys.exit(
+                f"ERROR: git archive origin/{branch} failed: "
+                f"{(archive_proc.stderr.read().decode() if archive_proc.stderr else '')[:300]}"
+            )
+        if tar_proc.returncode != 0:
+            sys.exit(
+                f"ERROR: tar extract into {workspace} failed: "
+                f"{(tar_err.decode() if tar_err else '')[:300]}"
+            )
+
+        # 6. Copy gitignored-but-runtime-required files from the original
+        # repo into the snapshot. These are operator-local secrets +
+        # infrastructure (private cert keys, .env). The committed artifact
+        # is the source of record for CODE; runtime secrets are injected
+        # at deploy time from the operator's local store per V18 design
+        # (SecretsResolver is the canonical fetcher; here we make the
+        # snapshot self-contained so the docker build + container start
+        # have what they need).
+        env_src = worktree_root / "Code" / ".env"
+        if env_src.is_file():
+            (workspace / "Code").mkdir(parents=True, exist_ok=True)
+            _shutil.copy2(env_src, workspace / "Code" / ".env")
+        certs_src = worktree_root / "Code" / "Shared" / "ops" / "certs"
+        certs_dst = workspace / "Code" / "Shared" / "ops" / "certs"
+        certs_dst.mkdir(parents=True, exist_ok=True)
+        for pattern in ("*.key", "*.csr", "*.enc", "*.srl"):
+            for f in certs_src.glob(pattern):
+                _shutil.copy2(f, certs_dst / f.name)
+
+        # 7. Repoint deploy at the snapshot. All downstream methods read
+        # `self.repo_root`; this single reassignment redirects every read.
+        self.repo_root = workspace
+        self.deploy_dir = workspace / "Code" / "deploy"
+        self.frontend_dir = (workspace / "Code" / "ConversationalUX"
+                             / "FindCareChat" / "frontend")
+        self.backend_dir = (workspace / "Code" / "ConversationalUX"
+                            / "FindCareChat" / "backend")
+        self.website_dir = workspace / "Website"
+        self.certs_dir = workspace / "Code" / "Shared" / "ops" / "certs"
+
+        # 8. Audit: stamp the deploy source into structured output
+        self.results["build_source"] = {
+            "branch": branch,
+            "origin_sha": origin_sha,
+            "workspace": str(workspace),
+        }
+        self._step_notice(
+            f"build root: origin/{branch} @ {origin_sha7} -> {workspace}"
+        )
+
     # ── Deployment-architecture gate (V18 substrate) ───────────────────
     # The brain artifact at brain/machine_artifacts/content/
     # deployment_architecture.json is the source of record for the
@@ -717,6 +852,7 @@ class LocalDeploy:
     def run(self) -> int:
         self._step_notice(f"deploy started for {self.env}")
 
+        self._resolve_committed_build_root()                # build from origin/<branch>
         self._lint_workflow_yamls()                         # hard-fail on bad yaml
         self._deployment_architecture_gate()                # V18 substrate gate
         self._human_authorization_gate()                    # S-001-REQ-B-006
