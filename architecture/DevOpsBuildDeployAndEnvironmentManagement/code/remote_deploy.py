@@ -26,6 +26,7 @@ from pathlib import Path
 # Local imports (the module lives in the substrate code dir; tests and
 # direct-script invocation insert the dir onto sys.path).
 from agile_backlog import AgileBacklogLoader
+from builder import _EXCLUDE_DIRS, _EXCLUDE_FILE_NAMES, _EXCLUDE_FILE_SUFFIXES
 from crosswalk import Crosswalk
 from extractor import Extractor
 from record_loader import RecordLoader
@@ -156,15 +157,15 @@ def _sharedservices_source_set(repo_root: Path) -> list[tuple[str, str | None]]:
     ]
 
 
-_RSYNC_EXCLUDES: tuple[str, ...] = (
-    "__pycache__", "*.pyc", ".env", "node_modules", ".pytest_cache",
-)
-
-
 def _copy_tree(
     src_root: Path, dst_root: Path,
     src_rel: str, dst_rel: str,
 ) -> None:
+    """Copy a subtree into staging using the SAME exclusion rules
+    Builder uses to enumerate source_locations. The two paths must
+    agree byte-for-byte: a file Builder didn't enumerate must not
+    land in the staging that ships to the target.
+    """
     src = src_root / src_rel
     if not src.is_dir():
         raise FileNotFoundError(f"source dir missing: {src}")
@@ -174,15 +175,11 @@ def _copy_tree(
         if not path.is_file():
             continue
         parts = set(path.parts)
-        skip_dir = parts & {
-            "__pycache__", "node_modules", ".pytest_cache", "dist",
-            "bin", "obj", "out", ".vite", ".git",
-        }
-        if skip_dir:
+        if parts & _EXCLUDE_DIRS:
             continue
-        if path.suffix.lower() in (".pyc", ".pyo"):
+        if path.name in _EXCLUDE_FILE_NAMES:
             continue
-        if path.name in (".env", ".DS_Store"):
+        if path.suffix.lower() in _EXCLUDE_FILE_SUFFIXES:
             continue
         rel = path.relative_to(src)
         out_path = dst / rel

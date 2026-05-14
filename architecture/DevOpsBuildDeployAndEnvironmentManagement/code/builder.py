@@ -65,7 +65,16 @@ _EXCLUDE_DIRS: frozenset[str] = frozenset({
     ".git",
 })
 _EXCLUDE_FILE_NAMES: frozenset[str] = frozenset({".env", ".DS_Store"})
-_EXCLUDE_FILE_SUFFIXES: frozenset[str] = frozenset({".pyc", ".pyo"})
+# Operator dev tools and diagnostics that never belong in a deploy
+# package (HF Spaces reject >10MB binaries; .log files are local
+# runtime output, not source). When operators store such artifacts
+# under tools/ subdirs, the Builder must skip them so the JSON's
+# files[] enumerates source only.
+_EXCLUDE_FILE_SUFFIXES: frozenset[str] = frozenset({
+    ".pyc", ".pyo",
+    ".exe", ".dll", ".pdb",
+    ".log",
+})
 
 
 def _classify_handler(rel_posix: str, name: str) -> str:
