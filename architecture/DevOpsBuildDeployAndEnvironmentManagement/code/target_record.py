@@ -35,20 +35,48 @@ class EnvironmentBinding:
 
 @dataclass(slots=True)
 class FileComposition:
-    """One file that composes a TargetRecord."""
+    """One file that composes a TargetRecord.
+
+    disposition decides who owns the bytes:
+      - 'managed': JSON owns the bytes via embedded_content. Crosswalk
+        requires byte-equality with the repo tree. Extractor materializes.
+      - 'referenced': only source_location is declared. embedded_content
+        is None. Deploy copies bytes from origin/<branch>'s tree at
+        deploy time. Crosswalk validates presence only.
+    """
 
     feature_id: str  # regex-shape ref into agile_backlog
     source_location: str  # repo-relative path; forward slashes
     handler_type: str  # closed enum: python_source|...|cert_or_key
-    embedded_content: str  # verbatim source bytes
+    disposition: str  # closed enum: managed|referenced
+    embedded_content: str | None = None  # present iff disposition='managed'
 
     def to_dict(self) -> dict[str, str]:
-        return {
+        out: dict[str, str] = {
             "feature_id": self.feature_id,
             "source_location": self.source_location,
             "handler_type": self.handler_type,
-            "embedded_content": self.embedded_content,
+            "disposition": self.disposition,
         }
+        if self.disposition == "managed":
+            if self.embedded_content is None:
+                raise ValueError(
+                    f"FileComposition {self.source_location!r}: disposition="
+                    f"'managed' requires embedded_content"
+                )
+            out["embedded_content"] = self.embedded_content
+        elif self.disposition == "referenced":
+            if self.embedded_content is not None:
+                raise ValueError(
+                    f"FileComposition {self.source_location!r}: disposition="
+                    f"'referenced' forbids embedded_content"
+                )
+        else:
+            raise ValueError(
+                f"FileComposition {self.source_location!r}: unknown "
+                f"disposition {self.disposition!r}"
+            )
+        return out
 
     @classmethod
     def from_dict(cls, d: dict[str, str]) -> "FileComposition":
@@ -56,7 +84,8 @@ class FileComposition:
             feature_id=d["feature_id"],
             source_location=d["source_location"],
             handler_type=d["handler_type"],
-            embedded_content=d["embedded_content"],
+            disposition=d["disposition"],
+            embedded_content=d.get("embedded_content"),
         )
 
 

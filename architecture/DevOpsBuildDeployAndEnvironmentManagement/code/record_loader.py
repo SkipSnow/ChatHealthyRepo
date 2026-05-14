@@ -96,31 +96,31 @@ class RecordLoader:
         with p.open("r", encoding="utf-8") as f:
             data = json.load(f)
         # The on-disk shape is an envelope:
-        # {"$schema": "...", "records": [TargetRecord, ...]}.
+        # {"$schema": "...", "DeploymentTargetRecord": [TargetRecord, ...]}.
         # The envelope satisfies Rule-008 by carrying a top-level $schema
         # field; on import to MongoDB the envelope dissolves and each
-        # entry in `records[]` becomes one document in the collection.
+        # entry in `DeploymentTargetRecord[]` becomes one document.
         if not isinstance(data, dict):
             raise TypeError(
-                f"{p} must contain a JSON object envelope with a 'records' "
-                f"array, got {type(data).__name__}"
+                f"{p} must contain a JSON object envelope with a "
+                f"'DeploymentTargetRecord' array, got {type(data).__name__}"
             )
-        records = data.get("records")
+        records = data.get("DeploymentTargetRecord")
         if not isinstance(records, list):
             raise TypeError(
-                f"{p} 'records' field must be a JSON array of TargetRecord "
-                f"objects, got {type(records).__name__}"
+                f"{p} 'DeploymentTargetRecord' field must be a JSON array of "
+                f"TargetRecord objects, got {type(records).__name__}"
             )
         if not records:
             raise ValueError(
-                f"{p} records array is empty; the deployment record collection "
-                f"has no entries. This is a hard reject."
+                f"{p} DeploymentTargetRecord array is empty; the deployment "
+                f"record collection has no entries. This is a hard reject."
             )
         # Validate the WHOLE envelope against the schema in one pass. The
-        # schema describes the envelope shape and its `records.items`
+        # schema describes the envelope shape and its DeploymentTargetRecord
         # sub-schema validates each record. Per-record validation against
         # the envelope schema would fail (each record lacks the envelope
-        # top-level $schema/records fields).
+        # top-level $schema/DeploymentTargetRecord fields).
         self._validate(data)
         coll = DeploymentCollection()
         for doc in records:

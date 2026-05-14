@@ -59,12 +59,12 @@ class RecordWriter:
         # Wrap in an envelope so the file has a top-level `$schema` field
         # (Rule-008 requires every committed JSON to declare its schema).
         # On import to MongoDB the envelope dissolves: each entry in
-        # `records[]` becomes one document in the collection.
+        # `DeploymentTargetRecord[]` becomes one document in the collection.
         envelope = {
             "$schema": self._loader.schema_url,
-            "records": records_sorted,
+            "DeploymentTargetRecord": records_sorted,
         }
-        # Validate the WHOLE envelope once. The schema's `records.items`
+        # Validate the WHOLE envelope once. The schema's DeploymentTargetRecord
         # sub-schema validates each record automatically — no per-record
         # validation needed (and per-record validation against the envelope
         # schema would fail).

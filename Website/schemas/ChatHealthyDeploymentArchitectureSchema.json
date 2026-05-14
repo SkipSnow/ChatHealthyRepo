@@ -2,10 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyDeploymentArchitectureSchema.json",
   "title": "ChatHealthy Deployment Architecture Record Collection",
-  "description": "Envelope shape of the on-disk deployment-architecture brain artifact. Top level carries the canonical $schema reference and a records[] array whose entries are TargetRecord objects. When persisted to MongoDB the envelope dissolves: each records[] entry becomes one document in the collection, and target_id is the document key (unique within the collection). The schema is closed at every object level; the field name 'metadata' MUST NOT appear anywhere; no business product/service/feature name appears in this schema, in its taxonomies, or in this description. INVARIANT (declared here, enforced by software): within a single record, env_binding values across environments[] are unique. INVARIANT: across records[] within one collection, target_id values are unique.",
+  "description": "Envelope shape of the on-disk deployment-architecture brain artifact. Top level carries the canonical $schema reference and a DeploymentTargetRecord[] array whose entries are TargetRecord objects. When persisted to MongoDB the envelope dissolves: each DeploymentTargetRecord[] entry becomes one document in the collection, and target_id is the document key (unique within the collection). The schema is closed at every object level; the field name 'metadata' MUST NOT appear anywhere; no business product/service/feature name appears in this schema, in its taxonomies, or in this description. INVARIANT (declared here, enforced by software): within a single record, env_binding values across environments[] are unique. INVARIANT: across DeploymentTargetRecord[] within one collection, target_id values are unique. INVARIANT: files[] enumerates every file the target ships; disposition partitions entries into 'managed' (JSON owns the bytes via embedded_content) and 'referenced' (bytes come from the repo tree at source_location at deploy time). Deploy machinery materializes managed bytes via the Extractor; referenced files are copied from origin/<branch>'s git tree. Crosswalk enforces byte-equality for managed and presence-only for referenced.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "records"],
+  "required": ["$schema", "DeploymentTargetRecord"],
   "properties": {
 
     "$schema": {
@@ -14,7 +14,7 @@
       "description": "Canonical URL of this schema document. Tooling fetches the schema at this URL to validate the file. Filesystem source: Website/schemas/ChatHealthyDeploymentArchitectureSchema.json."
     },
 
-    "records": {
+    "DeploymentTargetRecord": {
       "type": "array",
       "description": "Every TargetRecord that this deployment realizes. Each entry is one deployment target's full definition across every environment in which it is realized, plus the files that compose it. INVARIANT: target_id is unique across this array (enforced by software at write time; the schema's uniqueItems applies to whole-object equality but does not specifically enforce target_id uniqueness across non-identical records).",
       "minItems": 1,
@@ -74,13 +74,13 @@
 
           "files": {
             "type": "array",
-            "description": "The files that compose this target. Each entry binds a file at a repo-relative source_location to its agile_backlog feature_id (by regex shape), declares the handler_type that classifies how the file is processed, and carries the verbatim source bytes of the file in embedded_content. A TargetRecord with no files is meaningless — every target must declare at least one file.",
+            "description": "Every file the target ships, enumerated. disposition partitions entries into 'managed' (JSON owns the bytes via embedded_content; deploy materializes via the Extractor; Crosswalk validates byte-equality with the repo tree) and 'referenced' (only source_location is declared; deploy copies bytes from origin/<branch>'s git tree at deploy time; Crosswalk validates presence). A TargetRecord with no files is meaningless — every target must declare at least one file.",
             "minItems": 1,
             "uniqueItems": true,
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["feature_id", "source_location", "handler_type", "embedded_content"],
+              "required": ["feature_id", "source_location", "handler_type", "disposition"],
               "properties": {
 
                 "feature_id": {
@@ -114,11 +114,33 @@
                   ]
                 },
 
+                "disposition": {
+                  "type": "string",
+                  "description": "Closed taxonomy that decides who owns the file's bytes. 'managed' — the JSON owns the bytes verbatim in embedded_content; Extractor materializes; Crosswalk requires byte-equality with the repo tree. 'referenced' — only the source_location path is declared; deploy machinery copies the bytes from origin/<branch>'s git tree at deploy time; Crosswalk requires presence only. INVARIANT: when disposition=managed, embedded_content is required. When disposition=referenced, embedded_content MUST be absent.",
+                  "enum": ["managed", "referenced"]
+                },
+
                 "embedded_content": {
                   "type": "string",
-                  "description": "Verbatim source bytes of the file at source_location, captured as a JSON string. Required at every files[] entry; absence is a hard reject."
+                  "description": "Verbatim source bytes of the file at source_location, captured as a JSON string. Required when disposition=managed; absent when disposition=referenced. Binary content is base64-encoded and prefixed with '__base64__:' by the Builder; the Extractor decodes that prefix back to raw bytes."
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": { "disposition": { "const": "managed" } },
+                    "required": ["disposition"]
+                  },
+                  "then": { "required": ["embedded_content"] }
+                },
+                {
+                  "if": {
+                    "properties": { "disposition": { "const": "referenced" } },
+                    "required": ["disposition"]
+                  },
+                  "then": { "not": { "required": ["embedded_content"] } }
+                }
+              ]
             }
           }
         }

@@ -122,6 +122,9 @@ class Crosswalk:
     def check_file_drift(
         coll: DeploymentCollection, repo_root: Path
     ) -> list[str]:
+        """disposition='managed' → byte-equality with disk.
+        disposition='referenced' → presence-on-disk only.
+        """
         out: list[str] = []
         for record in coll:
             for f in record.files:
@@ -130,6 +133,23 @@ class Crosswalk:
                     out.append(
                         f"REJECT — source_location {f.source_location!r} "
                         f"in record {record.target_id!r} not present on disk"
+                    )
+                    continue
+                if f.disposition == "referenced":
+                    # Presence already verified above.
+                    continue
+                if f.disposition != "managed":
+                    out.append(
+                        f"REJECT — unknown disposition {f.disposition!r} "
+                        f"for {f.source_location!r} in record "
+                        f"{record.target_id!r}"
+                    )
+                    continue
+                # managed: byte-equality required.
+                if f.embedded_content is None:
+                    out.append(
+                        f"REJECT — managed file {f.source_location!r} in "
+                        f"record {record.target_id!r} missing embedded_content"
                     )
                     continue
                 disk_bytes = abs_path.read_bytes()
@@ -214,7 +234,8 @@ class Crosswalk:
                 scan_strings.append(("feature_id", f.feature_id))
                 scan_strings.append(("source_location", f.source_location))
                 scan_strings.append(("handler_type", f.handler_type))
-                scan_strings.append(("embedded_content", f.embedded_content))
+                if f.embedded_content is not None:
+                    scan_strings.append(("embedded_content", f.embedded_content))
             for field_name, s in scan_strings:
                 for val in candidates:
                     if val in s:

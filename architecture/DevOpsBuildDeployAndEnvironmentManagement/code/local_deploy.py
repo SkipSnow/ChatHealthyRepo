@@ -60,7 +60,11 @@ class LocalDeploy:
     def __init__(self) -> None:
         self.env = "local"
         self.repo_root = REPO_ROOT
-        self.deploy_dir = self.repo_root / "Code" / "deploy"
+        # deploy_dir hosts _start_website.py + localSmokeTestPyTest.py.
+        # They live alongside this module so the substrate's __file__
+        # discovery survives any future relocation of the deploy
+        # substrate.
+        self.deploy_dir = Path(__file__).resolve().parent
         self.frontend_dir = (self.repo_root / "Code" / "ConversationalUX"
                              / "FindCareChat" / "frontend")
         self.backend_dir = (self.repo_root / "Code" / "ConversationalUX"
@@ -101,6 +105,23 @@ class LocalDeploy:
     # uniqueness, env_binding uniqueness, feature_id coverage, file
     # drift (byte equality with disk), and no-secret-value leak.
     def _deployment_architecture_gate(self) -> None:
+        """V18 change-management gate.
+
+        The deploy itself runs the substrate cycle on every invocation:
+          1. Builder enumerates the current disk → new collection.
+             During enumeration, the substrate scans every managed
+             file's embedded_content for path-shaped substrings; if a
+             substring isn't a current source_location AND its basename
+             matches exactly one current source_location, the substrate
+             rewrites the substring in embedded_content. The JSON is
+             the truth.
+          2. RecordWriter persists the (possibly-rewritten) collection
+             to deployment_architecture.json.
+          3. Extractor materializes managed files' embedded_content
+             back to disk so source_location bytes match the JSON.
+          4. Crosswalk validates the now-coherent state: managed files
+             byte-equal embedded_content; referenced files present.
+        """
         import urllib.request as _urlreq
         opener = _urlreq.build_opener()
         opener.addheaders = [
@@ -109,15 +130,17 @@ class LocalDeploy:
         ]
         _urlreq.install_opener(opener)
 
-        substrate_code_dir = (
-            self.repo_root / "architecture"
-            / "DevOpsBuildDeployAndEnvironmentManagement" / "code"
-        )
+        # Discover substrate code dir from this module's own __file__.
+        # If the substrate is moved anywhere else, this still works
+        # without a Python edit — Builder rediscovers its own dir too.
+        substrate_code_dir = Path(__file__).resolve().parent
         sys.path.insert(0, str(substrate_code_dir))
         try:
             from agile_backlog import AgileBacklogLoader
+            from builder import Builder
             from crosswalk import Crosswalk
-            from record_loader import RecordLoader
+            from extractor import Extractor
+            from record_writer import RecordWriter
             from secrets_resolver import SecretsResolver
         finally:
             if str(substrate_code_dir) in sys.path:
@@ -128,12 +151,19 @@ class LocalDeploy:
         deployment_path = self.repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
         env_path = self.repo_root / "Code" / ".env"
 
+        # 1. Builder regenerates from disk and applies stale-path
+        #    rewrites in managed files (scan + top-dir whitelist; no
+        #    prev artifact needed). JSON is the truth.
+        coll = Builder().build_collection(self.repo_root)
+        # 2. Persist the (possibly-rewritten) collection to disk.
+        RecordWriter().write_collection(coll, deployment_path)
+        # 3. Cascade: materialize managed bytes so disk matches JSON.
+        Extractor().materialize_collection(coll, self.repo_root)
+        # 4. Validate the coherent state.
         backlog = AgileBacklogLoader(schema_uri=backlog_schema).load(backlog_path)
-        coll = RecordLoader().load_collection(deployment_path)
         env_values: set[str] = set()
         if env_path.is_file():
             env_values = SecretsResolver().env_values_for_leak_check(env_path)
-
         report = Crosswalk().check(
             coll=coll, backlog=backlog,
             repo_root=self.repo_root, env_values=env_values,
@@ -152,17 +182,20 @@ class LocalDeploy:
     # workflow yaml has zero chance of working remotely and silently
     # invalidates the migration; we fail loudly here instead.
     def _lint_workflow_yamls(self) -> None:
-        import glob
         import yaml as _yaml
-        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        workflow_dir = os.path.join(repo_root, ".github", "workflows")
-        if not os.path.isdir(workflow_dir):
-            return
+        workflow_dir = self.repo_root / ".github" / "workflows"
+        if not workflow_dir.is_dir():
+            sys.exit(
+                f"Deploy aborted — .github/workflows directory missing at "
+                f"{workflow_dir} (CHATHEALTHY_PROJECT_ROOT may be wrong)"
+            )
+        yml_paths = sorted(
+            list(workflow_dir.glob("*.yml")) + list(workflow_dir.glob("*.yaml"))
+        )
         failures: list[str] = []
-        for path in sorted(glob.glob(os.path.join(workflow_dir, "*.yml")) +
-                           glob.glob(os.path.join(workflow_dir, "*.yaml"))):
+        for path in yml_paths:
             try:
-                with open(path, encoding="utf-8") as f:
+                with path.open("r", encoding="utf-8") as f:
                     _yaml.safe_load(f)
             except _yaml.YAMLError as exc:
                 failures.append(f"{path}: {exc}")
@@ -173,7 +206,7 @@ class LocalDeploy:
                 "Deploy aborted — workflow yaml lint failed:\n  "
                 + "\n  ".join(failures)
             )
-        self._step_notice(f"workflow yaml lint passed ({len(glob.glob(os.path.join(workflow_dir, '*.yml')) + glob.glob(os.path.join(workflow_dir, '*.yaml')))} files)")
+        self._step_notice(f"workflow yaml lint passed ({len(yml_paths)} files)")
 
     # ── Human auth gate (S-001-REQ-B-006) ──────────────────────────────
     # OVERNIGHT WAIVER (2026-05-01) — call site in run() is commented
