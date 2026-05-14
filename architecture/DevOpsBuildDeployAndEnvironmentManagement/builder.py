@@ -63,6 +63,12 @@ _EXCLUDE_DIRS: frozenset[str] = frozenset({
     "obj",
     "out",
     ".git",
+    # ArchitectureDesignAndAuditDocs is the standard human-readable
+    # design-docs subdir under every feature dir. Contents are docx /
+    # md / pptx for human consumption — not deployable, sometimes
+    # gitignored (Archive/), so a Linux snapshot of origin/<branch>
+    # won't have them, and Crosswalk would REJECT presence checks.
+    "ArchitectureDesignAndAuditDocs",
 })
 _EXCLUDE_FILE_NAMES: frozenset[str] = frozenset({".env", ".DS_Store"})
 # Operator dev tools and diagnostics that never belong in a deploy
