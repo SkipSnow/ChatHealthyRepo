@@ -558,8 +558,20 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     env = args.env
 
-    # Resolve repo root from this file's location: code/ -> code/.. -> .. -> .. -> repo
-    worktree_root = Path(__file__).resolve().parents[3]
+    # Discover repo root by walking up from this module's __file__
+    # looking for a .git entry. Survives any future relocation of the
+    # substrate dir (no hardcoded parents[N] arithmetic).
+    def _find_repo_root(start: Path) -> Path:
+        p = start.resolve()
+        while p != p.parent:
+            if (p / ".git").exists():
+                return p
+            p = p.parent
+        raise RuntimeError(
+            f"no .git found walking up from {start}; "
+            f"remote_deploy.py must run inside a git repo"
+        )
+    worktree_root = _find_repo_root(Path(__file__))
     _step(f"worktree_root={worktree_root} env={env}")
 
     # The deploy reads from a snapshot of origin/<branch>, NOT from
