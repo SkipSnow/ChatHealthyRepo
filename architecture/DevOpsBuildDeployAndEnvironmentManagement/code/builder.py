@@ -115,6 +115,14 @@ def _read_managed_content(abs_path: Path) -> str:
 
     Try utf-8 strict decode; on failure base64-encode and prefix. Any
     I/O error raises.
+
+    Text content is line-ending-normalized to LF. The JSON is the
+    canonical truth; Linux deploy targets receive LF; Windows operator
+    working trees (where autocrlf injects CRLF on checkout) get the
+    LF version materialized by Extractor on the next V18 gate. Without
+    this normalization, embedded_content would alternate between LF
+    and CRLF depending on which platform happened to run Builder
+    most recently — a permanent source of false-positive drift.
     """
     raw = abs_path.read_bytes()
     try:
@@ -123,7 +131,8 @@ def _read_managed_content(abs_path: Path) -> str:
         return _BASE64_PREFIX + base64.b64encode(raw).decode("ascii")
     if text.encode("utf-8") != raw:
         return _BASE64_PREFIX + base64.b64encode(raw).decode("ascii")
-    return text
+    # Canonical line-ending normalization: CRLF / lone CR → LF.
+    return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
 def _rel_posix(repo_root: Path, abs_path: Path) -> str:
