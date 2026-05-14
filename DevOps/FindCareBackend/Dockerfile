@@ -14,7 +14,7 @@
 # the previous build crashed with ModuleNotFoundError on
 # ChatHealthyMongoUtilities at runtime.
 #
-# Build invocation (from architecture/DevOpsBuildDeployAndEnvironmentManagement/code/local_deploy.py):
+# Build invocation (from architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py):
 #   docker build -t ch-findcare \
 #                -f Code/ConversationalUX/FindCareChat/backend/Dockerfile \
 #                <repo_root>
