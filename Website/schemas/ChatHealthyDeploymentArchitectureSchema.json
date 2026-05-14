@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyDeploymentArchitectureSchema.json",
+  "title": "ChatHealthy Deployment Target Record",
+  "description": "Data shape of ONE TargetRecord. A TargetRecord is one deployment target's full definition across every environment in which that target is realized, including the source files that compose the target. When persisted to MongoDB each document IS one TargetRecord and the COLLECTION of all such documents IS the deployment definition as a whole. The schema describes the document-level shape only; collection-level uniqueness of target_id is enforced by software at write time. The schema is closed at every object level; the field name 'metadata' MUST NOT appear anywhere in any TargetRecord. INVARIANT (declared here, enforced by software): within a single TargetRecord, env_binding values across environments[] are unique.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["target_id", "target_kind", "environments", "files"],
+  "properties": {
+
+    "target_id": {
+      "type": "string",
+      "description": "Opaque target identifier. Lowercase letters, digits, and underscores; required prefix 'target_'. MUST NOT encode any business product/service/feature name. Within the collection of TargetRecords that constitutes the deployment, this value MUST be unique (one document per target_id); collection-level uniqueness is enforced by software.",
+      "pattern": "^target_[a-z0-9_]{1,64}$"
+    },
+
+    "target_kind": {
+      "type": "string",
+      "description": "Closed taxonomy of deployment-target classes. The taxonomy is CLOSED: no catchall value is permitted. A value outside the enum is a hard-fail at validation time. If a new class of deployment target needs to exist, the schema itself is revised; there is no escape hatch in the data. Source-of-truth for this controlled vocabulary: this schema document itself.",
+      "enum": [
+        "hf_space",
+        "cloudflare_pages_project",
+        "azure_function_app",
+        "host_os_process",
+        "docker_local_container",
+        "mongodb_collection",
+        "github_actions_workflow_runner"
+      ]
+    },
+
+    "environments": {
+      "type": "array",
+      "description": "The set of environment bindings under which this target is realized. INVARIANT: env_binding values MUST be unique within this array (a target maps to at most one node per environment); gate-time enforcement is software's job. The inventory is data-driven; the schema does not enumerate count.",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["env_binding", "node_address"],
+        "properties": {
+
+          "env_binding": {
+            "type": "string",
+            "description": "Closed taxonomy of runtime-environment bindings. Source-of-truth: project env constants in Code/Shared/ops/bump_build.py (VALID_ENVS), set_version_framework.py (VALID_ENVS), promote_build.py (ENV_ORDER), migrate_versions_to_per_env.py (ENV_ORDER), and Code/deploy/conftest.py (env choices). The union (local|dev|qa|prod) is the controlled vocabulary reused verbatim here.",
+            "enum": ["local", "dev", "qa", "prod"]
+          },
+
+          "node_address": {
+            "type": "string",
+            "description": "Addressable location of this target in this environment. May be a URL, connection string, host:port pair, registry path, or any other addressable form appropriate to the target_kind. Template tokens MAY appear; resolution semantics are software's job. Non-empty.",
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        }
+      }
+    },
+
+    "files": {
+      "type": "array",
+      "description": "The files that compose this target. Each entry binds a file at a repo-relative source_location to its agile_backlog feature_id (by regex shape), declares the handler_type that classifies how the file is processed, and carries the verbatim source bytes of the file in embedded_content. Inventory is data-driven; schema does not enumerate count.",
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["feature_id", "source_location", "handler_type", "embedded_content"],
+        "properties": {
+
+          "feature_id": {
+            "type": "string",
+            "description": "Syntactic shape only. References a feature in agile_backlog by regex; the schema does not enumerate which features exist. Source-of-truth for the regex: https://dev.chathealthy.ai/schemas/ChatHealthyAgileBacklogSchema.json (feature_id pattern).",
+            "pattern": "^EPIC-[0-9]{3}-F-[0-9]{3}$"
+          },
+
+          "source_location": {
+            "type": "string",
+            "description": "Repo-relative path at which the source file lives on disk. Forward slashes only. No leading slash. No '..' segments. No drive letters. Schema does not assume any particular directory layout for any feature.",
+            "pattern": "^(?!.*\\.\\.)[^\\\\:/][^\\\\:]*(?:/[^\\\\:/]+)*$",
+            "maxLength": 1024
+          },
+
+          "handler_type": {
+            "type": "string",
+            "description": "Closed taxonomy of software handlers that process a file. The taxonomy is CLOSED: no catchall value is permitted. A value outside the enum is a hard-fail at validation time. If a new handler class needs to exist, the schema itself is revised; there is no escape hatch in the data. Source-of-truth for this controlled vocabulary: this schema document itself.",
+            "enum": [
+              "python_source",
+              "python_test",
+              "python_requirements",
+              "dockerfile",
+              "workflow_yaml",
+              "shell_script",
+              "bat_script",
+              "markdown",
+              "json",
+              "static_asset",
+              "cert_or_key"
+            ]
+          },
+
+          "embedded_content": {
+            "type": "string",
+            "description": "Verbatim source bytes of the file at source_location, captured as a JSON string. Required at every files[] entry; absence is a hard-fail. The writer is responsible for byte-equality with the on-disk file and the validator is responsible for the no-secret-values check at gate time."
+          }
+        }
+      }
+    }
+  },
+
+  "examples": [
+    {
+      "target_id": "target_001",
+      "target_kind": "hf_space",
+      "environments": [
+        { "env_binding": "dev",  "node_address": "https://example-dev.host/svc" },
+        { "env_binding": "qa",   "node_address": "https://example-qa.host/svc"  },
+        { "env_binding": "prod", "node_address": "https://example.host/svc"     }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": ".github/workflows/example-workflow.yml",
+          "handler_type": "workflow_yaml",
+          "embedded_content": "name: example\non: workflow_dispatch\njobs:\n  noop:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo noop\n"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/AbstractFeatureDirA/Dockerfile",
+          "handler_type": "dockerfile",
+          "embedded_content": "FROM python:3.11-slim\nWORKDIR /app\nCOPY . /app\nCMD [\"python\", \"-m\", \"http.server\", \"8080\"]\n"
+        }
+      ]
+    }
+  ]
+}
