@@ -3,7 +3,6 @@ from agile_backlog import AgileBacklog, AgileBacklogLoader, Requirement
 from builder import Builder
 from crosswalk import Crosswalk, CrosswalkReport
 from extractor import Extractor
-from pre_commit_hook import PreCommitHook
 from record_loader import SCHEMA_URL, RecordLoader
 from record_writer import RecordWriter
 from secrets_resolver import SecretsResolver
@@ -24,7 +23,6 @@ __all__ = [
     "EnvironmentBinding",
     "Extractor",
     "FileComposition",
-    "PreCommitHook",
     "RecordLoader",
     "RecordWriter",
     "Requirement",

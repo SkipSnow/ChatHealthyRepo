@@ -56,8 +56,6 @@ class RecordWriter:
             (self._canonical_record(r) for r in coll),
             key=lambda d: str(d["target_id"]),
         )
-        for doc in records_sorted:
-            self._loader._validate(doc)
         # Wrap in an envelope so the file has a top-level `$schema` field
         # (Rule-008 requires every committed JSON to declare its schema).
         # On import to MongoDB the envelope dissolves: each entry in
@@ -66,6 +64,11 @@ class RecordWriter:
             "$schema": self._loader.schema_url,
             "records": records_sorted,
         }
+        # Validate the WHOLE envelope once. The schema's `records.items`
+        # sub-schema validates each record automatically — no per-record
+        # validation needed (and per-record validation against the envelope
+        # schema would fail).
+        self._loader._validate(envelope)
         out = Path(path)
         out.write_text(
             json.dumps(envelope, indent=2, ensure_ascii=False) + "\n",
