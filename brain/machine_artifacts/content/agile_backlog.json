@@ -10090,7 +10090,7 @@
                           "name": "Port table",
                           "requirement": "Canonical port assignments, identical across all environments (local, dev, qa, prod): port 80 (HTTP â€” 301 redirects to HTTPS), port 443 (Website wrapper â€” public HTTPS entry), port 7860 (FindCare backend), port 8001 (EvaluateCare backend), port 8002 (SharedServices backend + React frontend). Every other requirement that names a port MUST refer to this requirement; MUST NOT restate the table.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -10109,7 +10109,7 @@
                           "name": "Atomic deploy",
                           "requirement": "Each deploy script either succeeds totally or fails totally with the environment torn down. There is no half-deployed third state. Atomicity is enforced by tearing down the previous environment as the first step (precondition; the ports in REQ-T-001 cannot host two services simultaneously).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10128,7 +10128,7 @@
                           "name": "Target readiness check",
                           "requirement": "Before any deploy action, the script verifies the target environment is reachable and able to receive a deployment. For local: every port in REQ-T-001 is reachable on the host. For deployed envs: the target HuggingFace Space exists and accepts GitHub Actions pushes.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10147,7 +10147,7 @@
                           "name": "Build, start, verify",
                           "requirement": "The script builds all components, starts them, then waits until every component responds as expected. The components are: FindCare backend, EvaluateCare backend, SharedServices backend (serving the React frontend), the public HTTPS entry (Website wrapper for local; Cloudflare Pages for deployed envs), and the front-end MongoDB cluster (tested as available, never deployed).",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10166,7 +10166,7 @@
                           "name": "Smoke test invocation",
                           "requirement": "After build/start/verify, the script invokes the master smoke test (S-006) with the target environment as parameter. On smoke-test failure the script MUST request explicit human verification before tearing down the environment, so the operator can inspect the failed state. Atomic teardown (REQ-B-001) proceeds only after the human authorizes it. Verification type = UAT (the human-verify gate on smoke failure cannot be auto-tested without stubbing the human, which defeats the requirement); UAT step lives in Code/deploy/local_deploy.py.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10185,7 +10185,7 @@
                           "name": "Step notices",
                           "requirement": "Between every significant deploy step the script emits a notice via the mechanism defined in S-007. No bell rings unless explicitly instructed by the operator per S-007.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10204,7 +10204,7 @@
                           "name": "Human authorization gate",
                           "requirement": "Every deploy â€” local, dev, qa, prod â€” pauses and requires explicit human authorization (interactive confirmation or signed approval token) before the production-affecting action begins. There are no unattended deploys now or in the foreseeable future. Production deploys carry the same gate as any other; what differs in prod is the version/framework ID assignment that follows (see S-004).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10223,7 +10223,7 @@
                           "name": "No commit or deploy without explicit human authorization",
                           "requirement": "No commit or deploy CAN take place without explicit human authorization. A commit represents a human-vetted release candidate; the push that immediately follows is implicit in the commit's authorization and does not require a separate authorization event. This requirement shall be enforced as part of ChatHealthy's rule enforcement prior to an Anthropic hook for code-control integration.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -10242,7 +10242,7 @@
                           "name": "Version document",
                           "requirement": "Build, version, and framework identifiers live as a single MongoDB document on the front-end cluster `chathealthyfrontend`, in the global database `admin`, in the collection literally named `Versions`. Each change inserts a new record carrying all three fields (build, version, framework) plus a `from` timestamp; the latest record by `from` is the current state. All three backend /health endpoints read the latest record. Build is incremented by the build-bump rule (REQ-T-003). Version and framework are set only by humans during prod deploy (S-004). Deploy pipelines never write these fields directly; the rule and the human routine are the only writers.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -10261,7 +10261,7 @@
                           "name": "Build-bump rule",
                           "requirement": "An engineering rule (Rule-063 in `engineering_rules.json`) executes as a post-commit hook on every commit not part of a deploy pipeline. Statement 1: insert a new `admin.Versions` record with build incremented by exactly one; version and framework copied forward unchanged. Statement 2: push the new values to the running Kafka producer's `/version_bump` endpoint so subsequent messages carry the new build stamp without the producer re-reading MongoDB.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -10281,7 +10281,7 @@
                           "name": "Atomic teardown precondition",
                           "requirement": "Before build, the script wipes prior artifacts and running processes (including Docker containers) and verifies every port in REQ-T-001 is clear. The wipe is the precondition that enables atomicity (REQ-B-001).",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -10300,7 +10300,7 @@
                           "name": "Structured deploy output",
                           "requirement": "The script writes a structured output file Claude can read to {projectRoot}/_oneshots/test_output/deploy/ with the environment name and timestamp in the filename. Contents: pass/fail per test, container IDs (or PIDs for the Website wrapper), port assignments (per REQ-T-001), timestamps, and errors.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -10319,7 +10319,7 @@
                           "name": "Pytest exit propagation",
                           "requirement": "When piping pytest output through tee, the script uses PIPESTATUS[0] (not $?) to capture the pytest exit code. On any pytest step failure, SMOKE TEST FAILED MUST be displayed to the human operator on the controlling terminal (not silently logged) so the operator can act before any teardown decision per REQ-B-004.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10338,7 +10338,7 @@
                           "name": "React frontend build",
                           "requirement": "Each deploy script builds the React frontend with the backend API URL for the target environment baked in, pointing to the service serving the React frontend per S-001-REQ-T-001 (post-S-008 migration: SharedServices on port 8002). Local and deployed envs differ only in the domain portion of the URL.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10357,7 +10357,7 @@
                           "name": "Deployment definition is the persisted collection of TargetRecords",
                           "requirement": "The deployment definition MUST be the persisted collection of TargetRecord documents. Each persisted document IS one TargetRecord (one deployment target's full definition across every environment in which that target is realized); the COLLECTION of all such documents IS the deployment definition as a whole. No single document IS the deployment definition. No document MAY carry more than one target_id. No document MAY carry a child collection that aggregates multiple targets. The writer MUST persist exactly one document per target_id and the loader MUST treat the collection (not any individual document) as the authoritative deployment definition.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10376,7 +10376,7 @@
                           "name": "TargetRecord top-level shape is the closed four-key target-keyed object",
                           "requirement": "Every TargetRecord MUST be a single object whose top-level required keys are exactly, and only, `target_id`, `target_kind`, `environments`, and `files`. The top-level object MUST be closed (`additionalProperties: false`). No other top-level key MAY appear in any TargetRecord. The schema's `$id` MUST be `https://dev.chathealthy.ai/schemas/ChatHealthyDeploymentArchitectureSchema.json` and the schema document MUST be JSON Schema Draft 2020-12.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10395,7 +10395,7 @@
                           "name": "TargetRecord carries no `metadata` field anywhere",
                           "requirement": "The field name `metadata` MUST NOT appear at any object level in any TargetRecord. The top-level TargetRecord, every entry in `environments[]`, every entry in `files[]`, and every nested object reachable from any of those MUST NOT contain a key named `metadata`. The schema MUST forbid the key by virtue of `additionalProperties: false` at every object level combined with the required-keys lists. The writer MUST reject any candidate record carrying a `metadata` key at any level before persisting.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10414,7 +10414,7 @@
                           "name": "target_id is opaque and unique within the deployment collection",
                           "requirement": "Every `target_id` MUST be opaque (e.g. `target_001`) and MUST NOT encode any business product, service, or feature name; its syntactic shape MUST match the regex declared in the schema (`^target_[a-z0-9_]{1,64}$`). Within the persisted deployment collection, the set of `target_id` values MUST be unique. DeploymentCollection MUST raise on any attempted insert whose `target_id` already exists in the collection; the uniqueness violation is a hard-fail with no auto-rename, no warning, and no soft path. The collection size is data-driven; no consumer of the schema MAY hard-code a target count.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10433,7 +10433,7 @@
                           "name": "target_kind taxonomy is closed with no catchall",
                           "requirement": "Every `target_kind` value MUST be a member of the closed enum declared in the V18 schema: `hf_space` | `cloudflare_pages_project` | `azure_function_app` | `host_os_process` | `docker_local_container` | `mongodb_collection` | `github_actions_workflow_runner`. The taxonomy is CLOSED. No catchall value (including but not limited to `\"other\"`) MAY exist in the enum. A value outside the enum MUST cause schema validation to hard-fail. Adding a new class of deployment target MUST be done by revising the schema; there is no escape hatch in the data.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10452,7 +10452,7 @@
                           "name": "environments[] is the target's per-environment binding inventory",
                           "requirement": "Every TargetRecord MUST carry an `environments[]` array of at least one entry (`minItems: 1`, `uniqueItems: true`). Each entry MUST be a closed object with exactly the required fields `env_binding` and `node_address`. `env_binding` MUST be a member of the closed enum; `node_address` MUST be a non-empty string within the length bound declared in the schema (`minLength: 1`, `maxLength: 1024`). The inventory is data-driven; the schema MUST NOT hard-code a count of environments per target.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10471,7 +10471,7 @@
                           "name": "env_binding values are unique within a single TargetRecord's environments[]",
                           "requirement": "Within a single TargetRecord, the set of `env_binding` values across `environments[]` MUST be unique: a target maps to at most one `node_address` per environment. The schema declares this invariant in the description of the `environments` property; the writer and the crosswalk validator MUST enforce it at gate time and MUST reject any record carrying two `environments[]` entries with the same `env_binding`. The reject is a hard-fail; there is no soft path.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10490,7 +10490,7 @@
                           "name": "env_binding taxonomy is closed and sourced from the project env vocabulary",
                           "requirement": "Every `env_binding` value MUST be a member of the closed enum declared in the schema: `local` | `dev` | `qa` | `prod`. The enum's values MUST be a subset of the project's existing env-vocabulary source-of-truth cited in the schema description: `VALID_ENVS` in `Code/Shared/ops/bump_build.py` and `Code/Shared/ops/set_version_framework.py`; `ENV_ORDER` in `Code/Shared/ops/promote_build.py` and `Code/Shared/ops/migrate_versions_to_per_env.py`; deploy-test choices in `Code/deploy/conftest.py`. Any value outside the enum MUST cause schema validation to hard-fail.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10509,7 +10509,7 @@
                           "name": "node_address is a templated string; substitution belongs to software",
                           "requirement": "Every `environments[i].node_address` MUST be a non-empty string within the length bound declared in the schema. Template tokens MAY appear in the value; the schema MUST NOT declare any substitution rule, enumerate any token, or constrain the address form (URL, host:port, connection string, registry path, etc.). Resolution-time substitution semantics MUST live in software, not in this schema.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10528,7 +10528,7 @@
                           "name": "files[] is the target's source-file composition inventory; every field required",
                           "requirement": "Every TargetRecord MUST carry a `files[]` array. Each entry MUST be a closed object with exactly the required fields `feature_id`, `source_location`, `handler_type`, and `embedded_content`. All four fields are required at every `files[]` entry; absence of any field is a hard-fail at schema validation. The inventory is data-driven; the schema MUST NOT hard-code a count of files per target. The same `feature_id` MAY appear on multiple file entries within a record (one feature may contribute many files to one target).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10547,7 +10547,7 @@
                           "name": "feature_id validates by regex shape against the agile_backlog feature pattern",
                           "requirement": "Every `files[i].feature_id` MUST validate against the regex shape declared in the schema (`^EPIC-[0-9]{3}-F-[0-9]{3}$`), which is sourced from the agile_backlog feature_id pattern at `https://dev.chathealthy.ai/schemas/ChatHealthyAgileBacklogSchema.json`. The schema MUST NOT enumerate which feature identifiers exist. At gate time the crosswalk validator MUST cross-reference each distinct `feature_id` appearing in any TargetRecord's `files[]` against `agile_backlog.json` and reject the instance if any `feature_id` does not resolve to a real feature node.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10566,7 +10566,7 @@
                           "name": "source_location is a repo-relative path with no directory-layout assumption",
                           "requirement": "Every `files[i].source_location` MUST be a repo-relative path matching the path-shape regex declared in the schema (forward slashes only; no leading slash; no `..` segments; no drive letters; `maxLength: 1024`). The schema MUST NOT assume any particular directory layout for any feature, MUST NOT assume a `code/` subdirectory anywhere, and MUST NOT enumerate any specific path. At gate time the crosswalk validator MUST assert that each `source_location` resolves to a real file on disk; otherwise the gate rejects.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10585,7 +10585,7 @@
                           "name": "handler_type taxonomy is closed with no catchall",
                           "requirement": "Every `files[i].handler_type` MUST be a member of the closed enum declared in the V18 schema: `python_source` | `python_test` | `python_requirements` | `dockerfile` | `workflow_yaml` | `shell_script` | `bat_script` | `markdown` | `json` | `static_asset` | `cert_or_key`. The taxonomy is CLOSED. No catchall value (including but not limited to `\"other\"`) MAY exist in the enum. A value outside the enum MUST cause schema validation to hard-fail. Adding a new handler class MUST be done by revising the schema; there is no escape hatch in the data.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10604,7 +10604,7 @@
                           "name": "embedded_content is required at every files[] entry; absence is a hard-fail",
                           "requirement": "Every `files[i].embedded_content` MUST be present at every `files[]` entry; absence is a hard-fail at schema validation. The field MUST be a JSON string whose decoded bytes are byte-equal to the on-disk file at `files[i].source_location`. The schema MUST NOT encode any transformation, splicing, interpolation, substitution, or implicit default rule on `embedded_content`. Byte-equality is enforced by software at gate time (see check_file_drift).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10623,7 +10623,7 @@
                           "name": "Schema self-validates as Draft 2020-12 and the embedded example validates against it",
                           "requirement": "The deployment-architecture JSON Schema MUST be JSON Schema Draft 2020-12 and MUST self-validate as such (i.e. `Draft202012Validator.check_schema(schema)` returns cleanly). The embedded `examples[0]` TargetRecord in the schema document MUST validate against the schema with zero errors when checked by `Draft202012Validator(schema).iter_errors(example)`. Both checks MUST run at every gate invocation that loads the schema; failure of either MUST cause the gate to reject the commit.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10642,7 +10642,7 @@
                           "name": "RecordLoader schema-validates every TargetRecord before return",
                           "requirement": "RecordLoader MUST read the persisted collection of TargetRecord documents, validate every document against the canonical schema URL declared on the V18 schema's `$id`, and return a typed iterable whose per-document shape exposes `target_id`, `target_kind`, `environments` (a collection of EnvironmentBinding value objects), and `files` (a collection of FileComposition value objects). A schema-validation failure on any document MUST raise and abort the caller. RecordLoader MUST NOT return a partially-validated iterable. RecordLoader MUST NOT carry any soft-fail / warning path.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10661,7 +10661,7 @@
                           "name": "Both brain JSONs are schema-validated at every gate invocation",
                           "requirement": "Every invocation of the deployment gate (commit-boundary hook and operator-invoked validator) MUST schema-validate BOTH `agile_backlog.json` AND every TargetRecord in the persisted deployment collection against their canonical published schemas BEFORE running any other check. A non-validating instance MUST cause the gate to terminate as REJECT.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10680,7 +10680,7 @@
                           "name": "Crosswalk gate is hard-fail-only; every finding is PASS or REJECT with no third state",
                           "requirement": "The Crosswalk gate MUST resolve every finding to exactly one of two outcomes: PASS or REJECT. No third state (warning, soft-fail, advisory, retry, deferred) MAY exist anywhere on the gate path. The gate MUST NOT iterate to repair; on REJECT it halts at the point of failure. The operator returns to authoring the TargetRecord(s) before re-running the gate from the top.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10699,7 +10699,7 @@
                           "name": "Crosswalk runs exactly four checks beyond schema validation",
                           "requirement": "Beyond the schema-validation step on both brain JSONs, Crosswalk MUST run exactly four checks: (1) REQ-to-artifact coverage (every feature node in `agile_backlog.json` whose status indicates active engineering work has at least one corresponding `files[i].feature_id` reference somewhere in the persisted collection); (2) artifact-to-REQ orphan check (no `files[i].feature_id` points at a feature absent from `agile_backlog.json`); (3) byte-equality of every on-disk artifact at `files[i].source_location` with the corresponding `files[i].embedded_content`; (4) no `.env` value appears anywhere in any TargetRecord. Each check terminates as PASS or REJECT; no other check MAY be added without a schema/design revision.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10718,7 +10718,7 @@
                           "name": "Reject text names the failure only; no recovery guidance is emitted",
                           "requirement": "Every REJECT emitted by the deployment gate MUST be a bare single-line message of the form `REJECT - <one-line failure>` (e.g. `REJECT - file_drift between embedded_content and on-disk bytes`, `REJECT - secret VALUE present in JSON`, `REJECT - crosswalk failure on <branch tip>`). The reject text MUST name the failure only. The reject text MUST NOT contain recovery guidance, MUST NOT instruct the operator to edit any file, MUST NOT instruct the operator to run any tool, MUST NOT suggest a continuation, and MUST NOT include any soft-fail language. The reject text is fixed in code per finding; there is no configurable reject-message attribute anywhere on the gate path.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10737,7 +10737,7 @@
                           "name": "Crosswalk coverage check: every active backlog feature is referenced by at least one files[].feature_id",
                           "requirement": "The crosswalk validator MUST assert that every feature node in `agile_backlog.json` whose status indicates active engineering work has at least one corresponding `files[i].feature_id` reference somewhere in the persisted deployment collection. A feature with zero references MUST cause the gate to REJECT. The check operates across the entire collection of TargetRecords; it does not require coverage within any single document.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10756,7 +10756,7 @@
                           "name": "Crosswalk orphan check: no files[].feature_id points at a non-existent feature",
                           "requirement": "The crosswalk validator MUST assert that every distinct `files[i].feature_id` appearing in the persisted deployment collection resolves to a real feature node in `agile_backlog.json`. Any `feature_id` that does not resolve MUST cause the gate to REJECT with the bare-reject form (REQ-T-028).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10775,7 +10775,7 @@
                           "name": "check_file_drift: on-disk file byte-equals files[].embedded_content; mismatch is bare REJECT",
                           "requirement": "For every row in every TargetRecord's `files[]`, Crosswalk's `check_file_drift` MUST assert that the bytes of the on-disk file at `source_location` are byte-equal to the bytes of `embedded_content`. Any mismatch MUST cause the gate to terminate as REJECT and emit `REJECT - file_drift between embedded_content and on-disk bytes`. The reject text MUST NOT contain recovery guidance; it MUST NOT instruct the operator to edit the JSON or run the extractor.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10794,7 +10794,7 @@
                           "name": "check_no_secret_values: no .env VALUE appears in any TargetRecord; match is bare REJECT",
                           "requirement": "Crosswalk's `check_no_secret_values` MUST assert that no string anywhere in any TargetRecord (including any field inside `environments[]` or `files[]`, and including every `embedded_content` byte-equal text field) equals any value loaded from the local `.env` store. Any match MUST cause the gate to terminate as REJECT and emit `REJECT - secret VALUE present in JSON`. The check MUST NOT log the matched value. The check MUST NOT write the matched value to disk.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10813,7 +10813,7 @@
                           "name": "Crosswalk is the sole drift surface; Extractor MUST NOT expose detect_drift",
                           "requirement": "`check_file_drift` on Crosswalk MUST be the SOLE drift-detection surface on the deploy chain. Extractor MUST NOT expose a `detect_drift` method, MUST NOT expose any per-file drift inspection, and MUST NOT return any drift findings. No other class on the deploy chain (Builder, RecordLoader, RecordWriter, SecretsResolver, PreCommitHook, local deployer) MAY implement a drift-detection surface.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10832,7 +10832,7 @@
                           "name": "Builder.build_record is a deliberate operator action; Builder is not a recovery surface",
                           "requirement": "Builder MUST expose `build_record(target_id, repo_root) -> TargetRecord` as the SOLE entry point for constructing or refreshing a TargetRecord from the live tree. `build_record` MUST be invoked as a deliberate operator action (e.g. when a managed file is created, moved, or deleted). Builder MUST NOT expose a `refresh_files` method. Builder MUST NOT expose any auto-repair surface. Builder MUST NOT be invoked automatically by any watcher, hook, IDE save event, or extractor. Builder MUST self-validate the constructed record against the V18 schema before returning; on schema violation Builder MUST raise and the operator halts. Builder MUST NOT return a partially-validated record alongside a findings report.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10851,7 +10851,7 @@
                           "name": "Builder is the only writer of TargetRecord documents",
                           "requirement": "Builder MUST be the only code path that constructs or refreshes a TargetRecord. RecordWriter persists what Builder produces; no other module on the deploy chain (RecordLoader, Crosswalk, Extractor, SecretsResolver, PreCommitHook, local deployer, promote workflow) MAY construct, refresh, edit, or write a TargetRecord. Out-of-band edits by hand are permitted only between Builder invocations; Crosswalk's gate catches any inconsistency before it ships.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10870,7 +10870,7 @@
                           "name": "Extractor.materialize writes embedded_content byte-for-byte; no retry, no repair, no soft-fail",
                           "requirement": "Extractor MUST expose `materialize(record, repo_root) -> None` that writes every `files[i].embedded_content` to its `files[i].source_location` verbatim, byte-for-byte. Extractor MUST NOT apply template substitution, splicing, interpolation, or any other transformation to `embedded_content`. Extractor MUST NOT retry an I/O failure. Extractor MUST NOT attempt to repair a mismatched on-disk file. Extractor MUST NOT carry any soft-fail or warning path. Errors MUST propagate (the method raises). If Extractor requires a secret value at write time, it MUST obtain that value exclusively through SecretsResolver's public entry point.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10889,7 +10889,7 @@
                           "name": "SecretsResolver is the single value-fetching code path",
                           "requirement": "SecretsResolver MUST be the SOLE public entry point for obtaining a secret VALUE at runtime. SecretsResolver MUST expose `resolve(name, env) -> str` as the only public method that returns a value. All file-read access to any store of secret values (local `.env`, CI store, hosting-platform store, cloud secret manager) MUST be encapsulated by private helper methods on SecretsResolver. No other module on the deploy chain (Builder, Extractor, Crosswalk, RecordLoader, RecordWriter, PreCommitHook, local deployer, promote workflow) MAY read a secret store directly.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10908,7 +10908,7 @@
                           "name": "SecretsResolver binds each (name, env) to exactly one store; no cross-store fallback",
                           "requirement": "SecretsResolver MUST carry a `bindings: dict[tuple[str, str], str]` constructor argument that maps each `(name, env)` pair to exactly one store identifier. A private `_store_for(name, env) -> str` MUST look up the binding and raise when no binding exists for the pair. `resolve(name, env)` MUST read from the bound store ONLY. If the bound store is unavailable at resolution time, `resolve` MUST raise; it MUST NOT try another store. There is no cross-store fallback anywhere on the resolver path. Each runtime env binds to its own secret store; values never cross stores.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10927,7 +10927,7 @@
                           "name": "SecretsResolver never writes secret values to disk and never logs them",
                           "requirement": "SecretsResolver MUST load secret VALUES into memory only. SecretsResolver MUST NOT write any secret value to disk under any circumstance. SecretsResolver MUST NOT emit any secret value to a log, console, error message, exception text, traceback, or telemetry channel. The crosswalk validator's `check_no_secret_values` (REQ-T-032) inherits these constraints when it loads values via the resolver at gate time.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10946,7 +10946,7 @@
                           "name": "PreCommitHook is a pure gate: on_commit(staged_files) -> int, 0=PASS / 1=REJECT",
                           "requirement": "PreCommitHook MUST expose `on_commit(staged_files) -> int` as its sole entry point. The return value MUST be exactly `0` on PASS and exactly `1` on REJECT. PreCommitHook MUST be a pure gate. PreCommitHook MUST NOT auto-extract, MUST NOT auto-build, MUST NOT auto-repair, MUST NOT mutate the staged tree, MUST NOT mutate the persisted collection, and MUST NOT write to disk on its own behalf. PreCommitHook MUST NOT carry a configurable `reject_message` attribute; the reject text is fixed in code per finding (REQ-T-028).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10965,7 +10965,7 @@
                           "name": "Gate trigger is the git commit boundary only; no watcher, no save-time trigger",
                           "requirement": "The deployment gate MUST be invoked exclusively at the `git commit` boundary by the existing pre-commit hook chain. No filesystem watcher MAY engage the gate. No IDE save-time trigger MAY engage the gate. No auto-extractor side effect MAY engage the gate. Save events, ad-hoc tooling runs, and experimentation MUST NOT engage the gate. The gate is also invokable explicitly by the operator (e.g. as a CLI), but never automatically outside the commit boundary.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -10984,7 +10984,7 @@
                           "name": "No \"configure if absent\" patterns anywhere on the deploy chain",
                           "requirement": "No code on the deploy chain (Builder, Extractor, Crosswalk, RecordLoader, RecordWriter, SecretsResolver, PreCommitHook, local deployer, promote workflow) MAY implement a \"configure if absent\" pattern. A missing TargetRecord, a missing `environments[]` entry, a missing `files[]` entry, a missing `(name, env)` binding in SecretsResolver, a missing on-disk artifact, or any other missing state MUST be treated as REJECT. The deploy chain MUST NOT synthesize defaults to paper over missing state.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11003,7 +11003,7 @@
                           "name": "TargetRecord value objects expose the four-key abstract tuple; no metadata field",
                           "requirement": "The architecture-side typed value object MUST expose a record-level type whose fields are exactly `target_id`, `target_kind`, `environments`, and `files`; an environment-binding type whose fields are exactly `env_binding` and `node_address`; and a file-composition type whose fields are exactly `feature_id`, `source_location`, `handler_type`, and `embedded_content`. The value objects MUST NOT carry any field whose name or type encodes a business product, service, or feature, and MUST NOT carry any field named `metadata`.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11022,7 +11022,7 @@
                           "name": "All deploy chain code lives under architecture/DevOpsBuildDeployAndEnvironmentManagement/code/",
                           "requirement": "All implementation modules for the deploy chain (Builder, Extractor, Crosswalk, RecordLoader, RecordWriter, DeploymentCollection, SecretsResolver, PreCommitHook, local deployer, and the CLI bootstrap helper) MUST live under `architecture/DevOpsBuildDeployAndEnvironmentManagement/code/`. After migration, no deploy chain code MAY live under `Code/deploy/`. The deploy chain MUST NOT assume a `code/` subdirectory inside any other feature directory.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11041,7 +11041,7 @@
                           "name": "Direct edit to a derived on-disk file is rejected with the bare file_drift reject",
                           "requirement": "When a derived on-disk file (e.g. a workflow YAML, Dockerfile, certificate, key, or other artifact written by Extractor from `files[i].embedded_content`) is edited directly such that the staged file no longer byte-equals the corresponding TargetRecord row's `embedded_content`, PreCommitHook MUST return `1` and the gate MUST emit `REJECT - file_drift between embedded_content and on-disk bytes`. The reject text MUST NOT contain recovery guidance, MUST NOT name the offending file, MUST NOT instruct the operator to run any tool, and MUST NOT suggest a continuation.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11060,7 +11060,7 @@
                           "name": "Literal secret value pasted into any TargetRecord is rejected with the bare secret reject",
                           "requirement": "When a literal secret value matching any value held in the local `.env` store is pasted into any string anywhere in any TargetRecord, `check_no_secret_values` MUST detect the match and PreCommitHook MUST return `1`. The gate MUST emit `REJECT - secret VALUE present in JSON`. The check MUST NOT log the matched value. The check MUST NOT emit the matched value in the reject text. The check MUST NOT write the matched value to disk.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11079,7 +11079,7 @@
                           "name": "Initial-load CLI bootstrap enumerates target_ids; Builder derives each TargetRecord per-target",
                           "requirement": "A one-shot initial-load CLI bootstrap MUST exist that enumerates deployment targets from the live tree and emits a `target_id` list. The operator MUST then drive `Builder.build_record(target_id, repo_root)` per target_id; each invocation MUST derive `target_kind` from the closed V18 enum, enumerate `environments[]` (one entry per env_binding under which the target is realized along with its `node_address`), enumerate `files[]` (each row's `feature_id`, `source_location`, `handler_type`, and `embedded_content`), and self-validate the constructed record against the V18 schema before return. The CLI bootstrap MUST NOT read or embed any secret value. On any schema violation Builder raises and the operator halts (no retry loop, no iteration to repair).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11098,7 +11098,7 @@
                           "name": "Retire prior deployment source-of-truth; migrate every datum verbatim into the collection",
                           "requirement": "Any prior Python source-of-truth for the deployment model (including but not limited to a hand-maintained `technical_model.py` or equivalent) and any prior single-document deployment-architecture JSON whose shape predates V18 MUST be retired. Every data element they previously held MUST move verbatim into the persisted TargetRecord collection at the canonical node dictated by the V18 schema: target-platform identity into `target_id` and `target_kind`; per-environment addressing into `environments[].env_binding` and `environments[].node_address`; per-feature file composition into `files[].feature_id`, `files[].source_location`, `files[].handler_type`, and `files[].embedded_content`. No `metadata` field MAY be carried forward; record-level provenance is NOT part of the V18 shape and MUST instead be tracked out-of-band (e.g. in commit metadata or audit-log streams) by software, not by the schema.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11130,7 +11130,7 @@
                           "name": "Backend containers",
                           "requirement": "All three backend services (FindCare, EvaluateCare, SharedServices) run as local Docker containers built from each backend's Dockerfile and requirements.txt. The local runtime MUST NOT import any Python package not installed by the container's pip install. Ports per S-001-REQ-T-001.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11149,7 +11149,7 @@
                           "name": "Website wrapper on host OS",
                           "requirement": "The Website wrapper, binding the privileged ports in S-001-REQ-T-001, MUST run as a host-OS process rather than a Docker container.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11168,7 +11168,7 @@
                           "name": "Shared dev MongoDB",
                           "requirement": "When deploying locally, all backend services connect to the dev front-end MongoDB cluster (cluster `chathealthyfrontend`, database `dev_*`). This is the only resource shared between local and dev. All other state, services, and ports are local.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11187,7 +11187,7 @@
                           "name": "Local deployer reads ports, container list, and paths from the TargetRecord collection at runtime",
                           "requirement": "The local-runtime deployer MUST consume its ports table, container list, and file-system paths from the typed TargetRecord collection loaded by RecordLoader at runtime. The deployer MUST navigate the collection's target-keyed shape (filter records by `target_kind`; read the `local` entry in `environments[]` for the addressable node; iterate `files[]` for source-file composition) rather than any flat lookup. The deployer MUST NOT carry any hardcoded ports dict, container dict, or path constant in source. Any constant previously embedded in source that drives deploy behavior MUST move into the appropriate TargetRecord verbatim. After migration, no port number, container name, or filesystem path that drives local deploy behavior MAY appear as a literal in `Code/deploy/` or under `architecture/DevOpsBuildDeployAndEnvironmentManagement/code/`.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11206,7 +11206,7 @@
                           "name": "Local deployer binds local-env secrets via SecretsResolver only; no cross-store fallback",
                           "requirement": "When the local-runtime deployer requires a secret VALUE (e.g. to start a local container with the local-env binding), it MUST obtain that value exclusively through `SecretsResolver.resolve(name, env='local')`. The local-env binding MUST resolve to the local `.env` store only; no other store MAY be queried, and no cross-store fallback MAY be attempted. If the bound store is unavailable, SecretsResolver raises and the local deployer halts; the deployer MUST NOT continue with a default, an empty value, or a value sourced from a different env.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11225,7 +11225,7 @@
                           "name": "Local deployer halts on any missing-state condition; no \"configure if absent\" path",
                           "requirement": "If the TargetRecord collection at runtime does not contain a `target_kind` the deployer needs, a `local` entry in `environments[]` for a target the deployer is starting, a required `(name, 'local')` binding in SecretsResolver, or a required `files[]` row on disk, the deployer MUST halt with a non-zero exit and the bare-reject form (REQ-T-028). The deployer MUST NOT synthesize a default port, default path, default container name, or default secret value to paper over missing state.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11257,7 +11257,7 @@
                           "name": "Single parameterized script",
                           "requirement": "One deploy script accepts an environment parameter (dev | qa | prod) and pushes to the corresponding HuggingFace paid Space. Logic is identical across the three environments except for prod-only behaviors (S-004) and the absence of non-prod display chrome (S-005) in prod.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11276,7 +11276,7 @@
                           "name": "Deployments come from correct Code branches and file location",
                           "requirement": "Local deployments must come from the local file system. Dev must come from the committed and pushed dev branch of the GitHub repository. QA must come from the committed and pushed QA branch of the repository. Production must come from the head of main.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11295,7 +11295,7 @@
                           "name": "HuggingFace README preservation",
                           "requirement": "Every HuggingFace Space deploy preserves the target Space's README.md across the push. README.md carries the HF Space frontmatter configuration (sdk, python_version, license) and MUST NOT be wiped. Missing README.md after a deploy is a violation.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11314,7 +11314,7 @@
                           "name": "Cloudflare HTTPâ†’HTTPS",
                           "requirement": "Every Cloudflare Pages deployment of chathealthy.ai (dev, qa, prod) 301-redirects every http:// request to its https:// equivalent. The redirect is immediate (no intermediate response, no caching delay) and applies to every path. The deploy script MUST verify this setting and configure it if absent.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11333,7 +11333,7 @@
                           "name": "Cloudflare 404 error page",
                           "requirement": "Cloudflare Pages returns HTTP 404 for unknown paths and renders a dedicated error page (not a blank response, not a redirect, not the home page). CloudFlare's default convention of redirecting unknown paths to the site root MUST be explicitly disabled. The deploy script verifies this setting and configures it if absent.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11352,7 +11352,7 @@
                           "name": "promote-build.yml invokes Crosswalk on the source-branch tip before merging; each step is an explicit operator action",
                           "requirement": "`promote-build.yml` MUST invoke Crosswalk (full check: schema-validation of both brain JSONs; REQ-to-artifact coverage; artifact-to-REQ orphan check; byte-equality of every `files[i].embedded_content` against its on-disk `source_location`; no `.env` value anywhere in the collection) on the source-branch tip before any merge into the target branch. Both branches of the alt block MUST be explicit: on PASS the workflow proceeds to merge; on REJECT the workflow MUST exit 1 with the bare-reject form `REJECT - crosswalk failure on <tip>` and halt; no merge MAY occur, no Mongo write MAY occur. Each promotion step (dev to qa, qa to main) MUST be an independently triggered explicit operator action; the chain MUST NOT auto-progress past one step into the next.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11371,7 +11371,7 @@
                           "name": "promote-build.yml writes admin.Versions builds[<env>].build only after Crosswalk PASS",
                           "requirement": "On the dev-to-qa step, after Crosswalk on the dev tip terminates as PASS, `promote-build.yml` MUST merge dev into qa and write `builds[qa].build = builds[dev].build` into `admin.Versions`. On the qa-to-main step, after Crosswalk on the qa tip terminates as PASS, the workflow MUST merge qa into main and write `builds[prod].build = builds[dev].build` per the existing per-env build-counter semantic. On REJECT at either step, the workflow MUST NOT merge and MUST NOT write to `admin.Versions`.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11390,7 +11390,7 @@
                           "name": "Each runtime env binds to its own secret store; values never cross stores",
                           "requirement": "Each runtime `env_binding` (`local`, `dev`, `qa`, `prod`) MUST bind to its own secret store at SecretsResolver construction time. The promote-build chain MUST NOT copy a value from one env's store into another env's store. The promote-build chain MUST NOT resolve a secret value for one env and use it under another env_binding. SecretsResolver's `resolve(name, env)` MUST raise if the bound store for the requested `(name, env)` pair is unavailable; no cross-store fallback MAY be attempted by the promote workflow or any other deploy-chain consumer.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11412,7 +11412,7 @@
                     "name": "Prod-only behaviors",
                     "description": "The only differences between prod and the dev/qa environments, aside from their different addresses, are: (1) the chrome banner with versions and navigation between the servers does not appear in prod, and (2) the security GUI widget does not appear in prod.",
                     "size": "S",
-                    "status": "not_started",
+                    "status": "in_progress",
                     "orphan": false,
                     "approval": "proposed",
                     "requirements": {
@@ -11422,7 +11422,7 @@
                           "name": "Version & framework ID assignment",
                           "requirement": "When environment=prod, after human UAT sign-off, the deploy script accepts human-supplied values for a new version ID (and potentially a new framework ID) and writes them to the version document (per S-001-REQ-T-002). Dev and qa deploys never change these fields. No automation, ever, sets version or framework.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11441,7 +11441,7 @@
                           "name": "Display chrome OFF",
                           "requirement": "In prod, the non-prod display chrome (S-005) MUST NOT render: no environment banner, no security token panel, no service-switching buttons. The smoke test (S-006) skips display-chrome checks when env=prod via its macro-variance dimension.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11473,7 +11473,7 @@
                           "name": "Banner contents",
                           "requirement": "The environment banner displays environment label (LOCAL/DEV/QA), version, framework, and build, fetched from the /health endpoint of whichever service currently owns the page. All values render on one line with sufficient spacing for human readability. The banner displays the active service name in brackets (e.g., [evaluatecare]).",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11492,7 +11492,7 @@
                           "name": "Banner re-fetches on ownership transfer",
                           "requirement": "When page ownership transfers between services, the banner re-fetches /health from the new owner and updates inline.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11511,7 +11511,7 @@
                           "name": "Service buttons + active is cold",
                           "requirement": "Three service-switching buttons (FindCare, EvaluateCare, SharedServices) appear in the banner. The currently-active service's button is cold (greyed, disabled); on click it shows tooltip 'You are here already'. The other two buttons are hot (clickable, styled). Clicking a hot button transfers page ownership to that service, which then controls the entire frame. The content of this display must be served by the HuggingFace server that owns the content.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11530,7 +11530,7 @@
                           "name": "Unimplemented placeholder",
                           "requirement": "The center panel displays the service name and 'is still unimplemented.' when SharedServices or EvaluateCare has control, until those services have real implementations. The content of this display must be served by the HuggingFace server that owns the content.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11549,7 +11549,7 @@
                           "name": "Security token panel",
                           "requirement": "Each service displays a security token panel rendered per the mock at {projectRoot}/brain/machine_artifacts/diagramsAndImages/GUIImagesAndMockUps/NonProdSecuriytToken.jpg. Right panel and lower regions display the security information defined by EPIC-002-F-001-S-012-REQ-B-007. The content of this display must be served by the HuggingFace server that owns the content.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -11581,7 +11581,7 @@
                           "name": "Master smoke-test contract",
                           "requirement": "`localSmokeTestPyTest.py` is the single master smoke test. It accepts the target environment as a parameter and exercises every step below in declared order. Every step MUST pass for the smoke test to PASS overall.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11601,7 +11601,7 @@
                           "name": "Step 00 â€” Build gate: local and dev report identical build",
                           "requirement": "Smoke test fetches /health from local FindCare and dev FindCare and asserts the `build` field matches across the two envs. Two environments on the same build MUST be running identical code and configuration; mismatched builds halt the smoke test before any further steps.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11621,7 +11621,7 @@
                           "name": "Step 01 â€” HTTPâ†’HTTPS redirect",
                           "requirement": "Browser navigation to http://{domain} MUST 301-redirect to https://{domain}. The smoke test deliberately probes the insecure scheme (constructed at runtime) and asserts the final URL is https://.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11641,7 +11641,7 @@
                           "name": "Step 02 â€” Banner shows env label, version, framework, build",
                           "requirement": "The environment banner element (`#envBanner`) MUST be visible and contain the env label (LOCAL/DEV/QA), and the literal strings `Version: <v>`, `Framework: <f>`, `Build: <b>` whose values match the response from the active service's /health.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11661,7 +11661,7 @@
                           "name": "Step 03 â€” SharedServices button is a banner button",
                           "requirement": "A `<button>` with `data-service='sharedservices'` MUST exist inside `#envBanner` (not in any header nav), MUST be visible, and its label MUST be `SharedServices` (PascalCase, no space).",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11681,7 +11681,7 @@
                           "name": "Step 04 â€” Splash renders welcome words",
                           "requirement": "The chat iframe loads. The first 10 words of the canonical welcome message (per `_get_welcome_words`) MUST appear in the iframe body text.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11701,7 +11701,7 @@
                           "name": "Step 05 â€” Chat input enabled and focused on click",
                           "requirement": "The chat input element (`input[placeholder*='Type a message']` or textarea) MUST be visible, MUST NOT carry a `disabled` attribute, and MUST become focused when clicked.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11721,7 +11721,7 @@
                           "name": "Step 06 â€” Search returns providers",
                           "requirement": "Submitting `Find me a bone doctor in Delaware` MUST yield results containing NPI strings (`NPI[:\\s]+\\d{10}`) in the iframe body within the chat timeout. The smoke test captures the originating session token for downstream nonce comparisons.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11741,7 +11741,7 @@
                           "name": "Step 07 â€” Specialty checkboxes appear in left panel",
                           "requirement": "After a search, `#leftPanel` MUST contain at least one `input[type='checkbox']` representing a specialty.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11761,7 +11761,7 @@
                           "name": "Step 08 â€” Left panel cell layout and scroll cap",
                           "requirement": "The left panel MUST contain exactly four `[data-cell]` cells (1..4) with reactive percentage heights 18/40/20/22 (declared via `flex:0 0 N%` or `height:N%` â€” pixel heights are forbidden). An Uncheck All / Check All toggle MUST live inside cell 1 (the green header). With more than 12 prescribers present, no more than 12 specialty checkboxes may be visible in cell 2 without scrolling.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11781,7 +11781,7 @@
                           "name": "Step 09 â€” Provider NPIs in center frame",
                           "requirement": "The chat iframe body MUST contain provider NPI strings (`NPI[:\\s]+\\d{10}`) after the search resolves.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11801,7 +11801,7 @@
                           "name": "Step 10 â€” Bottom panel zero before selection",
                           "requirement": "The chat iframe body MUST contain `0 / 5` (or `0/5`) reflecting an empty Selected for Evaluation panel before any provider is selected.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11821,7 +11821,7 @@
                           "name": "Step 11 â€” Select up to three providers",
                           "requirement": "Up to three provider Select-for-Evaluation buttons MUST be clickable; the smoke test clicks min(count, 3) of them.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11841,7 +11841,7 @@
                           "name": "Step 12 â€” Selected providers appear in bottom panel",
                           "requirement": "After selection, the iframe body MUST include the words `SELECTED` and `EVALUATION` and the count must read 1..5 / 5 (no longer 0).",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11861,7 +11861,7 @@
                           "name": "Step 13 â€” Evaluate button click",
                           "requirement": "An Evaluate button (`#guiEvalBtn` or text-matched `Evaluate`) MUST be present and clickable; the smoke test clicks it to trigger handoff to EvaluateCare.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11881,7 +11881,7 @@
                           "name": "Step 14 â€” EvaluateCare has frame control",
                           "requirement": "After the Evaluate click, the chat iframe (`#coreChatFrame`) MUST be hidden and `#evalcareSplash` MUST be visible â€” EvaluateCare owns the frame.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11901,7 +11901,7 @@
                           "name": "Step 15 â€” mTLS to EvaluateCare TLS 1.2+",
                           "requirement": "An mTLS handshake from the smoke test (using FindCare's client cert + key against the CA cert) to localhost:EVALCARE_PORT MUST succeed with TLS version 1.2 or higher. Failure of the handshake (SSLError) is a hard failure.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11921,7 +11921,7 @@
                           "name": "Step 16 â€” Right panel shows EvaluateCare + provider NPIs",
                           "requirement": "`#rightPanel` text MUST contain `EVALUATECARE` (case-insensitive substring) and at least one 10-digit NPI string after the EvaluateCare handoff.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11941,7 +11941,7 @@
                           "name": "Step 17 â€” Token same sent/received; positioned below specialties",
                           "requirement": "The handoff FindCareâ†’EvaluateCare MUST yield a fresh nonce; the session GUID MUST remain identical. The session token element (`#guiSessionCell` or `#guiSessionId`) MUST be positioned below the specialty list (its bounding-box `y` must be greater than the bottom of the scroll container), not beside it.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11961,7 +11961,7 @@
                           "name": "Step 18 â€” Token components in distinct colors in both panels",
                           "requirement": "Both right panel and left panel MUST show signed-token components in distinct colors: signed token in indigo (`#6366f1`), nonce in amber (`#d97706`), GUID in teal (`#0b7a75`). Right and left panels MUST present the same color treatment.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -11981,7 +11981,7 @@
                           "name": "Step 19 â€” Nonce changed after EvaluateCare handoff; GUID preserved",
                           "requirement": "After the FindCareâ†’EvaluateCare handoff, the EvaluateCare-side nonce MUST differ from the original FindCare nonce; the EvaluateCare-side GUID MUST equal the original GUID.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12001,7 +12001,7 @@
                           "name": "Step 20 â€” EvaluateCare splash text",
                           "requirement": "`#evalcareSplash` MUST be visible and contain the literal strings `EvaluateCare` and `is still unimplemented`.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12021,7 +12021,7 @@
                           "name": "Step 21 â€” Filter toggle change",
                           "requirement": "Clicking the first specialty `[data-gui-action='filter-toggle']` checkbox MUST register and trigger the gui:reset path on apply. The toggle clicked MUST be a specialty filter-toggle (not a filter-provider-type) so that the return to FindCare proceeds via gui:reset.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12041,7 +12041,7 @@
                           "name": "Step 22 â€” Apply filter returns control to FindCare",
                           "requirement": "Clicking `[data-gui-action='filter-apply']` MUST: (1) restore visibility of `#coreChatFrame`; (2) hide both `#evalcareSplash` and `#sharedSplash`; (3) cause the FindCare welcome message to repaint (â‰¥20 of the first 25 welcome words present in the iframe body within ~15 seconds).",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12061,7 +12061,7 @@
                           "name": "Step 23 â€” Chat input visible and focused after return",
                           "requirement": "After return to FindCare, the chat input element MUST be visible and focused within the polling window (15 retries / 1s).",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12081,7 +12081,7 @@
                           "name": "Step 24 â€” Nonce changed on EvaluateCareâ†’FindCare return",
                           "requirement": "The handoff EvaluateCareâ†’FindCare MUST yield a fresh nonce different from both the original FindCare nonce and the EvaluateCare nonce; the GUID MUST remain unchanged.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12101,7 +12101,7 @@
                           "name": "Step 25 â€” SharedServices button push: direct, not proxied",
                           "requirement": "Clicking the SharedServices banner button MUST result in: (1) `#rightPanel` showing `Shared Services`; (2) at least one POST to `<SHARED_URL>/verify-token` directly (not proxied through FindCare's `/shared/verify-token`); (3) `#rightPanel` text containing `Server, serving security token: SharedServices` (self-identifying responding service, not the token signer).",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12121,7 +12121,7 @@
                           "name": "Step 26 â€” SharedServices has frame control",
                           "requirement": "After the SharedServices push, `#coreChatFrame` MUST be hidden and `#sharedSplash` MUST be visible.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12141,7 +12141,7 @@
                           "name": "Step 27 â€” mTLS to SharedServices TLS 1.2+",
                           "requirement": "An mTLS handshake from the smoke test (using FindCare's client cert + key against the CA cert) to localhost:SHARED_PORT MUST succeed with TLS version 1.2 or higher.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12161,7 +12161,7 @@
                           "name": "Step 28 â€” SharedServices splash text",
                           "requirement": "`#sharedSplash` MUST be visible and contain the literal strings `Shared Services` and `is still unimplemented`.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12181,7 +12181,7 @@
                           "name": "Step 29 â€” SharedServices token auth: GUID preserved, nonce fresh",
                           "requirement": "`#rightPanel` header MUST read `SHARED SERVICES` (case-insensitive). The handoff FindCareâ†’SharedServices MUST yield a fresh nonce; GUID MUST equal the original.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12201,7 +12201,7 @@
                           "name": "Step 30 â€” SharedServices nonce/GUID stored and verified",
                           "requirement": "The SharedServices-side nonce and GUID captured in step 29 MUST be present in test state; the GUID MUST equal the original FindCare GUID.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12221,7 +12221,7 @@
                           "name": "Step 31 â€” Handoff 4: SharedServicesâ†’FindCare via filter",
                           "requirement": "Clicking a specialty checkbox and Apply Filter MUST return control to FindCare (`#coreChatFrame` visible). The handoff MUST yield a fresh nonce.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12241,7 +12241,7 @@
                           "name": "Step 32 â€” Handoff 5: EvaluateCareâ†’SharedServices direct",
                           "requirement": "After re-selecting a provider and clicking Evaluate, then clicking the SharedServices banner button from the EvaluateCare context, `#rightPanel` MUST show `Shared Services`. The handoff MUST yield a fresh nonce.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12261,7 +12261,7 @@
                           "name": "Step 33 â€” Handoff 6: SharedServicesâ†’EvaluateCare via re-evaluate",
                           "requirement": "Returning to FindCare via filter, then re-selecting and clicking Evaluate, MUST hand control to EvaluateCare directly from the SharedServicesâ†’FindCare path. The handoff MUST yield a fresh nonce.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12281,7 +12281,7 @@
                           "name": "Step 34 â€” All four services respond on HTTPS with expected JSON",
                           "requirement": "Final assertion: `GET https://<BASE_URL>/` returns HTTP 200; `GET <FINDCARE_URL>/health` returns JSON with `status==\"ok\"`; `GET <EVALCARE_URL>/health` returns JSON with `service==\"evaluate_care\"`; `GET <SHARED_URL>/health` returns JSON with `service==\"shared_services\"`.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12301,7 +12301,7 @@
                           "name": "Step 35 â€” Comprehensive PKI certificate verification (NEW)",
                           "requirement": "The smoke test MUST hold the public certs of every server participating in mTLS (FindCare, EvaluateCare, SharedServices) and assert: (a) every cert file in {projectRoot}/Code/Shared/ops/certs/ parses as a valid PKI X.509 certificate, is signed by the project's CA cert (ca.crt), and is not expired; (b) for each ordered server pair (FindCareâ†”EvaluateCare, FindCareâ†”SharedServices, EvaluateCareâ†”SharedServices), an mTLS handshake succeeds in BOTH directions using the appropriate client cert against the CA. The point of the step is to assert real mutual-PKI rather than any subset (Steps 15 and 27 cover only FindCareâ†’EvaluateCare and FindCareâ†’SharedServices; this step fills the gap and adds explicit cert-validity checks).",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12334,7 +12334,7 @@
                           "name": "Step notices",
                           "requirement": "At each significant deploy step the script MUST display an on-screen notice. Significant steps are: (1) deploy started for {environment}; (2) old environment torn down and ready to receive new; (3) new environment built; (4) smoke test started; (5) smoke test ended, with ratio (passed/total) of assertions and list of any failures.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12353,7 +12353,7 @@
                           "name": "Bell rings only on explicit human instruction",
                           "requirement": "The bell MUST NOT ring by default. The human operator may instruct Claude (via IDE prompt, command-line flag, or other explicit invocation) to ring the bell at specific times, in specific patterns. The operator chooses both WHEN and HOW. There is no requirement for unattended-deploy bell behavior; all deploys are human-supervised (per S-001-REQ-B-006).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12375,7 +12375,7 @@
                     "name": "React serving migration (opportunistic architectural evolution, one-time)",
                     "description": "ONE-TIME architectural evolution included opportunistically in this deploy-management feature. Moves the React frontend serving responsibility from FindCare (port 7860) to SharedServices (port 8002). After this story ships, it is permanently done â€” it does NOT belong to the enduring deploy facts and never re-fires.",
                     "size": "M",
-                    "status": "not_started",
+                    "status": "in_progress",
                     "orphan": false,
                     "approval": "proposed",
                     "requirements": {
@@ -12385,7 +12385,7 @@
                           "name": "React serving moves to SharedServices",
                           "requirement": "After this story ships, SharedServices (port 8002 per S-001-REQ-T-001) serves the React frontend in addition to its backend. FindCare (port 7860) serves only the FindCare backend. No other behavioral change.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12404,7 +12404,7 @@
                           "name": "Build URLs updated",
                           "requirement": "S-001-REQ-T-008 (the universal React build req) builds the React frontend with the SharedServices URL baked in. Pre-migration FindCare URL is removed from all build paths.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12423,7 +12423,7 @@
                           "name": "Smoke test passes post-migration",
                           "requirement": "The master smoke test (S-006) passes against an environment where SharedServices serves the React frontend, with no regression in any of the current step set (Step00..Step34 plus the cert-verification step in S-006-REQ-T-003 â€” currently 36 steps total).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12455,7 +12455,7 @@
                           "name": "Physical and IDE file system mirror agile_backlog hierarchy at root, free of deployment details and technical clutter",
                           "requirement": "The physical file system, as well as the file system displayed in the project view of the IDE, MUST reflect the hierarchy defined by agile_backlog.json. It MUST do so at the root. It MUST NOT reflect any deployment details or be burdened with unnecessary technical clutter.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12493,7 +12493,7 @@
                           "name": "Python packaging artifacts live in the deployment feature, not in business-model paths",
                           "requirement": "Files such as `__init__.py` MUST reside in a deployment-feature path and MUST NOT reside on a business-model → file system path. Other examples of such files are `pyproject.toml`, `__pycache__/`, and other Python packaging or runtime-tooling artifacts.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12512,7 +12512,7 @@
                           "name": "IDE view = physical file system = agile_backlog hierarchy down to Feature level",
                           "requirement": "All directories as reflected by the IDE MUST be a one-to-one reflection of the physical file system, which MUST be a mirror of the hierarchy of the agile_backlog to the level of the Features.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12531,7 +12531,7 @@
                           "name": "Downstream artifacts on disk are never authored by hand; Extractor is the sole writer",
                           "requirement": "Every downstream on-disk artifact that corresponds to a `files[]` row in any TargetRecord (workflow YAMLs, Dockerfiles, shell scripts, bat scripts, certs, keys, static assets, and any other `handler_type` in the V18 enum) MUST be authored only by Extractor's `materialize` writing `embedded_content` byte-for-byte to `source_location`. Hand-authoring or hand-editing of any such file MUST be detected at the commit boundary as `file_drift` (REQ-T-031) and MUST be rejected with the bare reject form.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12550,7 +12550,7 @@
                           "name": "Local Code Repository Management retires Code/deploy/ in favor of architecture/DevOpsBuildDeployAndEnvironmentManagement/code/",
                           "requirement": "After migration to V18, the `Code/deploy/` directory MUST NOT contain any deploy chain implementation module. Every file previously living under `Code/deploy/` that is a deploy chain implementation module (Builder, Extractor, Crosswalk, RecordLoader, RecordWriter, DeploymentCollection, SecretsResolver, PreCommitHook, local deployer, CLI bootstrap) MUST be moved to `architecture/DevOpsBuildDeployAndEnvironmentManagement/code/` and the corresponding `files[i].source_location` in every affected TargetRecord MUST be updated to the new repo-relative path. The crosswalk validator's coverage check MUST be re-run after the move; any stale path MUST cause REJECT.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12569,7 +12569,7 @@
                           "name": "File-system level rename or move of a managed file requires a deliberate Builder.build_record invocation",
                           "requirement": "When the operator renames or moves a file that is referenced by `files[i].source_location` in any TargetRecord, the affected TargetRecord(s) MUST be refreshed by a deliberate `Builder.build_record(target_id, repo_root)` invocation per-target. No watcher, no IDE save event, and no auto-extractor side effect MAY refresh a TargetRecord in response to a filesystem event. If the operator commits without running Builder, Crosswalk's `check_file_drift` (REQ-T-031) MUST detect the divergence at the commit boundary and PreCommitHook MUST return `1` with the bare-reject form (REQ-T-028).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12589,7 +12589,7 @@
                   {
                     "story_id": "EPIC-008-F-012-S-010",
                     "size": "M",
-                    "status": "not_started",
+                    "status": "in_progress",
                     "requirements": {
                       "requirement": []
                     },
@@ -12601,7 +12601,7 @@
                   {
                     "story_id": "EPIC-008-F-012-S-011",
                     "size": "S",
-                    "status": "not_started",
+                    "status": "in_progress",
                     "requirements": {
                       "requirement": [
                         {
@@ -12628,7 +12628,7 @@
                           "req_id": "EPIC-008-F-012-S-011-REQ-T-003",
                           "requirement": "start_local.bat must kill all orphaned python.exe processes running uvicorn before starting new instances",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "deferred",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -12647,7 +12647,7 @@
                           "req_id": "EPIC-008-F-012-S-011-REQ-T-004",
                           "requirement": "start_local.bat must kill all orphaned node.exe processes running vite/npm before starting new instances",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "tests": {
                             "test": [

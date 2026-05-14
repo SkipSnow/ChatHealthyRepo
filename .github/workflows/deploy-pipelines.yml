@@ -1,138 +1,41 @@
 name: Deploy to Azure Functions
-
-on:
+'on':
   push:
     branches:
-      - dev
-      - qa
-      - main
+    - dev
+    - qa
+    - main
     paths:
-      - 'pipeline/Code/**'
-      - '.github/workflows/deploy-pipelines.yml'
-
+    - pipeline/Code/**
+    - .github/workflows/deploy-pipelines.yml
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: 'cd pipeline/Code
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        pip install -r requirements-pipeline.txt
 
-      - name: Install dependencies
-        run: |
-          cd pipeline/Code
-          pip install -r requirements-pipeline.txt
-          pip install -r ../../Code/Shared/ops/tools/requirements.txt
+        pip install -r ../../Code/Shared/ops/tools/requirements.txt
 
-      - name: Derive environment from branch
-        id: env
-        run: |
-          BRANCH="${GITHUB_REF_NAME}"
-          if [ "$BRANCH" = "main" ]; then
-            echo "name=prod" >> $GITHUB_OUTPUT
-          else
-            echo "name=$BRANCH" >> $GITHUB_OUTPUT
-          fi
-          echo "Environment: $BRANCH"
-
-      # Build-counter bump removed per Rule-063 + BUG-001:
-      # the build is now incremented by a post-commit engineering rule on
-      # every non-deploy commit, and deploys do NOT bump.
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Check for active orchestrations (no overrides — blocks on any error)
-        run: |
-          # Rule: if we cannot CONFIRM zero active jobs, we block.
-          # There are no override flags and no escape hatches.
-          # The only way to unblock a deploy is to terminate the running job.
-
-          MASTER_KEY=$(az functionapp keys list \
-            --resource-group FindCareDataPipelines-Dev \
-            --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \
-            --query "masterKey" -o tsv 2>/dev/null) || MASTER_KEY=""
-
-          if [ -z "$MASTER_KEY" ]; then
-            echo "DEPLOY BLOCKED: Cannot retrieve master key — cannot verify no pipeline is running."
-            exit 1
-          fi
-
-          # Flex Consumption uses a longer hostname; fetch it from Azure rather than
-          # constructing <appname>.azurewebsites.net which does not resolve for FC apps.
-          DEFAULT_HOST=$(az functionapp show \
-            --resource-group FindCareDataPipelines-Dev \
-            --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \
-            --query "properties.defaultHostName" -o tsv 2>/dev/null) || DEFAULT_HOST=""
-
-          if [ -z "$DEFAULT_HOST" ]; then
-            echo "DEPLOY BLOCKED: Cannot retrieve app hostname — cannot verify no pipeline is running."
-            exit 1
-          fi
-
-          APP_URL="https://${DEFAULT_HOST}"
-          BASE="${APP_URL}/runtime/webhooks/durabletask/instances?taskHub=DevPipelineManagmentService&code=${MASTER_KEY}"
-
-          # Kick the cold start immediately — fire-and-forget, response not checked.
-          curl -s --max-time 5 "${BASE}&runtimeStatus=Running" -o /dev/null 2>/dev/null || true
-
-          # Poll until the app responds or 6 minutes elapse.
-          # After OOM recovery the Durable extension can take 3-5 min to initialize
-          # against a large task hub. Each attempt: 20s timeout. Retry every 20s.
-          query_instances() {
-            local status=$1
-            local deadline=$((SECONDS + 360))
-            while [ $SECONDS -lt $deadline ]; do
-              resp=$(curl -s --max-time 20 "${BASE}&runtimeStatus=${status}" 2>/dev/null)
-              if echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); isinstance(d,list) or sys.exit(1)" 2>/dev/null; then
-                echo "$resp"
-                return 0
-              fi
-              echo "Waiting for app warm-up (${status})..."
-              sleep 20
-            done
-            return 1
-          }
-
-          RUNNING_RESP=$(query_instances "Running") || {
-            echo "DEPLOY BLOCKED: Could not query running instances — cannot verify safety."
-            exit 1
-          }
-          PENDING_RESP=$(query_instances "Pending") || {
-            echo "DEPLOY BLOCKED: Could not query pending instances — cannot verify safety."
-            exit 1
-          }
-
-          RUNNING=$(echo "$RUNNING_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(1) if not isinstance(d,list) else print(len(d))") || { echo "DEPLOY BLOCKED: Unexpected Running response: $RUNNING_RESP"; exit 1; }
-
-          PENDING=$(echo "$PENDING_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(1) if not isinstance(d,list) else print(len(d))") || { echo "DEPLOY BLOCKED: Unexpected Pending response: $PENDING_RESP"; exit 1; }
-
-          echo "Guard check — Running: ${RUNNING}  Pending: ${PENDING}"
-
-          TOTAL=$((RUNNING + PENDING))
-          if [ "$TOTAL" -gt 0 ]; then
-            echo "DEPLOY BLOCKED: ${RUNNING} running + ${PENDING} pending orchestration(s) active."
-            echo "Terminate all pipeline runs before deploying orchestrator changes."
-            exit 1
-          fi
-
-          echo "Guard passed — no active orchestrations."
-
-      - name: Deploy to Azure Functions
-        run: |
-          cd pipeline/Code
-          cp requirements-pipeline.txt requirements.txt
-          zip -r deploy.zip . --exclude "*.pyc" --exclude "__pycache__/*" --exclude "venv/*" --exclude "venv_func/*" --exclude "local.settings.json" --exclude ".env"
-          az functionapp deployment source config-zip \
-            --resource-group FindCareDataPipelines-Dev \
-            --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \
-            --src deploy.zip
+        '
+    - name: Derive environment from branch
+      id: env
+      run: "BRANCH=\"${GITHUB_REF_NAME}\"\nif [ \"$BRANCH\" = \"main\" ]; then\n  echo \"name=prod\" >> $GITHUB_OUTPUT\nelse\n  echo \"name=$BRANCH\" >> $GITHUB_OUTPUT\nfi\necho \"Environment: $BRANCH\"\n"
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - name: Check for active orchestrations (no overrides — blocks on any error)
+      run: "# Rule: if we cannot CONFIRM zero active jobs, we block.\n# There are no override flags and no escape hatches.\n# The only way to unblock a deploy is to terminate the running job.\n\nMASTER_KEY=$(az functionapp keys list \\\n  --resource-group FindCareDataPipelines-Dev \\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \\\n  --query \"masterKey\" -o tsv 2>/dev/null) || MASTER_KEY=\"\"\n\nif [ -z \"$MASTER_KEY\" ]; then\n  echo \"DEPLOY BLOCKED: Cannot retrieve master key — cannot verify no pipeline is running.\"\n  exit 1\nfi\n\n# Flex Consumption uses a longer hostname; fetch it from Azure rather than\n# constructing <appname>.azurewebsites.net which does not resolve for FC apps.\nDEFAULT_HOST=$(az functionapp show \\\n  --resource-group FindCareDataPipelines-Dev \\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \\\n  --query \"properties.defaultHostName\" -o tsv 2>/dev/null) || DEFAULT_HOST=\"\"\n\nif [ -z \"$DEFAULT_HOST\" ]; then\n  echo \"DEPLOY BLOCKED: Cannot retrieve app hostname — cannot verify no pipeline is running.\"\n  exit 1\nfi\n\nAPP_URL=\"https://${DEFAULT_HOST}\"\nBASE=\"${APP_URL}/runtime/webhooks/durabletask/instances?taskHub=DevPipelineManagmentService&code=${MASTER_KEY}\"\n\n# Kick the cold start immediately — fire-and-forget, response not checked.\ncurl -s --max-time 5 \"${BASE}&runtimeStatus=Running\" -o /dev/null 2>/dev/null || true\n\n# Poll until the app responds or 6 minutes elapse.\n# After OOM recovery the Durable extension can take 3-5 min to initialize\n# against a large task hub. Each attempt: 20s timeout. Retry every 20s.\nquery_instances() {\n  local status=$1\n  local deadline=$((SECONDS + 360))\n  while [ $SECONDS -lt $deadline ]; do\n    resp=$(curl -s --max-time 20 \"${BASE}&runtimeStatus=${status}\" 2>/dev/null)\n    if echo \"$resp\" | python3 -c \"import sys,json; d=json.load(sys.stdin); isinstance(d,list) or sys.exit(1)\" 2>/dev/null; then\n      echo \"$resp\"\n      return 0\n    fi\n    echo \"Waiting for app warm-up (${status})...\"\n    sleep 20\n  done\n  return 1\n}\n\nRUNNING_RESP=$(query_instances \"Running\") || {\n  echo \"DEPLOY BLOCKED: Could not query running instances — cannot verify safety.\"\n  exit 1\n}\nPENDING_RESP=$(query_instances \"Pending\") || {\n  echo \"DEPLOY BLOCKED: Could not query pending instances — cannot verify safety.\"\n  exit 1\n}\n\nRUNNING=$(echo \"$RUNNING_RESP\" | python3 -c \"import sys,json; d=json.load(sys.stdin); sys.exit(1) if not isinstance(d,list) else print(len(d))\") || { echo \"DEPLOY BLOCKED: Unexpected Running response: $RUNNING_RESP\"; exit 1; }\n\nPENDING=$(echo \"$PENDING_RESP\" | python3 -c \"import sys,json; d=json.load(sys.stdin); sys.exit(1) if not isinstance(d,list) else print(len(d))\") || { echo \"DEPLOY BLOCKED: Unexpected Pending response: $PENDING_RESP\"; exit 1; }\n\necho \"Guard check — Running: ${RUNNING}  Pending: ${PENDING}\"\n\nTOTAL=$((RUNNING + PENDING))\nif [ \"$TOTAL\" -gt 0 ]; then\n  echo \"DEPLOY BLOCKED: ${RUNNING} running + ${PENDING} pending orchestration(s) active.\"\n  echo \"Terminate all pipeline runs before deploying orchestrator changes.\"\n  exit 1\nfi\n\necho \"Guard passed — no active orchestrations.\"\n"
+    - name: Deploy to Azure Functions
+      run: "cd pipeline/Code\ncp requirements-pipeline.txt requirements.txt\nzip -r deploy.zip . --exclude \"*.pyc\" --exclude \"__pycache__/*\" --exclude \"venv/*\" --exclude \"venv_func/*\" --exclude \"local.settings.json\" --exclude \".env\"\naz functionapp deployment source config-zip \\\n  --resource-group FindCareDataPipelines-Dev \\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \\\n  --src deploy.zip\n"

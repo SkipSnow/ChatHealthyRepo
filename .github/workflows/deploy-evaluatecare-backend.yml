@@ -1,168 +1,38 @@
 name: Deploy EvaluateCare Backend to HuggingFace
-
-on:
-  workflow_dispatch:
+'on':
+  workflow_dispatch: null
   push:
     branches:
-      - dev
-      - qa
-      - main
+    - dev
+    - qa
+    - main
     paths:
-      - 'evaluateCare/Code/**'
-      - '.github/workflows/deploy-evaluatecare-backend.yml'
-
+    - evaluateCare/Code/**
+    - .github/workflows/deploy-evaluatecare-backend.yml
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Derive Space name and env from branch
-        id: space
-        run: |
-          BRANCH="${GITHUB_REF_NAME}"
-          ORG="SkipSnow"
-          BASE="EvaluateCareSpace"
-          if [ "$BRANCH" = "main" ]; then
-            SPACE="${BASE}"
-            ENV="prod"
-          else
-            SPACE="${BRANCH}_${BASE}"
-            ENV="${BRANCH}"
-          fi
-          echo "name=${SPACE}" >> $GITHUB_OUTPUT
-          echo "env=${ENV}" >> $GITHUB_OUTPUT
-          echo "Deploying to: ${ORG}/${SPACE} (env=${ENV})"
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Set HF Space variables + secrets (peer URLs, env, certs, signing key)
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_SPACE: ${{ steps.space.outputs.name }}
-          ENV: ${{ steps.space.outputs.env }}
-          # GH repo secret holding base64(evalcare.key) — same value across
-          # dev/qa/prod (pre-alpha). Required by EvaluateCare's
-          # _bootstrap_certs_from_env() to materialize evalcare.key into
-          # CERTS_DIR for session-token signing.
-          EVALCARE_SIGNING_KEY_B64: ${{ secrets.EVALCARE_SIGNING_KEY_B64 }}
-        run: |
-          if [ "$ENV" = "prod" ]; then PREFIX=""; else PREFIX="${ENV}-"; fi
-          FINDCARE_URL="https://skipsnow-${PREFIX}chathealthyspace.hf.space"
-          SHARED_URL="https://skipsnow-${PREFIX}sharedservicesspace.hf.space"
-          set_var() {
-            K="$1"; V="$2"
-            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
-              -H "Authorization: Bearer $HF_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"key\":\"${K}\"}" -o /dev/null
-            curl -sf -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
-              -H "Authorization: Bearer $HF_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"key\":\"${K}\",\"value\":\"${V}\",\"description\":\"Set by deploy workflow\"}" \
-              -o /dev/null && echo "  set var ${K}"
-          }
-          set_secret() {
-            # MUST delete same-named variable + same-named secret before POST
-            # — HF rejects var/secret collision and rejects POST-on-existing.
-            # JSON body via python -c to immunize against shell quoting.
-            K="$1"; V="$2"
-            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables" \
-              -H "Authorization: Bearer $HF_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"key\":\"${K}\"}" -o /dev/null
-            curl -s -X DELETE "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
-              -H "Authorization: Bearer $HF_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "{\"key\":\"${K}\"}" -o /dev/null
-            BODY=$(python3 -c "import json,sys; print(json.dumps({'key':sys.argv[1],'value':sys.argv[2],'description':'Set by deploy workflow'}))" "$K" "$V")
-            HTTP=$(curl -s -X POST "https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets" \
-              -H "Authorization: Bearer $HF_TOKEN" \
-              -H "Content-Type: application/json" \
-              --data "$BODY" \
-              -o /tmp/hf_resp.txt -w "%{http_code}")
-            if [ "$HTTP" = "200" ] || [ "$HTTP" = "201" ]; then
-              echo "  set secret ${K} (http=$HTTP)"
-            else
-              echo "  ERROR set secret ${K}: http=$HTTP"
-              cat /tmp/hf_resp.txt; echo
-              return 1
-            fi
-          }
-          set_var "ENV_PREFIX"          "${ENV}"
-          set_var "FINDCARE_URL"        "${FINDCARE_URL}"
-          set_var "SHARED_SERVICES_URL" "${SHARED_URL}"
-
-          # Public certs for token-level mutual auth (per EvaluateCare's
-          # app.py _bootstrap_certs_from_env, lines 33-36):
-          #   FINDCARE_CERT_PEM        peer (verifies FindCare-signed tokens)
-          #   EVALCARE_CERT_PEM        own
-          #   CA_CERT_PEM              chain
-          # All public — read from repo, base64, ship as variables.
-          FINDCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/findcare.crt)
-          EVALCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/evalcare.crt)
-          CA_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/ca.crt)
-          set_var "FINDCARE_CERT_PEM" "${FINDCARE_CERT_PEM_B64}"
-          set_var "EVALCARE_CERT_PEM" "${EVALCARE_CERT_PEM_B64}"
-          set_var "CA_CERT_PEM"       "${CA_CERT_PEM_B64}"
-
-          # Private signing key — secret, sourced from GH repo secret.
-          if [ -z "$EVALCARE_SIGNING_KEY_B64" ]; then
-            echo "ERROR: GH repo secret EVALCARE_SIGNING_KEY_B64 is empty or unset."
-            echo "Create it at https://github.com/SkipSnow/ChatHealthyRepo/settings/secrets/actions"
-            echo "Value: base64 -w0 of Code/Shared/ops/certs/evalcare.key"
-            exit 1
-          fi
-          set_secret "EVALCARE_SIGNING_KEY_PEM" "${EVALCARE_SIGNING_KEY_B64}"
-
-      - name: Push to HuggingFace Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_SPACE: ${{ steps.space.outputs.name }}
-        run: |
-          git config --global user.email "skip.snow@gmail.com"
-          git config --global user.name "SkipSnow"
-
-          echo "Target Space: SkipSnow/${HF_SPACE}"
-          git clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/${HF_SPACE} hf_space
-
-          # Preserve README.md (HF config)
-          cp hf_space/README.md /tmp/hf_readme.md 2>/dev/null || true
-          find hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete
-          cp /tmp/hf_readme.md hf_space/README.md 2>/dev/null || true
-
-          # Mirror evaluateCare/Code/ flat into hf_space/. Same layout as the
-          # Dockerfile produces inside the container — single set of import
-          # statements works in both environments.
-          rsync -av \
-            --exclude='.env' \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            evaluateCare/Code/ hf_space/
-
-          # EPIC-003: bring FrontEndApplicationLib into the build context so the
-          # Dockerfile can pip-install chathealthy-frontend-lib from a local path.
-          mkdir -p hf_space/FrontEndApplicationLib
-          rsync -av \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            FrontEndApplicationLib/ hf_space/FrontEndApplicationLib/
-
-          # PKI certs deferred to Beta — HF doesn't support mTLS
-
-          cd hf_space
-          git add .
-          if git diff --staged --quiet; then
-            echo "No changes to deploy."
-          else
-            git commit -m "Deploy from GitHub commit ${{ github.sha }}"
-            git push
-            echo "Deployed successfully."
-          fi
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - name: Derive Space name and env from branch
+      id: space
+      run: "BRANCH=\"${GITHUB_REF_NAME}\"\nORG=\"SkipSnow\"\nBASE=\"EvaluateCareSpace\"\nif [ \"$BRANCH\" = \"main\" ]; then\n  SPACE=\"${BASE}\"\n  ENV=\"prod\"\nelse\n  SPACE=\"${BRANCH}_${BASE}\"\n  ENV=\"${BRANCH}\"\nfi\necho \"name=${SPACE}\" >> $GITHUB_OUTPUT\necho \"env=${ENV}\" >> $GITHUB_OUTPUT\necho \"Deploying to: ${ORG}/${SPACE} (env=${ENV})\"\n"
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Set HF Space variables + secrets (peer URLs, env, certs, signing key)
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        HF_SPACE: ${{ steps.space.outputs.name }}
+        ENV: ${{ steps.space.outputs.env }}
+        EVALCARE_SIGNING_KEY_B64: ${{ secrets.EVALCARE_SIGNING_KEY_B64 }}
+      run: "if [ \"$ENV\" = \"prod\" ]; then PREFIX=\"\"; else PREFIX=\"${ENV}-\"; fi\nFINDCARE_URL=\"https://skipsnow-${PREFIX}chathealthyspace.hf.space\"\nSHARED_URL=\"https://skipsnow-${PREFIX}sharedservicesspace.hf.space\"\nset_var() {\n  K=\"$1\"; V=\"$2\"\n  curl -s -X DELETE \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets\" \\\n    -H \"Authorization: Bearer $HF_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d \"{\\\"key\\\":\\\"${K}\\\"}\" -o /dev/null\n  curl -sf -X POST \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables\" \\\n    -H \"Authorization: Bearer $HF_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d \"{\\\"key\\\":\\\"${K}\\\",\\\"value\\\":\\\"${V}\\\",\\\"description\\\":\\\"Set by deploy workflow\\\"}\" \\\n    -o /dev/null && echo \"  set var ${K}\"\n}\nset_secret() {\n  # MUST delete same-named variable + same-named secret before POST\n  # — HF rejects var/secret collision and rejects POST-on-existing.\n  # JSON body via python -c to immunize against shell quoting.\n  K=\"$1\"; V=\"$2\"\n  curl -s -X DELETE \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/variables\" \\\n    -H \"Authorization: Bearer $HF_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d \"{\\\"key\\\":\\\"${K}\\\"}\" -o /dev/null\n  curl -s -X DELETE \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets\" \\\n    -H \"Authorization: Bearer $HF_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    -d \"{\\\"key\\\":\\\"${K}\\\"}\" -o /dev/null\n  BODY=$(python3 -c \"import json,sys; print(json.dumps({'key':sys.argv[1],'value':sys.argv[2],'description':'Set by deploy workflow'}))\" \"$K\" \"$V\")\n  HTTP=$(curl -s -X POST \"https://huggingface.co/api/spaces/SkipSnow/${HF_SPACE}/secrets\" \\\n    -H \"Authorization: Bearer $HF_TOKEN\" \\\n    -H \"Content-Type: application/json\" \\\n    --data \"$BODY\" \\\n    -o /tmp/hf_resp.txt -w \"%{http_code}\")\n  if [ \"$HTTP\" = \"200\" ] || [ \"$HTTP\" = \"201\" ]; then\n    echo \"  set secret ${K} (http=$HTTP)\"\n  else\n    echo \"  ERROR set secret ${K}: http=$HTTP\"\n    cat /tmp/hf_resp.txt; echo\n    return 1\n  fi\n}\nset_var \"ENV_PREFIX\"          \"${ENV}\"\nset_var \"FINDCARE_URL\"        \"${FINDCARE_URL}\"\nset_var \"SHARED_SERVICES_URL\" \"${SHARED_URL}\"\n\n# Public certs for token-level mutual auth (per EvaluateCare's\n# app.py _bootstrap_certs_from_env, lines 33-36):\n#   FINDCARE_CERT_PEM        peer (verifies FindCare-signed tokens)\n#   EVALCARE_CERT_PEM        own\n#   CA_CERT_PEM              chain\n# All public — read from repo, base64, ship as variables.\nFINDCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/findcare.crt)\nEVALCARE_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/evalcare.crt)\nCA_CERT_PEM_B64=$(base64 -w 0 Code/Shared/ops/certs/ca.crt)\nset_var \"FINDCARE_CERT_PEM\" \"${FINDCARE_CERT_PEM_B64}\"\nset_var \"EVALCARE_CERT_PEM\" \"${EVALCARE_CERT_PEM_B64}\"\nset_var \"CA_CERT_PEM\"       \"${CA_CERT_PEM_B64}\"\n\n# Private signing key — secret, sourced from GH repo secret.\nif [ -z \"$EVALCARE_SIGNING_KEY_B64\" ]; then\n  echo \"ERROR: GH repo secret EVALCARE_SIGNING_KEY_B64 is empty or unset.\"\n  echo \"Create it at https://github.com/SkipSnow/ChatHealthyRepo/settings/secrets/actions\"\n  echo \"Value: base64 -w0 of Code/Shared/ops/certs/evalcare.key\"\n  exit 1\nfi\nset_secret \"EVALCARE_SIGNING_KEY_PEM\" \"${EVALCARE_SIGNING_KEY_B64}\"\n"
+    - name: Push to HuggingFace Space
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        HF_SPACE: ${{ steps.space.outputs.name }}
+      run: "git config --global user.email \"skip.snow@gmail.com\"\ngit config --global user.name \"SkipSnow\"\n\necho \"Target Space: SkipSnow/${HF_SPACE}\"\ngit clone https://SkipSnow:$HF_TOKEN@huggingface.co/spaces/SkipSnow/${HF_SPACE} hf_space\n\n# Preserve README.md (HF config)\ncp hf_space/README.md /tmp/hf_readme.md 2>/dev/null || true\nfind hf_space -mindepth 1 -not -path 'hf_space/.git*' -delete\ncp /tmp/hf_readme.md hf_space/README.md 2>/dev/null || true\n\n# Mirror evaluateCare/Code/ flat into hf_space/. Same layout as the\n# Dockerfile produces inside the container — single set of import\n# statements works in both environments.\nrsync -av \\\n  --exclude='.env' \\\n  --exclude='__pycache__' \\\n  --exclude='*.pyc' \\\n  evaluateCare/Code/ hf_space/\n\n# EPIC-003: bring FrontEndApplicationLib into the build context so the\n# Dockerfile can pip-install chathealthy-frontend-lib from a local path.\nmkdir -p hf_space/FrontEndApplicationLib\nrsync -av \\\n  --exclude='__pycache__' \\\n  --exclude='*.pyc' \\\n  FrontEndApplicationLib/ hf_space/FrontEndApplicationLib/\n\n# PKI certs deferred to Beta — HF doesn't support mTLS\n\ncd hf_space\ngit add .\nif git diff --staged --quiet; then\n  echo \"No changes to deploy.\"\nelse\n  git commit -m \"Deploy from GitHub commit ${{ github.sha }}\"\n  git push\n  echo \"Deployed successfully.\"\nfi\n"

@@ -1,119 +1,103 @@
 name: Promote Build Between Environments
-
-on:
+'on':
   workflow_dispatch:
     inputs:
       from_env:
-        description: 'Source environment'
+        description: Source environment
         required: true
         type: choice
         options:
-          - dev
-          - qa
+        - dev
+        - qa
       to_env:
-        description: 'Target environment'
+        description: Target environment
         required: true
         type: choice
         options:
-          - qa
-          - prod
+        - qa
+        - prod
       confirm_prod:
-        description: 'Confirm production promotion (GOV-007)'
+        description: Confirm production promotion (GOV-007)
         required: false
         type: boolean
         default: false
       dry_run:
-        description: 'Dry run (print plan, no changes)'
+        description: Dry run (print plan, no changes)
         required: false
         type: boolean
         default: true
-
 jobs:
   promote-build:
     runs-on: ubuntu-latest
-    # Promotion merges source branch into target branch and pushes. The
-    # default GITHUB_TOKEN is read-only on workflow_dispatch; contents:write
-    # is required for `git push origin <target>` to land.
     permissions:
       contents: write
-
     steps:
-      - name: Validate promotion path
-        run: |
-          FROM="${{ inputs.from_env }}"
-          TO="${{ inputs.to_env }}"
-          if [ "$FROM" = "dev" ] && [ "$TO" = "qa" ]; then
-            echo "Valid: dev -> qa"
-          elif [ "$FROM" = "qa" ] && [ "$TO" = "prod" ]; then
-            echo "Valid: qa -> prod"
-            if [ "${{ inputs.confirm_prod }}" != "true" ]; then
-              echo "ERROR: Production promotion requires confirm_prod=true (GOV-007)"
-              exit 1
-            fi
-          else
-            echo "ERROR: Invalid promotion path: $FROM -> $TO"
-            echo "Valid paths: dev->qa, qa->prod"
-            exit 1
-          fi
+    - name: Validate promotion path
+      run: "FROM=\"${{ inputs.from_env }}\"\nTO=\"${{ inputs.to_env }}\"\nif [ \"$FROM\" = \"dev\" ] && [ \"$TO\" = \"qa\" ]; then\n  echo \"Valid: dev -> qa\"\nelif [ \"$FROM\" = \"qa\" ] && [ \"$TO\" = \"prod\" ]; then\n  echo \"Valid: qa -> prod\"\n  if [ \"${{ inputs.confirm_prod }}\" != \"true\" ]; then\n    echo \"ERROR: Production promotion requires confirm_prod=true (GOV-007)\"\n    exit 1\n  fi\nelse\n  echo \"ERROR: Invalid promotion path: $FROM -> $TO\"\n  echo \"Valid paths: dev->qa, qa->prod\"\n  exit 1\nfi\n"
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: pip install -r Code/Shared/ops/tools/requirements.txt
+    - name: Merge source branch into target branch
+      if: inputs.dry_run == false
+      run: 'BRANCH_MAP_dev="dev"
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+        BRANCH_MAP_qa="qa"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        BRANCH_MAP_prod="main"
 
-      - name: Install dependencies
-        run: pip install -r Code/Shared/ops/tools/requirements.txt
 
-      - name: Merge source branch into target branch
-        if: inputs.dry_run == false
-        run: |
-          BRANCH_MAP_dev="dev"
-          BRANCH_MAP_qa="qa"
-          BRANCH_MAP_prod="main"
+        FROM_BRANCH="BRANCH_MAP_${{ inputs.from_env }}"
 
-          FROM_BRANCH="BRANCH_MAP_${{ inputs.from_env }}"
-          TO_BRANCH="BRANCH_MAP_${{ inputs.to_env }}"
-          SRC="${!FROM_BRANCH}"
-          DST="${!TO_BRANCH}"
+        TO_BRANCH="BRANCH_MAP_${{ inputs.to_env }}"
 
-          git config user.email "skip.snow@gmail.com"
-          git config user.name "SkipSnow"
+        SRC="${!FROM_BRANCH}"
 
-          echo "Merging $SRC -> $DST"
-          git checkout "$DST"
-          git merge "origin/$SRC" -m "Promote ${{ inputs.from_env }} -> ${{ inputs.to_env }} (build promotion)"
-          git push origin "$DST"
+        DST="${!TO_BRANCH}"
 
-      # Bump the target env's admin.Versions slot as part of the
-      # promote gate (Rule-063 per-env bump semantics). dev->qa sets
-      # qa := dev. qa->prod sets prod := qa. This must happen at
-      # promote time, not at deploy time, because the build counter
-      # IS what the promote operation conveys to the downstream env.
-      - name: Bump target env build counter
-        if: inputs.dry_run == false
-        env:
-          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
-        run: |
-          python -c "
-          import sys
-          sys.path.insert(0, 'Code/Shared/ops')
-          from bump_build import bump
-          rec = bump(env='${{ inputs.to_env }}')
-          print('admin.Versions updated: builds=' + str(rec['builds']))
-          "
 
-      - name: Dry run summary
-        if: inputs.dry_run == true
-        env:
-          MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
-        run: |
-          python Code/Shared/ops/promote_build.py \
-            --from ${{ inputs.from_env }} \
-            --to ${{ inputs.to_env }} \
-            --dry-run
+        git config user.email "skip.snow@gmail.com"
+
+        git config user.name "SkipSnow"
+
+
+        echo "Merging $SRC -> $DST"
+
+        git checkout "$DST"
+
+        git merge "origin/$SRC" -m "Promote ${{ inputs.from_env }} -> ${{ inputs.to_env }} (build promotion)"
+
+        git push origin "$DST"
+
+        '
+    - name: Bump target env build counter
+      if: inputs.dry_run == false
+      env:
+        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+      run: 'python -c "
+
+        import sys
+
+        sys.path.insert(0, ''Code/Shared/ops'')
+
+        from bump_build import bump
+
+        rec = bump(env=''${{ inputs.to_env }}'')
+
+        print(''admin.Versions updated: builds='' + str(rec[''builds'']))
+
+        "
+
+        '
+    - name: Dry run summary
+      if: inputs.dry_run == true
+      env:
+        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+      run: "python Code/Shared/ops/promote_build.py \\\n  --from ${{ inputs.from_env }} \\\n  --to ${{ inputs.to_env }} \\\n  --dry-run\n"

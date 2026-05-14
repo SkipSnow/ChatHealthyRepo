@@ -116,6 +116,95 @@ def _disposition_for(handler_type: str) -> str:
     return "managed" if handler_type in _MANAGED_HANDLER_TYPES else "referenced"
 
 
+def _render_dockerfile(layout: list) -> str:
+    """Render an ordered instruction list into Dockerfile text.
+
+    layout = [{"instruction": "FROM", "args": ["python:3.12-slim"]}, ...]
+    Each entry becomes one line: '<instruction> <args joined by space>\\n'.
+    Comments are not preserved by V1 encoding; layout is the spec.
+    """
+    if not isinstance(layout, list):
+        raise TypeError(f"Dockerfile layout must be a list, got {type(layout).__name__}")
+    lines: list[str] = []
+    for step in layout:
+        if not isinstance(step, dict):
+            raise TypeError(f"Dockerfile layout step must be a dict, got {step!r}")
+        inst = step.get("instruction")
+        args = step.get("args", [])
+        if not isinstance(inst, str):
+            raise ValueError(f"Dockerfile step missing instruction: {step!r}")
+        if not isinstance(args, list):
+            raise TypeError(f"Dockerfile step args must be a list: {step!r}")
+        if inst == "BLANK":
+            lines.append("")
+            continue
+        lines.append(f"{inst} {' '.join(str(a) for a in args)}".rstrip())
+    return "\n".join(lines) + "\n"
+
+
+def _yaml_loader_no_bool_on() -> type:
+    """Custom YAML loader that does NOT convert YAML 1.1 boolean literals
+    ('on'/'off'/'yes'/'no'/'true'/'false') to Python booleans.
+
+    GHA workflows use `on:` as a string key; PyYAML's default loader (YAML
+    1.1) maps that key to Python True. We deep-copy the implicit-resolver
+    table and strip the bool tag from every first-letter bucket, then
+    re-register a bool resolver restricted to 'true'/'false' so genuine
+    booleans still parse. 'on'/'off'/'yes'/'no' round-trip as strings.
+    """
+    import re as _re_local
+    import yaml as _yaml
+
+    class _NoBoolOn(_yaml.SafeLoader):
+        pass
+
+    new_resolvers: dict = {}
+    for ch, lst in _NoBoolOn.yaml_implicit_resolvers.items():
+        new_resolvers[ch] = [r for r in lst if r[0] != 'tag:yaml.org,2002:bool']
+    _NoBoolOn.yaml_implicit_resolvers = new_resolvers
+
+    _NoBoolOn.add_implicit_resolver(
+        'tag:yaml.org,2002:bool',
+        _re_local.compile(r'^(?:true|True|TRUE|false|False|FALSE)$'),
+        list('tTfF'),
+    )
+    return _NoBoolOn
+
+
+def _yaml_dumper_quote_gha() -> type:
+    """Custom YAML dumper that double-quotes GHA expressions so they
+    survive a round-trip without being interpreted as booleans/etc."""
+    import yaml as _yaml
+    class _QuoteGHADumper(_yaml.SafeDumper):
+        pass
+    return _QuoteGHADumper
+
+
+def _render_workflow_yaml(layout: dict) -> str:
+    """Render a GHA-workflow JSON object into YAML text.
+
+    Uses block style, preserves dict key order, wide-line (no wrapping),
+    and a custom Loader/Dumper pair so 'on:' stays a string. Comments
+    are not preserved; layout is the spec.
+    """
+    if not isinstance(layout, dict):
+        raise TypeError(f"workflow_yaml layout must be a dict, got {type(layout).__name__}")
+    import yaml as _yaml
+    text = _yaml.dump(
+        layout,
+        Dumper=_yaml_dumper_quote_gha(),
+        default_flow_style=False,
+        sort_keys=False,
+        width=10000,
+        allow_unicode=True,
+    )
+    # PyYAML 5+ writes the empty key True as 'true:' even with our
+    # custom loader if a stray bool slipped in. Defensive replace.
+    if text.startswith("true:"):
+        text = "'on':" + text[len("true:"):]
+    return text
+
+
 def _read_managed_content(abs_path: Path) -> str:
     """Capture bytes for a managed file as a schema-compatible string.
 
@@ -180,16 +269,31 @@ def _walk(
 
 
 class Builder:
-    """Builds a `DeploymentCollection` by scanning the live tree."""
+    """Builds a `DeploymentCollection` by scanning the live tree.
+
+    For files whose handler_type is in `_MANAGED_HANDLER_TYPES`
+    (dockerfile, workflow_yaml), the Builder DOES NOT read bytes
+    from disk. Instead, it loads the prior brain artifact and looks
+    up the file's `layout` spec, then renders it via the canonical
+    renderer (`_render_dockerfile` / `_render_workflow_yaml`). The
+    rendered string becomes embedded_content. The disk file is
+    treated as a downstream materialization, not a source.
+
+    This makes the JSON's `layout` the single source of truth for
+    every managed file's bytes. Operators edit the layout in JSON;
+    the renderer is the only writer of the rendered text.
+    """
 
     def __init__(self) -> None:
         self._unclassified: list[str] = []
+        self._prior_layouts: dict[str, object] = {}
 
     def unclassified(self) -> list[str]:
         return list(self._unclassified)
 
     def build_collection(self, repo_root: Path) -> DeploymentCollection:
         repo_root = repo_root.resolve()
+        self._prior_layouts = self._load_prior_layouts(repo_root)
         coll = DeploymentCollection()
         coll.add(self._build_workflow_runner(repo_root))
         coll.add(self._build_hf_space_findcare_backend(repo_root))
@@ -271,20 +375,63 @@ class Builder:
                     f.embedded_content = new_text
 
     @staticmethod
-    def _compose_file(repo_root: Path, abs_path: Path) -> FileComposition:
+    def _load_prior_layouts(repo_root: Path) -> dict[str, object]:
+        """Read the prior brain artifact's `layout` for each managed
+        file. Returns {source_location: layout}. Absent artifact or
+        absent layouts yield an empty dict.
+        """
+        import json as _json
+        artifact = (
+            repo_root / "brain" / "machine_artifacts" / "content"
+            / "deployment_architecture.json"
+        )
+        if not artifact.is_file():
+            return {}
+        try:
+            data = _json.loads(artifact.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+        out: dict[str, object] = {}
+        for r in data.get("DeploymentTargetRecord", []):
+            for f in r.get("files", []):
+                if (
+                    f.get("disposition") == "managed"
+                    and f.get("handler_type") in _MANAGED_HANDLER_TYPES
+                    and "layout" in f
+                ):
+                    out[f["source_location"]] = f["layout"]
+        return out
+
+    def _compose_file(self, repo_root: Path, abs_path: Path) -> FileComposition:
         rel = _rel_posix(repo_root, abs_path)
         name = abs_path.name
         handler = _classify_handler(rel, name)
         disposition = _disposition_for(handler)
         embedded: str | None = None
+        layout: object | None = None
         if disposition == "managed":
-            embedded = _read_managed_content(abs_path)
+            if handler in _MANAGED_HANDLER_TYPES:
+                layout = self._prior_layouts.get(rel)
+                if layout is None:
+                    raise RuntimeError(
+                        f"Builder: managed {handler} {rel!r} has no layout in "
+                        f"the prior brain artifact. Layout is the operator-"
+                        f"authored source of truth; run _oneshots/encode_layouts.py "
+                        f"to bootstrap a layout from the current disk file."
+                    )
+                if handler == "dockerfile":
+                    embedded = _render_dockerfile(layout)  # type: ignore[arg-type]
+                else:
+                    embedded = _render_workflow_yaml(layout)  # type: ignore[arg-type]
+            else:
+                embedded = _read_managed_content(abs_path)
         return FileComposition(
             feature_id=_FEATURE_ID,
             source_location=rel,
             handler_type=handler,
             disposition=disposition,
             embedded_content=embedded,
+            layout=layout,
         )
 
     def _enumerate(

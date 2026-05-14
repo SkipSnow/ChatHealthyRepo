@@ -122,7 +122,12 @@
 
                 "embedded_content": {
                   "type": "string",
-                  "description": "Verbatim source bytes of the file at source_location, captured as a JSON string. Required when disposition=managed; absent when disposition=referenced. Binary content is base64-encoded and prefixed with '__base64__:' by the Builder; the Extractor decodes that prefix back to raw bytes."
+                  "description": "Verbatim source bytes of the file at source_location, captured as a JSON string. Required when disposition=managed; absent when disposition=referenced. Binary content is base64-encoded and prefixed with '__base64__:' by the Builder; the Extractor decodes that prefix back to raw bytes. For managed files of handler_type 'dockerfile' or 'workflow_yaml', embedded_content is the OUTPUT of rendering layout; it is not authored by hand."
+                },
+
+                "layout": {
+                  "type": ["object", "array"],
+                  "description": "Structured spec from which the Builder generates the file's bytes. The Builder is the only writer; no operator hand-edits the rendered file on disk. For handler_type='dockerfile' the spec is an ordered array of {instruction, args} objects (FROM/WORKDIR/COPY/RUN/ENV/EXPOSE/CMD); the renderer emits one Dockerfile line per entry. For handler_type='workflow_yaml' the spec is a GHA-workflow JSON object (on:/jobs:/env:/...); the renderer dumps it as YAML. Required when disposition='managed' AND handler_type in {'dockerfile','workflow_yaml'}. Forbidden when disposition='referenced'. Other managed handler types may declare a layout but the Builder will not (yet) generate for them."
                 }
               },
               "allOf": [
@@ -138,7 +143,22 @@
                     "properties": { "disposition": { "const": "referenced" } },
                     "required": ["disposition"]
                   },
-                  "then": { "not": { "required": ["embedded_content"] } }
+                  "then": {
+                    "not": { "anyOf": [
+                      { "required": ["embedded_content"] },
+                      { "required": ["layout"] }
+                    ] }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "disposition": { "const": "managed" },
+                      "handler_type": { "enum": ["dockerfile", "workflow_yaml"] }
+                    },
+                    "required": ["disposition", "handler_type"]
+                  },
+                  "then": { "required": ["layout"] }
                 }
               ]
             }

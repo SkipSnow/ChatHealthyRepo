@@ -50,9 +50,14 @@ class FileComposition:
     handler_type: str  # closed enum: python_source|...|cert_or_key
     disposition: str  # closed enum: managed|referenced
     embedded_content: str | None = None  # present iff disposition='managed'
+    # layout: structured spec from which the Builder generates the
+    # file's embedded_content. Required when disposition='managed' AND
+    # handler_type in {'dockerfile','workflow_yaml'}. Polymorphic:
+    # array for dockerfile (instruction list), object for workflow_yaml.
+    layout: object | None = None
 
-    def to_dict(self) -> dict[str, str]:
-        out: dict[str, str] = {
+    def to_dict(self) -> dict[str, object]:
+        out: dict[str, object] = {
             "feature_id": self.feature_id,
             "source_location": self.source_location,
             "handler_type": self.handler_type,
@@ -65,11 +70,25 @@ class FileComposition:
                     f"'managed' requires embedded_content"
                 )
             out["embedded_content"] = self.embedded_content
+            if self.handler_type in ("dockerfile", "workflow_yaml"):
+                if self.layout is None:
+                    raise ValueError(
+                        f"FileComposition {self.source_location!r}: "
+                        f"managed {self.handler_type} requires layout"
+                    )
+                out["layout"] = self.layout
+            elif self.layout is not None:
+                out["layout"] = self.layout
         elif self.disposition == "referenced":
             if self.embedded_content is not None:
                 raise ValueError(
                     f"FileComposition {self.source_location!r}: disposition="
                     f"'referenced' forbids embedded_content"
+                )
+            if self.layout is not None:
+                raise ValueError(
+                    f"FileComposition {self.source_location!r}: disposition="
+                    f"'referenced' forbids layout"
                 )
         else:
             raise ValueError(
@@ -79,13 +98,14 @@ class FileComposition:
         return out
 
     @classmethod
-    def from_dict(cls, d: dict[str, str]) -> "FileComposition":
+    def from_dict(cls, d: dict[str, object]) -> "FileComposition":
         return cls(
-            feature_id=d["feature_id"],
-            source_location=d["source_location"],
-            handler_type=d["handler_type"],
-            disposition=d["disposition"],
-            embedded_content=d.get("embedded_content"),
+            feature_id=str(d["feature_id"]),
+            source_location=str(d["source_location"]),
+            handler_type=str(d["handler_type"]),
+            disposition=str(d["disposition"]),
+            embedded_content=d.get("embedded_content"),  # type: ignore[arg-type]
+            layout=d.get("layout"),
         )
 
 
