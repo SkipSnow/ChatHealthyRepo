@@ -1184,12 +1184,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/caddy.exe",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/tools/capture_brain_hashes.py",
           "handler_type": "python_source",
           "disposition": "referenced"
@@ -1210,48 +1204,6 @@
           "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/tools/create_hf_space.py",
           "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/disk_cleanup_20260406_124104.log",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/disk_cleanup_20260406_124510.log",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/disk_cleanup_20260406_125130.log",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/disk_cleanup_20260406_125442.log",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/disk_cleanup_20260406_173510.log",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/disk_cleanup_20260406_181440.log",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/disk_cleanup_20260406_182932.log",
-          "handler_type": "static_asset",
           "disposition": "referenced"
         },
         {
