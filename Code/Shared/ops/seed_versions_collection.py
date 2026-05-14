@@ -7,11 +7,15 @@ admin.Versions on the front-end MongoDB cluster.
 Schema of the record:
     {
         "_id":       <auto>,
-        "build":     <int>,
+        "builds":    [{"env": "dev"|"qa"|"prod", "build": <int>}, ...],
         "version":   <string>,
         "framework": <string>,
         "from":      <iso utc timestamp when this record became active>
     }
+
+All three env slots are seeded with the same starting build int. Subsequent
+bumps advance only the dev slot; qa and prod are touched only via the
+promotion writers.
 
 Refuses to run if the collection already has any documents — protects
 against double-seeding.
@@ -94,7 +98,11 @@ def main():
         sys.exit(2)
 
     record = {
-        "build": build,
+        "builds": [
+            {"env": "dev", "build": build},
+            {"env": "qa", "build": build},
+            {"env": "prod", "build": build},
+        ],
         "version": version,
         "framework": framework,
         "from": datetime.now(timezone.utc).isoformat(),

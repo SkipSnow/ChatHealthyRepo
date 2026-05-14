@@ -8,8 +8,15 @@
 #   python promote_build.py --from qa --to prod --confirm-prod
 #
 # Prod promotion requires --confirm-prod flag (GOV-007).
+#
+# Per the per-env builds shape:
+#   dev -> qa : the qa slot is set to whatever dev's slot is right now.
+#   qa  -> prod: the prod slot is set to whatever DEV's slot is right now
+#                (NOT qa's). If qa is lagging dev, prod still tracks dev at
+#                promotion time — qa continues to lag.
 
 import argparse
+import datetime
 import logging
 import os
 import sys
@@ -33,6 +40,17 @@ BRANCH_MAP = {
     "prod": "main",
 }
 
+ENV_ORDER = ("local", "dev", "qa", "prod")
+
+
+def _builds_to_map(builds_array):
+    out = {}
+    for entry in builds_array or []:
+        env = entry.get("env")
+        if env in ENV_ORDER:
+            out[env] = int(entry["build"])
+    return out
+
 
 def promote(from_env: str, to_env: str, confirm_prod: bool = False, dry_run: bool = False):
     if (from_env, to_env) not in VALID_PROMOTIONS:
@@ -49,28 +67,59 @@ def promote(from_env: str, to_env: str, confirm_prod: bool = False, dry_run: boo
         sys.exit(1)
 
     client = MongoClient(conn, serverSelectionTimeoutMS=10000)
+    coll = client["admin"]["Versions"]
 
-    # Per Rule-063 + BUG-001: build is global. Read the current
-    # build from the canonical admin.Versions collection for logging only.
-    # Promotions do NOT bump the build — every commit on the source branch
-    # has already incremented build via the post-commit hook (Rule-063).
-    current_record = client["admin"]["Versions"].find_one(sort=[("from", -1)])
-    current_build = current_record["build"] if current_record else "unknown"
-    log.info("Promoting code from %s to %s (current global build: %s)",
-             from_env, to_env, current_build)
+    latest = coll.find_one(sort=[("from", -1)])
+    if latest is None:
+        log.error("admin.Versions has no records — seed first")
+        sys.exit(1)
+
+    builds_map = _builds_to_map(latest.get("builds", []))
+    for required in ENV_ORDER:
+        if required not in builds_map:
+            log.error("latest admin.Versions record is missing the %r slot; "
+                      "run migrate_versions_to_per_env.py first", required)
+            sys.exit(1)
+
+    # Promotion sources are explicit and asymmetric:
+    #   dev -> qa  : qa <- dev
+    #   qa  -> prod: prod <- dev (intentional; qa is not the source)
+    source_env_for_value = "dev"
+    source_build = builds_map[source_env_for_value]
+    target_build_before = builds_map[to_env]
+
+    log.info("Promoting %s -> %s. Source value comes from %r slot = %d "
+             "(target %r was %d).",
+             from_env, to_env, source_env_for_value, source_build,
+             to_env, target_build_before)
 
     if dry_run:
         log.info("DRY RUN — no changes made")
         log.info("  Would merge %s -> %s", BRANCH_MAP[from_env], BRANCH_MAP[to_env])
-        log.info("  No build-counter writes (build is global, not per-env)")
+        log.info("  Would set admin.Versions %r slot to %d (was %d)",
+                 to_env, source_build, target_build_before)
         return
+
+    # Write a new record (collection grows by record; no in-place update).
+    new_builds_map = dict(builds_map)
+    new_builds_map[to_env] = source_build
+    new_builds = [{"env": e, "build": new_builds_map[e]} for e in ENV_ORDER]
+    record = {
+        "builds": new_builds,
+        "version": latest["version"],
+        "framework": latest["framework"],
+        "from": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+    coll.insert_one(record)
+    log.info("Wrote new admin.Versions record: builds=%s", new_builds)
 
     # Branch merge instructions
     src_branch = BRANCH_MAP[from_env]
     dst_branch = BRANCH_MAP[to_env]
     log.info("NEXT STEP: merge %s -> %s", src_branch, dst_branch)
     log.info("  git checkout %s && git merge %s && git push origin %s", dst_branch, src_branch, dst_branch)
-    log.info("Promotion complete. Build %s shipped to %s.", current_build, to_env)
+    log.info("Promotion complete. %r build %d shipped to %s.",
+             source_env_for_value, source_build, to_env)
 
 
 if __name__ == "__main__":

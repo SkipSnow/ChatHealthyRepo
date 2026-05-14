@@ -81,8 +81,20 @@ def _load_initial_version_from_mongo():
         client = MongoClient(MONGO_CONN, serverSelectionTimeoutMS=5000)
         latest = client["admin"]["Versions"].find_one(sort=[("from", -1)])
         if latest:
+            # Per-env builds[] array shape: extract this producer's env slot.
+            # The producer runs co-located with backend containers; ENV_PREFIX
+            # identifies its env (dev|qa|prod). Off-Space defaults to dev.
+            _env = os.getenv("ENV_PREFIX") or "dev"
+            _builds_arr = latest.get("builds", [])
+            _build_for_env = 0
+            if isinstance(_builds_arr, list):
+                _build_for_env = next(
+                    (int(b.get("build", 0)) for b in _builds_arr
+                     if isinstance(b, dict) and b.get("env") == _env),
+                    0,
+                )
             with _version_lock:
-                _version_info["build"] = int(latest["build"])
+                _version_info["build"] = _build_for_env
                 _version_info["version"] = str(latest["version"])
                 _version_info["framework"] = str(latest["framework"])
             _log.info("Initial version loaded: build=%s version=%s framework=%s",
