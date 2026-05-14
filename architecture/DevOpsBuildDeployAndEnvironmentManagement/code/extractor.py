@@ -34,6 +34,15 @@ class Extractor:
 
     @staticmethod
     def _materialize_one(f: FileComposition, repo_root: Path) -> None:
+        # Only managed files have JSON-owned bytes. Referenced files
+        # are skipped here — the deploy machinery copies them from the
+        # origin/<branch> tree at deploy time, not from this artifact.
+        if f.disposition != "managed":
+            return
+        if f.embedded_content is None:
+            raise ValueError(
+                f"managed file {f.source_location!r} missing embedded_content"
+            )
         out_path = repo_root / f.source_location
         out_path.parent.mkdir(parents=True, exist_ok=True)
         if f.embedded_content.startswith(_BASE64_PREFIX):

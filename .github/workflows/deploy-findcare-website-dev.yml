@@ -78,4 +78,4 @@ jobs:
         run: |
           # Smoke runs against the env we just deployed to. No deselects,
           # no marker filters per "100% comply" directive (2026-05-04).
-          python -m pytest Code/deploy/localSmokeTestPyTest.py -v
+          python -m pytest architecture/DevOpsBuildDeployAndEnvironmentManagement/code/localSmokeTestPyTest.py -v

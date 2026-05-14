@@ -84,8 +84,16 @@ EVALCARE_PORT       = _cfg["evalcare_port"]
 SHARED_PORT         = _cfg["shared_port"]
 IS_PROD             = (SMOKE_ENV == "prod")
 
-CERTS_DIR = os.path.join(os.path.dirname(__file__), "..", "Shared", "ops", "certs")
-SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "_oneshots/test_output", "smoke_test")
+_PROJECT_ROOT = os.environ.get("CHATHEALTHY_PROJECT_ROOT")
+if not _PROJECT_ROOT:
+    raise RuntimeError(
+        "CHATHEALTHY_PROJECT_ROOT env var not set. Required so smoke "
+        "test paths are anchored at the project root rather than "
+        "computed from __file__-relative arithmetic (fragile across "
+        "file moves)."
+    )
+CERTS_DIR = os.path.join(_PROJECT_ROOT, "Code", "Shared", "ops", "certs")
+SCREENSHOT_DIR = os.path.join(_PROJECT_ROOT, "_oneshots", "test_output", "smoke_test")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 CHAT_TIMEOUT = 120_000
 
