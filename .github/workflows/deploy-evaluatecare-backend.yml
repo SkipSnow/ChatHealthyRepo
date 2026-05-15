@@ -6,9 +6,6 @@ name: Deploy EvaluateCare Backend to HuggingFace
     - dev
     - qa
     - main
-    paths:
-    - evaluateCare/Code/**
-    - .github/workflows/deploy-evaluatecare-backend.yml
 jobs:
   deploy:
     runs-on: ubuntu-latest

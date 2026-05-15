@@ -6,16 +6,6 @@ name: Deploy ChatHealthy Backend to HuggingFace
     - dev
     - qa
     - main
-    paths:
-    - Code/ConversationalUX/FindCareChat/backend/**
-    - Code/ConversationalUX/FindCareChat/frontend/**
-    - Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**
-    - Code/Shared/ChatHealthyMongoUtilities.py
-    - Code/Shared/prompt_system_maker.py
-    - brain/machine_artifacts/content/emergency_keywords.json
-    - .github/workflows/deploy-findcare-backend.yml
-    - FindCare/**
-    - DevOps/FindCareBackend/**
 jobs:
   deploy:
     runs-on: ubuntu-latest

@@ -6,9 +6,6 @@ name: Deploy Shared Services to HuggingFace
     - dev
     - qa
     - main
-    paths:
-    - sharedServices/Code/**
-    - .github/workflows/deploy-shared-services.yml
 jobs:
   deploy:
     runs-on: ubuntu-latest
