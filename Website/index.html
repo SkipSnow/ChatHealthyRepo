@@ -977,15 +977,60 @@
           if (f.contentWindow) f.contentWindow.postMessage(msg, '*');
         }); } catch (e) {}
       };
+      // Universal entrance helper for UX-control turns.
+      // Every nav button / control click that constitutes a turn goes
+      // through /gate via this helper so the session_conversation_history
+      // captures it. Fire-and-forget: the page transition continues even
+      // if the recording call lags.
+      window._recordUxEvent = function(event_type, value) {
+        try {
+          var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
+          fetch(sharedUrl + '/gate', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              op: 'record_ux_event',
+              payload: {event_type: event_type, value: value === undefined ? null : value}
+            })
+          }).catch(function() {});
+        } catch (_) { /* never block a UX transition on recording */ }
+      };
       window._getAuthBoot = function() {
         if (window._authBoot) return Promise.resolve(window._authBoot);
         var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
-        return fetch(sharedUrl + '/auth/issue', { method: 'POST' })
+        // Universal front door, boot path. The ch_session cookie is
+        // HttpOnly + Secure + SameSite=None, set by SharedServices on
+        // every /gate response. The browser sends it back automatically
+        // when fetch uses `credentials: 'include'`. The gate reads the
+        // cookie server-side and either resumes the existing session
+        // (if its last_used is within 300s) or mints fresh. JS never
+        // touches the cookie — that's the security guarantee.
+        return fetch(sharedUrl + '/gate', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({op: 'boot'})
+          })
           .then(function(r) {
-            if (!r.ok) throw new Error('SharedServices /auth/issue HTTP ' + r.status);
+            if (!r.ok) throw new Error('SharedServices /gate boot HTTP ' + r.status);
             return r.json();
           })
-          .then(function(t) { window._authBoot = t; window._broadcastAuthBoot(); return t; });
+          .then(function(payload) {
+            // Per Skip 2026-05-15 B1: payload.user_object is the full
+            // UserObject; the signed security token lives at
+            // user_object.current_session_token. Earlier callers
+            // (refreshTokenPanels -> /session -> /verify-token) consume
+            // a bare SessionToken — so window._authBoot stores that.
+            var userObject = (payload && payload.user_object) ? payload.user_object : null;
+            var token = (userObject && userObject.current_session_token)
+              ? userObject.current_session_token
+              : null;
+            window._authBoot = token;
+            window._userObject = userObject;
+            window._broadcastAuthBoot();
+            return token;
+          });
       };
       // Iframe-on-load asks parent for the cached boot token; we answer
       // with whatever's in cache (mint if needed first).
@@ -1162,6 +1207,7 @@
       window.gotoEvaluateCare = function() {
         // DEVOPS-BANNER-B006: banner-initiated handoff to EvaluateCare.
         // Mirrors openSharedServices but hits /evaluate/* via FindCare proxy.
+        window._recordUxEvent('evaluatecare_nav_clicked', null);
         window._pageOwner = 'evaluatecare';
         // Clear any prior service's content from the right panel content
         // sub-div so we don't show, e.g., a stale "SHARED SERVICES" header
@@ -1203,6 +1249,7 @@
       };
 
       window.returnToFindCare = function() {
+        window._recordUxEvent('findcare_nav_clicked', null);
         var chatFrame = document.getElementById('coreChatFrame');
         var apiBase = window._hfBaseUrl || '';
         // Always run the return flow so the UI resets even when pageOwner
@@ -1258,11 +1305,27 @@
         var sessionEl = document.getElementById('guiSessionId');
         var sessionToken = sessionEl ? sessionEl.textContent : '';
 
-        // Splash content from the owning service directly (V11 S-005-REQ-B-004).
+        // Splash content via the universal front door (V11 S-005-REQ-B-004).
+        // POST /gate with op="splash". The HttpOnly+Secure ch_session
+        // cookie travels with credentials:'include'; the gate uses its
+        // GUID to resume the session, restamp the nonce, $push the
+        // splash_displayed ux_event, then render. Response:
+        // {user_object: <fresh + session_conversation_history>, result: {html}}.
         var sharedUrl = (window._envServiceUrls || {}).sharedservices || '';
-        fetch(sharedUrl + '/splash', { method: 'POST' })
+        fetch(sharedUrl + '/gate', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({op: 'splash'})
+        })
           .then(function(r) { return r.json(); })
-          .then(function(d) {
+          .then(function(payload) {
+            if (payload && payload.user_object) {
+              window._userObject = payload.user_object;
+              window._authBoot = payload.user_object.current_session_token || null;
+              window._broadcastAuthBoot();
+            }
+            var d = (payload && payload.result) ? payload.result : payload;
             chatFrame.style.display = 'none';
             // Hide EvaluateCare splash if visible
             var ecSplash = document.getElementById('evalcareSplash');

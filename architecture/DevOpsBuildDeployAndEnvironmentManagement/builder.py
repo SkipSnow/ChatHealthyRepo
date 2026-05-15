@@ -560,7 +560,15 @@ class Builder:
         ]
         files = self._enumerate(
             repo_root,
-            ["sharedServices/Code", "FrontEndApplicationLib"],
+            [
+                "sharedServices/Code",
+                "FrontEndApplicationLib",
+                # Auth-domain source code: lives under the EPIC-002-F-003
+                # feature dir (Skip's feature-mirroring layout) and is
+                # staged into the SharedServices container's build context
+                # as `authentication/` by the substrate's build step.
+                "architecture/AuthorizationsAndAuthentications",
+            ],
         )
         return TargetRecord(
             target_id="target_hf_space_shared_services",

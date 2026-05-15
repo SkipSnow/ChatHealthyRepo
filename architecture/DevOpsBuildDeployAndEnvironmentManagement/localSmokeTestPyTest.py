@@ -910,19 +910,34 @@ class TestStep27:
         )
 
 
-# Step 28 [DEVOPS-BANNER-B005]
+# Step 28 [EPIC-008-F-012-S-006-REQ-B-028]
 class TestStep28:
-    def test_shared_services_unimplemented(self, env):
+    def test_shared_services_splash_renders_user_object(self, env):
         if IS_PROD:
             pytest.skip("S-002-REQ-B-002: SharedServices reachable only via suppressed banner button in prod")
         page = env["page"]
         splash = page.locator("#sharedSplash")
         assert splash.count() > 0 and splash.is_visible(), "SharedServices splash not visible"
         text = splash.inner_text()
-        # /shared/splash JSON renders "Shared Services" (with space) per
-        # the response body. The PascalCase form is only the banner button label.
-        assert "Shared Services" in text, f"Missing Shared Services: {text}"
-        assert "is still unimplemented" in text, f"Missing unimplemented: {text}"
+        # (1) Header
+        assert "Shared Services — User Object" in text, f"Missing header: {text[:300]}"
+        # (2) Identity subsection + labeled rows + canonical values
+        assert "Identity" in text, f"Missing Identity subsection: {text[:300]}"
+        assert "user_type" in text and "Guest" in text, f"user_type=Guest not rendered: {text[:300]}"
+        assert "origin" in text and "SharedServices" in text, f"origin=SharedServices not rendered: {text[:300]}"
+        for row in ("guid", "server_env", "created_at", "expires_at"):
+            assert row in text, f"Missing identity row '{row}': {text[:300]}"
+        assert re.search(r"\b[0-9a-f]{32}\b", text), f"No 32-char hex GUID rendered: {text[:300]}"
+        # (3) Session Conversation History subsection — populated OR empty-state
+        assert "Session Conversation History" in text, f"Missing history subsection: {text[:300]}"
+        text_lower = text.lower()
+        if "no ux events or utterances yet" in text_lower:
+            pass  # empty-state acceptable
+        else:
+            # Populated: four threads by actor (Person / Machine / LLM → Person / LLM → Machine).
+            # CSS text-transform may uppercase the labels; compare case-insensitively.
+            for label in ("person", "machine", "llm → person", "llm → machine"):
+                assert label in text_lower, f"Missing thread label '{label}': {text[:300]}"
         _screenshot(page, "28")
 
 

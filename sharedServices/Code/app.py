@@ -12,7 +12,9 @@ import base64
 import tempfile
 import logging
 
-from fastapi import FastAPI, Request
+import json as _json
+
+from fastapi import Body, Cookie, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 # Code/ on sys.path so api/, healthcheck/, externalInterface/, security/
@@ -97,7 +99,6 @@ app.add_middleware(
 # ── Routes — each constructs its endpoint class and runs it ──
 
 from healthcheck.health_endpoint import HealthEndpoint
-from displayChrome.splash_endpoint import SplashEndpoint
 from displayChrome.transfer_to_findcare_endpoint import TransferToFindCareEndpoint
 from secretsManager.secrets_endpoint import SecretsEndpoint
 from chathealthy_frontend_lib.authentication import (
@@ -105,8 +106,25 @@ from chathealthy_frontend_lib.authentication import (
 )
 from authentication.mintable_auth_token import MintableAuthToken
 from authentication.google_oauth_endpoint import GoogleOAuthEndpoint
+from authentication.gate_tool import BootTool, GateTool
+from authentication.session_conversation_history import (
+    RecordUtteranceTool,
+    RecordUxEventTool,
+)
+from authentication.splash_endpoint import SplashTool  # noqa: F401  registered via GateTool.register_tool
+from authentication.tool_framework import GateRequest
 
 _ORIGIN = "SharedServices"
+
+# Register every tool with the GateTool registry. GateTool is the one
+# universal entrance; its `execute(GateRequest | None)` dispatches by
+# `op` to the registered tool, validates its pydantic request, runs it,
+# validates its pydantic response, $pushes any history, returns the
+# wire-shaped GateResponse.
+GateTool.register_tool(BootTool())
+GateTool.register_tool(SplashTool())
+GateTool.register_tool(RecordUtteranceTool())
+GateTool.register_tool(RecordUxEventTool())
 
 
 def _impl(cls_name, file_subpath):
@@ -122,10 +140,43 @@ def health():
     return HealthEndpoint()()
 
 
-@app.post("/splash", operation_id="SplashEndpoint",
-          openapi_extra=_impl("SplashEndpoint", "displayChrome/splash_endpoint.py"))
-def splash():
-    return SplashEndpoint()()
+_SESSION_COOKIE_NAME = "ch_session"
+_SESSION_COOKIE_MAX_AGE = 300
+
+
+@app.post("/gate", operation_id="GateTool",
+          openapi_extra=_impl("GateTool",
+                              "../architecture/AuthorizationsAndAuthentications/gate_tool.py"))
+def gate(
+    response: Response,
+    body: dict | None = Body(default=None),
+    ch_session: str | None = Cookie(default=None),
+):
+    """Single endpoint into the GateTool. The route layer is thin:
+    merge cookie GUID + server env into the GateRequest, hand it off
+    to GateTool.execute, set the response cookie. Everything else
+    (session resolve, restamp, Mongo persist, sub-tool dispatch,
+    history $push, cookie issuance value) is inside the tool.
+    """
+    payload = dict(body or {})
+    if ch_session and not payload.get("prior_guid"):
+        payload["prior_guid"] = ch_session
+    payload["server_env"] = _ENV
+    gate_request = GateRequest.model_validate(payload)
+    result = GateTool.execute(gate_request)
+    user_object = result.get("user_object") or {}
+    fresh_guid = result.get("guid")
+    if fresh_guid:
+        response.set_cookie(
+            key=_SESSION_COOKIE_NAME,
+            value=fresh_guid,
+            max_age=_SESSION_COOKIE_MAX_AGE,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            path="/",
+        )
+    return result
 
 
 _ENV = os.getenv("ENV_PREFIX", "dev")
