@@ -77,25 +77,6 @@ jobs:
         git push origin "$DST"
 
         '
-    - name: Bump target env build counter
-      if: inputs.dry_run == false
-      env:
-        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
-      run: 'python -c "
-
-        import sys
-
-        sys.path.insert(0, ''Code/Shared/ops'')
-
-        from bump_build import bump
-
-        rec = bump(env=''${{ inputs.to_env }}'')
-
-        print(''admin.Versions updated: builds='' + str(rec[''builds'']))
-
-        "
-
-        '
     - name: Dry run summary
       if: inputs.dry_run == true
       env:
