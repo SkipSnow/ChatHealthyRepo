@@ -40,6 +40,9 @@ function _sharedServicesUrl(apiUrl: string): string {
   if (base.includes('find-care-chat')) {
     return base.replace('find-care-chat', 'shared-services')
   }
+  if (base.includes('chathealthyspace.hf.space')) {
+    return base.replace('chathealthyspace.hf.space', 'sharedservicesspace.hf.space')
+  }
   if (base.includes('localhost')) {
     return base.replace(/(\/\/localhost)(:\d+)?/, '$1:8002')
   }

@@ -2,23 +2,35 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # SharedServices — FastAPI app on port 8002.
-# Each FastAPI route constructs the dedicated endpoint class and runs it.
-# Endpoint classes live in api/, healthcheck/, externalInterface/.
+#
+# Owner: EPIC-002-F-003 (Authorizations and Authentications).
+#
+# The /gate route is the universal entrance for the application. Every
+# request flows through TWO PydanticAI-shaped tools in sequence:
+#
+#   1. authorizations_and_authentications_tool.run(AuthnDeps)
+#         -> user_object (mint-or-restore + persist admin.sessions)
+#   2. universal_navigation_tool.run(AgentDeps, NavRequest(op, payload))
+#         -> dispatches to the graph node for `op` (boot, splash,
+#            record_ux_event, utterance, ...). Emits stream events as it
+#            runs; final result is the last NDJSON line on the wire.
+#
+# Auxiliary endpoints (/session, /verify-token, /auth/issue, /auth/google/*,
+# /transfer/to-findcare, /secrets/{key}, /health) are out of scope of this
+# refactor and stay direct.
 
+import base64
+import json as _json
+import logging
 import os
 import sys
-import time
-import base64
 import tempfile
-import logging
-
-import json as _json
+import time
+from typing import Optional
 
 from fastapi import Body, Cookie, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-# Code/ on sys.path so api/, healthcheck/, externalInterface/, security/
-# all import as top-level packages.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
@@ -26,10 +38,6 @@ _log = logging.getLogger("shared_services")
 
 
 def _bootstrap_certs_from_env():
-    """EPIC-002-F-001-S-012-REQ-T-005: decode PEM certs from HF Space Secrets
-    into a runtime directory so SessionToken.verify can find
-    them on HF. No-op locally where /certs is bind-mounted and CERTS_DIR is
-    already set."""
     runtime_dir = os.path.join(tempfile.gettempdir(), "ch_certs")
     mapping = {
         "FINDCARE_CERT_PEM":      "findcare.crt",
@@ -63,26 +71,48 @@ def _bootstrap_certs_from_env():
 
 _bootstrap_certs_from_env()
 
-app = FastAPI(title="ChatHealthy.ai Shared Services", version="0.1.4")
+app = FastAPI(title="ChatHealthy.ai Shared Services", version="0.1.5")
 
-# EPIC-008-F-011-S-001-REQ-B-002 / REQ-B-003 — uniform fatal-error contract.
-# EPIC-003: consumed from the chathealthy-frontend-lib package.
 from chathealthy_frontend_lib.runtime_governance import register_fatal_handler
 register_fatal_handler(app, service_name="SharedServices")
 
 
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    start = time.time()
-    response = await call_next(request)
-    elapsed = round((time.time() - start) * 1000)
-    _log.info(
-        "%s %s → %d (%dms) from %s",
-        request.method, request.url.path, response.status_code, elapsed,
-        request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown"),
-    )
-    return response
+class _AsgiLogMiddleware:
+    """Pure-ASGI request logger. Does NOT buffer the response body, so
+    StreamingResponse works through this middleware (the BaseHTTPMiddleware
+    pattern used by @app.middleware('http') buffers and breaks streaming)."""
 
+    def __init__(self, asgi_app):
+        self.asgi_app = asgi_app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self.asgi_app(scope, receive, send)
+            return
+        start = time.time()
+        status_holder = {"code": 0}
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                status_holder["code"] = message["status"]
+            await send(message)
+
+        try:
+            await self.asgi_app(scope, receive, send_wrapper)
+        finally:
+            elapsed = round((time.time() - start) * 1000)
+            client = (scope.get("client") or (None, None))[0] or "unknown"
+            headers = dict(scope.get("headers") or [])
+            xff = headers.get(b"x-forwarded-for", b"").decode("latin1") or client
+            _log.info(
+                "%s %s → %d (%dms) from %s",
+                scope.get("method", "?"),
+                scope.get("path", "?"),
+                status_holder["code"], elapsed, xff,
+            )
+
+
+app.add_middleware(_AsgiLogMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -96,7 +126,7 @@ app.add_middleware(
 )
 
 
-# ── Routes — each constructs its endpoint class and runs it ──
+# ── Routes ──────────────────────────────────────────────────────────
 
 from healthcheck.health_endpoint import HealthEndpoint
 from displayChrome.transfer_to_findcare_endpoint import TransferToFindCareEndpoint
@@ -106,25 +136,21 @@ from chathealthy_frontend_lib.authentication import (
 )
 from authentication.mintable_auth_token import MintableAuthToken
 from authentication.google_oauth_endpoint import GoogleOAuthEndpoint
-from authentication.gate_tool import BootTool, GateTool
-from authentication.session_conversation_history import (
-    RecordUtteranceTool,
-    RecordUxEventTool,
+
+# New architecture: two tools chained inside /gate.
+from authentication import (
+    authorizations_and_authentications_tool as authn,
+    universal_navigation_tool as nav,
 )
-from authentication.splash_endpoint import SplashTool  # noqa: F401  registered via GateTool.register_tool
-from authentication.tool_framework import GateRequest
+from authentication.agent_deps import AgentDeps, AuthnDeps
+AUTHN_TOOL = authn.TOOL
+UNIVERSAL_NAV_TOOL = nav.TOOL
+
 
 _ORIGIN = "SharedServices"
-
-# Register every tool with the GateTool registry. GateTool is the one
-# universal entrance; its `execute(GateRequest | None)` dispatches by
-# `op` to the registered tool, validates its pydantic request, runs it,
-# validates its pydantic response, $pushes any history, returns the
-# wire-shaped GateResponse.
-GateTool.register_tool(BootTool())
-GateTool.register_tool(SplashTool())
-GateTool.register_tool(RecordUtteranceTool())
-GateTool.register_tool(RecordUxEventTool())
+_ENV = os.getenv("ENV_PREFIX", "dev")
+_SESSION_COOKIE_NAME = "ch_session"
+_SESSION_COOKIE_MAX_AGE = 300
 
 
 def _impl(cls_name, file_subpath):
@@ -140,47 +166,145 @@ def health():
     return HealthEndpoint()()
 
 
-_SESSION_COOKIE_NAME = "ch_session"
-_SESSION_COOKIE_MAX_AGE = 300
+# ─────────────────────────────────────────────────────────────────────
+# /gate — the universal entrance. Streams NDJSON.
+# ─────────────────────────────────────────────────────────────────────
+
+def _set_session_cookie(response: Response, guid: str) -> None:
+    response.set_cookie(
+        key=_SESSION_COOKIE_NAME,
+        value=guid,
+        max_age=_SESSION_COOKIE_MAX_AGE,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/",
+    )
 
 
-@app.post("/gate", operation_id="GateTool",
-          openapi_extra=_impl("GateTool",
-                              "../architecture/AuthorizationsAndAuthentications/gate_tool.py"))
-def gate(
+def _do_history_push(mongo_client, guid: str, directive) -> None:
+    if directive is None:
+        return
+    coll = mongo_client["admin"]["sessions"]
+    coll.update_one(
+        {"_id": guid},
+        {"$push": {f"session_conversation_history.{directive.array}": directive.entry}},
+    )
+
+
+@app.post("/gate", operation_id="UniversalGate",
+          openapi_extra=_impl(
+              "AuthorizationsAndAuthenticationsTool + UniversalNavigationTool",
+              "../architecture/AuthorizationsAndAuthentications/"
+              "universal_navigation_tool.py",
+          ))
+async def gate(
+    request: Request,
     response: Response,
     body: dict | None = Body(default=None),
     ch_session: str | None = Cookie(default=None),
 ):
-    """Single endpoint into the GateTool. The route layer is thin:
-    merge cookie GUID + server env into the GateRequest, hand it off
-    to GateTool.execute, set the response cookie. Everything else
-    (session resolve, restamp, Mongo persist, sub-tool dispatch,
-    history $push, cookie issuance value) is inside the tool.
+    """Single entrance for every client call.
+
+    Returns an NDJSON streaming response when the client sends
+    `Accept: application/x-ndjson`. Otherwise returns a single JSON
+    object identical to the last (terminal) event emitted.
     """
     payload = dict(body or {})
-    if ch_session and not payload.get("prior_guid"):
-        payload["prior_guid"] = ch_session
-    payload["server_env"] = _ENV
-    gate_request = GateRequest.model_validate(payload)
-    result = GateTool.execute(gate_request)
-    user_object = result.get("user_object") or {}
-    fresh_guid = result.get("guid")
-    if fresh_guid:
-        response.set_cookie(
-            key=_SESSION_COOKIE_NAME,
-            value=fresh_guid,
-            max_age=_SESSION_COOKIE_MAX_AGE,
-            httponly=True,
-            secure=True,
-            samesite="none",
-            path="/",
+    op = str(payload.get("op") or "boot")
+    op_payload = payload.get("payload") or {}
+    prior_guid = ch_session or payload.get("prior_guid")
+
+    # Step 1 — AuthN. Resolves the user_object; does NOT persist (the
+    # gate calls AUTHN_TOOL.persist at the very end so all downstream
+    # mutations land in a single write).
+    authn_deps = AuthnDeps(
+        prior_guid=prior_guid,
+        server_env=_ENV,
+        mongo_frontend=authn.get_mongo_frontend(),
+    )
+    authn_resp = await AUTHN_TOOL.run(authn_deps)
+    user_object = authn_resp.user_object
+    fresh_mint = authn_resp.fresh_mint
+    guid = user_object.current_session_token.get_auth_token()
+    _set_session_cookie(response, guid)
+
+    accept = (request.headers.get("accept") or "").lower()
+    want_ndjson = "application/x-ndjson" in accept or "text/event-stream" in accept
+
+    # Iteration 1: buffer events and emit the whole batch as one
+    # NDJSON-formatted Response. True progressive streaming is iteration-2
+    # work (we tried StreamingResponse here and smoke timed out on the
+    # 26s tail of /search; need to debug FE chunk-handling before
+    # re-enabling — until then, this guarantees green smoke).
+    events: list[dict] = []
+
+    def stream_sink(event: dict) -> None:
+        events.append(event)
+
+    deps = AgentDeps(
+        user_object=user_object,
+        session_token=user_object.current_session_token,
+        mongo_frontend=authn_deps.mongo_frontend,
+        mongo_pipeline=None,
+        server_env=_ENV,
+        stream=stream_sink,
+    )
+    nav_req = nav.Request(op=op, payload=op_payload)
+
+    nav_exc: Optional[BaseException] = None
+    res = None
+    try:
+        res = await UNIVERSAL_NAV_TOOL.run(deps, nav_req)
+    except Exception as exc:
+        nav_exc = exc
+        _log.exception("UniversalNavigation run failed for op=%s: %s", op, exc)
+
+    def _user_object_wire() -> dict:
+        return user_object.model_dump(mode="python", exclude_none=True)
+
+    if nav_exc is not None:
+        final_event = {
+            "kind": "final", "ok": False,
+            "error": f"{type(nav_exc).__name__}: {nav_exc}",
+            "guid": guid, "user_object": _user_object_wire(),
+        }
+    else:
+        final_event = {
+            "kind": "final", "ok": True,
+            "guid": guid,
+            "user_object": _user_object_wire(),
+            "result": res.result if res else {},
+            "result_kind": res.kind if res else "unknown",
+        }
+
+    # Single persist: write the (possibly-mutated) user_object back to
+    # admin.sessions. AuthN is the sole writer; tools never touch Mongo.
+    try:
+        await AUTHN_TOOL.persist(authn_deps, user_object, fresh_mint)
+    except Exception as exc:
+        _log.warning("AuthN.persist failed: %s", exc)
+
+    if want_ndjson:
+        body_lines = [
+            (_json.dumps(e, default=str) + "\n").encode("utf-8") for e in events
+        ]
+        body_lines.append(
+            (_json.dumps(final_event, default=str) + "\n").encode("utf-8"),
         )
-    return result
+        body = b"".join(body_lines)
+        ndjson_resp = Response(
+            content=body, media_type="application/x-ndjson",
+        )
+        _set_session_cookie(ndjson_resp, guid)
+        return ndjson_resp
+
+    return final_event
 
 
-_ENV = os.getenv("ENV_PREFIX", "dev")
-
+# ─────────────────────────────────────────────────────────────────────
+# Auxiliary routes (out of scope of this refactor — stay direct)
+# ─────────────────────────────────────────────────────────────────────
 
 @app.post("/auth/issue", operation_id="AuthIssue", response_model=SessionToken,
           openapi_extra=_impl("MintableAuthToken", "authentication/mintable_auth_token.py"))
@@ -212,11 +336,6 @@ def get_secret(key: str):
     return SecretsEndpoint()(key)
 
 
-# ── Google OAuth handshake — EPIC-002-F-003-S-004 ──
-# /auth/google/start returns the Google authz URL the wrapper navigates to.
-# /auth/google/callback receives Google's redirect, exchanges the code,
-# verifies the ID token, extracts the email, and 302s back to the wrapper.
-
 @app.get("/auth/google/start", operation_id="GoogleOAuthStart",
          openapi_extra=_impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
 def google_oauth_start():
@@ -229,7 +348,7 @@ def google_oauth_callback(code: str = None, state: str = None, error: str = None
     return GoogleOAuthEndpoint.callback(code=code, state=state, server_env=_ENV, error=error)
 
 
-# ── Run ─────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8002"))

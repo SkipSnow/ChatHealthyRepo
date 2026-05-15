@@ -209,10 +209,33 @@ class LocalDeploy:
         self._step_notice(f"workflow yaml lint passed ({len(yml_paths)} files)")
 
     # ── Human auth gate (S-001-REQ-B-006) ──────────────────────────────
-    # OVERNIGHT WAIVER (2026-05-01) — call site in run() is commented
-    # out. Restore that call before morning UAT. The function body stays so
-    # restoration is a single-line uncomment, not a function-rewrite.
     def _human_authorization_gate(self) -> None:
+        """Operator-authorizes the deploy. Two explicit paths:
+
+          1. Interactive TTY: prompt for y/n.
+          2. Pre-authorized (env var ``CHATHEALTHY_DEPLOY_AUTHORIZED``
+             set to 1/y/yes/true): skip the prompt. Pre-auth covers
+             IDE deploy buttons, wrappers, and non-tty invocations
+             that must not depend on stdin redirection tricks.
+
+        If stdin is not a TTY *and* the env var is unset, fail hard
+        with an operator-actionable message. There is no third path,
+        no silent default — the deploy never proceeds unless the
+        operator named the authorization explicitly.
+        """
+        pre_auth = os.environ.get("CHATHEALTHY_DEPLOY_AUTHORIZED", "").strip().lower()
+        if pre_auth in ("1", "y", "yes", "true"):
+            self._step_notice(
+                f"{self.env} deploy pre-authorized via "
+                "CHATHEALTHY_DEPLOY_AUTHORIZED env var"
+            )
+            return
+        if not sys.stdin.isatty():
+            sys.exit(
+                "Deploy aborted — no TTY and CHATHEALTHY_DEPLOY_AUTHORIZED "
+                "is unset. Either run from a terminal, or set "
+                "CHATHEALTHY_DEPLOY_AUTHORIZED=1 to authorize."
+            )
         ans = input(f"Authorize {self.env} deploy? (y/n): ").strip().lower()
         if ans != "y":
             sys.exit(f"Deploy aborted by human at gate ({self.env}).")
@@ -468,9 +491,16 @@ class LocalDeploy:
         # Pre-S-008: bake localhost FindCare URL. Post-S-008: SharedServices.
         # Tonight we are pre-S-008 (S-008 migration is in the morning bug list).
         api_url = ""  # empty -> relative URLs to same origin (port 7860)
+        # EvaluateCare lives on container port 7860 mapped to host port 8001.
+        # The React frontend uses VITE_EVALCARE_URL to POST handoff payloads
+        # to /evaluate/providers. If unset, the build bakes "" and the
+        # handoff POST goes to FindCare's own origin and 404s. Mirror what
+        # remote_deploy.py does for HF Spaces.
+        evalcare_url = f"https://localhost:{self.PORTS['evalcare']}"
 
         env = os.environ.copy()
         env["VITE_API_URL"] = api_url
+        env["VITE_EVALCARE_URL"] = evalcare_url
         try:
             subprocess.run(
                 ["npm", "ci", "--silent"],
@@ -541,14 +571,26 @@ class LocalDeploy:
                 ["docker", "rm", "-f", container_name],
                 capture_output=True, text=True, creationflags=cflags,
             )
+            # Per-container env extras. ch-sharedsvc's UniversalNavigation
+            # tool calls into FindCare over HTTP; the default bridge network
+            # does not give us name resolution, so use host.docker.internal
+            # (Docker Desktop) which routes back to the host's published
+            # port for ch-findcare (7860).
+            extra_env: list[str] = []
+            if container_name == "ch-sharedsvc":
+                extra_env.extend([
+                    "-e", f"FINDCARE_INTERNAL_URL=https://host.docker.internal:{self.PORTS['findcare']}",
+                ])
             # Run fresh container from the latest image. Container is
             # named after its image (1:1 convention).
             run_cmd = (
                 ["docker", "run", "-d",
                  "--name", container_name,
+                 "--add-host", "host.docker.internal:host-gateway",
                  "-p", f"{host_port}:7860",
                  "-v", f"{certs_host}:/certs:ro"]
                 + env_args
+                + extra_env
                 + [container_name]
             )
             run_result = subprocess.run(
@@ -737,14 +779,34 @@ class LocalDeploy:
         sys.stderr.write(banner + "\n")
 
     # ── Human verify before teardown (S-001-REQ-B-004) ─────────────────
-    # OVERNIGHT WAIVER — overnight we never auto-teardown after smoke; the
-    # next deploy run's _teardown_precondition() handles any teardown the
-    # human authorizes. So this gate is a no-op tonight by virtue of the
-    # script not invoking teardown post-smoke. Restored implicitly when
-    # someone wires automatic teardown into run() in a future iteration.
     def _human_verify_before_teardown(self) -> None:
-        # OVERNIGHT WAIVER (2026-05-01) — restore before morning UAT
-        ans = input("Smoke failed. Tear down anyway? (y/n): ").strip().lower()
+        """Smoke failed. The requirement is human intervention BEFORE any
+        teardown — never an auto-skip. The environment is left up so the
+        operator can inspect.
+
+        Interactive TTY: prompt; the operator decides teardown or leave up.
+        Non-interactive (CI / orchestrator-spawned subprocess): we cannot
+        prompt the TTY here, but the intervention requirement is NOT
+        waived — it is moved to the surface that CAN reach the operator
+        (the web approval gate in
+        automated_deploy_with_web_approval.py). This function exits
+        normally so the structured-output + non-zero smoke_rc propagate;
+        the orchestrator surfaces the failure to the operator and waits
+        for their decision there.
+        """
+        self._step_notice(
+            "smoke failed — environment left up; operator intervention "
+            "required (interactive prompt below, OR — if running under the "
+            "automated orchestrator — the web approval gate)."
+        )
+        try:
+            ans = input("Smoke failed. Tear down anyway? (y/n): ").strip().lower()
+        except (EOFError, OSError):
+            # No interactive stdin — running under an orchestrator that
+            # handles the operator's decision elsewhere (e.g. the web
+            # approval gate). Return cleanly so _write_structured_output
+            # still runs and the orchestrator can report smoke_passed=False.
+            return
         if ans != "y":
             sys.exit("Teardown aborted at human verify gate.")
 
