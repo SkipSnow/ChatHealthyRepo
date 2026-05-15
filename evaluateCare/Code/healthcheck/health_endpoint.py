@@ -1,20 +1,37 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-import os
+import json
 import logging
+import os
+from pathlib import Path
+
+
+_BUILD_INFO_PATH = "/app/build_info.json"
+
+
+def _read_build_info() -> dict | None:
+    """Return the build_info.json baked into the image at build time, or
+    None if the file is absent (older image; caller falls back to the
+    admin.Versions read for back-compat)."""
+    p = Path(_BUILD_INFO_PATH)
+    if not p.is_file():
+        return None
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return None
 
 
 class HealthEndpoint:
-    """GET /health — env, db status, build/version/framework from admin.Versions.
+    """POST /health — env, db status, build/version/framework.
 
-    Failure semantics (NO silent fallbacks):
-      - Mongo URI not configured       → status: "degraded"
-      - Mongo connection/read fails    → status: "degraded"
-      - build/version/framework are
-        explicit None when the read
-        didn't succeed, never the
-        misleading sentinel "?".
+    Source priority for build/version/framework:
+      1. /app/build_info.json (baked at image build time — the truth about
+         what's running)
+      2. admin.Versions latest doc (legacy fallback for older images)
+
+    The db reachability check still runs so the db status field is honest.
     """
 
     def __init__(self):
@@ -23,31 +40,37 @@ class HealthEndpoint:
         self.uri = os.environ.get("MONGO_FRONTEND_connectionString")
 
     def __call__(self):
-        if not self.uri:
+        baked = _read_build_info()
+
+        # Db status — independent of where build info comes from.
+        db_status = "unconfigured"
+        mongo_doc: dict = {}
+        if self.uri:
+            try:
+                from pymongo import MongoClient
+                client = MongoClient(self.uri, serverSelectionTimeoutMS=5000)
+                mongo_doc = client["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
+                db_status = "connected"
+            except Exception as e:
+                self.log.warning("/health Mongo read failed: %s", e)
+                db_status = "unreachable"
+
+        if baked is not None:
             return {
-                "status": "degraded",
+                "status": "ok" if db_status == "connected" else "degraded",
                 "service": "evaluate_care",
-                "db": "unconfigured",
+                "db": db_status,
                 "env": self.env_prefix,
-                "build": None, "version": None, "framework": None,
-                "error": "MONGO_FRONTEND_connectionString env var not set",
+                "build": baked.get("build"),
+                "commit": baked.get("commit"),
+                "built_at": baked.get("built_at"),
+                "version": baked.get("version") or mongo_doc.get("version"),
+                "framework": baked.get("framework") or mongo_doc.get("framework"),
+                "source": "build_info.json",
             }
-        try:
-            from pymongo import MongoClient
-            client = MongoClient(self.uri, serverSelectionTimeoutMS=5000)
-            doc = client["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
-        except Exception as e:
-            self.log.warning("/health Mongo read failed: %s", e)
-            return {
-                "status": "degraded",
-                "service": "evaluate_care",
-                "db": "unreachable",
-                "env": self.env_prefix,
-                "build": None, "version": None, "framework": None,
-                "error": f"{type(e).__name__}: {e}",
-            }
-        # Per-env builds[] array shape: extract this container's env slot.
-        _builds_arr = doc.get("builds", [])
+
+        # Legacy fallback: build info from admin.Versions.
+        _builds_arr = mongo_doc.get("builds", [])
         _build_for_env = None
         if isinstance(_builds_arr, list):
             _build_for_env = next(
@@ -56,11 +79,12 @@ class HealthEndpoint:
                 None,
             )
         return {
-            "status": "ok",
+            "status": "ok" if db_status == "connected" else "degraded",
             "service": "evaluate_care",
-            "db": "connected",
+            "db": db_status,
             "env": self.env_prefix,
             "build": _build_for_env,
-            "version": doc.get("version"),
-            "framework": doc.get("framework"),
+            "version": mongo_doc.get("version"),
+            "framework": mongo_doc.get("framework"),
+            "source": "admin.Versions",
         }

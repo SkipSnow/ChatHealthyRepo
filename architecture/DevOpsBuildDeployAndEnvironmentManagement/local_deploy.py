@@ -387,6 +387,43 @@ class LocalDeploy:
                 f"stderr={result.stderr.strip()[:300]}"
             )
 
+    def _write_build_info(self, build_ctx_abs: Path, container_name: str) -> Path:
+        """Write build_info.json into the docker build context BEFORE the
+        image is built. Baked into the image via the Dockerfile's
+        `COPY build_info.json /app/build_info.json`. Each container's
+        /health reads it at request time so the build number reported
+        equals the build number this image was built with — no Mongo
+        round-trip, no race."""
+        cflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+        try:
+            build_num = subprocess.run(
+                ["git", "rev-list", "--count", "HEAD"],
+                cwd=str(self.repo_root), capture_output=True, text=True,
+                creationflags=cflags, check=True,
+            ).stdout.strip()
+        except Exception:
+            build_num = "0"
+        try:
+            commit = subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=str(self.repo_root), capture_output=True, text=True,
+                creationflags=cflags, check=True,
+            ).stdout.strip()
+        except Exception:
+            commit = "unknown"
+        info = {
+            "build": int(build_num) if build_num.isdigit() else None,
+            "commit": commit,
+            "env": self.env,
+            "service": container_name,
+            "version": "1.4.1",
+            "framework": "0.1.5",
+            "built_at": datetime.now(timezone.utc).isoformat(),
+        }
+        out = build_ctx_abs / "build_info.json"
+        out.write_text(json.dumps(info, indent=2), encoding="utf-8")
+        return out
+
     # ── Build backend containers (V11 S-002-REQ-T-001) ─────────────────
     def _build_backend_containers(self) -> None:
         """Docker build per V11 S-002-REQ-T-001. Idempotent: docker build
@@ -454,6 +491,11 @@ class LocalDeploy:
                     ),
                 )
 
+            # Write build_info.json into the build context. Baked into
+            # the image so /health can report the truth about what's
+            # running without consulting Mongo at request time.
+            build_info_path = self._write_build_info(build_ctx_abs, container_name)
+
             self._step_notice(
                 f"building image {image_tag} (-f {dockerfile_rel}, "
                 f"context={build_ctx_rel})"
@@ -470,13 +512,12 @@ class LocalDeploy:
                                    if sys.platform == "win32" else 0),
                 )
             finally:
-                # Always clean up the staged copy, even on failure, so we
-                # don't pollute the source tree with FrontEndApplicationLib
-                # duplicates that drift from the canonical copy at repo root.
                 if staged_lib is not None and staged_lib.exists():
                     _shutil.rmtree(staged_lib)
                 if staged_auth is not None and staged_auth.exists():
                     _shutil.rmtree(staged_auth)
+                if build_info_path.is_file():
+                    build_info_path.unlink()
             if result.returncode != 0:
                 sys.exit(
                     f"ERROR: docker build failed for {image_tag}: "
