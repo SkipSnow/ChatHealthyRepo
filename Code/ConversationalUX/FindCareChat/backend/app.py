@@ -556,46 +556,81 @@ def _check_indexes() -> dict:
     return {"status": status, "missing": missing, "errors": errors}
 
 # graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
+_BUILD_INFO_PATH = "/app/build_info.json"
+
+
+def _read_build_info():
+    """Baked-at-build-time build/version/framework. Returns None if the
+    file is absent (older image); caller falls back to admin.Versions."""
+    from pathlib import Path
+    p = Path(_BUILD_INFO_PATH)
+    if not p.is_file():
+        return None
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
 @app.post("/health")
 def health():
     """Health-state report. Returns 200 always — the body's `status` field
-    carries the result. /health is a state report, not a fatal-trigger:
-    operators need it to RESPOND when Mongo is down so monitoring can see
-    the degraded state. NO silent-fallback `?` placeholders — explicit
-    None when the read didn't succeed."""
+    carries the result. /health is a state report, not a fatal-trigger.
+
+    Source priority for build/version/framework:
+      1. /app/build_info.json — baked at image build time, truthful about
+         what's actually running.
+      2. admin.Versions latest doc — legacy fallback for older images.
+    """
     env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
     idx_check = _check_indexes()
     _build = None
     _version_str = None
     _framework_str = None
+    _commit = None
+    _built_at = None
     _version_error = None
+    _source = None
     db = _get_db()
+    mongo_doc = {}
     if db is not None:
         try:
-            doc = db["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
-            # Per-env builds[] array shape: extract this container's env slot.
-            # admin.Versions carries local|dev|qa|prod slots; local is bumped
-            # in lockstep with dev (local mirrors dev).
-            _builds_arr = doc.get("builds", [])
-            if isinstance(_builds_arr, list):
-                _build = next(
-                    (b.get("build") for b in _builds_arr
-                     if isinstance(b, dict) and b.get("env") == env_label),
-                    None,
-                )
-            _version_str = doc.get("version")
-            _framework_str = doc.get("framework")
+            mongo_doc = db["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
         except Exception as _exc:
             _log.warning("/health: MongoDB read for build/version/framework failed: %s", _exc)
             _version_error = f"{type(_exc).__name__}: {_exc}"
+
+    baked = _read_build_info()
+    if baked is not None:
+        _build = baked.get("build")
+        _commit = baked.get("commit")
+        _built_at = baked.get("built_at")
+        _version_str = baked.get("version") or mongo_doc.get("version")
+        _framework_str = baked.get("framework") or mongo_doc.get("framework")
+        _source = "build_info.json"
+    else:
+        _builds_arr = mongo_doc.get("builds", [])
+        if isinstance(_builds_arr, list):
+            _build = next(
+                (b.get("build") for b in _builds_arr
+                 if isinstance(b, dict) and b.get("env") == env_label),
+                None,
+            )
+        _version_str = mongo_doc.get("version")
+        _framework_str = mongo_doc.get("framework")
+        _source = "admin.Versions"
+
     db_status = "connected" if db is not None and _version_error is None else (
         "unavailable" if db is None else "unreachable")
     status = "ok" if (idx_check["status"] == "ok" and db_status == "connected") else "degraded"
     result = {"status": status, "db": db_status,
               "env": env_label,
               "build": _build,
+              "commit": _commit,
+              "built_at": _built_at,
               "version": _version_str,
-              "framework": _framework_str}
+              "framework": _framework_str,
+              "source": _source}
     if idx_check.get("missing"):
         result["missing_indexes"] = idx_check["missing"]
         _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
