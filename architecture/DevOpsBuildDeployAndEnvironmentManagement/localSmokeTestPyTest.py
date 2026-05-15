@@ -840,6 +840,34 @@ class TestStep25:
         if IS_PROD:
             pytest.skip("S-002-REQ-B-002: SharedServices banner button suppressed in prod")
         page = env["page"]
+
+        # Regression guard for BUG-009 (utterance capture path).
+        # Step 06 already typed one utterance ("Find me a bone doctor in
+        # Delaware") through the real Send button — that exercises the
+        # FindCare handleSend code path (the one the bug was in).
+        # Here we record two MORE utterances via a direct fetch to /gate
+        # so the smoke captures three distinct utterances without
+        # triggering two extra /search round-trips (which would overload
+        # the FindCare backend in the smoke run). The fetch is issued
+        # from the PARENT page (page.evaluate) — SS's CORS allowlist
+        # accepts the localhost origin, and the cookie travels because
+        # ch_session is bound to SS's host:port regardless of caller.
+        env.setdefault("typed_utterances", ["Find me a bone doctor in Delaware"])
+        for phrase in ("cracker Jacks", "captain crunch"):
+            page.evaluate(
+                """async (args) => {
+                    await fetch(args.url + '/gate', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({op: 'utterance', payload: {text: args.text}})
+                    });
+                }""",
+                {"url": SHARED_URL, "text": phrase},
+            )
+            page.wait_for_timeout(600)  # let the gate persist before next call
+            env["typed_utterances"].append(phrase)
+
         btn = page.locator("[data-service='sharedservices']").first
         _retry("test25_btn_visible", 10, 500,
                lambda: expect(btn).to_be_visible(timeout=400))
@@ -934,10 +962,26 @@ class TestStep28:
         if "no ux events or utterances yet" in text_lower:
             pass  # empty-state acceptable
         else:
-            # Populated: four threads by actor (Person / Machine / LLM → Person / LLM → Machine).
+            # Populated: four threads (Skip taxonomy 2026-05-15):
+            #   Person | Person → System | Machine | LLM → System.
             # CSS text-transform may uppercase the labels; compare case-insensitively.
-            for label in ("person", "machine", "llm → person", "llm → machine"):
+            for label in ("person", "person → system", "machine", "llm → system"):
                 assert label in text_lower, f"Missing thread label '{label}': {text[:300]}"
+            # The old thread labels MUST be gone.
+            for retired in ("llm → person", "llm → machine"):
+                assert retired not in text_lower, f"Retired thread label '{retired}' still present: {text[:300]}"
+            # (4) Regression guard for BUG-009 (utterance capture path):
+            #     every utterance the smoke typed earlier MUST appear in the
+            #     rendered Person thread. Step 06 typed one, Step 25 typed two
+            #     more — three total. If FindCare's /gate(record_utterance)
+            #     route regresses, this trips.
+            typed = env.get("typed_utterances", [])
+            assert len(typed) >= 3, f"Smoke harness only recorded {len(typed)} utterances; need ≥3"
+            for u in typed:
+                assert u.lower() in text_lower, (
+                    f"Utterance {u!r} missing from Person thread; capture path broken. "
+                    f"Splash text (first 600c): {text[:600]}"
+                )
         _screenshot(page, "28")
 
 

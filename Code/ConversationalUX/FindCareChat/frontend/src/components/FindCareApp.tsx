@@ -61,8 +61,16 @@ function _sharedServicesUrl(apiUrl: string): string {
   // the iframe's own origin (FindCare). Fall back to window.location.origin
   // to derive a usable base, then point at SharedServices' port/host.
   const base = apiUrl || (typeof window !== 'undefined' ? window.location.origin : '')
+  // Legacy old-style HF Space naming (kept for back-compat).
   if (base.includes('find-care-chat')) {
     return base.replace('find-care-chat', 'shared-services')
+  }
+  // Current HF Space naming: skipsnow-{prefix}chathealthyspace.hf.space ->
+  // skipsnow-{prefix}sharedservicesspace.hf.space. Prefix is "", "dev-",
+  // or "qa-". Hostname-only replace so we don't accidentally collide
+  // with a path segment.
+  if (base.includes('chathealthyspace.hf.space')) {
+    return base.replace('chathealthyspace.hf.space', 'sharedservicesspace.hf.space')
   }
   // Local: SS on :8002 regardless of incoming port (FC :7860, Caddy :443).
   if (base.includes('localhost')) {
@@ -271,10 +279,12 @@ export default function FindCareApp() {
   }, [])
 
   // ── Search ─────────────────────────────────────────────────────
+  // ── Search: one /gate stream, NDJSON consumer ───────────────────
+  // The prompt's Send button funnels through SharedServices /gate. The
+  // universal_navigation_tool routes the utterance, calls specialty_filter_tool
+  // then provider_search_and_selection_tool server-side, and emits NDJSON
+  // events as each stage completes. We render progressively.
   const doSearch = useCallback(async (text: string) => {
-    // Bug 1: abort any in-flight search so a stale response cannot stomp
-    // the new one. The aborted fetch throws AbortError which the catch
-    // below recognises and swallows.
     if (searchAbortRef.current) searchAbortRef.current.abort()
     const ac = new AbortController()
     searchAbortRef.current = ac
@@ -285,7 +295,6 @@ export default function FindCareApp() {
     setError('')
     selection.flushGarbage()
 
-    // Start timer — send elapsed seconds to parent control frame every second
     const start = Date.now()
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
@@ -294,109 +303,138 @@ export default function FindCareApp() {
       sendToParent('gui:timer', { seconds: elapsed })
     }, 1000)
 
-    try {
-      // GOV-011: One AI call to classify, then system queries DB
-      // Step 1: AI translates question → structured specialties + location
-      const classifyResp = await fetchWithColdStartRetry(`${API_URL}/classify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
-        signal: ac.signal,
-      })
-      checkSecurityViolation(classifyResp, `${API_URL}/classify`)
-      const classified = await classifyResp.json()
+    const finishTimer = () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      timerRef.current = null
+      sendToParent('gui:timer-clear')
+    }
 
-      if (classified.error || !classified.specialties?.length) {
-        if (timerRef.current) clearInterval(timerRef.current)
-        sendToParent('gui:timer-clear')
-        const msg = classified.error || 'Could not identify relevant specialties'
-        // EPIC-008-F-011-S-001-REQ-B-001: fatal errors render full-screen
-        // at the parent wrapper (index.html) — not inline in the iframe.
+    let sawError = false
+
+    const onSpecialties = (data: any) => {
+      if (data.error || !data.specialties?.length) {
+        // No-match path — surface as a fatal so the parent wrapper renders
+        // the full-screen overlay (same UX as today).
+        finishTimer()
+        const msg = data.error || 'Could not identify relevant specialties'
         sendToParent('gui:fatal-error', { message: msg })
         setError(msg)
         setPhase('error')
+        sawError = true
         return
       }
-
-      // Step 2: System queries DB with AI-provided parameters — no more AI
-      // Build taxonomy_code → specialty name lookup from user's selection
       const specMap: Record<string, string> = {}
-      classified.specialties.forEach((s: any) => { specMap[s.code] = s.name })
+      data.specialties.forEach((s: any) => { specMap[s.code] = s.name })
       specialtyMapRef.current = specMap
 
-      const codes = classified.specialties.map((s: any) => s.code)
-      const params: any = {
-        specialty_codes: codes,
-        limit: 25,
-      }
-      if (classified.state) params.state = classified.state
-      if (classified.city) params.city = classified.city
-      if (classified.county) params.county = classified.county
-
+      const codes = data.specialties.map((s: any) => s.code)
+      const params: any = { specialty_codes: codes, limit: 25 }
+      if (data.state) params.state = data.state
+      if (data.city) params.city = data.city
+      if (data.county) params.county = data.county
       setSearchParams(params)
-      await fetchProviders(params, text)
 
-      // Timer clears after DB search completes — not after classify
-      if (timerRef.current) clearInterval(timerRef.current)
-      sendToParent('gui:timer-clear')
-
-      // Send filter options to parent — use the ranked specialties from AI
-      if (classified.specialties.length > 1) {
-        const filterOptions = classified.specialties.map((s: any) => ({
-          code: s.code,
-          name: s.name,
+      const filterOptions = data.specialties.map((s: any) => ({
+        code: s.code, name: s.name,
+        can_prescribe: s.can_prescribe ?? true,
+        homeopathic: s.homeopathic ?? false,
+      }))
+      const homeoGeneralists = (data.homeopathic_generalists || []).map((s: any) => ({
+        code: s.code, name: s.name,
+        can_prescribe: s.can_prescribe ?? false,
+        homeopathic: true, homeopathic_general: true,
+      }))
+      const rows: SpecialtyRecord[] = [
+        ...data.specialties.map((s: any, i: number) => ({
+          code: s.code, name: s.name,
           can_prescribe: s.can_prescribe ?? true,
           homeopathic: s.homeopathic ?? false,
-        }))
-        // Cache homeopathic generalists for toggle
-        const homeoGeneralists = (classified.homeopathic_generalists || []).map((s: any) => ({
-          code: s.code,
-          name: s.name,
+          homeopathic_general: false,
+          rank: typeof s.rank === 'number' ? s.rank : i,
+        })),
+        ...(data.homeopathic_generalists || []).map((s: any, i: number) => ({
+          code: s.code, name: s.name,
           can_prescribe: s.can_prescribe ?? false,
-          homeopathic: true,
-          homeopathic_general: true,
-        }))
-        // EPIC-006-F-002-S-001-REQ-B-001 "Two logical lists":
-        //   List one = AI-matched specialties for THIS query (V5 picks)
-        //   List two = static homeopathic-generalist fallback set
-        // Both are part of the result set the SpecialtyFilter renders.
-        // homeopathic_general flag distinguishes list-two members so the
-        // component can sort/section them per the spec's [AGENT-FLAG]
-        // resolution (default: single merged ranked list with list-one
-        // floating above list-two).
-        const rows: SpecialtyRecord[] = [
-          ...classified.specialties.map(
-            (s: any, i: number) => ({
-              code: s.code,
-              name: s.name,
-              can_prescribe: s.can_prescribe ?? true,
-              homeopathic: s.homeopathic ?? false,
-              homeopathic_general: false,
-              rank: typeof s.rank === 'number' ? s.rank : i,
-            }),
-          ),
-          ...(classified.homeopathic_generalists || []).map(
-            (s: any, i: number) => ({
-              code: s.code,
-              name: s.name,
-              can_prescribe: s.can_prescribe ?? false,
-              homeopathic: true,
-              homeopathic_general: true,
-              rank: typeof s.rank === 'number' ? s.rank : i,
-            }),
-          ),
-        ]
+          homeopathic: true, homeopathic_general: true,
+          rank: typeof s.rank === 'number' ? s.rank : i,
+        })),
+      ]
+      if (data.specialties.length > 1) {
         setSpecialtyRows(rows)
         sendFilterToParent(filterOptions, params, homeoGeneralists, rows)
       } else {
         setSpecialtyRows([])
       }
+    }
+
+    const onProviders = (data: any) => {
+      if (ac.signal.aborted) return
+      if (data.error) {
+        finishTimer()
+        sendToParent('gui:fatal-error', { message: data.error })
+        setError(data.error)
+        setPhase('error')
+        sawError = true
+        return
+      }
+      if (data.providers) {
+        const enriched = data.providers.map((p: any) => ({
+          ...p,
+          specialty: specialtyMapRef.current[p.taxonomy_code] || '',
+        }))
+        selection.setAvailable(enriched as Provider[])
+        if (data.total_count) setTotalCount(data.total_count)
+        if (data.last_npi) setLastNpi(data.last_npi)
+        setHasMore((data.providers.length || 0) < (data.total_count || 0))
+      }
+      finishTimer()
+      setPhase('results')
+    }
+
+    try {
+      const ssUrl = _sharedServicesUrl(API_URL)
+      const resp = await fetch(`${ssUrl}/gate`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/x-ndjson',
+        },
+        body: JSON.stringify({ op: 'utterance', payload: { text } }),
+        signal: ac.signal,
+      })
+      if (!resp.ok || !resp.body) {
+        throw new Error(`Gate stream failed: HTTP ${resp.status}`)
+      }
+      const reader = resp.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = ''
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) continue
+          let evt: any
+          try { evt = JSON.parse(trimmed) } catch { continue }
+          if (evt.kind === 'specialties') onSpecialties(evt.data || {})
+          else if (evt.kind === 'providers') onProviders(evt.data || {})
+          else if (evt.kind === 'final' && !sawError && evt.ok === false) {
+            finishTimer()
+            const msg = evt.error || 'Search failed'
+            sendToParent('gui:fatal-error', { message: msg })
+            setError(msg)
+            setPhase('error')
+            sawError = true
+          }
+        }
+      }
     } catch (err: any) {
-      // Bug 1: aborted requests are expected when the user re-issues
-      // mid-flight; swallow them so the new search runs cleanly.
       if (err && (err.name === 'AbortError' || ac.signal.aborted)) return
-      if (timerRef.current) clearInterval(timerRef.current)
-      sendToParent('gui:timer-clear')
+      finishTimer()
       const msg = err.message || 'Search failed'
       sendToParent('gui:fatal-error', { message: msg })
       setError(msg)
@@ -590,25 +628,16 @@ export default function FindCareApp() {
   }, [question])
 
   // ── Handle send ────────────────────────────────────────────────
+  // Single point: the Send button calls doSearch which opens ONE /gate
+  // NDJSON stream. The universal_navigation_tool routes "utterance",
+  // captures the text into session_conversation_history.utterances on
+  // its own, runs specialty_filter + provider_search server-to-server,
+  // and emits events. No fire-and-forget side calls from the client.
   const handleSend = (e?: React.FormEvent) => {
     e?.preventDefault()
     const text = input.trim()
     if (!text) return
     setInput('')
-    // Fire-and-forget: record the utterance into admin.Sessions via the
-    // universal front door so SharedServices' splash render shows the
-    // user's typed prompts accumulating. The search itself still hits
-    // FindCare /search directly until the bridge migration; this side
-    // call exists purely for the session-conversation-history capture.
-    try {
-      const ssUrl = _sharedServicesUrl(API_URL)
-      fetch(`${ssUrl}/gate`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ op: 'record_utterance', payload: { text } }),
-      }).catch(() => { /* non-fatal */ })
-    } catch (_) { /* non-fatal */ }
     doSearch(text)
   }
 

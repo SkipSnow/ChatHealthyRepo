@@ -1667,6 +1667,12 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "brain/machine_artifacts/content/agile_backlog.json.bak_mojibake",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "brain/machine_artifacts/content/architecture.json",
           "handler_type": "json",
           "disposition": "referenced"
@@ -1873,7 +1879,19 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/AuthorizationsAndAuthentications/gate_tool.py",
+          "source_location": "architecture/AuthorizationsAndAuthentications/agent_deps.py",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/AuthorizationsAndAuthentications/authorizations_and_authentications_tool.py",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/AuthorizationsAndAuthentications/chathealthy_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced"
         },
@@ -1891,19 +1909,19 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/AuthorizationsAndAuthentications/session_conversation_history.py",
+          "source_location": "architecture/AuthorizationsAndAuthentications/provider_search_and_selection_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced"
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/AuthorizationsAndAuthentications/splash_endpoint.py",
+          "source_location": "architecture/AuthorizationsAndAuthentications/specialty_filter_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced"
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/AuthorizationsAndAuthentications/tool_framework.py",
+          "source_location": "architecture/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced"
         },
@@ -2098,6 +2116,12 @@
       "files": [
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/.wrangler/cache/pages.json",
+          "handler_type": "json",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/_localhost_server.py",
           "handler_type": "python_source",
           "disposition": "referenced"
@@ -2111,6 +2135,12 @@
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/agile_backlog.py",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/automated_deploy_with_web_approval.py",
           "handler_type": "python_source",
           "disposition": "referenced"
         },

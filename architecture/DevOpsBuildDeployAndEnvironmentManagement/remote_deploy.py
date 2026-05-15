@@ -254,6 +254,14 @@ def _sharedservices_source_set(repo_root: Path) -> list[tuple[str, str | None]]:
     return [
         ("sharedServices/Code", "."),
         ("FrontEndApplicationLib", "FrontEndApplicationLib"),
+        # EPIC-002-F-003: the auth feature lives at architecture/
+        # AuthorizationsAndAuthentications/ in the source tree (feature-
+        # mirroring layout per Skip 2026-05-14) and is staged into the
+        # SharedServices build context as `authentication/` so the
+        # Dockerfile's `COPY authentication /app/authentication` resolves.
+        # The Builder enumerates this dir under the SharedServices target;
+        # the brain artifact reflects it; this stage tuple mirrors that.
+        ("architecture/AuthorizationsAndAuthentications", "authentication"),
     ]
 
 
@@ -335,6 +343,11 @@ def _push_to_hf_space(
     elif target_id == "target_hf_space_shared_services":
         _hf_set_variable(hf_token, space, "FINDCARE_URL", findcare_peer)
         _hf_set_variable(hf_token, space, "EVALCARE_URL", evalcare_peer)
+        # SharedServices' UniversalNavigation tool calls into FindCare over
+        # HTTPS for /classify + /search. On HF Spaces the internal URL equals
+        # the public peer URL (no internal docker network). local_deploy.py
+        # sets the equivalent via per-container extra_env.
+        _hf_set_variable(hf_token, space, "FINDCARE_INTERNAL_URL", findcare_peer)
 
     # Public certs from repo (Code/Shared/ops/certs/*.crt) - base64'd.
     certs_dir = repo_root / "Code" / "Shared" / "ops" / "certs"

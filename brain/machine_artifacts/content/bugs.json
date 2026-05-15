@@ -164,6 +164,32 @@
         "Verify the reaper rewrite (commit pending) actually deletes overdue automated reservations on the next 5-min tick after deploy. Application Insights log line `Reaper tick: reaped=N, live_remaining=M, cluster_state=X` is the realized-mode evidence.",
         "Mitigation while reaper is broken: manually purge stale reservations from dev_System.cluster_lifecycle.reservations[] before they cost paid-Atlas runtime."
       ]
+    },
+    {
+      "bugid": "BUG-008",
+      "title": "Human intent is not honoured by the ChatHealthy.ai application",
+      "description": "For example: A user types 'get me a bone doc in Richmond VA' and the search executes against the entire state of VA. The city 'Richmond' is never passed to the provider search; the returned result set is the statewide pool, not the Richmond pool. This violates EPIC-006-F-001-S-001-REQ-B-001 ('Enable free text search for users') — the user's literal intent is not honored. Root cause spans the prompt-to-tool routing chain: today the FindCare frontend submits the prompt directly to /search on the FindCare backend; whatever LLM / parser converts the prompt into a search-args contract loses the city.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "in_analysis",
+      "severity": "show_stopper",
+      "req_id": "EPIC-006-F-001-S-001-REQ-B-001",
+      "story_id": "EPIC-006-F-001-S-001",
+      "test_id": "ORPHAN",
+      "test_success_criteria": [
+        "Successful execution of a rich Playwright script that exercises the application's major navigation routes. This script MUST be maintained as the application changes and adds new functional routes."
+      ],
+      "discovery_date": "2026-05-15",
+      "due_date": "2026-05-16",
+      "reproduction": "1) Visit https://dev.chathealthy.ai/. 2) Type 'get me a bone doc in Richmond VA' and click Send. Observed: results span the whole state of VA. Expected: results scoped to Richmond, VA.",
+      "orphan": false,
+      "next_action": [
+        "Design a universal site navigation route. If a user makes an utterance, send them through an utterance interpreter. If they hit a navigation button or control, and it is managed on the server side, send them and the correct data to the correct tool, which will return a result as a proprietary pedantic object, which the universal navigation tool will route correctly and potentially in parallel. E.g., back to the client, to the DB, and to other servers such as the FindCare, EvaluateCare, or TalkAboutCare servers."
+      ]
     }
   ]
 }

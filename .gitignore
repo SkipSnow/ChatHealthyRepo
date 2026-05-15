@@ -97,3 +97,8 @@ archive/
 # it never gets caught by pre-commit or accidentally committed.
 _oneshots/
 **/_oneshots/
+
+# Cloudflare wrangler CLI local cache — account_id + project_name
+# scratchpad created automatically when wrangler pushes to Pages.
+# Local-only state; not source code.
+.wrangler/

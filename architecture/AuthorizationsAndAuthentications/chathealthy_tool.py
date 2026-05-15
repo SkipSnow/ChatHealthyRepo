@@ -1,0 +1,80 @@
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+"""ChatHealthyTool — abstract base for every tool in the application.
+
+Sits between pydantic-ai's Agent and our concrete tools. The base class
+holds abstract functions only; it does NOT pin a runtime, a deps type,
+or any shared state. Concrete tools:
+
+  * Declare TOOL_NAME (str), Request (pydantic BaseModel), Response
+    (pydantic BaseModel) as class attributes.
+  * Override `run(deps, request) -> Response` as an async method.
+
+Some concrete tools wrap a pydantic-ai Agent internally (the LLM-driven
+ones, e.g. SpecialtyFilterTool). Others are pure-Python (e.g.
+ProviderSearchAndSelectionTool — straight DB query). Both expose the
+same `run()` surface so the orchestrator dispatches identically.
+"""
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from typing import ClassVar, Type
+
+from pydantic import BaseModel
+
+
+class ChatHealthyTool(ABC):
+    TOOL_NAME: ClassVar[str]
+    Request:   ClassVar[Type[BaseModel]]
+    Response:  ClassVar[Type[BaseModel]]
+
+    @abstractmethod
+    async def run(self, deps, request):
+        """Compute the response from deps + request. Mutate
+        `deps.user_object` in place when the tool's work produces session
+        state changes; the gate persists the user_object back to
+        admin.sessions at the end of the run. Tools do NOT log their own
+        invocation — the base class does that uniformly in run_and_log().
+        """
+        raise NotImplementedError
+
+    async def run_and_log(self, deps, request):
+        """Single uniform entry point for tools that are dispatched after
+        AuthN. Runs the tool, then appends a tool_invocation entry to the
+        user_object's session_conversation_history. Concrete tools never
+        have to remember to log themselves — the base class does it.
+
+        Bootstrap tools (e.g. AuthN) whose deps do NOT yet carry a
+        user_object should be invoked via `run()` directly, not this
+        method.
+        """
+        result = await self.run(deps, request)
+        from authentication.agent_deps import log_tool_invocation
+        try:
+            args_dump = (
+                request.model_dump(exclude_none=True) if request is not None else {}
+            )
+        except Exception:
+            args_dump = {}
+        try:
+            result_dump = (
+                result.model_dump(exclude_none=True) if result is not None else {}
+            )
+        except Exception:
+            result_dump = {}
+        log_tool_invocation(
+            deps.user_object,
+            tool_name=self.TOOL_NAME,
+            tool_args=args_dump,
+            tool_result=result_dump,
+        )
+        return result
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        for attr in ("TOOL_NAME", "Request", "Response"):
+            if not getattr(cls, attr, None):
+                raise TypeError(
+                    f"ChatHealthyTool subclass {cls.__name__} missing "
+                    f"required class attribute {attr!r}"
+                )
