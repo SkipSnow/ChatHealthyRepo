@@ -4,9 +4,6 @@ name: Deploy FindCare Website (Dev)
   push:
     branches:
     - dev
-    paths:
-    - Website/**
-    - .github/workflows/deploy-findcare-website-dev.yml
 jobs:
   deploy:
     runs-on: ubuntu-latest
