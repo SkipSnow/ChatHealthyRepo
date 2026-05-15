@@ -1,0 +1,50 @@
+name: Deploy (dev/qa/prod)
+'on':
+  workflow_dispatch:
+    inputs:
+      skip_smoke:
+        type: boolean
+        description: skip master smoke test after deploy (debug only)
+        default: false
+  push:
+    branches:
+    - dev
+    - qa
+    - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Derive env from branch
+      id: env
+      run: "BR=\"${GITHUB_REF_NAME}\"\nif [ \"$BR\" = \"main\" ]; then ENV=\"prod\"; else ENV=\"$BR\"; fi\necho \"env=$ENV\" >> $GITHUB_OUTPUT\necho \"Deploying env: $ENV from branch $BR\"\n"
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - name: Install dependencies
+      run: 'pip install --quiet pytest pytest-playwright httpx cryptography psutil python-dotenv jsonschema anyio pymongo requests
+
+        playwright install --with-deps chromium
+
+        '
+    - name: Run remote_deploy.py
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        FINDCARE_SIGNING_KEY_B64: ${{ secrets.FINDCARE_SIGNING_KEY_B64 }}
+        SHARED_SIGNING_KEY_B64:   ${{ secrets.SHARED_SIGNING_KEY_B64 }}
+        EVALCARE_SIGNING_KEY_B64: ${{ secrets.EVALCARE_SIGNING_KEY_B64 }}
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        ENV: ${{ steps.env.outputs.env }}
+      run: 'python architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_deploy.py --env ${{ steps.env.outputs.env }}${{ inputs.skip_smoke && '' --skip-smoke'' || '''' }}
+        '
