@@ -595,6 +595,20 @@ export default function FindCareApp() {
     const text = input.trim()
     if (!text) return
     setInput('')
+    // Fire-and-forget: record the utterance into admin.Sessions via the
+    // universal front door so SharedServices' splash render shows the
+    // user's typed prompts accumulating. The search itself still hits
+    // FindCare /search directly until the bridge migration; this side
+    // call exists purely for the session-conversation-history capture.
+    try {
+      const ssUrl = _sharedServicesUrl(API_URL)
+      fetch(`${ssUrl}/gate`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ op: 'record_utterance', payload: { text } }),
+      }).catch(() => { /* non-fatal */ })
+    } catch (_) { /* non-fatal */ }
     doSearch(text)
   }
 

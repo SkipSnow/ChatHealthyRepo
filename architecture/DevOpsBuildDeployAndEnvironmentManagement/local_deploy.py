@@ -321,17 +321,6 @@ class LocalDeploy:
         if not shutil.which("python"):
             sys.exit("ERROR: python not on PATH")
 
-        # ux access: vite path alias `@shared/ux` -> ../../../Shared/ux
-        # (configured in vite.config.ts + tsconfig.json). No filesystem
-        # symlink needed; the bundler resolves the alias at build time.
-        # Verify the target dir exists; fail hard if missing.
-        ux_target = self.repo_root / "Code" / "Shared" / "ux"
-        if not ux_target.is_dir():
-            sys.exit(
-                f"ERROR: shared ux directory missing at {ux_target}. "
-                "Required by vite alias @shared/ux."
-            )
-
     # ── Backend container names (V11 S-001-REQ-T-001 + S-002-REQ-T-001) ─
     # Container name -> (host port, backend source dir relative to repo root)
     # Each entry: container_name -> (port label, src_dir, build_context).
@@ -395,6 +384,7 @@ class LocalDeploy:
         """
         import shutil as _shutil
         frontend_lib_src = self.repo_root / "FrontEndApplicationLib"
+        auth_src = self.repo_root / "architecture" / "AuthorizationsAndAuthentications"
         for container_name, entry in self.BACKEND_CONTAINERS.items():
             _label, src_dir, build_ctx_rel = entry
             image_tag = container_name  # same name for image and container
@@ -421,6 +411,26 @@ class LocalDeploy:
                 _shutil.copytree(frontend_lib_src, staged_lib,
                                  ignore=_shutil.ignore_patterns("__pycache__", "*.pyc"))
 
+            # SharedServices auth-staging: the auth source files now live
+            # under architecture/AuthorizationsAndAuthentications/ (Skip's
+            # feature-mirroring layout, 2026-05-14) but the SharedServices
+            # Dockerfile's `COPY authentication /app/authentication`
+            # expects them inside the build context. Mirror them in for
+            # the docker build, then clean up afterwards. The HF GHA
+            # workflow will need the equivalent rsync when SS deploys
+            # remotely (deferred).
+            staged_auth = None
+            if container_name == "ch-sharedsvc" and auth_src.is_dir():
+                staged_auth = build_ctx_abs / "authentication"
+                if staged_auth.exists():
+                    _shutil.rmtree(staged_auth)
+                _shutil.copytree(
+                    auth_src, staged_auth,
+                    ignore=_shutil.ignore_patterns(
+                        "__pycache__", "*.pyc", "ArchitectureDesignAndAuditDocs",
+                    ),
+                )
+
             self._step_notice(
                 f"building image {image_tag} (-f {dockerfile_rel}, "
                 f"context={build_ctx_rel})"
@@ -442,6 +452,8 @@ class LocalDeploy:
                 # duplicates that drift from the canonical copy at repo root.
                 if staged_lib is not None and staged_lib.exists():
                     _shutil.rmtree(staged_lib)
+                if staged_auth is not None and staged_auth.exists():
+                    _shutil.rmtree(staged_auth)
             if result.returncode != 0:
                 sys.exit(
                     f"ERROR: docker build failed for {image_tag}: "

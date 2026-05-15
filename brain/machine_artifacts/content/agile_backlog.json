@@ -12158,8 +12158,8 @@
                         },
                         {
                           "req_id": "EPIC-008-F-012-S-006-REQ-B-028",
-                          "name": "Step 28 â€” SharedServices splash text",
-                          "requirement": "`#sharedSplash` MUST be visible and contain the literal strings `Shared Services` and `is still unimplemented`.",
+                          "name": "Step 28 — SharedServices splash renders the live User Object",
+                          "requirement": "After the user clicks the SharedServices banner button, the center panel `#sharedSplash` MUST be visible and MUST render the User Object as follows: (1) Header containing the literal 'Shared Services — User Object'. (2) An 'Identity' subsection that lists, on labeled rows: `user_type` with the literal value `Guest` (the universal pre-registration identity), `guid` as a 32-character lowercase hex string, `origin` with the literal value `SharedServices`, `server_env`, `created_at`, and `expires_at`. (3) A 'Session Conversation History' subsection. If the underlying admin.Sessions doc carries no `ux_events` and no `utterances` yet, the subsection MUST display the literal 'No UX events or utterances yet.'; otherwise it MUST render the conversation as four parallel scroll-bar threads, categorized by actor (three actors: Person, Machine, LLM — the LLM split into two outbound threads): a thread labeled 'Person' carrying UX-control clicks and typed utterances; a thread labeled 'Machine' carrying pedantic responses and tool results; a thread labeled 'LLM → Person' carrying clarifications; and a thread labeled 'LLM → Machine' carrying tool invocations. Each thread MUST be in its own scrollable container; small (≤11px) body font. The splash content is computed server-side by the SharedServices splash op invoked through the universal front door (POST /gate). The FindCare page renders the returned HTML verbatim.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -12170,7 +12170,7 @@
                                 "test_id": "EPIC-008-F-012-S-006-REQ-B-028-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
-                                "file": "Code/deploy/localSmokeTestPyTest.py"
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/localSmokeTestPyTest.py"
                               }
                             ]
                           },
