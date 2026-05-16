@@ -21,7 +21,15 @@ jobs:
         fetch-depth: 0
     - name: Derive env from branch
       id: env
-      run: "BR=\"${GITHUB_REF_NAME}\"\nif [ \"$BR\" = \"main\" ]; then ENV=\"prod\"; else ENV=\"$BR\"; fi\necho \"env=$ENV\" >> $GITHUB_OUTPUT\necho \"Deploying env: $ENV from branch $BR\"\n"
+      run: 'BR="${GITHUB_REF_NAME}"
+
+        if [ "$BR" = "main" ]; then ENV="prod"; else ENV="$BR"; fi
+
+        echo "env=$ENV" >> $GITHUB_OUTPUT
+
+        echo "Deploying env: $ENV from branch $BR"
+
+        '
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -40,11 +48,10 @@ jobs:
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
         FINDCARE_SIGNING_KEY_B64: ${{ secrets.FINDCARE_SIGNING_KEY_B64 }}
-        SHARED_SIGNING_KEY_B64:   ${{ secrets.SHARED_SIGNING_KEY_B64 }}
+        SHARED_SIGNING_KEY_B64: ${{ secrets.SHARED_SIGNING_KEY_B64 }}
         EVALCARE_SIGNING_KEY_B64: ${{ secrets.EVALCARE_SIGNING_KEY_B64 }}
         CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
         ENV: ${{ steps.env.outputs.env }}
-      run: 'python architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_deploy.py --env ${{ steps.env.outputs.env }}${{ inputs.skip_smoke && '' --skip-smoke'' || '''' }}
-        '
+      run: 'python architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_deploy.py --env ${{ steps.env.outputs.env }}${{ inputs.skip_smoke && '' --skip-smoke'' || '''' }} '

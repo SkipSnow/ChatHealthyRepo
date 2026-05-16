@@ -13,10 +13,6 @@ COPY FindCare /app/FindCare
 COPY FrontEndApplicationLib /app/FrontEndApplicationLib
 RUN pip install --no-cache-dir /app/FrontEndApplicationLib
 
-# build_info.json is written into the build context by the deploy
-# substrate (local_deploy.py for docker, the GHA workflow's staging
-# step for HF). /health reads it at request time so the build number
-# reported = the build number this image was built with.
 COPY build_info.json /app/build_info.json
 
 WORKDIR /app/Code/ConversationalUX/FindCareChat/backend

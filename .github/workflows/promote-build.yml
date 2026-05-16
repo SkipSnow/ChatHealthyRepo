@@ -82,7 +82,15 @@ jobs:
       if: inputs.dry_run == false
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: "BR=\"${{ inputs.to_env }}\"\nif [ \"$BR\" = \"prod\" ]; then BR=\"main\"; fi\ngh workflow run deploy.yml --ref \"$BR\"\necho \"Dispatched deploy.yml on $BR\"\n"
+      run: 'BR="${{ inputs.to_env }}"
+
+        if [ "$BR" = "prod" ]; then BR="main"; fi
+
+        gh workflow run deploy.yml --ref "$BR"
+
+        echo "Dispatched deploy.yml on $BR"
+
+        '
     - name: Dry run summary
       if: inputs.dry_run == true
       env:
