@@ -86,17 +86,18 @@ def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
         "target_hf_space_shared_services":      "ch-sharedsvc",
     }
     service = service_map.get(target_id, target_id)
-    build_num_str = os.environ.get("GITHUB_RUN_NUMBER", "")
+    # Build = commit count on the deployed branch (Rule-063 / admin.Versions
+    # convention). GITHUB_RUN_NUMBER is intentionally NOT used here - it
+    # increments per-workflow-run, not per-commit, and drifts from the
+    # canonical build counter.
     try:
         cp = subprocess.run(
             ["git", "rev-list", "--count", "HEAD"],
             capture_output=True, text=True, check=True,
         )
-        commits_on_branch = cp.stdout.strip()
-        if not build_num_str:
-            build_num_str = commits_on_branch
+        build_num_str = cp.stdout.strip()
     except Exception:
-        commits_on_branch = ""
+        build_num_str = ""
     try:
         commit = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
