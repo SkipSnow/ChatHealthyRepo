@@ -140,7 +140,7 @@ def _resolve_session(
 
 
 def _user_id_for_guid(users_coll, guid: str) -> Optional[str]:
-    """Return user_id whose user_object holds this session's GUID, or None."""
+    """Return user_id whose stored user_object holds this session's GUID."""
     doc = users_coll.find_one(
         {"user_object.current_session_token.auth_token": guid},
         {"user_id": 1},
@@ -148,16 +148,25 @@ def _user_id_for_guid(users_coll, guid: str) -> Optional[str]:
     return doc["user_id"] if doc else None
 
 
-def _user_id_for_google_sub(users_coll, google_sub: str) -> Optional[str]:
+def _user_id_for_provider_sub(
+    users_coll, provider: str, provider_user_id: str,
+) -> Optional[str]:
+    """Look up a users record by an entry in user_object.OAuthIdentities."""
     doc = users_coll.find_one(
-        {"GoogleIDForOAuth": google_sub},
+        {"user_object.OAuthIdentities": {
+            "$elemMatch": {
+                "provider": provider,
+                "provider_user_id": provider_user_id,
+            },
+        }},
         {"user_id": 1},
     )
     return doc["user_id"] if doc else None
 
 
 def _persist(coll, users_coll, user_object: UserObject, fresh_mint: bool) -> None:
-    """Sole writer for admin.sessions (per-session) and admin.users (mirror)."""
+    """Sole writer for admin.sessions (per-session, every persist) and
+    admin.users (mirror, only when user_object.is_registered == True)."""
     _ensure_indexes(coll)
     guid = user_object.current_session_token.get_auth_token()
     body = user_object.model_dump(mode="python", exclude_none=True)
@@ -168,24 +177,20 @@ def _persist(coll, users_coll, user_object: UserObject, fresh_mint: bool) -> Non
             upsert=True,
         )
     else:
-        volatile = {
-            "current_session_token": body["current_session_token"],
-            "expires_at": body["expires_at"],
-            "session_conversation_history": body.get(
-                "session_conversation_history",
-                {"unanswered_questions": [], "ux_events": [], "utterances": []},
-            ),
-        }
-        coll.update_one({"_id": guid}, {"$set": volatile})
-
-    # Mirror to users collection (only when this session already maps to
-    # a registered user). Same user_object value, two homes.
-    user_id = _user_id_for_guid(users_coll, guid)
-    if user_id:
-        users_coll.update_one(
-            {"user_id": user_id},
-            {"$set": {"user_object": body}},
+        coll.replace_one(
+            {"_id": guid},
+            {"_id": guid, **body},
+            upsert=True,
         )
+
+    # Mirror to users collection when is_registered == True (REQ-T-010).
+    if user_object.is_registered is True:
+        user_id = _user_id_for_guid(users_coll, guid)
+        if user_id:
+            users_coll.update_one(
+                {"user_id": user_id},
+                {"$set": {"user_object": body}},
+            )
 
 
 class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
@@ -235,23 +240,28 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
         _persist(coll, users_coll, user_object, fresh_mint)
 
     def handle_oauth_login(
-        self, mongo_frontend, *, google_sub: str, session_guid: str,
+        self, mongo_frontend, *,
+        google_sub: str, email: str, session_guid: str,
     ) -> str:
-        """Register-or-find a users record for this Google sub, bind it to
-        the current session, and return the user_id that the OAuth
+        """Register-or-find a users record for this Google identity, bind
+        it to the current session, and return the user_id that the OAuth
         callback MUST set in ChatHealthyUserCookie.
 
-        First-time login: creates a users record with a freshly generated
-        user_id, GoogleIDForOAuth = google_sub, and user_object copied
-        from the current session (with public username set to google_sub).
+        First-time (REQ-T-009): creates a users record with a freshly
+        generated user_id and a user_object whose OAuthIdentities array
+        contains one Google entry. The new user_object has is_registered
+        = True, user_type = "Prospect", and public_username = Google sub.
 
-        Returning login: reuses the existing user_id; reloads the stored
-        user_object and rebinds it to the current session GUID.
+        Returning (REQ-T-012): reuses the existing user_id; refreshes the
+        Google entry's email to this callback's value; REPLACES the
+        session's guest user_object with the stored one (preserving the
+        current session token + expires_at so the live session stays
+        intact).
         """
+        provider = "Google"
         sessions_coll = mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
         users_coll = mongo_frontend[_SESSION_DB][_USERS_COLLECTION]
 
-        existing_user_id = _user_id_for_google_sub(users_coll, google_sub)
         session_doc = sessions_coll.find_one({"_id": session_guid})
         if not session_doc:
             raise RuntimeError(
@@ -260,44 +270,86 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
                 "prior /gate visit"
             )
         session_user_object = {k: v for k, v in session_doc.items() if k != "_id"}
+        live_token = session_user_object.get("current_session_token")
+        live_expires = session_user_object.get("expires_at")
+
+        existing_user_id = _user_id_for_provider_sub(
+            users_coll, provider=provider, provider_user_id=google_sub,
+        )
 
         if existing_user_id is None:
+            # REQ-T-009: register.
             user_id = "u-" + secrets.token_urlsafe(16)
             new_user_object = dict(session_user_object)
             new_user_object["public_username"] = google_sub
+            new_user_object["user_type"] = "Prospect"
+            new_user_object["is_registered"] = True
+            new_user_object["OAuthIdentities"] = [{
+                "provider": provider,
+                "provider_user_id": google_sub,
+                "email": email,
+            }]
             users_coll.insert_one({
                 "user_id": user_id,
-                "GoogleIDForOAuth": google_sub,
                 "user_object": new_user_object,
             })
-            # Also write the public_username into admin.sessions so the
-            # next persist() round-trip sees a consistent UserObject.
+            # Reflect the upgraded state into the live session record so
+            # the next persist() round-trip sees a consistent UserObject.
             sessions_coll.update_one(
                 {"_id": session_guid},
-                {"$set": {"public_username": google_sub}},
+                {"$set": {
+                    "public_username": google_sub,
+                    "user_type": "Prospect",
+                    "is_registered": True,
+                    "OAuthIdentities": new_user_object["OAuthIdentities"],
+                }},
             )
             return user_id
 
-        # Returning user: rebind the stored user_object to this session.
+        # REQ-T-012 + REQ-T-015: returning. Refresh the entry email,
+        # then REPLACE the live session's user_object with the stored
+        # one — but first concatenate the guest's session_conversation_
+        # history onto the stored history (stored first, guest second)
+        # so the pre-login turns aren't lost. Keep the live session
+        # token + expires_at so the 5-min TTL is unbroken.
+        users_coll.update_one(
+            {
+                "user_id": existing_user_id,
+                "user_object.OAuthIdentities": {
+                    "$elemMatch": {
+                        "provider": provider,
+                        "provider_user_id": google_sub,
+                    },
+                },
+            },
+            {"$set": {"user_object.OAuthIdentities.$.email": email}},
+        )
         existing = users_coll.find_one({"user_id": existing_user_id})
-        stored_user_object = existing.get("user_object", {}) if existing else {}
-        # Preserve the current session token (the one tied to this GUID)
-        # so the live session stays intact; merge the rest of the stored
-        # user state on top.
-        merged = dict(stored_user_object)
-        if "current_session_token" in session_user_object:
-            merged["current_session_token"] = session_user_object["current_session_token"]
-        if "expires_at" in session_user_object:
-            merged["expires_at"] = session_user_object["expires_at"]
-        # Persist the merged object back to BOTH stores.
+        stored_user_object = (existing or {}).get("user_object", {}) or {}
+        rebound = dict(stored_user_object)
+        # Merge conversation histories: stored first, guest appended.
+        guest_hist = (session_user_object.get("session_conversation_history") or {})
+        stored_hist = (stored_user_object.get("session_conversation_history") or {})
+        merged_hist = {
+            "utterances": list(stored_hist.get("utterances") or []) + list(guest_hist.get("utterances") or []),
+            "ux_events": list(stored_hist.get("ux_events") or []) + list(guest_hist.get("ux_events") or []),
+            "unanswered_questions": list(stored_hist.get("unanswered_questions") or []) + list(guest_hist.get("unanswered_questions") or []),
+        }
+        rebound["session_conversation_history"] = merged_hist
+        if live_token is not None:
+            rebound["current_session_token"] = live_token
+        if live_expires is not None:
+            rebound["expires_at"] = live_expires
         sessions_coll.replace_one(
             {"_id": session_guid},
-            {"_id": session_guid, **merged},
+            {"_id": session_guid, **rebound},
             upsert=True,
         )
+        # Mirror the merged history back to admin.users so the appended
+        # entries are durable across sessions (REQ-T-015).
         users_coll.update_one(
             {"user_id": existing_user_id},
-            {"$set": {"user_object": merged}},
+            {"$set": {"user_object.session_conversation_history": merged_hist}},
         )
         return existing_user_id
 

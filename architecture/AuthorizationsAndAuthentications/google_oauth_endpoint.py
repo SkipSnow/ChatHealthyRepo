@@ -37,9 +37,9 @@ GOOGLE_AUTHZ_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 # After Google redirects back, the callback lands on the SharedServices
-# Space (NOT the wrapper) so it can set ChatHealthyUserCookie on the
-# SharedServices origin. The Google Cloud OAuth client must list these
-# URLs in its Authorized Redirect URIs.
+# Space directly (so the Space's origin can set ChatHealthyUserCookie).
+# The Google Cloud OAuth client must list these URLs in its Authorized
+# Redirect URIs.
 _ENV_TO_REDIRECT_URI = {
     "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space/auth/google/callback",
     "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space/auth/google/callback",
@@ -238,6 +238,7 @@ class GoogleOAuthEndpoint:
             user_id = AUTHN_TOOL.handle_oauth_login(
                 get_mongo_frontend(),
                 google_sub=google_sub,
+                email=email,
                 session_guid=session_guid,
             )
         except Exception as exc:
