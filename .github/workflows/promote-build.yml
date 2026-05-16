@@ -31,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
     - name: Validate promotion path
       run: "FROM=\"${{ inputs.from_env }}\"\nTO=\"${{ inputs.to_env }}\"\nif [ \"$FROM\" = \"dev\" ] && [ \"$TO\" = \"qa\" ]; then\n  echo \"Valid: dev -> qa\"\nelif [ \"$FROM\" = \"qa\" ] && [ \"$TO\" = \"prod\" ]; then\n  echo \"Valid: qa -> prod\"\n  if [ \"${{ inputs.confirm_prod }}\" != \"true\" ]; then\n    echo \"ERROR: Production promotion requires confirm_prod=true (GOV-007)\"\n    exit 1\n  fi\nelse\n  echo \"ERROR: Invalid promotion path: $FROM -> $TO\"\n  echo \"Valid paths: dev->qa, qa->prod\"\n  exit 1\nfi\n"
