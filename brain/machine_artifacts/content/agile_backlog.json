@@ -1848,9 +1848,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-001-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -1870,7 +1871,7 @@
                                 "test_id": "EPIC-002-F-003-S-004-REQ-B-002-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
-                                "file": "architecture/AuthorizationsAndAuthentications/tests/test_login_register_sequence.py"
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -1887,9 +1888,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-001-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -1906,9 +1908,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-002-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -1925,9 +1928,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-003-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -1944,9 +1948,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-004-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -1963,9 +1968,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-005-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -1982,9 +1988,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-006-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -1993,7 +2000,7 @@
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-007",
                           "name": "/auth/google/callback exchanges the authorization code for Google identity",
-                          "requirement": "The SharedServices /auth/google/callback endpoint MUST receive Google's authorization-code redirect, exchange the code with Google's token endpoint, and obtain the OpenID Connect sub claim (hereafter \"GoogleIDForOAuth\").",
+                          "requirement": "The SharedServices /auth/google/callback endpoint MUST receive Google's authorization-code redirect, exchange the code with Google's token endpoint, and obtain the OpenID Connect sub claim (hereafter \"GoogleIDForOAuth\") and the verified email claim.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2001,9 +2008,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-007-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -2011,8 +2019,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-008",
-                          "name": "Users collection schema is exactly three attributes",
-                          "requirement": "The users collection in the front-end MongoDB cluster MUST store records with exactly three top-level attributes: (a) user_id - a unique identifier (unique across users); (b) GoogleIDForOAuth - the Google OpenID Connect sub claim; (c) user_object - the UserObject.",
+                          "name": "Users collection has exactly two top-level attributes",
+                          "requirement": "The users collection in the front-end MongoDB cluster MUST store records with exactly two top-level attributes: (a) user_id - a unique identifier (unique across users); (b) user_object - the UserObject for that user. All per-provider identity values live inside user_object.OAuthIdentities; nothing else lives at the top level of a users record.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2020,9 +2028,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-008-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -2030,8 +2039,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-009",
-                          "name": "Registration on first callback creates the users record",
-                          "requirement": "On a successful Google OAuth callback, if no users record exists for the returned GoogleIDForOAuth, the SharedServices /auth/google/callback endpoint MUST create a new users record with: user_id = a freshly generated unique value; GoogleIDForOAuth = the Google sub; user_object = the current session's UserObject. The user_object's public username field MUST be set to the GoogleIDForOAuth.",
+                          "name": "Registration appends the Google identity into user_object.OAuthIdentities",
+                          "requirement": "On a successful Google OAuth callback, if no existing users record carries { provider: \"Google\", provider_user_id: <Google sub> } in its user_object.OAuthIdentities array, the SharedServices /auth/google/callback endpoint MUST create a new users record with: user_id = a freshly generated unique value; user_object = the current session's UserObject augmented so that user_object.OAuthIdentities contains exactly one entry: { provider: \"Google\", provider_user_id: <Google sub>, email: <Google email> }. The new user_object MUST also set is_registered = True and user_type = \"Prospect\". The user_object's public username field MUST be set to the Google sub.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2039,9 +2048,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-009-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -2049,8 +2059,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-010",
-                          "name": "Every sessions persist mirrors the user_object to the users collection",
-                          "requirement": "AuthorizationsAndAuthenticationsTool.persist() MUST, on every invocation, write the current user_object to BOTH admin.sessions (keyed by GUID) AND the users collection (keyed by user_id) when a users record exists. The two writes MUST carry the same UserObject value.",
+                          "name": "Persist mirrors user_object to the users collection when is_registered == True",
+                          "requirement": "AuthorizationsAndAuthenticationsTool.persist() MUST, on every invocation, write the current user_object to admin.sessions (keyed by GUID). When the user_object's is_registered == True, persist() MUST ALSO write the same user_object to the users collection (keyed by user_id). The two writes MUST carry the same UserObject value.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2058,9 +2068,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-010-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -2077,9 +2088,10 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-011-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },
@@ -2087,8 +2099,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-012",
-                          "name": "Returning OAuth login reuses the existing users record",
-                          "requirement": "On a successful Google OAuth callback for a GoogleIDForOAuth that already has a users record, the endpoint MUST reuse the existing user_id, MUST re-set ChatHealthyUserCookie with that user_id (Secure, 60-day), and MUST bind the existing user_object to the current session.",
+                          "name": "Returning OAuth login replaces the guest user_object with the DB user_object",
+                          "requirement": "On a successful Google OAuth callback, if a users record exists whose user_object.OAuthIdentities already contains an entry with { provider: \"Google\", provider_user_id: <Google sub> }, the endpoint MUST reuse that record's existing user_id, MUST refresh that entry's email to the email returned by Google on this callback, MUST re-set ChatHealthyUserCookie with that user_id (Secure, 60-day), MUST replace the current session's guest user_object with the stored user_object from the users collection, and MUST bind that stored user_object to the current session.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2096,9 +2108,50 @@
                           "tests": {
                             "test": [
                               {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-012-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-013",
+                          "name": "UserObject defines OAuthIdentities, an array of provider identities",
+                          "requirement": "The UserObject schema MUST define a field named OAuthIdentities of type array. Each array element MUST be an object with exactly three sub-fields: (a) provider - the identity provider name, currently constrained to the literal \"Google\" (additional providers added when introduced); (b) provider_user_id - the provider's stable identifier for the user (the OpenID Connect sub claim for Google); (c) email - the verified email returned by the provider on its most recent OAuth callback for this user. The array MUST be non-empty whenever is_registered == True.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-013-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-015",
+                          "name": "Returning login appends the guest conversation onto the stored user history",
+                          "requirement": "On a successful Google OAuth callback handled by REQ-T-012, the SharedServices /auth/google/callback endpoint MUST, before the stored user_object replaces the current session's guest user_object, append the guest user_object's session_conversation_history.utterances, session_conversation_history.ux_events, and session_conversation_history.unanswered_questions arrays to the corresponding arrays of the stored user_object's session_conversation_history. The merged user_object (stored history first, then the appended guest entries) MUST then be written to the users collection (admin.users, keyed by user_id) and bound to the current session.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-015-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
                               }
                             ]
                           },

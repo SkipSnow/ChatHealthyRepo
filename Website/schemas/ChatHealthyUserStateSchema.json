@@ -16,6 +16,16 @@
         "ip_address",
         "is_registered"
       ],
+      "if": {
+        "properties": { "is_registered": { "const": true } },
+        "required": ["is_registered"]
+      },
+      "then": {
+        "required": ["OAuthIdentities"],
+        "properties": {
+          "OAuthIdentities": { "minItems": 1 }
+        }
+      },
       "properties": {
         "session_conversation_history": {
           "type": "object",
@@ -41,6 +51,31 @@
           "description": "Representation TBD pending REQ; string for now."
         },
         "is_registered": { "type": "boolean" },
+        "OAuthIdentities": {
+          "type": "array",
+          "description": "One entry per identity provider the user has linked. Required (and non-empty) whenever is_registered is true.",
+          "items": {
+            "type": "object",
+            "required": ["provider", "provider_user_id", "email"],
+            "properties": {
+              "provider": {
+                "type": "string",
+                "enum": ["Google"],
+                "description": "Identity provider name. Other providers added when introduced."
+              },
+              "provider_user_id": {
+                "type": "string",
+                "description": "Provider's stable identifier for the user (OpenID Connect sub claim for Google)."
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "description": "Verified email returned by the provider on its most recent OAuth callback."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
         "registered_profile": {
           "type": "object",
           "description": "Populated when is_registered is true.",
