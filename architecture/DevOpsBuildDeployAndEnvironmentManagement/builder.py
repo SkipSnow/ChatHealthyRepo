@@ -81,6 +81,12 @@ _EXCLUDE_FILE_SUFFIXES: frozenset[str] = frozenset({
     ".pyc", ".pyo",
     ".exe", ".dll", ".pdb",
     ".log",
+    # Operator-local secrets and intermediate cert artifacts. *.crt are
+    # public PEMs and stay tracked; everything below is gitignored, so
+    # the origin/<branch> snapshot on the remote runner cannot see them
+    # and Crosswalk REJECTs the source_location presence check if the
+    # Builder enumerates them locally.
+    ".key", ".csr", ".enc", ".srl",
 })
 
 
