@@ -1831,12 +1831,280 @@
                   },
                   {
                     "story_id": "EPIC-002-F-003-S-004",
-                    "name": "Create User With Google OAuth",
-                    "description": "ChatHealthy.ai MUST support the creation of users by using Google's OAuth capabilities and relying on Google as an identity provider. This story specifies all the technical and business requirements of this capability.",
+                    "name": "Create and login Users With Google OAuth...",
+                    "description": "ChatHealthy.ai MUST support the creation and use of user's google IDs for logins using Google's OAuth capabilities. The firm and its application rely on Google as an identity provider. This story specifies all the technical and business requirements for this capability.",
                     "size": "M",
-                    "status": "not_started",
+                    "status": "in_progress",
                     "requirements": {
-                      "requirement": []
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-001",
+                          "name": "Business statement (identical to the story)",
+                          "requirement": "ChatHealthy.ai MUST support the creation and use of user's google IDs for logins using Google's OAuth capabilities. The firm and its application rely on Google as an identity provider. This story specifies all the technical and business requirements for this capability.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-002",
+                          "name": "Playwright test of the Login & Registration sequence of screens and messages",
+                          "requirement": "A Playwright test script MUST execute the full Login & Registration sequence end to end and MUST assert each screen the user sees and each message presented in that sequence.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-002-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "architecture/AuthorizationsAndAuthentications/tests/test_login_register_sequence.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-001",
+                          "name": "Login & Registration link in the static-site navigation",
+                          "requirement": "Every static page on the chathealthy.ai website MUST render a top-level navigation with exactly three links, in this left-to-right order: Home, Login & Registration, Products and Services.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-002",
+                          "name": "Login click signals login_register intent to /gate",
+                          "requirement": "On a click of the Login & Registration link, the browser MUST POST to the SharedServices /gate endpoint with the request body carrying intent = \"login_register\".",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-003",
+                          "name": "AuthorizationsAndAuthenticationsTool.run() routes to utterance or to a control use case",
+                          "requirement": "AuthorizationsAndAuthenticationsTool.run() MUST route each request into exactly one of two top-level paths: (a) the utterance path, or (b) the control path. Requests on the control path MUST identify a single control use case (for example, login_register) and MUST invoke the corresponding tool or process. An unrecognized path or an unknown control use case MUST cause a hard error.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-004",
+                          "name": "login_register intent triggers Google OAuth",
+                          "requirement": "When AuthorizationsAndAuthenticationsTool.run() observes intent = \"login_register\", it MUST return a Response whose redirect_url field is the SharedServices /auth/google/start endpoint URL.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-005",
+                          "name": "/gate emits redirect event when AuthN returns redirect_url",
+                          "requirement": "When the AuthN Response carries a non-null redirect_url, the SharedServices /gate route MUST emit, as the terminal NDJSON event, a record of the shape {\"type\": \"redirect\", \"url\": <redirect_url>} and end the response.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-006",
+                          "name": "Frontend follows redirect events",
+                          "requirement": "On any /gate NDJSON event of shape {\"type\": \"redirect\", \"url\": <string>}, the frontend consumer MUST call window.location.assign(<url>).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-007",
+                          "name": "/auth/google/callback exchanges the authorization code for Google identity",
+                          "requirement": "The SharedServices /auth/google/callback endpoint MUST receive Google's authorization-code redirect, exchange the code with Google's token endpoint, and obtain the OpenID Connect sub claim (hereafter \"GoogleIDForOAuth\").",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-008",
+                          "name": "Users collection schema is exactly three attributes",
+                          "requirement": "The users collection in the front-end MongoDB cluster MUST store records with exactly three top-level attributes: (a) user_id - a unique identifier (unique across users); (b) GoogleIDForOAuth - the Google OpenID Connect sub claim; (c) user_object - the UserObject.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-009",
+                          "name": "Registration on first callback creates the users record",
+                          "requirement": "On a successful Google OAuth callback, if no users record exists for the returned GoogleIDForOAuth, the SharedServices /auth/google/callback endpoint MUST create a new users record with: user_id = a freshly generated unique value; GoogleIDForOAuth = the Google sub; user_object = the current session's UserObject. The user_object's public username field MUST be set to the GoogleIDForOAuth.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-010",
+                          "name": "Every sessions persist mirrors the user_object to the users collection",
+                          "requirement": "AuthorizationsAndAuthenticationsTool.persist() MUST, on every invocation, write the current user_object to BOTH admin.sessions (keyed by GUID) AND the users collection (keyed by user_id) when a users record exists. The two writes MUST carry the same UserObject value.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-011",
+                          "name": "ChatHealthyUserCookie is set on every successful callback",
+                          "requirement": "On a successful Google OAuth callback, the SharedServices /auth/google/callback endpoint MUST set a cookie named \"ChatHealthyUserCookie\" with value = the user_id from the users record. The cookie MUST carry the Secure attribute and MUST expire 60 days from the moment of set.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-012",
+                          "name": "Returning OAuth login reuses the existing users record",
+                          "requirement": "On a successful Google OAuth callback for a GoogleIDForOAuth that already has a users record, the endpoint MUST reuse the existing user_id, MUST re-set ChatHealthyUserCookie with that user_id (Secure, 60-day), and MUST bind the existing user_object to the current session.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
                     },
                     "orphan": false,
                     "approval": "approved"

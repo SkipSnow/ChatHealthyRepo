@@ -2,27 +2,30 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 """AuthorizationsAndAuthentications tool — the auth-only Agent.
 
-Runs first on every /gate hit. Its scope is exactly identification +
-authorization:
+Runs first on every /gate hit. Two top-level routing paths:
 
-  * Read the prior_guid (cookie).
-  * If found AND not expired: reload UserObject from admin.sessions,
-    restamp current_session_token's nonce, push expires_at forward 300s.
-  * Otherwise: mint a fresh guest SessionToken + UserObject.
-  * Persist to admin.sessions (upsert).
-  * Return the user_object + a fresh_mint flag.
+  * utterance path  - default; resolve or mint the UserObject, return so
+                      UniversalNavigation can dispatch downstream.
+  * control path    - the request identifies a control use case. Today
+                      one control use case is wired: login_register,
+                      which returns a Response carrying redirect_url to
+                      the SharedServices /auth/google/start endpoint.
 
-It does NOT dispatch ops. Its successor — UniversalNavigation — receives
-the user_object on AgentDeps and decides where the user flows.
+It exposes the canonical *_tool.py contract (TOOL_NAME, Request,
+Response, run()) plus a persist() method that is the sole writer to
+both admin.sessions (per-session) AND admin.users (long-lived mirror)
+when a users record exists.
 
-Today this is deterministic Python (no LLM judgment needed). The module
-exposes the canonical *_tool.py contract: TOOL_NAME, Request, Response,
-run() — uniform with the LLM-backed tools elsewhere in the codebase.
+After Google OAuth completes, the OAuth callback route calls
+TOOL.handle_oauth_login(...) to register-or-find the users record,
+which returns the user_id that the callback sets in
+ChatHealthyUserCookie.
 """
 from __future__ import annotations
 
 import logging
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -40,18 +43,36 @@ _ORIGIN = "SharedServices"
 _SESSION_TTL_SECONDS = 300
 _SESSION_DB = "admin"
 _SESSION_COLLECTION = "sessions"
+_USERS_COLLECTION = "users"
+
+# SharedServices Space URL per env — used to build the absolute
+# redirect_url returned for login_register.
+_ENV_TO_SHARED_URL = {
+    "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space",
+    "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space",
+    "prod":  "https://skipsnow-sharedservicesspace.hf.space",
+    "local": "https://localhost:8002",
+}
+
+_INTENT_UTTERANCE = "utterance"
+_INTENT_LOGIN_REGISTER = "login_register"
+_KNOWN_INTENTS = frozenset({_INTENT_UTTERANCE, _INTENT_LOGIN_REGISTER})
 
 _indexes_ensured: bool = False
 
 
 class Request(BaseModel):
-    """No payload — AuthN runs identically on every gate hit."""
+    """Optional intent. Absent or "utterance" -> utterance path. Any other
+    recognized value identifies a control use case; unknown intents are a
+    hard error per S-004-REQ-T-003."""
+    intent: Optional[str] = None
     model_config = {"extra": "ignore"}
 
 
 class Response(BaseModel):
     user_object: UserObject
     fresh_mint: bool
+    redirect_url: Optional[str] = None
 
 
 def _auth_token_to_session_token(auth_token: Any) -> SessionToken:
@@ -90,11 +111,7 @@ def _reload(coll, guid: str) -> Optional[UserObject]:
 def _resolve_session(
     coll, prior_guid: Optional[str], server_env: str,
 ) -> tuple[UserObject, bool]:
-    """Resume an existing session (restamp nonce) or mint a fresh guest.
-
-    Returns (user_object, fresh_mint). fresh_mint=True when we built a
-    brand-new session because prior_guid was absent / unknown / expired.
-    """
+    """Resume an existing session (restamp nonce) or mint a fresh guest."""
     now = datetime.now(timezone.utc)
     if prior_guid:
         existing = _reload(coll, prior_guid)
@@ -122,16 +139,25 @@ def _resolve_session(
     return user_object, True
 
 
-def _persist(coll, user_object: UserObject, fresh_mint: bool) -> None:
-    """Upsert admin.sessions for this session's GUID.
+def _user_id_for_guid(users_coll, guid: str) -> Optional[str]:
+    """Return user_id whose user_object holds this session's GUID, or None."""
+    doc = users_coll.find_one(
+        {"user_object.current_session_token.auth_token": guid},
+        {"user_id": 1},
+    )
+    return doc["user_id"] if doc else None
 
-    Doc shape: `{_id: GUID, <UserObject fields at top level>}`.
 
-    Fresh mint: replace the whole doc.
-    Resume: $set only volatile fields (token + expires_at + history arrays).
-            Identity fields populated by other ops are preserved by NOT
-            touching them.
-    """
+def _user_id_for_google_sub(users_coll, google_sub: str) -> Optional[str]:
+    doc = users_coll.find_one(
+        {"GoogleIDForOAuth": google_sub},
+        {"user_id": 1},
+    )
+    return doc["user_id"] if doc else None
+
+
+def _persist(coll, users_coll, user_object: UserObject, fresh_mint: bool) -> None:
+    """Sole writer for admin.sessions (per-session) and admin.users (mirror)."""
     _ensure_indexes(coll)
     guid = user_object.current_session_token.get_auth_token()
     body = user_object.model_dump(mode="python", exclude_none=True)
@@ -141,28 +167,37 @@ def _persist(coll, user_object: UserObject, fresh_mint: bool) -> None:
             {"_id": guid, **body},
             upsert=True,
         )
-        return
-    volatile = {
-        "current_session_token": body["current_session_token"],
-        "expires_at": body["expires_at"],
-        "session_conversation_history": body.get(
-            "session_conversation_history",
-            {"unanswered_questions": [], "ux_events": [], "utterances": []},
-        ),
-    }
-    coll.update_one({"_id": guid}, {"$set": volatile})
+    else:
+        volatile = {
+            "current_session_token": body["current_session_token"],
+            "expires_at": body["expires_at"],
+            "session_conversation_history": body.get(
+                "session_conversation_history",
+                {"unanswered_questions": [], "ux_events": [], "utterances": []},
+            ),
+        }
+        coll.update_one({"_id": guid}, {"$set": volatile})
+
+    # Mirror to users collection (only when this session already maps to
+    # a registered user). Same user_object value, two homes.
+    user_id = _user_id_for_guid(users_coll, guid)
+    if user_id:
+        users_coll.update_one(
+            {"user_id": user_id},
+            {"$set": {"user_object": body}},
+        )
 
 
 class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
-    """The bootstrap tool. Same class owns both ends of the session:
+    """Sole owner of session state and the registered-users mirror.
 
-      * `run()`     — resolves or mints the user_object (read/mint).
-      * `persist()` — writes the (possibly-mutated) user_object back to
-                      admin.sessions (sole writer).
-
-    Tools downstream of AuthN mutate `deps.user_object` in memory only;
-    the gate route calls `AUTHN_TOOL.persist(...)` once at the very end
-    of the request so all mutations land atomically.
+      * `run()`                  - resolves or mints user_object; routes
+                                   utterance vs control use case.
+      * `persist()`              - writes admin.sessions AND admin.users.
+      * `handle_oauth_login()`   - called by the Google OAuth callback
+                                   after the token exchange completes;
+                                   returns the user_id that the callback
+                                   sets in ChatHealthyUserCookie.
     """
     TOOL_NAME = "authn"
     Request = Request
@@ -171,13 +206,100 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
     async def run(self, deps: AuthnDeps, request: Optional["Request"] = None) -> "Response":
         coll = deps.mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
         user_object, fresh_mint = _resolve_session(coll, deps.prior_guid, deps.server_env)
-        return self.Response(user_object=user_object, fresh_mint=fresh_mint)
+
+        intent = (request.intent if request is not None else None) or _INTENT_UTTERANCE
+        if intent not in _KNOWN_INTENTS:
+            raise ValueError(
+                f"AuthN: unknown intent {intent!r}; "
+                f"expected one of {sorted(_KNOWN_INTENTS)}"
+            )
+
+        redirect_url: Optional[str] = None
+        if intent == _INTENT_LOGIN_REGISTER:
+            shared = _ENV_TO_SHARED_URL.get(deps.server_env)
+            if not shared:
+                raise RuntimeError(
+                    f"AuthN: no SharedServices URL for env {deps.server_env!r}"
+                )
+            redirect_url = f"{shared}/auth/google/start"
+
+        return self.Response(
+            user_object=user_object,
+            fresh_mint=fresh_mint,
+            redirect_url=redirect_url,
+        )
 
     async def persist(self, deps: AuthnDeps, user_object, fresh_mint: bool) -> None:
-        """Single-writer Mongo persistence. Called by the gate route AFTER
-        every downstream tool has completed mutating the user_object."""
         coll = deps.mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
-        _persist(coll, user_object, fresh_mint)
+        users_coll = deps.mongo_frontend[_SESSION_DB][_USERS_COLLECTION]
+        _persist(coll, users_coll, user_object, fresh_mint)
+
+    def handle_oauth_login(
+        self, mongo_frontend, *, google_sub: str, session_guid: str,
+    ) -> str:
+        """Register-or-find a users record for this Google sub, bind it to
+        the current session, and return the user_id that the OAuth
+        callback MUST set in ChatHealthyUserCookie.
+
+        First-time login: creates a users record with a freshly generated
+        user_id, GoogleIDForOAuth = google_sub, and user_object copied
+        from the current session (with public username set to google_sub).
+
+        Returning login: reuses the existing user_id; reloads the stored
+        user_object and rebinds it to the current session GUID.
+        """
+        sessions_coll = mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
+        users_coll = mongo_frontend[_SESSION_DB][_USERS_COLLECTION]
+
+        existing_user_id = _user_id_for_google_sub(users_coll, google_sub)
+        session_doc = sessions_coll.find_one({"_id": session_guid})
+        if not session_doc:
+            raise RuntimeError(
+                f"AuthN.handle_oauth_login: no session record for "
+                f"{session_guid[:8]}; OAuth callback arrived without a "
+                "prior /gate visit"
+            )
+        session_user_object = {k: v for k, v in session_doc.items() if k != "_id"}
+
+        if existing_user_id is None:
+            user_id = "u-" + secrets.token_urlsafe(16)
+            new_user_object = dict(session_user_object)
+            new_user_object["public_username"] = google_sub
+            users_coll.insert_one({
+                "user_id": user_id,
+                "GoogleIDForOAuth": google_sub,
+                "user_object": new_user_object,
+            })
+            # Also write the public_username into admin.sessions so the
+            # next persist() round-trip sees a consistent UserObject.
+            sessions_coll.update_one(
+                {"_id": session_guid},
+                {"$set": {"public_username": google_sub}},
+            )
+            return user_id
+
+        # Returning user: rebind the stored user_object to this session.
+        existing = users_coll.find_one({"user_id": existing_user_id})
+        stored_user_object = existing.get("user_object", {}) if existing else {}
+        # Preserve the current session token (the one tied to this GUID)
+        # so the live session stays intact; merge the rest of the stored
+        # user state on top.
+        merged = dict(stored_user_object)
+        if "current_session_token" in session_user_object:
+            merged["current_session_token"] = session_user_object["current_session_token"]
+        if "expires_at" in session_user_object:
+            merged["expires_at"] = session_user_object["expires_at"]
+        # Persist the merged object back to BOTH stores.
+        sessions_coll.replace_one(
+            {"_id": session_guid},
+            {"_id": session_guid, **merged},
+            upsert=True,
+        )
+        users_coll.update_one(
+            {"user_id": existing_user_id},
+            {"$set": {"user_object": merged}},
+        )
+        return existing_user_id
 
 
 TOOL = AuthorizationsAndAuthenticationsTool()
@@ -188,7 +310,7 @@ _mongo_client = None
 
 
 def get_mongo_frontend():
-    """Lazy singleton for the front-end cluster client (admin.sessions)."""
+    """Lazy singleton for the front-end cluster client (admin.sessions + admin.users)."""
     global _mongo_client
     if _mongo_client is None:
         from pymongo import MongoClient
