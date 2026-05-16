@@ -16,11 +16,13 @@ from __future__ import annotations
 
 import argparse
 import base64
+import json
 import os
 import shutil
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Local imports (the module lives in the substrate code dir; tests and
@@ -71,6 +73,49 @@ def _hf_peer_url(target_id: str, env: str) -> str:
 # ── Step notice helper ─────────────────────────────────────────────────
 def _step(msg: str) -> None:
     print(f"[remote_deploy] {msg}", flush=True)
+
+
+# ── build_info.json baked into each HF Space ──────────────────────────
+def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
+    """Write build_info.json at the workspace root so the Dockerfile's
+    `COPY build_info.json /app/build_info.json` resolves. /health on each
+    backend prefers this file over an admin.Versions Mongo read."""
+    service_map = {
+        "target_hf_space_findcare_backend":     "ch-findcare",
+        "target_hf_space_evaluatecare_backend": "ch-evalcare",
+        "target_hf_space_shared_services":      "ch-sharedsvc",
+    }
+    service = service_map.get(target_id, target_id)
+    build_num_str = os.environ.get("GITHUB_RUN_NUMBER", "")
+    try:
+        cp = subprocess.run(
+            ["git", "rev-list", "--count", "HEAD"],
+            capture_output=True, text=True, check=True,
+        )
+        commits_on_branch = cp.stdout.strip()
+        if not build_num_str:
+            build_num_str = commits_on_branch
+    except Exception:
+        commits_on_branch = ""
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except Exception:
+        commit = "unknown"
+    info = {
+        "build": int(build_num_str) if build_num_str.isdigit() else None,
+        "commit": commit,
+        "env": env,
+        "service": service,
+        "version": "1.4.1",
+        "framework": "0.1.5",
+        "built_at": datetime.now(timezone.utc).isoformat(),
+    }
+    (workspace / "build_info.json").write_text(
+        json.dumps(info, indent=2), encoding="utf-8",
+    )
 
 
 # ── Committed-tree snapshot (origin/<branch>) ──────────────────────────
@@ -405,6 +450,14 @@ def _push_to_hf_space(
     for src_rel, dst_rel in source_set:
         _step(f"  stage  {src_rel} -> {dst_rel}")
         _copy_tree(repo_root, workspace, src_rel, dst_rel or src_rel)
+
+    # Write build_info.json at workspace root (= HF Space root = docker
+    # build context). Every backend Dockerfile does `COPY build_info.json
+    # /app/build_info.json`; without it the HF image build fails. The
+    # build number is the count of commits on the deployed branch's
+    # snapshot, computed against the operator's local repo (which still
+    # has .git) — the snapshot directory has no .git of its own.
+    _write_hf_build_info(workspace, target_id, env)
 
     # FindCare: copy the React build output into backend/static/.
     if target_id == "target_hf_space_findcare_backend":
