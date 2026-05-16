@@ -213,6 +213,7 @@ async def gate(
     payload = dict(body or {})
     op = str(payload.get("op") or "boot")
     op_payload = payload.get("payload") or {}
+    intent = payload.get("intent")
     prior_guid = ch_session or payload.get("prior_guid")
 
     # Step 1 — AuthN. Resolves the user_object; does NOT persist (the
@@ -223,11 +224,28 @@ async def gate(
         server_env=_ENV,
         mongo_frontend=authn.get_mongo_frontend(),
     )
-    authn_resp = await AUTHN_TOOL.run(authn_deps)
+    authn_resp = await AUTHN_TOOL.run(authn_deps, authn.Request(intent=intent))
     user_object = authn_resp.user_object
     fresh_mint = authn_resp.fresh_mint
     guid = user_object.current_session_token.get_auth_token()
     _set_session_cookie(response, guid)
+
+    # Control-path short-circuit: AuthN signaled a redirect (login_register).
+    # Persist the session and return the redirect event; do NOT run nav.
+    if authn_resp.redirect_url:
+        try:
+            await AUTHN_TOOL.persist(authn_deps, user_object, fresh_mint)
+        except Exception as exc:
+            _log.warning("AuthN.persist (redirect path) failed: %s", exc)
+        redirect_event = {"type": "redirect", "url": authn_resp.redirect_url}
+        accept = (request.headers.get("accept") or "").lower()
+        want_ndjson_short = "application/x-ndjson" in accept or "text/event-stream" in accept
+        if want_ndjson_short:
+            body_bytes = (_json.dumps(redirect_event, default=str) + "\n").encode("utf-8")
+            short_resp = Response(content=body_bytes, media_type="application/x-ndjson")
+            _set_session_cookie(short_resp, guid)
+            return short_resp
+        return redirect_event
 
     accept = (request.headers.get("accept") or "").lower()
     want_ndjson = "application/x-ndjson" in accept or "text/event-stream" in accept
@@ -344,8 +362,14 @@ def google_oauth_start():
 
 @app.get("/auth/google/callback", operation_id="GoogleOAuthCallback",
          openapi_extra=_impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
-def google_oauth_callback(code: str = None, state: str = None, error: str = None):
-    return GoogleOAuthEndpoint.callback(code=code, state=state, server_env=_ENV, error=error)
+def google_oauth_callback(
+    code: str = None, state: str = None, error: str = None,
+    ch_session: str | None = Cookie(default=None),
+):
+    return GoogleOAuthEndpoint.callback(
+        code=code, state=state, server_env=_ENV,
+        session_guid=ch_session, error=error,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────

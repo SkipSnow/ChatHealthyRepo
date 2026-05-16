@@ -700,6 +700,7 @@
 
       <nav class="header-nav">
         <button type="button" class="nav-coming-soon" data-tip="You are already home">Home</button>
+        <button type="button" onclick="window._startLoginRegister()">Login &amp; Registration</button>
         <button type="button" onclick="openPanel('products.html','Products &amp; Services')">Products &amp; Services</button>
       </nav>
 
@@ -725,6 +726,7 @@
   <!-- Mobile nav drawer -->
   <nav class="mobile-nav" id="mobileNav">
     <button type="button" class="nav-coming-soon" data-tip="You are already home" onclick="closeMobileNav()">Home</button>
+    <button type="button" onclick="closeMobileNav(); window._startLoginRegister()">Login &amp; Registration</button>
     <button type="button" onclick="closeMobileNav(); openPanel('products.html','Products &amp; Services')">Products &amp; Services</button>
   </nav>
 
@@ -995,6 +997,40 @@
             })
           }).catch(function() {});
         } catch (_) { /* never block a UX transition on recording */ }
+      };
+      // EPIC-002-F-003-S-004 — Login & Registration nav button hits /gate
+      // with intent=login_register; A&A tool answers with a redirect_url
+      // NDJSON event pointing at the SharedServices /auth/google/start
+      // endpoint; here we navigate the browser there.
+      window._startLoginRegister = function() {
+        try {
+          var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
+          fetch(sharedUrl + '/gate', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/x-ndjson'
+            },
+            body: JSON.stringify({intent: 'login_register'})
+          }).then(function(r) { return r.text(); })
+            .then(function(text) {
+              var lines = (text || '').split('\n');
+              for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) continue;
+                var evt;
+                try { evt = JSON.parse(line); } catch (e) { continue; }
+                if (evt && evt.type === 'redirect' && evt.url) {
+                  window.location.assign(evt.url);
+                  return;
+                }
+              }
+            })
+            .catch(function(err) {
+              console.warn('login_register start failed:', err);
+            });
+        } catch (_) { /* button must never throw */ }
       };
       window._getAuthBoot = function() {
         if (window._authBoot) return Promise.resolve(window._authBoot);

@@ -1,15 +1,14 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
-# Google OAuth handshake — EPIC-002-F-003-S-004.
-# Scope (this file): drive the user to and from Google, returning a
-# verified email. Post-email work (login_or_register, token mint, User
-# State persistence) is a separate hand-off and lives in the entrance
-# tool, not here.
+# Google OAuth handshake - EPIC-002-F-003-S-004.
 #
 # Wire:
-#   GET /auth/google/start      → JSON { authz_url, state }
-#   GET /auth/google/callback   → 302 to wrapper with ?auth_email=…
+#   GET /auth/google/start      - 302 to Google consent screen.
+#   GET /auth/google/callback   - exchange code, fetch sub, register-or-
+#                                 find users record via the A&A tool,
+#                                 set ChatHealthyUserCookie, 302 back to
+#                                 the wrapper origin.
 #
 # Required HF Space secrets per env:
 #   GOOGLE_OAUTH_CLIENT_ID
@@ -29,7 +28,7 @@ from urllib.parse import urlencode
 
 import httpx
 from fastapi import HTTPException
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
@@ -37,6 +36,18 @@ from google.auth.transport import requests as google_requests
 GOOGLE_AUTHZ_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 
+# After Google redirects back, the callback lands on the SharedServices
+# Space (NOT the wrapper) so it can set ChatHealthyUserCookie on the
+# SharedServices origin. The Google Cloud OAuth client must list these
+# URLs in its Authorized Redirect URIs.
+_ENV_TO_REDIRECT_URI = {
+    "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space/auth/google/callback",
+    "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space/auth/google/callback",
+    "prod":  "https://skipsnow-sharedservicesspace.hf.space/auth/google/callback",
+    "local": "https://localhost:8002/auth/google/callback",
+}
+
+# Where the post-OAuth flow lands the user in the wrapper site.
 _ENV_TO_WRAPPER_ORIGIN = {
     "dev":   "https://dev.chathealthy.ai",
     "qa":    "https://qa.chathealthy.ai",
@@ -44,7 +55,11 @@ _ENV_TO_WRAPPER_ORIGIN = {
     "local": "https://localhost",
 }
 
-# State param TTL — Google returns the user within minutes.
+# ChatHealthyUserCookie - per S-004-REQ-T-011.
+CHATHEALTHY_USER_COOKIE_NAME = "ChatHealthyUserCookie"
+CHATHEALTHY_USER_COOKIE_MAX_AGE = 60 * 24 * 60 * 60  # 60 days in seconds
+
+# State param TTL.
 _STATE_TTL_SECONDS = 600
 
 
@@ -56,7 +71,10 @@ def _wrapper_origin(server_env: str) -> str:
 
 
 def _redirect_uri(server_env: str) -> str:
-    return _wrapper_origin(server_env) + "/auth/google/callback"
+    uri = _ENV_TO_REDIRECT_URI.get(server_env)
+    if not uri:
+        raise HTTPException(500, f"Unknown server_env: {server_env!r}")
+    return uri
 
 
 def _client_id() -> str:
@@ -74,9 +92,6 @@ def _client_secret() -> str:
 
 
 def _state_signing_key() -> bytes:
-    """Signs the state parameter so the callback can verify it wasn't
-    minted by a third party. Uses the OAuth client secret as the HMAC
-    key — already-secret material, already required for this endpoint."""
     return _client_secret().encode("utf-8")
 
 
@@ -90,7 +105,6 @@ def _b64url_decode(s: str) -> bytes:
 
 
 def _build_state(server_env: str) -> str:
-    """Compact signed state: env + nonce + timestamp + HMAC."""
     payload = {
         "env":   server_env,
         "nonce": secrets.token_urlsafe(16),
@@ -102,7 +116,6 @@ def _build_state(server_env: str) -> str:
 
 
 def _verify_state(state: str) -> dict:
-    """Reverses _build_state. Raises HTTPException on tamper, expiry, or env mismatch."""
     try:
         body_b64, sig_b64 = state.split(".", 1)
     except ValueError:
@@ -119,13 +132,24 @@ def _verify_state(state: str) -> dict:
     return payload
 
 
+def _set_chathealthy_user_cookie(response: RedirectResponse, user_id: str) -> None:
+    response.set_cookie(
+        key=CHATHEALTHY_USER_COOKIE_NAME,
+        value=user_id,
+        max_age=CHATHEALTHY_USER_COOKIE_MAX_AGE,
+        secure=True,
+        httponly=True,
+        samesite="lax",
+        path="/",
+    )
+
+
 class GoogleOAuthEndpoint:
     """Stateless handler for the Google OAuth handshake."""
 
     @staticmethod
-    def start(server_env: str) -> JSONResponse:
-        """Build the Google consent-screen URL the wrapper should
-        navigate the user to."""
+    def start(server_env: str) -> RedirectResponse:
+        """302 the browser to Google's consent screen."""
         state = _build_state(server_env)
         params = {
             "client_id":     _client_id(),
@@ -136,30 +160,40 @@ class GoogleOAuthEndpoint:
             "prompt":        "select_account",
             "access_type":   "online",
         }
-        return JSONResponse({
-            "authz_url": GOOGLE_AUTHZ_URL + "?" + urlencode(params),
-            "state":     state,
-        })
+        return RedirectResponse(
+            GOOGLE_AUTHZ_URL + "?" + urlencode(params),
+            status_code=302,
+        )
 
     @staticmethod
-    def callback(code: Optional[str], state: Optional[str], server_env: str,
-                 error: Optional[str] = None) -> RedirectResponse:
-        """Receive Google's redirect, exchange code for tokens, verify
-        the ID token, extract the email, and 302 the wrapper back with
-        ?auth_email=… (or ?auth_error=… on failure)."""
+    def callback(
+        *,
+        code: Optional[str],
+        state: Optional[str],
+        server_env: str,
+        session_guid: Optional[str],
+        error: Optional[str] = None,
+    ) -> RedirectResponse:
+        """Receive Google's redirect, exchange code, register-or-find the
+        users record, set ChatHealthyUserCookie, then 302 back to the
+        wrapper origin."""
         wrapper = _wrapper_origin(server_env)
 
+        def _error_redirect(tag: str) -> RedirectResponse:
+            return RedirectResponse(f"{wrapper}/?auth_error={tag}", status_code=302)
+
         if error:
-            return RedirectResponse(f"{wrapper}/?auth_error={error}", status_code=302)
+            return _error_redirect(error)
         if not code or not state:
-            return RedirectResponse(f"{wrapper}/?auth_error=missing_code_or_state", status_code=302)
+            return _error_redirect("missing_code_or_state")
+        if not session_guid:
+            return _error_redirect("missing_session_cookie")
 
         try:
             _verify_state(state)
         except HTTPException as e:
-            return RedirectResponse(f"{wrapper}/?auth_error=state_{e.detail.split()[-1]}", status_code=302)
+            return _error_redirect(f"state_{e.detail.split()[-1]}")
 
-        # Exchange authorization code for an ID token at Google's token endpoint.
         try:
             with httpx.Client(timeout=10.0) as client:
                 r = client.post(GOOGLE_TOKEN_URL, data={
@@ -170,16 +204,15 @@ class GoogleOAuthEndpoint:
                     "grant_type":    "authorization_code",
                 })
             if r.status_code != 200:
-                return RedirectResponse(f"{wrapper}/?auth_error=token_exchange_{r.status_code}", status_code=302)
+                return _error_redirect(f"token_exchange_{r.status_code}")
             tokens = r.json()
         except Exception:
-            return RedirectResponse(f"{wrapper}/?auth_error=token_exchange_network", status_code=302)
+            return _error_redirect("token_exchange_network")
 
         id_token_str = tokens.get("id_token")
         if not id_token_str:
-            return RedirectResponse(f"{wrapper}/?auth_error=missing_id_token", status_code=302)
+            return _error_redirect("missing_id_token")
 
-        # Verify the ID token signature + aud against our client_id.
         try:
             claims = id_token.verify_oauth2_token(
                 id_token_str,
@@ -187,18 +220,32 @@ class GoogleOAuthEndpoint:
                 audience=_client_id(),
             )
         except Exception:
-            return RedirectResponse(f"{wrapper}/?auth_error=id_token_invalid", status_code=302)
+            return _error_redirect("id_token_invalid")
 
+        google_sub = claims.get("sub")
         email = claims.get("email")
+        if not google_sub:
+            return _error_redirect("missing_sub")
         if not email or not claims.get("email_verified"):
-            return RedirectResponse(f"{wrapper}/?auth_error=email_not_verified", status_code=302)
+            return _error_redirect("email_not_verified")
 
-        # ── Hand-off point ─────────────────────────────────────────
-        # Per S-004 scope: OAuth code's job ends at "verified email."
-        # The entrance tool (login_or_register) is a separate hand-off
-        # that owns token manufacture + User State persistence. For
-        # now, the email is returned to the wrapper as-is; the entrance
-        # tool will be wired here when its contract is defined.
-        # ───────────────────────────────────────────────────────────
+        # Hand off to the A&A tool to register-or-find the users record.
+        from authentication.authorizations_and_authentications_tool import (
+            TOOL as AUTHN_TOOL,
+            get_mongo_frontend,
+        )
+        try:
+            user_id = AUTHN_TOOL.handle_oauth_login(
+                get_mongo_frontend(),
+                google_sub=google_sub,
+                session_guid=session_guid,
+            )
+        except Exception as exc:
+            return _error_redirect(f"register_failed_{type(exc).__name__}")
 
-        return RedirectResponse(f"{wrapper}/?auth_email={email}", status_code=302)
+        redirect = RedirectResponse(
+            f"{wrapper}/?auth_email={email}",
+            status_code=302,
+        )
+        _set_chathealthy_user_cookie(redirect, user_id)
+        return redirect
