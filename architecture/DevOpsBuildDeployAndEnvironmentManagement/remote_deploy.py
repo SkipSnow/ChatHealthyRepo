@@ -620,7 +620,11 @@ def _poll_backends_health(env: str, timeout_min: int = 12) -> None:
                     if resp.status == 200:
                         _step(f"    {target_url} -> 200")
                         break
-            except (urllib.error.URLError, urllib.error.HTTPError):
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
+                # urllib raises bare TimeoutError on read-timeout (post-connect)
+                # in Python 3.10+; HF cold starts produce these once the Space
+                # accepts the TCP connection but is still booting. Treated as
+                # "not ready yet" — keep polling until the deadline.
                 pass
             time.sleep(10)
 
