@@ -77,6 +77,11 @@ jobs:
         git push origin "$DST"
 
         '
+    - name: Trigger deploy.yml for target env
+      if: inputs.dry_run == false
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: "BR=\"${{ inputs.to_env }}\"\nif [ \"$BR\" = \"prod\" ]; then BR=\"main\"; fi\ngh workflow run deploy.yml --ref \"$BR\"\necho \"Dispatched deploy.yml on $BR\"\n"
     - name: Dry run summary
       if: inputs.dry_run == true
       env:
