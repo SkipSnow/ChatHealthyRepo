@@ -50,8 +50,9 @@ jobs:
         FINDCARE_SIGNING_KEY_B64: ${{ secrets.FINDCARE_SIGNING_KEY_B64 }}
         SHARED_SIGNING_KEY_B64: ${{ secrets.SHARED_SIGNING_KEY_B64 }}
         EVALCARE_SIGNING_KEY_B64: ${{ secrets.EVALCARE_SIGNING_KEY_B64 }}
-        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ACCOUN_TOKEN }}
         CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
         ENV: ${{ steps.env.outputs.env }}
       run: 'python architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_deploy.py --env ${{ steps.env.outputs.env }}${{ inputs.skip_smoke && '' --skip-smoke'' || '''' }} '
