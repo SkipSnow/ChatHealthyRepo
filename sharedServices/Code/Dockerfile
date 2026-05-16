@@ -9,7 +9,6 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY FrontEndApplicationLib /app/FrontEndApplicationLib
 RUN pip install --no-cache-dir /app/FrontEndApplicationLib
 
-# build_info.json baked at build time; /health reads it.
 COPY build_info.json    /app/build_info.json
 COPY app.py             /app/app.py
 COPY healthcheck        /app/healthcheck

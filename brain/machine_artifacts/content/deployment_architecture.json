@@ -2132,12 +2132,6 @@
       "files": [
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/.wrangler/cache/pages.json",
-          "handler_type": "json",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/_localhost_server.py",
           "handler_type": "python_source",
           "disposition": "referenced"
@@ -2460,7 +2454,7 @@
           "source_location": ".github/workflows/promote-build.yml",
           "handler_type": "workflow_yaml",
           "disposition": "managed",
-          "embedded_content": "name: Promote Build Between Environments\n'on':\n  workflow_dispatch:\n    inputs:\n      from_env:\n        description: Source environment\n        required: true\n        type: choice\n        options:\n        - dev\n        - qa\n      to_env:\n        description: Target environment\n        required: true\n        type: choice\n        options:\n        - qa\n        - prod\n      confirm_prod:\n        description: Confirm production promotion (GOV-007)\n        required: false\n        type: boolean\n        default: false\n      dry_run:\n        description: Dry run (print plan, no changes)\n        required: false\n        type: boolean\n        default: true\njobs:\n  promote-build:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n    steps:\n    - name: Validate promotion path\n      run: \"FROM=\\\"${{ inputs.from_env }}\\\"\\nTO=\\\"${{ inputs.to_env }}\\\"\\nif [ \\\"$FROM\\\" = \\\"dev\\\" ] && [ \\\"$TO\\\" = \\\"qa\\\" ]; then\\n  echo \\\"Valid: dev -> qa\\\"\\nelif [ \\\"$FROM\\\" = \\\"qa\\\" ] && [ \\\"$TO\\\" = \\\"prod\\\" ]; then\\n  echo \\\"Valid: qa -> prod\\\"\\n  if [ \\\"${{ inputs.confirm_prod }}\\\" != \\\"true\\\" ]; then\\n    echo \\\"ERROR: Production promotion requires confirm_prod=true (GOV-007)\\\"\\n    exit 1\\n  fi\\nelse\\n  echo \\\"ERROR: Invalid promotion path: $FROM -> $TO\\\"\\n  echo \\\"Valid paths: dev->qa, qa->prod\\\"\\n  exit 1\\nfi\\n\"\n    - name: Checkout repository\n      uses: actions/checkout@v4\n      with:\n        fetch-depth: 0\n        token: ${{ secrets.GITHUB_TOKEN }}\n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.12'\n    - name: Install dependencies\n      run: pip install -r Code/Shared/ops/tools/requirements.txt\n    - name: Merge source branch into target branch\n      if: inputs.dry_run == false\n      run: 'BRANCH_MAP_dev=\"dev\"\n\n        BRANCH_MAP_qa=\"qa\"\n\n        BRANCH_MAP_prod=\"main\"\n\n\n        FROM_BRANCH=\"BRANCH_MAP_${{ inputs.from_env }}\"\n\n        TO_BRANCH=\"BRANCH_MAP_${{ inputs.to_env }}\"\n\n        SRC=\"${!FROM_BRANCH}\"\n\n        DST=\"${!TO_BRANCH}\"\n\n\n        git config user.email \"skip.snow@gmail.com\"\n\n        git config user.name \"SkipSnow\"\n\n\n        echo \"Merging $SRC -> $DST\"\n\n        git checkout \"$DST\"\n\n        git merge \"origin/$SRC\" -m \"Promote ${{ inputs.from_env }} -> ${{ inputs.to_env }} (build promotion)\"\n\n        git push origin \"$DST\"\n\n        '\n    - name: Dry run summary\n      if: inputs.dry_run == true\n      env:\n        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}\n      run: \"python Code/Shared/ops/promote_build.py \\\\\\n  --from ${{ inputs.from_env }} \\\\\\n  --to ${{ inputs.to_env }} \\\\\\n  --dry-run\\n\"\n",
+          "embedded_content": "name: Promote Build Between Environments\n'on':\n  workflow_dispatch:\n    inputs:\n      from_env:\n        description: Source environment\n        required: true\n        type: choice\n        options:\n        - dev\n        - qa\n      to_env:\n        description: Target environment\n        required: true\n        type: choice\n        options:\n        - qa\n        - prod\n      confirm_prod:\n        description: Confirm production promotion (GOV-007)\n        required: false\n        type: boolean\n        default: false\n      dry_run:\n        description: Dry run (print plan, no changes)\n        required: false\n        type: boolean\n        default: true\njobs:\n  promote-build:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n      actions: write\n    steps:\n    - name: Validate promotion path\n      run: \"FROM=\\\"${{ inputs.from_env }}\\\"\\nTO=\\\"${{ inputs.to_env }}\\\"\\nif [ \\\"$FROM\\\" = \\\"dev\\\" ] && [ \\\"$TO\\\" = \\\"qa\\\" ]; then\\n  echo \\\"Valid: dev -> qa\\\"\\nelif [ \\\"$FROM\\\" = \\\"qa\\\" ] && [ \\\"$TO\\\" = \\\"prod\\\" ]; then\\n  echo \\\"Valid: qa -> prod\\\"\\n  if [ \\\"${{ inputs.confirm_prod }}\\\" != \\\"true\\\" ]; then\\n    echo \\\"ERROR: Production promotion requires confirm_prod=true (GOV-007)\\\"\\n    exit 1\\n  fi\\nelse\\n  echo \\\"ERROR: Invalid promotion path: $FROM -> $TO\\\"\\n  echo \\\"Valid paths: dev->qa, qa->prod\\\"\\n  exit 1\\nfi\\n\"\n    - name: Checkout repository\n      uses: actions/checkout@v4\n      with:\n        fetch-depth: 0\n        token: ${{ secrets.GITHUB_TOKEN }}\n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.12'\n    - name: Install dependencies\n      run: pip install -r Code/Shared/ops/tools/requirements.txt\n    - name: Merge source branch into target branch\n      if: inputs.dry_run == false\n      run: 'BRANCH_MAP_dev=\"dev\"\n\n        BRANCH_MAP_qa=\"qa\"\n\n        BRANCH_MAP_prod=\"main\"\n\n\n        FROM_BRANCH=\"BRANCH_MAP_${{ inputs.from_env }}\"\n\n        TO_BRANCH=\"BRANCH_MAP_${{ inputs.to_env }}\"\n\n        SRC=\"${!FROM_BRANCH}\"\n\n        DST=\"${!TO_BRANCH}\"\n\n\n        git config user.email \"skip.snow@gmail.com\"\n\n        git config user.name \"SkipSnow\"\n\n\n        echo \"Merging $SRC -> $DST\"\n\n        git checkout \"$DST\"\n\n        git merge \"origin/$SRC\" -m \"Promote ${{ inputs.from_env }} -> ${{ inputs.to_env }} (build promotion)\"\n\n        git push origin \"$DST\"\n\n        '\n    - name: Trigger deploy.yml for target env\n      if: inputs.dry_run == false\n      env:\n        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n      run: 'BR=\"${{ inputs.to_env }}\"\n\n        if [ \"$BR\" = \"prod\" ]; then BR=\"main\"; fi\n\n        gh workflow run deploy.yml --ref \"$BR\"\n\n        echo \"Dispatched deploy.yml on $BR\"\n\n        '\n    - name: Dry run summary\n      if: inputs.dry_run == true\n      env:\n        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}\n      run: \"python Code/Shared/ops/promote_build.py \\\\\\n  --from ${{ inputs.from_env }} \\\\\\n  --to ${{ inputs.to_env }} \\\\\\n  --dry-run\\n\"\n",
           "layout": {
             "name": "Promote Build Between Environments",
             "on": {
@@ -2503,7 +2497,8 @@
               "promote-build": {
                 "runs-on": "ubuntu-latest",
                 "permissions": {
-                  "contents": "write"
+                  "contents": "write",
+                  "actions": "write"
                 },
                 "steps": [
                   {
@@ -2533,6 +2528,14 @@
                     "name": "Merge source branch into target branch",
                     "if": "inputs.dry_run == false",
                     "run": "BRANCH_MAP_dev=\"dev\"\nBRANCH_MAP_qa=\"qa\"\nBRANCH_MAP_prod=\"main\"\n\nFROM_BRANCH=\"BRANCH_MAP_${{ inputs.from_env }}\"\nTO_BRANCH=\"BRANCH_MAP_${{ inputs.to_env }}\"\nSRC=\"${!FROM_BRANCH}\"\nDST=\"${!TO_BRANCH}\"\n\ngit config user.email \"skip.snow@gmail.com\"\ngit config user.name \"SkipSnow\"\n\necho \"Merging $SRC -> $DST\"\ngit checkout \"$DST\"\ngit merge \"origin/$SRC\" -m \"Promote ${{ inputs.from_env }} -> ${{ inputs.to_env }} (build promotion)\"\ngit push origin \"$DST\"\n"
+                  },
+                  {
+                    "name": "Trigger deploy.yml for target env",
+                    "if": "inputs.dry_run == false",
+                    "env": {
+                      "GH_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
+                    },
+                    "run": "BR=\"${{ inputs.to_env }}\"\nif [ \"$BR\" = \"prod\" ]; then BR=\"main\"; fi\ngh workflow run deploy.yml --ref \"$BR\"\necho \"Dispatched deploy.yml on $BR\"\n"
                   },
                   {
                     "name": "Dry run summary",

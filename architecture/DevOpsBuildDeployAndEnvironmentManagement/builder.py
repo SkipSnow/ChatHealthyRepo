@@ -59,6 +59,7 @@ _EXCLUDE_DIRS: frozenset[str] = frozenset({
     "dist",
     ".pytest_cache",
     ".vite",
+    ".wrangler",
     "bin",
     "obj",
     "out",
