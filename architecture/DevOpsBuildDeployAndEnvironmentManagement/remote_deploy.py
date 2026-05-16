@@ -363,20 +363,30 @@ def _push_to_hf_space(
     _hf_set_variable(hf_token, space, "SHARED_CERT_PEM",   shared_b64)
     _hf_set_variable(hf_token, space, "EVALCARE_CERT_PEM", evalcare_b64)
 
-    # Private signing key — read from local certs dir (.gitignored).
+    # Private signing key. Prefer the GHA secret env var (already
+    # base64-encoded — the workflow passes <SVC>_SIGNING_KEY_B64), then
+    # fall back to a local certs dir read for operator-local runs.
     signing_map = {
-        "target_hf_space_findcare_backend":     ("findcare.key", "FINDCARE_SIGNING_KEY_PEM"),
-        "target_hf_space_evaluatecare_backend": ("evalcare.key", "EVALCARE_SIGNING_KEY_PEM"),
-        "target_hf_space_shared_services":      ("shared.key",   "SHARED_SIGNING_KEY_PEM"),
+        "target_hf_space_findcare_backend":     ("findcare.key", "FINDCARE_SIGNING_KEY_PEM", "FINDCARE_SIGNING_KEY_B64"),
+        "target_hf_space_evaluatecare_backend": ("evalcare.key", "EVALCARE_SIGNING_KEY_PEM", "EVALCARE_SIGNING_KEY_B64"),
+        "target_hf_space_shared_services":      ("shared.key",   "SHARED_SIGNING_KEY_PEM",   "SHARED_SIGNING_KEY_B64"),
     }
-    key_file, secret_name = signing_map[target_id]
-    signing_b64 = _b64(certs_dir / key_file)
+    key_file, secret_name, env_var_b64 = signing_map[target_id]
+    signing_b64 = os.environ.get(env_var_b64) or env_values.get(env_var_b64)
+    if not signing_b64:
+        key_path = certs_dir / key_file
+        if not key_path.is_file():
+            sys.exit(
+                f"ERROR: no {env_var_b64} in env AND no {key_path} on disk; "
+                f"cannot ship signing key for {target_id}"
+            )
+        signing_b64 = _b64(key_path)
     _hf_set_secret(hf_token, space, secret_name, signing_b64)
 
     if target_id == "target_hf_space_findcare_backend":
-        gemini = env_values.get("GEMINI_API_KEY")
+        gemini = os.environ.get("GEMINI_API_KEY") or env_values.get("GEMINI_API_KEY")
         if not gemini:
-            sys.exit("ERROR: GEMINI_API_KEY not set in .env; FindCare backend deploy aborted.")
+            sys.exit("ERROR: GEMINI_API_KEY missing in env and .env; FindCare backend deploy aborted.")
         _hf_set_secret(hf_token, space, "GEMINI_API_KEY", gemini)
 
     # 3) Stage source dirs to a clean workspace.
@@ -500,10 +510,14 @@ def _push_to_cloudflare_pages(
                "prod": "chathealthy-website-prod"}[env]
     _step(f"cloudflare_pages_project target={target.target_id} project={project}")
     branch_for_wrangler = env
-    api_token = env_values.get("CLOUDFLARE_ACCOUN_TOKEN", "")
-    account_id = env_values.get("CLOUDFLARE_ACCOUNT_ID", "")
+    api_token = (
+        os.environ.get("CLOUDFLARE_API_TOKEN")
+        or env_values.get("CLOUDFLARE_API_TOKEN")
+        or env_values.get("CLOUDFLARE_ACCOUN_TOKEN", "")  # legacy typo in old .env
+    )
+    account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID") or env_values.get("CLOUDFLARE_ACCOUNT_ID", "")
     if not api_token or not account_id:
-        sys.exit("ERROR: CLOUDFLARE_ACCOUN_TOKEN / CLOUDFLARE_ACCOUNT_ID missing in .env.")
+        sys.exit("ERROR: CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID missing in env and .env.")
     env_for_wrangler = dict(os.environ)
     env_for_wrangler["CLOUDFLARE_API_TOKEN"] = api_token
     env_for_wrangler["CLOUDFLARE_ACCOUNT_ID"] = account_id
@@ -617,6 +631,9 @@ def main(argv: list[str] | None = None) -> int:
     _step(f"crosswalk gate passed (targets={len(coll)}, violations=0)")
 
     # Materialize SecretsResolver-style env access for deploy-time auth.
+    # On the GHA runner Code/.env is absent (gitignored, not in the
+    # snapshot) but the workflow passes the same secrets as env vars;
+    # downstream lookups must consult os.environ as a fallback.
     env_kv: dict[str, str] = {}
     if env_file.is_file():
         for line in env_file.read_text(encoding="utf-8").splitlines():
@@ -625,9 +642,9 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             k, _, v = line.partition("=")
             env_kv[k.strip()] = v.strip().strip('"').strip("'")
-    hf_token = env_kv.get("HF_TOKEN", "")
+    hf_token = os.environ.get("HF_TOKEN") or env_kv.get("HF_TOKEN", "")
     if not hf_token:
-        sys.exit("ERROR: HF_TOKEN missing in Code/.env; cannot deploy to HF Spaces.")
+        sys.exit("ERROR: HF_TOKEN missing in env and Code/.env; cannot deploy to HF Spaces.")
 
     # Dispatch each target whose env binding includes the requested env.
     deployed: list[str] = []
