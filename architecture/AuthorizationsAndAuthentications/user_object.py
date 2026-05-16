@@ -130,3 +130,55 @@ class UserObject(BaseModel):
     OAuthIdentities: list[OAuthIdentity] = Field(default_factory=list)
     registered_profile: Optional[RegisteredProfile] = None
     not_registered_followup: Optional[NotRegisteredFollowup] = None
+
+    def merge(self, guest: "UserObject") -> "UserObject":
+        """Merge a guest UserObject INTO this stored UserObject.
+
+        Per-field rules (EPIC-002-F-003-S-004-REQ-T-012 + REQ-T-015):
+
+          current_session_token         guest
+          expires_at                    guest
+          session_conversation_history  stored arrays first, guest appended
+          OAuthIdentities               stored
+          is_registered                 bool(OAuthIdentities)
+          user_type                     stored
+          public_username               stored
+          ip_address                    guest
+          is_locked_out                 stored
+          silly_question_counts         stored + guest
+          registered_profile            stored
+          not_registered_followup       stored
+        """
+        merged_hist = SessionConversationHistory(
+            utterances=list(self.session_conversation_history.utterances)
+                + list(guest.session_conversation_history.utterances),
+            ux_events=list(self.session_conversation_history.ux_events)
+                + list(guest.session_conversation_history.ux_events),
+            unanswered_questions=list(self.session_conversation_history.unanswered_questions)
+                + list(guest.session_conversation_history.unanswered_questions),
+        )
+
+        # silly_question_counts: lifetime accumulator.
+        stored_sqc = self.silly_question_counts
+        guest_sqc = guest.silly_question_counts
+        if stored_sqc is None and guest_sqc is None:
+            merged_sqc = None
+        else:
+            s = stored_sqc or SillyQuestionCounts()
+            g = guest_sqc or SillyQuestionCounts()
+            merged_sqc = SillyQuestionCounts(
+                session_total=s.session_total + g.session_total,
+                current_sequence_total=s.current_sequence_total + g.current_sequence_total,
+            )
+
+        # is_registered: derived from OAuthIdentities membership.
+        derived_is_registered = len(self.OAuthIdentities) >= 1
+
+        return self.model_copy(update={
+            "current_session_token": guest.current_session_token,
+            "expires_at": guest.expires_at,
+            "session_conversation_history": merged_hist,
+            "silly_question_counts": merged_sqc,
+            "is_registered": derived_is_registered,
+            "ip_address": guest.ip_address if guest.ip_address is not None else self.ip_address,
+        })

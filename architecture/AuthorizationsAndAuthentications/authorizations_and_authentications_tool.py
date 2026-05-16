@@ -306,12 +306,12 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
             )
             return user_id
 
-        # REQ-T-012 + REQ-T-015: returning. Refresh the entry email,
-        # then REPLACE the live session's user_object with the stored
-        # one — but first concatenate the guest's session_conversation_
-        # history onto the stored history (stored first, guest second)
-        # so the pre-login turns aren't lost. Keep the live session
-        # token + expires_at so the 5-min TTL is unbroken.
+        # REQ-T-012 + REQ-T-015: returning. Refresh the email on the
+        # matching OAuthIdentities entry, load the DB record, call
+        # db_record.merge(guest_record) to produce the merged
+        # UserObject (per the model's documented merge rules), then
+        # write the merged record to BOTH admin.sessions and
+        # admin.users.
         users_coll.update_one(
             {
                 "user_id": existing_user_id,
@@ -325,31 +325,25 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
             {"$set": {"user_object.OAuthIdentities.$.email": email}},
         )
         existing = users_coll.find_one({"user_id": existing_user_id})
-        stored_user_object = (existing or {}).get("user_object", {}) or {}
-        rebound = dict(stored_user_object)
-        # Merge conversation histories: stored first, guest appended.
-        guest_hist = (session_user_object.get("session_conversation_history") or {})
-        stored_hist = (stored_user_object.get("session_conversation_history") or {})
-        merged_hist = {
-            "utterances": list(stored_hist.get("utterances") or []) + list(guest_hist.get("utterances") or []),
-            "ux_events": list(stored_hist.get("ux_events") or []) + list(guest_hist.get("ux_events") or []),
-            "unanswered_questions": list(stored_hist.get("unanswered_questions") or []) + list(guest_hist.get("unanswered_questions") or []),
-        }
-        rebound["session_conversation_history"] = merged_hist
-        if live_token is not None:
-            rebound["current_session_token"] = live_token
-        if live_expires is not None:
-            rebound["expires_at"] = live_expires
+        stored_user_object_doc = (existing or {}).get("user_object", {}) or {}
+        try:
+            db_record = UserObject.model_validate(stored_user_object_doc)
+            guest_record = UserObject.model_validate(session_user_object)
+        except Exception as exc:
+            raise RuntimeError(
+                f"AuthN.handle_oauth_login: could not validate stored or "
+                f"guest UserObject for merge ({type(exc).__name__}: {exc})"
+            )
+        merged = db_record.merge(guest_record)
+        merged_body = merged.model_dump(mode="python", exclude_none=True)
         sessions_coll.replace_one(
             {"_id": session_guid},
-            {"_id": session_guid, **rebound},
+            {"_id": session_guid, **merged_body},
             upsert=True,
         )
-        # Mirror the merged history back to admin.users so the appended
-        # entries are durable across sessions (REQ-T-015).
         users_coll.update_one(
             {"user_id": existing_user_id},
-            {"$set": {"user_object.session_conversation_history": merged_hist}},
+            {"$set": {"user_object": merged_body}},
         )
         return existing_user_id
 
