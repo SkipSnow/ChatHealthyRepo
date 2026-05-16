@@ -104,7 +104,10 @@ _SPLASH_PEDANTIC = "SharedServices took ownership of the page and rendered the U
 def _splash_html(user_object) -> str:
     cst = user_object.current_session_token
     identity = {
-        "user_type": "Guest",
+        "user_type": getattr(user_object, "user_type", None) or "Guest",
+        "is_registered": bool(getattr(user_object, "is_registered", False)),
+        "public_username": getattr(user_object, "public_username", None) or "",
+        "OAuthIdentities": getattr(user_object, "OAuthIdentities", []) or [],
         "guid": cst.get_auth_token(),
         "origin": cst.origin,
         "server_env": cst.server_env,
