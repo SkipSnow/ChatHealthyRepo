@@ -1060,31 +1060,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/ca.key",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/ca.srl",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/certs/evalcare.crt",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/evalcare.csr",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/evalcare.key",
           "handler_type": "cert_or_key",
           "disposition": "referenced"
         },
@@ -1096,61 +1072,13 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/findcare.csr",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/findcare.key",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/certs/localhost.crt",
           "handler_type": "cert_or_key",
           "disposition": "referenced"
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/localhost.csr",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/localhost.key",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/secrets.enc",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/secrets.key",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/certs/shared.crt",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/shared.csr",
-          "handler_type": "cert_or_key",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/certs/shared.key",
           "handler_type": "cert_or_key",
           "disposition": "referenced"
         },
