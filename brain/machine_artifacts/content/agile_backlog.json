@@ -12034,8 +12034,8 @@
                         },
                         {
                           "req_id": "EPIC-008-F-012-S-002-REQ-T-003",
-                          "name": "Local deployer reads ports, container list, and paths from the TargetRecord collection at runtime",
-                          "requirement": "The local-runtime deployer MUST consume its ports table, container list, and file-system paths from the typed TargetRecord collection loaded by RecordLoader at runtime. The deployer MUST navigate the collection's target-keyed shape (filter records by `target_kind`; read the `local` entry in `environments[]` for the addressable node; iterate `files[]` for source-file composition) rather than any flat lookup. The deployer MUST NOT carry any hardcoded ports dict, container dict, or path constant in source. Any constant previously embedded in source that drives deploy behavior MUST move into the appropriate TargetRecord verbatim. After migration, no port number, container name, or filesystem path that drives local deploy behavior MAY appear as a literal in `Code/deploy/` or under `architecture/DevOpsBuildDeployAndEnvironmentManagement/code/`.",
+                          "name": "'deployment_architecture.json' and the project's '.env' (for secrets) file is the single source of truth for all deployment facts",
+                          "requirement": "Local-runtime deployer reads ports table, container list, and file-system paths from the typed TargetRecord collection loaded by RecordLoader at runtime. The deployer MUST navigate the collection's target-keyed shape (filter records by `target_kind`; read the entry in `environments[]` whose `env_binding` matches `local` for the addressable node; iterate `files[]` for source-file composition) rather than any flat lookup. The deployer MUST NOT carry any hardcoded ports dict, container dict, or path constant in source. All facts necessary to build, deploy assets to, or describe a server in the ChatHealthy digital portfolio must reside only in the local .env file or the single source of truth for these facts. Any constant previously embedded in source that drives deploy behavior MUST move into the appropriate TargetRecord verbatim. After migration, no port number, container name, or file-system path that drives local deploy behavior MAY appear as a literal in any resource other than the Brain file, 'deployment_architecture.json'. If it is necessary to construct YAML, DOCKER, or other files in order to accomplish a build or deployment to a server, those assets MUST be built during the primary script's execution and deleted as soon as possible after being transmitted to the nodes that need them.",
                           "priority": "must-have",
                           "status": "deferred",
                           "orphan": false,
@@ -12243,6 +12243,25 @@
                           "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-T-007",
+                          "name": "'deployment_architecture.json' and the project's '.env' (for secrets) file is the single source of truth for all deployment facts",
+                          "requirement": "Deployed-env deployer reads ports table, container list, and file-system paths from the typed TargetRecord collection loaded by RecordLoader at runtime. The deployer MUST navigate the collection's target-keyed shape (filter records by `target_kind`; read the entry in `environments[]` whose `env_binding` matches the target environment — `dev`, `qa`, or `prod` — for the addressable node; iterate `files[]` for source-file composition) rather than any flat lookup. The deployer MUST NOT carry any hardcoded ports dict, container dict, or path constant in source. All facts necessary to build, deploy assets to, or describe a server in the ChatHealthy digital portfolio must reside only in the local .env file or the single source of truth for these facts. Any constant previously embedded in source that drives deploy behavior MUST move into the appropriate TargetRecord verbatim. After migration, no port number, container name, or file-system path that drives deployed-env deploy behavior MAY appear as a literal in any resource other than the Brain file, 'deployment_architecture.json'. If it is necessary to construct YAML, DOCKER, or other files in order to accomplish a build or deployment to a server, those assets MUST be built during the primary script's execution and deleted as soon as possible after being transmitted to the nodes that need them.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
                           "tests": {
                             "test": [
                               {
