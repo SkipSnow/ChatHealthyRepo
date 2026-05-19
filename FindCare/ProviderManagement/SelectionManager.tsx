@@ -72,33 +72,33 @@ export function SelectionManager({
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', fontFamily: 'system-ui, sans-serif',
-      background: '#fff', border: '1px solid #d8e2e1', borderRadius: '6px', overflow: 'hidden',
+      background: '#fff', border: '0.125em solid #d8e2e1', borderRadius: '0.75em', overflow: 'hidden',
     }}>
       {/* Available providers — top */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '6px 10px', background: '#f0fffe', borderBottom: '1px solid #d8e2e1',
+        padding: 1em
       }}>
-        <span style={{ fontSize: '11px', fontWeight: 700, color: '#0b7a75', textTransform: 'uppercase' }}>
+        <span style={{ fontSize: '1em', fontWeight: 700, color: '#0b7a75', textTransform: 'uppercase' }}>
           Available Providers
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '10px', color: '#6b7280' }}>{state.available.length} available</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1em' }}>
+          <span style={{ fontSize: '1em', color: '#6b7280' }}>{state.available.length} available</span>
           <span title={state.garbage.length > 0 ? `${state.garbage.length} dismissed — new question restores them` : 'No dismissed providers'} style={{
-            fontSize: '12px', color: state.garbage.length > 0 ? '#dc2626' : '#d1d5db',
+            fontSize: '1em', color: state.garbage.length > 0 ? '#dc2626' : '#d1d5db',
             cursor: 'default', position: 'relative',
           }}>
             🗑️ <span style={{
-              fontSize: '9px', fontWeight: 700,
+              fontSize: '1em', fontWeight: 700,
               color: state.garbage.length > 0 ? '#dc2626' : '#9ca3af',
             }}>{state.garbage.length}</span>
           </span>
         </div>
       </div>
 
-      <div style={{ maxHeight: '250px', overflowY: 'auto', overflowX: 'hidden' }}>
+      <div style={{ maxHeight: '31.25em', overflowY: 'auto', overflowX: 'hidden' }}>
         {state.available.length === 0 ? (
-          <div style={{ padding: '12px', textAlign: 'center', color: '#9ca3af', fontSize: '11px' }}>
+          <div style={{ padding: 1em}}>
             No providers available
           </div>
         ) : (
@@ -121,19 +121,19 @@ export function SelectionManager({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         style={{
-          padding: '4px 10px',
+          padding: 1em
           background: dragOver ? '#fef3c7' : '#fffbeb',
-          borderTop: '1px solid #d8e2e1',
-          borderBottom: '1px solid #d8e2e1',
+          borderTop: '0.125em solid #d8e2e1',
+          borderBottom: '0.125em solid #d8e2e1',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           transition: 'background 0.15s',
-          border: dragOver ? '2px dashed #d97706' : undefined,
+          border: dragOver ? '0.25em dashed #d97706' : undefined,
         }}
       >
-        <span style={{ fontSize: '10px', fontWeight: 600, color: '#d97706', textTransform: 'uppercase' }}>
+        <span style={{ fontSize: '1em', fontWeight: 600, color: '#d97706', textTransform: 'uppercase' }}>
           Selected for Evaluation
         </span>
-        <span style={{ fontSize: '10px', color: '#6b7280' }}>
+        <span style={{ fontSize: '1em', color: '#6b7280' }}>
           {state.selected.length} / {state.maxSelected}
         </span>
       </div>
@@ -144,12 +144,12 @@ export function SelectionManager({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         style={{
-          minHeight: '40px', maxHeight: '130px', overflowY: 'auto', overflowX: 'hidden',
+          minHeight: '5em', maxHeight: '16.25em', overflowY: 'auto', overflowX: 'hidden',
           background: dragOver ? '#fffdf0' : '#fffdf7',
         }}
       >
         {state.selected.length === 0 ? (
-          <div style={{ padding: '12px', textAlign: 'center', color: '#9ca3af', fontSize: '11px' }}>
+          <div style={{ padding: 1em}}>
             Drag providers here or click ↓ to select (max {state.maxSelected})
           </div>
         ) : (
@@ -168,14 +168,14 @@ export function SelectionManager({
                 />
                 {filteredDialog === p.npi && (
                   <div style={{
-                    padding: '8px 10px', background: '#fef3c7', borderBottom: '1px solid #f59e0b',
-                    display: 'flex', gap: '8px', alignItems: 'center', fontSize: '11px',
+                    padding: 1em
+                    display: 'flex', gap: '1em', alignItems: 'center', fontSize: '1em',
                   }}>
                     <span style={{ flex: 1, color: '#92400e' }}>Not in your filter — keep this provider?</span>
                     <button
                       style={{
-                        padding: '2px 10px', fontSize: '10px', fontWeight: 600,
-                        background: '#0b7a75', color: '#fff', border: 'none', borderRadius: '3px', cursor: 'pointer',
+                        padding: 1em
+                        background: '#0b7a75', color: '#fff', border: 'none', borderRadius: '0.375em', cursor: 'pointer',
                       }}
                       onClick={() => {
                         keptNpis.add(p.npi)
@@ -185,8 +185,8 @@ export function SelectionManager({
                     >Keep</button>
                     <button
                       style={{
-                        padding: '2px 10px', fontSize: '10px', fontWeight: 600,
-                        background: '#dc2626', color: '#fff', border: 'none', borderRadius: '3px', cursor: 'pointer',
+                        padding: 1em
+                        background: '#dc2626', color: '#fff', border: 'none', borderRadius: '0.375em', cursor: 'pointer',
                       }}
                       onClick={() => {
                         onRemoveFiltered(p.npi)

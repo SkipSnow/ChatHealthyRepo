@@ -100,9 +100,8 @@ class NotRegisteredFollowup(BaseModel):
 
 
 class OAuthIdentity(BaseModel):
-    """One identity provider's claim about the user. EPIC-002-F-003-S-004."""
-    provider: Literal["Google"]
-    provider_user_id: str
+    identity_provider: str
+    identity_provider_user_id: str
     email: str
 
 
@@ -125,6 +124,7 @@ class UserObject(BaseModel):
     silly_question_counts: Optional[SillyQuestionCounts] = None
     ip_address: Optional[str] = None
     is_registered: Optional[bool] = None
+    user_id: Optional[str] = None
     user_type: Optional[Literal["Guest", "Owner", "Customer", "Prospect"]] = None
     public_username: Optional[str] = None
     OAuthIdentities: list[OAuthIdentity] = Field(default_factory=list)

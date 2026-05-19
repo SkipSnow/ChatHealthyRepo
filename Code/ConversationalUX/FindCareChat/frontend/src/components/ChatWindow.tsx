@@ -694,13 +694,13 @@ export default function ChatWindow() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 800, margin: '0 auto', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 800, margin: 1em}}>
       {envBanner && window.parent === window && (
-        <div style={{ background: envBanner.env === 'local' ? '#d97706' : '#dc2626', color: '#fff', textAlign: 'center', padding: '4px 8px', fontSize: 13, fontWeight: 600, letterSpacing: '0.03em' }}>
+        <div style={{ background: envBanner.env === 'local' ? '#d97706' : '#dc2626', color: '#fff', textAlign: 'center', padding: 1em}}>
           {envBanner.env.toUpperCase()} — Build {envBanner.build} — {envBanner.version}
         </div>
       )}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 1em}}>
         <div ref={topRef} />
         {messages.map((m, i) => (
           <MessageBubble key={i} message={m} />
@@ -709,13 +709,13 @@ export default function ChatWindow() {
         {/* Timer + Stop moved to parent control frame via gui:timer postMessage */}
 
         {retryCountdown !== null && (
-          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1em' }}>
             <div style={{
-              padding: '10px 14px',
-              borderRadius: '18px 18px 18px 4px',
+              padding: 1em
+              borderRadius: '2.25em 2.25em 2.25em 0.5em',
               background: '#fff7ed',
-              border: '1px solid #fed7aa',
-              fontSize: 14,
+              border: '0.125em solid #fed7aa',
+              fontSize: '1em',
               color: '#c2410c',
             }}>
               Rate limit — retrying in {retryCountdown}s
@@ -728,24 +728,24 @@ export default function ChatWindow() {
 
       {showTimeoutModal && (
         <div style={{
-          padding: '16px 20px',
-          borderTop: '1px solid #fbbf24',
-          borderBottom: '1px solid #fbbf24',
+          padding: 1em
+          borderTop: '0.125em solid #fbbf24',
+          borderBottom: '0.125em solid #fbbf24',
           background: '#fffbeb',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 12,
         }}>
-          <span style={{ fontSize: 14, color: '#92400e', fontWeight: 500 }}>
+          <span style={{ fontSize: '1em', color: '#92400e', fontWeight: 500 }}>
             This is taking a long time ({thinkSeconds}s). Do you want to continue?
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={handleTimeoutContinue}
               style={{
-                padding: '6px 16px', borderRadius: 6, border: '1px solid #059669',
-                background: '#ecfdf5', color: '#059669', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                padding: 1em
+                background: '#ecfdf5', color: '#059669', fontSize: '1em', fontWeight: 600, cursor: 'pointer',
               }}
             >
               Yes, keep waiting
@@ -753,8 +753,8 @@ export default function ChatWindow() {
             <button
               onClick={handleTimeoutAbandon}
               style={{
-                padding: '6px 16px', borderRadius: 6, border: '1px solid #dc2626',
-                background: '#fef2f2', color: '#dc2626', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                padding: 1em
+                background: '#fef2f2', color: '#dc2626', fontSize: '1em', fontWeight: 600, cursor: 'pointer',
               }}
             >
               No, abandon
@@ -778,24 +778,24 @@ export default function ChatWindow() {
 
       {/* Control frame lives on the static parent page — React pushes via postMessage */}
 
-      <form onSubmit={handleSend} style={{ padding: '16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: 8 }}>
+      <form onSubmit={handleSend} style={{ padding: 1em}}>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder={isLocked ? 'This chat has been suspended for your safety.' : 'Type a message…'}
-          style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 15, outline: 'none' }}
+          style={{ flex: 1, padding: 1em}}
         />
         <button
           type="submit"
           disabled={!canSubmit || !input.trim()}
           style={{
-            padding: '10px 20px',
+            padding: 1em
             borderRadius: 8,
             background: canSubmit && input.trim() ? '#003399' : '#d1d5db',
             color: '#fff',
             border: 'none',
             cursor: canSubmit && input.trim() ? 'pointer' : 'not-allowed',
-            fontSize: 15,
+            fontSize: '1em',
           }}
         >
           Send

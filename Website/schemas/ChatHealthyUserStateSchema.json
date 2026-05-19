@@ -21,7 +21,7 @@
         "required": ["is_registered"]
       },
       "then": {
-        "required": ["OAuthIdentities"],
+        "required": ["OAuthIdentities", "user_id"],
         "properties": {
           "OAuthIdentities": { "minItems": 1 }
         }
@@ -56,25 +56,28 @@
           "description": "One entry per identity provider the user has linked. Required (and non-empty) whenever is_registered is true.",
           "items": {
             "type": "object",
-            "required": ["provider", "provider_user_id", "email"],
+            "required": ["identity_provider", "identity_provider_user_id", "email"],
             "properties": {
-              "provider": {
+              "identity_provider": {
                 "type": "string",
-                "enum": ["Google"],
-                "description": "Identity provider name. Other providers added when introduced."
+                "description": "Identity provider name (e.g., Google, Facebook, Apple). Open enum; additional identity providers added as introduced."
               },
-              "provider_user_id": {
+              "identity_provider_user_id": {
                 "type": "string",
-                "description": "Provider's stable identifier for the user (OpenID Connect sub claim for Google)."
+                "description": "Identity provider's stable identifier for the user."
               },
               "email": {
                 "type": "string",
                 "format": "email",
-                "description": "Verified email returned by the provider on its most recent OAuth callback."
+                "description": "Verified email returned by the identity provider on its most recent OAuth callback."
               }
             },
             "additionalProperties": false
           }
+        },
+        "user_id": {
+          "type": "string",
+          "description": "ChatHealthy-minted GUID (RFC 4122 UUIDv4). Required when is_registered is true."
         },
         "registered_profile": {
           "type": "object",

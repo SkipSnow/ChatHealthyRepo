@@ -22,10 +22,12 @@
 import base64
 import json as _json
 import logging
+import math
 import os
 import sys
 import tempfile
 import time
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import Body, Cookie, FastAPI, Request, Response
@@ -151,6 +153,8 @@ _ORIGIN = "SharedServices"
 _ENV = os.getenv("ENV_PREFIX", "dev")
 _SESSION_COOKIE_NAME = "ch_session"
 _SESSION_COOKIE_MAX_AGE = 300
+_SESSION_COOKIE_DOMAIN = "chathealthy.ai"
+_SESSION_COOKIE_PATH = "/gate"
 
 
 def _impl(cls_name, file_subpath):
@@ -170,15 +174,44 @@ def health():
 # /gate — the universal entrance. Streams NDJSON.
 # ─────────────────────────────────────────────────────────────────────
 
-def _set_session_cookie(response: Response, guid: str) -> None:
+def _assemble_session_token_value(user_object) -> str:
+    """Assemble the 67-byte ch_session cookie value per
+    EPIC-002-F-003-S-003-REQ-B-007: GUID(32) + first_stamp(17) + 'X' + second_stamp(17).
+
+    Inputs come from user_object.current_session_token; the GUID is the
+    auth_token tail of the signed token; the nonce field carries the two
+    17-byte timestamps separated by an 'X'.
+    """
+    st = user_object.current_session_token
+    guid = st.get_auth_token()              # 32 bytes
+    nonce_field = st.get_nonce()            # 17 + 1 + 17 = 35 bytes ("YYYYMMDDhhmmssfffXYYYYMMDDhhmmssfff")
+    return f"{guid}{nonce_field}"           # 32 + 35 = 67 bytes
+
+
+def _set_session_cookie(response: Response, user_object) -> None:
+    """REQ-T-001 + REQ-T-002.
+
+    Cookie attributes: Secure, HttpOnly, Max-Age=300, SameSite=None,
+    Domain=chathealthy.ai, Path=/gate. Value is the 67-byte session-token
+    assembly per REQ-B-007.
+
+    The Domain attribute is included on every response regardless of host
+    so the header satisfies REQ-T-001 byte-for-byte. Browsers that reach
+    the endpoint via a host that does NOT match chathealthy.ai (localhost
+    during smoke runs; the bare HF Space hostname) will silently drop the
+    cookie. That is expected — production traffic reaches /gate at
+    *.chathealthy.ai by way of the Pages Function fronting the HF Space,
+    where the Domain attribute lines up with the browser-visible host.
+    """
     response.set_cookie(
         key=_SESSION_COOKIE_NAME,
-        value=guid,
+        value=_assemble_session_token_value(user_object),
         max_age=_SESSION_COOKIE_MAX_AGE,
         httponly=True,
         secure=True,
         samesite="none",
-        path="/",
+        domain=_SESSION_COOKIE_DOMAIN,
+        path=_SESSION_COOKIE_PATH,
     )
 
 
@@ -190,6 +223,46 @@ def _do_history_push(mongo_client, guid: str, directive) -> None:
         {"_id": guid},
         {"$push": {f"session_conversation_history.{directive.array}": directive.entry}},
     )
+
+
+def _time_remaining_seconds(user_object) -> int:
+    """REQ-T-004: floor((most_recent_restamp + 300s) - server_response_instant)
+    against UTC milliseconds; clipped to non-negative integers."""
+    nonce_field = user_object.current_session_token.get_nonce()
+    # latest_stamp = nonce_field[18:35]; format = "YYYYMMDDhhmmssfff"
+    latest = nonce_field[18:]
+    try:
+        secs = datetime.strptime(latest[:14], "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
+        ms = int(latest[14:17])
+        restamp_ms = int(secs.timestamp() * 1000) + ms
+    except Exception:
+        # Malformed stamp would be a server-side bug; surface zero so the
+        # browser fails the next pre-flight rather than silently extending.
+        return 0
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    return max(0, math.floor((restamp_ms + 300_000 - now_ms) / 1000))
+
+
+def _was_registered(user_object) -> bool:
+    """Tiny derived flag for REQ-T-010: lets the browser pick the right
+    timeout copy without ever needing to read user_object on the wire."""
+    return bool(getattr(user_object, "is_registered", False))
+
+
+def _session_token_wire(user_object) -> dict:
+    """Cryptographic-display projection of the session token.
+
+    Surfaces the bare SessionToken — the three display fields the panels
+    render (signed token, nonce, GUID) plus the SessionToken envelope
+    (origin, signature, created_at, signed, server_env, last_used) needed
+    by the existing /session + /verify-token chain. PHI / model-tier user
+    state (the full user_object) stays server-side per the S-005 contract.
+    """
+    st = user_object.current_session_token
+    if hasattr(st, "model_dump"):
+        return st.model_dump(mode="python", exclude_none=False)
+    # Defensive fallback if the in-memory object is already a dict.
+    return dict(st)
 
 
 @app.post("/gate", operation_id="UniversalGate",
@@ -214,110 +287,148 @@ async def gate(
     op = str(payload.get("op") or "boot")
     op_payload = payload.get("payload") or {}
     intent = payload.get("intent")
-    prior_guid = ch_session or payload.get("prior_guid")
+    # ch_session cookie value carries the 67-byte assembled session token
+    # per REQ-B-007. The first 32 bytes are the GUID.
+    prior_guid = None
+    if ch_session and len(ch_session) >= 32:
+        prior_guid = ch_session[:32]
+    elif payload.get("prior_guid"):
+        prior_guid = payload.get("prior_guid")
 
-    # Step 1 — AuthN. Resolves the user_object; does NOT persist (the
-    # gate calls AUTHN_TOOL.persist at the very end so all downstream
-    # mutations land in a single write).
-    authn_deps = AuthnDeps(
-        prior_guid=prior_guid,
-        server_env=_ENV,
-        mongo_frontend=authn.get_mongo_frontend(),
-    )
-    authn_resp = await AUTHN_TOOL.run(authn_deps, authn.Request(intent=intent))
-    user_object = authn_resp.user_object
-    fresh_mint = authn_resp.fresh_mint
-    guid = user_object.current_session_token.get_auth_token()
-    _set_session_cookie(response, guid)
+    try:
+        # Step 1 — AuthN. Resolves the user_object; does NOT persist (the
+        # gate calls AUTHN_TOOL.persist at the very end so all downstream
+        # mutations land in a single write).
+        authn_deps = AuthnDeps(
+            prior_guid=prior_guid,
+            server_env=_ENV,
+            mongo_frontend=authn.get_mongo_frontend(),
+        )
+        authn_resp = await AUTHN_TOOL.run(authn_deps, authn.Request(intent=intent))
+        user_object = authn_resp.user_object
+        fresh_mint = authn_resp.fresh_mint
+        guid = user_object.current_session_token.get_auth_token()
+        _set_session_cookie(response, user_object)
 
-    # Control-path short-circuit: AuthN signaled a redirect (login_register).
-    # Persist the session and return the redirect event; do NOT run nav.
-    if authn_resp.redirect_url:
+        # Control-path short-circuit: AuthN signaled a redirect (login_register).
+        # Persist the session and return the redirect event; do NOT run nav.
+        if authn_resp.redirect_url:
+            try:
+                await AUTHN_TOOL.persist(authn_deps, user_object, fresh_mint)
+            except Exception as exc:
+                _log.exception("AuthN.persist (redirect path) failed: %s", exc)
+            redirect_event = {
+                "type": "redirect",
+                "url": authn_resp.redirect_url,
+                "time_remaining_seconds": _time_remaining_seconds(user_object),
+                "was_registered": _was_registered(user_object),
+                "session_token": _session_token_wire(user_object),
+            }
+            accept = (request.headers.get("accept") or "").lower()
+            want_ndjson_short = "application/x-ndjson" in accept or "text/event-stream" in accept
+            if want_ndjson_short:
+                body_bytes = (_json.dumps(redirect_event, default=str) + "\n").encode("utf-8")
+                short_resp = Response(content=body_bytes, media_type="application/x-ndjson")
+                _set_session_cookie(short_resp, user_object)
+                return short_resp
+            return redirect_event
+
+        accept = (request.headers.get("accept") or "").lower()
+        want_ndjson = "application/x-ndjson" in accept or "text/event-stream" in accept
+
+        # Iteration 1: buffer events and emit the whole batch as one
+        # NDJSON-formatted Response. True progressive streaming is iteration-2
+        # work (we tried StreamingResponse here and smoke timed out on the
+        # 26s tail of /search; need to debug FE chunk-handling before
+        # re-enabling — until then, this guarantees green smoke).
+        events: list[dict] = []
+
+        def stream_sink(event: dict) -> None:
+            events.append(event)
+
+        deps = AgentDeps(
+            user_object=user_object,
+            session_token=user_object.current_session_token,
+            mongo_frontend=authn_deps.mongo_frontend,
+            mongo_pipeline=None,
+            server_env=_ENV,
+            stream=stream_sink,
+        )
+        nav_req = nav.Request(op=op, payload=op_payload)
+
+        nav_exc: Optional[BaseException] = None
+        res = None
+        try:
+            res = await UNIVERSAL_NAV_TOOL.run(deps, nav_req)
+        except Exception as exc:
+            nav_exc = exc
+            _log.exception(
+                "UniversalNavigation run failed for op=%s payload=%r: %s",
+                op, op_payload, exc,
+            )
+
+        # REQ-T-008 contract: the full user_object (PHI / model-tier user
+        # state) MUST NOT cross the wire on /gate responses. The browser
+        # keeps no copy of user_object. The cryptographic-display
+        # projection of the session token (signed token, nonce, GUID +
+        # the SessionToken envelope) IS surfaced — it is what the
+        # session-verification panels (S-003-REQ-B-004) and the
+        # cross-service /session + /verify-token chain consume.
+        session_token_proj = _session_token_wire(user_object)
+        if nav_exc is not None:
+            final_event = {
+                "kind": "final", "ok": False,
+                "error": f"{type(nav_exc).__name__}: {nav_exc}",
+                "guid": guid,
+                "time_remaining_seconds": _time_remaining_seconds(user_object),
+                "was_registered": _was_registered(user_object),
+                "session_token": session_token_proj,
+            }
+        else:
+            final_event = {
+                "kind": "final", "ok": True,
+                "guid": guid,
+                "result": res.result if res else {},
+                "result_kind": res.kind if res else "unknown",
+                "time_remaining_seconds": _time_remaining_seconds(user_object),
+                "was_registered": _was_registered(user_object),
+                "session_token": session_token_proj,
+            }
+
+        # Single persist: write the (possibly-mutated) user_object back to
+        # admin.sessions. AuthN is the sole writer; tools never touch Mongo.
         try:
             await AUTHN_TOOL.persist(authn_deps, user_object, fresh_mint)
         except Exception as exc:
-            _log.warning("AuthN.persist (redirect path) failed: %s", exc)
-        redirect_event = {"type": "redirect", "url": authn_resp.redirect_url}
-        accept = (request.headers.get("accept") or "").lower()
-        want_ndjson_short = "application/x-ndjson" in accept or "text/event-stream" in accept
-        if want_ndjson_short:
-            body_bytes = (_json.dumps(redirect_event, default=str) + "\n").encode("utf-8")
-            short_resp = Response(content=body_bytes, media_type="application/x-ndjson")
-            _set_session_cookie(short_resp, guid)
-            return short_resp
-        return redirect_event
+            _log.exception("AuthN.persist failed: %s", exc)
 
-    accept = (request.headers.get("accept") or "").lower()
-    want_ndjson = "application/x-ndjson" in accept or "text/event-stream" in accept
+        if want_ndjson:
+            body_lines = [
+                (_json.dumps(e, default=str) + "\n").encode("utf-8") for e in events
+            ]
+            body_lines.append(
+                (_json.dumps(final_event, default=str) + "\n").encode("utf-8"),
+            )
+            body = b"".join(body_lines)
+            ndjson_resp = Response(
+                content=body, media_type="application/x-ndjson",
+            )
+            _set_session_cookie(ndjson_resp, user_object)
+            return ndjson_resp
 
-    # Iteration 1: buffer events and emit the whole batch as one
-    # NDJSON-formatted Response. True progressive streaming is iteration-2
-    # work (we tried StreamingResponse here and smoke timed out on the
-    # 26s tail of /search; need to debug FE chunk-handling before
-    # re-enabling — until then, this guarantees green smoke).
-    events: list[dict] = []
-
-    def stream_sink(event: dict) -> None:
-        events.append(event)
-
-    deps = AgentDeps(
-        user_object=user_object,
-        session_token=user_object.current_session_token,
-        mongo_frontend=authn_deps.mongo_frontend,
-        mongo_pipeline=None,
-        server_env=_ENV,
-        stream=stream_sink,
-    )
-    nav_req = nav.Request(op=op, payload=op_payload)
-
-    nav_exc: Optional[BaseException] = None
-    res = None
-    try:
-        res = await UNIVERSAL_NAV_TOOL.run(deps, nav_req)
+        return final_event
     except Exception as exc:
-        nav_exc = exc
-        _log.exception("UniversalNavigation run failed for op=%s: %s", op, exc)
-
-    def _user_object_wire() -> dict:
-        return user_object.model_dump(mode="python", exclude_none=True)
-
-    if nav_exc is not None:
-        final_event = {
-            "kind": "final", "ok": False,
-            "error": f"{type(nav_exc).__name__}: {nav_exc}",
-            "guid": guid, "user_object": _user_object_wire(),
-        }
-    else:
-        final_event = {
-            "kind": "final", "ok": True,
-            "guid": guid,
-            "user_object": _user_object_wire(),
-            "result": res.result if res else {},
-            "result_kind": res.kind if res else "unknown",
-        }
-
-    # Single persist: write the (possibly-mutated) user_object back to
-    # admin.sessions. AuthN is the sole writer; tools never touch Mongo.
-    try:
-        await AUTHN_TOOL.persist(authn_deps, user_object, fresh_mint)
-    except Exception as exc:
-        _log.warning("AuthN.persist failed: %s", exc)
-
-    if want_ndjson:
-        body_lines = [
-            (_json.dumps(e, default=str) + "\n").encode("utf-8") for e in events
-        ]
-        body_lines.append(
-            (_json.dumps(final_event, default=str) + "\n").encode("utf-8"),
+        # REQ-T-009: any /gate exception MUST log the full stack with the
+        # originating request shape. The browser sees HTTP 500 and renders
+        # its hard-fail page.
+        _log.exception(
+            "/gate failed: method=%s path=%s op=%s intent=%r "
+            "had_session_cookie=%s body_keys=%s exc=%s: %s",
+            request.method, request.url.path, op, intent,
+            bool(ch_session), sorted(list(payload.keys())),
+            type(exc).__name__, exc,
         )
-        body = b"".join(body_lines)
-        ndjson_resp = Response(
-            content=body, media_type="application/x-ndjson",
-        )
-        _set_session_cookie(ndjson_resp, guid)
-        return ndjson_resp
-
-    return final_event
+        raise
 
 
 # ─────────────────────────────────────────────────────────────────────

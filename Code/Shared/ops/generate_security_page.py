@@ -149,50 +149,50 @@ def main():
       --accent:     #f0a500;
       --warn:       #c0392b;
       --border:     #d8e2e1;
-      --radius:     6px;
-      --max-w:      1160px;
-      --content-w:  860px;
+      --radius:     0.75em;
+      --max-w:      145em;
+      --content-w:  107.5em;
     }}
 
-    *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    *, *::before, *::after {{ box-sizing: border-box; margin: 1em; padding: 1em; }}
     html, body {{ font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }}
     body {{ display: flex; flex-direction: column; min-height: 100vh; }}
 
-    header {{ background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }}
-    .header-inner {{ max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }}
-    .logo {{ display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }}
-    .logo-mark {{ width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }}
-    .logo-mark svg {{ width: 18px; height: 18px; fill: white; }}
-    .logo-text {{ font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); letter-spacing: -0.01em; }}
+    header {{ background: var(--surface); border-bottom: 0.125em solid var(--border); box-shadow: 0 0.125em 0.75em rgba(11,122,117,0.06); }}
+    .header-inner {{ max-width: var(--max-w); margin: 1em; padding: 1em; height: 7em; display: flex; align-items: center; }}
+    .logo {{ display: flex; align-items: center; gap: 1.25em; text-decoration: none; flex-shrink: 0; }}
+    .logo-mark {{ width: 4em; height: 4em; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }}
+    .logo-mark svg {{ width: 2.25em; height: 2.25em; fill: white; }}
+    .logo-text {{ font-family: 'DM Serif Display', serif; font-size: 1em; color: var(--teal); letter-spacing: -0.01em; }}
     .logo-text span {{ color: var(--accent); }}
 
-    main {{ flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }}
+    main {{ flex: 1; max-width: var(--max-w); width: 100%; margin: 1em; padding: 1em; }}
 
-    .page-header {{ border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }}
-    .page-header .eyebrow {{ font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }}
-    .page-header h1 {{ font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }}
-    .page-header .effective {{ font-size: 0.82rem; color: var(--ink-soft); }}
+    .page-header {{ border-bottom: 0.25em solid var(--teal-mid); padding-bottom: 1em; margin-bottom: 1em; }}
+    .page-header .eyebrow {{ font-size: 1em; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 1em; }}
+    .page-header h1 {{ font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 1em; }}
+    .page-header .effective {{ font-size: 1em; color: var(--ink-soft); }}
 
     .arch-body {{ max-width: var(--content-w); }}
-    .arch-body h2 {{ font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--teal); margin: 40px 0 12px; padding-bottom: 8px; border-bottom: 3px solid var(--teal); }}
-    .arch-body h2:first-child {{ margin-top: 0; }}
-    .arch-body h3 {{ font-size: 0.88rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin: 24px 0 8px; }}
-    .arch-body p {{ font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }}
-    .arch-body ul, .arch-body ol {{ margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }}
-    .arch-body ul li, .arch-body ol li {{ margin-bottom: 4px; }}
+    .arch-body h2 {{ font-family: 'DM Serif Display', serif; font-size: 1em; color: var(--teal); margin: 1em; padding-bottom: 1em; border-bottom: 0.375em solid var(--teal); }}
+    .arch-body h2:first-child {{ margin-top: 1em; }}
+    .arch-body h3 {{ font-size: 1em; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin: 1em; }}
+    .arch-body p {{ font-size: 1em; line-height: 1.7; color: var(--ink); margin-bottom: 1em; }}
+    .arch-body ul, .arch-body ol {{ margin: 1em; font-size: 1em; line-height: 1.7; }}
+    .arch-body ul li, .arch-body ol li {{ margin-bottom: 1em; }}
 
-    .table-wrap {{ overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }}
-    table {{ width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 480px; }}
-    th {{ background: var(--ink); color: #fff; padding: 8px 12px; text-align: left; font-weight: 500; font-size: 0.82rem; letter-spacing: 0.03em; }}
-    td {{ border: 1px solid var(--border); padding: 8px 12px; vertical-align: top; line-height: 1.5; }}
+    .table-wrap {{ overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1em; }}
+    table {{ width: 100%; border-collapse: collapse; font-size: 1em; min-width: 60em; }}
+    th {{ background: var(--ink); color: #fff; padding: 1em; text-align: left; font-weight: 500; font-size: 1em; letter-spacing: 0.03em; }}
+    td {{ border: 0.125em solid var(--border); padding: 1em; vertical-align: top; line-height: 1.5; }}
     tr:nth-child(even) td {{ background: var(--teal-light); }}
 
     .diagram-container {{
-      border: 1px solid var(--border);
+      border: 0.125em solid var(--border);
       border-radius: var(--radius);
       background: #fafafa;
-      padding: 16px;
-      margin: 16px 0;
+      padding: 1em;
+      margin: 1em;
       overflow: hidden;
     }}
     .diagram-container img {{
@@ -204,60 +204,60 @@ def main():
     .control-badge {{
       display: inline-block;
       background: var(--teal-light);
-      border: 1px solid var(--teal-mid);
-      border-radius: 3px;
-      padding: 2px 8px;
-      font-size: 0.78rem;
+      border: 0.125em solid var(--teal-mid);
+      border-radius: 0.375em;
+      padding: 1em;
+      font-size: 1em;
       font-weight: 500;
       color: var(--teal);
-      margin-right: 4px;
-      margin-bottom: 4px;
+      margin-right: 1em;
+      margin-bottom: 1em;
     }}
 
     .compliance-card {{
-      border: 1px solid var(--border);
+      border: 0.125em solid var(--border);
       border-radius: var(--radius);
-      padding: 16px;
-      margin: 12px 0;
+      padding: 1em;
+      margin: 1em;
       background: #fff;
     }}
     .compliance-card h4 {{
-      font-size: 0.92rem;
+      font-size: 1em;
       font-weight: 500;
       color: var(--teal);
-      margin-bottom: 8px;
+      margin-bottom: 1em;
     }}
 
-    .gen-notice {{ font-size: 0.72rem; color: var(--ink-soft); margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--border); }}
+    .gen-notice {{ font-size: 1em; color: var(--ink-soft); margin-top: 1em; padding-top: 1em; border-top: 0.125em solid var(--border); }}
 
     /* ── Hamburger button (hidden on desktop) ──────── */
     .menu-toggle {{
       display: none;
-      margin-left: auto;
+      margin-left: 1em;
       background: none;
       border: none;
       cursor: pointer;
-      padding: 8px;
+      padding: 1em;
       border-radius: var(--radius);
       color: var(--ink-soft);
       transition: background 0.15s;
     }}
     .menu-toggle:hover {{ background: var(--teal-light); color: var(--teal); }}
-    .menu-toggle svg {{ display: block; width: 22px; height: 22px; }}
+    .menu-toggle svg {{ display: block; width: 2.75em; height: 2.75em; }}
 
     .mobile-nav {{
       display: none;
       flex-direction: column;
       background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 8px 16px 14px;
+      border-bottom: 0.125em solid var(--border);
+      padding: 1em;
     }}
     .mobile-nav.open {{ display: flex; }}
     .mobile-nav a {{
-      font-size: 0.95rem;
+      font-size: 1em;
       color: var(--ink-soft);
       text-decoration: none;
-      padding: 10px 12px;
+      padding: 1em;
       border-radius: var(--radius);
       transition: color 0.15s, background 0.15s;
     }}
@@ -266,23 +266,23 @@ def main():
     .mobile-home-bottom {{
       display: none;
       text-align: center;
-      padding: 16px;
-      margin-top: 24px;
-      border-top: 1px solid var(--border);
+      padding: 1em;
+      margin-top: 1em;
+      border-top: 0.125em solid var(--border);
     }}
     .mobile-home-bottom a {{
       color: var(--teal);
       text-decoration: none;
-      font-size: 0.88rem;
+      font-size: 1em;
       font-weight: 500;
     }}
 
-    @media (max-width: 600px) {{
+    @media (max-width: 75em) {{
       .menu-toggle {{ display: flex; align-items: center; justify-content: center; }}
       .mobile-home-bottom {{ display: block; }}
     }}
 
-    footer {{ background: var(--surface); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; font-size: 0.78rem; color: var(--ink-soft); }}
+    footer {{ background: var(--surface); border-top: 0.125em solid var(--border); padding: 1em; text-align: center; font-size: 1em; color: var(--ink-soft); }}
   </style>
 </head>
 <body>

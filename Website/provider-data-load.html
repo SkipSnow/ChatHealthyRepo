@@ -25,104 +25,104 @@
       --accent:     #f0a500;
       --warn:       #c0392b;
       --border:     #d8e2e1;
-      --radius:     6px;
-      --max-w:      1160px;
-      --content-w:  900px;
+      --radius:     0.75em;
+      --max-w:      145em;
+      --content-w:  112.5em;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 1em; padding: 1em; }
     html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
     body { display: flex; flex-direction: column; min-height: 100vh; }
 
-    header { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 6px rgba(11,122,117,0.06); }
-    .header-inner { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; height: 56px; display: flex; align-items: center; }
-    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-mark { width: 32px; height: 32px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
-    .logo-mark svg { width: 18px; height: 18px; fill: white; }
-    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--teal); }
+    header { background: var(--surface); border-bottom: 0.125em solid var(--border); box-shadow: 0 0.125em 0.75em rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 1em; padding: 1em; height: 7em; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 1.25em; text-decoration: none; }
+    .logo-mark { width: 4em; height: 4em; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 2.25em; height: 2.25em; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1em; color: var(--teal); }
     .logo-text span { color: var(--accent); }
 
-    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 0 auto; padding: clamp(20px,4vw,48px) clamp(16px,4vw,24px); }
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 1em; padding: 1em; }
 
-    .page-header { border-bottom: 2px solid var(--teal-mid); padding-bottom: 20px; margin-bottom: 36px; }
-    .page-header .eyebrow { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 6px; }
-    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.1rem); color: var(--ink); line-height: 1.15; margin-bottom: 8px; }
-    .page-header .effective { font-size: 0.82rem; color: var(--ink-soft); }
+    .page-header { border-bottom: 0.25em solid var(--teal-mid); padding-bottom: 1em; margin-bottom: 1em; }
+    .page-header .eyebrow { font-size: 1em; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 1em; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.1rem); color: var(--ink); line-height: 1.15; margin-bottom: 1em; }
+    .page-header .effective { font-size: 1em; color: var(--ink-soft); }
 
     .arch-body { max-width: var(--content-w); }
-    .arch-body h2 { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--teal); margin: 36px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--teal-mid); }
-    .arch-body h2:first-child { margin-top: 0; }
-    .arch-body h3 { font-size: 0.88rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin: 24px 0 8px; }
-    .arch-body p { font-size: 0.92rem; line-height: 1.7; color: var(--ink); margin-bottom: 10px; }
-    .arch-body ul { margin: 6px 0 10px 20px; font-size: 0.92rem; line-height: 1.7; }
-    .arch-body ul li { margin-bottom: 4px; }
+    .arch-body h2 { font-family: 'DM Serif Display', serif; font-size: 1em; color: var(--teal); margin: 1em; padding-bottom: 1em; border-bottom: 0.125em solid var(--teal-mid); }
+    .arch-body h2:first-child { margin-top: 1em; }
+    .arch-body h3 { font-size: 1em; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin: 1em; }
+    .arch-body p { font-size: 1em; line-height: 1.7; color: var(--ink); margin-bottom: 1em; }
+    .arch-body ul { margin: 1em; font-size: 1em; line-height: 1.7; }
+    .arch-body ul li { margin-bottom: 1em; }
 
-    .note { background: var(--teal-light); border-left: 3px solid var(--teal); padding: 10px 14px; border-radius: 0 var(--radius) var(--radius) 0; margin: 12px 0; font-size: 0.88rem; line-height: 1.6; }
-    .warn { background: #fdf3f2; border-left: 3px solid var(--warn); padding: 10px 14px; border-radius: 0 var(--radius) var(--radius) 0; margin: 12px 0; font-size: 0.88rem; line-height: 1.6; }
+    .note { background: var(--teal-light); border-left: 0.375em solid var(--teal); padding: 1em; border-radius: 0 var(--radius) var(--radius) 0; margin: 1em; font-size: 1em; line-height: 1.6; }
+    .warn { background: #fdf3f2; border-left: 0.375em solid var(--warn); padding: 1em; border-radius: 0 var(--radius) var(--radius) 0; margin: 1em; font-size: 1em; line-height: 1.6; }
     .warn strong { color: var(--warn); }
 
-    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 480px; }
-    th { background: var(--ink); color: #fff; padding: 8px 12px; text-align: left; font-weight: 500; font-size: 0.82rem; letter-spacing: 0.03em; }
-    td { border: 1px solid var(--border); padding: 8px 12px; vertical-align: top; line-height: 1.5; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1em; }
+    table { width: 100%; border-collapse: collapse; font-size: 1em; min-width: 60em; }
+    th { background: var(--ink); color: #fff; padding: 1em; text-align: left; font-weight: 500; font-size: 1em; letter-spacing: 0.03em; }
+    td { border: 0.125em solid var(--border); padding: 1em; vertical-align: top; line-height: 1.5; }
     tr:nth-child(even) td { background: var(--teal-light); }
-    code { font-family: monospace; font-size: 0.85em; background: #f4f4f4; padding: 1px 5px; border-radius: 3px; }
+    code { font-family: monospace; font-size: 1em; background: #f4f4f4; padding: 1em; border-radius: 0.375em; }
 
-    .diagram { border: 1px solid var(--border); border-radius: var(--radius); background: #fff; padding: 24px; margin: 16px 0; font-size: 0.85rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .diagram-inner { min-width: 560px; }
+    .diagram { border: 0.125em solid var(--border); border-radius: var(--radius); background: #fff; padding: 1em; margin: 1em; font-size: 1em; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .diagram-inner { min-width: 70em; }
     .d-center { display: flex; justify-content: center; }
-    .d-down { text-align: center; font-size: 1.1rem; line-height: 1; margin: 4px 0; color: var(--ink-soft); }
-    .d-box { border: 2px solid var(--ink); padding: 8px 16px; background: #fff; text-align: center; min-width: 140px; line-height: 1.4; border-radius: 2px; }
-    .d-box strong { display: block; font-size: 0.88rem; }
-    .d-box small { display: block; font-size: 0.78rem; color: var(--ink-soft); margin-top: 2px; }
-    .d-box-wide { min-width: 260px; }
-    .d-box-narrow { min-width: 110px; }
+    .d-down { text-align: center; font-size: 1em; line-height: 1; margin: 1em; color: var(--ink-soft); }
+    .d-box { border: 0.25em solid var(--ink); padding: 1em; background: #fff; text-align: center; min-width: 17.5em; line-height: 1.4; border-radius: 0.25em; }
+    .d-box strong { display: block; font-size: 1em; }
+    .d-box small { display: block; font-size: 1em; color: var(--ink-soft); margin-top: 1em; }
+    .d-box-wide { min-width: 32.5em; }
+    .d-box-narrow { min-width: 13.75em; }
     .d-box-teal { border-color: var(--teal); background: var(--teal-light); }
     .d-box-warn { border-color: var(--warn); background: #fdf3f2; }
-    .d-vline { width: 2px; background: var(--ink); margin: 0 auto; height: 16px; }
-    .d-row { display: flex; justify-content: center; gap: 24px; }
+    .d-vline { width: 0.25em; background: var(--ink); margin: 1em; height: 2em; }
+    .d-row { display: flex; justify-content: center; gap: 3em; }
     .d-col { display: flex; flex-direction: column; align-items: center; }
-    .d-label { font-size: 0.75rem; color: var(--ink-soft); margin: 2px 0; text-align: center; }
+    .d-label { font-size: 1em; color: var(--ink-soft); margin: 1em; text-align: center; }
 
     /* parallel workers */
-    .d-fan { display: flex; justify-content: center; gap: 12px; margin: 4px 0; }
-    .d-fan-box { border: 2px solid var(--ink); padding: 6px 10px; background: #fff; text-align: center; min-width: 80px; border-radius: 2px; font-size: 0.78rem; }
-    .d-fan-box strong { display: block; font-size: 0.78rem; }
-    .d-fan-box small { display: block; font-size: 0.7rem; color: var(--ink-soft); }
+    .d-fan { display: flex; justify-content: center; gap: 1.5em; margin: 1em; }
+    .d-fan-box { border: 0.25em solid var(--ink); padding: 1em; background: #fff; text-align: center; min-width: 10em; border-radius: 0.25em; font-size: 1em; }
+    .d-fan-box strong { display: block; font-size: 1em; }
+    .d-fan-box small { display: block; font-size: 1em; color: var(--ink-soft); }
 
-    footer { border-top: 1px solid var(--border); background: var(--surface); }
-    .footer-inner { max-width: var(--max-w); margin: 0 auto; padding: 14px clamp(16px,4vw,24px); }
-    .footer-copy { font-size: 0.78rem; color: var(--ink-soft); font-style: italic; }
+    footer { border-top: 0.125em solid var(--border); background: var(--surface); }
+    .footer-inner { max-width: var(--max-w); margin: 1em; padding: 1em; }
+    .footer-copy { font-size: 1em; color: var(--ink-soft); font-style: italic; }
 
     @media print { header, footer { display: none !important; } body { font-size: 11pt; } }
   
     /* ── Hamburger button (hidden on desktop) ──────── */
     .menu-toggle {
       display: none;
-      margin-left: auto;
+      margin-left: 1em;
       background: none;
       border: none;
       cursor: pointer;
-      padding: 8px;
+      padding: 1em;
       border-radius: var(--radius);
       color: var(--ink-soft);
       transition: background 0.15s;
     }
     .menu-toggle:hover { background: var(--teal-light); color: var(--teal); }
-    .menu-toggle svg { display: block; width: 22px; height: 22px; }
+    .menu-toggle svg { display: block; width: 2.75em; height: 2.75em; }
 
     .mobile-nav {
       display: none;
       flex-direction: column;
       background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 8px 16px 14px;
+      border-bottom: 0.125em solid var(--border);
+      padding: 1em;
     }
     .mobile-nav.open { display: flex; }
     .mobile-nav a {
-      font-size: 0.95rem;
+      font-size: 1em;
       color: var(--ink-soft);
       text-decoration: none;
-      padding: 10px 12px;
+      padding: 1em;
       border-radius: var(--radius);
       transition: color 0.15s, background 0.15s;
     }
@@ -131,18 +131,18 @@
     .mobile-home-bottom {
       display: none;
       text-align: center;
-      padding: 16px;
-      margin-top: 24px;
-      border-top: 1px solid var(--border);
+      padding: 1em;
+      margin-top: 1em;
+      border-top: 0.125em solid var(--border);
     }
     .mobile-home-bottom a {
       color: var(--teal);
       text-decoration: none;
-      font-size: 0.88rem;
+      font-size: 1em;
       font-weight: 500;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 75em) {
       .menu-toggle { display: flex; align-items: center; justify-content: center; }
       .mobile-home-bottom { display: block; }
     }
@@ -162,7 +162,8 @@
       <span class="logo-text">Chat<span>Healthy</span>.ai</span>
     </a>
   </div>
-</header>
+      <a href="/" class="login-link" style="margin-left: 1em;padding: 1em;text-decoration:none;color:#0b7a75;font-weight:600;">Login &amp; Registration</a>
+  </header>
   <nav class="mobile-nav" id="mobileNav">
     <a href="/">Home</a>
     <a href="/architecture.html">Architecture</a>
@@ -423,11 +424,11 @@
     <!-- 4. Class Responsibilities -->
     <h2>4. Classes</h2>
 
-    <p style="font-size:0.85rem;color:#4a5568;margin:0 0 4px;"><em>italic</em> = abstract method &nbsp;·&nbsp; &#9651; = extends (arrow points toward superclass)</p>
+    <p style="font-size: 1em;color:#4a5568;margin: 1em;"><em>italic</em> = abstract method &nbsp;·&nbsp; &#9651; = extends (arrow points toward superclass)</p>
 
     <!-- Fetcher Hierarchy -->
-    <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin:18px 0 6px;">Fetcher Hierarchy</p>
-    <div style="overflow-x:auto;margin-bottom:24px;border:1px solid #d8e2e1;padding:12px;border-radius:4px;background:#fff;">
+    <p style="font-size: 1em;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin: 1em;">Fetcher Hierarchy</p>
+    <div style="overflow-x:auto;margin-bottom: 1em;border:0.125em solid #d8e2e1;padding: 1em;border-radius:0.5em;background:#fff;">
     <svg xmlns="http://www.w3.org/2000/svg" width="760" height="398" font-family="'Courier New',monospace" font-size="10" fill="#0d1117">
       <!-- DataFetcherBase -->
       <rect x="260" y="10" width="240" height="204" fill="white" stroke="#0d1117" stroke-width="1.5"/>
@@ -484,8 +485,8 @@
     </div>
 
     <!-- Worker Hierarchy -->
-    <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin:0 0 6px;">Worker Hierarchy</p>
-    <div style="overflow-x:auto;margin-bottom:24px;border:1px solid #d8e2e1;padding:12px;border-radius:4px;background:#fff;">
+    <p style="font-size: 1em;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin: 1em;">Worker Hierarchy</p>
+    <div style="overflow-x:auto;margin-bottom: 1em;border:0.125em solid #d8e2e1;padding: 1em;border-radius:0.5em;background:#fff;">
     <svg xmlns="http://www.w3.org/2000/svg" width="760" height="593" font-family="'Courier New',monospace" font-size="10" fill="#0d1117">
       <!-- PipelineWorkerBase(ABC) x=260, y=10, w=240, h=279 -->
       <rect x="260" y="10" width="240" height="279" fill="white" stroke="#0d1117" stroke-width="1.5"/>
@@ -567,8 +568,8 @@
     </div>
 
     <!-- Standalone Classes -->
-    <p style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin:0 0 6px;">Standalone Classes</p>
-    <div style="overflow-x:auto;margin-bottom:28px;border:1px solid #d8e2e1;padding:12px;border-radius:4px;background:#fff;">
+    <p style="font-size: 1em;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin: 1em;">Standalone Classes</p>
+    <div style="overflow-x:auto;margin-bottom: 1em;border:0.125em solid #d8e2e1;padding: 1em;border-radius:0.5em;background:#fff;">
     <svg xmlns="http://www.w3.org/2000/svg" width="760" height="204" font-family="'Courier New',monospace" font-size="10" fill="#0d1117">
       <!-- DiscrepancyReporter x=0, w=240, h=84 -->
       <rect x="0" y="10" width="240" height="84" fill="white" stroke="#0d1117" stroke-width="1.5"/>
@@ -932,8 +933,8 @@
 
 <footer>
   <div class="footer-inner">
-    <p class="footer-copy">© 2026 Skip Snow &nbsp;·&nbsp; ChatHealthy.ai &nbsp;·&nbsp; Design Document</p>
-    <p id="ref-1" class="footer-copy" style="margin-top:6px;">
+    <p class="footer-copy">© 2026 ChatHealthy.ai LLC &nbsp;·&nbsp; ChatHealthy.ai &nbsp;·&nbsp; Design Document</p>
+    <p id="ref-1" class="footer-copy" style="margin-top: 1em;">
       [1] Gamma, E., Helm, R., Johnson, R., &amp; Vlissides, J. (1994).
       <em>Design Patterns: Elements of Reusable Object-Oriented Software.</em>
       Addison-Wesley. Template Method pattern, pp. 325–330. &nbsp;·&nbsp;

@@ -79,6 +79,47 @@ class Test_EPIC_006_F_002_S_001_REQ_T_002_panel_LEFT_desktop:
             f"leftPanel not on left side: x={box['x']} w={box['width']} viewport_w={viewport['width']}"
 
 
+# REQ-T-004: panel takes 58% of left-panel vertical (header 18% / body 40%);
+# header is 3 rows top-to-bottom at 20% / 50% / 30%. The session-bug had
+# the header consuming ~60% of the filter (the count cell intercepted
+# pointer events and the body collapsed to one row). This guard enforces
+# the proportions on the live render. A ±4 percentage-point tolerance
+# absorbs rounding + sub-pixel grid resolution.
+class Test_EPIC_006_F_002_S_001_REQ_T_004_proportions:
+    def test_EPIC_006_F_002_S_001_REQ_T_004(self, env):
+        filt = env["filt"]
+        spec = filt.locator("[data-testid='specialty-filter']").bounding_box()
+        header = filt.locator(".specialty-filter__header").bounding_box()
+        body = filt.locator("[data-testid='specialty-list']").bounding_box()
+        assert spec and header and body
+        # Inside the filter: header is 31% of the filter (= 18% of left
+        # panel) and body is 69% (= 40% of left panel).
+        header_pct = header["height"] / spec["height"] * 100
+        body_pct = body["height"] / spec["height"] * 100
+        assert abs(header_pct - 31) <= 4, (
+            f"header is {header_pct:.1f}% of filter; REQ-T-004 requires 31% (= 18% of LP)"
+        )
+        assert abs(body_pct - 69) <= 4, (
+            f"body is {body_pct:.1f}% of filter; REQ-T-004 requires 69% (= 40% of LP)"
+        )
+        # Inside the header: rows are 20% / 50% / 30% of header height.
+        r1 = filt.locator(".specialty-filter__title-row").bounding_box()
+        r2 = filt.locator(".specialty-filter__count-row").bounding_box()
+        r3 = filt.locator(".specialty-filter__controls-row").bounding_box()
+        assert r1 and r2 and r3
+        r1_pct = r1["height"] / header["height"] * 100
+        r2_pct = r2["height"] / header["height"] * 100
+        r3_pct = r3["height"] / header["height"] * 100
+        for label, pct, target in (
+            ("title row", r1_pct, 20),
+            ("count row", r2_pct, 50),
+            ("controls row", r3_pct, 30),
+        ):
+            assert abs(pct - target) <= 4, (
+                f"{label} is {pct:.1f}% of header; REQ-T-004 requires {target}%"
+            )
+
+
 class Test_EPIC_006_F_002_S_001_REQ_T_005_count_all_possible:
     def test_EPIC_006_F_002_S_001_REQ_T_005(self, env):
         cell = env["filt"].locator("[data-testid='count-all-possible']")

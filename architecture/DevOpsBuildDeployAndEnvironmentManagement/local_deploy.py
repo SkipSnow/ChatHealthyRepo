@@ -524,6 +524,29 @@ class LocalDeploy:
                     f"{result.stderr.strip()[:500]}"
                 )
 
+    # ── Single-source ch_fonts.js distribution ──────────────────────────
+    # Canonical lives in this DevOps directory (ONE place, ONE number).
+    # Consumers need a local copy adjacent to where they serve from:
+    #   • Website/ — the wrapper's static server reads it from there.
+    #   • Code/.../frontend/public/ — Vite bundles public/* into dist/*
+    #     so the FindCare backend serves /ch_fonts.js for the iframe.
+    # Both copies are derived artifacts (gitignored). The vite.config.ts
+    # copy is handled separately around the build itself (see
+    # _build_react_frontend) so the copy is deleted as soon as Vite is
+    # done with it — no stray config in the working tree between deploys.
+    def _sync_ch_fonts_to_website(self) -> None:
+        canonical_fonts = self.deploy_dir / "ch_fonts.js"
+        if not canonical_fonts.is_file():
+            sys.exit(f"ERROR: canonical font registry missing at {canonical_fonts}")
+        wrapper_copy = self.website_dir / "ch_fonts.js"
+        iframe_copy = self.frontend_dir / "public" / "ch_fonts.js"
+        iframe_copy.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(canonical_fonts, wrapper_copy)
+        shutil.copy2(canonical_fonts, iframe_copy)
+        self._step_notice(
+            "ch_fonts.js synced -> Website + frontend/public"
+        )
+
     # ── Build React frontend (S-001-REQ-T-008) ─────────────────────────
     # SKIP'S HIGH-MISS STEP — historically often missed in deploys.
     # The deploy fails atomically (S-001-REQ-B-001) if this step fails.
@@ -542,6 +565,16 @@ class LocalDeploy:
         env = os.environ.copy()
         env["VITE_API_URL"] = api_url
         env["VITE_EVALCARE_URL"] = evalcare_url
+        # vite.config.ts: the CANONICAL lives in the DevOps deploy directory.
+        # Vite needs to find its plugin modules from the adjacent
+        # node_modules, so we copy the canonical into frontend/ for the
+        # duration of the build and delete it immediately after (success
+        # or failure) — no stray config left in the working tree.
+        canonical_vite = self.deploy_dir / "vite.config.ts"
+        vite_copy = self.frontend_dir / "vite.config.ts"
+        if not canonical_vite.is_file():
+            sys.exit(f"ERROR: canonical vite config missing at {canonical_vite}")
+        shutil.copy2(canonical_vite, vite_copy)
         try:
             subprocess.run(
                 ["npm", "ci", "--silent"],
@@ -549,12 +582,15 @@ class LocalDeploy:
                 shell=(sys.platform == "win32"),
             )
             subprocess.run(
-                ["npx", "vite", "build"],
+                ["npm", "run", "build"],
                 cwd=self.frontend_dir, env=env, check=True,
                 shell=(sys.platform == "win32"),
             )
         except subprocess.CalledProcessError as e:
             sys.exit(f"ERROR: React build failed: {e}")
+        finally:
+            if vite_copy.is_file():
+                vite_copy.unlink()
 
         dist_index = self.frontend_dir / "dist" / "index.html"
         if not dist_index.is_file():
@@ -926,6 +962,7 @@ class LocalDeploy:
         self._step_notice("old environment torn down and ready")
 
         self._validate_prerequisites()
+        self._sync_ch_fonts_to_website()                    # single-source font registry
         # React build MUST run before backend container build: the Dockerfile
         # COPYs backend/, which contains backend/static/ (where the React
         # build output lands). If docker build runs first, the image bakes
