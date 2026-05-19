@@ -156,6 +156,8 @@ export default function FindCareApp() {
   // the prompt row remain. Distinct from phase='searching' (initial search)
   // which has nothing to preserve.
   const [reclassifying, setReclassifying] = useState(false)
+  const [tokenReady, setTokenReady] = useState<boolean>(_sessionToken != null)
+  const [loadingSeconds, setLoadingSeconds] = useState(0)
 
   const selection = useSelectionState()
   const selectedRef = useRef<Provider[]>([])
@@ -177,13 +179,21 @@ export default function FindCareApp() {
   const [specialtyRows, setSpecialtyRows] = useState<SpecialtyRecord[]>([])
   const checkedCodesRef = useRef<string[]>([])
 
-  // Fetch welcome message on mount
   useEffect(() => {
     fetch(`${API_URL}/welcome`, { method: 'POST' })
       .then(r => r.json())
       .then(d => setWelcomeHtml(d.message || 'Welcome to ChatHealthy FindCare'))
       .catch(() => setWelcomeHtml('Welcome to ChatHealthy FindCare'))
   }, [])
+
+  useEffect(() => {
+    if (tokenReady) return
+    const secondsTick = setInterval(() => setLoadingSeconds(s => s + 1), 1000)
+    const poll = setInterval(() => {
+      if (_sessionToken != null) setTokenReady(true)
+    }, 100)
+    return () => { clearInterval(secondsTick); clearInterval(poll) }
+  }, [tokenReady])
 
   // Keep refs in sync for closure access
   searchParamsRef.current = searchParams
@@ -646,7 +656,18 @@ export default function FindCareApp() {
     doSearch(text)
   }
 
-  // ── Render ─────────────────────────────────────────────────────
+  if (!tokenReady) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', fontFamily: 'system-ui, sans-serif', color: '#0b7a75', gap: '1em',
+      }}>
+        <div style={{ fontSize: '1em', fontWeight: 700 }}>Loading</div>
+        <div style={{ fontSize: '1em' }}>{loadingSeconds}s</div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
