@@ -587,7 +587,7 @@ def _push_to_cloudflare_pages(
     env_values: dict[str, str],
 ) -> None:
     project = {"dev": "chathealthy-website-dev", "qa": "chathealthy-website-qa",
-               "prod": "chathealthy-website-prod"}[env]
+               "prod": "chathealthywebsite"}[env]
     _step(f"cloudflare_pages_project target={target.target_id} project={project}")
     branch_for_wrangler = env
     api_token = (
