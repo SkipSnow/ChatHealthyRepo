@@ -26,11 +26,11 @@
       --teal-mid:   #d0eeec;
       --accent:     #f0a500;
       --border:     #d8e2e1;
-      --radius:     6px;
+      --radius:     0.75em;
       --max-w:      100%;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 1em; padding: 1em; }
 
     html, body {
       height: 100%;
@@ -40,18 +40,18 @@
     }
 
     body {
-      padding-top: env(safe-area-inset-top, 0);
-      padding-bottom: env(safe-area-inset-bottom, 0);
-      padding-left: env(safe-area-inset-left, 0);
-      padding-right: env(safe-area-inset-right, 0);
+      padding-top: 1em;
+      padding-bottom: 1em;
+      padding-left: 1em;
+      padding-right: 1em;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 37.5em) {
       input[type="text"],
       input[type="search"],
       input[type="email"],
       textarea {
-        min-height: 44px;
+        min-height: 5.5em;
       }
     }
 
@@ -99,32 +99,32 @@
       height: 6%;
       z-index: 100;
       background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      box-shadow: 0 1px 6px rgba(11,122,117,0.06);
+      border-bottom: 0.125em solid var(--border);
+      box-shadow: 0 0.125em 0.75em rgba(11,122,117,0.06);
     }
 
     .header-inner {
       max-width: var(--max-w);
-      margin: 0 auto;
-      padding: 0 24px;
+      margin: 1em;
+      padding: 1em;
       height: 100%;
       display: flex;
       align-items: center;
-      gap: 40px;
+      gap: 5em;
     }
 
     /* Logo */
     .logo {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 1.25em;
       text-decoration: none;
       flex-shrink: 0;
     }
 
     .logo-mark {
-      width: 36px;
-      height: 36px;
+      width: 4.5em;
+      height: 4.5em;
       border-radius: 50%;
       background: var(--teal);
       display: flex;
@@ -133,14 +133,14 @@
     }
 
     .logo-mark svg {
-      width: 20px;
-      height: 20px;
+      width: 2.5em;
+      height: 2.5em;
       fill: white;
     }
 
     .logo-text {
       font-family: 'DM Serif Display', serif;
-      font-size: 1.25rem;
+      font-size: 1em;
       color: var(--teal);
       letter-spacing: -0.01em;
     }
@@ -148,12 +148,12 @@
     .pre-alpha {
       font-family: 'DM Serif Display', serif;
       font-style: italic;
-      font-size: 0.85rem;
+      font-size: 1em;
       color: #e05a8a;
       transform: rotate(-8deg);
       display: inline-block;
-      margin-left: -8px;
-      margin-top: -8px;
+      margin-left: 1em;
+      margin-top: 1em;
       letter-spacing: 0.02em;
       user-select: none;
     }
@@ -166,16 +166,16 @@
     .header-nav {
       display: flex;
       align-items: center;
-      gap: 4px;
-      margin-left: auto;
+      gap: 0.5em;
+      margin-left: 1em;
     }
 
     .header-nav a {
-      font-size: 0.875rem;
+      font-size: 1em;
       font-weight: 400;
       color: var(--ink-soft);
       text-decoration: none;
-      padding: 6px 14px;
+      padding: 1em;
       border-radius: var(--radius);
       transition: color 0.15s, background 0.15s;
       white-space: nowrap;
@@ -188,13 +188,13 @@
     .header-nav button:not(.nav-coming-soon),
     .mobile-nav button:not(.nav-coming-soon) {
       font-family: 'DM Sans', sans-serif;
-      font-size: 0.875rem;
+      font-size: 1em;
       font-weight: 400;
       color: var(--ink-soft);
       background: none;
       border: none;
       cursor: pointer;
-      padding: 6px 14px;
+      padding: 1em;
       border-radius: var(--radius);
       transition: color 0.15s, background 0.15s;
       white-space: nowrap;
@@ -209,13 +209,13 @@
     .header-nav .nav-coming-soon,
     .mobile-nav .nav-coming-soon {
       font-family: 'DM Sans', sans-serif;
-      font-size: 0.875rem;
+      font-size: 1em;
       font-weight: 400;
       color: var(--ink-soft);
       background: none;
       border: none;
       cursor: pointer;
-      padding: 6px 14px;
+      padding: 1em;
       border-radius: var(--radius);
       transition: color 0.15s, background 0.15s;
       white-space: nowrap;
@@ -227,15 +227,15 @@
     .nav-coming-soon::after {
       content: attr(data-tip);
       position: absolute;
-      top: calc(100% + 8px);
+      top: calc(100% + 1em);
       left: 50%;
-      transform: translateX(-50%) translateY(-4px);
+      transform: translateX(-50%) translateY(-0.5em);
       background: var(--ink);
       color: #fff;
-      font-size: 0.72rem;
+      font-size: 1em;
       white-space: nowrap;
-      padding: 5px 10px;
-      border-radius: 4px;
+      padding: 1em;
+      border-radius: 0.5em;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.18s, transform 0.18s;
@@ -248,40 +248,40 @@
     }
 
     .mobile-nav .nav-coming-soon {
-      font-size: 0.95rem;
+      font-size: 1em;
       text-align: left;
-      padding: 10px 12px;
+      padding: 1em;
     }
 
     /* ── Hamburger button (hidden on desktop) ──────── */
     .menu-toggle {
       display: none;
-      margin-left: auto;
+      margin-left: 1em;
       background: none;
       border: none;
       cursor: pointer;
-      padding: 8px;
+      padding: 1em;
       border-radius: var(--radius);
       color: var(--ink-soft);
       transition: background 0.15s;
     }
     .menu-toggle:hover { background: var(--teal-light); color: var(--teal); }
-    .menu-toggle svg { display: block; width: 22px; height: 22px; }
+    .menu-toggle svg { display: block; width: 2.75em; height: 2.75em; }
 
     /* ── Mobile drawer ─────────────────────────────── */
     .mobile-nav {
       display: none;
       flex-direction: column;
       background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 8px 16px 14px;
+      border-bottom: 0.125em solid var(--border);
+      padding: 1em;
     }
     .mobile-nav.open { display: flex; }
     .mobile-nav a {
-      font-size: 0.95rem;
+      font-size: 1em;
       color: var(--ink-soft);
       text-decoration: none;
-      padding: 10px 12px;
+      padding: 1em;
       border-radius: var(--radius);
       transition: color 0.15s, background 0.15s;
     }
@@ -294,13 +294,13 @@
       flex-direction: column;
       max-width: var(--max-w);
       width: 100%;
-      margin: 0 auto;
-      padding: clamp(12px, 3vw, 28px) clamp(12px, 4vw, 24px);
-      gap: 12px;
+      margin: 1em;
+      padding: 1em;
+      gap: 1.5em;
     }
 
     .chat-label {
-      font-size: 0.75rem;
+      font-size: 1em;
       font-weight: 500;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -309,10 +309,10 @@
 
     .chat-frame-wrapper {
       flex: 1;
-      border: 1px solid var(--border);
+      border: 0.125em solid var(--border);
       border-radius: var(--radius);
       overflow: hidden;
-      box-shadow: 0 2px 12px rgba(11,122,117,0.08);
+      box-shadow: 0 0.25em 1.5em rgba(11,122,117,0.08);
       position: relative;
       background: #f7fbfa;
     }
@@ -334,7 +334,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 14px;
+      gap: 1.75em;
       background: #f7fbfa;
       pointer-events: none;
       transition: opacity 0.4s;
@@ -342,15 +342,15 @@
     .frame-loading.hidden { opacity: 0; }
 
     .spinner {
-      width: 36px; height: 36px;
-      border: 3px solid var(--teal-mid);
+      width: 4.5em; height: 4.5em;
+      border: 0.375em solid var(--teal-mid);
       border-top-color: var(--teal);
       border-radius: 50%;
       animation: spin 0.9s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .frame-loading p { font-size: 0.85rem; color: var(--ink-soft); }
+    .frame-loading p { font-size: 1em; color: var(--ink-soft); }
 
     /* Frame labels — visible in non-prod only */
     .frame-label { display: none; }
@@ -361,15 +361,15 @@
 
     /* ── Footer ────────────────────────────────────── */
     footer {
-      border-top: 1px solid var(--border);
+      border-top: 0.125em solid var(--border);
       background: var(--surface);
       height: 4%;
     }
 
     .footer-inner {
       max-width: var(--max-w);
-      margin: 0 auto;
-      padding: 0 clamp(12px, 4vw, 24px);
+      margin: 1em;
+      padding: 1em;
       width: 100%;
       height: 100%;
       display: flex;
@@ -382,7 +382,7 @@
       justify-content: space-evenly;
       width: 100%;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 0.5em;
     }
 
     .footer-links a,
@@ -395,11 +395,11 @@
       background: none;
       border: none;
       cursor: pointer;
-      padding: 6px 12px;
+      padding: 1em;
       border-radius: var(--radius);
       transition: color 0.15s, background 0.15s;
       line-height: 1;
-      min-height: 36px; /* tap-friendly */
+      min-height: 4.5em; /* tap-friendly */
       display: inline-flex;
       align-items: center;
     }
@@ -413,16 +413,16 @@
     .footer-links button::after {
       content: attr(data-tip);
       position: absolute;
-      bottom: calc(100% + 8px);
+      bottom: calc(100% + 1em);
       left: 50%;
-      transform: translateX(-50%) translateY(4px);
+      transform: translateX(-50%) translateY(0.5em);
       background: var(--ink);
       color: #fff;
-      font-size: 0.72rem;
+      font-size: 1em;
       font-style: normal;
       white-space: nowrap;
-      padding: 5px 10px;
-      border-radius: 4px;
+      padding: 1em;
+      border-radius: 0.5em;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.18s, transform 0.18s;
@@ -440,11 +440,11 @@
       position: fixed;
       top: 0;
       right: 0;
-      width: min(520px, 100vw);
+      width: min(65em, 100vw);
       height: 100%;
       background: var(--surface);
-      border-left: 1px solid var(--border);
-      box-shadow: -4px 0 24px rgba(11,122,117,0.10);
+      border-left: 0.125em solid var(--border);
+      box-shadow: -0.5em 0 3em rgba(11,122,117,0.10);
       display: flex;
       flex-direction: column;
       z-index: 200;
@@ -460,14 +460,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 20px;
-      height: 52px;
-      border-bottom: 1px solid var(--border);
+      padding: 1em;
+      height: 6.5em;
+      border-bottom: 0.125em solid var(--border);
       flex-shrink: 0;
     }
 
     .legal-panel-title {
-      font-size: 0.8rem;
+      font-size: 1em;
       font-weight: 500;
       letter-spacing: 0.07em;
       text-transform: uppercase;
@@ -478,7 +478,7 @@
       background: none;
       border: none;
       cursor: pointer;
-      padding: 6px;
+      padding: 1em;
       border-radius: var(--radius);
       color: var(--ink-soft);
       display: flex;
@@ -493,8 +493,8 @@
     }
 
     .legal-panel-close svg {
-      width: 18px;
-      height: 18px;
+      width: 2.25em;
+      height: 2.25em;
     }
 
     .legal-panel iframe {
@@ -507,32 +507,32 @@
     .panel-resize-handle {
       position: absolute;
       left: 0; top: 0; bottom: 0;
-      width: 6px;
+      width: 0.75em;
       cursor: col-resize;
-      border-left: 2px solid transparent;
+      border-left: 0.25em solid transparent;
       transition: border-color 0.15s, background 0.15s;
       z-index: 1;
     }
     .panel-resize-handle:hover,
     .panel-resize-handle.dragging { border-left-color: var(--teal); background: var(--teal-light); }
 
-    .legal-panel-actions { display: flex; align-items: center; gap: 2px; }
+    .legal-panel-actions { display: flex; align-items: center; gap: 0.25em; }
 
     .legal-panel-expand {
       background: none; border: none; cursor: pointer;
-      padding: 6px; border-radius: var(--radius);
+      padding: 1em; border-radius: var(--radius);
       color: var(--ink-soft);
       display: flex; align-items: center; justify-content: center;
       transition: background 0.15s, color 0.15s;
     }
     .legal-panel-expand:hover { background: var(--teal-light); color: var(--teal); }
-    .legal-panel-expand svg { width: 16px; height: 16px; }
+    .legal-panel-expand svg { width: 2em; height: 2em; }
 
     /* ── Responsive breakpoints ────────────────────── */
 
     /* Tablet: collapse nav to hamburger */
-    @media (max-width: 600px) {
-      .header-inner { gap: 16px; }
+    @media (max-width: 37.5em) {
+      .header-inner { gap: 2em; }
       .header-nav { display: none; }
       .menu-toggle { display: flex; align-items: center; justify-content: center; }
       .panel-resize-handle,
@@ -542,11 +542,11 @@
       .side-panel.mobile-filter-open {
         display: flex !important;
         position: fixed;
-        top: 88px; left: 0; right: 0; bottom: 0;
+        top: 11em; left: 0; right: 0; bottom: 0;
         width: 100% !important;
         z-index: 1000;
         background: rgba(255,255,255,0.98);
-        padding: 16px;
+        padding: 1em;
         overflow-y: auto;
       }
       /* EPIC-006-F-002-S-001-REQ-T-003 + EPIC-006-F-019 mobile usability:
@@ -561,11 +561,11 @@
       .side-panel#rightPanel.mobile-rightpanel-open {
         display: flex !important;
         position: fixed;
-        top: 88px; left: 0; right: 0; bottom: 0;
+        top: 11em; left: 0; right: 0; bottom: 0;
         width: 100% !important;
         z-index: 1000;
         background: rgba(255,255,255,0.98);
-        padding: 16px;
+        padding: 1em;
         overflow-y: auto;
         flex-direction: column;
         align-items: stretch;
@@ -583,45 +583,49 @@
     }
     #mobileRightOpen,
     #mobileRightClose {
-      position: fixed; right: 14px; top: 96px; z-index: 1001;
-      min-width: 64px; height: 32px; padding: 0 12px; border-radius: 16px;
+      position: fixed; right: 1.75em; top: 12em; z-index: 1001;
+      min-width: 8em; height: 4em; padding: 1em; border-radius: 2em;
       background: linear-gradient(180deg, #d97706, #b45309);
-      color: #fff; border: none; font-size: 11px; font-weight: 700;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25); cursor: pointer;
+      color: #fff; border: none; font-size: 1em; font-weight: 700;
+      box-shadow: 0 0.25em 0.75em rgba(0,0,0,0.25); cursor: pointer;
       display: none;
     }
     #mobileFilterReopen {
-      position: fixed; right: 14px; top: 56px; z-index: 1001;
-      min-width: 64px; height: 32px; padding: 0 12px; border-radius: 16px;
+      position: fixed; right: 1.75em; top: 7em; z-index: 1001;
+      min-width: 8em; height: 4em; padding: 1em; border-radius: 2em;
       background: linear-gradient(180deg, #0b9a94, #0b7a75);
-      color: #fff; border: none; font-size: 11px; font-weight: 700;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25); cursor: pointer;
+      color: #fff; border: none; font-size: 1em; font-weight: 700;
+      box-shadow: 0 0.25em 0.75em rgba(0,0,0,0.25); cursor: pointer;
       display: none;
     }
 
     /* Phone: tighten footer to 2×2 grid */
-    @media (max-width: 400px) {
+    @media (max-width: 25.0em) {
       .footer-links {
         display: grid;
         grid-template-columns: 1fr 1fr;
         justify-items: center;
-        gap: 4px;
+        gap: 0.5em;
       }
     }
   </style>
+  <!-- Single source of truth for all ChatHealthy.ai font sizes / family.
+       Loaded BEFORE any inline script or stylesheet so .ch-h / .ch-body /
+       .ch-sm / .ch-mono classes are available everywhere. -->
+  <script src="/ch_fonts.js"></script>
 </head>
 
 <body>
 
-  <div id="chFatalErrorOverlay" style="display:none;position:fixed;inset:0;z-index:2147483647;background:#fff;overflow:auto;padding:40px 20px;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;">
-    <div style="max-width:680px;margin:0 auto;text-align:center;color:#111;">
-      <div style="font-size:38px;font-weight:700;color:#dc2626;margin:60px 0 40px 0;line-height:1.25;">HTTP 503: Fatal Error, this service is not available.</div>
-      <div style="font-size:16px;line-height:1.7;color:#374151;">
-        <div style="margin:8px 0;"><a id="chFatalHomeLink" href="" style="color:#0b7a75;text-decoration:underline;"></a></div>
-        <div style="margin:8px 0;">If you get this error repeatedly and wish to call our team, please call Skip Snow @ <a href="tel:+16464088999" style="color:#0b7a75;">646 408 8999</a></div>
-        <div style="margin:8px 0;">If you prefer email skip's email is: <a href="mailto:skip@chatHealthy.ai" style="color:#0b7a75;">skip@chatHealthy.ai</a></div>
-        <div id="chFatalErrorMessage" style="margin:18px auto;font-size:13px;color:#6b7280;word-break:break-word;max-width:600px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;"></div>
-        <div style="margin:8px 0;">we apologize for this problem.</div>
+  <div id="chFatalErrorOverlay" style="display:none;position:fixed;inset:0;z-index:2147483647;background:#fff;overflow:auto;padding: 1em;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;">
+    <div style="max-width:85em;margin: 1em;text-align:center;color:#111;">
+      <div style="font-size: 1em;font-weight:700;color:#dc2626;margin: 1em;line-height:1.25;">HTTP 503: Fatal Error, this service is not available.</div>
+      <div style="font-size: 1em;line-height:1.7;color:#374151;">
+        <div style="margin: 1em;"><a id="chFatalHomeLink" href="" style="color:#0b7a75;text-decoration:underline;"></a></div>
+        <div style="margin: 1em;">If you get this error repeatedly and wish to call our team, please call Skip Snow @ <a href="tel:+16464088999" style="color:#0b7a75;">646 408 8999</a></div>
+        <div style="margin: 1em;">If you prefer email skip's email is: <a href="mailto:skip@chatHealthy.ai" style="color:#0b7a75;">skip@chatHealthy.ai</a></div>
+        <div id="chFatalErrorMessage" style="margin: 1em;font-size: 1em;color:#6b7280;word-break:break-word;max-width:75em;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;"></div>
+        <div style="margin: 1em;">we apologize for this problem.</div>
       </div>
     </div>
   </div>
@@ -755,7 +759,7 @@
   </div>
 
   <!-- ══ ENVIRONMENT BANNER — full width, below header ══ -->
-  <div id="envBanner" style="display:none;background:#d97706;color:#fff;text-align:center;padding:4px 8px;font-size:13px;font-weight:600;letter-spacing:0.03em;width:100%;"></div>
+  <div id="envBanner" style="display:none;background:#d97706;color:#fff;text-align:center;padding: 1em;font-size: 1em;font-weight:600;letter-spacing:0.03em;width:100%;"></div>
   <script>
     (function() {
       var host = window.location.hostname;
@@ -830,11 +834,11 @@
         var root = (window._envServiceUrls || {})[key] || '';
         var healthUrl = root + '/health';
         function paintBanner(version, framework, build) {
-          banner.innerHTML = '<span style="margin-right:12px;">' + env + '</span>'
-            + '<span style="margin-right:12px;">Version: ' + (version || '?') + '</span>'
-            + '<span style="margin-right:12px;">Framework: ' + (framework || '?') + '</span>'
-            + '<span style="margin-right:12px;">Build: ' + (build || '?') + '</span>'
-            + '<span style="margin-right:12px;font-size:11px;opacity:0.85;">[' + key + ']</span>'
+          banner.innerHTML = '<span style="margin-right: 1em;">' + env + '</span>'
+            + '<span style="margin-right: 1em;">Version: ' + (version || '?') + '</span>'
+            + '<span style="margin-right: 1em;">Framework: ' + (framework || '?') + '</span>'
+            + '<span style="margin-right: 1em;">Build: ' + (build || '?') + '</span>'
+            + '<span style="margin-right: 1em;font-size: 1em;opacity:0.85;">[' + key + ']</span>'
             + '<span id="serviceButtons"></span>';
           if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
         }
@@ -863,8 +867,8 @@
 
     <div class="content-row">
       <!-- Left panel — 1% prod, 20% non-prod for dev visibility -->
-      <div class="side-panel" id="leftPanel" style="background:rgb(225,225,255);border-right:1px solid #d8e2e1;display:flex;align-items:center;justify-content:center;">
-        <span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>
+      <div class="side-panel" id="leftPanel" style="background:rgb(225,225,255);border-right:0.125em solid #d8e2e1;display:flex;align-items:center;justify-content:center;">
+        <span class="frame-label" style="color:#8888cc;font-size: 1em;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>
       </div>
 
       <!-- Center column — chat + provider selection + controls -->
@@ -886,40 +890,40 @@
         </div>
 
         <!-- Provider Selection Panel — hidden until providers arrive (FC-SELECT-001) -->
-        <div id="providerSelectionPanel" style="display:none;flex-direction:column;border:1px solid #d8e2e1;border-radius:6px;background:#fff;overflow:hidden;margin-top:2px;">
+        <div id="providerSelectionPanel" style="display:none;flex-direction:column;border:0.125em solid #d8e2e1;border-radius:0.75em;background:#fff;overflow:hidden;margin-top: 1em;">
           <!-- Available providers — top -->
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f0fffe;border-bottom:1px solid #d8e2e1;">
-            <span style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Available Providers</span>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span id="availableCount" style="font-size:10px;color:#6b7280;">0</span>
-              <button id="garbageBtn" title="Dismissed providers" style="background:none;border:none;cursor:pointer;font-size:14px;position:relative;">🗑️<span id="garbageCount" style="position:absolute;top:-6px;right:-8px;background:#dc2626;color:#fff;font-size:8px;font-weight:700;border-radius:50%;width:14px;height:14px;display:none;align-items:center;justify-content:center;">0</span></button>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding: 1em;background:#f0fffe;border-bottom:0.125em solid #d8e2e1;">
+            <span style="font-size: 1em;font-weight:700;color:#0b7a75;text-transform:uppercase;">Available Providers</span>
+            <div style="display:flex;align-items:center;gap:0.75em;">
+              <span id="availableCount" style="font-size: 1em;color:#6b7280;">0</span>
+              <button id="garbageBtn" title="Dismissed providers" style="background:none;border:none;cursor:pointer;font-size: 1em;position:relative;">🗑️<span id="garbageCount" style="position:absolute;top:-0.75em;right:-1em;background:#dc2626;color:#fff;font-size: 1em;font-weight:700;border-radius:50%;width:1.75em;height:1.75em;display:none;align-items:center;justify-content:center;">0</span></button>
             </div>
           </div>
-          <div id="availableList" style="max-height:200px;overflow-y:auto;overflow-x:hidden;"></div>
+          <div id="availableList" style="max-height:25em;overflow-y:auto;overflow-x:hidden;"></div>
 
           <!-- Drop zone divider -->
-          <div id="dropZoneDivider" style="padding:4px 10px;background:#fffbeb;border-top:1px solid #d8e2e1;border-bottom:1px solid #d8e2e1;display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-size:10px;font-weight:600;color:#d97706;text-transform:uppercase;">Selected for Evaluation</span>
-            <span id="selectedCount" style="font-size:10px;color:#6b7280;">0 / 5</span>
+          <div id="dropZoneDivider" style="padding: 1em;background:#fffbeb;border-top:0.125em solid #d8e2e1;border-bottom:0.125em solid #d8e2e1;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size: 1em;font-weight:600;color:#d97706;text-transform:uppercase;">Selected for Evaluation</span>
+            <span id="selectedCount" style="font-size: 1em;color:#6b7280;">0 / 5</span>
           </div>
 
           <!-- Selected providers — bottom -->
-          <div id="selectedList" style="min-height:40px;max-height:180px;overflow-y:auto;overflow-x:hidden;background:#fffdf7;">
-            <div id="selectedEmpty" style="padding:12px;text-align:center;color:#9ca3af;font-size:11px;">
+          <div id="selectedList" style="min-height:5em;max-height:22.5em;overflow-y:auto;overflow-x:hidden;background:#fffdf7;">
+            <div id="selectedEmpty" style="padding: 1em;text-align:center;color:#9ca3af;font-size: 1em;">
               Drag providers here or click ↓ to select (max 5)
             </div>
           </div>
         </div>
 
         <!-- Control Frame — outside the iframe wrapper, visible canvas -->
-        <div id="guiControlFrame" style="height:7%;overflow:hidden;transition:all 0.2s ease;border-top:1px solid #d8e2e1;background:#fafaf9;display:flex;align-items:center;justify-content:center;">
-          <span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>
+        <div id="guiControlFrame" style="height:7%;overflow:hidden;transition:all 0.2s ease;border-top:0.125em solid #d8e2e1;background:#fafaf9;display:flex;align-items:center;justify-content:center;">
+          <span class="frame-label" style="color:#ccc;font-size: 1em;">CONTROL FRAME</span>
         </div>
       </div> <!-- /center-column -->
 
       <!-- Right panel — 1%, expands for leaf pages -->
-      <div class="side-panel" id="rightPanel" style="background:#f5f5f4;border-left:1px solid #d8e2e1;display:flex;align-items:center;justify-content:center;">
-        <span class="frame-label" style="color:#ccc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">RIGHT PANEL</span>
+      <div class="side-panel" id="rightPanel" style="background:#f5f5f4;border-left:0.125em solid #d8e2e1;display:flex;align-items:center;justify-content:center;">
+        <span class="frame-label" style="color:#ccc;font-size: 1em;writing-mode:vertical-rl;text-orientation:mixed;">RIGHT PANEL</span>
       </div>
     </div> <!-- /content-row -->
   </main>
@@ -986,15 +990,23 @@
       // if the recording call lags.
       window._recordUxEvent = function(event_type, value) {
         try {
+          // REQ-T-006: refuse to issue when the stored pair indicates expiry.
+          if (window._isSessionExpired()) { window._handleSessionExpired(); return; }
           var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
           fetch(sharedUrl + '/gate', {
             method: 'POST',
             credentials: 'include',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
+            body: window._gateBody({
               op: 'record_ux_event',
               payload: {event_type: event_type, value: value === undefined ? null : value}
             })
+          }).then(function(r) {
+            if (r.status >= 500 || (r.status >= 400 && r.status !== 401 && r.status !== 403)) {
+              window._gateHardFail();
+              return null;
+            }
+            return r.json().then(window._noteGateResponse, function() {});
           }).catch(function() {});
         } catch (_) { /* never block a UX transition on recording */ }
       };
@@ -1004,6 +1016,8 @@
       // endpoint; here we navigate the browser there.
       window._startLoginRegister = function() {
         try {
+          // REQ-T-006 pre-flight.
+          if (window._isSessionExpired()) { window._handleSessionExpired(); return; }
           var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
           fetch(sharedUrl + '/gate', {
             method: 'POST',
@@ -1012,8 +1026,14 @@
               'Content-Type': 'application/json',
               'Accept': 'application/x-ndjson'
             },
-            body: JSON.stringify({intent: 'login_register'})
-          }).then(function(r) { return r.text(); })
+            body: window._gateBody({intent: 'login_register'})
+          }).then(function(r) {
+            if (r.status >= 500 || (r.status >= 400 && r.status !== 401 && r.status !== 403)) {
+              window._gateHardFail();
+              throw new Error('login_register HTTP ' + r.status);
+            }
+            return r.text();
+          })
             .then(function(text) {
               var lines = (text || '').split('\n');
               for (var i = 0; i < lines.length; i++) {
@@ -1021,6 +1041,8 @@
                 if (!line) continue;
                 var evt;
                 try { evt = JSON.parse(line); } catch (e) { continue; }
+                // REQ-T-005: keep the pair fresh on every /gate response.
+                window._noteGateResponse(evt);
                 if (evt && evt.type === 'redirect' && evt.url) {
                   window.location.assign(evt.url);
                   return;
@@ -1032,38 +1054,125 @@
             });
         } catch (_) { /* button must never throw */ }
       };
+      // EPIC-002-F-003-S-005-REQ-T-005/T-006: pair-tracker for the most
+      // recent /gate response's (time_remaining_seconds, Date.now()) plus
+      // the was_registered flag the server derives from the just-expired
+      // session's user_object. Browser never sees user_object on the wire.
+      window._sessionExpiry = null;        // {remaining, receivedAt}
+      window._wasRegistered = false;       // last-seen server-derived flag
+      window._noteGateResponse = function(payload) {
+        if (!payload || typeof payload !== 'object') return;
+        if (typeof payload.time_remaining_seconds === 'number') {
+          window._sessionExpiry = {
+            remaining: payload.time_remaining_seconds,
+            receivedAt: Date.now()
+          };
+        }
+        if (typeof payload.was_registered === 'boolean') {
+          window._wasRegistered = payload.was_registered;
+        }
+      };
+      // REQ-T-006 pre-flight: compute remaining seconds against the
+      // stored pair and return false (refuse) when expired. Callers use
+      // this BEFORE issuing any SharedServices request.
+      window._sessionRemainingSeconds = function() {
+        var s = window._sessionExpiry;
+        if (!s) return null;     // never received a pair yet
+        return s.remaining - (Date.now() - s.receivedAt) / 1000;
+      };
+      window._isSessionExpired = function() {
+        var r = window._sessionRemainingSeconds();
+        return r !== null && r <= 0;
+      };
+      // REQ-T-010: navigate home with a blank-Guest UX and the right
+      // timeout copy. The home page renders `?system_timed_out=...`
+      // (registered|guest) in place of the splash.
+      window._handleSessionExpired = function() {
+        var who = window._wasRegistered ? 'registered' : 'guest';
+        try {
+          window._sessionExpiry = null;
+          window._authBoot = null;
+          window._userObject = null;
+        } catch (_) {}
+        var host = window.location.hostname;
+        var homeUrl;
+        if (host === 'localhost' || host === '127.0.0.1') {
+          homeUrl = window.location.protocol + '//' + host + (window.location.port ? ':' + window.location.port : '');
+        } else if (host.indexOf('dev.') === 0) {
+          homeUrl = 'https://dev.chathealthy.ai';
+        } else if (host.indexOf('qa.') === 0) {
+          homeUrl = 'https://qa.chathealthy.ai';
+        } else {
+          homeUrl = 'https://chathealthy.ai';
+        }
+        window.location.assign(homeUrl + '/?system_timed_out=' + who);
+      };
+      // REQ-T-009 hard-fail wiring for /gate consumers. Any 5xx, any 4xx
+      // that isn't an expected business code, and any malformed body all
+      // route to the existing full-screen chFatalError overlay with the
+      // mandated text.
+      window._gateHardFail = function() {
+        try { window.chFatalError('authentication error from SharedServices'); }
+        catch (_) {}
+      };
+      // /gate body builder. The HttpOnly ch_session cookie carries the
+      // GUID in production (Domain=chathealthy.ai matches the host); on
+      // dev/local where the cookie is dropped by the browser, the same
+      // GUID rides in the body as prior_guid so the AuthN tool can resume
+      // the existing admin.sessions record. Without this, every /gate
+      // call mints a fresh session and utterances vanish from history.
+      window._gateBody = function(extra) {
+        var body = Object.assign({}, extra || {});
+        // SessionToken wire shape exposes `token`; the last 32 chars are
+        // the GUID (token = "CH" + nonce(35) + guid(32)). The model
+        // doesn't carry a `guid` field directly.
+        var tok = window._authBoot && window._authBoot.token;
+        if (tok && tok.length >= 32 && !body.prior_guid) {
+          body.prior_guid = tok.slice(-32);
+        }
+        return JSON.stringify(body);
+      };
       window._getAuthBoot = function() {
-        if (window._authBoot) return Promise.resolve(window._authBoot);
+        // REQ-T-008: every page load posts /gate with op="boot" as the
+        // FIRST SharedServices call. The cached _authBoot short-circuit
+        // remains so subsequent panel refreshes don't re-boot.
+        if (window._authBoot && window._sessionExpiry) {
+          return Promise.resolve(window._authBoot);
+        }
         var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
-        // Universal front door, boot path. The ch_session cookie is
-        // HttpOnly + Secure + SameSite=None, set by SharedServices on
-        // every /gate response. The browser sends it back automatically
-        // when fetch uses `credentials: 'include'`. The gate reads the
-        // cookie server-side and either resumes the existing session
-        // (if its last_used is within 300s) or mints fresh. JS never
-        // touches the cookie — that's the security guarantee.
         return fetch(sharedUrl + '/gate', {
             method: 'POST',
             credentials: 'include',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({op: 'boot'})
+            body: window._gateBody({op: 'boot'})
           })
           .then(function(r) {
-            if (!r.ok) throw new Error('SharedServices /gate boot HTTP ' + r.status);
-            return r.json();
+            if (r.status >= 500 || (r.status >= 400 && r.status !== 401 && r.status !== 403)) {
+              window._gateHardFail();
+              throw new Error('SharedServices /gate boot HTTP ' + r.status);
+            }
+            if (!r.ok) {
+              throw new Error('SharedServices /gate boot HTTP ' + r.status);
+            }
+            return r.json().catch(function() {
+              window._gateHardFail();
+              throw new Error('SharedServices /gate boot malformed body');
+            });
           })
           .then(function(payload) {
-            // Per Skip 2026-05-15 B1: payload.user_object is the full
-            // UserObject; the signed security token lives at
-            // user_object.current_session_token. Earlier callers
-            // (refreshTokenPanels -> /session -> /verify-token) consume
-            // a bare SessionToken — so window._authBoot stores that.
-            var userObject = (payload && payload.user_object) ? payload.user_object : null;
-            var token = (userObject && userObject.current_session_token)
-              ? userObject.current_session_token
-              : null;
+            // S-005 + S-003-REQ-B-004 contract: the full user_object
+            // (PHI / model-tier user state) is NOT on the wire — but
+            // the cryptographic-display projection of the session token
+            // IS (payload.session_token). That projection is what the
+            // existing refreshTokenPanels chain feeds to /session +
+            // /verify-token, and what the iframe consumes via the
+            // auth:boot postMessage. The browser also owns the
+            // (remaining, receivedAt) pair from this point and refuses
+            // to issue any subsequent SharedServices request when the
+            // pair indicates expiry (REQ-T-006).
+            window._noteGateResponse(payload);
+            var token = (payload && payload.session_token) || null;
             window._authBoot = token;
-            window._userObject = userObject;
             window._broadcastAuthBoot();
             return token;
           });
@@ -1116,6 +1225,14 @@
 
         window._getAuthBoot()
           .then(function(t0) {
+            // S-005 + S-003-REQ-B-004 contract: /gate surfaces the
+            // cryptographic-display projection of the session token
+            // (payload.session_token) — that is what we feed to
+            // /session for restamping. The full user_object stays
+            // server-side per S-005 REQ-T-008.
+            if (!t0) {
+              throw new Error('refreshTokenPanels: no session_token from /gate boot');
+            }
             return fetch(stampUrl + '/session', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
@@ -1146,7 +1263,7 @@
                 var leftPanelOuter = document.getElementById('leftPanel');
                 if (leftPanelOuter) {
                   leftPanelOuter.insertAdjacentHTML('beforeend',
-                    '<div id="guiSessionId" style="padding:4px 8px;border-top:1px solid #e5e7eb;"></div>');
+                    '<div id="guiSessionId" style="padding: 1em;border-top:0.125em solid #e5e7eb;"></div>');
                   leftCell = document.getElementById('guiSessionId');
                 }
               }
@@ -1156,9 +1273,9 @@
               var sec = document.getElementById('rightSecurity');
               if (sec) {
                 sec.innerHTML =
-                    '<div style="padding:8px 10px;border-bottom:2px solid ' + color + ';background:' + bg + ';">'
-                  + '<div style="font-size:11px;font-weight:700;color:' + color + ';text-transform:uppercase;">' + label + '</div>'
-                  + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
+                    '<div style="padding: 1em;border-bottom:0.25em solid ' + color + ';background:' + bg + ';">'
+                  + '<div style="font-size: 1em;font-weight:700;color:' + color + ';text-transform:uppercase;">' + label + '</div>'
+                  + '<div style="font-size: 1em;color:#6b7280;margin-top: 1em;">Mutual authentication test</div>'
                   + '</div>'
                   + window.buildTokenDisplayHtml(st);
               }
@@ -1182,8 +1299,8 @@
         services.forEach(function(s) {
           var isActive = (owner === s.key);
           var style = isActive
-            ? 'margin-left:8px;background:#d1d5db;color:#6b7280;border:1px solid #d1d5db;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:600;cursor:not-allowed;opacity:0.75;'
-            : 'margin-left:8px;background:#fff;color:' + s.color + ';border:1px solid #fff;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer;';
+            ? 'margin-left: 1em;background:#d1d5db;color:#6b7280;border:0.125em solid #d1d5db;border-radius:0.375em;padding: 1em;font-size: 1em;font-weight:600;cursor:not-allowed;opacity:0.75;'
+            : 'margin-left: 1em;background:#fff;color:' + s.color + ';border:0.125em solid #fff;border-radius:0.375em;padding: 1em;font-size: 1em;font-weight:600;cursor:pointer;';
           html += '<button type="button" data-service="' + s.key + '" '
             + (isActive ? 'disabled title="You are in the ' + s.name + ' server" ' : ('onclick="' + s.handler + '" '))
             + 'style="' + style + '">'
@@ -1230,16 +1347,40 @@
           var params = new URLSearchParams(window.location.search);
           var email = params.get('auth_email');
           var err = params.get('auth_error');
-          if (email || err) {
+          var timedOut = params.get('system_timed_out');
+          if (email || err || timedOut) {
             if (email) window._authEmail = email;
             if (err) window._authError = err;
+            if (timedOut) window._systemTimedOut = timedOut;
             params.delete('auth_email');
             params.delete('auth_error');
+            params.delete('system_timed_out');
             var clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
             history.replaceState(null, '', clean);
           }
         } catch (e) { /* defensive — never block load on URL parsing */ }
       })();
+      // REQ-T-010: render the system-timed-out notice in place of the
+      // initial splash when arriving via _handleSessionExpired().
+      window._renderSystemTimedOut = function() {
+        var who = window._systemTimedOut;
+        if (who !== 'registered' && who !== 'guest') return false;
+        var notice = who === 'registered'
+          ? 'system timed out: please log back in'
+          : 'system timed out: please start again';
+        var chatFrame = document.getElementById('coreChatFrame');
+        if (chatFrame) chatFrame.style.display = 'none';
+        var centerArea = chatFrame ? chatFrame.parentElement : document.body;
+        var existing = document.getElementById('chSystemTimedOut');
+        if (existing) existing.remove();
+        var div = document.createElement('div');
+        div.id = 'chSystemTimedOut';
+        div.setAttribute('data-testid', 'system-timed-out');
+        div.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;color:#dc2626;font-size: 1em;font-weight:600;text-align:center;padding: 1em;';
+        div.textContent = notice;
+        centerArea.appendChild(div);
+        return true;
+      };
       window.gotoEvaluateCare = function() {
         // DEVOPS-BANNER-B006: banner-initiated handoff to EvaluateCare.
         // Mirrors openSharedServices but hits /evaluate/* via FindCare proxy.
@@ -1271,7 +1412,7 @@
             if (!splashDiv) {
               splashDiv = document.createElement('div');
               splashDiv.id = 'evalcareSplash';
-              splashDiv.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;';
+              splashDiv.style.cssText = 'flex:1;overflow:auto;background:#fff;';
               centerArea.appendChild(splashDiv);
             }
             splashDiv.style.display = 'flex';
@@ -1348,17 +1489,33 @@
         // splash_displayed ux_event, then render. Response:
         // {user_object: <fresh + session_conversation_history>, result: {html}}.
         var sharedUrl = (window._envServiceUrls || {}).sharedservices || '';
+        // REQ-T-006 pre-flight on this SharedServices fetch.
+        if (window._isSessionExpired()) { window._handleSessionExpired(); return; }
         fetch(sharedUrl + '/gate', {
           method: 'POST',
           credentials: 'include',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({op: 'splash'})
+          body: window._gateBody({op: 'splash'})
         })
-          .then(function(r) { return r.json(); })
+          .then(function(r) {
+            if (r.status >= 500 || (r.status >= 400 && r.status !== 401 && r.status !== 403)) {
+              window._gateHardFail();
+              throw new Error('SharedServices /gate splash HTTP ' + r.status);
+            }
+            return r.json().catch(function() {
+              window._gateHardFail();
+              throw new Error('SharedServices /gate splash malformed body');
+            });
+          })
           .then(function(payload) {
-            if (payload && payload.user_object) {
-              window._userObject = payload.user_object;
-              window._authBoot = payload.user_object.current_session_token || null;
+            // REQ-T-005/T-008: every /gate response refreshes the stored
+            // (remaining, receivedAt) pair. user_object stays server-side
+            // per S-005. The cryptographic-display projection
+            // (payload.session_token) is what subsequent refreshTokenPanels
+            // calls stamp + verify.
+            window._noteGateResponse(payload);
+            if (payload && payload.session_token) {
+              window._authBoot = payload.session_token;
               window._broadcastAuthBoot();
             }
             var d = (payload && payload.result) ? payload.result : payload;
@@ -1371,7 +1528,7 @@
             if (!splashDiv) {
               splashDiv = document.createElement('div');
               splashDiv.id = 'sharedSplash';
-              splashDiv.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;';
+              splashDiv.style.cssText = 'flex:1;overflow:auto;background:#fff;';
               centerArea.appendChild(splashDiv);
             }
             splashDiv.style.display = 'flex';
@@ -1385,23 +1542,38 @@
         window.refreshTokenPanels('sharedservices');
       };
 
-      // Retry loading iframe — wait 3s between attempts, max 10 tries
+      // REQ-T-008: every page load posts /gate with op="boot" as the
+      // first SharedServices call. Fire it explicitly here so the
+      // ch_session cookie + time_remaining pair are populated before
+      // any subsequent SS request. The promise is intentionally not
+      // awaited — downstream callers gate on window._sessionExpiry
+      // before their fetches.
+      try { window._getAuthBoot(); } catch (_) {}
+      // REQ-T-010: a returning ?system_timed_out=… URL means the user
+      // was just bounced home by the pre-flight check. Skip the iframe
+      // boot, render the notice in place of the splash, and let the
+      // user click Login & Registration / Home from chrome to restart.
       var iframe = document.getElementById('coreChatFrame');
-      var maxRetries = 60;  // 60 × 10s = 10 min — HF Space can take 2-3 min to restart
-      var attempt = 0;
-      function tryLoad() {
-        attempt++;
-        iframe.src = src;
-        iframe.onerror = function() {
-          if (attempt < maxRetries) {
-            console.log('[iframe] Load attempt ' + attempt + ' failed, retrying in 10s...');
-            setTimeout(tryLoad, 10000);
-          } else {
-            console.error('[iframe] Failed to load after ' + maxRetries + ' attempts');
-          }
-        };
+      if (typeof window._renderSystemTimedOut === 'function' && window._renderSystemTimedOut()) {
+        // No iframe boot on the timeout splash path.
+      } else {
+        // Retry loading iframe — wait 3s between attempts, max 10 tries
+        var maxRetries = 60;  // 60 × 10s = 10 min — HF Space can take 2-3 min to restart
+        var attempt = 0;
+        function tryLoad() {
+          attempt++;
+          iframe.src = src;
+          iframe.onerror = function() {
+            if (attempt < maxRetries) {
+              console.log('[iframe] Load attempt ' + attempt + ' failed, retrying in 10s...');
+              setTimeout(tryLoad, 10000);
+            } else {
+              console.error('[iframe] Failed to load after ' + maxRetries + ' attempts');
+            }
+          };
+        }
+        tryLoad();
       }
-      tryLoad();
     })();
 
     (function() {
@@ -1413,22 +1585,22 @@
       // Pure render: every value comes verbatim from the server's
       // SessionTokenVerification. The widget does no manipulation.
       window.buildTokenDisplayHtml = function(st) {
-        return '<div style="padding:8px 10px;border-top:2px solid #0b7a75;background:#f0fffe;margin-top:4px;">'
-          + '<div style="font-size:10px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
-          + '<div style="font-size:9px;color:#374151;margin-top:4px;word-break:break-all;">'
+        return '<div style="padding: 1em;border-top:0.25em solid #0b7a75;background:#f0fffe;margin-top: 1em;">'
+          + '<div style="font-size: 1em;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
+          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;word-break:break-all;">'
           + '<b style="color:#6366f1;">Signed token:</b> <span style="color:#6366f1;">' + st.signature_received + '</span></div>'
-          + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
+          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;word-break:break-all;">'
           + '<b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + st.nonce + '</span></div>'
-          + '<div style="font-size:9px;color:#374151;margin-top:2px;word-break:break-all;">'
+          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;word-break:break-all;">'
           + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + st.guid + '</span></div>'
-          + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;">'
           + '<b>Origin:</b> ' + st.origin
           + ' &middot; <b>Verified:</b> <span style="font-weight:700;">' + st.verified + '</span></div>'
-          + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;">'
           + '<b>Server, serving security token:</b> ' + st.origin + '</div>'
-          + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;">'
           + '<b>Env:</b> <span style="color:#7c3aed;font-weight:700;">' + st.server_env + '</span></div>'
-          + '<div style="font-size:9px;color:#374151;margin-top:2px;">'
+          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;">'
           + '<b>Time:</b> ' + st.created_at + '</div>'
           + '</div>';
       }
@@ -1485,14 +1657,14 @@
           var timerContainer = document.getElementById('guiTimerContainer');
           if (!timerContainer) {
             frame.style.justifyContent = 'space-between';
-            frame.style.paddingLeft = '12px';
-            frame.style.paddingRight = '12px';
-            frame.style.gap = '10px';
+            frame.style.paddingLeft = '1.5em';
+            frame.style.paddingRight = '1.5em';
+            frame.style.gap = '1.25em';
             timerContainer = document.createElement('div');
             timerContainer.id = 'guiTimerContainer';
-            timerContainer.style.cssText = 'display:flex;align-items:center;gap:10px;background:#f0f4f8;border:1px solid #d8e2e1;border-radius:6px;padding:4px 14px;box-shadow:inset 0 1px 2px rgba(0,0,0,0.06);';
-            timerContainer.innerHTML = '<span id="guiTimer" style="font-size:12px;color:#0b7a75;font-weight:600;min-width:40px;">Thinking…</span>'
-              + '<button id="guiTimerStop" style="background:linear-gradient(180deg,#f5f5f4,#e7e5e4);border:1px solid #d1d5db;border-radius:4px;padding:3px 12px;font-size:11px;color:#57534e;cursor:pointer;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.1);">Stop</button>';
+            timerContainer.style.cssText = 'display:flex;align-items:center;gap:1.25em;background:#f0f4f8;border:0.125em solid #d8e2e1;border-radius:0.75em;padding: 1em;box-shadow:inset 0 0.125em 0.25em rgba(0,0,0,0.06);';
+            timerContainer.innerHTML = '<span id="guiTimer" style="font-size: 1em;color:#0b7a75;font-weight:600;min-width:5em;">Thinking…</span>'
+              + '<button id="guiTimerStop" style="background:linear-gradient(180deg,#f5f5f4,#e7e5e4);border:0.125em solid #d1d5db;border-radius:0.5em;padding: 1em;font-size: 1em;color:#57534e;cursor:pointer;font-weight:500;box-shadow:0 0.125em 0.25em rgba(0,0,0,0.1);">Stop</button>';
             frame.insertBefore(timerContainer, frame.firstChild);
             document.getElementById('guiTimerStop').addEventListener('click', function() {
               chatFrame.contentWindow.postMessage({ type: 'gui:event', action: 'stop-thinking' }, '*');
@@ -1507,13 +1679,13 @@
             timerContainer.remove();
             frame.dataset.hasResults = 'true';
             frame.style.justifyContent = 'flex-end';
-            frame.style.paddingLeft = '12px';
-            frame.style.paddingRight = '12px';
+            frame.style.paddingLeft = '1.5em';
+            frame.style.paddingRight = '1.5em';
           }
         }
 
         if (msg.type === 'gui:clear') {
-          frame.innerHTML = '<span class="frame-label" style="color:#ccc;font-size:9px;">CONTROL FRAME</span>';
+          frame.innerHTML = '<span class="frame-label" style="color:#ccc;font-size: 1em;">CONTROL FRAME</span>';
         }
 
         // FC-EVAL-001: Evaluate button in control frame — cold/hot based on selection count
@@ -1542,10 +1714,10 @@
             // Create the button — clear the CONTROL FRAME label first
             frame.innerHTML = '';
             frame.style.justifyContent = 'flex-end';
-            frame.style.paddingRight = '12px';
+            frame.style.paddingRight = '1.5em';
             var btnContainer = document.createElement('div');
-            btnContainer.style.cssText = 'display:flex;align-items:center;gap:8px;';
-            btnContainer.innerHTML = '<button id="guiEvalBtn" style="padding:6px 16px;border-radius:5px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;min-height:44px;min-width:44px;">Evaluate These Providers</button>';
+            btnContainer.style.cssText = 'display:flex;align-items:center;gap:1em;';
+            btnContainer.innerHTML = '<button id="guiEvalBtn" style="padding: 1em;border-radius:0.625em;border:none;font-size: 1em;font-weight:600;cursor:pointer;transition:all 0.2s;min-height:5.5em;min-width:5.5em;">Evaluate These Providers</button>';
             frame.appendChild(btnContainer);
             evalBtn = document.getElementById('guiEvalBtn');
 
@@ -1554,15 +1726,15 @@
                 // Cold click — show instruction popup
                 var popup = document.createElement('div');
                 popup.id = 'evalInstructPopup';
-                popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:2px solid #0b7a75;border-radius:8px;padding:20px;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.15);max-width:360px;font-family:system-ui,sans-serif;';
-                popup.innerHTML = '<div style="font-weight:700;color:#0b7a75;font-size:14px;margin-bottom:10px;">How to select providers</div>'
-                  + '<div style="font-size:12px;color:#374151;line-height:1.6;">'
+                popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:0.25em solid #0b7a75;border-radius:1em;padding: 1em;z-index:9999;box-shadow:0 0.5em 2.5em rgba(0,0,0,0.15);max-width:45em;font-family:system-ui,sans-serif;';
+                popup.innerHTML = '<div style="font-weight:700;color:#0b7a75;font-size: 1em;margin-bottom: 1em;">How to select providers</div>'
+                  + '<div style="font-size: 1em;color:#374151;line-height:1.6;">'
                   + '<p><b>Click ↓</b> on a provider card to select it for evaluation.</p>'
                   + '<p><b>Drag and drop</b> a provider card to the orange "Selected for Evaluation" area.</p>'
                   + '<p><b>Click 🗑</b> to dismiss a provider you don\'t want.</p>'
-                  + '<p style="color:#6b7280;margin-top:8px;">Select up to 5 providers, then click Evaluate.</p>'
+                  + '<p style="color:#6b7280;margin-top: 1em;">Select up to 5 providers, then click Evaluate.</p>'
                   + '</div>'
-                  + '<button onclick="this.parentElement.remove()" style="margin-top:12px;padding:5px 16px;border-radius:4px;border:1px solid #0b7a75;background:#f0fffe;color:#0b7a75;font-size:11px;font-weight:600;cursor:pointer;">Got it</button>';
+                  + '<button onclick="this.parentElement.remove()" style="margin-top: 1em;padding: 1em;border-radius:0.5em;border:0.125em solid #0b7a75;background:#f0fffe;color:#0b7a75;font-size: 1em;font-weight:600;cursor:pointer;">Got it</button>';
                 document.body.appendChild(popup);
               } else {
                 // Hot click — send to evaluate
@@ -1593,7 +1765,7 @@
                     if (!splashDiv) {
                       splashDiv = document.createElement('div');
                       splashDiv.id = 'evalcareSplash';
-                      splashDiv.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;';
+                      splashDiv.style.cssText = 'flex:1;overflow:auto;background:#fff;';
                       centerArea.appendChild(splashDiv);
                     }
                     splashDiv.style.display = 'flex';
@@ -1750,7 +1922,7 @@
                       var applyBtn = leftPanel.querySelector('[data-gui-action="filter-apply"]');
                       noChangeMsg = document.createElement('div');
                       noChangeMsg.id = 'filterNoChangeMsg';
-                      noChangeMsg.style.cssText = 'color:#d97706;font-size:10px;text-align:center;padding:3px;font-weight:600;';
+                      noChangeMsg.style.cssText = 'color:#d97706;font-size: 1em;text-align:center;padding: 1em;font-weight:600;';
                       noChangeMsg.textContent = 'No filter changes to apply.';
                       applyBtn.parentNode.insertBefore(noChangeMsg, applyBtn);
                       setTimeout(function() { if (noChangeMsg.parentNode) noChangeMsg.remove(); }, 3000);
@@ -1857,13 +2029,13 @@
                       window._homeoGeneralists.forEach(function(g) {
                         if (!existingCodes.has(g.code)) {
                           var div = document.createElement('div');
-                          div.style.cssText = 'display:block;padding:4px 8px;border-bottom:1px solid #f0f0f0;';
+                          div.style.cssText = 'display:block;padding: 1em;border-bottom:0.125em solid #f0f0f0;';
                           div.setAttribute('data-spec-code', g.code);
                           div.setAttribute('data-can-prescribe', String(g.can_prescribe || false));
                           div.setAttribute('data-homeopathic', 'true');
                           div.setAttribute('data-homeo-injected', 'true');
-                          div.innerHTML = '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;">' +
-                            '<input type="checkbox" data-gui-action="filter-toggle" data-gui-value="' + g.code + '" checked style="accent-color:#0b7a75;width:12px;height:12px;" />' +
+                          div.innerHTML = '<label style="display:flex;align-items:center;gap:0.75em;cursor:pointer;font-size: 1em;">' +
+                            '<input type="checkbox" data-gui-action="filter-toggle" data-gui-value="' + g.code + '" checked style="accent-color:#0b7a75;width:1.5em;height:1.5em;" />' +
                             '<span style="color:#1f2937;">' + g.name + '</span></label>';
                           scrollContainer.appendChild(div);
                         }
@@ -1935,12 +2107,12 @@
           var rightPanel = document.getElementById('rightPanel');
           if (rightPanel && msg.providers) {
             var rows = msg.providers.map(function(p, i) {
-              return '<div style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">'
-                + '<div style="font-weight:600;color:#1f2937;font-size:13px;">' + (i+1) + '. ' + (p.name || 'Unknown') + '</div>'
-                + (p.address ? '<div style="font-size:11px;color:#374151;">' + p.address + '</div>' : '')
-                + (p.county ? '<div style="font-size:10px;color:#6b7280;">' + p.county + '</div>' : '')
-                + (p.phone ? '<div style="font-size:10px;color:#6b7280;">Phone: ' + p.phone + '</div>' : '')
-                + '<div style="font-size:10px;color:#9ca3af;">NPI: ' + (p.npi || '') + '</div>'
+              return '<div style="padding: 1em;border-bottom:0.125em solid #e5e7eb;">'
+                + '<div style="font-weight:600;color:#1f2937;font-size: 1em;">' + (i+1) + '. ' + (p.name || 'Unknown') + '</div>'
+                + (p.address ? '<div style="font-size: 1em;color:#374151;">' + p.address + '</div>' : '')
+                + (p.county ? '<div style="font-size: 1em;color:#6b7280;">' + p.county + '</div>' : '')
+                + (p.phone ? '<div style="font-size: 1em;color:#6b7280;">Phone: ' + p.phone + '</div>' : '')
+                + '<div style="font-size: 1em;color:#9ca3af;">NPI: ' + (p.npi || '') + '</div>'
                 + '</div>';
             }).join('');
             // Session token verification display — EPIC-002-F-001-S-012-REQ-B-007
@@ -1957,9 +2129,9 @@
             // (#rightSecurity). See window.ensureRightPanelStructure().
             window.ensureRightPanelStructure();
             document.getElementById('rightContent').innerHTML =
-                '<div style="padding:8px 10px;border-bottom:2px solid #d97706;background:#fffbeb;">'
-              + '<div style="font-size:11px;font-weight:700;color:#d97706;text-transform:uppercase;">EvaluateCare</div>'
-              + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">' + msg.providers.length + ' providers · ' + (msg.question || '') + '</div>'
+                '<div style="padding: 1em;border-bottom:0.25em solid #d97706;background:#fffbeb;">'
+              + '<div style="font-size: 1em;font-weight:700;color:#d97706;text-transform:uppercase;">EvaluateCare</div>'
+              + '<div style="font-size: 1em;color:#6b7280;margin-top: 1em;">' + msg.providers.length + ' providers · ' + (msg.question || '') + '</div>'
               + '</div>'
               + '<div style="overflow-y:auto;flex:1;">' + rows + '</div>';
             // Update left panel with identical session verification
@@ -1979,9 +2151,9 @@
           var content = document.getElementById('rightContent');
           if (content) {
             content.innerHTML =
-                '<div style="padding:8px 10px;border-bottom:2px solid #0b7a75;background:#f0fffe;">'
-              + '<div style="font-size:11px;font-weight:700;color:#0b7a75;text-transform:uppercase;">Shared Services</div>'
-              + '<div style="font-size:9px;color:#6b7280;margin-top:2px;">Mutual authentication test</div>'
+                '<div style="padding: 1em;border-bottom:0.25em solid #0b7a75;background:#f0fffe;">'
+              + '<div style="font-size: 1em;font-weight:700;color:#0b7a75;text-transform:uppercase;">Shared Services</div>'
+              + '<div style="font-size: 1em;color:#6b7280;margin-top: 1em;">Mutual authentication test</div>'
               + '</div>';
           }
         }
@@ -1997,7 +2169,7 @@
           var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
           if (!sessionEl) {
             leftPanel.insertAdjacentHTML('beforeend',
-              '<div id="guiSessionId" style="padding:4px 8px;border-top:1px solid #e5e7eb;"></div>');
+              '<div id="guiSessionId" style="padding: 1em;border-top:0.125em solid #e5e7eb;"></div>');
             sessionEl = document.getElementById('guiSessionId');
           }
           sessionEl.innerHTML = window.buildTokenDisplayHtml(msg.session_token);
@@ -2019,7 +2191,7 @@
           leftPanel.classList.remove('mobile-filter-open');
           document.body.classList.remove('has-filter-results');
           document.body.classList.remove('filter-overlay-open');
-          leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size:9px;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>';
+          leftPanel.innerHTML = '<span class="frame-label" style="color:#8888cc;font-size: 1em;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>';
         }
       });
 
@@ -2111,8 +2283,7 @@
   <footer>
     <div class="footer-inner">
       <nav class="footer-links">
-        <a href="https://www.linkedin.com/in/skipsnow/" target="_blank" rel="noopener noreferrer"
-           style="font-style:italic;">&copy; 2026 Skip Snow</a>
+        <span style="font-style:italic;">&copy; 2026 ChatHealthy.ai LLC</span>
         <button type="button" data-tip="646-408-8999  ·  skip.snow@gmail.com">Contact</button>
         <button type="button" onclick="openPanel('roadmap.html','Roadmap')">Roadmap</button>
         <button type="button" onclick="openPanel('privacy.html','Privacy Policy')">Privacy Policy</button>

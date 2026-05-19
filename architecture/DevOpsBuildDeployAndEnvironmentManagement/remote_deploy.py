@@ -341,25 +341,63 @@ def _copy_tree(
         shutil.copy2(path, out_path)
 
 
+# ── Single-source ch_fonts.js distribution ─────────────────────────
+# Canonical lives next to this script in the DevOps deploy directory
+# (ONE place). Consumers need a local copy adjacent to where they
+# serve from: Website/ (the wrapper's static) and frontend/public/
+# (Vite bundles public/* into dist/*). The vite.config.ts copy is
+# handled around the build itself in _build_react_frontend so the
+# copy is deleted as soon as Vite is done — no stray config left
+# in the working tree.
+def _sync_ch_fonts(repo_root: Path) -> None:
+    devops = repo_root / "architecture" / "DevOpsBuildDeployAndEnvironmentManagement"
+    canonical_fonts = devops / "ch_fonts.js"
+    if not canonical_fonts.is_file():
+        raise FileNotFoundError(f"canonical font registry missing at {canonical_fonts}")
+    frontend = repo_root / "Code" / "ConversationalUX" / "FindCareChat" / "frontend"
+    wrapper_copy = repo_root / "Website" / "ch_fonts.js"
+    iframe_copy = frontend / "public" / "ch_fonts.js"
+    iframe_copy.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(canonical_fonts, wrapper_copy)
+    shutil.copy2(canonical_fonts, iframe_copy)
+    _step("ch_fonts.js synced -> Website + frontend/public")
+
+
 # ── React build for FindCare ──────────────────────────────────────────
 def _build_react_frontend(repo_root: Path, env: str) -> None:
     frontend = repo_root / "Code" / "ConversationalUX" / "FindCareChat" / "frontend"
     if not (frontend / "package.json").is_file():
         raise FileNotFoundError(f"frontend package.json missing at {frontend}")
+    _sync_ch_fonts(repo_root)
+    # vite.config.ts: canonical lives in the DevOps deploy directory. Copy
+    # it into frontend/ so Vite resolves its plugin modules adjacent to
+    # the React app's node_modules, then delete the copy immediately —
+    # success or failure — so no stray config lingers in the working tree.
+    canonical_vite = (repo_root / "architecture"
+                      / "DevOpsBuildDeployAndEnvironmentManagement"
+                      / "vite.config.ts")
+    if not canonical_vite.is_file():
+        raise FileNotFoundError(f"canonical vite config missing at {canonical_vite}")
+    vite_copy = frontend / "vite.config.ts"
+    shutil.copy2(canonical_vite, vite_copy)
     evalcare_peer = _hf_peer_url("target_hf_space_evaluatecare_backend", env)
     env_for_build = dict(os.environ)
     env_for_build["VITE_API_URL"] = ""
     env_for_build["VITE_EVALCARE_URL"] = evalcare_peer
-    _step(f"npm ci in {frontend}")
-    subprocess.run(
-        ["npm", "ci"], cwd=str(frontend), env=env_for_build,
-        check=True, shell=(sys.platform == "win32"),
-    )
-    _step(f"npm run build (VITE_EVALCARE_URL={evalcare_peer})")
-    subprocess.run(
-        ["npm", "run", "build"], cwd=str(frontend), env=env_for_build,
-        check=True, shell=(sys.platform == "win32"),
-    )
+    try:
+        _step(f"npm ci in {frontend}")
+        subprocess.run(
+            ["npm", "ci"], cwd=str(frontend), env=env_for_build,
+            check=True, shell=(sys.platform == "win32"),
+        )
+        _step(f"npm run build (VITE_EVALCARE_URL={evalcare_peer})")
+        subprocess.run(
+            ["npm", "run", "build"], cwd=str(frontend), env=env_for_build,
+            check=True, shell=(sys.platform == "win32"),
+        )
+    finally:
+        if vite_copy.is_file():
+            vite_copy.unlink()
 
 
 # ── HF Space deploy ────────────────────────────────────────────────────

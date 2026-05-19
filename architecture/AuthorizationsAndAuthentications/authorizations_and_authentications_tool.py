@@ -148,15 +148,21 @@ def _user_id_for_guid(users_coll, guid: str) -> Optional[str]:
     return doc["user_id"] if doc else None
 
 
-def _user_id_for_provider_sub(
-    users_coll, provider: str, provider_user_id: str,
+def _user_id_for_identity_provider_sub(
+    users_coll, identity_provider: str, identity_provider_user_id: str,
 ) -> Optional[str]:
-    """Look up a users record by an entry in user_object.OAuthIdentities."""
+    """Look up a users record by an entry in user_object.OAuthIdentities.
+
+    Both the Mongo query keys AND the in-memory dict keys are the canonical
+    schema names (identity_provider, identity_provider_user_id) per
+    ChatHealthyUserStateSchema.json. The legacy ('provider' /
+    'provider_user_id') names are no longer used.
+    """
     doc = users_coll.find_one(
         {"user_object.OAuthIdentities": {
             "$elemMatch": {
-                "provider": provider,
-                "provider_user_id": provider_user_id,
+                "identity_provider": identity_provider,
+                "identity_provider_user_id": identity_provider_user_id,
             },
         }},
         {"user_id": 1},
@@ -241,24 +247,28 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
 
     def handle_oauth_login(
         self, mongo_frontend, *,
-        google_sub: str, email: str, session_guid: str,
+        identity_provider: str, google_sub: str, email: str, session_guid: str,
     ) -> str:
-        """Register-or-find a users record for this Google identity, bind
-        it to the current session, and return the user_id that the OAuth
+        """Register-or-find a users record for this OAuth identity, bind it
+        to the current session, and return the user_id that the OAuth
         callback MUST set in ChatHealthyUserCookie.
+
+        `identity_provider` is the identity provider name (e.g. "Google").
+        `google_sub` is the provider's stable user-id ("sub" in OIDC). The
+        argument keeps its historical name so callers don't churn; it is
+        persisted as OAuthIdentities[].identity_provider_user_id per the
+        canonical schema.
 
         First-time (REQ-T-009): creates a users record with a freshly
         generated user_id and a user_object whose OAuthIdentities array
-        contains one Google entry. The new user_object has is_registered
-        = True, user_type = "Prospect", and public_username = Google sub.
+        contains one entry with this identity_provider. The new
+        user_object has is_registered = True, user_type = "Prospect", and
+        public_username = identity_provider_user_id.
 
         Returning (REQ-T-012): reuses the existing user_id; refreshes the
-        Google entry's email to this callback's value; REPLACES the
-        session's guest user_object with the stored one (preserving the
-        current session token + expires_at so the live session stays
-        intact).
+        matching OAuthIdentities entry's email; merges the stored
+        UserObject with the guest session per the model's merge rules.
         """
-        provider = "Google"
         sessions_coll = mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
         users_coll = mongo_frontend[_SESSION_DB][_USERS_COLLECTION]
 
@@ -270,11 +280,11 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
                 "prior /gate visit"
             )
         session_user_object = {k: v for k, v in session_doc.items() if k != "_id"}
-        live_token = session_user_object.get("current_session_token")
-        live_expires = session_user_object.get("expires_at")
 
-        existing_user_id = _user_id_for_provider_sub(
-            users_coll, provider=provider, provider_user_id=google_sub,
+        existing_user_id = _user_id_for_identity_provider_sub(
+            users_coll,
+            identity_provider=identity_provider,
+            identity_provider_user_id=google_sub,
         )
 
         if existing_user_id is None:
@@ -284,9 +294,10 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
             new_user_object["public_username"] = google_sub
             new_user_object["user_type"] = "Prospect"
             new_user_object["is_registered"] = True
+            new_user_object["user_id"] = user_id
             new_user_object["OAuthIdentities"] = [{
-                "provider": provider,
-                "provider_user_id": google_sub,
+                "identity_provider": identity_provider,
+                "identity_provider_user_id": google_sub,
                 "email": email,
             }]
             users_coll.insert_one({
@@ -301,6 +312,7 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
                     "public_username": google_sub,
                     "user_type": "Prospect",
                     "is_registered": True,
+                    "user_id": user_id,
                     "OAuthIdentities": new_user_object["OAuthIdentities"],
                 }},
             )
@@ -317,8 +329,8 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
                 "user_id": existing_user_id,
                 "user_object.OAuthIdentities": {
                     "$elemMatch": {
-                        "provider": provider,
-                        "provider_user_id": google_sub,
+                        "identity_provider": identity_provider,
+                        "identity_provider_user_id": google_sub,
                     },
                 },
             },

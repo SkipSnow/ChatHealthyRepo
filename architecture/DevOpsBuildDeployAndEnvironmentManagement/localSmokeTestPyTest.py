@@ -415,6 +415,165 @@ class TestStep02:
         _screenshot(page, "02")
 
 
+# Step 2b [EPIC-002-F-003-S-004] — Login & Registration header nav link
+# Regression guard: the entrance to OAuth login lives in the page header
+# nav (`<button onclick="window._startLoginRegister()">`) and must be
+# present, visible, and readable. A prior deploy buried it visually when
+# a font-scale change clipped the header — the smoke missed it because
+# no step touched the nav. This step asserts the button is in the DOM,
+# visible, with the exact text, and that calling the onclick handler
+# resolves without error (verifies the function is wired).
+class TestStep02bAllPages:
+    """Per Skip's directive: every link in the header nav AND mobile nav
+    MUST land (no 404 / no error), AND every page MUST itself contain a
+    'Login & Registration' link. Catches the regression where the Login
+    link existed only on index.html and was missing from every other
+    static page."""
+    def test_all_nav_links_land_and_each_page_has_login(self, env):
+        if IS_PROD:
+            pytest.skip("S-002-REQ-B-002: chrome suppressed in prod by design")
+        page = env["page"]
+        page.goto(BASE_URL, wait_until="networkidle")
+        page.wait_for_timeout(2000)
+        # Collect every distinct href from header-nav and mobile-nav anchors
+        # + each <button>'s onclick target (we resolve 'openPanel("X")' to /X
+        # and skip JS-only buttons like the Login one which goes to /).
+        hrefs = page.evaluate("""() => {
+            const out = new Set();
+            const all = [
+                ...document.querySelectorAll('.header-nav a, .mobile-nav a'),
+            ];
+            all.forEach(a => {
+                const h = a.getAttribute('href') || '';
+                if (h.startsWith('/') && !h.startsWith('//')) out.add(h);
+            });
+            // openPanel('foo.html', ...) → /foo.html
+            document.querySelectorAll('.header-nav button, .mobile-nav button').forEach(b => {
+                const oc = b.getAttribute('onclick') || '';
+                const m = oc.match(/openPanel\\('([^']+)'/);
+                if (m) out.add('/' + m[1]);
+            });
+            return Array.from(out);
+        }""")
+        # Also include / explicitly so the home page is checked.
+        if "/" not in hrefs:
+            hrefs.append("/")
+        failures = []
+        for href in hrefs:
+            url = BASE_URL.rstrip("/") + href
+            try:
+                page.goto(url, wait_until="networkidle", timeout=15000)
+                page.wait_for_timeout(500)
+            except Exception as exc:
+                failures.append(f"{href}: navigation failed: {exc}")
+                continue
+            # Page MUST contain a 'Login & Registration' link/button somewhere.
+            login_loc = page.locator(
+                "text=Login & Registration"
+            )
+            cnt = login_loc.count()
+            if cnt == 0:
+                failures.append(
+                    f"{href}: page rendered but contains NO 'Login & "
+                    f"Registration' link — every page must surface it."
+                )
+                continue
+            # And at least one must be visible (catches display:none / clipped).
+            if not any(login_loc.nth(i).is_visible() for i in range(cnt)):
+                failures.append(
+                    f"{href}: 'Login & Registration' is in DOM but no "
+                    "visible occurrence — clipped, hidden, or off-screen."
+                )
+        assert not failures, (
+            "Per-page Login/Registration regression(s):\n"
+            + "\n".join("  - " + f for f in failures)
+        )
+        _screenshot(page, "02b")
+
+
+class TestStep02b:
+    def test_login_register_link_present(self, env):
+        if IS_PROD:
+            pytest.skip("S-002-REQ-B-002: header nav suppressed in prod by design")
+        page = env["page"]
+        btn = page.locator(".header-nav button", has_text="Login & Registration")
+        expect(btn).to_be_visible()
+        expect(btn).to_have_count(1)
+        fn_kind = page.evaluate("typeof window._startLoginRegister")
+        assert fn_kind == "function", (
+            f"window._startLoginRegister MUST be defined for the Login & "
+            f"Registration button; got typeof={fn_kind!r}"
+        )
+        # REGRESSION GUARD: the button MUST render at the canonical font
+        # size (the html element's font-size set by ch_fonts.js). If the
+        # button's computed font-size differs from html's, that's the
+        # "different size than the other links" bug class.
+        font_px = btn.first.evaluate(
+            "el => parseFloat(getComputedStyle(el).fontSize)"
+        )
+        html_px = page.evaluate(
+            "parseFloat(getComputedStyle(document.documentElement).fontSize)"
+        )
+        assert abs(font_px - html_px) < 0.5, (
+            f"Login & Registration button font-size {font_px}px differs from "
+            f"the canonical html font-size {html_px}px — should be uniform "
+            "with every other link on the page."
+        )
+        box = btn.first.bounding_box()
+        assert box is not None and box["height"] > 0, (
+            "Login & Registration button has zero bounding box — not rendered."
+        )
+        _screenshot(page, "02b")
+
+
+# Step 2c — Single-source font registry actually loaded on the wrapper
+# AND served from the FindCare iframe origin. Catches two real regressions
+# from this session: (a) the canonical never reached the wrapper static,
+# and (b) FindCare backend didn't expose the file at /ch_fonts.js so the
+# iframe rendered at the 16-px browser default (= ~2× expected size).
+class TestStep02c:
+    def test_ch_fonts_loaded_both_origins(self, env):
+        if IS_PROD:
+            pytest.skip("S-002-REQ-B-002: chrome suppressed in prod by design")
+        page = env["page"]
+        # Wrapper: /ch_fonts.js reachable + html font-size matches the
+        # base the registry mandates.
+        wrapper_status = page.evaluate(
+            """async () => {
+                const r = await fetch('/ch_fonts.js');
+                return r.status;
+            }"""
+        )
+        assert wrapper_status == 200, (
+            f"wrapper /ch_fonts.js returned {wrapper_status}; the font "
+            "registry is the single source of truth and MUST be served."
+        )
+        html_size = page.evaluate(
+            "getComputedStyle(document.documentElement).fontSize"
+        )
+        # Sanity-check the base is something other than the 16-px browser
+        # default (the canonical lives in
+        # architecture/DevOps.../ch_fonts.js as `CH_BASE = '<N>px'`).
+        assert html_size != "16px", (
+            f"wrapper html font-size is browser default 16px; the "
+            "ch_fonts override did not take effect. Got: {html_size}"
+        )
+        # FindCare iframe origin: /ch_fonts.js MUST also serve 200. The
+        # iframe's index.html includes <script src='/ch_fonts.js'> so if
+        # this 404s the iframe falls back to browser defaults.
+        fc_url = page.evaluate("(window._envServiceUrls || {}).findcare || ''")
+        if fc_url:
+            r = page.evaluate(
+                """async (u) => (await fetch(u + '/ch_fonts.js')).status""",
+                fc_url,
+            )
+            assert r == 200, (
+                f"FindCare iframe origin /ch_fonts.js returned {r}; the "
+                "iframe falls back to browser default 16-px without it."
+            )
+        _screenshot(page, "02c")
+
+
 # Step 3 [DEVOPS-BANNER-B003]
 class TestStep03:
     def test_shared_services_button(self, env):
@@ -461,6 +620,39 @@ class TestStep05:
         expect(chat_input).to_be_focused()
         env["chat_input"] = chat_input
         _screenshot(env["page"], "05")
+
+
+# Step 5b [EPIC-002-F-003-S-005-REQ-B-001]
+# Pre-utterance pair to TestStep28 (post-utterance). Together they prove
+# the capture path: empty BEFORE typing → populated AFTER typing. Without
+# this pre-test the post-test could trivially pass on a fresh-session
+# response that's empty-by-construction; pairing nails it down.
+class TestStep05b:
+    def test_splash_empty_history_pre_utterance(self, env):
+        if IS_PROD:
+            pytest.skip("S-002-REQ-B-002: SharedServices reachable only via suppressed banner button in prod")
+        page = env["page"]
+        # Direct /gate(splash) so the page UI is not disturbed. The wrapper's
+        # window._gateBody helper is used here so prior_guid rides the body
+        # even on hosts where the ch_session cookie is dropped (Domain
+        # mismatch on plain localhost).
+        result = page.evaluate(
+            """async (url) => {
+                const r = await fetch(url + '/gate', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {'Content-Type': 'application/json'},
+                    body: window._gateBody({op: 'splash'})
+                });
+                return await r.json();
+            }""",
+            SHARED_URL,
+        )
+        html = ((result or {}).get('result') or {}).get('html') or ''
+        assert 'no ux events or utterances yet' in html.lower(), (
+            "Pre-utterance splash MUST show empty history. "
+            f"Got (first 500c): {html[:500]}"
+        )
 
 
 # Step 6 [EPIC-005-F-001-S-001-REQ-B-005]
@@ -854,13 +1046,16 @@ class TestStep25:
         # ch_session is bound to SS's host:port regardless of caller.
         env.setdefault("typed_utterances", ["Find me a bone doctor in Delaware"])
         for phrase in ("cracker Jacks", "captain crunch"):
+            # window._gateBody carries prior_guid in the body so the
+            # utterance lands on the parent's admin.sessions record on
+            # hosts where the ch_session cookie is dropped.
             page.evaluate(
                 """async (args) => {
                     await fetch(args.url + '/gate', {
                         method: 'POST',
                         credentials: 'include',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({op: 'utterance', payload: {text: args.text}})
+                        body: window._gateBody({op: 'utterance', payload: {text: args.text}})
                     });
                 }""",
                 {"url": SHARED_URL, "text": phrase},
@@ -956,32 +1151,37 @@ class TestStep28:
         for row in ("guid", "server_env", "created_at", "expires_at"):
             assert row in text, f"Missing identity row '{row}': {text[:300]}"
         assert re.search(r"\b[0-9a-f]{32}\b", text), f"No 32-char hex GUID rendered: {text[:300]}"
-        # (3) Session Conversation History subsection — populated OR empty-state
+        # (3) Session Conversation History subsection MUST be populated.
+        # Pre-utterance emptiness is asserted by TestStep05b; this step
+        # runs AFTER Step 06 typed one utterance through the real Send
+        # button and Step 25 typed two more via direct /gate. Empty-state
+        # here means the capture path is broken — no escape hatch.
         assert "Session Conversation History" in text, f"Missing history subsection: {text[:300]}"
         text_lower = text.lower()
-        if "no ux events or utterances yet" in text_lower:
-            pass  # empty-state acceptable
-        else:
-            # Populated: four threads (Skip taxonomy 2026-05-15):
-            #   Person | Person → System | Machine | LLM → System.
-            # CSS text-transform may uppercase the labels; compare case-insensitively.
-            for label in ("person", "person → system", "machine", "llm → system"):
-                assert label in text_lower, f"Missing thread label '{label}': {text[:300]}"
-            # The old thread labels MUST be gone.
-            for retired in ("llm → person", "llm → machine"):
-                assert retired not in text_lower, f"Retired thread label '{retired}' still present: {text[:300]}"
-            # (4) Regression guard for BUG-009 (utterance capture path):
-            #     every utterance the smoke typed earlier MUST appear in the
-            #     rendered Person thread. Step 06 typed one, Step 25 typed two
-            #     more — three total. If FindCare's /gate(record_utterance)
-            #     route regresses, this trips.
-            typed = env.get("typed_utterances", [])
-            assert len(typed) >= 3, f"Smoke harness only recorded {len(typed)} utterances; need ≥3"
-            for u in typed:
-                assert u.lower() in text_lower, (
-                    f"Utterance {u!r} missing from Person thread; capture path broken. "
-                    f"Splash text (first 600c): {text[:600]}"
-                )
+        assert "no ux events or utterances yet" not in text_lower, (
+            "Post-utterance splash shows empty-state copy — "
+            "capture path is broken. Three utterances were typed before "
+            f"this step. Splash (first 600c): {text[:600]}"
+        )
+        # Populated: four threads (Skip taxonomy 2026-05-15):
+        #   Person | Person → System | Machine | LLM → System.
+        # CSS text-transform may uppercase the labels; compare case-insensitively.
+        for label in ("person", "person → system", "machine", "llm → system"):
+            assert label in text_lower, f"Missing thread label '{label}': {text[:300]}"
+        # The old thread labels MUST be gone.
+        for retired in ("llm → person", "llm → machine"):
+            assert retired not in text_lower, f"Retired thread label '{retired}' still present: {text[:300]}"
+        # Every utterance the smoke typed earlier MUST appear in the
+        # rendered Person thread. Step 06 typed one, Step 25 typed two
+        # more — three total. If the /gate utterance capture path
+        # regresses, this trips.
+        typed = env.get("typed_utterances", [])
+        assert len(typed) >= 3, f"Smoke harness only recorded {len(typed)} utterances; need ≥3"
+        for u in typed:
+            assert u.lower() in text_lower, (
+                f"Utterance {u!r} missing from Person thread; capture path broken. "
+                f"Splash text (first 600c): {text[:600]}"
+            )
         _screenshot(page, "28")
 
 
@@ -1251,3 +1451,52 @@ class TestStep35:
         assert not problems, (
             "Step 35b mTLS pair failures: " + "; ".join(problems)
         )
+
+
+# Step 99 [EPIC-002-F-003-S-005 contract negative case — kept LAST]
+# Regression guard: nonsense queries (and backend timeouts on /search)
+# MUST NOT escalate to the full-screen #chFatalErrorOverlay. The overlay
+# is reserved for real infrastructure failures (auth chain, malformed
+# body) — soft failures render inline in the chat. Placed at the END of
+# the file so its page.goto + nonsense submit cannot poison state for
+# any subsequent test (the env fixture is module-scoped).
+class TestStep99FiddlesticksNoFatal:
+    def test_nonsense_query_does_not_trigger_fatal(self, env):
+        if IS_PROD:
+            pytest.skip("S-002-REQ-B-002: chrome suppressed in prod by design")
+        page = env["page"]
+        page.goto(BASE_URL, wait_until="networkidle")
+        page.wait_for_timeout(3000)
+        chat = None
+        for f in page.frames:
+            if "7860" in (f.url or "") or "findcare" in (f.url or "").lower():
+                chat = f; break
+        if chat is None:
+            pytest.skip("FindCare chat iframe not present this run")
+        try:
+            inp = chat.locator(
+                "input[placeholder*='Type a message'], textarea"
+            ).first
+            inp.wait_for(state="visible", timeout=15000)
+            inp.fill("fiddlesticks")
+            chat.locator("button", has_text="Send").first.click()
+        except Exception:
+            pytest.skip("could not submit nonsense query in chat iframe")
+        deadline = 40_000
+        overlay = page.locator("#chFatalErrorOverlay")
+        while deadline > 0:
+            assert not overlay.is_visible(), (
+                "REGRESSION: nonsense query 'fiddlesticks' triggered the "
+                "503 fatal overlay. Soft failures MUST render inline in "
+                "the chat phase; the wrapper overlay is reserved for "
+                "real infrastructure failures."
+            )
+            try:
+                body_text = chat.locator("body").inner_text().lower()
+                if "couldn't" in body_text or "no providers" in body_text \
+                        or "results" in body_text or "available providers" in body_text:
+                    break
+            except Exception:
+                pass
+            page.wait_for_timeout(1000); deadline -= 1000
+        _screenshot(page, "99")

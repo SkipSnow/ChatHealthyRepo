@@ -1823,6 +1823,35 @@
                           },
                           "name": "Time displayed in UTC",
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-003-REQ-B-007",
+                          "name": "Session token byte assembly: GUID, first timestamp, X, second timestamp",
+                          "requirement": "The session token MUST be assembled in exactly this byte order: (1) the 32-character GUID per EPIC-002-F-003-S-001-REQ-T-002; (2) immediately followed by the 17-byte first timestamp; (3) immediately followed by a single literal uppercase ASCII 'X' character; (4) immediately followed by the 17-byte second timestamp. The two timestamps and their semantics are defined by EPIC-002-F-003-S-002-REQ-T-001, EPIC-002-F-003-S-002-REQ-T-002, and EPIC-002-F-003-S-002-REQ-B-002.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-003-REQ-B-007-TEST-1",
+                                "test_type": "Unsupportable",
+                                "orphan": false,
+                                "file": "UNSUPPORTABLE"
+                              }
+                            ]
+                          },
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-003-S-001",
+                              "reason": "Defines the GUID (16 bytes, 32 hex chars)."
+                            },
+                            {
+                              "story_id": "EPIC-002-F-003-S-002",
+                              "reason": "Defines the two-timestamp nonce and its byte order."
+                            }
+                          ]
                         }
                       ]
                     },
@@ -1831,8 +1860,8 @@
                   },
                   {
                     "story_id": "EPIC-002-F-003-S-004",
-                    "name": "Create and login Users With Google OAuth...",
-                    "description": "ChatHealthy.ai MUST support the creation and use of user's google IDs for logins using Google's OAuth capabilities. The firm and its application rely on Google as an identity provider. This story specifies all the technical and business requirements for this capability.",
+                    "name": "Create and login users with OAuth across supported identity providers",
+                    "description": "ChatHealthy.ai MUST support the creation and use of identity-provider IDs (Google, Facebook, Apple, and others as introduced) for logins using each identity provider's OAuth capabilities. The firm and its application rely on identity providers as identity sources. This story specifies all the technical and business requirements for this capability.",
                     "size": "M",
                     "status": "in_progress",
                     "requirements": {
@@ -1840,7 +1869,7 @@
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-B-001",
                           "name": "Business statement (identical to the story)",
-                          "requirement": "ChatHealthy.ai MUST support the creation and use of user's google IDs for logins using Google's OAuth capabilities. The firm and its application rely on Google as an identity provider. This story specifies all the technical and business requirements for this capability.",
+                          "requirement": "ChatHealthy.ai MUST support the creation and use of identity-provider IDs (Google, Facebook, Apple, and others as introduced) for logins using each identity provider's OAuth capabilities. The firm and its application rely on identity providers as identity sources. This story specifies all the technical and business requirements for this capability.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -1899,8 +1928,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-002",
-                          "name": "Login click signals login_register intent to /gate",
-                          "requirement": "On a click of the Login & Registration link, the browser MUST POST to the SharedServices /gate endpoint with the request body carrying intent = \"login_register\".",
+                          "name": "Login click signals login_register intent and identity_provider to /gate",
+                          "requirement": "On a click of the Login & Registration link, the browser MUST POST to the SharedServices /gate endpoint with the request body carrying intent = \"login_register\" and an identity_provider field set to the operator-selected identity provider.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -1939,8 +1968,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-004",
-                          "name": "login_register intent triggers Google OAuth",
-                          "requirement": "When AuthorizationsAndAuthenticationsTool.run() observes intent = \"login_register\", it MUST return a Response whose redirect_url field is the SharedServices /auth/google/start endpoint URL.",
+                          "name": "login_register intent triggers OAuth at the selected identity provider",
+                          "requirement": "When AuthorizationsAndAuthenticationsTool.run() observes intent = \"login_register\", it MUST return a Response whose redirect_url field is the SharedServices /auth/<identity_provider>/start endpoint URL for the identity provider carried in the request.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -1999,8 +2028,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-007",
-                          "name": "/auth/google/callback exchanges the authorization code for Google identity",
-                          "requirement": "The SharedServices /auth/google/callback endpoint MUST receive Google's authorization-code redirect, exchange the code with Google's token endpoint, and obtain the OpenID Connect sub claim (hereafter \"GoogleIDForOAuth\") and the verified email claim.",
+                          "name": "/auth/<identity_provider>/callback exchanges the authorization code",
+                          "requirement": "The SharedServices /auth/<identity_provider>/callback endpoint MUST receive the identity provider's authorization-code redirect, exchange the code with the identity provider's token endpoint, and obtain the identity provider's stable identifier (hereafter the identity-provider user ID) and the verified email claim.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2019,8 +2048,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-008",
-                          "name": "Users collection has exactly two top-level attributes",
-                          "requirement": "The users collection in the front-end MongoDB cluster MUST store records with exactly two top-level attributes: (a) user_id - a unique identifier (unique across users); (b) user_object - the UserObject for that user. All per-provider identity values live inside user_object.OAuthIdentities; nothing else lives at the top level of a users record.",
+                          "name": "Users collection stores user_objects, indexed on lookup keys",
+                          "requirement": "Each document in the users collection IS a UserObject conforming to the canonical schema at https://dev.chathealthy.ai/schemas/ChatHealthyUserStateSchema.json. The collection MUST maintain a unique index on user_id and multi-key indexes on OAuthIdentities.identity_provider_user_id and on OAuthIdentities.email so the OAuth callback can perform constant-time lookups.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2039,8 +2068,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-009",
-                          "name": "Registration appends the Google identity into user_object.OAuthIdentities",
-                          "requirement": "On a successful Google OAuth callback, if no existing users record carries { provider: \"Google\", provider_user_id: <Google sub> } in its user_object.OAuthIdentities array, the SharedServices /auth/google/callback endpoint MUST create a new users record with: user_id = a freshly generated unique value; user_object = the current session's UserObject augmented so that user_object.OAuthIdentities contains exactly one entry: { provider: \"Google\", provider_user_id: <Google sub>, email: <Google email> }. The new user_object MUST also set is_registered = True and user_type = \"Prospect\". The user_object's public username field MUST be set to the Google sub.",
+                          "name": "Registration creates the users record",
+                          "requirement": "When no existing users record carries { identity_provider: <identity provider>, identity_provider_user_id: <identity-provider user ID> } in its OAuthIdentities AND no existing OAuthIdentities[].email matches the verified email returned by this callback, the SharedServices /auth/<identity_provider>/callback endpoint MUST create a new users record (a UserObject) with: user_id set to a freshly generated random GUID (RFC 4122 UUIDv4); OAuthIdentities set to exactly one entry { identity_provider: <identity provider>, identity_provider_user_id: <identity-provider user ID>, email: <identity-provider email> }; public_username set to the verified email returned by the identity provider (this default value may be changed by the user via a future story); is_registered = True; user_type = \"Prospect\".",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2078,29 +2107,9 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-011",
-                          "name": "ChatHealthyUserCookie is set on every successful callback",
-                          "requirement": "On a successful Google OAuth callback, the SharedServices /auth/google/callback endpoint MUST set a cookie named \"ChatHealthyUserCookie\" with value = the user_id from the users record. The cookie MUST carry the Secure attribute and MUST expire 60 days from the moment of set.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-011-TEST-1",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "test_login_register.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-012",
                           "name": "Returning OAuth login replaces the guest user_object with the DB user_object",
-                          "requirement": "On a successful Google OAuth callback, if a users record exists whose user_object.OAuthIdentities already contains an entry with { provider: \"Google\", provider_user_id: <Google sub> }, the endpoint MUST reuse that record's existing user_id, MUST refresh that entry's email to the email returned by Google on this callback, MUST re-set ChatHealthyUserCookie with that user_id (Secure, 60-day), MUST replace the current session's guest user_object with the stored user_object from the users collection, and MUST bind that stored user_object to the current session.",
+                          "requirement": "On a successful OAuth callback whose OAuthIdentities lookup matches an existing user's { identity_provider, identity_provider_user_id }, the endpoint MUST reuse that record's existing user_id, MUST refresh that entry's email to the email returned by the identity provider on this callback, MUST re-set ChatHealthyRegisteredUserCookie per EPIC-002-F-003-S-006-REQ-T-004, MUST replace the current session's guest user_object with the stored UserObject, and MUST bind that stored UserObject to the current session.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2119,8 +2128,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-013",
-                          "name": "UserObject defines OAuthIdentities, an array of provider identities",
-                          "requirement": "The UserObject schema MUST define a field named OAuthIdentities of type array. Each array element MUST be an object with exactly three sub-fields: (a) provider - the identity provider name, currently constrained to the literal \"Google\" (additional providers added when introduced); (b) provider_user_id - the provider's stable identifier for the user (the OpenID Connect sub claim for Google); (c) email - the verified email returned by the provider on its most recent OAuth callback for this user. The array MUST be non-empty whenever is_registered == True.",
+                          "name": "UserObject defines OAuthIdentities, an array of identity-provider identities",
+                          "requirement": "The UserObject schema MUST define a field named OAuthIdentities of type array. Each array element MUST be an object with exactly three sub-fields: (a) identity_provider - the identity-provider name; the enum is open and includes each supported identity provider (initially \"Google\", with additional identity providers added as introduced); (b) identity_provider_user_id - the identity provider's stable identifier for the user; (c) email - the verified email returned by the identity provider on its most recent OAuth callback for this user. The array MUST be non-empty whenever is_registered == True.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2140,7 +2149,7 @@
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-T-015",
                           "name": "Returning login appends the guest conversation onto the stored user history",
-                          "requirement": "On a successful Google OAuth callback handled by REQ-T-012, the SharedServices /auth/google/callback endpoint MUST, before the stored user_object replaces the current session's guest user_object, append the guest user_object's session_conversation_history.utterances, session_conversation_history.ux_events, and session_conversation_history.unanswered_questions arrays to the corresponding arrays of the stored user_object's session_conversation_history. The merged user_object (stored history first, then the appended guest entries) MUST then be written to the users collection (admin.users, keyed by user_id) and bound to the current session.",
+                          "requirement": "On a successful OAuth callback handled by EPIC-002-F-003-S-004-REQ-T-012, before the stored UserObject replaces the current session's guest UserObject, the endpoint MUST append the guest UserObject's session_conversation_history.utterances, session_conversation_history.ux_events, and session_conversation_history.unanswered_questions arrays to the corresponding arrays of the stored UserObject's session_conversation_history. The merged UserObject (stored history first, then the appended guest entries) MUST then be written to the users collection and bound to the current session.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2149,6 +2158,26 @@
                             "test": [
                               {
                                 "test_id": "EPIC-002-F-003-S-004-REQ-T-015-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-T-016",
+                          "name": "Cross-identity-provider reconciliation via verified email",
+                          "requirement": "On every successful OAuth callback, the endpoint MUST first attempt to match (identity_provider, identity_provider_user_id) against any user_object.OAuthIdentities entry across the users collection. When that match succeeds, the returning-login path per EPIC-002-F-003-S-004-REQ-T-012 runs. Otherwise, the endpoint MUST attempt to match the verified email returned by this callback against any user_object.OAuthIdentities[].email. When that match succeeds, the endpoint MUST append { identity_provider, identity_provider_user_id, email } to that user's OAuthIdentities, re-set ChatHealthyRegisteredUserCookie per EPIC-002-F-003-S-006-REQ-T-004 with that user's existing user_id, replace the current session's guest user_object with the stored UserObject, and bind that stored UserObject to the current session. Otherwise, the registration path per EPIC-002-F-003-S-004-REQ-T-009 runs.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-004-REQ-T-016-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -2172,7 +2201,7 @@
                       "requirement": [
                         {
                           "req_id": "EPIC-002-F-003-S-005-REQ-B-001",
-                          "requirement": "Every ChatHealthy session — Guest, Prospect, or Owner — MUST instantiate exactly one User State object on session start. The object MUST conform to the hierarchy specified in this story.",
+                          "requirement": "Every ChatHealthy session - Guest, Prospect, or Owner - MUST instantiate exactly one User State object on session start. For logged-in users this object comes from the admin.users collection but is stored in both the admin.sessions and admin.users collections on each server call.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -2206,6 +2235,367 @@
                             ]
                           },
                           "name": "Schema governs the User State document's structure",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-B-003",
+                          "name": "ch_session carries the session token; server surfaces time_remaining; client tracks it and pre-flights",
+                          "requirement": "Every SharedServices /gate response MUST (a) set a Secure, HttpOnly cookie named ch_session with Max-Age=300 whose value is the session token defined by EPIC-002-F-003-S-003-REQ-B-007, and (b) include in the response body a field named time_remaining_seconds whose integer value is the seconds remaining between the moment of response and the most-recent-restamp timestamp (bytes 19-35 of the nonce per EPIC-002-F-003-S-002-REQ-B-002) plus the 300-second TTL. The browser MUST store the most-recent time_remaining_seconds together with the local clock value at receipt, and MUST update that stored pair on every subsequent /gate response. Before issuing any SharedServices request the browser MUST compute the remaining time from that stored pair against its local clock and refuse to issue the request when the remaining time has elapsed. All browser-side reads and writes of any ChatHealthy.ai cookie MUST be performed by exactly one shared JavaScript file (served with Content-Type text/javascript) loaded by index.html; no other browser code, including inline scripts within index.html, may read or write any ChatHealthy.ai cookie.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-005-REQ-B-003-TEST-1",
+                                "test_type": "Unsupportable",
+                                "orphan": false,
+                                "file": "UNSUPPORTABLE"
+                              }
+                            ]
+                          },
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-003-S-003",
+                              "reason": "Session-token assembly per REQ-B-007."
+                            },
+                            {
+                              "story_id": "EPIC-002-F-003-S-002",
+                              "reason": "Most-recent-restamp timestamp per REQ-B-002."
+                            }
+                          ]
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-T-001",
+                          "name": "/gate sets the ch_session cookie with the required attributes",
+                          "requirement": "Every SharedServices /gate response MUST include a Set-Cookie header that sets a cookie named exactly ch_session with attributes Secure, HttpOnly, Max-Age=300, SameSite=None, Domain=chathealthy.ai, Path=/gate.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-005-REQ-T-001-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_session_cookie.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-T-002",
+                          "name": "The ch_session cookie value IS the session token",
+                          "requirement": "The value of the ch_session cookie set by /gate MUST be the 67-byte session token defined by EPIC-002-F-003-S-003-REQ-B-007.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-005-REQ-T-002-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_session_cookie.py"
+                              }
+                            ]
+                          },
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-003-S-003",
+                              "reason": "REQ-B-007 defines the 67-byte session-token assembly."
+                            }
+                          ]
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-T-003",
+                          "name": "/gate response body includes time_remaining_seconds",
+                          "requirement": "Every SharedServices /gate response body MUST include a top-level field named time_remaining_seconds whose value is a non-negative integer.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-005-REQ-T-003-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_session_cookie.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-T-004",
+                          "name": "time_remaining_seconds value is computed from the nonce restamp",
+                          "requirement": "time_remaining_seconds MUST equal (most_recent_restamp_timestamp + 300 seconds) - server_response_instant, computed in UTC milliseconds and floored to whole seconds, where most_recent_restamp_timestamp is bytes 19-35 of the nonce per EPIC-002-F-003-S-002-REQ-B-002.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-005-REQ-T-004-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_session_cookie.py"
+                              }
+                            ]
+                          },
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-003-S-002",
+                              "reason": "REQ-B-002 defines the restamp byte position (bytes 19-35)."
+                            }
+                          ]
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-T-005",
+                          "name": "Browser stores the most recent time_remaining_seconds with its receipt local-clock value",
+                          "requirement": "On every SharedServices /gate response the browser MUST store, in client-side state, the received time_remaining_seconds value together with the local clock value Date.now() at the moment of receipt, replacing any prior stored pair.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-005-REQ-T-005-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_session_cookie.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-T-006",
+                          "name": "Browser pre-flights every SharedServices request against the stored pair",
+                          "requirement": "Before issuing any SharedServices request the browser MUST compute remaining = stored_time_remaining_seconds - (Date.now() - stored_receipt_clock) / 1000, and MUST refuse to issue the request when remaining <= 0.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-005-REQ-T-006-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_session_cookie.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-T-008",
+                          "name": "/gate is POSTed on every page load",
+                          "requirement": "Every page load of any ChatHealthy.ai client surface MUST POST to the SharedServices /gate endpoint with op=\"boot\" as the first network call. The page MUST receive that response and store the (time_remaining_seconds, Date.now()) pair per EPIC-002-F-003-S-005-REQ-T-005 before issuing any subsequent SharedServices request.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-005-REQ-T-008-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_session_cookie.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-T-009",
+                          "name": "/gate error handling",
+                          "requirement": "When the browser receives an error response from SharedServices /gate (any HTTP 5xx, any HTTP 4xx other than an expected business error, or any malformed body), the browser MUST display the application's hard-fail error page with the text \"authentication error from SharedServices\". The SharedServices server side MUST log the error with full detail including the originating request, the exception class, and the full server-side stack trace.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-005-REQ-T-009-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_session_cookie.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-T-010",
+                          "name": "Session-expired handling",
+                          "requirement": "When the browser's pre-flight check per EPIC-002-F-003-S-005-REQ-T-006 determines the session has expired, the browser MUST navigate the user to the home page. The user MUST be given a blank Guest user_object with no history from the just-expired session. In place of the usual splash the home page MUST render a \"system timed out\" notice. When the user was a registered user during the just-expired session the notice MUST read \"system timed out: please log back in\"; when the user was not a registered user during the just-expired session the notice MUST read \"system timed out: please start again\".",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-005-REQ-T-010-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_session_cookie.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "approved"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-003-S-006",
+                    "name": "Registered users must have a secure 60 day ChatHealthyRegisteredUserCookie",
+                    "description": "Defines the secure 60-day ChatHealthyRegisteredUserCookie - the browser's long-lived pointer into a registered user's record in admin.users. Set on a successful OAuth callback; carries only the ChatHealthy-minted user_id (the user_id top-level attribute of the admin.users record per EPIC-002-F-003-S-004-REQ-T-008).",
+                    "size": "S",
+                    "status": "in_progress",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-003-S-006-REQ-B-001",
+                          "name": "Business statement",
+                          "requirement": "ChatHealthyRegisteredUserCookie is a secure 60-day pointer the browser carries between sessions; its value is the ChatHealthy-minted user_id (the user_id top-level attribute of the matching admin.users record per EPIC-002-F-003-S-004-REQ-T-008). It is set on a successful OAuth callback.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-006-REQ-T-001",
+                          "name": "Cookie attributes",
+                          "requirement": "Every successful OAuth callback MUST issue a Set-Cookie header that sets a secure cookie named exactly ChatHealthyRegisteredUserCookie with attributes Secure, HttpOnly, Max-Age=5184000, SameSite=Lax, Domain=chathealthy.ai, Path=/gate.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-006-REQ-T-002",
+                          "name": "Cookie value IS the ChatHealthy-minted user_id",
+                          "requirement": "The value of ChatHealthyRegisteredUserCookie MUST be exactly the ChatHealthy-minted user_id - the value stored at the user_id top-level attribute of the matching admin.users record per EPIC-002-F-003-S-004-REQ-T-008.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-003-S-004",
+                              "reason": "REQ-T-008 defines user_id."
+                            }
+                          ]
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-006-REQ-T-003",
+                          "name": "Set on first-time registration callback",
+                          "requirement": "On a successful OAuth callback that registers a new user per EPIC-002-F-003-S-004-REQ-T-009, the endpoint MUST set ChatHealthyRegisteredUserCookie whose value is the newly minted user_id per EPIC-002-F-003-S-006-REQ-T-001 and T-002.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-003-S-004",
+                              "reason": "REQ-T-009 registration path."
+                            }
+                          ]
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-006-REQ-T-004",
+                          "name": "Re-set on returning OAuth callback",
+                          "requirement": "On a successful OAuth callback for a returning user per EPIC-002-F-003-S-004-REQ-T-012, the endpoint MUST re-set ChatHealthyRegisteredUserCookie whose value is the existing user_id per EPIC-002-F-003-S-006-REQ-T-001 and T-002.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-003-S-004",
+                              "reason": "REQ-T-012 returning-login path."
+                            }
+                          ]
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-006-REQ-T-005",
+                          "name": "/gate treats absent or expired ch_session as a fresh Guest",
+                          "requirement": "A subsequent SharedServices /gate request whose ch_session cookie is absent or expired MUST be treated as a fresh Guest session regardless of whether ChatHealthyRegisteredUserCookie is present.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
                           "depends_on": []
                         }
                       ]
@@ -2599,9 +2989,43 @@
                 "EPIC-002-F-003"
               ],
               "stories": {
-                "story": []
+                "story": [
+                  {
+                    "story_id": "EPIC-002-F-004-S-001",
+                    "name": "Universal entrance: all ChatHealthy.ai client to server calls route through SharedServices /gate",
+                    "description": "The single client-facing endpoint for the entire ChatHealthy.ai application is SharedServices /gate. Every browser-initiated HTTP call from any ChatHealthy.ai surface - the wrapper site, embedded FindCare/EvaluateCare iframes, future mobile webviews, future native clients - funnels through this one endpoint. SharedServices performs any cross-component work server-to-server on behalf of the client.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-004-S-001-REQ-B-001",
+                          "name": "All calls to ChatHealthy.ai MUST go to the ChatHealthy.ai Universal Gate",
+                          "requirement": "All browser, or other client, calls to ChatHealthy.ai servers MUST POST to {env}.sharedservices.chathealthy.ai/gate. Other calls to other URLs, except for the domain name by itself, MUST result in a 404; i.e., calls to http://chathealthy.ai, https://chathealthy.ai, http://dev.chathealthy.ai, https://dev.chathealthy.ai, http://qa.chathealthy.ai, https://qa.chathealthy.ai MUST all redirect to the universal gate call.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-004-S-001-REQ-B-001-TEST-1",
+                                "test_type": "Unsupportable",
+                                "orphan": false,
+                                "file": "UNSUPPORTABLE"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "approved"
+                  }
+                ]
               },
-              "approval": "proposed",
+              "approval": "approved",
               "due_date": "2026-05-17"
             },
             {
@@ -5103,7 +5527,7 @@
                         },
                         {
                           "req_id": "EPIC-006-F-002-S-001-REQ-T-009",
-                          "requirement": "The Prescribers checkbox in the panel header is right-aligned within the header.",
+                          "requirement": "The Prescribers checkbox in the panel header is left-aligned within the header.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -5118,12 +5542,12 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Header element — Prescribers checkbox (right-aligned)",
+                          "name": "Header element — Prescribers checkbox (left-aligned)",
                           "depends_on": []
                         },
                         {
                           "req_id": "EPIC-006-F-002-S-001-REQ-T-010",
-                          "requirement": "The Homeopathic checkbox in the panel header is right-aligned and positioned below the Prescribers checkbox.",
+                          "requirement": "The Homeopathic checkbox in the panel header is left-aligned and positioned below the Prescribers checkbox.",
                           "priority": "must-have",
                           "status": "not_started",
                           "orphan": false,
@@ -5138,7 +5562,7 @@
                             ]
                           },
                           "approval": "approved",
-                          "name": "Header element — Homeopathic checkbox (right-aligned, below Prescribers)",
+                          "name": "Header element — Homeopathic checkbox (left-aligned, below Prescribers)",
                           "depends_on": []
                         },
                         {

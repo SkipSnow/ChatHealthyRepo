@@ -237,6 +237,7 @@ class GoogleOAuthEndpoint:
         try:
             user_id = AUTHN_TOOL.handle_oauth_login(
                 get_mongo_frontend(),
+                identity_provider="Google",
                 google_sub=google_sub,
                 email=email,
                 session_guid=session_guid,

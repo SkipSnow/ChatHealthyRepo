@@ -16,25 +16,25 @@
       --accent: #f0a500;
       --warn: #c0392b;
       --border: #d8e2e1;
-      --radius: 6px;
-      --max-w: 1100px;
+      --radius: 0.75em;
+      --max-w: 137.5em;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 1em; padding: 1em; }
     html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
     body { display: flex; flex-direction: column; min-height: 100vh; }
-    main { max-width: var(--max-w); width: 100%; margin: 0 auto; padding: 40px 24px; }
-    h1 { font-family: 'DM Serif Display', serif; font-size: 2rem; margin-bottom: 8px; }
-    h2 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--teal); margin: 32px 0 12px; }
-    h3 { font-size: 1rem; margin: 20px 0 8px; }
-    p { line-height: 1.6; margin-bottom: 12px; color: var(--ink-soft); }
-    .subtitle { color: var(--ink-soft); font-size: 0.95rem; margin-bottom: 24px; }
+    main { max-width: var(--max-w); width: 100%; margin: 1em; padding: 1em; }
+    h1 { font-family: 'DM Serif Display', serif; font-size: 1em; margin-bottom: 1em; }
+    h2 { font-family: 'DM Serif Display', serif; font-size: 1em; color: var(--teal); margin: 1em; }
+    h3 { font-size: 1em; margin: 1em; }
+    p { line-height: 1.6; margin-bottom: 1em; color: var(--ink-soft); }
+    .subtitle { color: var(--ink-soft); font-size: 1em; margin-bottom: 1em; }
 
     /* Flow diagram */
-    .flow { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 32px 0; }
+    .flow { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 1em; }
     .flow-node {
-      border: 2px solid var(--ink); border-radius: var(--radius);
-      padding: 12px 20px; text-align: center; font-weight: 500;
-      font-size: 0.9rem; min-width: 200px; background: var(--surface);
+      border: 0.25em solid var(--ink); border-radius: var(--radius);
+      padding: 1em; text-align: center; font-weight: 500;
+      font-size: 1em; min-width: 25em; background: var(--surface);
       position: relative;
     }
     .flow-node.start { background: var(--teal); color: white; border-color: var(--teal); }
@@ -44,63 +44,63 @@
     .flow-node.escalate { background: #fef2f2; border-color: var(--warn); }
     .flow-node.end { background: #f0fdf4; border-color: #16a34a; }
     .flow-node.dev { background: #f5f3ff; border-color: #7c3aed; }
-    .flow-node small { display: block; font-weight: 300; font-size: 0.8rem; margin-top: 4px; }
+    .flow-node small { display: block; font-weight: 300; font-size: 1em; margin-top: 1em; }
 
-    .flow-arrow { font-size: 1.2rem; color: var(--ink-soft); line-height: 1; padding: 4px 0; }
-    .flow-branch { display: flex; gap: 24px; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
-    .flow-branch-col { display: flex; flex-direction: column; align-items: center; gap: 0; min-width: 220px; }
+    .flow-arrow { font-size: 1em; color: var(--ink-soft); line-height: 1; padding: 1em; }
+    .flow-branch { display: flex; gap: 3em; justify-content: center; align-items: flex-start; flex-wrap: wrap; }
+    .flow-branch-col { display: flex; flex-direction: column; align-items: center; gap: 0; min-width: 27.5em; }
     .flow-label {
-      font-size: 0.75rem; font-weight: 500; text-transform: uppercase;
-      letter-spacing: 0.05em; padding: 2px 8px; border-radius: 3px;
-      margin-bottom: 4px;
+      font-size: 1em; font-weight: 500; text-transform: uppercase;
+      letter-spacing: 0.05em; padding: 1em; border-radius: 0.375em;
+      margin-bottom: 1em;
     }
     .flow-label.infra { background: var(--teal-light); color: var(--teal); }
     .flow-label.pipeline { background: #f5f3ff; color: #7c3aed; }
     .flow-label.unknown { background: #fef3c7; color: #92400e; }
 
-    .flow-decision { display: flex; gap: 16px; justify-content: center; margin: 4px 0; }
+    .flow-decision { display: flex; gap: 2em; justify-content: center; margin: 1em; }
     .flow-decision-branch { display: flex; flex-direction: column; align-items: center; gap: 0; }
-    .flow-decision-label { font-size: 0.75rem; color: var(--ink-soft); font-weight: 500; }
+    .flow-decision-label { font-size: 1em; color: var(--ink-soft); font-weight: 500; }
 
     /* Tables */
-    table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: 0.88rem; }
-    th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+    table { border-collapse: collapse; width: 100%; margin: 1em; font-size: 1em; }
+    th, td { border: 0.125em solid var(--border); padding: 1em; text-align: left; }
     th { background: #f9fafb; font-weight: 600; }
 
-    .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 16px 0; font-size: 0.82rem; }
-    .legend-item { display: flex; align-items: center; gap: 6px; }
-    .legend-swatch { width: 16px; height: 16px; border-radius: 3px; border: 1px solid #ccc; }
+    .legend { display: flex; gap: 2em; flex-wrap: wrap; margin: 1em; font-size: 1em; }
+    .legend-item { display: flex; align-items: center; gap: 0.75em; }
+    .legend-swatch { width: 2em; height: 2em; border-radius: 0.375em; border: 0.125em solid #ccc; }
 
-    .copyright { font-size: 0.8rem; color: var(--ink-soft); margin-top: 40px; text-align: center; }
+    .copyright { font-size: 1em; color: var(--ink-soft); margin-top: 1em; text-align: center; }
   
     /* ── Hamburger button (hidden on desktop) ──────── */
     .menu-toggle {
       display: none;
-      margin-left: auto;
+      margin-left: 1em;
       background: none;
       border: none;
       cursor: pointer;
-      padding: 8px;
+      padding: 1em;
       border-radius: var(--radius);
       color: var(--ink-soft);
       transition: background 0.15s;
     }
     .menu-toggle:hover { background: var(--teal-light); color: var(--teal); }
-    .menu-toggle svg { display: block; width: 22px; height: 22px; }
+    .menu-toggle svg { display: block; width: 2.75em; height: 2.75em; }
 
     .mobile-nav {
       display: none;
       flex-direction: column;
       background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 8px 16px 14px;
+      border-bottom: 0.125em solid var(--border);
+      padding: 1em;
     }
     .mobile-nav.open { display: flex; }
     .mobile-nav a {
-      font-size: 0.95rem;
+      font-size: 1em;
       color: var(--ink-soft);
       text-decoration: none;
-      padding: 10px 12px;
+      padding: 1em;
       border-radius: var(--radius);
       transition: color 0.15s, background 0.15s;
     }
@@ -109,24 +109,25 @@
     .mobile-home-bottom {
       display: none;
       text-align: center;
-      padding: 16px;
-      margin-top: 24px;
-      border-top: 1px solid var(--border);
+      padding: 1em;
+      margin-top: 1em;
+      border-top: 0.125em solid var(--border);
     }
     .mobile-home-bottom a {
       color: var(--teal);
       text-decoration: none;
-      font-size: 0.88rem;
+      font-size: 1em;
       font-weight: 500;
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 75em) {
       .menu-toggle { display: flex; align-items: center; justify-content: center; }
       .mobile-home-bottom { display: block; }
     }
   </style>
 </head>
 <body>
+  <a href="/" class="login-link" style="display:block;padding: 1em;text-align:right;text-decoration:none;color:#0b7a75;font-weight:600;">Login &amp; Registration</a>
 <main>
   <h1>Pipeline Operations Manager</h1>
   <p class="subtitle">EPIC-3 — Infrastructure Lifecycle Management<br>
@@ -141,7 +142,7 @@
   <h2>Ownership Boundary — Ops Manager vs Dev Manager</h2>
   <p>The Ops Manager and Dev Manager are separate concerns with a strict boundary. The Ops Manager never reads pipeline code. The Dev Manager never touches infrastructure. They communicate through one handoff point: an evidence package.</p>
 
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 580" font-family="'DM Sans',sans-serif" font-size="13" fill="#0d1117" style="max-width:820px;margin:24px auto;display:block;">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 580" font-family="'DM Sans',sans-serif" font-size="13" fill="#0d1117" style="max-width:102.5em;margin: 1em;display:block;">
     <defs>
       <marker id="arr" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
         <polygon points="0 0, 10 3.5, 0 7" fill="#4a5568"/>
@@ -249,27 +250,27 @@
   <h2>Agent Architecture</h2>
 
   <div class="flow">
-    <div class="flow-node" style="background:#f9fafb; border-style:dashed; min-width:500px;">
+    <div class="flow-node" style="background:#f9fafb; border-style:dashed; min-width:62.5em;">
       <strong>BaseAgent</strong> (shared framework)
       <small>ToolRegistry (GOV-004 allowlist) · handle_event() · self_repair() · escalate()</small>
     </div>
     <div class="flow-arrow">▼ extends</div>
     <div class="flow-branch">
-      <div class="flow-node repair" style="min-width:180px;">
+      <div class="flow-node repair" style="min-width:22.5em;">
         <strong>Ops Manager</strong>
         <small>ClusterTool · CostTool<br>AlertTool · TriageTool</small>
       </div>
-      <div class="flow-node dev" style="min-width:180px;">
+      <div class="flow-node dev" style="min-width:22.5em;">
         <strong>Research Agent</strong>
         <small>WebTool · PubMedTool<br>CTGovTool · FDATool</small>
       </div>
-      <div class="flow-node llm" style="min-width:180px;">
+      <div class="flow-node llm" style="min-width:22.5em;">
         <strong>DB Agent</strong>
         <small>QueryTool · IndexTool<br>BackupTool · MigrateTool</small>
       </div>
     </div>
     <div class="flow-arrow">▼ implements</div>
-    <div class="flow-node" style="background:#f9fafb; border-style:dashed; min-width:500px;">
+    <div class="flow-node" style="background:#f9fafb; border-style:dashed; min-width:62.5em;">
       <strong>BaseTool</strong> (interface)
       <small>execute() → ToolResult · can_handle_error() · repair()</small>
     </div>
@@ -291,7 +292,7 @@
       <small>Check Atlas API · Return state</small>
     </div>
     <div class="flow-arrow">▼ cluster IDLE</div>
-    <div class="flow-node" style="min-width:300px;">
+    <div class="flow-node" style="min-width:37.5em;">
       <strong>Do Work</strong>
       <small>Copy · Enrich · Embed · Load — whatever the pipeline does</small>
     </div>
@@ -341,7 +342,7 @@
     <div class="legend-item"><div class="legend-swatch" style="background:#16a34a;"></div> End</div>
   </div>
 
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1060" font-family="'DM Sans',sans-serif" font-size="13" fill="#0d1117" style="max-width:900px;margin:24px auto;display:block;">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1060" font-family="'DM Sans',sans-serif" font-size="13" fill="#0d1117" style="max-width:112.5em;margin: 1em;display:block;">
     <defs>
       <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
         <polygon points="0 0, 10 3.5, 0 7" fill="#4a5568"/>

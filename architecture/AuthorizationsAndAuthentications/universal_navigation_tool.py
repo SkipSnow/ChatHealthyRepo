@@ -122,12 +122,12 @@ def _splash_render(identity: dict, sch: dict | None) -> str:
     if not isinstance(sch, dict):
         sch = {}
     return (
-        '<div style="padding:20px;max-width:820px;margin:0 auto;text-align:left;'
-        'font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;">'
-        '<h2 style="margin:0 0 8px 0;color:#0b7a75;font-size:22px;">'
+        '<div style="padding: 1em;max-width:102.5em;margin: 1em;text-align:left;'
+        'font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size: 1em;line-height:1.35;">'
+        '<h2 style="margin: 1em;color:#0b7a75;font-size: 1em;">'
         'Shared Services &mdash; User Object'
         '</h2>'
-        '<p style="color:#6b7280;margin:0 0 12px 0;font-size:13px;">'
+        '<p style="color:#6b7280;margin: 1em;font-size: 1em;">'
         'Live evidence that the entrance code completed. The cookie carries only the GUID; '
         'the user object lives in <code>admin.Sessions</code>.'
         '</p>'
@@ -148,8 +148,8 @@ def _splash_identity(display: dict) -> str:
             continue
         rows.append(_splash_kv_row(key, value))
     return (
-        '<h3 style="margin:16px 0 6px 0;color:#0b7a75;font-size:15px;">Identity</h3>'
-        '<dl style="margin:0;display:grid;grid-template-columns:160px 1fr;gap:4px 12px;">'
+        '<h3 style="margin: 1em;color:#0b7a75;font-size: 1em;">Identity</h3>'
+        '<dl style="margin: 1em;display:grid;grid-template-columns:16.25em 1fr;gap:0.25em 1em;font-size: 1em;">'
         + ''.join(rows) +
         '</dl>'
     )
@@ -161,9 +161,9 @@ def _splash_kv_row(key: str, value) -> str:
     else:
         v = str(value)
     return (
-        f'<dt style="font-weight:600;color:#374151;">{_html.escape(str(key))}</dt>'
-        f'<dd style="margin:0;font-family:ui-monospace,Menlo,Consolas,monospace;'
-        f'font-size:12px;color:#1f2937;white-space:pre-wrap;word-break:break-all;">'
+        f'<dt style="font-weight:600;color:#374151;font-size: 1em;">{_html.escape(str(key))}</dt>'
+        f'<dd style="margin: 1em;font-family:ui-monospace,Menlo,Consolas,monospace;'
+        f'font-size: 1em;color:#1f2937;white-space:pre-wrap;word-break:break-all;">'
         f'{_html.escape(v)}'
         '</dd>'
     )
@@ -174,13 +174,13 @@ def _splash_history(sch: dict) -> str:
     utterances = sch.get("utterances") if isinstance(sch.get("utterances"), list) else []
     empty = (not ux_events) and (not utterances)
     intro = (
-        '<h3 style="margin:14px 0 4px 0;color:#0b7a75;font-size:12px;">'
+        '<h3 style="margin: 1em;color:#0b7a75;font-size: 1em;">'
         'Session Conversation History'
         '</h3>'
     )
     if empty:
         return intro + (
-            '<p style="margin:0;color:#9ca3af;font-size:10px;font-style:italic;">'
+            '<p style="margin: 1em;color:#9ca3af;font-size: 1em;font-style:italic;">'
             'No UX events or utterances yet. Click around or type a prompt to see this grow.'
             '</p>'
         )
@@ -191,7 +191,7 @@ def _splash_history(sch: dict) -> str:
     llm_to_system = _collect_llm_to_system(utterances)
 
     threads_grid = (
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75em;">'
         + _render_thread("Person", "#0b7a75", "#f0fffe", person_items)
         + _render_thread("Person → System", "#0b7a75", "#e6fffd", person_to_system)
         + _render_thread("Machine", "#d97706", "#fff7ed", machine_items)
@@ -288,25 +288,25 @@ def _collect_llm_to_system(utterances: list) -> list[tuple[str, str]]:
 def _render_thread(title: str, color: str, bg: str, items: list[tuple[str, str]]) -> str:
     if not items:
         body = (
-            '<div style="padding:4px 0;color:#9ca3af;font-size:9px;font-style:italic;">'
+            '<div style="padding: 1em;color:#9ca3af;font-size: 1em;font-style:italic;">'
             '(no entries yet)</div>'
         )
     else:
         rows = []
         for i, (at, body_html) in enumerate(items):
             rows.append(
-                f'<div style="padding:3px 0;border-top:{"1px solid #d1fae5" if i else "none"};">'
-                f'<div style="font-size:9px;color:#6b7280;line-height:1.1;">{_html.escape(at)}</div>'
-                f'<div style="font-size:10px;color:#1f2937;line-height:1.2;">{body_html}</div>'
+                f'<div style="padding: 1em;border-top:{"0.125em solid #d1fae5" if i else "none"};">'
+                f'<div style="font-size: 1em;color:#6b7280;line-height:1.1;">{_html.escape(at)}</div>'
+                f'<div style="font-size: 1em;color:#1f2937;line-height:1.2;">{body_html}</div>'
                 '</div>'
             )
         body = ''.join(rows)
     return (
-        f'<div style="border-left:2px solid {color};background:{bg};padding:5px 6px;">'
-        f'<div style="font-weight:600;color:{color};font-size:10px;margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px;">'
+        f'<div style="border-left:0.25em solid {color};background:{bg};padding: 1em;">'
+        f'<div style="font-weight:600;color:{color};font-size: 1em;margin-bottom: 1em;text-transform:uppercase;letter-spacing:.0.5em;">'
         f'{title}'
         '</div>'
-        f'<div style="max-height:140px;overflow-y:auto;padding-right:3px;">'
+        f'<div style="max-height:15em;overflow-y:auto;padding-right: 1em;">'
         f'{body}'
         '</div>'
         '</div>'

@@ -1,7 +1,7 @@
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  margin: 1em;
+  padding: 1em;
 }
 
 body {
@@ -12,16 +12,16 @@ body {
 
 /* Restore list indentation for markdown-rendered content */
 ul, ol {
-  padding-left: 1.5em;
+  padding-left: 1em;
 }
 
 ul ul, ol ul, ul ol, ol ol {
-  padding-left: 1.5em;
-  margin-top: 2px;
+  padding-left: 1em;
+  margin-top: 1em;
 }
 
 .state-name {
   color: #003399;
-  font-size: 1.2em;
+  font-size: 1em;
   font-weight: bold;
 }

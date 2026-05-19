@@ -24,10 +24,10 @@ interface ProviderCardProps {
 const cardStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  padding: '4px 8px',
-  borderBottom: '1px solid #f0f0f0',
-  fontSize: '11px',
-  lineHeight: 1.3,
+  padding: 1em
+  borderBottom: '0.125em solid #f0f0f0',
+  fontSize: '1em',
+  lineHeight: 1.25,
   cursor: 'default',
   transition: 'background 0.15s',
 }
@@ -35,17 +35,17 @@ const cardStyle: React.CSSProperties = {
 const filteredOutStyle: React.CSSProperties = {
   ...cardStyle,
   background: '#fff7ed',
-  borderLeft: '3px solid #f59e0b',
+  borderLeft: '0.375em solid #f59e0b',
 }
 
 const nameStyle: React.CSSProperties = {
   fontWeight: 600,
   color: '#1f2937',
-  fontSize: '11px',
+  fontSize: '1em',
 }
 
 const detailStyle: React.CSSProperties = {
-  fontSize: '9px',
+  fontSize: '1em',
   color: '#6b7280',
 }
 
@@ -53,8 +53,8 @@ const actionBtnStyle: React.CSSProperties = {
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  fontSize: '14px',
-  padding: '2px 4px',
+  fontSize: '1em',
+  padding: 1em
   flexShrink: 0,
 }
 
@@ -93,7 +93,7 @@ export function ProviderCard({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={nameStyle}>{p.name}</div>
         {(p.specialty || p.primary_specialty) && (
-          <div style={{ fontSize: '10px', color: '#0b7a75', fontWeight: 500 }}>
+          <div style={{ fontSize: '1em', color: '#0b7a75', fontWeight: 500 }}>
             {p.specialty || p.primary_specialty}
           </div>
         )}
@@ -104,7 +104,7 @@ export function ProviderCard({
       </div>
 
       {/* Action buttons */}
-      <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.25em', alignItems: 'center' }}>
         {mode === 'available' && (
           <>
             <button

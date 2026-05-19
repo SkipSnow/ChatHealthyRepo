@@ -57,6 +57,12 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/ch_fonts.js",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "Website/chat-app-design.html",
           "handler_type": "static_asset",
           "disposition": "referenced"
@@ -940,6 +946,12 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "Code/ConversationalUX/FindCareChat/frontend/public/ch_fonts.js",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced"
@@ -1008,12 +1020,6 @@
           "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/tsconfig.json",
           "handler_type": "json",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/frontend/vite.config.ts",
-          "handler_type": "static_asset",
           "disposition": "referenced"
         },
         {
@@ -2096,6 +2102,12 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ch_fonts.js",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/conftest.py",
           "handler_type": "python_source",
           "disposition": "referenced"
@@ -2152,6 +2164,12 @@
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/target_record.py",
           "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/vite.config.ts",
+          "handler_type": "static_asset",
           "disposition": "referenced"
         }
       ]

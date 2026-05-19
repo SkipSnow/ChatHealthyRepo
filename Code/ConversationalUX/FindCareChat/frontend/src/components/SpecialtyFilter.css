@@ -10,86 +10,109 @@
  * it occupies the 58% slice of the left panel (REQ-T-004).
  */
 
+/* REQ-T-004 enforcement: hard-percentage row tracks via CSS Grid so the
+ * header and body cannot be pushed past their REQ-mandated proportions
+ * by content (a tall button, a long title, etc.). The component occupies
+ * its parent container 100% — the parent (SpecialtyFilterFrame) sizes
+ * that to 58% of left-panel vertical, so 31% / 69% here = REQ's 18% / 40%
+ * of left-panel. */
 .specialty-filter {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 31% 69%;
   width: 100%;
   height: 100%;
-  font-family: system-ui, sans-serif;
   background: #ffffff;
   box-sizing: border-box;
 }
 
 /* ── Header (light green) ──────────────────────────────────────── */
 /* REQ-B-001: header uses a light green background.
- * REQ-T-004: header laid out as embedded table-like grid, three rows
- * sized 20% / 50% / 30%. Implemented as CSS grid because grid keeps
- * the three-row percentage split reactive without the layout-thrash
- * cost of an HTML <table>. */
+ * REQ-T-004: header laid out as 3 rows top-to-bottom at 20% / 50% / 30%
+ * of header height. CSS Grid track sizes are hard limits, so content
+ * cannot push a row past its allocation. The <table>/<tr>/<td> JSX is
+ * preserved — CSS overrides the native table layout on those tags. */
 .specialty-filter__header {
+  display: grid;
+  grid-template-rows: 20% 50% 30%;
   width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
   background: #e6f5ec;
-  border-bottom: 2px solid #0b7a75;
-  flex: 0 0 auto;
+  border-bottom: 0.25em solid #0b7a75;
+  min-height: 0;
+  overflow: hidden;
 }
-.specialty-filter__header td {
-  vertical-align: middle;
-  padding: 6px 8px;
+.specialty-filter__title-row,
+.specialty-filter__count-row {
+  display: grid;
+  width: 100%;
+  min-height: 0;
+}
+.specialty-filter__title-row { grid-template-columns: 1fr auto; }
+.specialty-filter__count-row { grid-template-columns: 1fr 1fr 1fr; }
+/* Row 3 — left half = Check All button, right half = stacked checkboxes.
+ * Flex (not grid) here so each half is an independent flex container with
+ * predictable content height: the button fills its half; the checkboxes
+ * stack inside theirs. Explicit width 50% on each cell guarantees the
+ * vertical-in-half split Skip's screenshot was missing. */
+.specialty-filter__controls-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  min-height: 0;
+}
+.specialty-filter__title-cell,
+.specialty-filter__close-cell,
+.specialty-filter__count-cell,
+.specialty-filter__toggle-all-cell,
+.specialty-filter__macro-checkbox-cell {
+  display: flex;
+  align-items: center;
+  padding: 1em;
   box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
 }
 
-/* Row 1 — 4 cells (title | spacer | spacer | close-to-providers). The
-   close button is desktop-hidden; on phone it gives the user a clear
-   exit from the filter overlay. */
+/* Row 1 — title spans the full row; close-button cell only shows on
+   phone (REQ-T-003). On desktop the title takes the entire row. */
 .specialty-filter__title-cell {
-  text-align: left;
+  flex: 1 1 auto;
+  justify-content: flex-start;
 }
 .specialty-filter__close-cell {
-  text-align: right;
+  flex: 0 0 auto;
+  justify-content: flex-end;
   white-space: nowrap;
 }
 
 .specialty-filter__title {
-  font-size: 13px;
+  font-size: 1em;
   font-weight: 700;
   color: #0b7a75;
   text-transform: none;
   white-space: nowrap;
 }
 
-.specialty-filter__close-btn {
-  justify-self: end;
-  display: none;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #0b9a94, #0b7a75);
-  color: #fff;
-  border: none;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
+/* REQ-T-004: row 1 has ONE column (the title 'Choose Specialties').
+ * The close-to-providers button is no longer rendered — it was a
+ * phone-overlay convenience that violated the row-1-single-column
+ * contract. Mobile dismissal is the parent wrapper's responsibility. */
+.specialty-filter__close-btn { display: none !important; }
 
-@media (max-width: 600px) {
-  .specialty-filter__close-btn { display: inline-flex; align-items: center; }
-}
-
-/* Row 2 — three counts. Label OVER value, two-line stack (REQ-T-015). */
+/* Row 2 — three counts evenly distributed. Label OVER value (REQ-T-015). */
 .specialty-filter__count-row td {
-  border-top: 1px solid #c9e0d3;
-  border-bottom: 1px solid #c9e0d3;
+  border-top: 0.125em solid #c9e0d3;
+  border-bottom: 0.125em solid #c9e0d3;
 }
 .specialty-filter__count-cell {
+  flex: 1 1 33.333%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  vertical-align: middle;
-  padding: 4px 4px !important;
+  padding: 1em;
 }
 .specialty-filter__count-cell + .specialty-filter__count-cell {
-  border-left: 1px solid #c9e0d3;
+  border-left: 0.125em solid #c9e0d3;
 }
 .specialty-filter__count-label,
 .specialty-filter__count-value {
@@ -97,7 +120,6 @@
 }
 
 .specialty-filter__count-label {
-  font-size: 9px;
   color: #4a5568;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -106,7 +128,6 @@
 }
 
 .specialty-filter__count-value {
-  font-size: 14px;
   font-weight: 700;
   color: #1f2937;
   line-height: 1.1;
@@ -120,20 +141,24 @@
  * stacked Prescribers / Homeopathic checkboxes on the right (REQ-T-004 row 3
  * geometry). The checkbox column is right-aligned per REQ-T-009 / REQ-T-010. */
 .specialty-filter__toggle-all-cell {
-  vertical-align: middle;
+  width: 50%;
+  flex: 0 0 50%;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 1em;
 }
 
 .specialty-filter__toggle-all-btn {
   width: 100%;
-  height: 28px;
+  height: 100%;
+  min-height: 0;
   background: #ffffff;
-  border: 1px solid #0b7a75;
-  border-radius: 3px;
-  font-size: 10px;
+  border: 0.125em solid #0b7a75;
+  border-radius: 0.375em;
   font-weight: 700;
   color: #0b7a75;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 1em;
   white-space: nowrap;
 }
 
@@ -150,23 +175,30 @@
 }
 
 .specialty-filter__macro-checkbox-cell {
-  vertical-align: middle;
-  text-align: right;
+  width: 50%;
+  flex: 0 0 50%;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
   white-space: nowrap;
+  padding: 1em;
 }
-.specialty-filter__macro-checkbox-cell .specialty-filter__macro-checkbox + .specialty-filter__macro-checkbox {
-  margin-top: 2px;
-}
+/* REQ-T-004: the right column of Row 3 is divided vertically — Prescribers
+ * above Homeopathic, EACH 50% of Row 3's vertical (= 15% of header). The
+ * two labels become 50/50 sub-rows inside this cell. */
 .specialty-filter__macro-checkbox-cell .specialty-filter__macro-checkbox {
+  flex: 1 1 50%;
+  height: 50%;
+  min-height: 0;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .specialty-filter__macro-checkbox {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 10px;
+  gap: 0.5em;
   color: #1f2937;
   cursor: pointer;
   white-space: nowrap;
@@ -174,20 +206,19 @@
 }
 
 .specialty-filter__macro-checkbox input[type="checkbox"] {
-  width: 12px;
-  height: 12px;
+  width: 1.5em;
+  height: 1.5em;
   accent-color: #0b7a75;
-  margin: 0;
+  margin: 1em;
 }
 
 /* ── Body — rows ───────────────────────────────────────────────── */
-/* REQ-T-013: up to 10 rows visible before scrolling.
- * --row-height + --visible-rows make that count configurable. */
+/* REQ-T-004: body is the 69% Grid track of the filter (40% of left panel).
+ * REQ-T-013: rows are individually sized; the body scrolls when content
+ * exceeds the track. */
 .specialty-filter__body {
-  --row-height: 26px;
-  --visible-rows: 10;
-  flex: 1 1 auto;
-  max-height: calc(var(--row-height) * var(--visible-rows));
+  --row-height: 1.375em;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -197,11 +228,11 @@
   align-items: center;
   justify-content: space-between;
   height: var(--row-height);
-  padding: 0 10px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 1em;
+  border-bottom: 0.125em solid #f0f0f0;
   box-sizing: border-box;
-  font-size: 11px;
   color: #1f2937;
+  line-height: 1;
 }
 
 .specialty-filter__row:hover {
@@ -213,28 +244,28 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1 1 auto;
-  padding-right: 6px;
+  padding-right: 1em;
 }
 
 .specialty-filter__row-checkbox {
-  width: 13px;
-  height: 13px;
+  width: 1.25em;
+  height: 1.25em;
   accent-color: #0b7a75;
   cursor: pointer;
-  margin: 0;
+  margin: 1em;
   flex: 0 0 auto;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 37.5em) {
   .specialty-filter__row {
-    min-height: 44px;
+    min-height: 5.5em;
     height: auto;
   }
   .specialty-filter__macro-checkbox {
-    min-height: 44px;
-    padding: 4px 8px;
+    min-height: 5.5em;
+    padding: 1em;
   }
   .specialty-filter__toggle-all-btn {
-    height: 32px;
+    height: 4em;
   }
 }

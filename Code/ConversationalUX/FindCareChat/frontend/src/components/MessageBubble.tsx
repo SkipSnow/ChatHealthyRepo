@@ -50,15 +50,15 @@ export default function MessageBubble({ message }: { message: Message }) {
     <div style={{
       display: 'flex',
       justifyContent: isUser ? 'flex-end' : 'flex-start',
-      marginBottom: 12,
+      marginBottom: '1em',
     }}>
       <div style={{
         maxWidth: '75%',
-        padding: '12px 16px',
-        borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+        padding: 1em
+        borderRadius: isUser ? '2.25em 2.25em 0.5em 2.25em' : '2.25em 2.25em 2.25em 0.5em',
         background: isError ? '#fff5f5' : isUser ? '#f3f4f6' : '#ffffff',
-        border: isError ? '1px solid #f87171' : isUser ? 'none' : '1px solid #e5e7eb',
-        fontSize: 15,
+        border: isError ? '0.125em solid #f87171' : isUser ? 'none' : '0.125em solid #e5e7eb',
+        fontSize: '1em',
         lineHeight: 1.6,
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
@@ -84,12 +84,12 @@ export default function MessageBubble({ message }: { message: Message }) {
                 }
                 return <a {...props} target="_blank" rel="noopener noreferrer" />
               },
-              table: ({ node, ...props }) => <table {...props} style={{ borderCollapse: 'collapse', width: '100%', margin: '8px 0', fontSize: 13, tableLayout: 'auto' }} />,
-              th: ({ node, ...props }) => <th {...props} style={{ border: '1px solid #d1d5db', padding: '6px 12px', background: '#f3f4f6', fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }} />,
+              table: ({ node, ...props }) => <table {...props} style={{ borderCollapse: 'collapse', width: '100%', margin: 1em}} />,
+              th: ({ node, ...props }) => <th {...props} style={{ border: '0.125em solid #d1d5db', padding: 1em}} />,
               td: ({ node, children, ...props }) => {
                 const text = String(children || '')
                 const isShort = text.length < 15
-                return <td {...props} style={{ border: '1px solid #d1d5db', padding: '6px 12px', whiteSpace: isShort ? 'nowrap' : 'normal' }}>{children}</td>
+                return <td {...props} style={{ border: '0.125em solid #d1d5db', padding: 1em}}>{children}</td>
               },
             }}
           >
@@ -97,7 +97,7 @@ export default function MessageBubble({ message }: { message: Message }) {
           </ReactMarkdown>
         )}
         {!isUser && (message.build || message.thinkSeconds !== undefined || message.tokensIn !== undefined) && (
-          <div style={{ marginTop: 6, fontSize: 11, color: '#9ca3af' }}>
+          <div style={{ marginTop: '1em', fontSize: '1em', color: '#9ca3af' }}>
             {[
               message.build ?? null,
               message.thinkSeconds !== undefined ? `${message.thinkSeconds}s` : null,
