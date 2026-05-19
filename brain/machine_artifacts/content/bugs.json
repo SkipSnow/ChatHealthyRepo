@@ -190,6 +190,26 @@
       "next_action": [
         "Design a universal site navigation route. If a user makes an utterance, send them through an utterance interpreter. If they hit a navigation button or control, and it is managed on the server side, send them and the correct data to the correct tool, which will return a result as a proprietary pedantic object, which the universal navigation tool will route correctly and potentially in parallel. E.g., back to the client, to the DB, and to other servers such as the FindCare, EvaluateCare, or TalkAboutCare servers."
       ]
+    },
+    {
+      "bugid": "BUG-009",
+      "title": "Deployment scripts do not use DeploymentArchitecture as the sole source of truth",
+      "description": "In the Code/deploy directory two scripts (local_deploy.py and remote_deploy.py), while being used as drivers of our deployments, often rely on YAML files used by GitHub and Dockerfiles used by ChatHealthy's components to store required information. This is because their original requirements and frankly design were not strictly adhered to. Violates EPIC-008-F-012-S-002-REQ-T-003 and EPIC-008-F-012-S-003-REQ-T-007.",
+      "environments": [
+        "local",
+        "dev",
+        "qa",
+        "prod"
+      ],
+      "status": "deferred",
+      "severity": "high",
+      "req_id": "EPIC-008-F-012-S-003-REQ-T-007",
+      "story_id": "EPIC-008-F-012-S-003",
+      "test_id": "",
+      "discovery_date": "2026-05-19",
+      "due_date": "2026-06-06",
+      "reproduction": "Inspect Code/deploy/local_deploy.py and Code/deploy/remote_deploy.py — observe references to GitHub workflow YAML files and component Dockerfiles for ports, paths, image names, and similar deploy facts, rather than reading those facts from the persisted TargetRecord collection (deployment_architecture.json) via RecordLoader at runtime.",
+      "orphan": false
     }
   ]
 }
