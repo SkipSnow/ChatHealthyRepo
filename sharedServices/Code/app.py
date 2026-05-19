@@ -479,7 +479,7 @@ def google_oauth_callback(
 ):
     return GoogleOAuthEndpoint.callback(
         code=code, state=state, server_env=_ENV,
-        session_guid=ch_session, error=error,
+        session_guid=(ch_session[:32] if ch_session else None), error=error,
     )
 
 
