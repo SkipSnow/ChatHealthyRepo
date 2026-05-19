@@ -451,6 +451,16 @@ def _push_to_hf_space(
             sys.exit("ERROR: GEMINI_API_KEY missing in env and .env; FindCare backend deploy aborted.")
         _hf_set_secret(hf_token, space, "GEMINI_API_KEY", gemini)
 
+    if target_id == "target_hf_space_shared_services":
+        google_id = os.environ.get("GOOGLE_OAUTH_CLIENT_ID") or env_values.get("GOOGLE_OAUTH_CLIENT_ID")
+        if not google_id:
+            sys.exit("ERROR: GOOGLE_OAUTH_CLIENT_ID missing in env and .env; SharedServices OAuth deploy aborted.")
+        _hf_set_secret(hf_token, space, "GOOGLE_OAUTH_CLIENT_ID", google_id)
+        google_secret = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET") or env_values.get("GOOGLE_OAUTH_CLIENT_SECRET")
+        if not google_secret:
+            sys.exit("ERROR: GOOGLE_OAUTH_CLIENT_SECRET missing in env and .env; SharedServices OAuth deploy aborted.")
+        _hf_set_secret(hf_token, space, "GOOGLE_OAUTH_CLIENT_SECRET", google_secret)
+
     # 3) Stage source dirs to a clean workspace.
     workspace = repo_root / "_oneshots" / "remote_deploy_build" / env / target_id
     if workspace.exists():
