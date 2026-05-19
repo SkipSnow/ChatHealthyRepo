@@ -2392,6 +2392,8 @@
                       "CLOUDFLARE_API_TOKEN": "${{ secrets.CLOUDFLARE_ACCOUN_TOKEN }}",
                       "CLOUDFLARE_ACCOUNT_ID": "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}",
                       "GEMINI_API_KEY": "${{ secrets.GEMINI_API_KEY }}",
+                      "GOOGLE_OAUTH_CLIENT_ID": "${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}",
+                      "GOOGLE_OAUTH_CLIENT_SECRET": "${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}",
                       "MONGO_FRONTEND_connectionString": "${{ secrets.MONGO_FRONTEND_connectionString }}",
                       "ENV": "${{ steps.env.outputs.env }}"
                     },
