@@ -1043,6 +1043,11 @@
                 // REQ-T-005: keep the pair fresh on every /gate response.
                 window._noteGateResponse(evt);
                 if (evt && evt.type === 'redirect' && evt.url) {
+                  try {
+                    if (window._authBoot) sessionStorage.setItem(
+                      '_ch_authboot_resume', JSON.stringify(window._authBoot)
+                    );
+                  } catch (_) {}
                   window.location.assign(evt.url);
                   return;
                 }
@@ -1535,12 +1540,13 @@
         window.refreshTokenPanels('sharedservices');
       };
 
-      // REQ-T-008: every page load posts /gate with op="boot" as the
-      // first SharedServices call. Fire it explicitly here so the
-      // ch_session cookie + time_remaining pair are populated before
-      // any subsequent SS request. The promise is intentionally not
-      // awaited — downstream callers gate on window._sessionExpiry
-      // before their fetches.
+      try {
+        var resumed = sessionStorage.getItem('_ch_authboot_resume');
+        if (resumed) {
+          window._authBoot = JSON.parse(resumed);
+          sessionStorage.removeItem('_ch_authboot_resume');
+        }
+      } catch (_) {}
       try { window._getAuthBoot(); } catch (_) {}
       // REQ-T-010: a returning ?system_timed_out=… URL means the user
       // was just bounced home by the pre-flight check. Skip the iframe

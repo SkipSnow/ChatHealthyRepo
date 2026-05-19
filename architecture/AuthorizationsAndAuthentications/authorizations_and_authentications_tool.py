@@ -232,7 +232,10 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
                 raise RuntimeError(
                     f"AuthN: no SharedServices URL for env {deps.server_env!r}"
                 )
-            redirect_url = f"{shared}/auth/google/start"
+            redirect_url = (
+                f"{shared}/auth/google/start"
+                f"?session_guid={user_object.current_session_token.get_auth_token()}"
+            )
 
         return self.Response(
             user_object=user_object,

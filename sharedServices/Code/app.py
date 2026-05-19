@@ -467,8 +467,8 @@ def get_secret(key: str):
 
 @app.get("/auth/google/start", operation_id="GoogleOAuthStart",
          openapi_extra=_impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
-def google_oauth_start():
-    return GoogleOAuthEndpoint.start(server_env=_ENV)
+def google_oauth_start(session_guid: str | None = None):
+    return GoogleOAuthEndpoint.start(server_env=_ENV, session_guid=session_guid)
 
 
 @app.get("/auth/google/callback", operation_id="GoogleOAuthCallback",

@@ -104,12 +104,20 @@ def _b64url_decode(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + pad)
 
 
-def _build_state(server_env: str) -> str:
+def _build_state(server_env: str, session_guid: Optional[str] = None) -> str:
     payload = {
         "env":   server_env,
         "nonce": secrets.token_urlsafe(16),
         "ts":    int(time.time()),
     }
+    # Carry the caller's 32-char session_guid through Google so the callback
+    # can rebind the OAuth identity to the originating guest session even
+    # when ch_session can't ride to the SharedServices Space host (cookie
+    # is Domain=chathealthy.ai; Path=/gate, so it never reaches the HF host).
+    # The state body is HMAC-signed with the client secret, so the GUID
+    # round-tripping through Google can't be forged.
+    if session_guid:
+        payload["session_guid"] = session_guid
     body = _b64url(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
     sig = _b64url(hmac.new(_state_signing_key(), body.encode("ascii"), hashlib.sha256).digest())
     return f"{body}.{sig}"
@@ -148,9 +156,16 @@ class GoogleOAuthEndpoint:
     """Stateless handler for the Google OAuth handshake."""
 
     @staticmethod
-    def start(server_env: str) -> RedirectResponse:
-        """302 the browser to Google's consent screen."""
-        state = _build_state(server_env)
+    def start(server_env: str, session_guid: Optional[str] = None) -> RedirectResponse:
+        """302 the browser to Google's consent screen.
+
+        `session_guid` is the caller's 32-char guest-session GUID, supplied
+        by the /gate redirect when the user clicks Login & Registration.
+        It is baked into the signed `state` parameter so the callback can
+        recover it even though the ch_session cookie (Domain=chathealthy.ai;
+        Path=/gate) does not ride to the HF Space callback host.
+        """
+        state = _build_state(server_env, session_guid=session_guid)
         params = {
             "client_id":     _client_id(),
             "redirect_uri":  _redirect_uri(server_env),
@@ -186,13 +201,22 @@ class GoogleOAuthEndpoint:
             return _error_redirect(error)
         if not code or not state:
             return _error_redirect("missing_code_or_state")
-        if not session_guid:
-            return _error_redirect("missing_session_cookie")
 
         try:
-            _verify_state(state)
+            state_payload = _verify_state(state)
         except HTTPException as e:
             return _error_redirect(f"state_{e.detail.split()[-1]}")
+
+        # Prefer the session_guid that round-tripped through Google in the
+        # signed state. Fall back to the ch_session cookie if (and only if)
+        # state didn't carry one — e.g. legacy /auth/google/start calls
+        # without ?session_guid=… or future architectures that front the
+        # callback under a chathealthy.ai host where the cookie can ride.
+        state_session_guid = state_payload.get("session_guid")
+        if state_session_guid:
+            session_guid = state_session_guid
+        if not session_guid:
+            return _error_redirect("missing_session_cookie")
 
         try:
             with httpx.Client(timeout=10.0) as client:
