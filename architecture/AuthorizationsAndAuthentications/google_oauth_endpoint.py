@@ -22,6 +22,7 @@ import time
 import hmac
 import base64
 import hashlib
+import logging
 import secrets
 from typing import Optional
 from urllib.parse import urlencode
@@ -32,6 +33,8 @@ from fastapi.responses import RedirectResponse
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
+_log = logging.getLogger("shared_services.oauth")
+
 
 GOOGLE_AUTHZ_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -41,9 +44,9 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 # The Google Cloud OAuth client must list these URLs in its Authorized
 # Redirect URIs.
 _ENV_TO_REDIRECT_URI = {
-    "dev":   "https://dev.chathealthy.ai/auth/google/callback",
-    "qa":    "https://qa.chathealthy.ai/auth/google/callback",
-    "prod":  "https://chathealthy.ai/auth/google/callback",
+    "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space/auth/google/callback",
+    "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space/auth/google/callback",
+    "prod":  "https://skipsnow-sharedservicesspace.hf.space/auth/google/callback",
     "local": "https://localhost:8002/auth/google/callback",
 }
 
@@ -195,8 +198,14 @@ class GoogleOAuthEndpoint:
         users record, set ChatHealthyUserCookie, then 302 back to the
         wrapper origin."""
         wrapper = _wrapper_origin(server_env)
+        _log.info(
+            "OAUTH-CALLBACK entry env=%s cookie_session_guid=%s state_present=%s code_present=%s error=%s",
+            server_env, (session_guid[:8] + "..." if session_guid else None),
+            bool(state), bool(code), error,
+        )
 
         def _error_redirect(tag: str) -> RedirectResponse:
+            _log.warning("OAUTH-CALLBACK error_redirect tag=%s", tag)
             return RedirectResponse(f"{wrapper}/?auth_error={tag}", status_code=302)
 
         if error:
@@ -209,14 +218,14 @@ class GoogleOAuthEndpoint:
         except HTTPException as e:
             return _error_redirect(f"state_{e.detail.split()[-1]}")
 
-        # Prefer the session_guid that round-tripped through Google in the
-        # signed state. Fall back to the ch_session cookie if (and only if)
-        # state didn't carry one — e.g. legacy /auth/google/start calls
-        # without ?session_guid=… or future architectures that front the
-        # callback under a chathealthy.ai host where the cookie can ride.
         state_session_guid = state_payload.get("session_guid")
         if state_session_guid:
             session_guid = state_session_guid
+        _log.info(
+            "OAUTH-CALLBACK state_verified state_session_guid=%s effective_session_guid=%s",
+            (state_session_guid[:8] + "..." if state_session_guid else None),
+            (session_guid[:8] + "..." if session_guid else None),
+        )
         if not session_guid:
             return _error_redirect("missing_session_cookie")
 
@@ -260,6 +269,10 @@ class GoogleOAuthEndpoint:
             TOOL as AUTHN_TOOL,
             get_mongo_frontend,
         )
+        _log.info(
+            "OAUTH-CALLBACK handing off to handle_oauth_login email=%s google_sub_prefix=%s session_guid=%s",
+            email, google_sub[:8], session_guid[:8] + "...",
+        )
         try:
             user_id = AUTHN_TOOL.handle_oauth_login(
                 get_mongo_frontend(),
@@ -269,8 +282,13 @@ class GoogleOAuthEndpoint:
                 session_guid=session_guid,
             )
         except Exception as exc:
+            _log.exception("OAUTH-CALLBACK handle_oauth_login raised: %s", exc)
             return _error_redirect(f"register_failed_{type(exc).__name__}")
 
+        _log.info(
+            "OAUTH-CALLBACK handle_oauth_login OK user_id=%s; setting ChatHealthyRegisteredUserCookie and redirecting to wrapper",
+            user_id,
+        )
         redirect = RedirectResponse(
             f"{wrapper}/?auth_email={email}",
             status_code=302,

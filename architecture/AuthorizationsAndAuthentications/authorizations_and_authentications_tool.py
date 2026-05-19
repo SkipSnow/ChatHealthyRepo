@@ -275,13 +275,23 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
         sessions_coll = mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
         users_coll = mongo_frontend[_SESSION_DB][_USERS_COLLECTION]
 
+        _log.info(
+            "OAUTH-LOGIN entry identity_provider=%s session_guid=%s email=%s sub_prefix=%s",
+            identity_provider, session_guid[:8] + "...", email, google_sub[:8],
+        )
         session_doc = sessions_coll.find_one({"_id": session_guid})
         if not session_doc:
+            _log.error("OAUTH-LOGIN no session record for guid=%s — aborting", session_guid[:8])
             raise RuntimeError(
                 f"AuthN.handle_oauth_login: no session record for "
                 f"{session_guid[:8]}; OAuth callback arrived without a "
                 "prior /gate visit"
             )
+        _log.info(
+            "OAUTH-LOGIN session_doc found pre-flip: user_type=%s is_registered=%s public_username=%s",
+            session_doc.get("user_type"), session_doc.get("is_registered"),
+            session_doc.get("public_username"),
+        )
         session_user_object = {k: v for k, v in session_doc.items() if k != "_id"}
 
         existing_user_id = _user_id_for_identity_provider_sub(
@@ -309,7 +319,7 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
             })
             # Reflect the upgraded state into the live session record so
             # the next persist() round-trip sees a consistent UserObject.
-            sessions_coll.update_one(
+            update_result = sessions_coll.update_one(
                 {"_id": session_guid},
                 {"$set": {
                     "public_username": email,
@@ -318,6 +328,11 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
                     "user_id": user_id,
                     "OAuthIdentities": new_user_object["OAuthIdentities"],
                 }},
+            )
+            _log.info(
+                "OAUTH-LOGIN registered new user user_id=%s session_guid=%s session_matched=%d session_modified=%d",
+                user_id, session_guid[:8] + "...",
+                update_result.matched_count, update_result.modified_count,
             )
             return user_id
 
@@ -359,6 +374,10 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
         users_coll.update_one(
             {"user_id": existing_user_id},
             {"$set": {"user_object": merged_body}},
+        )
+        _log.info(
+            "OAUTH-LOGIN returning user_id=%s merged session_guid=%s; sessions+users updated",
+            existing_user_id, session_guid[:8] + "...",
         )
         return existing_user_id
 
