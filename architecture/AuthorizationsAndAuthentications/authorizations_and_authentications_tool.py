@@ -291,10 +291,10 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
         )
 
         if existing_user_id is None:
-            # REQ-T-009: register.
+            # REQ-T-009: register. public_username = verified email.
             user_id = "u-" + secrets.token_urlsafe(16)
             new_user_object = dict(session_user_object)
-            new_user_object["public_username"] = google_sub
+            new_user_object["public_username"] = email
             new_user_object["user_type"] = "Prospect"
             new_user_object["is_registered"] = True
             new_user_object["user_id"] = user_id
@@ -312,7 +312,7 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
             sessions_coll.update_one(
                 {"_id": session_guid},
                 {"$set": {
-                    "public_username": google_sub,
+                    "public_username": email,
                     "user_type": "Prospect",
                     "is_registered": True,
                     "user_id": user_id,

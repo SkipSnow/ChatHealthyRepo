@@ -41,9 +41,9 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 # The Google Cloud OAuth client must list these URLs in its Authorized
 # Redirect URIs.
 _ENV_TO_REDIRECT_URI = {
-    "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space/auth/google/callback",
-    "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space/auth/google/callback",
-    "prod":  "https://skipsnow-sharedservicesspace.hf.space/auth/google/callback",
+    "dev":   "https://dev.chathealthy.ai/auth/google/callback",
+    "qa":    "https://qa.chathealthy.ai/auth/google/callback",
+    "prod":  "https://chathealthy.ai/auth/google/callback",
     "local": "https://localhost:8002/auth/google/callback",
 }
 
@@ -55,9 +55,10 @@ _ENV_TO_WRAPPER_ORIGIN = {
     "local": "https://localhost",
 }
 
-# ChatHealthyUserCookie - per S-004-REQ-T-011.
-CHATHEALTHY_USER_COOKIE_NAME = "ChatHealthyUserCookie"
-CHATHEALTHY_USER_COOKIE_MAX_AGE = 60 * 24 * 60 * 60  # 60 days in seconds
+CHATHEALTHY_USER_COOKIE_NAME = "ChatHealthyRegisteredUserCookie"
+CHATHEALTHY_USER_COOKIE_MAX_AGE = 5184000  # 60 days, per S-006-REQ-T-001
+CHATHEALTHY_USER_COOKIE_DOMAIN = "chathealthy.ai"
+CHATHEALTHY_USER_COOKIE_PATH = "/gate"
 
 # State param TTL.
 _STATE_TTL_SECONDS = 600
@@ -148,7 +149,8 @@ def _set_chathealthy_user_cookie(response: RedirectResponse, user_id: str) -> No
         secure=True,
         httponly=True,
         samesite="lax",
-        path="/",
+        domain=CHATHEALTHY_USER_COOKIE_DOMAIN,
+        path=CHATHEALTHY_USER_COOKIE_PATH,
     )
 
 
