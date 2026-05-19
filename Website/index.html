@@ -1353,6 +1353,8 @@
           var err = params.get('auth_error');
           var timedOut = params.get('system_timed_out');
           if (email || err || timedOut) {
+            console.log('[OAUTH-CLIENT] return-from-redirect email=' + email + ' err=' + err + ' timedOut=' + timedOut);
+            console.log('[OAUTH-CLIENT] document.cookie at return: ' + document.cookie);
             if (email) window._authEmail = email;
             if (err) window._authError = err;
             if (timedOut) window._systemTimedOut = timedOut;
@@ -1545,9 +1547,10 @@
         if (resumed) {
           window._authBoot = JSON.parse(resumed);
           sessionStorage.removeItem('_ch_authboot_resume');
+          console.log('[OAUTH-CLIENT] sessionStorage restore: _authBoot guid=' + (window._authBoot && window._authBoot.token ? window._authBoot.token.slice(-32) : 'none'));
         }
       } catch (_) {}
-      try { window._getAuthBoot(); } catch (_) {}
+      try { window._getAuthBoot().then(function(t){ console.log('[OAUTH-CLIENT] /gate(boot) resolved: token_tail=' + (t && t.token ? t.token.slice(-32) : 'none')); }); } catch (_) {}
       // REQ-T-010: a returning ?system_timed_out=… URL means the user
       // was just bounced home by the pre-flight check. Skip the iframe
       // boot, render the notice in place of the splash, and let the
