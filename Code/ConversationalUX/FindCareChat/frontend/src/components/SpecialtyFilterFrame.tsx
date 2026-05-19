@@ -66,7 +66,7 @@ export default function SpecialtyFilterFrame() {
 
   if (specialties.length === 0) {
     return (
-      <div style={{ padding: 1em}}>
+      <div style={{ padding: '1em', color: '#6b7280', fontFamily: 'system-ui, sans-serif', fontSize: '1em' }}>
         Loading filter…
       </div>
     )
@@ -95,7 +95,7 @@ export default function SpecialtyFilterFrame() {
       </div>
 
       {/* Cell 3 — Apply Filter (20%) */}
-      <div style={{ flex: '0 0 20%', padding: 1em}}>
+      <div style={{ flex: '0 0 20%', padding: '1em', borderTop: '0.125em solid #d8e2e1', boxSizing: 'border-box', position: 'relative' }}>
         <button
           type="button"
           data-testid="apply-filter-button"
@@ -112,7 +112,7 @@ export default function SpecialtyFilterFrame() {
             setPopupOpen(false)
           }}
           style={{
-            width: '100%', padding: 1em
+            width: '100%', padding: '1em', borderRadius: 4,
             border: isDirty ? 'none' : '0.125em solid #cbd5d5',
             background: isDirty
               ? 'linear-gradient(180deg, #0b9a94, #0b7a75)'
@@ -134,7 +134,7 @@ export default function SpecialtyFilterFrame() {
             aria-modal="false"
             style={{
               position: 'absolute', bottom: '100%', left: 8, right: 8,
-              marginBottom: '1em', padding: 1em
+              marginBottom: '1em', padding: '1em', borderRadius: 6,
               background: '#fff', border: '0.125em solid #0b7a75',
               boxShadow: '0 0.25em 1em rgba(0,0,0,0.15)',
               fontFamily: 'system-ui, sans-serif', fontSize: '1em',
@@ -150,7 +150,7 @@ export default function SpecialtyFilterFrame() {
                 data-testid="apply-filter-no-changes-popup-ok"
                 onClick={() => setPopupOpen(false)}
                 style={{
-                  padding: 1em
+                  padding: '1em', borderRadius: 4, border: 'none',
                   background: '#0b7a75', color: '#fff', fontSize: '1em',
                   fontWeight: 600, cursor: 'pointer',
                 }}
@@ -163,7 +163,7 @@ export default function SpecialtyFilterFrame() {
       {/* Cell 4 — session-verification placeholder (22%) */}
       <div
         id="guiSessionCell"
-        style={{ flex: '0 0 22%', padding: 1em}}
+        style={{ flex: '0 0 22%', padding: '1em', borderTop: '0.125em solid #e5e7eb', boxSizing: 'border-box' }}
       />
     </div>
   )

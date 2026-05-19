@@ -37,6 +37,8 @@ from pathlib import Path
 import httpx
 import psutil
 
+import ch_fonts_inliner
+
 # ── Project root ──────────────────────────────────────────────────────────
 _REPO_ROOT_ENV = "CHATHEALTHY_PROJECT_ROOT"
 if _REPO_ROOT_ENV not in os.environ:
@@ -74,6 +76,7 @@ class LocalDeploy:
         self.output_dir = self.repo_root / "_oneshots/test_output" / "deploy"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%SZ")
+        self.website_staging_dir = self.output_dir / f"website_{ts}"
         self.output_path = (self.output_dir / f"deploy_local_{ts}.json")
         self.results: dict = {
             "env": self.env,
@@ -524,27 +527,12 @@ class LocalDeploy:
                     f"{result.stderr.strip()[:500]}"
                 )
 
-    # ── Single-source ch_fonts.js distribution ──────────────────────────
-    # Canonical lives in this DevOps directory (ONE place, ONE number).
-    # Consumers need a local copy adjacent to where they serve from:
-    #   • Website/ — the wrapper's static server reads it from there.
-    #   • Code/.../frontend/public/ — Vite bundles public/* into dist/*
-    #     so the FindCare backend serves /ch_fonts.js for the iframe.
-    # Both copies are derived artifacts (gitignored). The vite.config.ts
-    # copy is handled separately around the build itself (see
-    # _build_react_frontend) so the copy is deleted as soon as Vite is
-    # done with it — no stray config in the working tree between deploys.
-    def _sync_ch_fonts_to_website(self) -> None:
-        canonical_fonts = self.deploy_dir / "ch_fonts.js"
-        if not canonical_fonts.is_file():
-            sys.exit(f"ERROR: canonical font registry missing at {canonical_fonts}")
-        wrapper_copy = self.website_dir / "ch_fonts.js"
-        iframe_copy = self.frontend_dir / "public" / "ch_fonts.js"
-        iframe_copy.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(canonical_fonts, wrapper_copy)
-        shutil.copy2(canonical_fonts, iframe_copy)
+    def _stage_wrapper_website(self) -> None:
+        n = ch_fonts_inliner.stage_and_inline(
+            self.website_dir, self.website_staging_dir
+        )
         self._step_notice(
-            "ch_fonts.js synced -> Website + frontend/public"
+            f"website staged -> {self.website_staging_dir} (CH_FONTS inlined in {n} pages)"
         )
 
     # ── Build React frontend (S-001-REQ-T-008) ─────────────────────────
@@ -595,6 +583,8 @@ class LocalDeploy:
         dist_index = self.frontend_dir / "dist" / "index.html"
         if not dist_index.is_file():
             sys.exit(f"ERROR: React build produced no {dist_index}")
+        if not ch_fonts_inliner.inline_into(dist_index):
+            sys.exit(f"ERROR: CH_FONTS marker not found in {dist_index}")
 
         # Copy dist/* to backend/static/
         backend_static = self.backend_dir / "static"
@@ -685,7 +675,7 @@ class LocalDeploy:
         # Website wrapper runs as host-OS process per V11 S-002-REQ-T-002
         # (Docker exception, intentional). Stays as subprocess Python.
         certs_arg = str(self.certs_dir)
-        website_arg = str(self.website_dir)
+        website_arg = str(self.website_staging_dir)
         log_dir = self.output_dir / "process_logs"
         log_dir.mkdir(exist_ok=True)
         log_file = (log_dir / f"website-80-443_{self.results['started_at']}.log")
@@ -962,7 +952,7 @@ class LocalDeploy:
         self._step_notice("old environment torn down and ready")
 
         self._validate_prerequisites()
-        self._sync_ch_fonts_to_website()                    # single-source font registry
+        self._stage_wrapper_website()                       # inline CH_FONTS into staging copy
         # React build MUST run before backend container build: the Dockerfile
         # COPYs backend/, which contains backend/static/ (where the React
         # build output lands). If docker build runs first, the image bakes

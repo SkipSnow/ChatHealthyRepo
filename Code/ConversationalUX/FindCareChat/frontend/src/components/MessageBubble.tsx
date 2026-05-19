@@ -54,7 +54,7 @@ export default function MessageBubble({ message }: { message: Message }) {
     }}>
       <div style={{
         maxWidth: '75%',
-        padding: 1em
+        padding: '1em',
         borderRadius: isUser ? '2.25em 2.25em 0.5em 2.25em' : '2.25em 2.25em 2.25em 0.5em',
         background: isError ? '#fff5f5' : isUser ? '#f3f4f6' : '#ffffff',
         border: isError ? '0.125em solid #f87171' : isUser ? 'none' : '0.125em solid #e5e7eb',
@@ -84,12 +84,12 @@ export default function MessageBubble({ message }: { message: Message }) {
                 }
                 return <a {...props} target="_blank" rel="noopener noreferrer" />
               },
-              table: ({ node, ...props }) => <table {...props} style={{ borderCollapse: 'collapse', width: '100%', margin: 1em}} />,
-              th: ({ node, ...props }) => <th {...props} style={{ border: '0.125em solid #d1d5db', padding: 1em}} />,
+              table: ({ node, ...props }) => <table {...props} style={{ borderCollapse: 'collapse', width: '100%', margin: '1em', fontSize: '1em', tableLayout: 'auto' }} />,
+              th: ({ node, ...props }) => <th {...props} style={{ border: '0.125em solid #d1d5db', padding: '1em', background: '#f3f4f6', fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap' }} />,
               td: ({ node, children, ...props }) => {
                 const text = String(children || '')
                 const isShort = text.length < 15
-                return <td {...props} style={{ border: '0.125em solid #d1d5db', padding: 1em}}>{children}</td>
+                return <td {...props} style={{ border: '0.125em solid #d1d5db', padding: '1em', whiteSpace: isShort ? 'nowrap' : 'normal' }}>{children}</td>
               },
             }}
           >

@@ -932,17 +932,6 @@ if os.path.isdir(_static_dir):
 
     app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets")), name="assets")
 
-    # graph-exempt: top-level static file (the font registry copied here
-    # by local_deploy.py / remote_deploy.py from the DevOps canonical).
-    # The iframe's index.html loads it via <script src="/ch_fonts.js">.
-    @app.get("/ch_fonts.js")
-    async def serve_ch_fonts():
-        return FileResponse(
-            os.path.join(_static_dir, "ch_fonts.js"),
-            media_type="application/javascript",
-            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
-        )
-
 if __name__ == "__main__":
     import uvicorn
     kwargs = {"host": "0.0.0.0", "port": int(os.getenv("PORT", "7860"))}

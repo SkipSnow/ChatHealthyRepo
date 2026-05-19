@@ -694,13 +694,13 @@ export default function ChatWindow() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 800, margin: 1em}}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 800, margin: '1em', width: '100%' }}>
       {envBanner && window.parent === window && (
-        <div style={{ background: envBanner.env === 'local' ? '#d97706' : '#dc2626', color: '#fff', textAlign: 'center', padding: 1em}}>
+        <div style={{ background: envBanner.env === 'local' ? '#d97706' : '#dc2626', color: '#fff', textAlign: 'center', padding: '1em', fontSize: '1em', fontWeight: 600, letterSpacing: '0.03em' }}>
           {envBanner.env.toUpperCase()} — Build {envBanner.build} — {envBanner.version}
         </div>
       )}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 1em}}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '1em' }}>
         <div ref={topRef} />
         {messages.map((m, i) => (
           <MessageBubble key={i} message={m} />
@@ -711,7 +711,7 @@ export default function ChatWindow() {
         {retryCountdown !== null && (
           <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1em' }}>
             <div style={{
-              padding: 1em
+              padding: '1em',
               borderRadius: '2.25em 2.25em 2.25em 0.5em',
               background: '#fff7ed',
               border: '0.125em solid #fed7aa',
@@ -728,7 +728,7 @@ export default function ChatWindow() {
 
       {showTimeoutModal && (
         <div style={{
-          padding: 1em
+          padding: '1em',
           borderTop: '0.125em solid #fbbf24',
           borderBottom: '0.125em solid #fbbf24',
           background: '#fffbeb',
@@ -744,7 +744,7 @@ export default function ChatWindow() {
             <button
               onClick={handleTimeoutContinue}
               style={{
-                padding: 1em
+                padding: '1em', borderRadius: 6, border: '0.125em solid #059669',
                 background: '#ecfdf5', color: '#059669', fontSize: '1em', fontWeight: 600, cursor: 'pointer',
               }}
             >
@@ -753,7 +753,7 @@ export default function ChatWindow() {
             <button
               onClick={handleTimeoutAbandon}
               style={{
-                padding: 1em
+                padding: '1em', borderRadius: 6, border: '0.125em solid #dc2626',
                 background: '#fef2f2', color: '#dc2626', fontSize: '1em', fontWeight: 600, cursor: 'pointer',
               }}
             >
@@ -778,18 +778,18 @@ export default function ChatWindow() {
 
       {/* Control frame lives on the static parent page — React pushes via postMessage */}
 
-      <form onSubmit={handleSend} style={{ padding: 1em}}>
+      <form onSubmit={handleSend} style={{ padding: '1em', borderTop: '0.125em solid #e5e7eb', display: 'flex', gap: 8 }}>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder={isLocked ? 'This chat has been suspended for your safety.' : 'Type a message…'}
-          style={{ flex: 1, padding: 1em}}
+          style={{ flex: 1, padding: '1em', borderRadius: 8, border: '0.125em solid #d1d5db', fontSize: '1em', outline: 'none' }}
         />
         <button
           type="submit"
           disabled={!canSubmit || !input.trim()}
           style={{
-            padding: 1em
+            padding: '1em',
             borderRadius: 8,
             background: canSubmit && input.trim() ? '#003399' : '#d1d5db',
             color: '#fff',

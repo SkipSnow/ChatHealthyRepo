@@ -30,7 +30,7 @@
       --max-w:      100%;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 1em; padding: 1em; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
       height: 100%;
@@ -609,10 +609,9 @@
       }
     }
   </style>
-  <!-- Single source of truth for all ChatHealthy.ai font sizes / family.
-       Loaded BEFORE any inline script or stylesheet so .ch-h / .ch-body /
-       .ch-sm / .ch-mono classes are available everywhere. -->
-  <script src="/ch_fonts.js"></script>
+  <link rel="stylesheet" href="/splash.css">
+  <script src="/splash_render.js"></script>
+  <!-- CH_FONTS -->
 </head>
 
 <body>
@@ -1508,11 +1507,6 @@
             });
           })
           .then(function(payload) {
-            // REQ-T-005/T-008: every /gate response refreshes the stored
-            // (remaining, receivedAt) pair. user_object stays server-side
-            // per S-005. The cryptographic-display projection
-            // (payload.session_token) is what subsequent refreshTokenPanels
-            // calls stamp + verify.
             window._noteGateResponse(payload);
             if (payload && payload.session_token) {
               window._authBoot = payload.session_token;
@@ -1520,7 +1514,6 @@
             }
             var d = (payload && payload.result) ? payload.result : payload;
             chatFrame.style.display = 'none';
-            // Hide EvaluateCare splash if visible
             var ecSplash = document.getElementById('evalcareSplash');
             if (ecSplash) ecSplash.style.display = 'none';
             var centerArea = chatFrame.parentElement;
@@ -1528,11 +1521,11 @@
             if (!splashDiv) {
               splashDiv = document.createElement('div');
               splashDiv.id = 'sharedSplash';
-              splashDiv.style.cssText = 'flex:1;overflow:auto;background:#fff;';
+              splashDiv.className = 'ch-splash-mount';
               centerArea.appendChild(splashDiv);
             }
             splashDiv.style.display = 'flex';
-            splashDiv.innerHTML = d.html || '';
+            window.renderSplash(d, splashDiv);
           })
           .catch(function() { window.chFatalError(''); });
 

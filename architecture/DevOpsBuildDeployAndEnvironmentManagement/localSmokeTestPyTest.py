@@ -526,50 +526,47 @@ class TestStep02b:
         _screenshot(page, "02b")
 
 
-# Step 2c — Single-source font registry actually loaded on the wrapper
-# AND served from the FindCare iframe origin. Catches two real regressions
-# from this session: (a) the canonical never reached the wrapper static,
-# and (b) FindCare backend didn't expose the file at /ch_fonts.js so the
-# iframe rendered at the 16-px browser default (= ~2× expected size).
 class TestStep02c:
-    def test_ch_fonts_loaded_both_origins(self, env):
+    def test_ch_fonts_inlined_both_origins(self, env):
         if IS_PROD:
             pytest.skip("S-002-REQ-B-002: chrome suppressed in prod by design")
         page = env["page"]
-        # Wrapper: /ch_fonts.js reachable + html font-size matches the
-        # base the registry mandates.
         wrapper_status = page.evaluate(
-            """async () => {
-                const r = await fetch('/ch_fonts.js');
-                return r.status;
-            }"""
+            """async () => (await fetch('/ch_fonts.js')).status"""
         )
-        assert wrapper_status == 200, (
-            f"wrapper /ch_fonts.js returned {wrapper_status}; the font "
-            "registry is the single source of truth and MUST be served."
+        assert wrapper_status == 404, (
+            f"wrapper served /ch_fonts.js (status {wrapper_status}); the "
+            "canonical is inlined at deploy time, not fetched at runtime."
+        )
+        wrapper_inline = page.evaluate(
+            """!!document.querySelector('style#ch-fonts')"""
+        )
+        assert wrapper_inline, (
+            "wrapper page has no inline <style id='ch-fonts'>; CH_FONTS "
+            "marker was not substituted at deploy time."
+        )
+        wrapper_has_chfont = page.evaluate("typeof window.chFont === 'function'")
+        assert wrapper_has_chfont, (
+            "wrapper has no window.chFont; the inline <script> from the "
+            "snippet did not execute."
         )
         html_size = page.evaluate(
             "getComputedStyle(document.documentElement).fontSize"
         )
-        # Sanity-check the base is something other than the 16-px browser
-        # default (the canonical lives in
-        # architecture/DevOps.../ch_fonts.js as `CH_BASE = '<N>px'`).
         assert html_size != "16px", (
             f"wrapper html font-size is browser default 16px; the "
-            "ch_fonts override did not take effect. Got: {html_size}"
+            f"inlined ch-fonts override did not take effect. Got: {html_size}"
         )
-        # FindCare iframe origin: /ch_fonts.js MUST also serve 200. The
-        # iframe's index.html includes <script src='/ch_fonts.js'> so if
-        # this 404s the iframe falls back to browser defaults.
         fc_url = page.evaluate("(window._envServiceUrls || {}).findcare || ''")
         if fc_url:
             r = page.evaluate(
                 """async (u) => (await fetch(u + '/ch_fonts.js')).status""",
                 fc_url,
             )
-            assert r == 200, (
-                f"FindCare iframe origin /ch_fonts.js returned {r}; the "
-                "iframe falls back to browser default 16-px without it."
+            assert r == 404, (
+                f"FindCare iframe origin served /ch_fonts.js (status {r}); "
+                "iframe should use the inlined snippet in its index.html, "
+                "not fetch the file at runtime."
             )
         _screenshot(page, "02c")
 
@@ -648,11 +645,14 @@ class TestStep05b:
             }""",
             SHARED_URL,
         )
-        html = ((result or {}).get('result') or {}).get('html') or ''
-        assert 'no ux events or utterances yet' in html.lower(), (
-            "Pre-utterance splash MUST show empty history. "
-            f"Got (first 500c): {html[:500]}"
+        res = (result or {}).get('result') or {}
+        threads = res.get('threads') or {}
+        assert threads.get('empty') is True, (
+            "Pre-utterance splash MUST report threads.empty=true. "
+            f"Got result keys={list(res.keys())} threads={threads}"
         )
+        assert not threads.get('person'), f"person should be empty pre-utterance: {threads.get('person')}"
+        assert not threads.get('person_to_system'), f"person_to_system should be empty pre-utterance: {threads.get('person_to_system')}"
 
 
 # Step 6 [EPIC-005-F-001-S-001-REQ-B-005]
@@ -1133,7 +1133,37 @@ class TestStep27:
         )
 
 
-# Step 28 [EPIC-008-F-012-S-006-REQ-B-028]
+class TestStep27bSplashJsonContract:
+    def test_gate_splash_returns_data_not_html(self, env):
+        if IS_PROD:
+            pytest.skip("S-002-REQ-B-002: SharedServices suppressed in prod")
+        page = env["page"]
+        payload = page.evaluate(
+            """async (url) => {
+                const r = await fetch(url + '/gate', {
+                    method: 'POST', credentials: 'include',
+                    headers: {'Content-Type': 'application/json'},
+                    body: window._gateBody({op: 'splash'})
+                });
+                return await r.json();
+            }""",
+            SHARED_URL,
+        )
+        result = (payload or {}).get("result") or {}
+        assert "html" not in result, (
+            f"splash response carries server-rendered html field — display "
+            f"logic should be client-side only. result keys: {list(result.keys())}"
+        )
+        assert "identity" in result and isinstance(result["identity"], dict), (
+            f"splash response missing identity dict. result: {result}"
+        )
+        assert "threads" in result and isinstance(result["threads"], dict), (
+            f"splash response missing threads dict. result: {result}"
+        )
+        for k in ("person", "person_to_system", "machine", "llm_to_system"):
+            assert k in result["threads"], f"threads missing key '{k}': {result['threads']}"
+
+
 class TestStep28:
     def test_shared_services_splash_renders_user_object(self, env):
         if IS_PROD:
