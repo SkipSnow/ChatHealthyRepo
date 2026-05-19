@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>FindCare — Specialty Filter Prototype filter5 (web)</title>
+  <!-- ChatHealthy.ai canonical font registry.
+     Single source of truth for font sizing app-wide. ONE knob (the
+     `html { font-size: ... }` rule below). Inlined into every HTML
+     page's <head> at deploy time via the CH_FONTS marker substitution
+     in local_deploy.py / remote_deploy.py. Never fetched at runtime,
+     never copied to disk as a separate served resource. Edit here and
+     redeploy. -->
+<style id="ch-fonts">
+  html { font-size: 9px !important; }
+  body, input, button, select, textarea, div, span, p, a,
+  h1, h2, h3, h4, h5, h6, label, li, td, th, dd, dt, code {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 1rem !important;
+  }
+  code, pre, .ch-mono {
+    font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace !important;
+  }
+</style>
+<script>
+  (function () {
+    window.chFont = function (scale) {
+      var s = (typeof scale === 'number' && isFinite(scale) && scale > 0) ? scale : 1;
+      return s + 'em';
+    };
+    window.CH_FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    window.CH_MONO_FAMILY = 'ui-monospace, Menlo, Consolas, "Liberation Mono", monospace';
+  })();
+</script>
+  <style>
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #fff; color: #0d1117; }
+body { display: flex; flex-direction: column; min-height: 100%; padding: 0.4rem 0.8rem 0.4rem 0.8rem; font-size: 1rem; }
+
+header { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 0.125em solid #d8e2e1; padding: 0.6em 1.2em; display: flex; align-items: center; gap: 2em; }
+.lab-logo { display: flex; align-items: center; gap: 0.75em; color: #0b7a75; font-weight: 700; }
+.lab-logo-mark { width: 2.4em; height: 2.4em; border-radius: 50%; background: #0b7a75; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+.lab-nav { display: flex; gap: 1.5em; color: #0d1117; font-size: 1em; }
+.lab-nav a { color: #0d1117; text-decoration: none; }
+.lab-pre { color: #c2410c; font-style: italic; font-size: 1em; }
+
+.lab-banner { background: #d97706; color: #fff; text-align: center; padding: 0.6em 0.8em; font-weight: 600; letter-spacing: 0.03em; }
+.lab-banner span { margin-right: 1em; }
+.lab-banner button { margin-left: 0.6em; border-radius: 0.4em; padding: 0.4em 0.9em; font-weight: 600; border: 0.125em solid #fff; cursor: pointer; }
+
+main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.lab-chat-label { color: #6b7280; font-size: 1em; text-transform: uppercase; letter-spacing: 0.06em; padding: 0.6em 0.6em 0.4em; }
+.lab-content-row { flex: 1; display: flex; min-height: 0; }
+.lab-side-left { width: 22%; background: #e1e1ff; border-right: 0.125em solid #d8e2e1; display: flex; flex-direction: column; }
+.lab-center { flex: 1; display: flex; flex-direction: column; min-width: 0; border: 0.125em solid #d8e2e1; border-radius: 0.6em; margin: 0 0.6em; overflow: hidden; }
+.lab-side-right { width: 4%; background: #f5f5f4; border-left: 0.125em solid #d8e2e1; }
+
+.lab-prov-head { display: flex; justify-content: space-between; padding: 0.7em 1em; background: #f0fffe; border-bottom: 0.125em solid #d8e2e1; color: #0b7a75; font-weight: 700; text-transform: uppercase; font-size: 1em; }
+.lab-prov-row { display: flex; justify-content: space-between; padding: 0.9em 1em; border-bottom: 0.125em solid #f0f0f0; font-size: 1em; line-height: 1.35; }
+.lab-prov-name { font-weight: 700; color: #0d1117; }
+.lab-prov-spec { color: #0b7a75; }
+.lab-prov-addr, .lab-prov-meta { color: #4a5568; }
+.lab-selected-head { display: flex; justify-content: space-between; padding: 0.7em 1em; background: #fffbeb; color: #d97706; font-weight: 600; text-transform: uppercase; border-top: 0.125em solid #d8e2e1; border-bottom: 0.125em solid #d8e2e1; }
+.lab-msg-row { display: flex; gap: 0.6em; padding: 0.9em 1em; border-top: 0.125em solid #d8e2e1; }
+.lab-msg-row input { flex: 1; padding: 0.7em 0.9em; border: 0.125em solid #d8e2e1; border-radius: 0.5em; }
+.lab-msg-row button { padding: 0.7em 1.3em; background: #0b7a75; color: #fff; border: none; border-radius: 0.5em; font-weight: 700; }
+.lab-control-frame { display: flex; align-items: center; justify-content: flex-end; padding: 0.4em 1em; border-top: 0.125em solid #d8e2e1; background: #fafaf9; color: #ccc; }
+
+
+.lab-filter { display: flex; flex-direction: column; height: 100%; background: #fff; }
+.lab-filter-header { background: #e6f5ec; border-bottom: 0.25em solid #0b7a75; padding: 0.7em 0.9em 0.6em; display: flex; flex-direction: column; gap: 0.85em; }
+.lab-filter-line1 { font-size: 1.55em; font-weight: 700; color: #0b7a75; letter-spacing: 0.01em; }
+.lab-filter-line2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.55em; }
+.lab-filter-count { display: flex; flex-direction: column; align-items: center; padding: 0.3em 0.3em; }
+.lab-count-label { font-size: 0.9em; color: #4a5568; text-transform: uppercase; }
+.lab-count-value { font-size: 1.85em; font-weight: 700; color: #1f2937; line-height: 1; }
+.lab-count-value-yours { color: #0b7a75; }
+.lab-filter-line3 { display: flex; align-items: center; gap: 0.55em; flex-wrap: wrap; }
+.lab-toggle-all { padding: 0.35em 0.9em; font-size: 1em; border: none; background: #0b7a75; color: #fff; border-radius: 2em; font-weight: 700; }
+.lab-macro-checks { display: flex; gap: 0.6em; }
+.lab-macro-checks label { font-size: 1em; display: flex; align-items: center; gap: 0.35em; padding: 0.25em 0.7em; border: 0.125em solid #c9e0d3; border-radius: 2em; background: #fff; }
+.lab-filter-body { flex: 1; overflow-y: auto; }
+.lab-spec-row { display: flex; justify-content: space-between; align-items: center; padding: 0.35em 1em; font-size: 1em; }
+.lab-spec-row:nth-child(odd) { background: #fafdfc; }
+.lab-spec-checkbox { width: 1.25em; height: 1.25em; accent-color: #0b7a75; }
+.lab-apply-btn { margin: 0.5em 0.8em; padding: 0.45em; background: linear-gradient(180deg,#0b9a94,#0b7a75); color: #fff; border: none; border-radius: 1.5em; font-size: 1.3em; font-weight: 700; min-height: 2.6em; }
+
+  </style>
+</head>
+<body>
+  <!-- filter5 — variant: Generous header rhythm (clear blank space between title and counts), pill-style line-3 controls, hover-zebra body rows (medium density), Apply Filter 2.6em rounded full-width. -->
+  <header>
+    <a class="lab-logo" href="#"><span class="lab-logo-mark">+</span><span>ChatHealthy.ai</span></a>
+    <span class="lab-pre">Pre-Alpha</span>
+    <nav class="lab-nav">
+      <a href="#">Home</a><a href="#">Login &amp; Registration</a><a href="#">Products &amp; Services</a>
+    </nav>
+  </header>
+
+  <div class="lab-banner">
+    <span>LOCAL</span><span>Version: 1.4.1</span><span>Framework: 0.1.5</span><span>Build: 1377</span><span>[findcare]</span>
+    <button style="background:#d1d5db;color:#6b7280;">FindCare</button>
+    <button style="background:#fff;color:#d97706;">EvaluateCare</button>
+    <button style="background:#fff;color:#6366f1;">SharedServices</button>
+  </div>
+
+  <main>
+    <div class="lab-chat-label">Chat with Find Care AI</div>
+    <div class="lab-content-row">
+      <div class="lab-side-left" id="leftPanel">
+
+        <div class="lab-filter" data-testid="specialty-filter">
+          <div class="lab-filter-header">
+            <div class="lab-filter-line1">Choose Specialties</div>
+            <div class="lab-filter-line2">
+              <div class="lab-filter-count"><span class="lab-count-label">All possible</span><span class="lab-count-value">31</span></div>
+              <div class="lab-filter-count"><span class="lab-count-label">All prescribers</span><span class="lab-count-value">13</span></div>
+              <div class="lab-filter-count"><span class="lab-count-label">Your choices</span><span class="lab-count-value lab-count-value-yours">13</span></div>
+            </div>
+            <div class="lab-filter-line3">
+              <button type="button" class="lab-toggle-all">Uncheck All</button>
+              <div class="lab-macro-checks">
+                <label><input type="checkbox" checked>Prescribers</label>
+                <label><input type="checkbox">Homeopathic</label>
+              </div>
+            </div>
+          </div>
+          <div class="lab-filter-body">
+            <div class="lab-spec-row" data-spec-code="207X00000X" data-can-prescribe="true" data-homeopathic="false" role="checkbox" aria-checked="true"><span class="lab-spec-name">Orthopaedic Surgery Physician</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Orthopaedic Surgery Physician"></div>
+          <div class="lab-spec-row" data-spec-code="207XS0114X" data-can-prescribe="true" data-homeopathic="false" role="checkbox" aria-checked="true"><span class="lab-spec-name">Adult Reconstructive Orthopaedic Surgery Physician</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Adult Reconstructive Orthopaedic Surgery Physician"></div>
+          <div class="lab-spec-row" data-spec-code="207XX0801X" data-can-prescribe="true" data-homeopathic="false" role="checkbox" aria-checked="true"><span class="lab-spec-name">Orthopaedic Trauma Physician</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Orthopaedic Trauma Physician"></div>
+          <div class="lab-spec-row" data-spec-code="207XX0005X" data-can-prescribe="true" data-homeopathic="false" role="checkbox" aria-checked="true"><span class="lab-spec-name">Sports Medicine (Orthopaedic Surgery) Physician</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Sports Medicine (Orthopaedic Surgery) Physician"></div>
+          <div class="lab-spec-row" data-spec-code="207XS0106X" data-can-prescribe="true" data-homeopathic="false" role="checkbox" aria-checked="true"><span class="lab-spec-name">Orthopaedic Hand Surgery Physician</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Orthopaedic Hand Surgery Physician"></div>
+          <div class="lab-spec-row" data-spec-code="207XS0117X" data-can-prescribe="true" data-homeopathic="false" role="checkbox" aria-checked="true"><span class="lab-spec-name">Orthopaedic Surgery of the Spine Physician</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Orthopaedic Surgery of the Spine Physician"></div>
+          <div class="lab-spec-row" data-spec-code="207XX0004X" data-can-prescribe="true" data-homeopathic="false" role="checkbox" aria-checked="true"><span class="lab-spec-name">Orthopaedic Foot and Ankle Surgery Physician</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Orthopaedic Foot and Ankle Surgery Physician"></div>
+          <div class="lab-spec-row" data-spec-code="207XP3100X" data-can-prescribe="true" data-homeopathic="false" role="checkbox" aria-checked="true"><span class="lab-spec-name">Pediatric Orthopaedic Surgery Physician</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Pediatric Orthopaedic Surgery Physician"></div>
+          <div class="lab-spec-row" data-spec-code="207RR0500X" data-can-prescribe="true" data-homeopathic="false" role="checkbox" aria-checked="true"><span class="lab-spec-name">Rheumatology Physician</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Rheumatology Physician"></div>
+          <div class="lab-spec-row" data-spec-code="202D00000X" data-can-prescribe="true" data-homeopathic="true" role="checkbox" aria-checked="true"><span class="lab-spec-name">Integrative Medicine Physician</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Integrative Medicine Physician"></div>
+          <div class="lab-spec-row" data-spec-code="111NR0400X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Rehabilitation Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Rehabilitation Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="111NX0800X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Orthopedic Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Orthopedic Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="111NI0900X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Internist Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Internist Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="111NN0400X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Neurology Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Neurology Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="111NN1001X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Nutrition Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Nutrition Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="111NS0005X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Sports Physician Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Sports Physician Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="374T00000X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Religious Nonmedical Nursing Personnel</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Religious Nonmedical Nursing Personnel"></div>
+          <div class="lab-spec-row" data-spec-code="172P00000X" data-can-prescribe="true" data-homeopathic="true" role="checkbox" aria-checked="true"><span class="lab-spec-name">Naprapath</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Naprapath"></div>
+          <div class="lab-spec-row" data-spec-code="175F00000X" data-can-prescribe="true" data-homeopathic="true" role="checkbox" aria-checked="true"><span class="lab-spec-name">Naturopath</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Naturopath"></div>
+          <div class="lab-spec-row" data-spec-code="364SH1100X" data-can-prescribe="true" data-homeopathic="true" role="checkbox" aria-checked="true"><span class="lab-spec-name">Holistic Clinical Nurse Specialist</span><input type="checkbox" class="lab-spec-checkbox" checked aria-label="Holistic Clinical Nurse Specialist"></div>
+          <div class="lab-spec-row" data-spec-code="111N00000X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="111NI0013X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Independent Medical Examiner Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Independent Medical Examiner Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="111NT0100X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Thermography Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Thermography Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="374K00000X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Religious Nonmedical Practitioner</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Religious Nonmedical Practitioner"></div>
+          <div class="lab-spec-row" data-spec-code="171100000X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Acupuncturist</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Acupuncturist"></div>
+          <div class="lab-spec-row" data-spec-code="172M00000X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Mechanotherapist</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Mechanotherapist"></div>
+          <div class="lab-spec-row" data-spec-code="225700000X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Massage Therapist</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Massage Therapist"></div>
+          <div class="lab-spec-row" data-spec-code="111NX0100X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Occupational Health Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Occupational Health Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="111NR0200X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Radiology Chiropractor</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Radiology Chiropractor"></div>
+          <div class="lab-spec-row" data-spec-code="175L00000X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Homeopath</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Homeopath"></div>
+          <div class="lab-spec-row" data-spec-code="173C00000X" data-can-prescribe="false" data-homeopathic="true" role="checkbox" aria-checked="false"><span class="lab-spec-name">Reflexologist</span><input type="checkbox" class="lab-spec-checkbox" aria-label="Reflexologist"></div>
+          </div>
+          <button type="button" class="lab-apply-btn">Apply Filter</button>
+        </div>
+
+      </div>
+      <div class="lab-center">
+        <div class="lab-prov-head"><span>Find me a bone doctor in Delaware</span><span>8 providers found</span></div>
+        <div class="lab-prov-head" style="background:#fff;color:#0b7a75;border-bottom:0.125em solid #d8e2e1;"><span>AVAILABLE PROVIDERS</span><span>8 available</span></div>
+        <div style="flex:1;overflow-y:auto;">
+
+              <div class="lab-prov-row">
+                <div>
+                  <div class="lab-prov-name">DR. RONALD CAESAR SABBAGH, M.D.</div>
+                  <div class="lab-prov-spec">Orthopaedic Surgery Physician</div>
+                  <div class="lab-prov-addr">12100 BLACK SWAN DRIVE, LEWES, DE, 19958</div>
+                  <div class="lab-prov-meta">Sussex County · Phone: (302) 644-3311 · NPI: 1245281351</div>
+                </div>
+              </div>
+              <div class="lab-prov-row">
+                <div>
+                  <div class="lab-prov-name">DR. WILSON CHRISTOPHER CHOY, M.D.</div>
+                  <div class="lab-prov-spec">Orthopaedic Surgery Physician</div>
+                  <div class="lab-prov-addr">329 MULLET RUN, MILFORD, DE, 19963</div>
+                  <div class="lab-prov-meta">Kent County · Phone: (302) 424-4141 · NPI: 1275584385</div>
+                </div>
+              </div>
+              <div class="lab-prov-row">
+                <div>
+                  <div class="lab-prov-name">MATTHEW A HANDLING, M.D.</div>
+                  <div class="lab-prov-spec">Orthopaedic Surgery Physician</div>
+                  <div class="lab-prov-addr">4745 OGLETOWN STANTON RD STE 225, NEWARK, DE, 19713</div>
+                  <div class="lab-prov-meta">New Castle County · Phone: (302) 731-2888 · NPI: 1295885234</div>
+                </div>
+              </div>
+              <div class="lab-prov-row">
+                <div>
+                  <div class="lab-prov-name">AKUL PATEL, MD</div>
+                  <div class="lab-prov-spec">Orthopaedic Surgery Physician</div>
+                  <div class="lab-prov-addr">1941 LIMESTONE RD STE 101, WILMINGTON, DE, 19808</div>
+                  <div class="lab-prov-meta">New Castle County · Phone: (302) 655-9494 · NPI: 1376070664</div>
+                </div>
+              </div>
+
+        </div>
+        <div class="lab-selected-head"><span>SELECTED FOR EVALUATION</span><span>0 / 5</span></div>
+        <div style="padding:1em;color:#9ca3af;text-align:center;font-size:1em;">Click ↓ to select providers (max 5)</div>
+        <div class="lab-msg-row"><input placeholder="Type a message..."><button>Send</button></div>
+        <div class="lab-control-frame">CONTROL FRAME</div>
+      </div>
+      <div class="lab-side-right" id="rightPanel"></div>
+    </div>
+  </main>
+</body>
+</html>
