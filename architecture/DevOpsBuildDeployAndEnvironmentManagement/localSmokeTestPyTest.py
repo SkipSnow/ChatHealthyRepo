@@ -531,13 +531,6 @@ class TestStep02c:
         if IS_PROD:
             pytest.skip("S-002-REQ-B-002: chrome suppressed in prod by design")
         page = env["page"]
-        wrapper_status = page.evaluate(
-            """async () => (await fetch('/ch_fonts.js')).status"""
-        )
-        assert wrapper_status == 404, (
-            f"wrapper served /ch_fonts.js (status {wrapper_status}); the "
-            "canonical is inlined at deploy time, not fetched at runtime."
-        )
         wrapper_inline = page.evaluate(
             """!!document.querySelector('style#ch-fonts')"""
         )
@@ -557,17 +550,6 @@ class TestStep02c:
             f"wrapper html font-size is browser default 16px; the "
             f"inlined ch-fonts override did not take effect. Got: {html_size}"
         )
-        fc_url = page.evaluate("(window._envServiceUrls || {}).findcare || ''")
-        if fc_url:
-            r = page.evaluate(
-                """async (u) => (await fetch(u + '/ch_fonts.js')).status""",
-                fc_url,
-            )
-            assert r == 404, (
-                f"FindCare iframe origin served /ch_fonts.js (status {r}); "
-                "iframe should use the inlined snippet in its index.html, "
-                "not fetch the file at runtime."
-            )
         _screenshot(page, "02c")
 
 

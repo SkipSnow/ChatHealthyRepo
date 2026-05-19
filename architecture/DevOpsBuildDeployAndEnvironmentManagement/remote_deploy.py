@@ -619,7 +619,7 @@ def _push_to_cloudflare_pages(
 
 
 # ── Health polling per env ────────────────────────────────────────────
-def _poll_backends_health(env: str, timeout_min: int = 12) -> None:
+def _poll_backends_health(env: str, expected_commit: str, timeout_min: int = 12) -> None:
     import urllib.error
     import urllib.request
     backends = [
@@ -630,21 +630,24 @@ def _poll_backends_health(env: str, timeout_min: int = 12) -> None:
     deadline = time.time() + timeout_min * 60
     for url in backends:
         target_url = f"{url}/health"
-        _step(f"  polling {target_url}")
+        _step(f"  polling {target_url} for commit={expected_commit}")
         while True:
             if time.time() > deadline:
-                sys.exit(f"TIMED OUT waiting for {target_url}")
+                sys.exit(f"TIMED OUT waiting for {target_url} to report commit={expected_commit}")
             try:
                 req = urllib.request.Request(target_url, method="POST", data=b"")
                 with urllib.request.urlopen(req, timeout=8) as resp:
                     if resp.status == 200:
-                        _step(f"    {target_url} -> 200")
-                        break
+                        body = resp.read().decode("utf-8", errors="replace")
+                        try:
+                            payload = json.loads(body)
+                        except json.JSONDecodeError:
+                            payload = {}
+                        live_commit = str(payload.get("commit") or "")
+                        if live_commit == expected_commit:
+                            _step(f"    {target_url} -> 200 commit={live_commit}")
+                            break
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError):
-                # urllib raises bare TimeoutError on read-timeout (post-connect)
-                # in Python 3.10+; HF cold starts produce these once the Space
-                # accepts the TCP connection but is still booting. Treated as
-                # "not ready yet" — keep polling until the deadline.
                 pass
             time.sleep(10)
 
@@ -745,8 +748,15 @@ def main(argv: list[str] | None = None) -> int:
 
     # Poll backend health then smoke.
     _step(f"deployed targets: {deployed}")
-    _step("polling backend /health endpoints")
-    _poll_backends_health(env)
+    try:
+        expected_commit = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, check=True, cwd=str(repo_root),
+        ).stdout.strip()
+    except Exception:
+        sys.exit("could not resolve expected commit SHA for health verification")
+    _step(f"polling backend /health endpoints until commit={expected_commit} live")
+    _poll_backends_health(env, expected_commit)
 
     if args.skip_smoke:
         _step("smoke skipped (--skip-smoke)")
