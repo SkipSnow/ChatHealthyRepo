@@ -192,6 +192,7 @@ export default function FindCareApp() {
     const poll = setInterval(() => {
       if (_sessionToken != null) setTokenReady(true)
     }, 100)
+    getSessionToken().catch(() => { /* parent never replied; poll keeps trying */ })
     return () => { clearInterval(secondsTick); clearInterval(poll) }
   }, [tokenReady])
 
