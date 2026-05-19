@@ -24,10 +24,10 @@ interface ProviderCardProps {
 const cardStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  padding: 1em
+  padding: '1em',
   borderBottom: '0.125em solid #f0f0f0',
   fontSize: '1em',
-  lineHeight: 1.25,
+  lineHeight: 1.3,
   cursor: 'default',
   transition: 'background 0.15s',
 }
@@ -54,7 +54,7 @@ const actionBtnStyle: React.CSSProperties = {
   border: 'none',
   cursor: 'pointer',
   fontSize: '1em',
-  padding: 1em
+  padding: '1em',
   flexShrink: 0,
 }
 

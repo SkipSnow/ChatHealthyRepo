@@ -21,8 +21,6 @@ Canonical *_tool.py exports: TOOL_NAME, Request, Response, run().
 """
 from __future__ import annotations
 
-import html as _html
-import json as _json
 import logging
 from datetime import datetime, timezone
 from typing import Any, Literal, Optional
@@ -94,14 +92,10 @@ def _utterance(text: str, bridge_response: Optional[dict[str, Any]] = None) -> H
     return HistoryAppend(array="utterances", entry=entry)
 
 
-# ────────────────────────────────────────────────────────────────────
-# Splash render (absorbed from the deleted splash_endpoint.py)
-# ────────────────────────────────────────────────────────────────────
-
 _SPLASH_PEDANTIC = "SharedServices took ownership of the page and rendered the User Object."
 
 
-def _splash_html(user_object) -> str:
+def _splash_data(user_object) -> dict[str, Any]:
     cst = user_object.current_session_token
     identity = {
         "user_type": getattr(user_object, "user_type", None) or "Guest",
@@ -111,154 +105,80 @@ def _splash_html(user_object) -> str:
         "guid": cst.get_auth_token(),
         "origin": cst.origin,
         "server_env": cst.server_env,
-        "created_at": cst.created_at,
-        "expires_at": user_object.expires_at,
+        "created_at": str(cst.created_at) if cst.created_at is not None else "",
+        "expires_at": str(user_object.expires_at) if user_object.expires_at is not None else "",
     }
     sch = user_object.session_conversation_history.model_dump()
-    return _splash_render(identity, sch)
-
-
-def _splash_render(identity: dict, sch: dict | None) -> str:
     if not isinstance(sch, dict):
         sch = {}
-    return (
-        '<div style="padding: 1em;max-width:102.5em;margin: 1em;text-align:left;'
-        'font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size: 1em;line-height:1.35;">'
-        '<h2 style="margin: 1em;color:#0b7a75;font-size: 1em;">'
-        'Shared Services &mdash; User Object'
-        '</h2>'
-        '<p style="color:#6b7280;margin: 1em;font-size: 1em;">'
-        'Live evidence that the entrance code completed. The cookie carries only the GUID; '
-        'the user object lives in <code>admin.Sessions</code>.'
-        '</p>'
-        + _splash_identity(identity)
-        + _splash_history(sch)
-        + '</div>'
-    )
-
-
-def _splash_identity(display: dict) -> str:
-    rows: list[str] = []
-    for key in ("user_type", "guid", "origin", "server_env", "created_at", "expires_at"):
-        if key in display:
-            rows.append(_splash_kv_row(key, display[key]))
-    for key, value in display.items():
-        if key in ("user_type", "guid", "origin", "server_env", "created_at",
-                   "expires_at", "token", "signature"):
-            continue
-        rows.append(_splash_kv_row(key, value))
-    return (
-        '<h3 style="margin: 1em;color:#0b7a75;font-size: 1em;">Identity</h3>'
-        '<dl style="margin: 1em;display:grid;grid-template-columns:16.25em 1fr;gap:0.25em 1em;font-size: 1em;">'
-        + ''.join(rows) +
-        '</dl>'
-    )
-
-
-def _splash_kv_row(key: str, value) -> str:
-    if isinstance(value, (dict, list)):
-        v = _json.dumps(value, indent=2, ensure_ascii=False, default=str)
-    else:
-        v = str(value)
-    return (
-        f'<dt style="font-weight:600;color:#374151;font-size: 1em;">{_html.escape(str(key))}</dt>'
-        f'<dd style="margin: 1em;font-family:ui-monospace,Menlo,Consolas,monospace;'
-        f'font-size: 1em;color:#1f2937;white-space:pre-wrap;word-break:break-all;">'
-        f'{_html.escape(v)}'
-        '</dd>'
-    )
-
-
-def _splash_history(sch: dict) -> str:
     ux_events = sch.get("ux_events") if isinstance(sch.get("ux_events"), list) else []
     utterances = sch.get("utterances") if isinstance(sch.get("utterances"), list) else []
-    empty = (not ux_events) and (not utterances)
-    intro = (
-        '<h3 style="margin: 1em;color:#0b7a75;font-size: 1em;">'
-        'Session Conversation History'
-        '</h3>'
-    )
-    if empty:
-        return intro + (
-            '<p style="margin: 1em;color:#9ca3af;font-size: 1em;font-style:italic;">'
-            'No UX events or utterances yet. Click around or type a prompt to see this grow.'
-            '</p>'
-        )
-
-    person_items = _collect_person(utterances)
-    person_to_system = _collect_person_to_system(ux_events)
-    machine_items = _collect_machine(ux_events, utterances)
-    llm_to_system = _collect_llm_to_system(utterances)
-
-    threads_grid = (
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75em;">'
-        + _render_thread("Person", "#0b7a75", "#f0fffe", person_items)
-        + _render_thread("Person → System", "#0b7a75", "#e6fffd", person_to_system)
-        + _render_thread("Machine", "#d97706", "#fff7ed", machine_items)
-        + _render_thread("LLM → System", "#d97706", "#fef3c7", llm_to_system)
-        + '</div>'
-    )
-    return intro + threads_grid
+    threads = {
+        "empty": not ux_events and not utterances,
+        "person": _collect_person(utterances),
+        "person_to_system": _collect_person_to_system(ux_events),
+        "machine": _collect_machine(ux_events, utterances),
+        "llm_to_system": _collect_llm_to_system(utterances),
+    }
+    return {
+        "identity": identity,
+        "threads": threads,
+    }
 
 
-def _collect_person(utterances: list) -> list[tuple[str, str]]:
-    out: list[tuple[str, str]] = []
-    for u in utterances:
-        if not isinstance(u, dict):
-            continue
-        at = str(u.get("at", ""))
-        text = str(u.get("text", ""))
-        out.append((at, f'"{_html.escape(text)}"'))
-    out.sort(key=lambda r: r[0])
+def _collect_person(utterances: list) -> list[dict[str, Any]]:
+    out = [
+        {"at": str(u.get("at", "")), "text": str(u.get("text", ""))}
+        for u in utterances if isinstance(u, dict)
+    ]
+    out.sort(key=lambda r: r["at"])
     return out
 
 
-def _collect_person_to_system(ux_events: list) -> list[tuple[str, str]]:
-    out: list[tuple[str, str]] = []
-    for e in ux_events:
-        if not isinstance(e, dict):
-            continue
-        at = str(e.get("at", ""))
-        event_type = str(e.get("event_type", "?"))
-        value = e.get("value")
-        tail = ""
-        if value is not None and value != "":
-            v = _json.dumps(value, default=str) if isinstance(value, (dict, list)) else str(value)
-            tail = f" · {v[:90]}"
-        out.append((at, f"<strong>{_html.escape(event_type)}</strong>{_html.escape(tail)}"))
-    out.sort(key=lambda r: r[0])
+def _collect_person_to_system(ux_events: list) -> list[dict[str, Any]]:
+    out = [
+        {
+            "at": str(e.get("at", "")),
+            "event_type": str(e.get("event_type", "?")),
+            "value": e.get("value"),
+        }
+        for e in ux_events if isinstance(e, dict)
+    ]
+    out.sort(key=lambda r: r["at"])
     return out
 
 
-def _collect_machine(ux_events: list, utterances: list) -> list[tuple[str, str]]:
-    out: list[tuple[str, str]] = []
+def _collect_machine(ux_events: list, utterances: list) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
     for e in ux_events:
         if not isinstance(e, dict):
             continue
         ped = e.get("pedantic_response")
         if not ped:
             continue
-        at = str(e.get("at", ""))
         text = ped.get("text") if isinstance(ped, dict) else str(ped)
-        out.append((at, _html.escape(str(text or "(empty pedantic response)"))))
+        out.append({
+            "at": str(e.get("at", "")),
+            "kind": "pedantic",
+            "text": str(text or ""),
+        })
     for u in utterances:
         if not isinstance(u, dict):
             continue
         br = u.get("bridge_response") or {}
         if isinstance(br, dict) and br.get("kind") == "tool_invocation":
-            at = str(u.get("at", ""))
-            tool_name = str(br.get("tool_name", "?"))
-            tool_result = br.get("tool_result")
-            tail = ""
-            if tool_result is not None:
-                tail = " → " + _json.dumps(tool_result, default=str)[:120]
-            out.append((at, f"tool_result from <strong>{_html.escape(tool_name)}</strong>{_html.escape(tail)}"))
-    out.sort(key=lambda r: r[0])
+            out.append({
+                "at": str(u.get("at", "")),
+                "kind": "tool_result",
+                "tool_name": str(br.get("tool_name", "?")),
+                "tool_result": br.get("tool_result"),
+            })
+    out.sort(key=lambda r: r["at"])
     return out
 
 
-def _collect_llm_to_system(utterances: list) -> list[tuple[str, str]]:
-    out: list[tuple[str, str]] = []
+def _collect_llm_to_system(utterances: list) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
     for u in utterances:
         if not isinstance(u, dict):
             continue
@@ -268,49 +188,21 @@ def _collect_llm_to_system(utterances: list) -> list[tuple[str, str]]:
         kind = br.get("kind")
         at = str(u.get("at", ""))
         if kind == "llm_clarification":
-            llm_text = str(br.get("llm_response", ""))
-            info = br.get("info_sought")
-            tail = ""
-            if isinstance(info, list) and info:
-                tail = " · seeking: " + ", ".join(map(str, info))
-            out.append((at, f"<strong>→ Person:</strong> {_html.escape(llm_text + tail)}"))
+            out.append({
+                "at": at,
+                "kind": "llm_clarification",
+                "llm_response": str(br.get("llm_response", "")),
+                "info_sought": br.get("info_sought") or [],
+            })
         elif kind == "tool_invocation":
-            tool_name = str(br.get("tool_name", "?"))
-            tool_args = br.get("tool_args")
-            args_tail = ""
-            if tool_args is not None:
-                args_tail = "(" + _json.dumps(tool_args, default=str)[:120] + ")"
-            out.append((at, f"<strong>→ Machine:</strong> invoke <strong>{_html.escape(tool_name)}</strong>{_html.escape(args_tail)}"))
-    out.sort(key=lambda r: r[0])
+            out.append({
+                "at": at,
+                "kind": "tool_invocation",
+                "tool_name": str(br.get("tool_name", "?")),
+                "tool_args": br.get("tool_args"),
+            })
+    out.sort(key=lambda r: r["at"])
     return out
-
-
-def _render_thread(title: str, color: str, bg: str, items: list[tuple[str, str]]) -> str:
-    if not items:
-        body = (
-            '<div style="padding: 1em;color:#9ca3af;font-size: 1em;font-style:italic;">'
-            '(no entries yet)</div>'
-        )
-    else:
-        rows = []
-        for i, (at, body_html) in enumerate(items):
-            rows.append(
-                f'<div style="padding: 1em;border-top:{"0.125em solid #d1fae5" if i else "none"};">'
-                f'<div style="font-size: 1em;color:#6b7280;line-height:1.1;">{_html.escape(at)}</div>'
-                f'<div style="font-size: 1em;color:#1f2937;line-height:1.2;">{body_html}</div>'
-                '</div>'
-            )
-        body = ''.join(rows)
-    return (
-        f'<div style="border-left:0.25em solid {color};background:{bg};padding: 1em;">'
-        f'<div style="font-weight:600;color:{color};font-size: 1em;margin-bottom: 1em;text-transform:uppercase;letter-spacing:.0.5em;">'
-        f'{title}'
-        '</div>'
-        f'<div style="max-height:15em;overflow-y:auto;padding-right: 1em;">'
-        f'{body}'
-        '</div>'
-        '</div>'
-    )
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -323,15 +215,15 @@ async def _handle_boot(deps: AgentDeps, payload: dict[str, Any]) -> Response:
 
 
 async def _handle_splash(deps: AgentDeps, payload: dict[str, Any]) -> Response:
-    html = _splash_html(deps.user_object)
+    data = _splash_data(deps.user_object)
     log_ux_event(
         deps.user_object,
         "splash_displayed",
         value=None,
         pedantic_response={"text": _SPLASH_PEDANTIC},
     )
-    deps.stream({"kind": "splash", "data": {"html": html}})
-    return Response(kind="splash", result={"html": html})
+    deps.stream({"kind": "splash", "data": data})
+    return Response(kind="splash", result=data)
 
 
 async def _handle_record_ux_event(deps: AgentDeps, payload: dict[str, Any]) -> Response:

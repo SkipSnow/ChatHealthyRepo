@@ -57,12 +57,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Website/ch_fonts.js",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Website/chat-app-design.html",
           "handler_type": "static_asset",
           "disposition": "referenced"
@@ -202,6 +196,18 @@
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "Website/security-architecture.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/splash.css",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/splash_render.js",
           "handler_type": "static_asset",
           "disposition": "referenced"
         },
@@ -941,12 +947,6 @@
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/public/_redirects",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/frontend/public/ch_fonts.js",
           "handler_type": "static_asset",
           "disposition": "referenced"
         },
@@ -2102,7 +2102,13 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ch_fonts.js",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ch_fonts_inliner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ch_fonts_snippet.html",
           "handler_type": "static_asset",
           "disposition": "referenced"
         },

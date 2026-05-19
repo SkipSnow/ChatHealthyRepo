@@ -34,6 +34,7 @@ from extractor import Extractor
 from record_loader import RecordLoader
 from secrets_resolver import SecretsResolver
 from target_record import DeploymentCollection, TargetRecord
+import ch_fonts_inliner
 
 
 # ── HF Space name convention ───────────────────────────────────────────
@@ -341,38 +342,10 @@ def _copy_tree(
         shutil.copy2(path, out_path)
 
 
-# ── Single-source ch_fonts.js distribution ─────────────────────────
-# Canonical lives next to this script in the DevOps deploy directory
-# (ONE place). Consumers need a local copy adjacent to where they
-# serve from: Website/ (the wrapper's static) and frontend/public/
-# (Vite bundles public/* into dist/*). The vite.config.ts copy is
-# handled around the build itself in _build_react_frontend so the
-# copy is deleted as soon as Vite is done — no stray config left
-# in the working tree.
-def _sync_ch_fonts(repo_root: Path) -> None:
-    devops = repo_root / "architecture" / "DevOpsBuildDeployAndEnvironmentManagement"
-    canonical_fonts = devops / "ch_fonts.js"
-    if not canonical_fonts.is_file():
-        raise FileNotFoundError(f"canonical font registry missing at {canonical_fonts}")
-    frontend = repo_root / "Code" / "ConversationalUX" / "FindCareChat" / "frontend"
-    wrapper_copy = repo_root / "Website" / "ch_fonts.js"
-    iframe_copy = frontend / "public" / "ch_fonts.js"
-    iframe_copy.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(canonical_fonts, wrapper_copy)
-    shutil.copy2(canonical_fonts, iframe_copy)
-    _step("ch_fonts.js synced -> Website + frontend/public")
-
-
-# ── React build for FindCare ──────────────────────────────────────────
 def _build_react_frontend(repo_root: Path, env: str) -> None:
     frontend = repo_root / "Code" / "ConversationalUX" / "FindCareChat" / "frontend"
     if not (frontend / "package.json").is_file():
         raise FileNotFoundError(f"frontend package.json missing at {frontend}")
-    _sync_ch_fonts(repo_root)
-    # vite.config.ts: canonical lives in the DevOps deploy directory. Copy
-    # it into frontend/ so Vite resolves its plugin modules adjacent to
-    # the React app's node_modules, then delete the copy immediately —
-    # success or failure — so no stray config lingers in the working tree.
     canonical_vite = (repo_root / "architecture"
                       / "DevOpsBuildDeployAndEnvironmentManagement"
                       / "vite.config.ts")
@@ -395,6 +368,11 @@ def _build_react_frontend(repo_root: Path, env: str) -> None:
             ["npm", "run", "build"], cwd=str(frontend), env=env_for_build,
             check=True, shell=(sys.platform == "win32"),
         )
+        dist_index = frontend / "dist" / "index.html"
+        if not dist_index.is_file():
+            raise FileNotFoundError(f"vite produced no {dist_index}")
+        if not ch_fonts_inliner.inline_into(dist_index):
+            raise RuntimeError(f"CH_FONTS marker not found in {dist_index}")
     finally:
         if vite_copy.is_file():
             vite_copy.unlink()
@@ -614,14 +592,17 @@ def _push_to_cloudflare_pages(
     env_for_wrangler["CLOUDFLARE_API_TOKEN"] = api_token
     env_for_wrangler["CLOUDFLARE_ACCOUNT_ID"] = account_id
 
-    # Stage Website/ (the cloudflare target ships from the on-disk Website tree).
     workspace = repo_root / "_oneshots" / "remote_deploy_build" / env / target.target_id
     if workspace.exists():
         shutil.rmtree(workspace, ignore_errors=True)
     workspace.mkdir(parents=True)
     _copy_tree(repo_root, workspace, "Website", ".")
-    # Materialize managed files (none today on this target, but the call
-    # is the V18 contract and will pick up future Docker/YAML additions).
+    snippet = ch_fonts_inliner.read_snippet()
+    inlined = 0
+    for html in workspace.rglob("*.html"):
+        if ch_fonts_inliner.inline_into(html, snippet):
+            inlined += 1
+    _step(f"CH_FONTS inlined in {inlined} pages in {workspace}")
     Extractor().materialize(target, workspace)
 
     cmd = [

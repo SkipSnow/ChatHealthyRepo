@@ -77,7 +77,7 @@ export function SelectionManager({
       {/* Available providers — top */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: 1em
+        padding: '1em', background: '#f0fffe', borderBottom: '0.125em solid #d8e2e1',
       }}>
         <span style={{ fontSize: '1em', fontWeight: 700, color: '#0b7a75', textTransform: 'uppercase' }}>
           Available Providers
@@ -98,7 +98,7 @@ export function SelectionManager({
 
       <div style={{ maxHeight: '31.25em', overflowY: 'auto', overflowX: 'hidden' }}>
         {state.available.length === 0 ? (
-          <div style={{ padding: 1em}}>
+          <div style={{ padding: '1em', textAlign: 'center', color: '#9ca3af', fontSize: '1em' }}>
             No providers available
           </div>
         ) : (
@@ -121,7 +121,7 @@ export function SelectionManager({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         style={{
-          padding: 1em
+          padding: '1em',
           background: dragOver ? '#fef3c7' : '#fffbeb',
           borderTop: '0.125em solid #d8e2e1',
           borderBottom: '0.125em solid #d8e2e1',
@@ -149,7 +149,7 @@ export function SelectionManager({
         }}
       >
         {state.selected.length === 0 ? (
-          <div style={{ padding: 1em}}>
+          <div style={{ padding: '1em', textAlign: 'center', color: '#9ca3af', fontSize: '1em' }}>
             Drag providers here or click ↓ to select (max {state.maxSelected})
           </div>
         ) : (
@@ -168,13 +168,13 @@ export function SelectionManager({
                 />
                 {filteredDialog === p.npi && (
                   <div style={{
-                    padding: 1em
+                    padding: '1em', background: '#fef3c7', borderBottom: '0.125em solid #f59e0b',
                     display: 'flex', gap: '1em', alignItems: 'center', fontSize: '1em',
                   }}>
                     <span style={{ flex: 1, color: '#92400e' }}>Not in your filter — keep this provider?</span>
                     <button
                       style={{
-                        padding: 1em
+                        padding: '1em', fontSize: '1em', fontWeight: 600,
                         background: '#0b7a75', color: '#fff', border: 'none', borderRadius: '0.375em', cursor: 'pointer',
                       }}
                       onClick={() => {
@@ -185,7 +185,7 @@ export function SelectionManager({
                     >Keep</button>
                     <button
                       style={{
-                        padding: 1em
+                        padding: '1em', fontSize: '1em', fontWeight: 600,
                         background: '#dc2626', color: '#fff', border: 'none', borderRadius: '0.375em', cursor: 'pointer',
                       }}
                       onClick={() => {

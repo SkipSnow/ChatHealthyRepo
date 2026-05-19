@@ -1,0 +1,28 @@
+<!-- ChatHealthy.ai canonical font registry.
+     Single source of truth for font sizing app-wide. ONE knob (the
+     `html { font-size: ... }` rule below). Inlined into every HTML
+     page's <head> at deploy time via the CH_FONTS marker substitution
+     in local_deploy.py / remote_deploy.py. Never fetched at runtime,
+     never copied to disk as a separate served resource. Edit here and
+     redeploy. -->
+<style id="ch-fonts">
+  html { font-size: 6px !important; }
+  body, input, button, select, textarea, div, span, p, a,
+  h1, h2, h3, h4, h5, h6, label, li, td, th, dd, dt, code {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 1rem !important;
+  }
+  code, pre, .ch-mono {
+    font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace !important;
+  }
+</style>
+<script>
+  (function () {
+    window.chFont = function (scale) {
+      var s = (typeof scale === 'number' && isFinite(scale) && scale > 0) ? scale : 1;
+      return s + 'em';
+    };
+    window.CH_FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    window.CH_MONO_FAMILY = 'ui-monospace, Menlo, Consolas, "Liberation Mono", monospace';
+  })();
+</script>

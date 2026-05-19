@@ -42,7 +42,6 @@ async def no_cache(request: Request, call_next):
 async def serve_index():
     return FileResponse(os.path.join(website_dir, "index.html"))
 
-# Serve all website files
 for fname in os.listdir(website_dir):
     fpath = os.path.join(website_dir, fname)
     if os.path.isfile(fpath) and fname != "index.html":

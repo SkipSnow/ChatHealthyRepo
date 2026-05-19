@@ -34,11 +34,7 @@ __pycache__/
 .claude/scheduled_tasks.lock
 
 # Derived deploy artifacts (canonicals live in
-# architecture/DevOpsBuildDeployAndEnvironmentManagement/; local_deploy.py
-# and remote_deploy.py copy them into the working locations below at
-# deploy/build time).
-Website/ch_fonts.js
-Code/ConversationalUX/FindCareChat/frontend/public/ch_fonts.js
+# architecture/DevOpsBuildDeployAndEnvironmentManagement/).
 Code/ConversationalUX/FindCareChat/frontend/vite.config.ts
 
 # DataPipelines HTTP test file — contains bearer token and instance URLs

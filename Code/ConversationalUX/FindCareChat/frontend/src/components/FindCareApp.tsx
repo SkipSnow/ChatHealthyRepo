@@ -51,137 +51,34 @@ function checkSecurityViolation(resp: Response, url: string): void {
   }
 }
 
-// ── SharedServices URL resolver ──────────────────────────────────
-// The iframe's API_URL points at the FindCare backend; SharedServices
-// runs on a parallel host. Derive the SS URL from the host pattern so
-// we don't hardcode env-specific routing here.
+// ── Session token ────────────────────────────────────────────────
+// SharedServices is the sole auth-token (GUID) issuer. The chat iframe
+// calls SS /auth/issue directly; the resulting signed token is carried on
+// cross-component calls. No client-side fallback: a failed /auth/issue
+// MUST surface as an error, never a placeholder.
 function _sharedServicesUrl(apiUrl: string): string {
+  // When VITE_API_URL is unset, apiUrl is '' and a relative fetch would hit
+  // the iframe's own origin (FindCare). Fall back to window.location.origin
+  // to derive a usable base, then point at SharedServices' port/host.
   const base = apiUrl || (typeof window !== 'undefined' ? window.location.origin : '')
   // Legacy old-style HF Space naming (kept for back-compat).
   if (base.includes('find-care-chat')) {
     return base.replace('find-care-chat', 'shared-services')
   }
   // Current HF Space naming: skipsnow-{prefix}chathealthyspace.hf.space ->
-  // skipsnow-{prefix}sharedservicesspace.hf.space.
+  // skipsnow-{prefix}sharedservicesspace.hf.space. Prefix is "", "dev-",
+  // or "qa-". Hostname-only replace so we don't accidentally collide
+  // with a path segment.
   if (base.includes('chathealthyspace.hf.space')) {
     return base.replace('chathealthyspace.hf.space', 'sharedservicesspace.hf.space')
   }
   // Local: SS on :8002 regardless of incoming port (FC :7860, Caddy :443).
   if (base.includes('localhost')) {
-    // No regex per Rule-008 #4. Strip any :port suffix, then re-add :8002.
-    const slashSlash = base.indexOf('//')
-    const hostStart = slashSlash >= 0 ? slashSlash + 2 : 0
-    const pathStart = base.indexOf('/', hostStart)
-    const hostPort = pathStart === -1 ? base.slice(hostStart) : base.slice(hostStart, pathStart)
-    const colon = hostPort.indexOf(':')
-    const host = colon === -1 ? hostPort : hostPort.slice(0, colon)
-    return base.slice(0, hostStart) + host + ':8002' + (pathStart === -1 ? '' : base.slice(pathStart))
+    return base.replace(/(\/\/localhost)(:\d+)?/, '$1:8002')
   }
   return base
 }
-
-// ── Session-expiry pair tracker (REQ-T-005/T-006/T-008) ──────────
-// Browser keeps (time_remaining_seconds, receivedAt) plus the
-// server-derived was_registered flag, mirroring the wrapper. Updated
-// on every /gate response in this iframe. Never reads user_object
-// (which no longer crosses the wire per REQ-T-008).
-let _sessionExpiry: { remaining: number; receivedAt: number } | null = null
-let _wasRegistered = false
-
-function _noteGateResponse(payload: any): void {
-  if (!payload || typeof payload !== 'object') return
-  if (typeof payload.time_remaining_seconds === 'number') {
-    _sessionExpiry = { remaining: payload.time_remaining_seconds, receivedAt: Date.now() }
-  }
-  if (typeof payload.was_registered === 'boolean') {
-    _wasRegistered = payload.was_registered
-  }
-}
-
-function _sessionRemainingSeconds(): number | null {
-  if (!_sessionExpiry) return null
-  return _sessionExpiry.remaining - (Date.now() - _sessionExpiry.receivedAt) / 1000
-}
-
-function _isSessionExpired(): boolean {
-  const r = _sessionRemainingSeconds()
-  return r !== null && r <= 0
-}
-
-function _handleSessionExpired(): void {
-  // REQ-T-010: hand the page back to the wrapper so the home-page notice
-  // renders at the wrapper's origin (where ChatHealthyRegisteredUserCookie
-  // would land in the HttpOnly browser-side store).
-  const who = _wasRegistered ? 'registered' : 'guest'
-  try {
-    if (window.parent && window.parent !== window) {
-      window.parent.postMessage({ type: 'session-expired', was_registered: _wasRegistered }, '*')
-    }
-  } catch { /* iframe parent inaccessible */ }
-  // Navigate the iframe to a stub /timed-out marker so any test inspecting
-  // the iframe document state sees the expiry was honored.
-  try {
-    window.location.assign(window.location.pathname + '?system_timed_out=' + who)
-  } catch { /* defensive */ }
-}
-
-// Boot the iframe's session: POST /gate op="boot" on mount, populate the
-// stored pair, refuse any subsequent SS call when expired, and capture
-// the cryptographic-display projection of the session token so
-// handleEvaluate can carry it on the cross-service /evaluate/providers
-// POST. (S-005 + S-003-REQ-B-004 contract: the SessionToken IS on the
-// wire; the full user_object is NOT.)
-async function _ifameGateBoot(): Promise<void> {
-  const ssUrl = _sharedServicesUrl(API_URL)
-  // Ask the parent for its session token. If the parent has already
-  // booted, its handler answers via auth:boot postMessage and the
-  // unconditional listener (module-scope) sets _sessionToken before our
-  // own boot fetch fires. If the parent hasn't booted yet, we proceed
-  // without prior_guid (a stray fresh session is minted; the listener
-  // overrides _sessionToken once the parent broadcasts, so subsequent
-  // utterance calls land on the parent's session).
-  if (typeof window !== 'undefined' && window.parent !== window && !_sessionToken) {
-    try { window.parent.postMessage({ type: 'auth:boot-request' }, '*') } catch { /* parent inaccessible */ }
-  }
-  const body: any = { op: 'boot' }
-  // SessionToken.token = "CH" + nonce(35) + guid(32); the trailing 32
-  // chars are the GUID. The model has no `guid` field directly.
-  const tok = _sessionToken && (_sessionToken as any).token
-  if (tok && tok.length >= 32) body.prior_guid = tok.slice(-32)
-  const resp = await fetch(`${ssUrl}/gate`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  if (resp.status >= 500 || (resp.status >= 400 && resp.status !== 401 && resp.status !== 403)) {
-    sendToParent('gui:fatal-error', { message: 'authentication error from SharedServices' })
-    throw new Error(`gate boot HTTP ${resp.status}`)
-  }
-  let payload: any
-  try { payload = await resp.json() } catch {
-    sendToParent('gui:fatal-error', { message: 'authentication error from SharedServices' })
-    throw new Error('gate boot malformed body')
-  }
-  _noteGateResponse(payload)
-  // If the unconditional auth:boot listener has already pushed the
-  // parent's session token, keep it — that is the page-session GUID we
-  // need to share. The iframe's own boot response is a stray fresh
-  // session minted because prior_guid was empty when this request
-  // raced ahead of the parent's push; it is harmless and TTL-evicted.
-  if (payload && payload.session_token && !_sessionToken) {
-    _sessionToken = payload.session_token
-  }
-}
-
-// ── Session token (cryptographic-display projection) ─────────────
-// The page-session GUID belongs to the parent. Per S-012-REQ-T-003 the
-// GUID is stable per session, so the iframe MUST share the parent's
-// SessionToken — never mint independently. The parent broadcasts the
-// token over auth:boot postMessage as soon as it has it; the iframe
-// also receives it on its own /gate boot response above.
 let _sessionToken: any = null
-
 function _requestParentAuth(timeoutMs: number): Promise<any> {
   return new Promise(resolve => {
     if (typeof window === 'undefined' || window.parent === window) { resolve(null); return }
@@ -192,23 +89,29 @@ function _requestParentAuth(timeoutMs: number): Promise<any> {
       }
     }
     window.addEventListener('message', handler)
-    try { window.parent.postMessage({ type: 'auth:boot-request' }, '*') } catch { /* parent inaccessible */ }
+    try { window.parent.postMessage({type: 'auth:boot-request'}, '*') } catch { }
     setTimeout(() => { window.removeEventListener('message', handler); resolve(null) }, timeoutMs)
   })
 }
-
 async function getSessionToken(): Promise<any> {
   if (_sessionToken) return _sessionToken
-  const parentTok = await _requestParentAuth(10000)
-  if (parentTok) {
-    _sessionToken = parentTok
-    return parentTok
+  // The page-session GUID belongs to the parent. Per S-012-REQ-T-003 the
+  // GUID is stable per session, so the iframe MUST share the parent's —
+  // never mint independently. Standalone iframe runs are not supported.
+  if (typeof window === 'undefined' || window.parent === window) {
+    const ssUrl = _sharedServicesUrl(API_URL)
+    const resp = await fetch(`${ssUrl}/auth/issue`, { method: 'POST' })
+    checkSecurityViolation(resp, `${ssUrl}/auth/issue`)
+    _sessionToken = await resp.json()
+    return _sessionToken
   }
-  // Standalone iframe (parent === window in dev harness): boot ourselves.
-  await _ifameGateBoot()
-  return _sessionToken
+  const parentTok = await _requestParentAuth(10000)
+  if (!parentTok) {
+    throw new Error('iframe could not obtain auth:boot from parent within 10s')
+  }
+  _sessionToken = parentTok
+  return parentTok
 }
-
 // Unsolicited auth:boot pushes from the parent ALWAYS overwrite — parent
 // is the canonical source of the page-session GUID.
 if (typeof window !== 'undefined' && window.parent !== window) {
@@ -274,27 +177,12 @@ export default function FindCareApp() {
   const [specialtyRows, setSpecialtyRows] = useState<SpecialtyRecord[]>([])
   const checkedCodesRef = useRef<string[]>([])
 
-  // EPIC-002-F-003-S-005-REQ-T-008: every page load of any ChatHealthy.ai
-  // client surface MUST POST /gate op="boot" as the FIRST SharedServices
-  // network call. Do this on mount before fetching /welcome so the
-  // (time_remaining_seconds, Date.now()) pair is populated before any
-  // subsequent SS request (REQ-T-005).
+  // Fetch welcome message on mount
   useEffect(() => {
-    // The unconditional auth:boot listener (module-scope) pushes the
-    // parent's session token into _sessionToken as soon as the parent
-    // broadcasts. _ifameGateBoot reads _sessionToken and rides
-    // prior_guid in the /gate body so the cookie-dropped localhost path
-    // still resumes the parent's admin.sessions record.
-    _ifameGateBoot()
-      .catch(err => {
-        console.warn('[FindCareApp] gate boot failed:', err && err.message)
-      })
-      .finally(() => {
-        fetch(`${API_URL}/welcome`, { method: 'POST' })
-          .then(r => r.json())
-          .then(d => setWelcomeHtml(d.message || 'Welcome to ChatHealthy FindCare'))
-          .catch(() => setWelcomeHtml('Welcome to ChatHealthy FindCare'))
-      })
+    fetch(`${API_URL}/welcome`, { method: 'POST' })
+      .then(r => r.json())
+      .then(d => setWelcomeHtml(d.message || 'Welcome to ChatHealthy FindCare'))
+      .catch(() => setWelcomeHtml('Welcome to ChatHealthy FindCare'))
   }, [])
 
   // Keep refs in sync for closure access
@@ -425,12 +313,11 @@ export default function FindCareApp() {
 
     const onSpecialties = (data: any) => {
       if (data.error || !data.specialties?.length) {
-        // No reasonable query (e.g., "fiddlesticks"). This is a soft
-        // failure, not an infrastructure outage — show an inline error
-        // in the chat phase, NOT the full-screen 503 overlay.
+        // No-match path — surface as a fatal so the parent wrapper renders
+        // the full-screen overlay (same UX as today).
         finishTimer()
-        const msg = data.error
-          || "I couldn't match your question to any medical specialty. Try rephrasing — for example, \"find me a bone doctor in Delaware\"."
+        const msg = data.error || 'Could not identify relevant specialties'
+        sendToParent('gui:fatal-error', { message: msg })
         setError(msg)
         setPhase('error')
         sawError = true
@@ -483,13 +370,9 @@ export default function FindCareApp() {
     const onProviders = (data: any) => {
       if (ac.signal.aborted) return
       if (data.error) {
-        // Provider search returned a soft error (timeout, no matches).
-        // Inline error in the chat phase — NOT the full-screen 503 overlay.
         finishTimer()
-        const msg = data.error.startsWith('search_unavailable')
-          ? "I couldn't find providers for that query. Try a more specific search like \"find me a bone doctor in Delaware\"."
-          : data.error
-        setError(msg)
+        sendToParent('gui:fatal-error', { message: data.error })
+        setError(data.error)
         setPhase('error')
         sawError = true
         return
@@ -509,12 +392,12 @@ export default function FindCareApp() {
     }
 
     try {
-      // REQ-T-006 pre-flight before issuing any SS request.
-      if (_isSessionExpired()) {
-        _handleSessionExpired()
-        return
-      }
       const ssUrl = _sharedServicesUrl(API_URL)
+      const body: any = { op: 'utterance', payload: { text } }
+      const tok = _sessionToken && _sessionToken.token
+      if (tok && typeof tok === 'string' && tok.length >= 32) {
+        body.prior_guid = tok.slice(-32)
+      }
       const resp = await fetch(`${ssUrl}/gate`, {
         method: 'POST',
         credentials: 'include',
@@ -522,18 +405,9 @@ export default function FindCareApp() {
           'Content-Type': 'application/json',
           'Accept': 'application/x-ndjson',
         },
-        body: JSON.stringify(((): any => {
-          const b: any = { op: 'utterance', payload: { text } }
-          const tok = _sessionToken && (_sessionToken as any).token
-          if (tok && tok.length >= 32) b.prior_guid = tok.slice(-32)
-          return b
-        })()),
+        body: JSON.stringify(body),
         signal: ac.signal,
       })
-      if (resp.status >= 500 || (resp.status >= 400 && resp.status !== 401 && resp.status !== 403)) {
-        sendToParent('gui:fatal-error', { message: 'authentication error from SharedServices' })
-        throw new Error(`gate stream HTTP ${resp.status}`)
-      }
       if (!resp.ok || !resp.body) {
         throw new Error(`Gate stream failed: HTTP ${resp.status}`)
       }
@@ -551,17 +425,12 @@ export default function FindCareApp() {
           if (!trimmed) continue
           let evt: any
           try { evt = JSON.parse(trimmed) } catch { continue }
-          // REQ-T-005: every /gate response refreshes the stored pair.
-          _noteGateResponse(evt)
           if (evt.kind === 'specialties') onSpecialties(evt.data || {})
           else if (evt.kind === 'providers') onProviders(evt.data || {})
           else if (evt.kind === 'final' && !sawError && evt.ok === false) {
-            // Server reported a soft failure (no specialties matched, etc.).
-            // Inline error in the chat — NOT the full-screen 503 overlay.
             finishTimer()
-            const msg = evt.error === 'no_specialties'
-              ? "I couldn't match your question to any medical specialty. Try rephrasing — for example, \"find me a bone doctor in Delaware\"."
-              : (evt.error || 'Search failed')
+            const msg = evt.error || 'Search failed'
+            sendToParent('gui:fatal-error', { message: msg })
             setError(msg)
             setPhase('error')
             sawError = true
@@ -652,8 +521,8 @@ export default function FindCareApp() {
     const allCount = options.length
 
     const items = options.map((opt: any) =>
-      `<div style="display:block;padding: 1em;border-bottom:0.125em solid #f0f0f0;" data-spec-code="${opt.code}" data-can-prescribe="${opt.can_prescribe || false}" data-homeopathic="${opt.homeopathic || false}">
-        <label style="display:flex;align-items:center;gap:0.75em;cursor:pointer;font-size: 1em;">
+      `<div style="display:block;padding: '1em'.5em 1em;border-bottom:0.125em solid #f0f0f0;" data-spec-code="${opt.code}" data-can-prescribe="${opt.can_prescribe || false}" data-homeopathic="${opt.homeopathic || false}">
+        <label style="display:flex;align-items:center;gap:0.75em;cursor:pointer;font-size:1.375em;">
           <input type="checkbox" data-gui-action="filter-toggle" data-gui-value="${opt.code}" checked
             style="accent-color:#0b7a75;width:1.5em;height:1.5em;" />
           <span style="color:#1f2937;">${opt.name}</span>
@@ -671,37 +540,37 @@ export default function FindCareApp() {
     const html = `
       <div data-filter-panel style="display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:#fff;height:100%;">
           <div data-cell="1" style="flex:0 0 18%;overflow:hidden;">
-            <div style="padding: 1em;border-bottom:0.25em solid #0b7a75;background:#f8fffe;height:100%;box-sizing:border-box;">
+            <div style="padding:1em 1.25em;border-bottom:0.25em solid #0b7a75;background:#f8fffe;height:100%;box-sizing:border-box;">
               <!-- EPIC-006-F-002-S-001-REQ-B-008: 7 elements in order inside cell 1 (green header):
                    (1) Filter by specialty label, (2) All possible, (3) Prescribers count,
                    (4) Your choices, (5) Uncheck All toggle, (6) Prescribers checkbox,
                    (7) Homeopathic checkbox. Uncheck All sits to the LEFT of the checkbox column. -->
               <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0.5em 0;">
-                <div style="flex:0 0 auto;padding-right: 1em;border-right:0.125em solid #d8e2e1;">
-                  <div style="font-size: 1em;font-weight:700;color:#0b7a75;text-transform:uppercase;white-space:nowrap;">Filter by specialty</div>
+                <div style="flex:0 0 auto;padding-right:1em;border-right:0.125em solid #d8e2e1;">
+                  <div style="font-size:1.25em;font-weight:700;color:#0b7a75;text-transform:uppercase;white-space:nowrap;">Filter by specialty</div>
                 </div>
-                <div style="flex:0 0 auto;padding: 1em;border-right:0.125em solid #d8e2e1;text-align:center;">
-                  <div style="font-size: 1em;color:#6b7280;text-transform:uppercase;white-space:nowrap;">All possible</div>
-                  <div style="font-size: 1em;font-weight:700;color:#1f2937;">${allCount}</div>
+                <div style="flex:0 0 auto;padding: '1em' 1em;border-right:0.125em solid #d8e2e1;text-align:center;">
+                  <div style="font-size:1em;color:#6b7280;text-transform:uppercase;white-space:nowrap;">All possible</div>
+                  <div style="font-size:1.625em;font-weight:700;color:#1f2937;">${allCount}</div>
                 </div>
-                <div style="flex:0 0 auto;padding: 1em;border-right:0.125em solid #d8e2e1;text-align:center;">
-                  <div style="font-size: 1em;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Prescribers</div>
-                  <div style="font-size: 1em;font-weight:700;color:#1f2937;" id="filterFilteredCount">${prescCount}</div>
+                <div style="flex:0 0 auto;padding: '1em' 1em;border-right:0.125em solid #d8e2e1;text-align:center;">
+                  <div style="font-size:1em;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Prescribers</div>
+                  <div style="font-size:1.625em;font-weight:700;color:#1f2937;" id="filterFilteredCount">${prescCount}</div>
                 </div>
-                <div style="flex:0 0 auto;padding: 1em;border-right:0.125em solid #d8e2e1;text-align:center;">
-                  <div style="font-size: 1em;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Your choices</div>
-                  <div style="font-size: 1em;font-weight:700;color:#0b7a75;" id="filterShowing">${prescCount}</div>
+                <div style="flex:0 0 auto;padding: '1em' 1em;border-right:0.125em solid #d8e2e1;text-align:center;">
+                  <div style="font-size:1em;color:#6b7280;text-transform:uppercase;white-space:nowrap;">Your choices</div>
+                  <div style="font-size:1.625em;font-weight:700;color:#0b7a75;" id="filterShowing">${prescCount}</div>
                 </div>
-                <div style="flex:0 0 auto;padding: 1em;border-right:0.125em solid #d8e2e1;display:flex;align-items:center;">
+                <div style="flex:0 0 auto;padding: '1em' 1em;border-right:0.125em solid #d8e2e1;display:flex;align-items:center;">
                   <button data-gui-action="toggle-all"
-                    style="background:#fff;border:0.125em solid #0b7a75;border-radius:0.375em;padding: 1em;font-size: 1em;color:#0b7a75;cursor:pointer;font-weight:600;white-space:nowrap;">Uncheck All</button>
+                    style="background:#fff;border:0.125em solid #0b7a75;border-radius:0.375em;padding: '1em'.375em 1.25em;font-size:1.25em;color:#0b7a75;cursor:pointer;font-weight:600;white-space:nowrap;">Uncheck All</button>
                 </div>
-                <div style="flex:0 0 auto;padding-left: 1em;display:flex;flex-direction:column;gap:0.375em;">
-                  <label style="font-size: 1em;color:#1f2937;display:flex;align-items:center;gap:0.5em;cursor:pointer;white-space:nowrap;">
+                <div style="flex:0 0 auto;padding-left:1em;display:flex;flex-direction:column;gap:0.375em;">
+                  <label style="font-size:1.25em;color:#1f2937;display:flex;align-items:center;gap:0.5em;cursor:pointer;white-space:nowrap;">
                     <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="prescribers" checked
                       style="accent-color:#0b7a75;width:1.625em;height:1.625em;" /> Prescribers
                   </label>
-                  <label style="font-size: 1em;color:#1f2937;display:flex;align-items:center;gap:0.5em;cursor:pointer;white-space:nowrap;">
+                  <label style="font-size:1.25em;color:#1f2937;display:flex;align-items:center;gap:0.5em;cursor:pointer;white-space:nowrap;">
                     <input type="checkbox" data-gui-action="filter-provider-type" data-gui-value="homeopathic"
                       style="accent-color:#0b7a75;width:1.625em;height:1.625em;" /> Homeopathic
                   </label>
@@ -710,10 +579,10 @@ export default function FindCareApp() {
             </div>
           </div>
           <div data-cell="2" style="flex:0 0 40%;max-height:22em;overflow-y:auto;overflow-x:hidden;">${items}</div>
-          <div data-cell="3" style="flex:0 0 20%;padding: 1em;border-top:0.125em solid #d8e2e1;box-sizing:border-box;overflow:hidden;">
-            <button data-gui-action="filter-apply" style="width:100%;padding: 1em;border-radius:0.5em;border:none;background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;font-size: 1em;font-weight:600;cursor:pointer;">Apply Filter</button>
+          <div data-cell="3" style="flex:0 0 20%;padding: '1em'.75em 1em;border-top:0.125em solid #d8e2e1;box-sizing:border-box;overflow:hidden;">
+            <button data-gui-action="filter-apply" style="width:100%;padding: '1em'.625em;border-radius:0.5em;border:none;background:linear-gradient(180deg,#0b9a94,#0b7a75);color:#fff;font-size:1.375em;font-weight:600;cursor:pointer;">Apply Filter</button>
           </div>
-          <div data-cell="4" id="guiSessionCell" style="flex:0 0 22%;padding: 1em;border-top:0.125em solid #e5e7eb;box-sizing:border-box;overflow:hidden;"></div>
+          <div data-cell="4" id="guiSessionCell" style="flex:0 0 22%;padding: '1em'.5em 1em;border-top:0.125em solid #e5e7eb;box-sizing:border-box;overflow:hidden;"></div>
       </div>`
 
     sendToParent('gui:filter', {
@@ -732,11 +601,6 @@ export default function FindCareApp() {
   }, [])
 
   // ── Evaluate handoff ───────────────────────────────────────────
-  // EvaluateCare's /evaluate/providers requires a signed SessionToken
-  // (it is the cross-service mutual-auth handshake). The parent owns
-  // the canonical session token under S-005 — we obtain it via the
-  // auth:boot postMessage shim (with a fallback to a direct /gate boot
-  // when the iframe is running standalone in the dev harness).
   const handleEvaluate = useCallback(async () => {
     const providers = selectedRef.current
     if (providers.length === 0) {
@@ -788,9 +652,9 @@ export default function FindCareApp() {
 
       {/* WELCOME PHASE */}
       {phase === 'welcome' && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: 1em}}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1em', maxWidth: 800, margin: '1em', width: '100%' }}>
           <div style={{
-            padding: 1em
+            padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
             border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6,
           }} dangerouslySetInnerHTML={{ __html: welcomeHtml }} />
         </div>
@@ -807,8 +671,8 @@ export default function FindCareApp() {
 
       {/* ERROR PHASE */}
       {phase === 'error' && (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 1em}}>
-          <div style={{ padding: 1em}}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1em' }}>
+          <div style={{ padding: '1em', background: '#fef2f2', border: '0.125em solid #fecaca', borderRadius: 8, color: '#dc2626', maxWidth: 500 }}>
             <strong>Error:</strong> {error}
           </div>
         </div>
@@ -819,7 +683,7 @@ export default function FindCareApp() {
         <>
           {/* Question bar */}
           <div style={{
-            padding: 1em
+            padding: '1em', background: '#f0fffe', borderBottom: '0.25em solid #0b7a75',
             fontSize: '1em', color: '#0b7a75', fontWeight: 600,
           }}>
             {question}
@@ -837,7 +701,7 @@ export default function FindCareApp() {
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} data-testid="available-providers">
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: 1em
+              padding: '1em', background: '#fafafa', borderBottom: '0.125em solid #eee',
             }}>
               <span style={{ fontSize: '1em', fontWeight: 600, color: '#0b7a75', textTransform: 'uppercase' }}>
                 Available Providers
@@ -856,7 +720,7 @@ export default function FindCareApp() {
             {reclassifying && (
               <div
                 data-testid="reclassify-timer"
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 1em}}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1em', gap: 12 }}
               >
                 <div style={{ fontSize: '1em', color: '#6b7280' }}>Re-querying providers…</div>
                 <div style={{ fontSize: '1em', color: '#0b7a75', fontWeight: 700 }}>{thinkSeconds}s</div>
@@ -876,12 +740,12 @@ export default function FindCareApp() {
             ))}
 
             {!reclassifying && hasMore && (
-              <div style={{ padding: 1em}}>
+              <div style={{ padding: '1em', textAlign: 'center' }}>
                 <button
                   onClick={loadMore}
                   disabled={isLoadingMore}
                   style={{
-                    padding: 1em
+                    padding: '1em', borderRadius: 4, border: '0.125em solid #0b7a75',
                     background: '#f0fffe', color: '#0b7a75', fontSize: '1em', fontWeight: 600,
                     cursor: isLoadingMore ? 'wait' : 'pointer',
                   }}
@@ -902,7 +766,7 @@ export default function FindCareApp() {
             onDrop={(e) => { e.preventDefault(); const npi = e.dataTransfer.getData('text/plain'); if (npi) selection.select(npi) }}
           >
             <div style={{
-              padding: 1em
+              padding: '1em', background: '#fffbeb',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <span style={{ fontSize: '1em', fontWeight: 600, color: '#d97706', textTransform: 'uppercase' }}>
@@ -914,7 +778,7 @@ export default function FindCareApp() {
             </div>
 
             {selection.state.selected.length === 0 ? (
-              <div style={{ padding: 1em}}>
+              <div style={{ padding: '1em', textAlign: 'center', color: '#9ca3af', fontSize: '1em' }}>
                 Click ↓ to select providers (max {selection.state.maxSelected})
               </div>
             ) : (
@@ -938,14 +802,14 @@ export default function FindCareApp() {
           shown to the LEFT of the user-prompt input whenever the
           initial-search or re-classify timer is running. */}
       <form onSubmit={handleSend} style={{
-        padding: 1em
+        padding: '1em', borderTop: '0.125em solid #e5e7eb', display: 'flex', gap: 8, alignItems: 'center',
         background: '#fff',
       }}>
         {(phase === 'searching' || reclassifying) && (
           <div
             data-testid="prompt-row-timer"
             style={{
-              flex: '0 0 auto', minWidth: 44, padding: 1em
+              flex: '0 0 auto', minWidth: 44, padding: '1em', borderRadius: 6,
               background: '#f0fffe', border: '0.125em solid #0b7a75',
               fontSize: '1em', fontWeight: 700, color: '#0b7a75', textAlign: 'center',
             }}
@@ -957,7 +821,7 @@ export default function FindCareApp() {
           onChange={e => setInput(e.target.value)}
           placeholder="Type a message..."
           style={{
-            flex: 1, padding: 1em
+            flex: 1, padding: '1em', borderRadius: 8,
             border: '0.125em solid #d1d5db', fontSize: '1em', outline: 'none',
             minHeight: 44,
           }}
@@ -965,7 +829,7 @@ export default function FindCareApp() {
         <button
           type="submit"
           style={{
-            padding: 1em
+            padding: '1em', borderRadius: 8, border: 'none',
             background: '#0b7a75',
             color: '#fff', fontSize: '1em', fontWeight: 600, cursor: 'pointer',
             minHeight: 44, minWidth: 44,
