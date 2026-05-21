@@ -758,7 +758,7 @@
   </div>
 
   <!-- ══ ENVIRONMENT BANNER — full width, below header ══ -->
-  <div id="envBanner" style="display:none;background:#d97706;color:#fff;text-align:center;padding:0.15em 1em;font-size:0.4em;font-weight:600;letter-spacing:0.03em;width:100%;"></div>
+  <div id="envBanner" style="display:none;background:#d97706;color:#fff;text-align:center;padding:0.1em 1em;font-weight:600;letter-spacing:0.03em;width:100%;"></div>
   <script>
     (function() {
       var host = window.location.hostname;
@@ -833,11 +833,19 @@
         var root = (window._envServiceUrls || {})[key] || '';
         var healthUrl = root + '/health';
         function paintBanner(version, framework, build) {
-          banner.innerHTML = '<span style="margin-right: 1em;">' + env + '</span>'
-            + '<span style="margin-right: 1em;">Version: ' + (version || '?') + '</span>'
-            + '<span style="margin-right: 1em;">Framework: ' + (framework || '?') + '</span>'
-            + '<span style="margin-right: 1em;">Build: ' + (build || '?') + '</span>'
-            + '<span style="margin-right: 1em;font-size: 1em;opacity:0.85;">[' + key + ']</span>'
+          // All banner text routed through chFont so font-size is governed by
+          // the canonical font registry, not hand-tuned per element. Inline
+          // font-size is required because ch_fonts_snippet sets
+          // `span { font-size: 1rem }` which would otherwise reset each span
+          // to the root size and ignore the parent banner's intent.
+          var bf = window.chFont(0.65);  // banner field text
+          var bk = window.chFont(0.55);  // bracket-context [findcare]
+          var cell = 'font-size:' + bf + ';margin-right: 1em;';
+          banner.innerHTML = '<span style="' + cell + '">' + env + '</span>'
+            + '<span style="' + cell + '">Version: ' + (version || '?') + '</span>'
+            + '<span style="' + cell + '">Framework: ' + (framework || '?') + '</span>'
+            + '<span style="' + cell + '">Build: ' + (build || '?') + '</span>'
+            + '<span style="font-size:' + bk + ';margin-right: 1em;opacity:0.85;">[' + key + ']</span>'
             + '<span id="serviceButtons"></span>';
           if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
         }
@@ -914,10 +922,6 @@
           </div>
         </div>
 
-        <!-- Control Frame — outside the iframe wrapper, visible canvas -->
-        <div id="guiControlFrame" style="height:7%;overflow:hidden;transition:all 0.2s ease;border-top:0.125em solid #d8e2e1;background:#fafaf9;display:flex;align-items:center;justify-content:center;">
-          <span class="frame-label" style="color:#ccc;font-size: 1em;">CONTROL FRAME</span>
-        </div>
       </div> <!-- /center-column -->
 
       <!-- Right panel — 1%, expands for leaf pages -->
@@ -1293,21 +1297,32 @@
         if (!span) return;
         var owner = window._pageOwner || 'findcare';
         var services = [
-          { key: 'findcare',       name: 'FindCare',       color: '#0b7a75', handler: 'window.gotoFindCare()' },
-          { key: 'evaluatecare',   name: 'EvaluateCare',   color: '#d97706', handler: 'window.gotoEvaluateCare()' },
-          { key: 'sharedservices', name: 'SharedServices', color: '#6366f1', handler: 'window.gotoSharedServices()' }
+          { key: 'findcare',       name: 'FindCare',       color: '#fff', handler: 'window.gotoFindCare()' },
+          { key: 'evaluatecare',   name: 'EvaluateCare',   color: '#fff', handler: 'window.gotoEvaluateCare()' },
+          { key: 'sharedservices', name: 'SharedServices', color: '#fff', handler: 'window.gotoSharedServices()' }
         ];
+        // Links, not pills. Font size routed through chFont so the banner
+        // text scale is centrally managed.
+        var lf = window.chFont(0.65);
         var html = '';
         services.forEach(function(s) {
           var isActive = (owner === s.key);
           var style = isActive
-            ? 'margin-left: 1em;background:#d1d5db;color:#6b7280;border:0.125em solid #d1d5db;border-radius:0.375em;padding: 1em;font-size: 1em;font-weight:600;cursor:not-allowed;opacity:0.75;'
-            : 'margin-left: 1em;background:#fff;color:' + s.color + ';border:0.125em solid #fff;border-radius:0.375em;padding: 1em;font-size: 1em;font-weight:600;cursor:pointer;';
-          html += '<button type="button" data-service="' + s.key + '" '
-            + (isActive ? 'disabled title="You are in the ' + s.name + ' server" ' : ('onclick="' + s.handler + '" '))
-            + 'style="' + style + '">'
-            + s.name
-            + '</button>';
+            ? 'margin-left:1em;color:#9ca3af;font-size:' + lf + ';font-weight:600;text-decoration:none;cursor:not-allowed;opacity:0.75;'
+            : 'margin-left:1em;color:' + s.color + ';font-size:' + lf + ';font-weight:600;text-decoration:underline;cursor:pointer;';
+          if (isActive) {
+            html += '<span data-service="' + s.key + '" '
+              + 'title="You are in the ' + s.name + ' server" '
+              + 'style="' + style + '">'
+              + s.name
+              + '</span>';
+          } else {
+            html += '<a data-service="' + s.key + '" href="#" '
+              + 'onclick="event.preventDefault();' + s.handler + ';return false;" '
+              + 'style="' + style + '">'
+              + s.name
+              + '</a>';
+          }
         });
         span.innerHTML = html;
       };
@@ -1429,6 +1444,13 @@
         window.refreshTokenPanels('evaluatecare');
       };
 
+      // In-iframe Evaluate button uses this for the wrapper-side visual
+      // handoff (banner refresh, splash paint, chatFrame hide). The iframe
+      // still calls EvalCare /evaluate/providers itself.
+      window.startEvaluateCareHandoff = function() {
+        window.gotoEvaluateCare();
+      };
+
       window.returnToFindCare = function() {
         window._recordUxEvent('findcare_nav_clicked', null);
         var chatFrame = document.getElementById('coreChatFrame');
@@ -1456,21 +1478,12 @@
             // SEC-HTTPS-001-REQ-021: FindCare mints, SharedServices verifies.
             // Both panels refresh on every ownership change (REQ-022).
             window.refreshTokenPanels('findcare');
-            // Bug 5: returning to FindCare must restore the Evaluate button
-            // when a selection exists. Ask the chat iframe to re-emit its
-            // current selection count so the parent's handler re-renders
-            // the button. (A self-posted message wouldn't pass the
-            // event.source filter on the parent's listener.)
-            chatFrame.contentWindow.postMessage({ type: 'gui:request-selection-count' }, '*');
           });
       };
 
       window.openSharedServices = function() {
         // Transfer control to SharedServices (mirrors EvaluateCare pattern)
         window._pageOwner = 'sharedservices';
-        // Bug 5: same as EvalCare path — remove the Evaluate button.
-        var _eb = document.getElementById('guiEvalBtn');
-        if (_eb && _eb.parentElement) _eb.parentElement.remove();
         // Clear stale prior-service content (e.g., EvaluateCare's orange
         // "EVALUATECARE 2 providers" header) from #rightContent so the
         // right panel reflects the current owner, not the previous one.
@@ -1577,7 +1590,6 @@
     })();
 
     (function() {
-      var frame = document.getElementById('guiControlFrame');
       var chatFrame = document.getElementById('coreChatFrame');
       // Page ownership: 'findcare', 'evaluatecare', or 'sharedservices'
       if (!window._pageOwner) window._pageOwner = 'findcare';
@@ -1639,169 +1651,18 @@
           window.startGoogleOAuth();
           return;
         }
-        if (msg.type === 'gui:render') {
-          frame.innerHTML = msg.html || '';
-          var actions = frame.querySelectorAll('[data-gui-action]');
-          for (var i = 0; i < actions.length; i++) {
-            (function(el) {
-              var tag = el.tagName.toLowerCase();
-              var eventType = (tag === 'select') ? 'change' : 'click';
-              el.addEventListener(eventType, function() {
-                chatFrame.contentWindow.postMessage({
-                  type: 'gui:event',
-                  action: el.getAttribute('data-gui-action'),
-                  value: (tag === 'select') ? el.value : (el.getAttribute('data-gui-value') || '')
-                }, '*');
-              });
-            })(actions[i]);
-          }
-        }
+        // Control-frame surface removed: pagination, timer, stop, and
+        // Evaluate now render inside the chat iframe.
+        // gui:render / gui:timer / gui:timer-clear / gui:clear /
+        // gui:selection-count are no longer routed through the parent.
 
-        // Timer — shows elapsed time in left side of control frame during LLM response
-        // EPIC-006-F-002-S-001-REQ-B-001 (middle-screen preserved) +
-        // EPIC-006-F-021-S-001-REQ-B-004 (control frame always visible):
-        // re-classify timer renders in its OWN container so the Evaluate
-        // button is NOT wiped during the wait. timer-clear removes only
-        // the container.
-        if (msg.type === 'gui:timer') {
-          var timerContainer = document.getElementById('guiTimerContainer');
-          if (!timerContainer) {
-            frame.style.justifyContent = 'space-between';
-            frame.style.paddingLeft = '1.5em';
-            frame.style.paddingRight = '1.5em';
-            frame.style.gap = '1.25em';
-            timerContainer = document.createElement('div');
-            timerContainer.id = 'guiTimerContainer';
-            timerContainer.style.cssText = 'display:flex;align-items:center;gap:1.25em;background:#f0f4f8;border:0.125em solid #d8e2e1;border-radius:0.75em;padding: 1em;box-shadow:inset 0 0.125em 0.25em rgba(0,0,0,0.06);';
-            timerContainer.innerHTML = '<span id="guiTimer" style="font-size: 1em;color:#0b7a75;font-weight:600;min-width:5em;">Thinking…</span>'
-              + '<button id="guiTimerStop" style="background:linear-gradient(180deg,#f5f5f4,#e7e5e4);border:0.125em solid #d1d5db;border-radius:0.5em;padding: 1em;font-size: 1em;color:#57534e;cursor:pointer;font-weight:500;box-shadow:0 0.125em 0.25em rgba(0,0,0,0.1);">Stop</button>';
-            frame.insertBefore(timerContainer, frame.firstChild);
-            document.getElementById('guiTimerStop').addEventListener('click', function() {
-              chatFrame.contentWindow.postMessage({ type: 'gui:event', action: 'stop-thinking' }, '*');
-            });
-          }
-          document.getElementById('guiTimer').textContent = 'Thinking… ' + msg.seconds + 's';
-        }
-
-        if (msg.type === 'gui:timer-clear') {
-          var timerContainer = document.getElementById('guiTimerContainer');
-          if (timerContainer) {
-            timerContainer.remove();
-            frame.dataset.hasResults = 'true';
-            frame.style.justifyContent = 'flex-end';
-            frame.style.paddingLeft = '1.5em';
-            frame.style.paddingRight = '1.5em';
-          }
-        }
-
-        if (msg.type === 'gui:clear') {
-          frame.innerHTML = '<span class="frame-label" style="color:#ccc;font-size: 1em;">CONTROL FRAME</span>';
-        }
-
-        // FC-EVAL-001: Evaluate button in control frame — cold/hot based on selection count
-        // Only show after search results exist (gui:filter or gui:timer-clear signals results)
-        if (msg.type === 'gui:selection-count') {
-          // Don't show button until we've had search results
-          if (!frame.dataset.hasResults) return;
-          // Bug 5 (Skip 2026-05-11): The Evaluate button is a FindCare control
-          // — it triggers the handoff TO EvaluateCare. While EvaluateCare (or
-          // any non-FindCare service) owns the page, the button is contextually
-          // wrong and must not appear. Cache the latest count so gotoFindCare()
-          // can recreate the button on return.
-          window._lastSelectionCount = msg.count || 0;
-          window._lastSelectionMax = msg.max;
-          if (window._pageOwner && window._pageOwner !== 'findcare') {
-            var existing = document.getElementById('guiEvalBtn');
-            if (existing && existing.parentElement) existing.parentElement.remove();
-            return;
-          }
-
-          var evalBtn = document.getElementById('guiEvalBtn');
-          var count = msg.count || 0;
-          var isCold = count === 0;
-
-          if (!evalBtn) {
-            // Create the button — clear the CONTROL FRAME label first
-            frame.innerHTML = '';
-            frame.style.justifyContent = 'flex-end';
-            frame.style.paddingRight = '1.5em';
-            var btnContainer = document.createElement('div');
-            btnContainer.style.cssText = 'display:flex;align-items:center;gap:1em;';
-            btnContainer.innerHTML = '<button id="guiEvalBtn" style="padding: 1em;border-radius:0.625em;border:none;font-size: 1em;font-weight:600;cursor:pointer;transition:all 0.2s;min-height:5.5em;min-width:5.5em;">Evaluate These Providers</button>';
-            frame.appendChild(btnContainer);
-            evalBtn = document.getElementById('guiEvalBtn');
-
-            evalBtn.addEventListener('click', function() {
-              if (evalBtn.dataset.cold === 'true') {
-                // Cold click — show instruction popup
-                var popup = document.createElement('div');
-                popup.id = 'evalInstructPopup';
-                popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border:0.25em solid #0b7a75;border-radius:1em;padding: 1em;z-index:9999;box-shadow:0 0.5em 2.5em rgba(0,0,0,0.15);max-width:45em;font-family:system-ui,sans-serif;';
-                popup.innerHTML = '<div style="font-weight:700;color:#0b7a75;font-size: 1em;margin-bottom: 1em;">How to select providers</div>'
-                  + '<div style="font-size: 1em;color:#374151;line-height:1.6;">'
-                  + '<p><b>Click ↓</b> on a provider card to select it for evaluation.</p>'
-                  + '<p><b>Drag and drop</b> a provider card to the orange "Selected for Evaluation" area.</p>'
-                  + '<p><b>Click 🗑</b> to dismiss a provider you don\'t want.</p>'
-                  + '<p style="color:#6b7280;margin-top: 1em;">Select up to 5 providers, then click Evaluate.</p>'
-                  + '</div>'
-                  + '<button onclick="this.parentElement.remove()" style="margin-top: 1em;padding: 1em;border-radius:0.5em;border:0.125em solid #0b7a75;background:#f0fffe;color:#0b7a75;font-size: 1em;font-weight:600;cursor:pointer;">Got it</button>';
-                document.body.appendChild(popup);
-              } else {
-                // Hot click — send to evaluate
-                // Transfer control to EvaluateCare
-                window._pageOwner = 'evaluatecare';
-                // Bug 5: remove the Evaluate button immediately on transfer;
-                // gui:selection-count won't fire again until something
-                // changes, so we must clean up the button here.
-                if (evalBtn && evalBtn.parentElement) evalBtn.parentElement.remove();
-                // Clear stale prior-service content from #rightContent;
-                // gui:evaluate-result will repaint with EvalCare providers.
-                window.ensureRightPanelStructure();
-                var _rc = document.getElementById('rightContent');
-                if (_rc) _rc.innerHTML = '';
-                if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
-                // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
-                if (typeof window.refreshBanner === 'function') window.refreshBanner('evaluatecare');
-                // Splash content from the owning service directly (V11
-                // S-005-REQ-B-004). FindCare is no longer a proxy.
-                var evalcareUrl = (window._envServiceUrls || {}).evaluatecare || '';
-                fetch(evalcareUrl + '/splash', { method: 'POST' })
-                  .then(function(r) { return r.json(); })
-                  .then(function(d) {
-                    // Paint EvaluateCare splash in CENTER panel (iframe area)
-                    chatFrame.style.display = 'none';
-                    var centerArea = chatFrame.parentElement;
-                    var splashDiv = document.getElementById('evalcareSplash');
-                    if (!splashDiv) {
-                      splashDiv = document.createElement('div');
-                      splashDiv.id = 'evalcareSplash';
-                      splashDiv.style.cssText = 'flex:1;overflow:auto;background:#fff;';
-                      centerArea.appendChild(splashDiv);
-                    }
-                    splashDiv.style.display = 'flex';
-                    splashDiv.innerHTML = d.html || '';
-                  })
-                  .catch(function() { window.chFatalError(''); });
-                chatFrame.contentWindow.postMessage({ type: 'gui:event', action: 'evaluate-providers' }, '*');
-                // SEC-HTTPS-001-REQ-021: refresh RIGHT panel via direct
-                // browser → cold service /verify-token (matches the banner
-                // EvaluateCare button path).
-                window.refreshTokenPanels('evaluatecare');
-              }
-            });
-          }
-
-          // Update button state
-          if (isCold) {
-            evalBtn.style.background = 'linear-gradient(180deg,#e5e7eb,#d1d5db)';
-            evalBtn.style.color = '#9ca3af';
-            evalBtn.dataset.cold = 'true';
-            evalBtn.textContent = 'Evaluate These Providers';
-          } else {
-            evalBtn.style.background = 'linear-gradient(180deg,#d97706,#b45309)';
-            evalBtn.style.color = '#fff';
-            evalBtn.dataset.cold = 'false';
-            evalBtn.textContent = 'Evaluate ' + count + ' Provider' + (count > 1 ? 's' : '');
+        // gui:start-evaluate — in-iframe Evaluate button asks the wrapper to
+        // do the visual handoff to EvaluateCare (banner refresh, splash paint,
+        // chatFrame hide). The iframe still drives the EvalCare API call
+        // itself via its own evaluate flow.
+        if (msg.type === 'gui:start-evaluate') {
+          if (typeof window.startEvaluateCareHandoff === 'function') {
+            window.startEvaluateCareHandoff();
           }
         }
 
@@ -2258,11 +2119,6 @@
             if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
             if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
             window.refreshTokenPanels('findcare');
-            // Ask chat for current selection count so the Evaluate button
-            // (which Bug 5 hides while non-FindCare) repaints.
-            if (chatFrame && chatFrame.contentWindow) {
-              chatFrame.contentWindow.postMessage({ type: 'gui:request-selection-count' }, '*');
-            }
           }
           // Now forward the actual filter-apply work to the chat iframe.
           if (chatFrame && chatFrame.contentWindow) {
@@ -2357,9 +2213,6 @@
           if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
           if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
           if (typeof window.refreshTokenPanels === 'function') window.refreshTokenPanels('findcare');
-          if (chat && chat.contentWindow) {
-            chat.contentWindow.postMessage({ type: 'gui:request-selection-count' }, '*');
-          }
         }
       });
     }

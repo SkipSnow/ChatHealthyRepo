@@ -24,9 +24,9 @@ interface ProviderCardProps {
 const cardStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  padding: '1em',
+  padding: '0.5em 1em',
   borderBottom: '0.125em solid #f0f0f0',
-  fontSize: '1em',
+  fontSize: '0.85em',
   lineHeight: 1.3,
   cursor: 'default',
   transition: 'background 0.15s',
@@ -39,13 +39,13 @@ const filteredOutStyle: React.CSSProperties = {
 }
 
 const nameStyle: React.CSSProperties = {
-  fontWeight: 600,
+  fontWeight: 500,
   color: '#1f2937',
-  fontSize: '1em',
+  fontSize: '0.95em',
 }
 
 const detailStyle: React.CSSProperties = {
-  fontSize: '1em',
+  fontSize: '0.85em',
   color: '#6b7280',
 }
 
@@ -93,7 +93,7 @@ export function ProviderCard({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={nameStyle}>{p.name}</div>
         {(p.specialty || p.primary_specialty) && (
-          <div style={{ fontSize: '1em', color: '#0b7a75', fontWeight: 500 }}>
+          <div style={{ fontSize: '0.85em', color: '#0b7a75', fontWeight: 500 }}>
             {p.specialty || p.primary_specialty}
           </div>
         )}
