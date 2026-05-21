@@ -136,7 +136,24 @@ class Crosswalk:
                     )
                     continue
                 if f.disposition == "referenced":
-                    # Presence already verified above.
+                    # Presence verified above. If the record carries a
+                    # content_hash, the disk bytes must still hash to it.
+                    # Builder populates content_hash on every run, so a
+                    # mismatch means disk drifted from the committed/JSON
+                    # state — typically an unstaged edit that the next
+                    # deploy would ship without (the local Docker would
+                    # work from disk, the remote build from commit, and
+                    # diverge silently).
+                    if f.content_hash is not None:
+                        import hashlib as _hashlib
+                        disk_hash = _hashlib.sha256(abs_path.read_bytes()).hexdigest()
+                        if disk_hash != f.content_hash:
+                            out.append(
+                                f"REJECT — content_hash drift on referenced "
+                                f"{f.source_location!r} in record "
+                                f"{record.target_id!r}: disk={disk_hash[:12]}... "
+                                f"json={f.content_hash[:12]}..."
+                            )
                     continue
                 if f.disposition != "managed":
                     out.append(

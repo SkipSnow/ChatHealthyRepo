@@ -55,6 +55,12 @@ class FileComposition:
     # handler_type in {'dockerfile','workflow_yaml'}. Polymorphic:
     # array for dockerfile (instruction list), object for workflow_yaml.
     layout: object | None = None
+    # content_hash: sha256 hex digest of the file's bytes at deploy
+    # time. Builder populates for disposition='referenced' (managed
+    # files are protected by embedded_content). Crosswalk validates
+    # the disk content still hashes to this value, catching cases
+    # where on-disk content drifts from the committed/JSON state.
+    content_hash: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         out: dict[str, object] = {
@@ -90,6 +96,8 @@ class FileComposition:
                     f"FileComposition {self.source_location!r}: disposition="
                     f"'referenced' forbids layout"
                 )
+            if self.content_hash is not None:
+                out["content_hash"] = self.content_hash
         else:
             raise ValueError(
                 f"FileComposition {self.source_location!r}: unknown "
@@ -106,6 +114,7 @@ class FileComposition:
             disposition=str(d["disposition"]),
             embedded_content=d.get("embedded_content"),  # type: ignore[arg-type]
             layout=d.get("layout"),
+            content_hash=d.get("content_hash"),  # type: ignore[arg-type]
         )
 
 
