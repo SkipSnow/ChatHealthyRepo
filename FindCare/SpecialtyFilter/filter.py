@@ -22,10 +22,9 @@ _log = logging.getLogger("findcare.specialty_filter")
 
 
 # Resolve project root from this file's location:
-#   Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_filter/filter.py
-#   parents: [0]specialty_filter [1]find_care [2]domain [3]backend
-#            [4]FindCareChat [5]ConversationalUX [6]Code [7]<project root>
-_PROJECT_ROOT = Path(__file__).resolve().parents[7]
+#   FindCare/SpecialtyFilter/filter.py
+#   parents: [0]SpecialtyFilter [1]FindCare [2]<project root>
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _PROMPTS_JSON_PATH = _PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "prompts.json"
 _NORMALIZE_RECORD_ID = "specialty_normalize_system_prompt"
 _FILTER_RECORD_ID = "specialty_filter_system_prompt"
