@@ -121,7 +121,9 @@
                             "PreToolUse",
                             "Stop",
                             "SessionEnd",
-                            "InstructionsLoaded"
+                            "InstructionsLoaded",
+                            "PreCompact",
+                            "PostCompact"
                           ],
                           "description": "The Git lifecycle or Claude Code hook that fires this enforcement."
                         },
