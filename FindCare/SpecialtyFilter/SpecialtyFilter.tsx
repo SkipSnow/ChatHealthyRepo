@@ -64,6 +64,10 @@ export default function SpecialtyFilter() {
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
+        width: '100%',
+        maxWidth: '100%',
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
         background: '#ffffff',
       }}
     >
