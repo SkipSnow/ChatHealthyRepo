@@ -444,7 +444,11 @@ class Builder:
             if rel == "brain/machine_artifacts/content/deployment_architecture.json":
                 content_hash = None
             else:
-                content_hash = hashlib.sha256(abs_path.read_bytes()).hexdigest()
+                # CRLF→LF normalize so Windows local + Linux CI compute the
+                # same SHA256. autocrlf=true on Windows = CRLF on disk;
+                # CI checkouts get LF. The repo's canonical bytes are LF.
+                raw = abs_path.read_bytes().replace(b"\r\n", b"\n")
+                content_hash = hashlib.sha256(raw).hexdigest()
         return FileComposition(
             feature_id=_FEATURE_ID,
             source_location=rel,
