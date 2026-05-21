@@ -146,7 +146,10 @@ class Crosswalk:
                     # diverge silently).
                     if f.content_hash is not None:
                         import hashlib as _hashlib
-                        disk_hash = _hashlib.sha256(abs_path.read_bytes()).hexdigest()
+                        # CRLF→LF normalize to match Builder, so Windows
+                        # local and Linux CI compute the same value.
+                        raw = abs_path.read_bytes().replace(b"\r\n", b"\n")
+                        disk_hash = _hashlib.sha256(raw).hexdigest()
                         if disk_hash != f.content_hash:
                             out.append(
                                 f"REJECT — content_hash drift on referenced "
