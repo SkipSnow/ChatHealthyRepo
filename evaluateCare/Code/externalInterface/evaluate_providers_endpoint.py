@@ -54,11 +54,16 @@ class EvaluateProvidersEndpoint:
             self.log.warning("evaluate/providers verify 400: %s", e)
             raise HTTPException(status_code=400, detail=str(e)) from e
 
+        # Provider model is extra='allow' with zero declared fields, so any
+        # field the frontend didn't include raises AttributeError on direct
+        # access. Use getattr-with-default so the or-fallback chain works.
         results = [
             EvaluatedProvider(
-                name=p.name or "Unknown",
-                specialty=(p.specialty or p.primary_specialty or "Unknown"),
-                npi=p.npi or "Unknown",
+                name=getattr(p, "name", None) or "Unknown",
+                specialty=(getattr(p, "specialty", None)
+                           or getattr(p, "primary_specialty", None)
+                           or "Unknown"),
+                npi=getattr(p, "npi", None) or "Unknown",
             )
             for p in body.providers
         ]
