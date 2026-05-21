@@ -2,15 +2,16 @@
 // Licensed under the FindCare Evaluation License (FEL-1.0).
 
 import FindCareApp from './components/FindCareApp'
-import SpecialtyFilterFrame from './components/SpecialtyFilterFrame'
+import SpecialtyFilter from './components/SpecialtyFilter'
 
 function App() {
   // Option B routing: when loaded as ?mode=filter (inside the parent's
-  // leftPanel as a sub-iframe), render only the SpecialtyFilter + Apply
-  // Filter cell + session-verification cell. Otherwise render the chat.
+  // leftPanel as a sub-iframe), render only the SpecialtyFilter (which
+  // owns its own Apply Filter cell + session-verification cell). Otherwise
+  // render the chat.
   const mode = new URLSearchParams(window.location.search).get('mode')
   if (mode === 'filter') {
-    return <SpecialtyFilterFrame />
+    return <SpecialtyFilter />
   }
   return <FindCareApp />
 }
