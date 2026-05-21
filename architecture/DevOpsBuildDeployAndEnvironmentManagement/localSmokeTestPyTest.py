@@ -304,16 +304,19 @@ def _verify_session_identity(page, env, handoff_label):
     return current_nonce, owning_guid_value
 
 
-def _verify_button_in_parent(page, button_selector, parent_selector, label):
-    """Verify an element is a <button> (not a link) and lives inside the expected parent."""
-    btn = page.locator(button_selector)
-    assert btn.count() > 0, f"{label}: element {button_selector} not found"
-    tag = btn.evaluate("el => el.tagName.toLowerCase()")
-    assert tag == "button", \
-        f"{label}: must be a <button>, not <{tag}>. Requirement: rendered as a button, not a link."
-    parent = page.locator(f"{parent_selector} {button_selector}")
+def _verify_banner_service_element(page, selector, parent_selector, label):
+    """Banner service element: <a> when inactive (clickable link), <span> when
+    active (current owner, non-clickable). Per directive 2026-05-21: banner
+    service entries are LINKS, not pill-buttons. Both tags are acceptable;
+    the element must live inside #envBanner."""
+    el = page.locator(selector)
+    assert el.count() > 0, f"{label}: element {selector} not found"
+    tag = el.evaluate("e => e.tagName.toLowerCase()")
+    assert tag in ("a", "span"), \
+        f"{label}: must be <a> or <span>, not <{tag}>. Per 2026-05-21 banner is links, not buttons."
+    parent = page.locator(f"{parent_selector} {selector}")
     assert parent.count() > 0, \
-        f"{label}: {button_selector} must be inside {parent_selector}, but it is not."
+        f"{label}: {selector} must be inside {parent_selector}, but it is not."
 
 
 @pytest.fixture(scope="module")
@@ -612,10 +615,11 @@ class TestStep03:
         if IS_PROD:
             pytest.skip("S-002-REQ-B-002: service buttons live in banner, suppressed in prod")
         page = env["page"]
-        # Must be a <button> inside #envBanner, not a link in header nav
-        # Banner button rendered by renderBannerButtons uses data-service="sharedservices",
-        # text label "SharedServices" (PascalCase, no space). Per directive 2026-04-19.
-        _verify_button_in_parent(page, "[data-service='sharedservices']", "#envBanner", "SharedServices")
+        # Banner service entry rendered by renderBannerButtons uses
+        # data-service="sharedservices", text label "SharedServices"
+        # (PascalCase, no space). Per directive 2026-05-21 banner entries are
+        # links (<a>) when inactive, <span> when active — never pill buttons.
+        _verify_banner_service_element(page, "[data-service='sharedservices']", "#envBanner", "SharedServices")
         btn = page.locator("[data-service='sharedservices']")
         expect(btn).to_be_visible()
         expect(btn).to_contain_text("SharedServices")
@@ -831,13 +835,12 @@ class TestStep12:
 class TestStep13:
     def test_click_evaluate(self, env):
         page = env["page"]
-        for loc in [page.locator("#guiEvalBtn"), page.locator("button:has-text('Evaluate')"),
-                    env.get("chat_frame", page).locator("button:has-text('Evaluate')")]:
-            if loc.count() > 0:
-                loc.first.click()
-                break
-        else:
-            assert False, "Evaluate button not found"
+        # Control frame removed: Evaluate button now lives inside the
+        # chat iframe on the Selected-for-Evaluation band.
+        chat_frame = env.get("chat_frame", page)
+        eval_btn = chat_frame.locator("[data-testid='evaluate-button']")
+        assert eval_btn.count() > 0, "in-iframe Evaluate button not found"
+        eval_btn.first.click()
         page.wait_for_timeout(5000)
         _screenshot(page, "13")
 
@@ -1031,6 +1034,42 @@ class TestStep22:
             return len(npis)
         _retry("test22_npis_after_apply", 20, 750, _check_npis_after_apply)
         _screenshot(page, "22")
+
+
+# Step 22b [filter + session-verification co-render after return-to-FindCare]
+# After Apply Filter returns control from EvaluateCare to FindCare, the
+# filter sub-iframe is the OWNING surface and must host BOTH the filter
+# widget AND the session-verification block (SpecialtyFilter.tsx renders
+# <SessionVerification /> below the Apply Filter row). Step 22 only checked
+# NPIs in the chat body — this step locks down the co-render.
+class TestStep22bFilterAndSessionTogether:
+    def test_filter_and_session_verification_present_together(self, env):
+        page = env["page"]
+        filt = None
+        for f in page.frames:
+            if "mode=filter" in (f.url or ""):
+                filt = f; break
+        assert filt is not None, "Filter sub-iframe (mode=filter) missing after return"
+
+        # 1. Filter widget core elements still mounted.
+        assert filt.locator("[data-testid='specialty-filter']").count() > 0, \
+            "specialty-filter root missing in filter iframe after return"
+        rows = filt.locator(".specialty-filter__row")
+        assert rows.count() > 0, "No specialty rows in filter iframe after return"
+        assert filt.locator("[data-testid='apply-filter-button']").count() > 0, \
+            "Apply Filter button missing in filter iframe after return"
+
+        # 2. SessionVerification renders in the SAME iframe with Verified=true.
+        sv = filt.locator("[data-testid='session-verification']")
+        sv.first.wait_for(timeout=10000)
+        assert sv.count() > 0, "session-verification block missing in filter iframe"
+        sv_text = sv.first.inner_text()
+        assert "Verified:" in sv_text, f"'Verified:' label missing: {sv_text[:200]}"
+        verified_vals = [v.upper() for v in re.findall(r'Verified:\s*([A-Za-z]+)', sv_text)]
+        POSITIVE = {"YES", "VERIFIED", "TRUE", "OK"}
+        assert any(v in POSITIVE for v in verified_vals), \
+            f"session-verification Verified={verified_vals} — none positive"
+        _screenshot(page, "22b")
 
 
 # Step 23 [TEST-SIM-001-REQ-015]
@@ -1321,10 +1360,8 @@ class TestStep32:
         if select_btns.count() > 0:
             select_btns.first.click()
             page.wait_for_timeout(500)
-        eval_btn = page.locator("#guiEvalBtn")
-        if eval_btn.count() == 0:
-            eval_btn = page.locator("button:has-text('Evaluate')")
-        assert eval_btn.count() > 0, "Evaluate button not found for handoff 5"
+        eval_btn = frame.locator("[data-testid='evaluate-button']")
+        assert eval_btn.count() > 0, "in-iframe Evaluate button not found for handoff 5"
         eval_btn.first.click()
         page.wait_for_timeout(5000)
         # Now in EvaluateCare — click SharedServices banner button.
@@ -1373,10 +1410,8 @@ class TestStep33:
         assert select_btns.count() > 0, "REQ-B-033: no Select-for-Evaluation buttons"
         select_btns.first.click()
         page.wait_for_timeout(500)
-        eval_btn = page.locator("#guiEvalBtn")
-        if eval_btn.count() == 0:
-            eval_btn = page.locator("button:has-text('Evaluate')")
-        assert eval_btn.count() > 0, "REQ-B-033: Evaluate button not found for handoff 6"
+        eval_btn = frame.locator("[data-testid='evaluate-button']")
+        assert eval_btn.count() > 0, "REQ-B-033: in-iframe Evaluate button not found for handoff 6"
         eval_btn.first.click()
         page.wait_for_timeout(5000)
         # REQ-B-033: MUST hand control to EvaluateCare — assert directly.

@@ -200,27 +200,11 @@ export default function FindCareApp() {
   searchParamsRef.current = searchParams
   questionRef.current = question
 
-  // FC-EVAL-001: Send selection count to parent for evaluate button cold/hot state
-  useEffect(() => {
-    sendToParent('gui:selection-count', { count: selection.state.selected.length, max: selection.state.maxSelected })
-  }, [selection.state.selected.length])
-
   // Listen for parent page events (filter apply, evaluate click)
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       const msg = event.data
       if (!msg || typeof msg !== 'object') return
-
-      // Bug 5: parent asks for the current selection count after returning
-      // to FindCare from EvaluateCare so it can re-render the Evaluate
-      // button. Reply with whatever the live selection holds.
-      if (msg.type === 'gui:request-selection-count') {
-        sendToParent('gui:selection-count', {
-          count: selectedRef.current.length,
-          max: selection.state.maxSelected,
-        })
-        return
-      }
 
       // RestoreState=false — reset to welcome, focus input
       if (msg.type === 'gui:reset') {
@@ -260,24 +244,14 @@ export default function FindCareApp() {
           if (timerRef.current) clearInterval(timerRef.current)
           const start = Date.now()
           timerRef.current = setInterval(() => {
-            const elapsed = Math.round((Date.now() - start) / 1000)
-            setThinkSeconds(elapsed)
-            sendToParent('gui:timer', { seconds: elapsed })
+            setThinkSeconds(Math.round((Date.now() - start) / 1000))
           }, 1000)
           fetchProviders(params, questionRef.current).finally(() => {
             if (timerRef.current) {
               clearInterval(timerRef.current)
               timerRef.current = null
             }
-            sendToParent('gui:timer-clear')
             setReclassifying(false)
-            // Re-emit the LIVE selection count (selection.state.selected
-            // is captured by useEffect's mount-time closure and goes stale;
-            // selectedRef is updated on every render).
-            sendToParent('gui:selection-count', {
-              count: selectedRef.current.length,
-              max: selection.state.maxSelected,
-            })
           })
         }
         if (msg.action === 'evaluate-providers') {
@@ -309,15 +283,12 @@ export default function FindCareApp() {
     const start = Date.now()
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
-      const elapsed = Math.round((Date.now() - start) / 1000)
-      setThinkSeconds(elapsed)
-      sendToParent('gui:timer', { seconds: elapsed })
+      setThinkSeconds(Math.round((Date.now() - start) / 1000))
     }, 1000)
 
     const finishTimer = () => {
       if (timerRef.current) clearInterval(timerRef.current)
       timerRef.current = null
-      sendToParent('gui:timer-clear')
     }
 
     let sawError = false
@@ -817,19 +788,37 @@ export default function FindCareApp() {
             onDrop={(e) => { e.preventDefault(); const npi = e.dataTransfer.getData('text/plain'); if (npi) selection.select(npi) }}
           >
             <div style={{
-              padding: '1em', background: '#fffbeb',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '0.5em 1em', background: '#fffbeb',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1em',
             }}>
               <span style={{ fontSize: '1em', fontWeight: 600, color: '#d97706', textTransform: 'uppercase' }}>
                 Selected for Evaluation
               </span>
-              <span style={{ fontSize: '1em', color: '#6b7280' }}>
-                {selection.state.selected.length} / {selection.state.maxSelected}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1em' }}>
+                <span style={{ fontSize: '1em', color: '#6b7280' }}>
+                  {selection.state.selected.length} / {selection.state.maxSelected}
+                </span>
+                {selection.state.selected.length > 0 && (
+                  <button
+                    data-testid="evaluate-button"
+                    onClick={() => {
+                      sendToParent('gui:start-evaluate')
+                      handleEvaluate()
+                    }}
+                    style={{
+                      padding: '0.4em 1em', borderRadius: '0.5em', border: 'none',
+                      background: 'linear-gradient(180deg,#d97706,#b45309)', color: '#fff',
+                      fontSize: '1em', fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    Evaluate {selection.state.selected.length} Provider{selection.state.selected.length > 1 ? 's' : ''}
+                  </button>
+                )}
+              </div>
             </div>
 
             {selection.state.selected.length === 0 ? (
-              <div style={{ padding: '1em', textAlign: 'center', color: '#9ca3af', fontSize: '1em' }}>
+              <div style={{ padding: '0.5em 1em', textAlign: 'center', color: '#9ca3af', fontSize: '1em' }}>
                 Click ↓ to select providers (max {selection.state.maxSelected})
               </div>
             ) : (
@@ -848,31 +837,36 @@ export default function FindCareApp() {
         </>
       )}
 
-      {/* Input bar — always visible.
-          EPIC-006-F-002-S-001-REQ-B-001 "Two timers" rule: a small timer is
-          shown to the LEFT of the user-prompt input whenever the
-          initial-search or re-classify timer is running. */}
-      <form onSubmit={handleSend} style={{
-        padding: '1em', borderTop: '0.125em solid #e5e7eb', display: 'flex', gap: 8, alignItems: 'center',
-        background: '#fff',
-      }}>
-        {(phase === 'searching' || reclassifying) && (
-          <div
-            data-testid="prompt-row-timer"
-            style={{
-              flex: '0 0 auto', minWidth: 44, padding: '1em', borderRadius: 6,
-              background: '#f0fffe', border: '0.125em solid #0b7a75',
-              fontSize: '1em', fontWeight: 700, color: '#0b7a75', textAlign: 'center',
-            }}
-          >{thinkSeconds}s</div>
-        )}
+      {/* Input bar — always visible. Send button doubles as Stop while a
+          search or filter-reclassify is in flight (click aborts the
+          pending fetch). The redundant prompt-row timer was removed
+          along with the wrapper-side control frame. */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (phase === 'searching' || reclassifying) {
+            // Stop in flight
+            if (searchAbortRef.current) searchAbortRef.current.abort()
+            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+            setReclassifying(false)
+            if (phase === 'searching') setPhase(question ? 'results' : 'welcome')
+            return
+          }
+          handleSend()
+        }}
+        style={{
+          padding: '0.67em 1em', borderTop: '0.125em solid #e5e7eb',
+          display: 'flex', gap: 8, alignItems: 'center', background: '#fff',
+        }}
+      >
         <input
           ref={inputRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Type a message..."
+          disabled={phase === 'searching' || reclassifying}
           style={{
-            flex: 1, padding: '1em', borderRadius: 8,
+            flex: 1, padding: '0.67em 1em', borderRadius: 8,
             border: '0.125em solid #d1d5db', fontSize: '1em', outline: 'none',
             minHeight: 44,
           }}
@@ -880,12 +874,12 @@ export default function FindCareApp() {
         <button
           type="submit"
           style={{
-            padding: '1em', borderRadius: 8, border: 'none',
-            background: '#0b7a75',
+            padding: '0.67em 1em', borderRadius: 8, border: 'none',
+            background: (phase === 'searching' || reclassifying) ? '#b91c1c' : '#0b7a75',
             color: '#fff', fontSize: '1em', fontWeight: 600, cursor: 'pointer',
             minHeight: 44, minWidth: 44,
           }}
-        >Send</button>
+        >{(phase === 'searching' || reclassifying) ? 'Stop' : 'Send'}</button>
       </form>
     </div>
   )
