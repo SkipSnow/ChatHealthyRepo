@@ -3022,6 +3022,59 @@
                     },
                     "orphan": false,
                     "approval": "approved"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-004-S-002",
+                    "name": "Downstream tool registry and metadata API",
+                    "description": "The universal router owns the registry of all downstream tools that can be invoked through it, and exposes the metadata API by which any caller can retrieve tool metadata at runtime.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-004-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "Universal router maintains downstream tool registry and exposes metadata API",
+                          "requirement": "The universal router MUST maintain a registry of all downstream tools that can be invoked through it. Downstream tools register with the router at build time, supplying their TOOL_NAME, Request schema, and natural-language minimum/total requirement strings per entity. The router MUST expose a metadata API by which any caller can retrieve, at runtime, either the full registry OR a single tool's metadata by TOOL_NAME. Build-time registration; runtime read-only access. The registry is the single source of truth for tool addressability.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-004-S-002-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "sharedServices/Code/tests/test_universal_router_tool_registry.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-004-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "Registration entries carry per-attribute natural-language requirement statements",
+                          "requirement": "Each tool registration entry held by the universal router MUST include, for every attribute in the tool's Request class, a natural-language statement of what user information that attribute requires. The statements are how downstream callers (e.g., UtteranceManager) decide whether the user's utterance contains enough information to invoke a given tool.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-004-S-002-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "sharedServices/Code/tests/test_universal_router_tool_registry.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   }
                 ]
               },
@@ -3403,6 +3456,175 @@
               "orphan": false,
               "approval": "proposed",
               "due_date": "2026-04-01"
+            },
+            {
+              "feature_id": "EPIC-002-F-010",
+              "name": "Utterance Tool",
+              "description": "This feature defines the requirement for the handling of every utterance made by users of ChatHealthy.ai's core front end application. All utterances have 2 possible paths: 1- they either invoke a response that asks the user directly or indirectly questions that will help it either get to know the user better, or route the user to an appropriate tool. 2 - Based on the utterance the intent of the user seems clear and a tool is invoked that will allow data to be passed back to the front end and displayed. An utterance is the words that a user either types into a prompt into the UX or otherwise uses natural language to tell the application about themselves and what they want. This feature will not be complete until the entire application's code base utilizes this architecture of tool to Front end intermediated by utterance.",
+              "priority": "must-have",
+              "status": "in_progress",
+              "orphan": false,
+              "approval": "approved",
+              "due_date": "2026-05-26",
+              "realized_by": [
+                "user-prompt input",
+                "SharedServices /gate",
+                "Pydantic AI (tools + pydantic_graph)",
+                "Mongo admin.sessions collection",
+                "Mongo users collection"
+              ],
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-002-F-010-S-001",
+                    "orphan": false,
+                    "name": "Universal utterance routing",
+                    "description": "The single canonical routing path for every user utterance from the input control through to the terminal user_object update. Holds the business rule that all utterances flow through this path and the technical contract for each hop in the path.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "All user utterances must flow through the user-prompt tool",
+                          "requirement": "Every user prompt coming from any component, e.g. user-prompt input, where a user uses natural language to communicate with the app MUST flow through the UniversalNavigationTool to the UtteranceManager.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-010-S-001-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "sharedServices/Code/tests/test_utterance_routing.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "User object is the tool's input",
+                          "requirement": "The tool's input MUST be a User State object as canonically defined by EPIC-002-F-003 (Authorizations and Authentications).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-003",
+                              "reason": "Defines the canonical User State / User Object"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-010-S-001-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "sharedServices/Code/tests/test_utterance_routing.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "Tool must be tightly coupled with a front end component",
+                          "requirement": "The tool MUST be tightly coupled with a front-end JS file that: (1) takes the input from the user and sends it to the universal router using the universal router's input pydantic tool as a JSON; if and only if the router determines that it was an utterance shall the router construct the pydantic object and pass it to the tool. The component MUST be capable of both transmitting the user's input and responding in text if further natural language input is required from the user.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-004",
+                              "reason": "Universal Navigation feature — defines the universal router"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-010-S-001-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "sharedServices/Code/tests/test_utterance_routing.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "UtteranceManager obtains tool metadata from the router and caches it at runtime",
+                          "requirement": "UtteranceManager MUST obtain downstream-tool metadata from the universal router's metadata API per EPIC-002-F-004-S-002-REQ-B-001. UtteranceManager MUST cache the retrieved metadata at runtime — the API call is for cache population on startup (or on cache invalidation), not a per-utterance lookup. The router's registry is the source of truth; UtteranceManager holds a runtime copy.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-004-S-002",
+                              "reason": "Defines the router-side registry and metadata API that UtteranceManager caches"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-010-S-001-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "sharedServices/Code/tests/test_utterance_routing.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "Universal utterance tool must be capable of doing multi-thread processing",
+                          "requirement": "The universal utterance tool must be capable of multi-threaded processing. It might make parallel calls to Mongo, and/or LLMs. Within that multithreaded environment, if required and one thread with precedence returns, the tool must be capable of calling on a tool prior to the other tools completing their activities.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-010-S-001-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "sharedServices/Code/tests/test_utterance_routing.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-T-001",
+                          "orphan": false,
+                          "name": "Universal utterance round-trip path",
+                          "requirement": "Every utterance MUST complete the full round-trip path. Outbound: (1) user input enters at the user-prompt input; (2) front-end JS routes the utterance from client to server; (3) the universal router receives it on the server side; (4) the router constructs the User-object payload and dispatches to UtteranceManager; (5) UtteranceManager classifies and returns a decision: exactly one of two outcomes — (a) the name of a downstream registered tool to invoke (the safety tool, FindCare, EvaluateCare, or any other registered tool), or (b) a clarifying-question / feedback-request message to send back to the user; (6) on outcome (a), the universal router invokes the named downstream tool with the User-object payload. Inbound: (7) the resolved response — tool data or clarifying message — flows back through the universal router; (8) the router routes the response from server to the originating client; (9) the front-end JS receives it and renders to the user, completing the loop. No utterance may bypass UtteranceManager. UtteranceManager MUST NOT invoke downstream tools itself — only the universal router does. Every utterance MUST produce a delivered response.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-010-S-001-REQ-T-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "sharedServices/Code/tests/test_utterance_routing.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
@@ -8391,12 +8613,15 @@
             },
             {
               "feature_id": "EPIC-008-F-002",
-              "name": "Engineering Rules Enforcement",
-              "status": "in_progress",
-              "description": "Runtime enforcement of architecture and governance constraints. Guard evaluates tool calls against rules, risk acceptances, and policies. Structured I/O with GPT-4.1-mini.",
+              "name": "Engineering Rule Enforcement",
+              "status": "not_started",
+              "description": "This feature specifies the rules that must be enforced by the chatHealthy.ai dev ops infrastructure utilizing the Anthopic Hooks as event triggers. \nIt specifies the concrete DevOps surface that wires Claude Code's hook architecture into ChatHealthy governance. Hosts SessionStart / PostCompact / UserPromptSubmit / Stop enforcement entries declared in engineering_rules.json, the chathealthy_devops_boot program (Rule-002), and the conversation-log persistence path (Rule-001). Owns the operator-visible boot lifecycle: conversation context replay and agile_backlog taxonomy injection on both new-session begin and post-compaction restart.",
               "realized_by": [
-                "GPT-4.1-mini",
-                "Python 3.11"
+                "Code/Shared/ops/tools/chathealthy_devops_boot.py",
+                "Code/Shared/ops/tools/chathealthy_enforcement_manager.py",
+                "brain/machine_artifacts/content/engineering_rules.json",
+                ".claude/settings.json",
+                "MongoDB ClaudeCodeLog.conversation_log_archive"
               ],
               "stories": {
                 "story": [
@@ -9060,6 +9285,25 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "Scan must test this content",
+                          "requirement": "The scan rule Must test for: (a) Font compliance — see EPIC-008-F-011-S-003-REQ-B-004 (Scan of all relevant files must test font compliance); (b) JSON Schema validation — see EPIC-008-F-002-S-006 (JSON validation: _validate_json check, $schema web-fetch resolver, meta-schema carve-out, in-run cache); (c) HTTPS compliance — see EPIC-008-F-002-S-005 (HTTP vs HTTPS: _scan_http check and allowed_pattern URL handling).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
                         }
                       ]
                     }
@@ -9260,12 +9504,101 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-002-S-007",
+                    "name": "SessionStart and PostCompact boot duties dispatched via chathealthy_enforcement_manager",
+                    "description": "On every Claude Code SessionStart hook and on every PostCompact hook (context purge), the boot program replays the most recent conversation utterances from MongoDB and injects the agile_backlog taxonomy. Dispatch is performed by chathealthy_enforcement_manager.py per Rule-002 enforcement entries; the boot is no longer wired directly in .claude/settings.json.",
+                    "size": "L",
+                    "status": "not_started",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-002-S-007-REQ-T-002",
+                          "name": "Replay 170 most recent utterances from Mongo into SessionStart additionalContext",
+                          "requirement": "On SessionStart, chathealthy_devops_boot.py MUST read the 170 most recent utterance documents from MongoDB ClaudeCodeLog.conversation_log_archive, trim each document to {actor, content}, order newest-first, and emit them as part of the hook's additionalContext so Claude resumes with recent conversation context. If the MongoDB read fails (connection, auth, or query error), the boot MUST fail open - log the failure to stderr and continue with remaining SessionStart duties without aborting the session.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-007-REQ-T-003",
+                          "name": "Inject agile_backlog taxonomy (epic+feature descriptions, story names) into SessionStart additionalContext",
+                          "requirement": "On SessionStart, chathealthy_devops_boot.py MUST read brain/machine_artifacts/content/agile_backlog.json and emit the business taxonomy as part of the hook's additionalContext: every epic's id, name, and description; every feature's id, name, and description; every story's id and name. Story descriptions, requirements, and tests MUST NOT be emitted. The output is the operator-facing context shape, not a context-resident @-import.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-007-REQ-T-006",
+                          "name": "Read hook_event_name from stdin to branch SessionStart and PostCompact dispatch",
+                          "requirement": "chathealthy_devops_boot.py MUST read the Claude Code hook payload JSON from stdin and dispatch on the hook_event_name field. SessionStart and PostCompact MUST each execute the two duties in EPIC-008-F-002-S-007-REQ-T-002 and EPIC-008-F-002-S-007-REQ-T-003 in order. Any other hook_event_name value MUST be a no-op that exits 0. Each branch MUST be wrapped in try/except/finally that calls sys.exit so control always returns to the enforcement manager.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-007-REQ-T-007",
+                          "name": "Boot is invoked exclusively through Rule-002 enforcement entries, not direct settings.json wiring",
+                          "requirement": "chathealthy_devops_boot.py MUST NOT appear directly in .claude/settings.json hooks. It is invoked exclusively via Rule-002 enforcement entries (Rule-002-ENF-001 on SessionStart, Rule-002-ENF-002 on PostCompact) dispatched by chathealthy_enforcement_manager.py. .claude/settings.json registers only the enforcement manager (one entry per hook); the manager loads engineering_rules.json and spawns the matching enforcement workers.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   }
                 ]
               },
               "orphan": false,
               "approval": "proposed",
-              "due_date": "2026-06-01",
+              "due_date": "2026-06-30",
               "priority": "must-have"
             },
             {
@@ -10693,13 +11026,13 @@
             },
             {
               "feature_id": "EPIC-008-F-011",
-              "name": "Run Time Governance — ChatHealthy.AI Front End Application",
+              "name": "Common features of ChatHealthy.AI Front End Application",
               "description": "This feature defines the stories and requirements that ChatHealthy.ai's Front End application must comply with in all cases. If there are any conflicts in the requirements that contradicted the requirements in this feature. The requirements in this feature take precedence in all cases. (In addtrion and Furthermore, it is required that agents run at every boot sequence to scrutinize the firm's requirements in agile_Backlog.json to find such contradictions and surface them. This requirement is a known known gap in the requirements of EPIC-008-F-002 — Engineering Rules Enforcement)",
               "priority": "CRITICAL",
-              "status": "done",
+              "status": "in_progress",
               "orphan": false,
               "approval": "approved",
-              "due_date": "2026-05-02",
+              "due_date": "2026-05-28",
               "realized_by": [
                 "Website/index.html",
                 "HuggingFace Space: SkipSnow/ChatHealthySpace (FindCare backend — all envs)",
@@ -10871,6 +11204,95 @@
                     }
                   },
                   {
+                    "story_id": "EPIC-008-F-011-S-003",
+                    "orphan": false,
+                    "name": "Uniformly Control ChatHealthyFonts",
+                    "description": "It is required that font sizes not be hard coded anywhere in ChatHealthy's application portfolio. This story specifies the requirements that allow for granular control of fonts via API throughout the application.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-011-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "Font formatting of display text confined to web-tier files: HTML, CSS, JS, SVG, or TS Pages Functions",
+                          "requirement": "No formatting of display information of text fonts CAN be hosted anywhere but on the web server in static HTML, JavaScript, CSS, SVG, or TypeScript (Cloudflare Pages Functions) files.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-011-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "Common function must format fonts",
+                          "requirement": "One common front end function used by every declaration of any font function must be supported. This function must have a set of default arguments so it can be called without any arguments. The arguments must allow for all variance in fonts allowed by HTML, and must as necessary be cognizant of the target environment, e.g. html, css, js etc.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-011-S-003-REQ-B-003",
+                          "orphan": false,
+                          "name": "Default font to be defined",
+                          "requirement": "A base default font must be defined, and changeable from one and only one file. The function defined in B-002 Must use these defaults. The default Must be contained in the same file as the function that is called by all of the instances of fonts in the application.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-011-S-003-REQ-B-004",
+                          "orphan": false,
+                          "name": "Scan of all relevant files must test font compliance",
+                          "requirement": "The Git commit rule must include a scan of all font declarations via an enforced rule where appropriate. This scan will be implemented as part of Rule-008 (All files added to the local Git repository must be scanned for architectural compliance), not as a new engineering rule.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
                     "story_id": "EPIC-008-F-011-S-004",
                     "name": "AI embedding Model must be Uniform across the entire application",
                     "description": "Establishes the single canonical embedding model used across ChatHealthy.AI. Any embedding-generation use-site requirement MUST reference the canonical requirement here rather than restate the model name. (see EPIC-008-F-011-S-004-REQ-B-001)",
@@ -10905,6 +11327,38 @@
                             ]
                           },
                           "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-011-S-005",
+                    "name": "Uniform application logging",
+                    "description": "App-wide rules for runtime logging — uniform logging surface, framework choice, environment-driven configuration. Tool subclasses inherit logging from the base class; no per-tool ad-hoc logging or third-party logger calls.",
+                    "size": "S",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-011-S-005-REQ-B-001",
+                          "orphan": false,
+                          "name": "ChatHealthyTool base class implements uniform tool-invocation logging via Python's stdlib logging",
+                          "requirement": "The ChatHealthyTool base class MUST be the sole logging surface for every tool invocation. Every concrete subclass is logged uniformly by the base class — no concrete tool implements its own logging path, and no concrete tool emits print(), ad-hoc file writes, or third-party logger calls inside the dispatch chain. The base class MUST use Python's standard library logging module; logger configuration MUST be via logging.config.dictConfig so handlers, formatters, and per-environment behavior are declarative. Log messages MUST be suppressible by level via environment variable — the operator sets LOG_LEVEL (DEBUG / INFO / WARNING / ERROR / CRITICAL) in the runtime environment, and the logger MUST respect that threshold and drop lower-priority messages. The logger MUST support writing to both stdout and stderr (configurable per level — e.g., errors to stderr, normal logs to stdout). Third-party logging libraries (loguru, structlog) are forbidden in the tool dispatch path. Each log entry MUST include tool_name, redacted input args, output result, duration in ms, and any exception with traceback.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
                         }
                       ]
                     }
@@ -11996,12 +12450,12 @@
                         },
                         {
                           "req_id": "EPIC-008-F-012-S-002-REQ-T-002",
-                          "name": "Website wrapper on host OS",
-                          "requirement": "The Website wrapper, binding the privileged ports in S-001-REQ-T-001, MUST run as a host-OS process rather than a Docker container.",
+                          "name": "Local Host WebSite must run from within Local docker image",
+                          "requirement": "Local Host WebSite must run from within Local docker image. No other requirement is waived because of this requirement.",
                           "priority": "must-have",
-                          "status": "done",
+                          "status": "deferred",
                           "orphan": false,
-                          "approval": "proposed",
+                          "approval": "approved",
                           "tests": {
                             "test": [
                               {
@@ -13624,6 +14078,255 @@
               "approval": "approved",
               "due_date": "2026-06-01",
               "priority": "must-have"
+            },
+            {
+              "feature_id": "EPIC-008-F-013",
+              "orphan": false,
+              "name": "Conversation-log Pipeline (Claude Code hooks -> Kafka -> MongoDB)",
+              "status": "in_progress",
+              "description": "DevOps feature that owns the end-to-end pipeline by which every Claude Code and Claude utterance is recorded. Each UserPromptSubmit and Stop hook events are persisted to long-term storage in the Mongo Db. The pipeline has three runtime components: (a) a hook-driven publisher worker that POSTs the raw hook payload to a local producer sidecar, (b) the producer sidecar HTTP service on 127.0.0.1:8100 that forwards to the conversation_log Kafka topic, and (c) a consumer that drains the topic and persists each message to MongoDB ClaudeCodeLog.conversation_log_archive. Rule-001 in engineering_rules.json is the runtime enforcement vehicle for the publisher leg of this feature.",
+              "priority": "HIGH",
+              "realized_by": [
+                "architecture/EngineeringRuleEnforcement/code/conversation_log_publisher_worker.py",
+                "Code/Shared/ops/ChatHealthyLogService/",
+                "Code/Shared/ops/kafka/conversation_log_consumer.py",
+                "brain/machine_artifacts/content/engineering_rules.json#Rule-001"
+              ],
+              "approval": "approved",
+              "due_date": "2026-05-27",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-008-F-013-S-001",
+                    "orphan": false,
+                    "name": "Publisher leg - hook-driven POST to local sidecar with browser-popup failure signaling",
+                    "description": "Per-hook-event publication of the raw payload from Claude Code's UserPromptSubmit and Stop hooks to the local producer sidecar at http://127.0.0.1:8100/produce. On sidecar unreachability the publisher MUST signal the operator visibly via a fullscreen browser warning page so the operator is never silently disconnected from the archive. This story is the implementation home for the three Rule-001 statements; Rule-001 itself is the engineering-rules vehicle that wires the worker into the hook framework.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-T-001",
+                          "orphan": false,
+                          "name": "UserPromptSubmit hook publishes raw payload to local producer sidecar",
+                          "requirement": "On every Claude Code UserPromptSubmit hook event, the conversation-log publisher worker MUST read the raw hook payload from stdin and POST the unmodified JSON body to http://127.0.0.1:8100/produce with Content-Type: application/json and a request header X-Hook-Event identifying the hook event name. The POST MUST complete within the hook's configured timeout (15 seconds per Rule-001-ENF-001). A 2xx response from the sidecar is the success criterion; the worker MUST exit 0 on success.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-T-002",
+                          "orphan": false,
+                          "name": "Stop hook publishes raw payload to local producer sidecar",
+                          "requirement": "On every Claude Code Stop hook event, the conversation-log publisher worker MUST read the raw hook payload from stdin and POST the unmodified JSON body to http://127.0.0.1:8100/produce with Content-Type: application/json and X-Hook-Event identifying the hook event name. The POST MUST complete within the hook's configured timeout (15 seconds per Rule-001-ENF-002). A 2xx response is the success criterion; the worker MUST exit 0 on success.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Sidecar-unreachable failure shows fullscreen browser warning page to the operator",
+                          "requirement": "If the POST to http://127.0.0.1:8100/produce fails for any reason (connection refused, timeout, non-2xx response, OSError), the worker MUST write a viewport-filling HTML failure page to a temp-directory file and launch the operator's default browser pointed at that file. The page MUST state in unmistakable language that the conversation-log pipeline is DOWN, that Claude Code interactions are NOT being persisted, and that the operator must restart the producer sidecar. The worker MUST exit non-zero on this path so the failure surfaces in the hook's telemetry.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-001-REQ-T-003",
+                          "orphan": false,
+                          "name": "Publisher worker is wired via engineering_rules.json (Rule-001), not directly in settings.json",
+                          "requirement": "The conversation_log_publisher_worker.py worker MUST be invoked via the V19 engineering-rules enforcement architecture: Rule-001 declares two enforcement entries (Rule-001-ENF-001 for UserPromptSubmit, Rule-001-ENF-002 for Stop) whose executable_path points at the worker. .claude/settings.json registers the UserPromptSubmit and Stop hook commands as chathealthy_enforcement_manager.py --hook <hook> only. The settings.json file MUST NOT call the worker directly, and the worker MUST NOT be invoked by any legacy dispatch path (governance_matrix.json or chathealthy_devops_boot.py's removed conversation_log_worker class).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-013-S-002",
+                    "orphan": false,
+                    "name": "Producer sidecar - local HTTP service on 127.0.0.1:8100 forwarding to Kafka topic",
+                    "description": "The local producer sidecar is an HTTP service bound to 127.0.0.1:8100 that accepts POST /produce, treats the request body as an opaque JSON payload, and forwards it to the conversation_log Kafka topic. The sidecar isolates the publisher worker from Kafka client configuration, transport credentials, and broker addressing - the worker speaks plain HTTP and the sidecar speaks Kafka. Implementation lives at Code/Shared/ops/ChatHealthyLogService/.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-013-S-002-REQ-T-001",
+                          "orphan": false,
+                          "name": "Sidecar binds only to loopback at 127.0.0.1:8100 and accepts POST /produce",
+                          "requirement": "The producer sidecar MUST bind only to 127.0.0.1 (loopback) on TCP port 8100 and MUST NOT bind to any externally-routable interface. It MUST accept HTTP POST on path /produce with Content-Type: application/json, treating the request body as an opaque JSON payload to be forwarded unchanged to the conversation_log Kafka topic. It MUST respond with HTTP 2xx on successful produce and HTTP 5xx (or connection refusal) on any failure to forward.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-002-REQ-T-002",
+                          "orphan": false,
+                          "name": "Sidecar forwards the request body unchanged to the conversation_log Kafka topic",
+                          "requirement": "The producer sidecar MUST publish the request body to the Kafka topic named 'conversation_log' without modification. The sidecar MUST NOT add, remove, reorder, or otherwise mutate any fields of the JSON payload. The hook event identifier carried in the X-Hook-Event request header MAY be propagated as a Kafka message header but MUST NOT be merged into the payload body.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-013-S-003",
+                    "orphan": false,
+                    "name": "Consumer leg - drain conversation_log topic to MongoDB ClaudeCodeLog.conversation_log_archive",
+                    "description": "The conversation_log consumer drains the conversation_log Kafka topic and persists each message as one document to MongoDB cluster ClaudeCodeLog, collection conversation_log_archive. The consumer is the durability boundary for the pipeline - once a message is committed to the archive collection, it is considered persisted for forensic and operator-review purposes.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "proposed",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-013-S-003-REQ-T-001",
+                          "orphan": false,
+                          "name": "Consumer persists each Kafka message as one document in conversation_log_archive",
+                          "requirement": "The conversation_log consumer MUST consume the conversation_log Kafka topic and insert each message as exactly one document into MongoDB collection ClaudeCodeLog.conversation_log_archive. The consumer MUST NOT drop, merge, or batch-rewrite messages. It MUST acknowledge each Kafka offset only after the MongoDB insert returns success so an at-least-once delivery property holds across consumer restarts.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-003-REQ-T-002",
+                          "orphan": false,
+                          "name": "Consumer transforms malformed Kafka messages so every utterance lands in conversation_log_archive",
+                          "requirement": "The conversation_log consumer MUST treat every Kafka message as durable and MUST NOT reject or discard a message because the payload is malformed. For each message consumed from the conversation_log topic, the consumer MUST produce exactly one document in MongoDB collection ClaudeCodeLog.conversation_log_archive. When the payload is not valid JSON, when required fields (for example actor or content) are missing, when bytes are not valid UTF-8, or when content is not a string, the consumer MUST wrap, coerce, or annotate the record so that an insert_many call against the archive collection succeeds. The transformed document MUST carry a cleanup-description field that names the transformation applied (for example raw-bytes-wrapped, json-parse-failed, actor-defaulted, content-coerced-to-string). Legibility of the utterance MUST be degraded as little as possible by the transformation; loss of the utterance is forbidden.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-003-REQ-T-003",
+                          "orphan": false,
+                          "name": "Consumer redacts credentials with model-based redaction; retries on failure; stores unredacted on final failure with a pointer to the error file",
+                          "requirement": "Before inserting a record into ClaudeCodeLog.conversation_log_archive, the conversation_log consumer MUST submit the content field to a model-based credentials-redaction step (not regex). The redaction step MUST replace API keys, passwords, connection strings, tokens, secrets, and credentials with the literal marker [Sensitive content redacted] and MUST leave all other text exactly as-is. The redaction engine MUST be an LLM call (currently gpt-4.1-mini). The LLM system prompt MUST include the project's Code/.env file as a non-exhaustive reference (the sensitive term might not be in .env). The LLM user prompt MUST include the last 5 utterances prior to the current utterance, queried from ClaudeCodeLog.conversation_log_archive by descending timestamp_utc, so the model can contextualize what a secret might be. The consumer MUST retry the LLM call up to 3 attempts with exponential backoff (1s, 2s). After 3 attempts have all failed, the consumer MUST store the ORIGINAL unredacted content (durability of REQ-T-001 takes precedence over redaction success). On final failure, the consumer MUST append one JSONL line of the form {\"timestamp_utc\": \"...\", \"mongo_id\": \"<inserted_id>\", \"error\": \"<terse cause>\"} to the consumer error file at %TEMP%/chathealthy_consumer_errors.log, capturing the ObjectId returned by the Mongo insert so the failed record can be located operationally.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-013-S-003-REQ-T-004",
+                          "orphan": false,
+                          "name": "Consumer redacts profanity in content via model-based redaction with fail-open fallback",
+                          "requirement": "Before inserting a record into ClaudeCodeLog.conversation_log_archive, the conversation_log consumer MUST submit the content field to a model-based profanity-redaction step (not regex). The redaction step MUST replace profanity and vulgar language with the literal marker [expletive deleted] and MUST leave all other text exactly as-is. The redaction engine MUST be an LLM call (currently gpt-4.1-mini). The redaction MUST be a single attempt with no retries. If the redaction call fails or returns an error, the consumer MUST fall back to storing the unredacted content rather than dropping the message; the durability obligation of REQ-T-001 takes precedence over redaction success. Profanity redaction MUST run AFTER credentials redaction, so that if credentials redaction substituted any markers, profanity redaction operates on the already-credentials-handled content.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [],
+                          "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
