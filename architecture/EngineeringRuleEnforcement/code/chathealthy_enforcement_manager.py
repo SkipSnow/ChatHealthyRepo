@@ -51,6 +51,8 @@ class ChatHealthyEnforcementManager:
         "Stop",
         "SessionEnd",
         "InstructionsLoaded",
+        "PreCompact",
+        "PostCompact",
     )
 
     # ── ENGINEERING_RULES_PATH (V19 Table 3) ─────────────────────────────────

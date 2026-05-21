@@ -157,11 +157,3 @@ def test_can_prescribe_available_for_evaluate_care():
     )
 
 
-# ── EPIC-008-F-007-S-007-REQ-T-012 ────────────────────────────────────────
-# Rationalization review — not a testable requirement
-
-@pytest.mark.skip(reason="EPIC-008-F-007-S-007-REQ-T-012 is a process requirement "
-                         "(rationalization review by human and Claude), not testable via pytest")
-def test_conversation_log_rationalization():
-    """EPIC-008-F-007-S-007-REQ-T-012: conversation_log.json needs rationalization review."""
-    pass

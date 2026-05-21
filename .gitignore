@@ -80,12 +80,12 @@ Code/Shared/ops/tools/caddy.exe
 # Analysis videos — large, not source
 Analysis/*.mp4
 
-# Conversation log — local dev artifact, contains secrets from session
-# conversation_log.json is a brain artifact — DO NOT gitignore
-# C# build artifacts
-Code/CSharp/**/bin/
-Code/CSharp/**/obj/
-Code/CSharp/**/build/
+# C# build artifacts — generic catch under the per-feature layout
+**/build/
+architecture/Conversation-logPipeline/bin/
+architecture/Conversation-logPipeline/obj/
+architecture/Conversation-logPipeline/out/
+architecture/Conversation-logPipeline/build/
 brain/machine_artifacts/.iteration_cache/
 
 # Markdown files: dev-only artifacts (Claude scratchpads, audit reports, etc.)

@@ -17,9 +17,9 @@ public class Worker(
     // no fallback. If the env var is not set, the supervisor logs critical
     // and stops the host. Hardcoded absolute paths are forbidden.
     private const string RepoRootEnvVar = "CHATHEALTHY_PROJECT_ROOT";
-    private const string SidecarScript = @"Code\Shared\ops\kafka\conversation_log_producer.py";
-    private const string ConsumerScript = @"Code\Shared\ops\kafka\conversation_log_consumer.py";
-    private const string DockerComposePath = @"Code\Shared\ops\kafka\docker-compose.yml";
+    private const string SidecarScript = @"architecture\Conversation-logPipeline\conversation_log_producer.py";
+    private const string ConsumerScript = @"architecture\Conversation-logPipeline\conversation_log_consumer.py";
+    private const string DockerComposePath = @"architecture\Conversation-logPipeline\docker-compose.yml";
     private const int HealthCheckIntervalMs = 30_000;  // 30 seconds
     private const int RestartDelayMs = 5_000;          // 5 seconds before restart
 

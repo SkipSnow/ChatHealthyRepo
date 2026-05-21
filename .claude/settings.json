@@ -17,10 +17,6 @@
           },
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode tool_call"
-          },
-          {
-            "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook PreToolUse"
           }
         ]
@@ -35,7 +31,7 @@
           },
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode prompt"
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook UserPromptSubmit"
           }
         ]
       }
@@ -45,21 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode prompt_result"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode session_end"
-          },
-          {
-            "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook SessionEnd"
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook Stop"
           }
         ]
       }
@@ -73,15 +55,21 @@
           },
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/chathealthy_devops_boot.py\" --mode session_start"
-          },
-          {
-            "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Code/Shared/ops/tools/capture_brain_hashes.py\""
           },
           {
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook SessionStart"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/architecture/EngineeringRuleEnforcement/code/chathealthy_enforcement_manager.py\" --hook PostCompact"
           }
         ]
       }

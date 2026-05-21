@@ -5,6 +5,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-ChatHealthyLogService-421af89d-aab0-49d6-9070-d0c7876b65b3</UserSecretsId>
+    <BaseOutputPath>build\</BaseOutputPath>
+    <BaseIntermediateOutputPath>build\</BaseIntermediateOutputPath>
+    <PublishDir>build\publish\</PublishDir>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
