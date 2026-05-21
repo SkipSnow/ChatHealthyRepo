@@ -4,7 +4,9 @@
 // SpecialtyFilter — view-only. Header is a <table> for predictable column
 // layout. Body is a scrollable <table>. Font sizes via window.chFont(scale)
 // from the canonical CH_FONTS registry.
+import { useEffect, useState } from 'react'
 import { useSpecialtyFilterController } from './useSpecialtyFilterController'
+import SessionVerification, { SessionToken } from './SessionVerification'
 
 declare global {
   interface Window {
@@ -22,6 +24,23 @@ const ROW_DIVIDER = '#f0f0f0'
 
 export default function SpecialtyFilter() {
   const v = useSpecialtyFilterController()
+  const [sessionToken, setSessionToken] = useState<SessionToken | null>(null)
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      const msg = event.data
+      if (msg && typeof msg === 'object' && msg.type === 'session_token' && msg.session_token) {
+        setSessionToken(msg.session_token as SessionToken)
+      }
+    }
+    window.addEventListener('message', onMessage)
+    // Ask the parent for the current session token in case verify-token already
+    // resolved before this iframe mounted.
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'session_token_request' }, '*')
+    }
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
 
   if (v.specialties.length === 0) {
     return (
@@ -30,7 +49,7 @@ export default function SpecialtyFilter() {
           padding: '1em',
           color: '#6b7280',
           fontFamily: 'system-ui, sans-serif',
-          fontSize: f(1),
+          fontSize: f(2),
         }}
       >
         Loading filter…
@@ -48,20 +67,19 @@ export default function SpecialtyFilter() {
         background: '#ffffff',
       }}
     >
-      <div style={{ flex: '1 1 58%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        <div
-          className="specialty-filter"
-          data-testid="specialty-filter"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            width: '100%',
-            height: '100%',
-            background: '#ffffff',
-            boxSizing: 'border-box',
-            minHeight: 0,
-          }}
-        >
+      <div
+        className="specialty-filter"
+        data-testid="specialty-filter"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          width: '100%',
+          flex: '1 1 auto',
+          background: '#ffffff',
+          boxSizing: 'border-box',
+          minHeight: 0,
+        }}
+      >
           {/* Header table — 3 columns, 3 rows (title / counts / controls) */}
           <table
             className="specialty-filter__header"
@@ -85,7 +103,7 @@ export default function SpecialtyFilter() {
                   <span
                     className="specialty-filter__title"
                     style={{
-                      fontSize: f(1.5),
+                      fontSize: f(1.2),
                       fontWeight: 700,
                       color: TEAL,
                     }}
@@ -126,7 +144,7 @@ export default function SpecialtyFilter() {
                       <div
                         className="specialty-filter__count-label"
                         style={{
-                          fontSize: f(1),
+                          fontSize: f(0.9),
                           color: '#4a5568',
                           textTransform: 'uppercase',
                           letterSpacing: '0.02em',
@@ -139,7 +157,7 @@ export default function SpecialtyFilter() {
                       <div
                         className="specialty-filter__count-value"
                         style={{
-                          fontSize: f(1.6),
+                          fontSize: f(1.1),
                           fontWeight: 700,
                           color: c.color,
                           lineHeight: 1.1,
@@ -174,7 +192,7 @@ export default function SpecialtyFilter() {
                       background: '#ffffff',
                       border: `0.125em solid ${TEAL}`,
                       borderRadius: '0.4em',
-                      fontSize: f(1),
+                      fontSize: f(0.9),
                       fontWeight: 700,
                       color: TEAL,
                       cursor: v.uncheckAllDisabled ? 'not-allowed' : 'pointer',
@@ -201,7 +219,7 @@ export default function SpecialtyFilter() {
                       color: '#1f2937',
                       cursor: 'pointer',
                       userSelect: 'none',
-                      fontSize: f(1),
+                      fontSize: f(0.9),
                     }}
                   >
                     <input
@@ -230,7 +248,7 @@ export default function SpecialtyFilter() {
                       color: '#1f2937',
                       cursor: 'pointer',
                       userSelect: 'none',
-                      fontSize: f(1),
+                      fontSize: f(0.9),
                     }}
                   >
                     <input
@@ -284,11 +302,11 @@ export default function SpecialtyFilter() {
                   >
                     <td
                       style={{
-                        padding: '0.3em 0.8em',
+                        padding: '0.1em 0.8em',
                         borderBottom: `0.125em solid ${ROW_DIVIDER}`,
                         color: '#1f2937',
-                        fontSize: f(1),
-                        lineHeight: 1.35,
+                        fontSize: f(0.8),
+                        lineHeight: 1.15,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -298,7 +316,7 @@ export default function SpecialtyFilter() {
                     </td>
                     <td
                       style={{
-                        padding: '0.3em 0.8em',
+                        padding: '0.1em 0.8em',
                         borderBottom: `0.125em solid ${ROW_DIVIDER}`,
                         textAlign: 'right',
                         width: '2.4em',
@@ -324,19 +342,17 @@ export default function SpecialtyFilter() {
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
 
-      {/* Apply Filter cell */}
-      <div
-        style={{
-          flex: '0 0 20%',
-          padding: '0.5em 0.8em',
-          borderTop: `0.125em solid #d8e2e1`,
-          boxSizing: 'border-box',
-          position: 'relative',
-        }}
-      >
+          {/* Apply Filter row — inside the widget, green border-top mirrors the header borderBottom */}
+          <div
+            style={{
+              flex: '0 0 auto',
+              padding: '0.5em 0.8em',
+              borderTop: `0.25em solid ${TEAL}`,
+              boxSizing: 'border-box',
+              position: 'relative',
+            }}
+          >
         <button
           type="button"
           data-testid="apply-filter-button"
@@ -351,7 +367,7 @@ export default function SpecialtyFilter() {
               ? `linear-gradient(180deg, #0b9a94, ${TEAL})`
               : '#e5e7eb',
             color: v.isDirty ? '#fff' : '#6b7280',
-            fontSize: f(1.2),
+            fontSize: f(1),
             fontWeight: 700,
             cursor: v.isDirty ? 'pointer' : 'not-allowed',
             minHeight: '2.4em',
@@ -407,17 +423,10 @@ export default function SpecialtyFilter() {
           </div>
         )}
       </div>
+      </div>
 
-      {/* Session-verification cell (non-prod display chrome) */}
-      <div
-        id="guiSessionCell"
-        style={{
-          flex: '0 0 22%',
-          padding: '1em',
-          borderTop: '0.125em solid #e5e7eb',
-          boxSizing: 'border-box',
-        }}
-      />
+      {/* Session-verification — React component, rendered when parent posts the token */}
+      {sessionToken && <SessionVerification token={sessionToken} />}
     </div>
   )
 }
