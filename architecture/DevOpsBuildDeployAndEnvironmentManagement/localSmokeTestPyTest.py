@@ -424,6 +424,50 @@ class TestStep02:
         _screenshot(page, "02")
 
 
+# Step 2a [no-horizontal-scrollbar regression guard]
+# Tableless-layout regression bit us when a child element overflowed and
+# pushed scrollWidth past clientWidth on the parent or an iframe. The
+# visible symptom is a horizontal scrollbar. Assert scrollWidth fits
+# clientWidth on documentElement AND body for the parent page AND every
+# attached frame.
+class TestStep02aNoHorizontalScrollbar:
+    def test_no_horizontal_scrollbar_anywhere(self, env):
+        page = env["page"]
+        page.goto(BASE_URL, wait_until="networkidle")
+        page.wait_for_timeout(3000)
+        overflows = page.evaluate("""() => {
+            const out = [];
+            const check = (label, win) => {
+                try {
+                    const d = win.document.documentElement;
+                    const b = win.document.body;
+                    if (d && d.scrollWidth > d.clientWidth) {
+                        out.push(`${label}::documentElement sw=${d.scrollWidth} cw=${d.clientWidth}`);
+                    }
+                    if (b && b.scrollWidth > b.clientWidth) {
+                        out.push(`${label}::body sw=${b.scrollWidth} cw=${b.clientWidth}`);
+                    }
+                } catch (e) {
+                    out.push(`${label}::access-error ${e.message}`);
+                }
+            };
+            check('parent', window);
+            const frames = document.querySelectorAll('iframe');
+            for (const f of frames) {
+                const id = f.id || f.name || f.src || 'iframe';
+                try {
+                    if (f.contentWindow) check(id, f.contentWindow);
+                } catch (e) {
+                    out.push(`${id}::cross-origin-skip`);
+                }
+            }
+            return out;
+        }""")
+        bad = [o for o in overflows if "cross-origin-skip" not in o and "access-error" not in o]
+        assert not bad, "Horizontal scrollbar detected: " + "; ".join(bad)
+        _screenshot(page, "02a")
+
+
 # Step 2b [EPIC-002-F-003-S-004] — Login & Registration header nav link
 # Regression guard: the entrance to OAuth login lives in the page header
 # nav (`<button onclick="window._startLoginRegister()">`) and must be

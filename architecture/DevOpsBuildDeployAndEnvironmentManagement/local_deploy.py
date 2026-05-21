@@ -928,10 +928,89 @@ class LocalDeploy:
         )
         self._step_notice(f"structured output -> {self.output_path}")
 
+    # ── Local TLS trust (browser-side enabler) ─────────────────────────
+    def _ensure_local_ca_trusted(self) -> None:
+        """Install the ChatHealthy Local CA into the OS root trust store
+        if it isn't there already. Required for the browser to accept the
+        per-service TLS certs (findcare:7860 / evalcare:8001 / sharedsvc:
+        8002) issued by this CA — without trust, cross-origin fetches die
+        at the TLS handshake with 'Failed to fetch'.
+
+        Windows: probe via `certutil -store Root`. If absent, elevate via
+        PowerShell Start-Process -Verb RunAs to invoke certutil -addstore
+        with admin privileges. Re-probe to verify. One CA covers all three
+        backend ports (same issuer).
+
+        Other platforms: no-op for now; certificate install paths differ
+        (keychain on macOS, NSS DB on Linux). Add when needed.
+        """
+        if sys.platform != "win32":
+            self._step_notice(
+                "skipping ChatHealthy CA trust step "
+                f"(platform={sys.platform!r}, Windows-only for now)"
+            )
+            return
+
+        ca_path = self.certs_dir / "ca.crt"
+        if not ca_path.is_file():
+            sys.exit(f"ERROR: ChatHealthy CA cert missing at {ca_path}")
+
+        # Probe — does Root store already contain our CA?
+        probe = subprocess.run(
+            ["certutil", "-store", "Root"],
+            capture_output=True, text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        if "ChatHealthy" in (probe.stdout or ""):
+            self._step_notice("ChatHealthy Local CA already in Windows Root store")
+            return
+
+        self._step_notice(
+            "installing ChatHealthy Local CA into Windows Root store "
+            "(UAC prompt will appear; approve it)"
+        )
+        # Elevate via PowerShell Start-Process -Verb RunAs. The -Wait
+        # makes the spawned child block until certutil finishes so the
+        # subsequent verification probe runs against the post-install
+        # state.
+        ps_cmd = (
+            "Start-Process certutil "
+            f"-ArgumentList '-addstore','-f','Root','{ca_path}' "
+            "-Verb RunAs -Wait"
+        )
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", ps_cmd],
+            capture_output=True, text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        if result.returncode != 0:
+            sys.exit(
+                f"ERROR: certutil install failed (rc={result.returncode}). "
+                f"stderr={result.stderr or '(empty)'} "
+                f"stdout={result.stdout or '(empty)'}"
+            )
+
+        # Verify post-install. If the user cancelled the UAC prompt the
+        # certutil child returns 0 but the store stays empty — only the
+        # re-probe catches that.
+        verify = subprocess.run(
+            ["certutil", "-store", "Root"],
+            capture_output=True, text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        if "ChatHealthy" not in (verify.stdout or ""):
+            sys.exit(
+                "ERROR: ChatHealthy Local CA install completed but the "
+                "Windows Root store still doesn't show it (UAC cancelled?). "
+                "Re-run the deploy and approve the elevation prompt."
+            )
+        self._step_notice("ChatHealthy Local CA verified in Windows Root store")
+
     # ── Orchestration ──────────────────────────────────────────────────
     def run(self) -> int:
         self._step_notice(f"deploy started for {self.env}")
 
+        self._ensure_local_ca_trusted()                     # browser TLS-trust prereq
         self._lint_workflow_yamls()                         # hard-fail on bad yaml
         self._deployment_architecture_gate()                # V18 substrate gate
 

@@ -437,7 +437,14 @@ class Builder:
         else:
             # disposition='referenced': hash the disk bytes so Crosswalk
             # can detect drift between commit-time and deploy-time content.
-            content_hash = hashlib.sha256(abs_path.read_bytes()).hexdigest()
+            # Exception: the deployment_architecture.json manifest hashes
+            # ITSELF — Builder writes new hashes into it after this step,
+            # so the stored hash never matches the post-write file content.
+            # Skip the self-referential case.
+            if rel == "brain/machine_artifacts/content/deployment_architecture.json":
+                content_hash = None
+            else:
+                content_hash = hashlib.sha256(abs_path.read_bytes()).hexdigest()
         return FileComposition(
             feature_id=_FEATURE_ID,
             source_location=rel,
