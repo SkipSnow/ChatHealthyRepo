@@ -8,7 +8,9 @@ import shutil
 from pathlib import Path
 
 MARKER = "<!-- CH_FONTS -->"
-_SNIPPET_PATH = Path(__file__).resolve().parent / "ch_fonts_snippet.html"
+_SNIPPET_PATH = (
+    Path(__file__).resolve().parents[1] / "CommonFrontEndFeatures" / "ch_fonts_snippet.html"
+)
 
 
 def read_snippet() -> str:
