@@ -216,7 +216,16 @@ def _verify_session_identity(page, env, handoff_label):
     """
     _wait_for_verified_resolution(page, handoff_label)
     right = page.locator("#rightPanel").inner_text()
-    left = page.locator("#leftPanel").inner_text()
+    # SessionVerification component on the findcare side now lives inside the
+    # filter iframe (React-owned widget). Playwright's inner_text() does not
+    # cross iframe boundaries, so concatenate the iframe's body text when the
+    # filter frame is present.
+    left_panel_text = page.locator("#leftPanel").inner_text()
+    try:
+        filter_frame_text = page.frame_locator('iframe[data-filter-frame]').locator('body').inner_text(timeout=2000)
+    except Exception:
+        filter_frame_text = ""
+    left = (left_panel_text + "\n" + filter_frame_text) if filter_frame_text else left_panel_text
     SEVEN_FIELDS = ["Signed token:", "Nonce:", "GUID:", "Verified:",
                     "Server, serving security token:", "Env:", "Time:"]
     # Only the OWNING panel updates per handoff (refreshTokenPanels rotates

@@ -21,6 +21,8 @@ export default defineConfig({
     alias: {
       // @providers maps to FindCare/ProviderManagement at the repo root.
       '@providers': path.resolve(__dirname, '../../../../FindCare/ProviderManagement'),
+      // @findcare maps to FindCare/ at the repo root.
+      '@findcare': path.resolve(__dirname, '../../../../FindCare'),
     },
   },
   build: {

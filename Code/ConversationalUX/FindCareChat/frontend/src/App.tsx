@@ -2,7 +2,7 @@
 // Licensed under the FindCare Evaluation License (FEL-1.0).
 
 import FindCareApp from './components/FindCareApp'
-import SpecialtyFilter from './components/SpecialtyFilter'
+import SpecialtyFilter from '@findcare/SpecialtyFilter/SpecialtyFilter'
 
 function App() {
   // Option B routing: when loaded as ?mode=filter (inside the parent's

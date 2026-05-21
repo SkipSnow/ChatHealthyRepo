@@ -27,7 +27,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useSelectionState } from '@providers/useSelectionState'
 import { ProviderCard } from '@providers/ProviderCard'
 import type { Provider } from '@providers/provider'
-import type { SpecialtyRecord } from './useSpecialtyFilterController'
+import type { SpecialtyRecord } from '@findcare/SpecialtyFilter/useSpecialtyFilterController'
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 const EVALCARE_URL = import.meta.env.VITE_EVALCARE_URL ?? ''

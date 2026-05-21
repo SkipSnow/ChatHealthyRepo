@@ -33,7 +33,8 @@ from authentication.agent_deps import (
     log_ux_event,
 )
 from authentication.chathealthy_tool import ChatHealthyTool
-from authentication import specialty_filter_tool, provider_search_and_selection_tool
+from authentication import provider_search_and_selection_tool
+from SpecialtyFilter import specialty_filter_tool
 
 _log = logging.getLogger("shared_services.universal_navigation")
 

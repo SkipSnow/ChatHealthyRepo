@@ -448,6 +448,7 @@ class LocalDeploy:
         import shutil as _shutil
         frontend_lib_src = self.repo_root / "FrontEndApplicationLib"
         auth_src = self.repo_root / "architecture" / "AuthorizationsAndAuthentications"
+        specialty_filter_src = self.repo_root / "FindCare" / "SpecialtyFilter"
         for container_name, entry in self.BACKEND_CONTAINERS.items():
             _label, src_dir, build_ctx_rel = entry
             image_tag = container_name  # same name for image and container
@@ -494,6 +495,24 @@ class LocalDeploy:
                     ),
                 )
 
+            # SharedServices SpecialtyFilter-staging: specialty_filter_tool.py
+            # now lives under FindCare/SpecialtyFilter/ (consolidated 2026-05-21).
+            # universal_navigation_tool imports it via `from SpecialtyFilter
+            # import specialty_filter_tool`, so the SharedServices container
+            # needs that package at /app/SpecialtyFilter. Mirror the source
+            # tree into the build context for `COPY SpecialtyFilter`.
+            staged_specialty_filter = None
+            if container_name == "ch-sharedsvc" and specialty_filter_src.is_dir():
+                staged_specialty_filter = build_ctx_abs / "SpecialtyFilter"
+                if staged_specialty_filter.exists():
+                    _shutil.rmtree(staged_specialty_filter)
+                _shutil.copytree(
+                    specialty_filter_src, staged_specialty_filter,
+                    ignore=_shutil.ignore_patterns(
+                        "__pycache__", "*.pyc", "*.docx", "*.tsx", "*.ts",
+                    ),
+                )
+
             # Write build_info.json into the build context. Baked into
             # the image so /health can report the truth about what's
             # running without consulting Mongo at request time.
@@ -519,6 +538,8 @@ class LocalDeploy:
                     _shutil.rmtree(staged_lib)
                 if staged_auth is not None and staged_auth.exists():
                     _shutil.rmtree(staged_auth)
+                if staged_specialty_filter is not None and staged_specialty_filter.exists():
+                    _shutil.rmtree(staged_specialty_filter)
                 if build_info_path.is_file():
                     build_info_path.unlink()
             if result.returncode != 0:
