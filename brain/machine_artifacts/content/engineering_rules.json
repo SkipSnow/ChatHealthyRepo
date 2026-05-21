@@ -3,6 +3,104 @@
   "rules": {
     "rule": [
       {
+        "id": "Rule-001",
+        "name": "Persist Claude conversation events to Kafka",
+        "description": "Every UserPromptSubmit and Stop hook event MUST publish the raw hook payload to the conversation_log Kafka topic via the local producer sidecar so the consumer can persist the conversation between Claude Code and the Cursor user using Claude Code. This rule implements the publish leg of EPIC-008-F-003-S-002.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "On every UserPromptSubmit hook event, the raw hook payload MUST be POSTed to http://127.0.0.1:8100/produce within the hook timeout.",
+              "req_id": "EPIC-008-F-013-S-001-REQ-T-001"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "On every Stop hook event, the raw hook payload MUST be POSTed to http://127.0.0.1:8100/produce within the hook timeout.",
+              "req_id": "EPIC-008-F-013-S-001-REQ-T-002"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "If the sidecar is unreachable, a browser must be invoked and a web page must be popped up filling the entire user screen telling the user that there is a problem.",
+              "req_id": "EPIC-008-F-013-S-001-REQ-B-001"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-001-ENF-001",
+              "hook": "UserPromptSubmit",
+              "executable_path": "architecture/Conversation-logPipeline/conversation_log_publisher_worker.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 15
+            },
+            {
+              "enforcement_id": "Rule-001-ENF-002",
+              "hook": "Stop",
+              "executable_path": "architecture/Conversation-logPipeline/conversation_log_publisher_worker.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 15
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-002",
+        "name": "Boot execution on SessionStart and PostCompact",
+        "description": "Wires the ChatHealthy boot program into the V19 engineering-rules architecture. The boot executable runs on SessionStart and PostCompact: SessionStart fires for new sessions and new logins; PostCompact fires when Claude Code auto-compacts its context. Both events trigger the same boot duties so Claude resumes with fresh conversation context and the business taxonomy regardless of how the session was disrupted. The boot reads the hook payload from stdin and dispatches on hook_event_name. Replaces the legacy direct settings.json wiring of chathealthy_devops_boot.py with rule-dispatched invocation through chathealthy_enforcement_manager.py.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "On SessionStart and PostCompact, the boot MUST read the 170 most recent utterance documents from MongoDB ClaudeCodeLog.conversation_log_archive, trim each document to {actor, content}, order newest-to-oldest, and emit them as part of the hook's additionalContext so Claude resumes with recent conversation context. If the MongoDB read fails, the boot MUST fail open — log the failure and continue with remaining duties.",
+              "req_id": "EPIC-008-F-013-S-001-REQ-T-002"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "On SessionStart and PostCompact, the boot MUST read brain/machine_artifacts/content/agile_backlog.json and emit the business taxonomy as part of the hook's additionalContext: every epic's id, name, and description; every feature's id, name, and description; every story's id and name. Story descriptions, requirements, and tests MUST NOT be emitted.",
+              "req_id": "EPIC-008-F-013-S-001-REQ-T-003"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "The boot MUST read the Claude Code hook payload JSON from stdin and dispatch on the hook_event_name field. SessionStart and PostCompact MUST each execute the duties in statements 1 and 2. Any other hook_event_name value MUST be a no-op that exits 0.",
+              "req_id": "EPIC-008-F-013-S-001-REQ-T-006"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "chathealthy_devops_boot.py MUST NOT appear directly in .claude/settings.json hooks. It is invoked exclusively via Rule-002 enforcement entries dispatched by chathealthy_enforcement_manager.py. .claude/settings.json registers only the enforcement manager (one entry per hook); the manager loads engineering_rules.json and spawns the matching enforcement workers.",
+              "req_id": "EPIC-008-F-013-S-001-REQ-T-007"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "On SessionStart and PostCompact, the boot MUST compare the current line count of %TEMP%/chathealthy_consumer_errors.log to a line-count semaphore at %TEMP%/chathealthy_last_boot_error_line.txt. If the current line count exceeds the semaphore, the boot MUST emit one line to additionalContext naming the file path and the new line range. The boot MUST then update the semaphore to the current line count. If the error file does not exist, the boot MUST treat the line count as 0 and emit nothing.",
+              "req_id": "EPIC-008-F-013-S-001-REQ-T-008"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-002-ENF-001",
+              "hook": "SessionStart",
+              "executable_path": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 30
+            },
+            {
+              "enforcement_id": "Rule-002-ENF-002",
+              "hook": "PostCompact",
+              "executable_path": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 30
+            }
+          ]
+        }
+      },
+      {
         "id": "Rule-008",
         "name": "All files added to the local Git repository must be scanned for architectural compliance.",
         "description": "All JSONs, code and configuration files must be scanned for compliance. Current scope is to ensure that only permissible references to HTTP can be in our code base and other artifacts, and that all JSONs be validated by standard Python schema mechanisms.",
@@ -63,7 +161,10 @@
                   [
                     "package-lock.json",
                     ".claude/settings.json",
-                    "pipeline/Code/host.json"
+                    "pipeline/Code/host.json",
+                    "architecture/Conversation-logPipeline/appsettings.json",
+                    "architecture/Conversation-logPipeline/appsettings.Development.json",
+                    "architecture/Conversation-logPipeline/Properties/launchSettings.json"
                   ]
                 ],
                 [
@@ -150,12 +251,12 @@
             {
               "statement_number": 1,
               "statement_body": "On every post-commit hook event triggered by a commit that is NOT part of a deploy pipeline, the `build` field of the canonical version document in MongoDB is incremented by exactly one. The `version` and `framework` fields are not touched.",
-              "req_id": "EPIC-008-F-004-S-001-REQ-T-003"
+              "req_id": "EPIC-008-F-012-S-001-REQ-T-003"
             },
             {
               "statement_number": 2,
               "statement_body": "After the Mongo update in Statement 1 completes successfully, the new `build` value is pushed to the running Kafka producer process. The producer updates its in-memory static and uses the new value for all subsequent messages it publishes. If the push fails, the producer continues with its prior cached value; the producer self-corrects on next restart by re-reading from MongoDB.",
-              "req_id": "EPIC-008-F-004-S-001-REQ-T-003"
+              "req_id": "EPIC-008-F-012-S-001-REQ-T-003"
             }
           ]
         },

@@ -42,15 +42,6 @@ async def no_cache(request: Request, call_next):
 async def serve_index():
     return FileResponse(os.path.join(website_dir, "index.html"))
 
-for fname in os.listdir(website_dir):
-    fpath = os.path.join(website_dir, fname)
-    if os.path.isfile(fpath) and fname != "index.html":
-        def make_route(fp):
-            async def serve():
-                return FileResponse(fp)
-            return serve
-        website_app.get(f"/{fname}")(make_route(fpath))
-
 @website_app.get("/health")
 async def proxy_health():
     async with httpx.AsyncClient(verify=False) as client:
@@ -59,6 +50,10 @@ async def proxy_health():
             return resp.json()
         except Exception:
             return {"status": "waiting", "note": "FindCare not ready yet"}
+
+# Mount the staging dir as a static-file tree so subdirectories (lab/, Images/,
+# functions/, schemas/, etc.) serve recursively, not just top-level files.
+website_app.mount("/", StaticFiles(directory=website_dir, html=True), name="website")
 
 uvicorn.run(website_app, host="0.0.0.0", port=443,
             ssl_certfile=localhost_crt, ssl_keyfile=localhost_key)

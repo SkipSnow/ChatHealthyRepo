@@ -488,13 +488,7 @@
         }
       ],
       "invoked_by": {
-        "source_files": [
-          {
-            "file": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
-            "function": "bug_governance_constraints",
-            "note": "Validates bug type on construction."
-          }
-        ],
+        "source_files": [],
         "stories": []
       }
     },
@@ -567,13 +561,7 @@
         }
       ],
       "invoked_by": {
-        "source_files": [
-          {
-            "file": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
-            "function": "bug_governance_constraints",
-            "note": "Validates resolution status on construction."
-          }
-        ],
+        "source_files": [],
         "stories": []
       }
     },
@@ -607,16 +595,6 @@
             "file": "brain/machine_artifacts/content/bugs.json",
             "function": "bug.environment",
             "note": "Constrains which environments a bug exists in."
-          },
-          {
-            "file": "brain/machine_artifacts/content/governance_matrix.json",
-            "function": "matrix.environments",
-            "note": "Defines the environment tiers for governance."
-          },
-          {
-            "file": "Code/Shared/ops/tools/chathealthy_devops_boot.py",
-            "function": "bug_governance_constraints",
-            "note": "Validates environment on bug construction."
           }
         ],
         "stories": []
