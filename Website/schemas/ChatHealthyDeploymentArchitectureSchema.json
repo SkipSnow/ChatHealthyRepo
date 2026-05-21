@@ -128,6 +128,12 @@
                 "layout": {
                   "type": ["object", "array"],
                   "description": "Structured spec from which the Builder generates the file's bytes. The Builder is the only writer; no operator hand-edits the rendered file on disk. For handler_type='dockerfile' the spec is an ordered array of {instruction, args} objects (FROM/WORKDIR/COPY/RUN/ENV/EXPOSE/CMD); the renderer emits one Dockerfile line per entry. For handler_type='workflow_yaml' the spec is a GHA-workflow JSON object (on:/jobs:/env:/...); the renderer dumps it as YAML. Required when disposition='managed' AND handler_type in {'dockerfile','workflow_yaml'}. Forbidden when disposition='referenced'. Other managed handler types may declare a layout but the Builder will not (yet) generate for them."
+                },
+
+                "content_hash": {
+                  "type": "string",
+                  "description": "sha256 hex digest of the file's bytes at the moment the Builder enumerated it. Populated for disposition='referenced' as a drift detector — Crosswalk re-hashes the disk bytes on every deploy and REJECTs on mismatch, catching unstaged edits that would otherwise ship differently between local builds (disk-driven) and remote builds (commit-driven). Forbidden when disposition='managed' (managed files are already byte-protected by embedded_content).",
+                  "pattern": "^[0-9a-f]{64}$"
                 }
               },
               "allOf": [
@@ -148,6 +154,15 @@
                       { "required": ["embedded_content"] },
                       { "required": ["layout"] }
                     ] }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": { "disposition": { "const": "managed" } },
+                    "required": ["disposition"]
+                  },
+                  "then": {
+                    "not": { "required": ["content_hash"] }
                   }
                 },
                 {
