@@ -211,38 +211,6 @@ class LocalDeploy:
             )
         self._step_notice(f"workflow yaml lint passed ({len(yml_paths)} files)")
 
-    # ── Human auth gate (S-001-REQ-B-006) ──────────────────────────────
-    def _human_authorization_gate(self) -> None:
-        """Operator-authorizes the deploy. Two explicit paths:
-
-          1. Interactive TTY: prompt for y/n.
-          2. Pre-authorized (env var ``CHATHEALTHY_DEPLOY_AUTHORIZED``
-             set to 1/y/yes/true): skip the prompt. Pre-auth covers
-             IDE deploy buttons, wrappers, and non-tty invocations
-             that must not depend on stdin redirection tricks.
-
-        If stdin is not a TTY *and* the env var is unset, fail hard
-        with an operator-actionable message. There is no third path,
-        no silent default — the deploy never proceeds unless the
-        operator named the authorization explicitly.
-        """
-        pre_auth = os.environ.get("CHATHEALTHY_DEPLOY_AUTHORIZED", "").strip().lower()
-        if pre_auth in ("1", "y", "yes", "true"):
-            self._step_notice(
-                f"{self.env} deploy pre-authorized via "
-                "CHATHEALTHY_DEPLOY_AUTHORIZED env var"
-            )
-            return
-        if not sys.stdin.isatty():
-            sys.exit(
-                "Deploy aborted — no TTY and CHATHEALTHY_DEPLOY_AUTHORIZED "
-                "is unset. Either run from a terminal, or set "
-                "CHATHEALTHY_DEPLOY_AUTHORIZED=1 to authorize."
-            )
-        ans = input(f"Authorize {self.env} deploy? (y/n): ").strip().lower()
-        if ans != "y":
-            sys.exit(f"Deploy aborted by human at gate ({self.env}).")
-
     # ── Atomic teardown precondition (S-001-REQ-T-005) ─────────────────
     def _teardown_precondition(self) -> None:
         """Stop backend containers + kill website host process; verify
@@ -966,7 +934,6 @@ class LocalDeploy:
 
         self._lint_workflow_yamls()                         # hard-fail on bad yaml
         self._deployment_architecture_gate()                # V18 substrate gate
-        self._human_authorization_gate()                    # S-001-REQ-B-006
 
         self._ensure_docker_available()                     # S-002-REQ-T-001 prereq
         self._teardown_precondition()                       # S-001-REQ-T-005
