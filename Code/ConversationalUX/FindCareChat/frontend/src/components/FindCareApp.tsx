@@ -639,7 +639,36 @@ export default function FindCareApp() {
         session_token: data.session_token || null,
       })
     } catch (err: any) {
-      alert(`EvaluateCare error: ${err.message}`)
+      // ONE failure path: the canonical chFatalError overlay. Carry full
+      // diagnostic context so the operator gets a real error report, not
+      // a wimpy popup.
+      const lines = [
+        `[EvaluateCare /evaluate/providers] fetch failed`,
+        ``,
+        `When:      ${new Date().toISOString()}`,
+        `Iframe:    ${window.location.origin}${window.location.pathname}`,
+        `Method:    POST`,
+        `URL:       ${EVALCARE_URL}/evaluate/providers`,
+        `Providers: ${providers.length} selected`,
+        `Question:  ${question ? JSON.stringify(question).slice(0, 200) : '(empty)'}`,
+        `Token:     ${token ? 'present' : 'MISSING — verify-token may have failed upstream'}`,
+        `User-Agent: ${navigator.userAgent}`,
+        ``,
+        `Error:`,
+        `  name:    ${err?.name || 'Error'}`,
+        `  message: ${err?.message || '(no message)'}`,
+        `  cause:   ${err?.cause ? String(err.cause) : '(no cause)'}`,
+        ``,
+        `Likely causes for "Failed to fetch" at this layer:`,
+        `  1. Browser has not accepted the self-signed cert at ${EVALCARE_URL} — open that URL directly in a tab and accept the warning.`,
+        `  2. Cross-origin preflight (OPTIONS) rejected — check evalcare's CORSMiddleware allow_origins covers ${window.location.origin}.`,
+        `  3. ${EVALCARE_URL.replace(/^https?:\/\//, '')} container is down or not bound to that port.`,
+        `  4. Mixed-content block (http upstream from https iframe).`,
+        ``,
+        `Stack:`,
+        err?.stack || '  (no stack)',
+      ]
+      sendToParent('gui:fatal-error', { message: lines.join('\n') })
     }
   }, [question])
 
