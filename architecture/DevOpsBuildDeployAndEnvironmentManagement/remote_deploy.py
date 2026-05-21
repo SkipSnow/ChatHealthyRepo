@@ -303,12 +303,18 @@ def _sharedservices_source_set(repo_root: Path) -> list[tuple[str, str | None]]:
         ("FrontEndApplicationLib", "FrontEndApplicationLib"),
         # EPIC-002-F-003: the auth feature lives at architecture/
         # AuthorizationsAndAuthentications/ in the source tree (feature-
-        # mirroring layout per Skip 2026-05-14) and is staged into the
-        # SharedServices build context as `authentication/` so the
-        # Dockerfile's `COPY authentication /app/authentication` resolves.
-        # The Builder enumerates this dir under the SharedServices target;
-        # the brain artifact reflects it; this stage tuple mirrors that.
+        # mirroring layout) and is staged into the SharedServices build
+        # context as `authentication/` so the Dockerfile's
+        # `COPY authentication /app/authentication` resolves.
         ("architecture/AuthorizationsAndAuthentications", "authentication"),
+        # EPIC-006-F-002: specialty_filter_tool lives under
+        # FindCare/SpecialtyFilter/ (the FindCare feature directory).
+        # universal_navigation_tool imports it via
+        # `from SpecialtyFilter import specialty_filter_tool`, so the
+        # SharedServices build context needs that package at the root
+        # so the Dockerfile's `COPY SpecialtyFilter /app/SpecialtyFilter`
+        # resolves.
+        ("FindCare/SpecialtyFilter", "SpecialtyFilter"),
     ]
 
 
