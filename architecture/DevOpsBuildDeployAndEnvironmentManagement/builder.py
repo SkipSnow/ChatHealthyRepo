@@ -30,6 +30,7 @@ Crosswalk surfaces them.
 from __future__ import annotations
 
 import base64
+import hashlib
 import re as _re
 from pathlib import Path
 from typing import Iterable
@@ -416,6 +417,7 @@ class Builder:
         disposition = _disposition_for(handler)
         embedded: str | None = None
         layout: object | None = None
+        content_hash: str | None = None
         if disposition == "managed":
             if handler in _MANAGED_HANDLER_TYPES:
                 layout = self._prior_layouts.get(rel)
@@ -432,6 +434,10 @@ class Builder:
                     embedded = _render_workflow_yaml(layout)  # type: ignore[arg-type]
             else:
                 embedded = _read_managed_content(abs_path)
+        else:
+            # disposition='referenced': hash the disk bytes so Crosswalk
+            # can detect drift between commit-time and deploy-time content.
+            content_hash = hashlib.sha256(abs_path.read_bytes()).hexdigest()
         return FileComposition(
             feature_id=_FEATURE_ID,
             source_location=rel,
@@ -439,6 +445,7 @@ class Builder:
             disposition=disposition,
             embedded_content=embedded,
             layout=layout,
+            content_hash=content_hash,
         )
 
     def _enumerate(
