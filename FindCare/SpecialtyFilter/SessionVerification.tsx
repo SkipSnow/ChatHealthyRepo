@@ -46,7 +46,7 @@ export default function SessionVerification({ token }: Props) {
         padding: '0 0.5em',
       }}
     >
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: f(0.7) }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', fontSize: f(0.7) }}>
         <tbody>
           <tr>
             <td style={{ fontWeight: 700, color: TEAL, textTransform: 'uppercase' }}>
