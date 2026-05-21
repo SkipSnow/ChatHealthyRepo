@@ -14,6 +14,7 @@ COPY app.py             /app/app.py
 COPY healthcheck        /app/healthcheck
 COPY displayChrome      /app/displayChrome
 COPY authentication     /app/authentication
+COPY SpecialtyFilter    /app/SpecialtyFilter
 COPY externalInterface  /app/externalInterface
 COPY secretsManager     /app/secretsManager
 

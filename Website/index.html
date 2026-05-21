@@ -1262,16 +1262,14 @@
             }
             var st = result.session_token;
             if (owner === 'findcare') {
-              var leftCell = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
-              if (!leftCell) {
-                var leftPanelOuter = document.getElementById('leftPanel');
-                if (leftPanelOuter) {
-                  leftPanelOuter.insertAdjacentHTML('beforeend',
-                    '<div id="guiSessionId" style="padding: 1em;border-top:0.125em solid #e5e7eb;"></div>');
-                  leftCell = document.getElementById('guiSessionId');
-                }
+              // The filter iframe (React) owns its own SessionVerification widget.
+              // Stash the token for late-mounting iframes; push it to any iframe
+              // currently in the DOM.
+              window._latestSessionToken = st;
+              var filterFrame = document.querySelector('iframe[data-filter-frame]');
+              if (filterFrame && filterFrame.contentWindow) {
+                filterFrame.contentWindow.postMessage({type: 'session_token', session_token: st}, '*');
               }
-              if (leftCell) leftCell.innerHTML = window.buildTokenDisplayHtml(st);
             } else {
               window.ensureRightPanelStructure();
               var sec = document.getElementById('rightSecurity');
@@ -1587,25 +1585,35 @@
       // Pure render: every value comes verbatim from the server's
       // SessionTokenVerification. The widget does no manipulation.
       window.buildTokenDisplayHtml = function(st) {
-        return '<div style="padding: 1em;border-top:0.25em solid #0b7a75;background:#f0fffe;margin-top: 1em;">'
-          + '<div style="font-size: 1em;font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</div>'
-          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;word-break:break-all;">'
-          + '<b style="color:#6366f1;">Signed token:</b> <span style="color:#6366f1;">' + st.signature_received + '</span></div>'
-          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;word-break:break-all;">'
-          + '<b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + st.nonce + '</span></div>'
-          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;word-break:break-all;">'
-          + '<b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + st.guid + '</span></div>'
-          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;">'
-          + '<b>Origin:</b> ' + st.origin
-          + ' &middot; <b>Verified:</b> <span style="font-weight:700;">' + st.verified + '</span></div>'
-          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;">'
-          + '<b>Server, serving security token:</b> ' + st.origin + '</div>'
-          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;">'
-          + '<b>Env:</b> <span style="color:#7c3aed;font-weight:700;">' + st.server_env + '</span></div>'
-          + '<div style="font-size: 1em;color:#374151;margin-top: 1em;">'
-          + '<b>Time:</b> ' + st.created_at + '</div>'
+        return '<div style="padding:0 0.5em;border-top:0.25em solid #0b7a75;background:#f0fffe;">'
+          + '<table style="width:100%;border-collapse:collapse;font-size:0.3em;">'
+          + '<tbody>'
+          + '<tr><td style="font-weight:700;color:#0b7a75;text-transform:uppercase;">Session Verification</td></tr>'
+          + '<tr><td style="color:#374151;word-break:break-all;"><b style="color:#6366f1;">Signed token:</b> <span style="color:#6366f1;">' + st.signature_received + '</span></td></tr>'
+          + '<tr><td style="color:#374151;word-break:break-all;"><b style="color:#d97706;">Nonce:</b> <span style="color:#d97706;">' + st.nonce + '</span></td></tr>'
+          + '<tr><td style="color:#374151;word-break:break-all;"><b style="color:#0b7a75;">GUID:</b> <span style="color:#0b7a75;">' + st.guid + '</span></td></tr>'
+          + '<tr><td style="color:#374151;"><b>Origin:</b> ' + st.origin + ' &middot; <b>Verified:</b> <span style="font-weight:700;">' + st.verified + '</span></td></tr>'
+          + '<tr><td style="color:#374151;"><b>Server, serving security token:</b> ' + st.origin + '</td></tr>'
+          + '<tr><td style="color:#374151;"><b>Env:</b> <span style="color:#7c3aed;font-weight:700;">' + st.server_env + '</span></td></tr>'
+          + '<tr><td style="color:#374151;"><b>Time:</b> ' + st.created_at + '</td></tr>'
+          + '</tbody>'
+          + '</table>'
           + '</div>';
       }
+
+      // Filter iframe (separate from chatFrame) requests the current session
+      // token on mount; respond with the stashed token so its React
+      // SessionVerification component can render. Late-arriving requests are
+      // honored as long as window._latestSessionToken is set.
+      window.addEventListener('message', function(event) {
+        var msg = event.data;
+        if (!msg || typeof msg !== 'object') return;
+        if (msg.type === 'session_token_request' && window._latestSessionToken) {
+          if (event.source && event.source.postMessage) {
+            event.source.postMessage({type: 'session_token', session_token: window._latestSessionToken}, '*');
+          }
+        }
+      });
 
       window.addEventListener('message', function(event) {
         if (!chatFrame || !chatFrame.contentWindow) return;

@@ -694,18 +694,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_filter/__init__.py",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_filter/filter.py",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_ranker.py",
           "handler_type": "python_source",
           "disposition": "referenced"
@@ -1031,18 +1019,6 @@
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/MessageBubble.tsx",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/SpecialtyFilter.tsx",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/useSpecialtyFilterController.ts",
           "handler_type": "static_asset",
           "disposition": "referenced"
         },
@@ -1539,8 +1515,50 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/SpecialtyFilter/SessionVerification.tsx",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/SpecialtyFilter/SpecialtyFilter.tsx",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/SpecialtyFilter/SpecialtyFilterDesign_V3.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/SpecialtyFilter/__init__.py",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/SpecialtyFilter/filter.py",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "FindCare/SpecialtyFilter/find_specialists.py",
           "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/SpecialtyFilter/specialty_filter_tool.py",
+          "handler_type": "python_source",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "FindCare/SpecialtyFilter/useSpecialtyFilterController.ts",
+          "handler_type": "static_asset",
           "disposition": "referenced"
         },
         {
@@ -1811,12 +1829,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/AuthorizationsAndAuthentications/specialty_filter_tool.py",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced"
@@ -1838,7 +1850,7 @@
           "source_location": "sharedServices/Code/Dockerfile",
           "handler_type": "dockerfile",
           "disposition": "managed",
-          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
+          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
           "layout": [
             {
               "instruction": "BLANK",
@@ -1924,6 +1936,12 @@
               "instruction": "COPY",
               "args": [
                 "authentication     /app/authentication"
+              ]
+            },
+            {
+              "instruction": "COPY",
+              "args": [
+                "SpecialtyFilter    /app/SpecialtyFilter"
               ]
             },
             {

@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from application.tool_router import ToolRouter
 from application.facades.evaluate_care_facade import EvaluateCareFacade
 from ProviderManagement.provider_search_service import FindCareService
-from domain.find_care.specialty_filter.filter import SpecialtyFilter
+from SpecialtyFilter.filter import SpecialtyFilter
 from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
 from ProviderManagement.provider_detail_service import ProviderDetailService
 from domain.shared.safety.safety_service import SafetyService
