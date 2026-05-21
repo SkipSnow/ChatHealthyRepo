@@ -87,6 +87,66 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/lab/filter1.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/lab/filter10.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/lab/filter2.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/lab/filter3.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/lab/filter4.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/lab/filter5.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/lab/filter6.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/lab/filter7.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/lab/filter8.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/lab/filter9.html",
+          "handler_type": "static_asset",
+          "disposition": "referenced"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "Website/ops-manager-design.html",
           "handler_type": "static_asset",
           "disposition": "referenced"
@@ -862,12 +922,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/backend/tests/test_prompt_log.py",
-          "handler_type": "python_test",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/backend/tests/test_prompt_system_maker.py",
           "handler_type": "python_test",
           "disposition": "referenced"
@@ -982,19 +1036,13 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/SpecialtyFilter.css",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/SpecialtyFilter.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced"
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/SpecialtyFilterFrame.tsx",
+          "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/useSpecialtyFilterController.ts",
           "handler_type": "static_asset",
           "disposition": "referenced"
         },
@@ -1090,18 +1138,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/conversation_log_hook.py",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/daily_conversation_commit.sh",
-          "handler_type": "shell_script",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/epic_planning_runner.py",
           "handler_type": "python_source",
           "disposition": "referenced"
@@ -1116,36 +1152,6 @@
           "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/generate_security_page.py",
           "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/kafka/conversation_log_consumer.py",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/kafka/conversation_log_producer.py",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/kafka/docker-compose.yml",
-          "handler_type": "static_asset",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/kafka/tests/test_conversation_log_failures.py",
-          "handler_type": "python_test",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/kafka/tests/test_conversation_log_kafka.py",
-          "handler_type": "python_test",
           "disposition": "referenced"
         },
         {
@@ -1300,12 +1306,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/preCommitScan.py",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/tools/regression_runner.py",
           "handler_type": "python_source",
           "disposition": "referenced"
@@ -1314,12 +1314,6 @@
           "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/tools/requirements.txt",
           "handler_type": "python_requirements",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/riskWaiver_gate.py",
-          "handler_type": "python_source",
           "disposition": "referenced"
         },
         {
@@ -1336,19 +1330,7 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/skill/conversation_log_agent.py",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/tools/tests/test_brain_write_validator.py",
-          "handler_type": "python_test",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/tools/tests/test_devops_boot_and_scanner.py",
           "handler_type": "python_test",
           "disposition": "referenced"
         },
@@ -1641,18 +1623,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "brain/machine_artifacts/content/conversation_log.json",
-          "handler_type": "json",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "brain/machine_artifacts/content/conversation_log_fallback.jsonl",
-          "handler_type": "json",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "brain/machine_artifacts/content/daily_punch_list_with_results_and_accomplishments.json",
           "handler_type": "json",
           "disposition": "referenced"
@@ -1689,12 +1659,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "brain/machine_artifacts/content/governance_matrix.json",
-          "handler_type": "json",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "brain/machine_artifacts/content/legal.json",
           "handler_type": "json",
           "disposition": "referenced"
@@ -1702,18 +1666,6 @@
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "brain/machine_artifacts/content/prompts.json",
-          "handler_type": "json",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "brain/machine_artifacts/content/risk_acceptance.json",
-          "handler_type": "json",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "brain/machine_artifacts/content/schema.json",
           "handler_type": "json",
           "disposition": "referenced"
         },
@@ -2104,12 +2056,6 @@
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ch_fonts_inliner.py",
           "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ch_fonts_snippet.html",
-          "handler_type": "static_asset",
           "disposition": "referenced"
         },
         {
