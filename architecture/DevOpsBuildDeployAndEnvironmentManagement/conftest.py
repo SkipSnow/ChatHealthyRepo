@@ -1,12 +1,12 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""pytest plumbing for Code/deploy/localSmokeTestPyTest.py.
+"""pytest plumbing for find_care_smoke_test.py (sibling module).
 
 Adds the --smoke-env CLI option so the master smoke test can be invoked by the
 deploy classes (LocalDeploy, RemoteDeploy) with a specific environment per
 V11 S-006 (smoke test is parameterized on env={local,dev,qa,prod}).
 
-The localSmokeTestPyTest module reads SMOKE_TEST_ENV at import time, so this
+The find_care_smoke_test module reads SMOKE_TEST_ENV at import time, so this
 conftest sets the env var in pytest_configure (which runs before collection).
 """
 import os

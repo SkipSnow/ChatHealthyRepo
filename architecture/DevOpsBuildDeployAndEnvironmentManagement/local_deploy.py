@@ -13,7 +13,7 @@ Five design constraints (2026-05-01):
   1. Each deploy script encapsulated in a class.
   2. Conventional main: parse args -> construct class -> call .run().
   3. Two scripts only — this is the local one (remote_deploy.py is the other).
-  4. Playwright callable with env, headless (handled in localSmokeTestPyTest.py).
+  4. Playwright callable with env, headless (handled in find_care_smoke_test.py).
   5. No invention; meet V11 exactly.
 
 Known V11 deviations filed as bugs:
@@ -62,7 +62,7 @@ class LocalDeploy:
     def __init__(self) -> None:
         self.env = "local"
         self.repo_root = REPO_ROOT
-        # deploy_dir hosts _start_website.py + localSmokeTestPyTest.py.
+        # deploy_dir hosts _start_website.py + find_care_smoke_test.py.
         # They live alongside this module so the substrate's __file__
         # discovery survives any future relocation of the deploy
         # substrate.
@@ -805,7 +805,7 @@ class LocalDeploy:
     def _invoke_smoke_test(self) -> int:
         cmd = [
             sys.executable, "-m", "pytest", "-v",
-            str(self.deploy_dir / "localSmokeTestPyTest.py"),
+            str(self.deploy_dir / "find_care_smoke_test.py"),
             f"--smoke-env={self.env}",
         ]
         # Local has mTLS enabled, so include mtls_required tests (no marker

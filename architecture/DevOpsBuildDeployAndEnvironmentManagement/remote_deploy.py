@@ -784,7 +784,7 @@ def main(argv: list[str] | None = None) -> int:
     # Smoke test lives next to this module (substrate sibling); use
     # __file__-relative discovery so the path survives any future move
     # of the substrate dir.
-    smoke_path = Path(__file__).resolve().parent / "localSmokeTestPyTest.py"
+    smoke_path = Path(__file__).resolve().parent / "find_care_smoke_test.py"
     rc = subprocess.call(
         [sys.executable, "-m", "pytest", str(smoke_path), "-v"],
         env=smoke_env,
