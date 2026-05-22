@@ -264,8 +264,21 @@ def project(record: dict) -> dict:
     org_subpart = ("yes" if org_subpart == "Y" else "no") if org_subpart else None
 
     # --- derived: prescriber status + drugs ---
-    can_prescribe_data = record.get("can_prescribe") or {}
-    can_prescribe_flag = "yes" if can_prescribe_data.get("flagged") else "no"
+    # F5 (2026-05-22): can_prescribe is now a plain boolean stamped from the
+    # proprietary NUCC classification catalog. The legacy nested-dict shape
+    # (with .flagged / .cost_measures / .drugs from the prescriber pipeline)
+    # is EvaluateCare territory; this code handles both shapes during the
+    # transition.
+    can_prescribe_raw = record.get("can_prescribe")
+    if isinstance(can_prescribe_raw, bool):
+        can_prescribe_flag = "yes" if can_prescribe_raw else "no"
+        can_prescribe_data = {}
+    elif isinstance(can_prescribe_raw, dict):
+        can_prescribe_data = can_prescribe_raw
+        can_prescribe_flag = "yes" if can_prescribe_data.get("flagged") else "no"
+    else:
+        can_prescribe_flag = "no"
+        can_prescribe_data = {}
     prescriber_drugs_text = None
     generic_ratio_band = None
     on_label_band = None

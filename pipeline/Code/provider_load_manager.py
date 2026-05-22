@@ -11,7 +11,7 @@ and replayable (no direct I/O).
 
 Pipeline step labels are exposed as the `start_step` API value AND as the
 `set_custom_status` display string — one canonical string per stage. See
-FINDCARE_PIPELINE_STEPS at the top of this module for the parent ordering.
+PROVIDER_PIPELINE_STEPS at the top of this module for the parent ordering.
 """
 
 import csv
@@ -142,32 +142,30 @@ def _ensure_container(container: str) -> None:
 
 # ── Step labels (one canonical string per stage; used as both the
 #    set_custom_status display and the start_step API value) ─────────────────
-FINDCARE_LABEL_RESERVE   = "Step 1: Reserving cluster"
-FINDCARE_LABEL_HEALTH    = "Step 2: Checking MongoDB health"
-FINDCARE_LABEL_SPECIALTY = "Step 3: Loading SpecialtyMetaData"
-FINDCARE_LABEL_LOAD      = "Step 4: Loading provider data"
-FINDCARE_LABEL_ATTACH_PL = "Step 5: Attaching secondary practice locations"
-FINDCARE_LABEL_PASS1     = "Step 6: County enrichment Pass 1 — ZIP crosswalk"
-FINDCARE_LABEL_PASS2     = "Step 7: County enrichment Pass 2 — Census Geocoder, practice address"
-FINDCARE_LABEL_PASS3     = "Step 8: County enrichment Pass 3 — Census Geocoder, billing address"
-FINDCARE_LABEL_PASS4     = "Step 9: County enrichment Pass 4 — Google Maps"
-FINDCARE_LABEL_PASS6     = "Step 10: County enrichment Pass 6 — NPPES registry lookup"
-FINDCARE_LABEL_URBAN     = "Step 11: Stamping urban flag from Census 2020_UA_COUNTY"
-FINDCARE_LABEL_EMBED     = "Step 12: Generating embeddings + vector index"
+PROVIDER_LABEL_RESERVE   = "Step 1: Reserving cluster"
+PROVIDER_LABEL_HEALTH    = "Step 2: Checking MongoDB health"
+PROVIDER_LABEL_LOAD      = "Step 3: Loading provider data"
+PROVIDER_LABEL_ATTACH_PL = "Step 4: Attaching secondary practice locations"
+PROVIDER_LABEL_PASS1     = "Step 5: County enrichment Pass 1 — ZIP crosswalk"
+PROVIDER_LABEL_PASS2     = "Step 6: County enrichment Pass 2 — Census Geocoder, practice address"
+PROVIDER_LABEL_PASS3     = "Step 7: County enrichment Pass 3 — Census Geocoder, billing address"
+PROVIDER_LABEL_PASS4     = "Step 8: County enrichment Pass 4 — Google Maps"
+PROVIDER_LABEL_PASS6     = "Step 9: County enrichment Pass 6 — NPPES registry lookup"
+PROVIDER_LABEL_URBAN     = "Step 10: Stamping urban flag from Census 2020_UA_COUNTY"
+PROVIDER_LABEL_EMBED     = "Step 11: Generating embeddings + vector index"
 
-FINDCARE_PIPELINE_STEPS = [
-    FINDCARE_LABEL_RESERVE,
-    FINDCARE_LABEL_HEALTH,
-    FINDCARE_LABEL_SPECIALTY,
-    FINDCARE_LABEL_LOAD,
-    FINDCARE_LABEL_ATTACH_PL,
-    FINDCARE_LABEL_PASS1,
-    FINDCARE_LABEL_PASS2,
-    FINDCARE_LABEL_PASS3,
-    FINDCARE_LABEL_PASS4,
-    FINDCARE_LABEL_PASS6,
-    FINDCARE_LABEL_URBAN,
-    FINDCARE_LABEL_EMBED,
+PROVIDER_PIPELINE_STEPS = [
+    PROVIDER_LABEL_RESERVE,
+    PROVIDER_LABEL_HEALTH,
+    PROVIDER_LABEL_LOAD,
+    PROVIDER_LABEL_ATTACH_PL,
+    PROVIDER_LABEL_PASS1,
+    PROVIDER_LABEL_PASS2,
+    PROVIDER_LABEL_PASS3,
+    PROVIDER_LABEL_PASS4,
+    PROVIDER_LABEL_PASS6,
+    PROVIDER_LABEL_URBAN,
+    PROVIDER_LABEL_EMBED,
 ]
 
 
@@ -275,6 +273,12 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     # Reset always_ready = 0 — no standby cost between runs.
     context.set_custom_status(LOAD_LABEL_COOL)
     yield context.call_activity("cool_instances_activity", config)
+
+    # F5: stamp proprietary classification flags (can_prescribe, is_homeopathic)
+    # from the catalog blob. Single source of truth across pipelines.
+    context.set_custom_status("Applying proprietary classification flags")
+    flag_metrics = yield context.call_activity("apply_proprietary_flags_activity", config)
+    logging.info("F5 flag stamping: %s", flag_metrics)
 
     # Index build (MongoDB) and reconcile (blob read) run in parallel — independent I/O.
     context.set_custom_status(LOAD_LABEL_INDEXES)
@@ -869,18 +873,17 @@ def create_vector_index_fn(config: dict) -> dict:
 
 # ── Full Pipeline Orchestrator ────────────────────────────────────────────────
 
-def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Top-level orchestrator: reserve → health check → specialty → load →
+def provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
+    """Provider Pipeline orchestrator: reserve → health check → load →
     attach pl_pfile → enrichment passes → embeddings.
 
     start_step (str, optional): the canonical step LABEL where execution should
     begin. Steps before this label are skipped; the label itself runs. The
     same string is what appears in `customStatus`. Defaults to the first step
     (full run). Steps 1 (Reserving) and 2 (Health check) are MANDATORY and
-    always run regardless of start_step. Step 3 (SpecialtyMetaData) is
-    additionally gated on `specialty_metadata` (default True).
+    always run regardless of start_step.
 
-    See FINDCARE_PIPELINE_STEPS / FINDCARE_LABEL_* at the top of this module
+    See PROVIDER_PIPELINE_STEPS / PROVIDER_LABEL_* at the top of this module
     for the canonical ordering.
     """
     from county_enrichment_job import _build_enrichment_reconcile
@@ -889,14 +892,14 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
     load_id = context.instance_id
 
     start_label = config["start_step"]
-    if start_label not in FINDCARE_PIPELINE_STEPS:
+    if start_label not in PROVIDER_PIPELINE_STEPS:
         raise ValueError(
-            f"Unknown start_step {start_label!r}. Valid: {FINDCARE_PIPELINE_STEPS}"
+            f"Unknown start_step {start_label!r}. Valid: {PROVIDER_PIPELINE_STEPS}"
         )
-    start_idx = FINDCARE_PIPELINE_STEPS.index(start_label)
+    start_idx = PROVIDER_PIPELINE_STEPS.index(start_label)
 
     def _run(label: str) -> bool:
-        return FINDCARE_PIPELINE_STEPS.index(label) >= start_idx
+        return PROVIDER_PIPELINE_STEPS.index(label) >= start_idx
 
     enrich_config = {
         "load_id": load_id,
@@ -912,11 +915,11 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
     cluster_name = config["pipeline_cluster"]
     reservation = {
         "job_id": load_id,
-        "requester": "FindCarePipeline",
+        "requester": "ProviderPipeline",
         "cluster_name": cluster_name,
         "expected_duration_minutes": config["expected_duration_minutes"],
     }
-    context.set_custom_status(FINDCARE_LABEL_RESERVE)
+    context.set_custom_status(PROVIDER_LABEL_RESERVE)
     yield context.call_activity("register_reservation_activity", reservation)
 
     import datetime
@@ -939,19 +942,12 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
 
     try:
         # Health check is MANDATORY — runs regardless of start_step.
-        context.set_custom_status(FINDCARE_LABEL_HEALTH)
+        context.set_custom_status(PROVIDER_LABEL_HEALTH)
         yield context.call_activity("check_mongo_health_activity", config)
-        step_statuses.append({"step": FINDCARE_LABEL_HEALTH, "status": "completed_success"})
+        step_statuses.append({"step": PROVIDER_LABEL_HEALTH, "status": "completed_success"})
 
-        if config["specialty_metadata"]:
-            context.set_custom_status(FINDCARE_LABEL_SPECIALTY)
-            yield context.call_activity("load_specialty_data_activity", {
-                "env_prefix": config["env_prefix"],
-            })
-            step_statuses.append({"step": FINDCARE_LABEL_SPECIALTY, "status": "completed_success"})
-
-        if _run(FINDCARE_LABEL_LOAD):
-            context.set_custom_status(FINDCARE_LABEL_LOAD)
+        if _run(PROVIDER_LABEL_LOAD):
+            context.set_custom_status(PROVIDER_LABEL_LOAD)
             load_config = {
                 "num_workers": config["num_workers"],
                 "batch_size": config["batch_size"],
@@ -962,10 +958,10 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "metadata_collection": config["metadata_collection"],
             }
             load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
-            step_statuses.append({"step": FINDCARE_LABEL_LOAD, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_LOAD, "status": "completed_success"})
 
-        if _run(FINDCARE_LABEL_ATTACH_PL):
-            context.set_custom_status(FINDCARE_LABEL_ATTACH_PL)
+        if _run(PROVIDER_LABEL_ATTACH_PL):
+            context.set_custom_status(PROVIDER_LABEL_ATTACH_PL)
             attach_config = {
                 "blob_container": config["blob_container"],
                 "states": config["states"],
@@ -976,42 +972,42 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
             attach_result = yield context.call_activity(
                 "attach_practice_locations_activity", attach_config
             )
-            step_statuses.append({"step": FINDCARE_LABEL_ATTACH_PL, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_ATTACH_PL, "status": "completed_success"})
 
-        if _run(FINDCARE_LABEL_PASS1):
-            context.set_custom_status(FINDCARE_LABEL_PASS1)
+        if _run(PROVIDER_LABEL_PASS1):
+            context.set_custom_status(PROVIDER_LABEL_PASS1)
             pass1_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass1_orchestrator", enrich_config
             )
-            step_statuses.append({"step": FINDCARE_LABEL_PASS1, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_PASS1, "status": "completed_success"})
 
-        if _run(FINDCARE_LABEL_PASS2):
-            context.set_custom_status(FINDCARE_LABEL_PASS2)
+        if _run(PROVIDER_LABEL_PASS2):
+            context.set_custom_status(PROVIDER_LABEL_PASS2)
             pass2_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass2_orchestrator", enrich_config
             )
-            step_statuses.append({"step": FINDCARE_LABEL_PASS2, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_PASS2, "status": "completed_success"})
 
-        if _run(FINDCARE_LABEL_PASS3):
-            context.set_custom_status(FINDCARE_LABEL_PASS3)
+        if _run(PROVIDER_LABEL_PASS3):
+            context.set_custom_status(PROVIDER_LABEL_PASS3)
             pass3_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass3_orchestrator", enrich_config
             )
-            step_statuses.append({"step": FINDCARE_LABEL_PASS3, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_PASS3, "status": "completed_success"})
 
-        if _run(FINDCARE_LABEL_PASS4) and config["google_maps_enabled"]:
-            context.set_custom_status(FINDCARE_LABEL_PASS4)
+        if _run(PROVIDER_LABEL_PASS4) and config["google_maps_enabled"]:
+            context.set_custom_status(PROVIDER_LABEL_PASS4)
             pass4_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass4_orchestrator", enrich_config
             )
-            step_statuses.append({"step": FINDCARE_LABEL_PASS4, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_PASS4, "status": "completed_success"})
 
-        if _run(FINDCARE_LABEL_PASS6):
-            context.set_custom_status(FINDCARE_LABEL_PASS6)
+        if _run(PROVIDER_LABEL_PASS6):
+            context.set_custom_status(PROVIDER_LABEL_PASS6)
             pass6_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass6_nppes_orchestrator", enrich_config
             )
-            step_statuses.append({"step": FINDCARE_LABEL_PASS6, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_PASS6, "status": "completed_success"})
 
         if pass1_result or pass2_result or pass3_result or pass6_result:
             reconcile = _build_enrichment_reconcile(
@@ -1022,8 +1018,8 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
             )
 
-        if _run(FINDCARE_LABEL_URBAN):
-            context.set_custom_status(FINDCARE_LABEL_URBAN)
+        if _run(PROVIDER_LABEL_URBAN):
+            context.set_custom_status(PROVIDER_LABEL_URBAN)
             urban_config = {
                 "blob_container": config["blob_container"],
                 "states": config["states"],
@@ -1033,13 +1029,13 @@ def findcare_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
             urban_result = yield context.call_activity(
                 "stamp_urban_flag_activity", urban_config
             )
-            step_statuses.append({"step": FINDCARE_LABEL_URBAN, "status": "completed_success",
+            step_statuses.append({"step": PROVIDER_LABEL_URBAN, "status": "completed_success",
                                   "summary": urban_result})
 
-        if _run(FINDCARE_LABEL_EMBED) and config["embedding_enabled"]:
+        if _run(PROVIDER_LABEL_EMBED) and config["embedding_enabled"]:
             num_workers = config["num_workers"]
             provider_collection = config["provider_collection"]
-            context.set_custom_status(FINDCARE_LABEL_EMBED)
+            context.set_custom_status(PROVIDER_LABEL_EMBED)
             embed_tasks = [
                 context.call_activity(
                     "embed_worker_activity",

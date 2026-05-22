@@ -279,10 +279,7 @@ add_table(
         ["BaseAgent", "Code/Shared/agent_framework/", "Abstract agent with tool registry"],
         ["BaseTool", "Code/Shared/agent_framework/", "Tool interface: execute, repair"],
         ["ToolRegistry", "Code/Shared/agent_framework/", "Allowlist enforcement (GOV-004)"],
-        ["OpsManagerAgent", "Code/DataPipelines/ops_manager/", "Pipeline infrastructure agent"],
-        ["ClusterTool", "Code/DataPipelines/ops_manager/", "Wake, pause, status, reserve, release"],
-        ["AlertTool", "Code/DataPipelines/ops_manager/", "Email (SparkPost) + Pushover"],
-        ["TriageTool", "Code/DataPipelines/ops_manager/", "LLM error classification (GPT-4.1-mini)"],
+        ["ClusterLifecycleManager", "pipeline/Code/cluster_lifecycle_manager.py", "Wake, pause, status, reserve, release"],
         ["Config", "Brain pseudo-collection", "Recipients, thresholds, channels"],
     ],
 )

@@ -904,63 +904,53 @@ def _evaluate_zip_state_mismatch(
     return ("bad", "zip_state_mismatch", None)
 
 
-# ── NUCC taxonomy prefixes with prescribing authority ──────────────────────
-# These taxonomy code prefixes identify provider types that have independent
-# or delegated prescribing authority in all or most US states.
-_PRESCRIBER_TAX_PREFIXES = (
-    "207",   # Allopathic & Osteopathic Physicians (all subspecialties)
-    "208",   # Allopathic Physicians (continued)
-    "209",   # Allopathic Physicians (continued)
-    "204",   # Neuromusculoskeletal Medicine
-    "174400000X",  # Optometrist
-    "363L",  # Nurse Practitioner (all subtypes)
-    "363A",  # Physician Assistant (all subtypes)
-    "367",   # CRNA / Advanced Practice Midwife
-    "122",   # Dentists (all subtypes)
-    "213",   # Podiatrists
-    "176",   # Certified Nurse Midwife
-)
+# ── Proprietary classification flags on providers ─────────────────────────
+# can_prescribe and is_homeopathic are denormalized onto every provider
+# record from the per-NUCC-code catalog stored in findcarestorage. Single
+# source of truth = specialty_classification_catalog.load_catalog().
 
 
-def mark_prescriber_fn(config: dict) -> dict:
-    """PIPE-DQ-004: Classify providers by prescribing authority.
+def apply_proprietary_flags_fn(config: dict) -> dict:
+    """Stamp can_prescribe and is_homeopathic booleans on provider records.
 
-    Sets can_prescribe: {flagged: bool, method: "taxonomy", taxonomy_code: "..."}
-    on every provider that does not already have the flag.
+    The provider's primary taxonomy code (or first, if no primary) is looked
+    up in the proprietary catalog blob. Both flags are written as plain
+    booleans. Organizations (entity_type_code "2") get can_prescribe=False
+    and is_homeopathic=False regardless of taxonomy.
 
-    Classification logic:
-    - entity_type_code "2" (organizations) → can_prescribe = false
-    - entity_type_code "1" (individuals) → check primary taxonomy code
-      against _PRESCRIBER_TAX_PREFIXES. If primary is absent, check first
-      taxonomy code.
-
-    This flag is used by:
-    - FindCare: to inform users whether a provider can prescribe
-    - EvaluateCare: to determine if prescription behavior scoring applies
-
-    Called after mark_out_of_scope_fn and mark_zip_state_mismatch_fn.
+    Idempotent: providers whose `can_prescribe` already exists as a boolean
+    are skipped via the {"$type": "bool"} filter. (Legacy nested-dict
+    `can_prescribe.flagged` shape — written by an earlier dead code path —
+    is intentionally re-stamped.)
     """
+    from specialty_classification_catalog import load_catalog
+    catalog = load_catalog()
+
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
     sf = _build_states_filter(config)
-
-    # Only process providers without the flag
     base_filter = {
-        "can_prescribe": {"$exists": False},
+        "$or": [
+            {"can_prescribe": {"$exists": False}},
+            {"can_prescribe": {"$not": {"$type": "bool"}}},
+            {"is_homeopathic": {"$exists": False}},
+        ],
         **sf,
     }
 
     total = coll.count_documents(base_filter)
-    logging.info("PIPE-DQ-004: %d providers need can_prescribe classification", total)
-
+    logging.info("F5: %d providers need proprietary-flag stamping (catalog has %d entries)",
+                 total, len(catalog))
     if total == 0:
-        return {"classified": 0, "prescribers": 0, "non_prescribers": 0}
+        return {"classified": 0, "prescribers": 0, "homeopathic": 0,
+                "unknown_taxonomy": 0}
 
     ops = []
     prescribers = 0
-    non_prescribers = 0
+    homeopathic = 0
+    unknown_taxonomy = 0
 
     cursor = coll.find(
         base_filter,
@@ -969,35 +959,37 @@ def mark_prescriber_fn(config: dict) -> dict:
 
     for doc in cursor:
         entity_type = doc.get("entity_type_code", "")
-
         if entity_type == "2":
-            # Organizations cannot prescribe
-            can = False
-            tax_code = ""
-            method = "organization"
+            can_prescribe = False
+            is_homeopathic = False
         else:
-            # Individual: check primary taxonomy, fall back to first
-            taxonomies = doc.get("taxonomies", [])
+            taxonomies = doc.get("taxonomies", []) or []
             primary = next((t for t in taxonomies if t.get("primary")), None)
-            tax_code = (primary or taxonomies[0] if taxonomies else {}).get("code", "")
-            can = any(tax_code.startswith(p) for p in _PRESCRIBER_TAX_PREFIXES)
-            method = "taxonomy"
+            tax = primary or (taxonomies[0] if taxonomies else {})
+            tax_code = tax.get("code", "") if isinstance(tax, dict) else ""
+            entry = catalog.get(tax_code)
+            if entry is None:
+                # Taxonomy code not in catalog → cannot classify.
+                # Default both flags to False and count separately.
+                can_prescribe = False
+                is_homeopathic = False
+                unknown_taxonomy += 1
+            else:
+                can_prescribe = entry["can_prescribe"]
+                is_homeopathic = entry["is_homeopathic"]
+
+        if can_prescribe:
+            prescribers += 1
+        if is_homeopathic:
+            homeopathic += 1
 
         ops.append(UpdateOne(
             {"_id": doc["_id"]},
             {"$set": {
-                "can_prescribe": {
-                    "flagged": can,
-                    "method": method,
-                    "taxonomy_code": tax_code,
-                },
+                "can_prescribe": can_prescribe,
+                "is_homeopathic": is_homeopathic,
             }},
         ))
-
-        if can:
-            prescribers += 1
-        else:
-            non_prescribers += 1
 
         if len(ops) >= 1000:
             coll.bulk_write(ops, ordered=False)
@@ -1006,14 +998,13 @@ def mark_prescriber_fn(config: dict) -> dict:
     if ops:
         coll.bulk_write(ops, ordered=False)
 
-    logging.info(
-        "PIPE-DQ-004: classified %d providers — prescribers: %d, non-prescribers: %d",
-        prescribers + non_prescribers, prescribers, non_prescribers,
-    )
+    logging.info("F5: classified %d providers — prescribers: %d, homeopathic: %d, "
+                 "unknown_taxonomy: %d", total, prescribers, homeopathic, unknown_taxonomy)
     return {
-        "classified": prescribers + non_prescribers,
+        "classified": total,
         "prescribers": prescribers,
-        "non_prescribers": non_prescribers,
+        "homeopathic": homeopathic,
+        "unknown_taxonomy": unknown_taxonomy,
     }
 
 
