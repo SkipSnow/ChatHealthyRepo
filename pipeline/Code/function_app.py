@@ -393,63 +393,6 @@ async def dev_pipeline_management(
 #     check_and_pause()
 
 
-# ── Cluster Lifecycle Manager — hourly check for overdue reservations ─────────
-
-@app.timer_trigger(schedule="0 */5 * * * *", arg_name="myTimer", run_on_startup=False)
-def cluster_lifecycle_timer(myTimer: func.TimerRequest) -> None:
-    """5-min reaper. Implements EPIC-010-F-029-S-006:
-      T-003 — delete overdue automated reservations
-      T-004 — user-class reservations are never aged out
-      T-006 — when zero live reservations remain, pause the cluster
-
-    Calls ClusterLifecycleManager directly. Does NOT use the OpsManagerAgent
-    stack (BUG-007: that stack imports agent_framework which is not in the
-    deploy package; every prior tick raised ModuleNotFoundError silently)."""
-    from datetime import datetime, timezone, timedelta
-
-    GRACE_MINUTES = 30
-    cluster_name = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
-    try:
-        mgr = _get_ops_manager()
-        status = mgr.status(cluster_name)
-        reservations = status.get("reservations", []) or []
-        now = datetime.now(timezone.utc)
-        grace = timedelta(minutes=GRACE_MINUTES)
-
-        reaped = 0
-        for r in reservations:
-            if r.get("reservation_class", "automated") != "automated":
-                continue
-            end_str = r.get("expected_end_time")
-            if not end_str:
-                continue
-            try:
-                end_dt = datetime.fromisoformat(end_str)
-            except (ValueError, TypeError):
-                continue
-            if now <= end_dt + grace:
-                continue
-            job_id = r.get("job_id") or ""
-            if not job_id:
-                continue
-            mgr.release(job_id)
-            reaped += 1
-            logging.info("Reaped overdue automated reservation: %s (requester=%s)",
-                         job_id, r.get("requester", ""))
-
-        post = mgr.status(cluster_name)
-        live = [r for r in (post.get("reservations") or [])
-                if r.get("status", "active") == "active"]
-        if not live and post.get("cluster_state") == "IDLE":
-            mgr.force_release_all(cluster_name)
-            logging.info("Cluster %s paused: zero live reservations", cluster_name)
-
-        logging.info("Reaper tick: reaped=%d, live_remaining=%d, cluster_state=%s",
-                     reaped, len(live), post.get("cluster_state", "?"))
-    except Exception:
-        logging.exception("Cluster lifecycle reaper tick failed")
-
-
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
 
 @app.orchestration_trigger(context_name="context")
