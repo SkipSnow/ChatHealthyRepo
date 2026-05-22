@@ -105,11 +105,11 @@
 
     .header-inner {
       max-width: var(--max-w);
-      margin: 1em;
-      padding: 1em;
+      margin: 0 1em;
+      padding: 0 1em;
       height: 100%;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 5em;
     }
 
@@ -590,9 +590,13 @@
       box-shadow: 0 0.25em 0.75em rgba(0,0,0,0.25); cursor: pointer;
       display: none;
     }
+    /* Mobile re-open FAB — vertically centered on the envBanner band.
+       envBanner sits just below the 6%-height header; this FAB pins to that
+       band's vertical center via top:6% + the translateY trick. */
     #mobileFilterReopen {
-      position: fixed; right: 1.75em; top: 7em; z-index: 1001;
-      min-width: 8em; height: 4em; padding: 1em; border-radius: 2em;
+      position: fixed; right: 1.75em; top: 6%; transform: translateY(0.4em);
+      z-index: 1001;
+      min-width: 8em; height: 2.4em; padding: 0 1em; border-radius: 1.2em;
       background: linear-gradient(180deg, #0b9a94, #0b7a75);
       color: #fff; border: none; font-size: 1em; font-weight: 700;
       box-shadow: 0 0.25em 0.75em rgba(0,0,0,0.25); cursor: pointer;
@@ -722,7 +726,7 @@
   <!-- Mobile filter re-open FAB. EPIC-006-F-002-S-001-REQ-T-003 / EPIC-006-F-019:
        Allows the user to return to the filter overlay after Apply Filter closes
        it on phone. CSS keeps it hidden until a filter is loaded. -->
-  <button id="mobileFilterReopen" type="button" aria-label="Open filter" data-testid="mobile-filter-reopen">Filter</button>
+  <button id="mobileFilterReopen" type="button" aria-label="Open filter" data-testid="mobile-filter-reopen">Specialty Filter</button>
   <button id="mobileRightOpen" type="button" aria-label="Show evaluation panel" data-testid="mobile-right-open">Info</button>
   <button id="mobileRightClose" type="button" aria-label="Return to FindCare" data-testid="mobile-right-close">FindCare</button>
 
@@ -838,8 +842,8 @@
           // font-size is required because ch_fonts_snippet sets
           // `span { font-size: 1rem }` which would otherwise reset each span
           // to the root size and ignore the parent banner's intent.
-          var bf = window.chFont(0.65);  // banner field text
-          var bk = window.chFont(0.55);  // bracket-context [findcare]
+          var bf = window.chFont(1.3);   // banner field text (2x of prior 0.65)
+          var bk = window.chFont(1.1);   // bracket-context [findcare] (2x of prior 0.55)
           var cell = 'font-size:' + bf + ';margin-right: 1em;';
           banner.innerHTML = '<span style="' + cell + '">' + env + '</span>'
             + '<span style="' + cell + '">Version: ' + (version || '?') + '</span>'
@@ -1303,7 +1307,7 @@
         ];
         // Links, not pills. Font size routed through chFont so the banner
         // text scale is centrally managed.
-        var lf = window.chFont(0.65);
+        var lf = window.chFont(1.3);  // 2x of prior 0.65
         var html = '';
         services.forEach(function(s) {
           var isActive = (owner === s.key);
@@ -1420,21 +1424,25 @@
         // S-005-REQ-B-004 "served by the HuggingFace server that owns
         // the content"). FindCare is no longer a proxy.
         var evalcareUrl = (window._envServiceUrls || {}).evaluatecare || '';
+
+        // Hide chatFrame + create evalcareSplash placeholder SYNCHRONOUSLY
+        // (same race fix as openSharedServices — see comment there).
+        chatFrame.style.display = 'none';
+        var shSplash = document.getElementById('sharedSplash');
+        if (shSplash) shSplash.style.display = 'none';
+        var centerArea = chatFrame.parentElement;
+        var splashDiv = document.getElementById('evalcareSplash');
+        if (!splashDiv) {
+          splashDiv = document.createElement('div');
+          splashDiv.id = 'evalcareSplash';
+          splashDiv.style.cssText = 'flex:1;overflow:auto;background:#fff;';
+          centerArea.appendChild(splashDiv);
+        }
+        splashDiv.style.display = 'flex';
+
         fetch(evalcareUrl + '/splash', { method: 'POST' })
           .then(function(r) { return r.json(); })
           .then(function(d) {
-            chatFrame.style.display = 'none';
-            var shSplash = document.getElementById('sharedSplash');
-            if (shSplash) shSplash.style.display = 'none';
-            var centerArea = chatFrame.parentElement;
-            var splashDiv = document.getElementById('evalcareSplash');
-            if (!splashDiv) {
-              splashDiv = document.createElement('div');
-              splashDiv.id = 'evalcareSplash';
-              splashDiv.style.cssText = 'flex:1;overflow:auto;background:#fff;';
-              centerArea.appendChild(splashDiv);
-            }
-            splashDiv.style.display = 'flex';
             splashDiv.innerHTML = d.html || '';
           })
           .catch(function() { window.chFatalError(''); });
@@ -1508,6 +1516,26 @@
         var sharedUrl = (window._envServiceUrls || {}).sharedservices || '';
         // REQ-T-006 pre-flight on this SharedServices fetch.
         if (window._isSessionExpired()) { window._handleSessionExpired(); return; }
+
+        // Hide chatFrame + create sharedSplash placeholder SYNCHRONOUSLY (before
+        // the /gate fetch). Previously this lived inside .then(payload) which
+        // raced against the CI smoke: HF Spaces cold-start lag meant chatFrame
+        // stayed visible past TestStep26's assertion. Splash content is filled
+        // in once the fetch resolves; user sees an empty splash for the wait
+        // window, same UX path the wrapper takes for gotoEvaluateCare.
+        chatFrame.style.display = 'none';
+        var ecSplash = document.getElementById('evalcareSplash');
+        if (ecSplash) ecSplash.style.display = 'none';
+        var centerArea = chatFrame.parentElement;
+        var splashDiv = document.getElementById('sharedSplash');
+        if (!splashDiv) {
+          splashDiv = document.createElement('div');
+          splashDiv.id = 'sharedSplash';
+          splashDiv.className = 'ch-splash-mount';
+          centerArea.appendChild(splashDiv);
+        }
+        splashDiv.style.display = 'flex';
+
         fetch(sharedUrl + '/gate', {
           method: 'POST',
           credentials: 'include',
@@ -1531,18 +1559,6 @@
               window._broadcastAuthBoot();
             }
             var d = (payload && payload.result) ? payload.result : payload;
-            chatFrame.style.display = 'none';
-            var ecSplash = document.getElementById('evalcareSplash');
-            if (ecSplash) ecSplash.style.display = 'none';
-            var centerArea = chatFrame.parentElement;
-            var splashDiv = document.getElementById('sharedSplash');
-            if (!splashDiv) {
-              splashDiv = document.createElement('div');
-              splashDiv.id = 'sharedSplash';
-              splashDiv.className = 'ch-splash-mount';
-              centerArea.appendChild(splashDiv);
-            }
-            splashDiv.style.display = 'flex';
             window.renderSplash(d, splashDiv);
           })
           .catch(function() { window.chFatalError(''); });
