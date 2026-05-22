@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 
 import azure.durable_functions as df
 import requests
+from base_pipeline_orchestrator import BasePipelineOrchestrator
 from blob_client import get_blob_service
 from bs4 import BeautifulSoup
 from data_fetcher_base import DataFetcherBase
@@ -873,74 +874,51 @@ def create_vector_index_fn(config: dict) -> dict:
 
 # ── Full Pipeline Orchestrator ────────────────────────────────────────────────
 
-def provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Provider Pipeline orchestrator: reserve → health check → load →
-    attach pl_pfile → enrichment passes → embeddings.
+class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
+    """F-103 Provider Pipeline. Steps: reserve → health → load → attach pl_pfile →
+    Pass1..Pass6 → urban flag → embeddings → release.
 
-    start_step (str, optional): the canonical step LABEL where execution should
-    begin. Steps before this label are skipped; the label itself runs. The
-    same string is what appears in `customStatus`. Defaults to the first step
-    (full run). Steps 1 (Reserving) and 2 (Health check) are MANDATORY and
-    always run regardless of start_step.
-
-    See PROVIDER_PIPELINE_STEPS / PROVIDER_LABEL_* at the top of this module
-    for the canonical ordering.
+    Reservation, IDLE wait, and try/release live in BasePipelineOrchestrator.
+    This subclass owns only the provider-specific orchestration body.
     """
-    from county_enrichment_job import _build_enrichment_reconcile
 
-    config = context.get_input() or {}
-    load_id = context.instance_id
+    requester_name = "ProviderPipeline"
 
-    start_label = config["start_step"]
-    if start_label not in PROVIDER_PIPELINE_STEPS:
-        raise ValueError(
-            f"Unknown start_step {start_label!r}. Valid: {PROVIDER_PIPELINE_STEPS}"
-        )
-    start_idx = PROVIDER_PIPELINE_STEPS.index(start_label)
+    def _pipeline_steps(self):
+        from county_enrichment_job import _build_enrichment_reconcile
 
-    def _run(label: str) -> bool:
-        return PROVIDER_PIPELINE_STEPS.index(label) >= start_idx
+        config = self.config
+        context = self.context
+        load_id = context.instance_id
 
-    enrich_config = {
-        "load_id": load_id,
-        "num_workers": config["enrich_workers"],
-        "addr_batch_size": config["addr_batch_size"],
-        "reset_failed": config["reset_failed"],
-        "nppes_batch_size": config["nppes_batch_size"],
-        "states": config["states"],
-        "provider_collection": config["provider_collection"],
-        "metadata_collection": config["metadata_collection"],
-    }
+        start_label = config["start_step"]
+        if start_label not in PROVIDER_PIPELINE_STEPS:
+            raise ValueError(
+                f"Unknown start_step {start_label!r}. Valid: {PROVIDER_PIPELINE_STEPS}"
+            )
+        start_idx = PROVIDER_PIPELINE_STEPS.index(start_label)
 
-    cluster_name = config["pipeline_cluster"]
-    reservation = {
-        "job_id": load_id,
-        "requester": "ProviderPipeline",
-        "cluster_name": cluster_name,
-        "expected_duration_minutes": config["expected_duration_minutes"],
-    }
-    context.set_custom_status(PROVIDER_LABEL_RESERVE)
-    yield context.call_activity("register_reservation_activity", reservation)
+        def _run(label: str) -> bool:
+            return PROVIDER_PIPELINE_STEPS.index(label) >= start_idx
 
-    import datetime
-    deadline = context.current_utc_datetime + datetime.timedelta(minutes=15)
-    while context.current_utc_datetime < deadline:
-        status = yield context.call_activity("check_cluster_state_activity",
-                                              {"cluster_name": cluster_name})
-        if status.get("cluster_state") == "IDLE":
-            break
-        next_check = context.current_utc_datetime + datetime.timedelta(seconds=30)
-        yield context.create_timer(next_check)
+        enrich_config = {
+            "load_id": load_id,
+            "num_workers": config["enrich_workers"],
+            "addr_batch_size": config["addr_batch_size"],
+            "reset_failed": config["reset_failed"],
+            "nppes_batch_size": config["nppes_batch_size"],
+            "states": config["states"],
+            "provider_collection": config["provider_collection"],
+            "metadata_collection": config["metadata_collection"],
+        }
 
-    load_result = {"status": "skipped"}
-    pass1_result = pass2_result = pass3_result = pass4_result = pass6_result = None
-    attach_result = None
-    reconcile = None
-    embed_results = []
-    pipeline_error = None
-    step_statuses = []
+        load_result = {"status": "skipped"}
+        pass1_result = pass2_result = pass3_result = pass4_result = pass6_result = None
+        attach_result = None
+        reconcile = None
+        embed_results = []
+        step_statuses = []
 
-    try:
         # Health check is MANDATORY — runs regardless of start_step.
         context.set_custom_status(PROVIDER_LABEL_HEALTH)
         yield context.call_activity("check_mongo_health_activity", config)
@@ -1055,42 +1033,36 @@ def provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "create_vector_index_activity", {"provider_collection": provider_collection}
             )
 
-    except Exception as exc:
-        pipeline_error = str(exc)
-        step_statuses.append({"step": "unknown", "status": "completed_fail", "error": pipeline_error[:200]})
-        context.set_custom_status(f"FAILED: {pipeline_error[:200]}")
+        total_embedded = sum(r.get("embedded", 0) for r in embed_results)
+        total_tokens = sum(r.get("total_tokens", 0) for r in embed_results)
+        pass3_enriched = pass3_result.get("pass3_modified", 0) if pass3_result else 0
+        enrich_status = (
+            "complete" if reconcile and reconcile["match"]
+            else "partial" if reconcile
+            else "skipped"
+        )
 
-    # ALWAYS release reservation — success or failure
-    context.set_custom_status("Releasing cluster reservation")
-    yield context.call_activity("release_reservation_activity", {"job_id": load_id})
-
-    if pipeline_error:
-        raise Exception(f"Pipeline failed (reservation released): {pipeline_error}")
-
-    total_embedded = sum(r.get("embedded", 0) for r in embed_results)
-    total_tokens = sum(r.get("total_tokens", 0) for r in embed_results)
-    pass3_enriched = pass3_result.get("pass3_modified", 0) if pass3_result else 0
-    enrich_status = (
-        "complete" if reconcile and reconcile["match"]
-        else "partial" if reconcile
-        else "skipped"
-    )
-
-    context.set_custom_status(
-        f"Done — load {load_result.get('status', 'unknown')}, "
-        f"enrichment {enrich_status}, "
-        f"pass3 billing {pass3_enriched:,}, "
-        f"embedded {total_embedded:,}"
-    )
-    return {
-        "load": load_result,
-        "enrichment": reconcile,
-        "pass3": pass3_result,
-        "embeddings": {"total_embedded": total_embedded, "total_tokens": total_tokens},
-        "step_statuses": step_statuses,
-    }
+        context.set_custom_status(
+            f"Done — load {load_result.get('status', 'unknown')}, "
+            f"enrichment {enrich_status}, "
+            f"pass3 billing {pass3_enriched:,}, "
+            f"embedded {total_embedded:,}"
+        )
+        return {
+            "load": load_result,
+            "enrichment": reconcile,
+            "pass3": pass3_result,
+            "embeddings": {"total_embedded": total_embedded, "total_tokens": total_tokens},
+            "step_statuses": step_statuses,
+        }
 
 
+def provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
+    """F-103 Provider Pipeline orchestrator entry point."""
+    config = context.get_input() or {}
+    orch = ProviderPipelineOrchestrator(context, config)
+    result = yield from orch.run()
+    return result
 
 
 # ── Cluster Lifecycle Activities ─────────────────────────────────────────────
