@@ -1567,12 +1567,15 @@ class TestStep99FiddlesticksNoFatal:
         page = env["page"]
         page.goto(BASE_URL, wait_until="networkidle")
         page.wait_for_timeout(3000)
+        # Same iframe-discovery pattern Step04 uses (canonical): match the
+        # local FindCare port OR any *.hf.space URL — covers local/dev/qa/prod.
+        # Prior 'findcare' substring match always missed dev/qa whose iframe
+        # is skipsnow-{env}-chathealthyspace.hf.space.
         chat = None
         for f in page.frames:
-            if "7860" in (f.url or "") or "findcare" in (f.url or "").lower():
+            if ":7860" in (f.url or "") or "hf.space" in (f.url or ""):
                 chat = f; break
-        if chat is None:
-            pytest.skip("FindCare chat iframe not present this run")
+        assert chat is not None, "FindCare chat iframe not found for nonsense-query regression check"
         try:
             inp = chat.locator(
                 "input[placeholder*='Type a message'], textarea"
