@@ -213,7 +213,7 @@
           "source_location": "Website/schemas/ChatHealthyBugsSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "9ab97b95cd9d53fc81f8cf30486b4aadd215fca4748c5db86be985fa72ddcc32"
+          "content_hash": "d8c700e9d6754b04615dad0bd4a1551d6848ae23a48c5c0420e08cb506b757c4"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1845,7 +1845,7 @@
           "source_location": "brain/machine_artifacts/content/bugs.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "05dc067f9076a6d86ced466256ca03a947879603b01e89aed66d45d141b48b8f"
+          "content_hash": "695d980ffdd7408e04fc64f4ff6bbff9c70116de593950b39fb00708afa630f0"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2368,7 +2368,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/localSmokeTestPyTest.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ff6e688460100de21325d0850a69ed873d70d078270520b8f3ad150d3431f2e4"
+          "content_hash": "dfeb23d35c9bd14becd72bf229b314163e083322cf2e5d5e7d69c3ad7ce890da"
         },
         {
           "feature_id": "EPIC-008-F-012",
