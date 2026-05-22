@@ -84,6 +84,7 @@
               "tested_passed",
               "fixed",
               "deferred",
+              "cannot_be_fixed_with_current_architecture",
               "removed",
               "closed_reqs_reorganized"
             ]
