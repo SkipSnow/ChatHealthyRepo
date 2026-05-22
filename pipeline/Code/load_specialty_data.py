@@ -170,6 +170,7 @@ class ChatHealthyLoadSpecialtyData:
         Embedding text: Classification | Specialization | Display Name | Definition
         Returns number of records updated.
         """
+        from embedding_worker import EMBED_MODEL, EMBED_VERSION
         openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         col = _get_mongo_client()[self.db_name][self.collection_name]
         docs = list(col.find({}, {"_id": 1, "Classification": 1, "Specialization": 1,
@@ -190,11 +191,18 @@ class ChatHealthyLoadSpecialtyData:
                 for d in batch
             ]
             response = openai_client.embeddings.create(
-                model="text-embedding-3-large",
+                model=EMBED_MODEL,
                 input=texts,
             )
             ops = [
-                UpdateOne({"_id": doc["_id"]}, {"$set": {"embedding": item.embedding, "embedding_model": "text-embedding-3-large"}})
+                UpdateOne(
+                    {"_id": doc["_id"]},
+                    {"$set": {
+                        "embedding": item.embedding,
+                        "embedding_model": EMBED_MODEL,
+                        "embedding_version": EMBED_VERSION,
+                    }},
+                )
                 for doc, item in zip(batch, response.data)
             ]
             col.bulk_write(ops, ordered=False)
@@ -289,56 +297,31 @@ SPECIALTY_PIPELINE_STEPS = [
 ]
 
 
-def specialty_pipeline_orchestrator_fn(context):
-    """Specialty Pipeline orchestrator: reserve → health → load → release.
+from base_pipeline_orchestrator import BasePipelineOrchestrator
 
-    Independent of the Provider Pipeline. Holds its own cluster reservation,
-    its own health check, and releases the reservation on success or failure
-    via try/finally.
+
+class SpecialtyPipelineOrchestrator(BasePipelineOrchestrator):
+    """F-104 Specialty Pipeline. Steps: reserve → health → load → release.
+
+    Reservation, IDLE wait, and try/release live in BasePipelineOrchestrator.
+    This subclass owns only the specialty-specific work.
     """
+
+    requester_name = "SpecialtyPipeline"
+
+    def _pipeline_steps(self):
+        self.context.set_custom_status(SPECIALTY_LABEL_HEALTH)
+        yield self.context.call_activity("check_mongo_health_activity", self.config)
+
+        self.context.set_custom_status(SPECIALTY_LABEL_LOAD)
+        load_result = yield self.context.call_activity(
+            "load_specialty_data_activity", {"env_prefix": self.config["env_prefix"]},
+        )
+        return {"load": load_result}
+
+
+def specialty_pipeline_orchestrator_fn(context):
     config = context.get_input() or {}
-    job_id = context.instance_id
-    cluster_name = config["pipeline_cluster"]
-    reservation = {
-        "job_id": job_id,
-        "requester": "SpecialtyPipeline",
-        "cluster_name": cluster_name,
-        "expected_duration_minutes": config["expected_duration_minutes"],
-    }
-
-    context.set_custom_status(SPECIALTY_LABEL_RESERVE)
-    yield context.call_activity("register_reservation_activity", reservation)
-
-    import datetime
-    deadline = context.current_utc_datetime + datetime.timedelta(minutes=15)
-    while context.current_utc_datetime < deadline:
-        status = yield context.call_activity(
-            "check_cluster_state_activity", {"cluster_name": cluster_name},
-        )
-        if status.get("cluster_state") == "IDLE":
-            break
-        next_check = context.current_utc_datetime + datetime.timedelta(seconds=30)
-        yield context.create_timer(next_check)
-
-    load_result = None
-    pipeline_error = None
-
-    try:
-        context.set_custom_status(SPECIALTY_LABEL_HEALTH)
-        yield context.call_activity("check_mongo_health_activity", config)
-
-        context.set_custom_status(SPECIALTY_LABEL_LOAD)
-        load_result = yield context.call_activity(
-            "load_specialty_data_activity", {"env_prefix": config["env_prefix"]},
-        )
-    except Exception as exc:
-        pipeline_error = str(exc)
-        context.set_custom_status(f"FAILED: {pipeline_error[:200]}")
-
-    context.set_custom_status("Releasing cluster reservation")
-    yield context.call_activity("release_reservation_activity", {"job_id": job_id})
-
-    if pipeline_error:
-        raise Exception(f"Specialty pipeline failed (reservation released): {pipeline_error}")
-
-    return {"load": load_result}
+    orch = SpecialtyPipelineOrchestrator(context, config)
+    result = yield from orch.run()
+    return result

@@ -3,8 +3,13 @@
 
 """Pipeline orchestrator structural tests.
 
-EPIC-006-F-006-S-002-REQ-T-001: provider_pipeline_orchestrator wraps steps in try/except
-                                with release after the block (functional try/finally).
+EPIC-010-F-101-S-001-REQ-B-003: every pipeline orchestrator MUST delete its
+reservation on success AND failure (try/finally or equivalent).
+
+EPIC-010-F-102-S-007-REQ-B-003 (V3): orchestrations are 100% independent
+except they share a base class. After the base-class refactor, the shared
+try/release scaffolding lives in BasePipelineOrchestrator.run() — the
+Provider and Specialty subclasses override _pipeline_steps() only.
 """
 
 import ast
@@ -18,89 +23,76 @@ PIPELINE_DIR = os.path.join(REPO, "pipeline", "Code")
 sys.path.insert(0, PIPELINE_DIR)
 
 
-def _provider_source() -> str:
-    source_path = os.path.join(PIPELINE_DIR, "provider_load_manager.py")
-    with open(source_path, "r", encoding="utf-8") as f:
+def _source(filename: str) -> str:
+    with open(os.path.join(PIPELINE_DIR, filename), "r", encoding="utf-8") as f:
         return f.read()
 
 
-def _specialty_source() -> str:
-    source_path = os.path.join(PIPELINE_DIR, "load_specialty_data.py")
-    with open(source_path, "r", encoding="utf-8") as f:
-        return f.read()
+def _find_def(tree: ast.AST, name: str) -> ast.AST:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == name:
+            return node
+    return None
 
 
-def test_provider_orchestrator_has_try_except_with_release():
-    """provider_pipeline_orchestrator_fn must wrap steps in try/except with release_reservation
-    in the unconditional path after the block."""
-    source = _provider_source()
+def test_base_orchestrator_has_try_with_release_after():
+    """BasePipelineOrchestrator.run() must wrap pipeline steps in try/except
+    with release_reservation_activity called unconditionally AFTER the block."""
+    source = _source("base_pipeline_orchestrator.py")
     tree = ast.parse(source)
 
-    orchestrator_fn = None
+    run_fn = None
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == "provider_pipeline_orchestrator_fn":
-            orchestrator_fn = node
+        if isinstance(node, ast.FunctionDef) and node.name == "run":
+            run_fn = node
             break
 
-    assert orchestrator_fn is not None, "provider_pipeline_orchestrator_fn not found"
-
+    assert run_fn is not None, "BasePipelineOrchestrator.run not found"
     has_try = any(
         isinstance(n, ast.Try) and (n.finalbody or n.handlers)
-        for n in ast.walk(orchestrator_fn)
+        for n in ast.walk(run_fn)
     )
-    assert has_try, "provider_pipeline_orchestrator_fn must wrap steps in try/except or try/finally"
-
-
-def test_provider_orchestrator_releases_reservation_after_try():
-    """release_reservation_activity must be called after the try/except in the orchestrator
-    so success and failure paths both release the cluster reservation."""
-    source = _provider_source()
+    assert has_try, "BasePipelineOrchestrator.run must wrap pipeline steps in try/except"
     assert "release_reservation_activity" in source, (
-        "provider_pipeline_orchestrator_fn must call release_reservation_activity"
-    )
-
-    lines = source.split("\n")
-    in_orchestrator = False
-    found_try = False
-    found_except = False
-    found_release_after = False
-    for line in lines:
-        if "def provider_pipeline_orchestrator_fn" in line:
-            in_orchestrator = True
-        if in_orchestrator:
-            if "    try:" in line and not line.strip().startswith("#"):
-                found_try = True
-            if "    except" in line and found_try:
-                found_except = True
-            if found_except and "release_reservation" in line:
-                found_release_after = True
-
-    assert found_release_after, (
-        "release_reservation must be called after the try/except block in "
-        "provider_pipeline_orchestrator_fn"
+        "BasePipelineOrchestrator.run must call release_reservation_activity"
     )
 
 
-def test_specialty_orchestrator_has_try_except_with_release():
-    """specialty_pipeline_orchestrator_fn must wrap steps in try/except with
-    release_reservation in the unconditional path after the block."""
-    source = _specialty_source()
+def test_provider_subclass_extends_base():
+    """ProviderPipelineOrchestrator must inherit from BasePipelineOrchestrator
+    and implement _pipeline_steps."""
+    source = _source("provider_load_manager.py")
     tree = ast.parse(source)
 
-    orchestrator_fn = None
+    cls = None
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == "specialty_pipeline_orchestrator_fn":
-            orchestrator_fn = node
+        if isinstance(node, ast.ClassDef) and node.name == "ProviderPipelineOrchestrator":
+            cls = node
             break
-
-    assert orchestrator_fn is not None, "specialty_pipeline_orchestrator_fn not found"
-
-    has_try = any(
-        isinstance(n, ast.Try) and (n.finalbody or n.handlers)
-        for n in ast.walk(orchestrator_fn)
+    assert cls is not None, "ProviderPipelineOrchestrator class not found"
+    base_names = [b.id for b in cls.bases if isinstance(b, ast.Name)]
+    assert "BasePipelineOrchestrator" in base_names, (
+        "ProviderPipelineOrchestrator must inherit BasePipelineOrchestrator"
     )
-    assert has_try, "specialty_pipeline_orchestrator_fn must wrap steps in try/except or try/finally"
+    method_names = [m.name for m in cls.body if isinstance(m, ast.FunctionDef)]
+    assert "_pipeline_steps" in method_names, "_pipeline_steps must be defined"
 
-    assert "release_reservation_activity" in source, (
-        "specialty_pipeline_orchestrator_fn must call release_reservation_activity"
+
+def test_specialty_subclass_extends_base():
+    """SpecialtyPipelineOrchestrator must inherit from BasePipelineOrchestrator
+    and implement _pipeline_steps."""
+    source = _source("load_specialty_data.py")
+    tree = ast.parse(source)
+
+    cls = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == "SpecialtyPipelineOrchestrator":
+            cls = node
+            break
+    assert cls is not None, "SpecialtyPipelineOrchestrator class not found"
+    base_names = [b.id for b in cls.bases if isinstance(b, ast.Name)]
+    assert "BasePipelineOrchestrator" in base_names, (
+        "SpecialtyPipelineOrchestrator must inherit BasePipelineOrchestrator"
     )
+    method_names = [m.name for m in cls.body if isinstance(m, ast.FunctionDef)]
+    assert "_pipeline_steps" in method_names, "_pipeline_steps must be defined"
