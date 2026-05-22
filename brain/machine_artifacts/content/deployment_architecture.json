@@ -2347,7 +2347,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/conftest.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9283b4dcdcd03a6bd43be20e7d1eb479fced1d32b7b6433fd8360dc91e44a6e1"
+          "content_hash": "59106fbf6896ef639f7b2c7738ff2ac169b9ee652958dd5ccc67b05486671a2a"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2365,8 +2365,8 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/localSmokeTestPyTest.py",
-          "handler_type": "python_source",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py",
+          "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "dfeb23d35c9bd14becd72bf229b314163e083322cf2e5d5e7d69c3ad7ce890da"
         },
@@ -2375,7 +2375,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c6784e86749705f42cd4ccbeafa361560c3fb023b849a235cdc428addda0ea92"
+          "content_hash": "a39dc00e1a2a898f784becc87e3f0420805b4a07ab825fb3b88b9f01d5b8bd1f"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2396,7 +2396,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "56fcb3f8388fce26d79f4b52bd69b97e7c9c36957c172fa49d721e298419dc4f"
+          "content_hash": "c9fdc5d3566ae42fae26c022cdf620114bfe0e8f5adaba158b9e5c65294eb348"
         },
         {
           "feature_id": "EPIC-008-F-012",
