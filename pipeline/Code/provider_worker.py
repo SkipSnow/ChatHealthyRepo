@@ -25,6 +25,7 @@ from pipeline_worker_base import PipelineWorkerBase
 from pymongo import MongoClient, InsertOne, ReplaceOne
 
 _mongo: MongoClient | None = None
+_crosswalk_cache: dict | None = None
 
 
 def _get_mongo_client() -> MongoClient:
@@ -36,6 +37,59 @@ def _get_mongo_client() -> MongoClient:
             maxPoolSize=64,
         )
     return _mongo
+
+
+def _get_crosswalk() -> dict:
+    """Lazy-load ZIP → {fips, name, ratio, is_split} from ZipCountyCrosswalk.
+
+    Lives at module scope so all workers in the same process share one cache.
+    """
+    global _crosswalk_cache
+    if _crosswalk_cache is None:
+        env_prefix = os.environ.get("ENV_PREFIX", "dev")
+        coll = _get_mongo_client()[f"{env_prefix}_PublicHealthData"]["ZipCountyCrosswalk"]
+        _crosswalk_cache = {
+            d["zip"]: {
+                "fips": d["county_fips"],
+                "name": d["county_name"],
+                "ratio": d.get("res_ratio"),
+                "is_split": d.get("is_split", False),
+            }
+            for d in coll.find(
+                {},
+                {"zip": 1, "county_fips": 1, "county_name": 1, "res_ratio": 1, "is_split": 1},
+            )
+        }
+        logging.info("Crosswalk cache: %d ZIPs loaded", len(_crosswalk_cache))
+    return _crosswalk_cache
+
+
+def _attach_initial_county(doc: dict, crosswalk: dict) -> None:
+    """Stamp county on every practice_address element + top-level from primary.
+
+    Only stamps when the ZIP is in the crosswalk and the entry is not ambiguous
+    (is_split=False). Ambiguous and missing ZIPs are left for Pass2 / Pass3
+    (Census Geocoder) to resolve.
+    """
+    pa = doc.get("practice_address")
+    if not isinstance(pa, list) or not pa:
+        return
+    for elem in pa:
+        zip5 = (elem.get("zip") or "")[:5]
+        if not zip5:
+            continue
+        entry = crosswalk.get(zip5)
+        if not entry or entry["is_split"] or not entry["fips"]:
+            continue
+        elem["county"] = {
+            "fips": entry["fips"],
+            "name": entry["name"],
+            "source": "crosswalk_load",
+            "zip_ratio": entry["ratio"],
+        }
+    primary_county = pa[0].get("county") if isinstance(pa[0], dict) else None
+    if primary_county:
+        doc["county"] = primary_county
 
 
 # Synthetic record IDs: worker_id * MAX_ROWS_PER_WORKER + local_row_index.
@@ -340,7 +394,8 @@ class ProviderWorker(PipelineWorkerBase):
         doc["load_id"] = self.load_id
         doc["record_id"] = record_id
         doc["worker_id"] = self.worker_id
-        doc["county"] = {"fips": None}  # stub — enriched by county_enrichment_job
+        doc["county"] = {"fips": None}  # stub — overwritten by _attach_initial_county
+        _attach_initial_county(doc, _get_crosswalk())
 
         if self._incremental:
             # ENH-PIPE-001: replace_one with upsert — force re-enrichment and re-evaluation
