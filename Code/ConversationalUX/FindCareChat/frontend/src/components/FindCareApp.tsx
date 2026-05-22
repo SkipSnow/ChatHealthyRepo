@@ -859,6 +859,16 @@ export default function FindCareApp() {
           display: 'flex', gap: 8, alignItems: 'center', background: '#fff',
         }}
       >
+        {(phase === 'searching' || reclassifying) && (
+          <div
+            data-testid="prompt-row-timer"
+            style={{
+              flex: '0 0 auto', minWidth: 44, padding: '0.67em 1em', borderRadius: 6,
+              background: '#f0fffe', border: '0.125em solid #0b7a75',
+              fontSize: '1em', fontWeight: 700, color: '#0b7a75', textAlign: 'center',
+            }}
+          >{thinkSeconds}s</div>
+        )}
         <input
           ref={inputRef}
           value={input}

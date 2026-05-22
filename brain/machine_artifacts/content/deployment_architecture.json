@@ -94,7 +94,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "1840cf5e2a7c44320a53b49ab7e4c32f01b227d6d0fffb584faff717fa4c7f51"
+          "content_hash": "faa150cf786d474cf043783a174c86bc7f1355bb8f6f6ff31f95c736498f3307"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1146,7 +1146,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/FindCareApp.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "abbbc40a15d802b060315f51bfbf800819812e7c26c179679e7b3a6f72f02575"
+          "content_hash": "3b751390f7eba1316278c51d2a87d9d6727c00de5e28ecf88c26610d1921c8d9"
         },
         {
           "feature_id": "EPIC-008-F-012",
