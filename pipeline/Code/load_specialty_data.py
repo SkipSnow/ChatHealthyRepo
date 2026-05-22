@@ -206,72 +206,59 @@ class ChatHealthyLoadSpecialtyData:
 
 
 # ------------------------------------------------------------------
-# Specialty enrichment — can_prescribe and homeopathic flags
+# Specialty enrichment — can_prescribe and homeopathic flags from
+# the proprietary NUCC classification catalog (one source of truth).
 # ------------------------------------------------------------------
-
-# Same prefixes as county_enrichment_job.py _PRESCRIBER_TAX_PREFIXES
-_PRESCRIBER_TAX_PREFIXES = (
-    "207", "208", "209", "204",
-    "174400000X",  # Optometrist
-    "363L",  # Nurse Practitioner
-    "363A",  # Physician Assistant
-    "367",   # CRNA / Advanced Practice Midwife
-    "122",   # Dentists
-    "213",   # Podiatrists
-    "176",   # Certified Nurse Midwife
-)
-
-# Homeopathic taxonomy codes — specialties that practice alternative/complementary medicine
-_HOMEOPATHIC_TAX_PREFIXES = (
-    "175F",  # Naturopath
-    "171100000X",  # Acupuncturist
-    "111N",  # Chiropractor
-    "152W",  # Optometrist (some overlap)
-    "175L",  # Homeopath
-    "174H",  # Herbalist (if exists)
-    "171W",  # Massage Therapist (complementary)
-)
 
 
 def enrich_specialty_flags(collection_fqn: str) -> dict:
     """Enrich SpecialtyMetaData with can_prescribe and homeopathic boolean flags.
 
-    Uses taxonomy code prefix matching — same logic as provider enrichment but
-    applied to specialty types, not individual providers.
+    Reads the per-NUCC-code classification from the catalog blob via
+    specialty_classification_catalog.load_catalog(). The SpecialtyMetaData
+    field name stays `homeopathic` (FindCare reads it under that name);
+    the catalog's `is_homeopathic` value is written into that field.
 
     Returns counts of classified specialties.
     """
+    from specialty_classification_catalog import load_catalog
+    catalog = load_catalog()
+
     db_name, coll_name = collection_fqn.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
     docs = list(coll.find({}, {"_id": 1, "Code": 1, "Display Name": 1}))
-    logging.info("Enriching %d specialties with can_prescribe and homeopathic flags", len(docs))
+    logging.info("Enriching %d specialties from catalog (%d entries)", len(docs), len(catalog))
 
     ops = []
     prescribers = 0
     homeopathic = 0
+    missing = 0
 
     for doc in docs:
         code = doc.get("Code", "")
-        can_prescribe = any(code.startswith(p) for p in _PRESCRIBER_TAX_PREFIXES)
-        is_homeopathic = any(code.startswith(p) for p in _HOMEOPATHIC_TAX_PREFIXES)
-
+        entry = catalog.get(code)
+        if entry is None:
+            missing += 1
+            continue
+        can_prescribe = entry["can_prescribe"]
+        is_homeopathic = entry["is_homeopathic"]
         if can_prescribe:
             prescribers += 1
         if is_homeopathic:
             homeopathic += 1
-
         ops.append(UpdateOne(
             {"_id": doc["_id"]},
             {"$set": {"can_prescribe": can_prescribe, "homeopathic": is_homeopathic}},
         ))
 
     if ops:
-        result = coll.bulk_write(ops, ordered=False)
-        logging.info("Enriched %d specialties: %d prescribers, %d homeopathic",
-                     len(ops), prescribers, homeopathic)
+        coll.bulk_write(ops, ordered=False)
+    logging.info("Enriched %d specialties: %d prescribers, %d homeopathic, %d not in catalog",
+                 len(ops), prescribers, homeopathic, missing)
 
-    return {"total": len(docs), "prescribers": prescribers, "homeopathic": homeopathic}
+    return {"total": len(docs), "matched": len(ops), "prescribers": prescribers,
+            "homeopathic": homeopathic, "missing_from_catalog": missing}
 
 
 # ------------------------------------------------------------------
@@ -288,3 +275,71 @@ def run_load_specialty_data(payload: dict = None) -> dict:
     embedded = loader.generate_embeddings()
     enrichment = enrich_specialty_flags(collection_fqn)
     return {"blob": blob_name, "inserted": count, "embedded": embedded, "enrichment": enrichment}
+
+
+# ── Specialty Pipeline Orchestrator (F-104) ─────────────────────────────────
+
+SPECIALTY_LABEL_RESERVE = "Step 1: Reserving cluster"
+SPECIALTY_LABEL_HEALTH  = "Step 2: Checking MongoDB health"
+SPECIALTY_LABEL_LOAD    = "Step 3: Loading SpecialtyMetaData"
+
+SPECIALTY_PIPELINE_STEPS = [
+    SPECIALTY_LABEL_RESERVE,
+    SPECIALTY_LABEL_HEALTH,
+    SPECIALTY_LABEL_LOAD,
+]
+
+
+def specialty_pipeline_orchestrator_fn(context):
+    """Specialty Pipeline orchestrator: reserve → health → load → release.
+
+    Independent of the Provider Pipeline. Holds its own cluster reservation,
+    its own health check, and releases the reservation on success or failure
+    via try/finally.
+    """
+    config = context.get_input() or {}
+    job_id = context.instance_id
+    cluster_name = config["pipeline_cluster"]
+    reservation = {
+        "job_id": job_id,
+        "requester": "SpecialtyPipeline",
+        "cluster_name": cluster_name,
+        "expected_duration_minutes": config["expected_duration_minutes"],
+    }
+
+    context.set_custom_status(SPECIALTY_LABEL_RESERVE)
+    yield context.call_activity("register_reservation_activity", reservation)
+
+    import datetime
+    deadline = context.current_utc_datetime + datetime.timedelta(minutes=15)
+    while context.current_utc_datetime < deadline:
+        status = yield context.call_activity(
+            "check_cluster_state_activity", {"cluster_name": cluster_name},
+        )
+        if status.get("cluster_state") == "IDLE":
+            break
+        next_check = context.current_utc_datetime + datetime.timedelta(seconds=30)
+        yield context.create_timer(next_check)
+
+    load_result = None
+    pipeline_error = None
+
+    try:
+        context.set_custom_status(SPECIALTY_LABEL_HEALTH)
+        yield context.call_activity("check_mongo_health_activity", config)
+
+        context.set_custom_status(SPECIALTY_LABEL_LOAD)
+        load_result = yield context.call_activity(
+            "load_specialty_data_activity", {"env_prefix": config["env_prefix"]},
+        )
+    except Exception as exc:
+        pipeline_error = str(exc)
+        context.set_custom_status(f"FAILED: {pipeline_error[:200]}")
+
+    context.set_custom_status("Releasing cluster reservation")
+    yield context.call_activity("release_reservation_activity", {"job_id": job_id})
+
+    if pipeline_error:
+        raise Exception(f"Specialty pipeline failed (reservation released): {pipeline_error}")
+
+    return {"load": load_result}
