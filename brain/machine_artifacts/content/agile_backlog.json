@@ -14346,7 +14346,7 @@
           "feature": [
             {
               "feature_id": "EPIC-010-F-007",
-              "name": "Provider Pipeline",
+              "name": "legacy_Provider Pipeline",
               "description": "All requirements specific to the provider record produced by the FindCare data pipeline: data model, address schema (multi-practice-address), county enrichment (incl. urban classification), bad-data and out-of-scope flagging, prescriber classification, incremental updates, and pipeline-cluster indexes. Enrichment is in-place on the provider record; no separate enriched collection.",
               "priority": "HIGH",
               "status": "not_started",
@@ -16216,7 +16216,7 @@
             },
             {
               "feature_id": "EPIC-010-F-009",
-              "name": "ETL Quality and Compliance",
+              "name": "legacy_ETL Quality and Compliance",
               "description": "Pipeline-wide quality contracts, idempotent pipeline resume, inter-stage quality gates, and engineering-rule compliance (DataFetcherBase discipline). Applies to every pipeline.",
               "priority": "CRITICAL",
               "status": "in_progress",
@@ -16799,7 +16799,7 @@
             },
             {
               "feature_id": "EPIC-010-F-018",
-              "name": "FindCarePipeline SpecialtyMetaData Orchestration",
+              "name": "legacy_FindCarePipeline SpecialtyMetaData Orchestration",
               "description": "FindCarePipeline loads and enriches SpecialtyMetaData from NUCC taxonomy CSV. Specialty records are enriched with filter flags (can_prescribe, homeopathic) for downstream UX filtering.",
               "priority": "HIGH",
               "status": "done",
@@ -17035,7 +17035,7 @@
             },
             {
               "feature_id": "EPIC-010-F-029",
-              "name": "Pipeline Infrastructure",
+              "name": "legacy_Pipeline Infrastructure",
               "description": "Compute, scale, and lifecycle infrastructure that hosts and runs Pipeline services on Azure. Orchestrator runs on Azure Functions Flex Consumption with Durable Functions; fan-out workers use the 'durable' per-function scale group; the MongoDB Atlas pipeline cluster is paused between runs. The application reservation data store is live-only by design — release() deletes; no history is persisted in-app; forensic and audit capability is delivered exclusively by external platform sinks (Atlas database auditing, Azure Activity Log, Application Insights / Log Analytics). All infrastructure is declared in Bicep and deployed via Azure deployment stacks with denyWriteAndDelete in QA and Prod; deploys run from GitHub Actions using federated OIDC.",
               "priority": "HIGH",
               "status": "not_started",
