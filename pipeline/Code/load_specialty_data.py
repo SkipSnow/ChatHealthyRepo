@@ -212,12 +212,11 @@ class ChatHealthyLoadSpecialtyData:
 
 
 def enrich_specialty_flags(collection_fqn: str) -> dict:
-    """Enrich SpecialtyMetaData with can_prescribe and homeopathic boolean flags.
+    """Enrich SpecialtyMetaData with can_prescribe and is_homeopathic boolean flags.
 
     Reads the per-NUCC-code classification from the catalog blob via
-    specialty_classification_catalog.load_catalog(). The SpecialtyMetaData
-    field name stays `homeopathic` (FindCare reads it under that name);
-    the catalog's `is_homeopathic` value is written into that field.
+    specialty_classification_catalog.load_catalog(). Field names match
+    EPIC-010-F-105 — `can_prescribe` and `is_homeopathic` on every record.
 
     Returns counts of classified specialties.
     """
@@ -249,7 +248,7 @@ def enrich_specialty_flags(collection_fqn: str) -> dict:
             homeopathic += 1
         ops.append(UpdateOne(
             {"_id": doc["_id"]},
-            {"$set": {"can_prescribe": can_prescribe, "homeopathic": is_homeopathic}},
+            {"$set": {"can_prescribe": can_prescribe, "is_homeopathic": is_homeopathic}},
         ))
 
     if ops:
