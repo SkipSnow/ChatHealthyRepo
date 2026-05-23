@@ -78,18 +78,12 @@ jobs:
         git push origin "$DST"
 
         '
-    - name: Trigger deploy.yml for target env
+    - name: Post-promotion deploy is operator-driven
       if: inputs.dry_run == false
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: 'BR="${{ inputs.to_env }}"
-
-        if [ "$BR" = "prod" ]; then BR="main"; fi
-
-        gh workflow run deploy.yml --ref "$BR"
-
-        echo "Dispatched deploy.yml on $BR"
-
+      run: 'echo "Promotion merged into ${{ inputs.to_env }}. Operator must
+        now run: python architecture/DevOpsBuildDeployAndEnvironmentManagement/local_publish.py
+        --env ${{ inputs.to_env }} (from a local clone). Every deploy
+        package is built on the operator machine; no runner-side deploy."
         '
     - name: Dry run summary
       if: inputs.dry_run == true
