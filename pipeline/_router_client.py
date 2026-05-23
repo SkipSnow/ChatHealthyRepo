@@ -108,23 +108,21 @@ def status_url_for_instance(instance_id: str) -> str:
 
 
 def run_pipeline(task: str, payload: dict) -> int:
-    """High-level wrapper: start the orchestrator, poll until terminal,
-    return 0 on Completed else 1. Prints output on terminal."""
+    """Fire-and-exit. POST to the Router, print the instance id + the
+    token-bearing statusQueryGetUri, return 0.
+
+    The orchestration runs on Azure independently of this process.
+    Pipelines can run for hours (full NPPES load) — there is no point
+    blocking the local shell. Operator monitors via the printed URL
+    (curl, browser, or `pipeline/check_status.py`).
+    """
     print(f"[{task}] payload: {json.dumps(payload)}", flush=True)
     started = start_orchestrator(task, payload)
     instance_id = started.get("id")
     status_url = started["statusQueryGetUri"]
-    print(f"[{task}] instance: {instance_id}", flush=True)
-    final = poll_until_terminal(status_url)
-    rs = final.get("runtimeStatus", "?")
-    print(f"[{task}] terminal: {rs}", flush=True)
-    output = final.get("output")
-    if output is not None:
-        # Output is often a JSON-encoded string; pretty-print best-effort.
-        if isinstance(output, str):
-            try:
-                output = json.loads(output)
-            except Exception:
-                pass
-        print(f"[{task}] output:\n{json.dumps(output, indent=2, default=str)[:4000]}", flush=True)
-    return 0 if rs == "Completed" else 1
+    terminate_url = started.get("terminatePostUri", "")
+    print(f"[{task}] instance:    {instance_id}", flush=True)
+    print(f"[{task}] status_url:  {status_url}", flush=True)
+    if terminate_url:
+        print(f"[{task}] terminate:   {terminate_url}", flush=True)
+    return 0
