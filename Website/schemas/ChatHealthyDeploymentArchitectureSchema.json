@@ -67,6 +67,30 @@
                   "description": "Addressable location of this target in this environment. May be a URL, connection string, host:port pair, registry path, or other addressable form appropriate to the target_kind. Template tokens MAY appear; resolution semantics are software's job. Non-empty.",
                   "minLength": 1,
                   "maxLength": 1024
+                },
+
+                "azure": {
+                  "type": "object",
+                  "description": "Azure Functions deploy coordinates for this env binding. Present iff target_kind=='azure_function_app'. resource_group + function_app identify the App Service resource; task_hub names the Durable Functions task hub used for the orchestration runtime status webhook.",
+                  "additionalProperties": false,
+                  "required": ["resource_group", "function_app", "task_hub"],
+                  "properties": {
+                    "resource_group": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "function_app": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "task_hub": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
                 }
               }
             }
