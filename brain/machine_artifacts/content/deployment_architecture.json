@@ -2344,13 +2344,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/file_that_does_not_exist.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/record_loader.py",
           "handler_type": "python_source",
           "disposition": "referenced",
