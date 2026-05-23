@@ -24,13 +24,22 @@ class EnvironmentBinding:
 
     env_binding: str  # closed enum: local|dev|qa|prod
     node_address: str  # addressable location; {env} substitution allowed
+    azure: dict | None = None  # present iff target_kind=='azure_function_app';
+                                # keys: resource_group, function_app, task_hub
 
-    def to_dict(self) -> dict[str, str]:
-        return {"env_binding": self.env_binding, "node_address": self.node_address}
+    def to_dict(self) -> dict:
+        out: dict = {"env_binding": self.env_binding, "node_address": self.node_address}
+        if self.azure is not None:
+            out["azure"] = self.azure
+        return out
 
     @classmethod
-    def from_dict(cls, d: dict[str, str]) -> "EnvironmentBinding":
-        return cls(env_binding=d["env_binding"], node_address=d["node_address"])
+    def from_dict(cls, d: dict) -> "EnvironmentBinding":
+        return cls(
+            env_binding=d["env_binding"],
+            node_address=d["node_address"],
+            azure=d.get("azure"),
+        )
 
 
 @dataclass(slots=True)
