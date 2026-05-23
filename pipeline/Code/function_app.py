@@ -50,6 +50,9 @@ from county_enrichment_job import (
     get_distinct_zips_fn,
     get_maps_retryable_fn,
     get_nppes_retryable_fn,
+    get_pass3_counties_for_state_fn,
+    get_pass4_counties_for_state_fn,
+    get_pass6_counties_for_state_fn,
     get_unenriched_fn,
     lookup_crosswalk_fn,
     mark_out_of_scope_fn,
@@ -643,6 +646,21 @@ def get_maps_retryable_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def enrich_by_maps_batch_activity(config: dict) -> dict:
     return enrich_by_maps_batch_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def get_pass3_counties_for_state_activity(config: dict) -> dict:
+    return get_pass3_counties_for_state_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def get_pass4_counties_for_state_activity(config: dict) -> dict:
+    return get_pass4_counties_for_state_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def get_pass6_counties_for_state_activity(config: dict) -> dict:
+    return get_pass6_counties_for_state_fn(config)
 
 
 @app.activity_trigger(input_name="config")

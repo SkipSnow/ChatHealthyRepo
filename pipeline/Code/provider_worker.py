@@ -65,11 +65,14 @@ def _get_crosswalk() -> dict:
 
 
 def _attach_initial_county(doc: dict, crosswalk: dict) -> None:
-    """Stamp county on every practice_address element + top-level from primary.
+    """Stamp county on every practice_address element.
 
     Only stamps when the ZIP is in the crosswalk and the entry is not ambiguous
     (is_split=False). Ambiguous and missing ZIPs are left for Pass2 / Pass3
     (Census Geocoder) to resolve.
+
+    County lives only at the per-element level (practice_address[].county).
+    There is no top-level county field — readers must read per-element.
     """
     pa = doc.get("practice_address")
     if not isinstance(pa, list) or not pa:
@@ -87,9 +90,6 @@ def _attach_initial_county(doc: dict, crosswalk: dict) -> None:
             "source": "crosswalk_load",
             "zip_ratio": entry["ratio"],
         }
-    primary_county = pa[0].get("county") if isinstance(pa[0], dict) else None
-    if primary_county:
-        doc["county"] = primary_county
 
 
 # Synthetic record IDs: worker_id * MAX_ROWS_PER_WORKER + local_row_index.
@@ -394,7 +394,6 @@ class ProviderWorker(PipelineWorkerBase):
         doc["load_id"] = self.load_id
         doc["record_id"] = record_id
         doc["worker_id"] = self.worker_id
-        doc["county"] = {"fips": None}  # stub — overwritten by _attach_initial_county
         # F-105: stamp can_prescribe and is_homeopathic with the placeholder
         # value True at load time so every record has the fields. The
         # apply_proprietary_flags activity overwrites these with the real

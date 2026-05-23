@@ -396,8 +396,10 @@ def county_enrichment_pass2_orchestrator_fn(context):
 def county_enrichment_pass3_orchestrator_fn(context):
     """Pass 3: retry geocoder_failed providers using mailing/billing address.
 
-    Providers that failed Pass 2 had practice addresses the Census geocoder
-    couldn't match. Their mailing/billing address may be different and geocodable.
+    Throttled per (state, primary_county) so the per-call retryable activity
+    return stays small enough to ship across the activity/orchestrator
+    process boundary without OOM.
+
     On success sets county.source = geocoder_pass3_billing.
     On failure leaves county.source = geocoder_failed unchanged.
     """
@@ -405,34 +407,57 @@ def county_enrichment_pass3_orchestrator_fn(context):
     load_id = config.get("load_id", context.instance_id)
     config = {**config, "load_id": load_id}
 
-    context.set_custom_status("Step 1: Finding geocoder_failed providers with billing addresses")
-    retryable = yield context.call_activity("get_billing_retryable_activity", config)
-    retryable_count = retryable["count"]
-    retryable_ids = retryable["provider_ids"]
-
-    if not retryable_ids:
-        context.set_custom_status("Done — no geocoder_failed providers with billing addresses")
-        return {"pass3_retryable": 0, "pass3_modified": 0, "pass3_failed": 0, "pass3_batch_results": []}
+    states = config.get("states")
+    if not (isinstance(states, list) and states):
+        raise ValueError(
+            "Pass 3 orchestrator requires config['states'] as a non-empty list; "
+            "include/exclude dict form not supported under per-(state, county) throttle."
+        )
 
     addr_batch_size = config.get("addr_batch_size", 5_000)
-    addr_batches = [
-        retryable_ids[i:i + addr_batch_size]
-        for i in range(0, len(retryable_ids), addr_batch_size)
-    ]
-    context.set_custom_status("Step 2: Census Geocoder retry on billing address")
-    pass3_tasks = [
-        context.call_activity("enrich_by_billing_batch_activity", {**config, "id_batch": batch})
-        for batch in addr_batches
-    ]
-    pass3_results = (yield context.task_all(pass3_tasks)) if pass3_tasks else []
-    pass3_modified = sum(r.get("modified", 0) for r in pass3_results)
-    pass3_failed   = sum(r.get("geocoder_failed", 0) for r in pass3_results)
+    pass3_retryable = 0
+    pass3_modified = 0
+    pass3_failed   = 0
+    pass3_results: list = []
+
+    for st_idx, state in enumerate(states, 1):
+        single_state_cfg = {**config, "states": [state]}
+        context.set_custom_status(f"Pass3 [{st_idx}/{len(states)}] {state}: finding counties")
+        counties_result = yield context.call_activity(
+            "get_pass3_counties_for_state_activity", single_state_cfg
+        )
+        counties = counties_result["counties"]
+
+        for c_idx, county_fips in enumerate(counties, 1):
+            per_pair_cfg = {**single_state_cfg, "primary_county_fips": county_fips}
+            context.set_custom_status(
+                f"Pass3 {state} county [{c_idx}/{len(counties)}] {county_fips}: retryable list"
+            )
+            retryable = yield context.call_activity("get_billing_retryable_activity", per_pair_cfg)
+            ids = retryable["provider_ids"]
+            pass3_retryable += retryable["count"]
+            if not ids:
+                continue
+
+            batches = [ids[i:i + addr_batch_size] for i in range(0, len(ids), addr_batch_size)]
+            context.set_custom_status(
+                f"Pass3 {state} county {county_fips}: fanning out {len(batches)} batch(es)"
+            )
+            tasks = [
+                context.call_activity("enrich_by_billing_batch_activity", {**per_pair_cfg, "id_batch": batch})
+                for batch in batches
+            ]
+            results = yield context.task_all(tasks)
+            for r in results:
+                pass3_modified += r.get("modified", 0)
+                pass3_failed   += r.get("geocoder_failed", 0)
+            pass3_results.extend(results)
 
     context.set_custom_status(
         f"Done — {pass3_modified:,} billing enriched; {pass3_failed:,} still failed"
     )
     return {
-        "pass3_retryable":     retryable_count,
+        "pass3_retryable":     pass3_retryable,
         "pass3_modified":      pass3_modified,
         "pass3_failed":        pass3_failed,
         "pass3_batch_results": pass3_results,
@@ -442,42 +467,65 @@ def county_enrichment_pass3_orchestrator_fn(context):
 def county_enrichment_pass4_orchestrator_fn(context):
     """Pass 4: Google Maps Geocoding API as final fallback for geocoder_failed providers.
 
-    Queries providers still geocoder_failed after Pass 3 and fans out Google Maps
-    API calls to resolve county by address. Requires GOOGLE_MAPS_API_KEY in environment.
-    Only runs when google_maps_enabled=True is passed in the pipeline config.
+    Throttled per (state, primary_county). Requires GOOGLE_MAPS_API_KEY in
+    environment. Only runs when google_maps_enabled=True is passed in the
+    pipeline config.
     """
     config = context.get_input() or {}
     load_id = config.get("load_id", context.instance_id)
     config = {**config, "load_id": load_id}
 
-    context.set_custom_status("Step 1: Finding geocoder_failed providers for Maps retry")
-    retryable = yield context.call_activity("get_maps_retryable_activity", config)
-    retryable_count = retryable["count"]
-    retryable_ids   = retryable["provider_ids"]
-
-    if not retryable_ids:
-        context.set_custom_status("Done — no geocoder_failed providers for Maps retry")
-        return {"pass4_retryable": 0, "pass4_modified": 0, "pass4_failed": 0, "pass4_batch_results": []}
+    states = config.get("states")
+    if not (isinstance(states, list) and states):
+        raise ValueError(
+            "Pass 4 orchestrator requires config['states'] as a non-empty list; "
+            "include/exclude dict form not supported under per-(state, county) throttle."
+        )
 
     maps_batch_size = config.get("maps_batch_size", 200)
-    maps_batches = [
-        retryable_ids[i:i + maps_batch_size]
-        for i in range(0, len(retryable_ids), maps_batch_size)
-    ]
-    context.set_custom_status("Step 2: Google Maps Geocoding fan-out")
-    pass4_tasks = [
-        context.call_activity("enrich_by_maps_batch_activity", {**config, "id_batch": batch})
-        for batch in maps_batches
-    ]
-    pass4_results = (yield context.task_all(pass4_tasks)) if pass4_tasks else []
-    pass4_modified = sum(r.get("modified",    0) for r in pass4_results)
-    pass4_failed   = sum(r.get("maps_failed", 0) for r in pass4_results)
+    pass4_retryable = 0
+    pass4_modified  = 0
+    pass4_failed    = 0
+    pass4_results: list = []
+
+    for st_idx, state in enumerate(states, 1):
+        single_state_cfg = {**config, "states": [state]}
+        context.set_custom_status(f"Pass4 [{st_idx}/{len(states)}] {state}: finding counties")
+        counties_result = yield context.call_activity(
+            "get_pass4_counties_for_state_activity", single_state_cfg
+        )
+        counties = counties_result["counties"]
+
+        for c_idx, county_fips in enumerate(counties, 1):
+            per_pair_cfg = {**single_state_cfg, "primary_county_fips": county_fips}
+            context.set_custom_status(
+                f"Pass4 {state} county [{c_idx}/{len(counties)}] {county_fips}: retryable list"
+            )
+            retryable = yield context.call_activity("get_maps_retryable_activity", per_pair_cfg)
+            ids = retryable["provider_ids"]
+            pass4_retryable += retryable["count"]
+            if not ids:
+                continue
+
+            batches = [ids[i:i + maps_batch_size] for i in range(0, len(ids), maps_batch_size)]
+            context.set_custom_status(
+                f"Pass4 {state} county {county_fips}: fanning out {len(batches)} batch(es)"
+            )
+            tasks = [
+                context.call_activity("enrich_by_maps_batch_activity", {**per_pair_cfg, "id_batch": batch})
+                for batch in batches
+            ]
+            results = yield context.task_all(tasks)
+            for r in results:
+                pass4_modified += r.get("modified",    0)
+                pass4_failed   += r.get("maps_failed", 0)
+            pass4_results.extend(results)
 
     context.set_custom_status(
         f"Done — {pass4_modified:,} matched via Maps; {pass4_failed:,} still failed"
     )
     return {
-        "pass4_retryable":     retryable_count,
+        "pass4_retryable":     pass4_retryable,
         "pass4_modified":      pass4_modified,
         "pass4_failed":        pass4_failed,
         "pass4_batch_results": pass4_results,
@@ -1277,42 +1325,29 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
 
 
 def get_billing_retryable_fn(config: dict) -> dict:
-    """Return _id list of providers that have at least one practice_address
-    element flagged geocoder_failed AND a usable mailing/billing address.
+    """Return _id list of Pass 3 retryable providers, throttled by
+    (state, primary_county_fips). Excludes deactivated and foreign providers
+    (same rules as Pass 2).
 
-    Excludes deactivated and foreign providers (same rules as Pass 2).
+    Required config:
+      states              — mandatory state filter
+      primary_county_fips — mandatory; practice_address[0].county.fips value to
+                            filter by, or None for the no-primary-county bucket
     """
-    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
-    db_name, coll_name = collection.split(".", 1)
-    coll = _get_mongo_client()[db_name][coll_name]
-    sf = _build_states_filter(config)
-    ids = [
-        str(doc["_id"])
-        for doc in coll.find(
-            {
-                "practice_address": {"$elemMatch": {"county.source": "geocoder_failed"}},
-                "bad_data.flagged": {"$ne": True},
-                "out_of_scope.flagged": {"$ne": True},
-                **sf,
-                "$and": [
-                    {"$or": [
-                        {"mailing_address.line1": {"$nin": [None, ""]}},
-                        {"mailing_address.city":  {"$nin": [None, ""]}},
-                    ]},
-                    {"$or": [
-                        {"npi_deactivation_date": {"$exists": False}},
-                        {"npi_reactivation_date": {"$exists": True}},
-                    ]},
-                ],
-                "$or": [
-                    {"mailing_address.country": {"$exists": False}},
-                    {"mailing_address.country": {"$in": [None, "", "US"]}},
-                ],
-            },
-            {"_id": 1},
+    if "primary_county_fips" not in config:
+        raise ValueError(
+            "get_billing_retryable_fn requires config['primary_county_fips'] "
+            "(use None for the no-primary-county bucket); the orchestrator "
+            "must iterate per (state, primary_county) to avoid unbounded returns."
         )
-    ]
-    logging.info("Pass 3 billing-retryable providers: %d", len(ids))
+    coll = _open_providers_coll(config)
+    query = _pass3_retryable_match(_build_states_filter(config))
+    query["practice_address.0.county.fips"] = config["primary_county_fips"]
+    ids = [str(doc["_id"]) for doc in coll.find(query, {"_id": 1})]
+    logging.info(
+        "Pass 3 billing-retryable providers (state=%s primary_county=%s): %d",
+        config.get("states"), config["primary_county_fips"], len(ids),
+    )
     return {"count": len(ids), "provider_ids": ids}
 
 
@@ -1406,25 +1441,28 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
 
 
 def get_maps_retryable_fn(config: dict) -> dict:
-    """Return _id list of providers with at least one practice_address element
-    flagged geocoder_failed (eligible for per-element Google Maps retry)."""
-    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
-    db_name, coll_name = collection.split(".", 1)
-    coll = _get_mongo_client()[db_name][coll_name]
-    sf = _build_states_filter(config)
-    ids = [
-        str(doc["_id"])
-        for doc in coll.find(
-            {
-                "practice_address": {"$elemMatch": {"county.source": "geocoder_failed"}},
-                "bad_data.flagged": {"$ne": True},
-                "out_of_scope.flagged": {"$ne": True},
-                **sf,
-            },
-            {"_id": 1},
+    """Return _id list of Pass 4 Maps-retryable providers, throttled by
+    (state, primary_county_fips).
+
+    Required config:
+      states              — mandatory state filter
+      primary_county_fips — mandatory; practice_address[0].county.fips value to
+                            filter by, or None for the no-primary-county bucket
+    """
+    if "primary_county_fips" not in config:
+        raise ValueError(
+            "get_maps_retryable_fn requires config['primary_county_fips'] "
+            "(use None for the no-primary-county bucket); the orchestrator "
+            "must iterate per (state, primary_county) to avoid unbounded returns."
         )
-    ]
-    logging.info("Pass 4 Maps-retryable providers: %d", len(ids))
+    coll = _open_providers_coll(config)
+    query = _pass4_retryable_match(_build_states_filter(config))
+    query["practice_address.0.county.fips"] = config["primary_county_fips"]
+    ids = [str(doc["_id"]) for doc in coll.find(query, {"_id": 1})]
+    logging.info(
+        "Pass 4 Maps-retryable providers (state=%s primary_county=%s): %d",
+        config.get("states"), config["primary_county_fips"], len(ids),
+    )
     return {"count": len(ids), "provider_ids": ids}
 
 
@@ -1525,34 +1563,117 @@ def _build_states_filter(config: dict) -> dict:
 
 
 
-def get_nppes_retryable_fn(config: dict) -> dict:
-    """Return _id + npi list of providers eligible for NPPES lookup.
-
-    Targets providers where county.fips is still None (includes geocoder_failed
-    and providers never processed by any geocoder pass).
-
-    Optional states filter via config["states"]:
-      {"mode": "include", "list": ["RI", "HI", "ME"]}  — only these states
-      {"mode": "exclude", "list": ["CA", "TX"]}         — skip these states
-      omitted                                            — all states
-    """
+def _open_providers_coll(config: dict):
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
-    coll = _get_mongo_client()[db_name][coll_name]
+    return _get_mongo_client()[db_name][coll_name]
 
-    query: dict = {
+
+def _pass3_retryable_match(states_filter: dict) -> dict:
+    return {
+        "practice_address": {"$elemMatch": {"county.source": "geocoder_failed"}},
+        "bad_data.flagged": {"$ne": True},
+        "out_of_scope.flagged": {"$ne": True},
+        **states_filter,
+        "$and": [
+            {"$or": [
+                {"mailing_address.line1": {"$nin": [None, ""]}},
+                {"mailing_address.city":  {"$nin": [None, ""]}},
+            ]},
+            {"$or": [
+                {"npi_deactivation_date": {"$exists": False}},
+                {"npi_reactivation_date": {"$exists": True}},
+            ]},
+        ],
+        "$or": [
+            {"mailing_address.country": {"$exists": False}},
+            {"mailing_address.country": {"$in": [None, "", "US"]}},
+        ],
+    }
+
+
+def _pass4_retryable_match(states_filter: dict) -> dict:
+    return {
+        "practice_address": {"$elemMatch": {"county.source": "geocoder_failed"}},
+        "bad_data.flagged": {"$ne": True},
+        "out_of_scope.flagged": {"$ne": True},
+        **states_filter,
+    }
+
+
+def _pass6_retryable_match(states_filter: dict) -> dict:
+    return {
         "practice_address": {"$elemMatch": {"county.fips": None}},
         "bad_data.flagged": {"$ne": True},
         "out_of_scope.flagged": {"$ne": True},
         "npi": {"$nin": [None, ""]},
-        **_build_states_filter(config),  # mandatory
+        **states_filter,
     }
 
+
+def _distinct_primary_counties(coll, match_filter: dict) -> list:
+    pipeline = [
+        {"$match": match_filter},
+        {"$group": {"_id": {"$arrayElemAt": ["$practice_address.county.fips", 0]}}},
+    ]
+    return [r["_id"] for r in coll.aggregate(pipeline, allowDiskUse=True)]
+
+
+def get_pass3_counties_for_state_fn(config: dict) -> dict:
+    """Distinct primary-address county.fips values for Pass 3 retryable providers
+    in the requested state(s). Used by the Pass 3 orchestrator to throttle the
+    retryable activity per (state, primary_county) pair."""
+    coll = _open_providers_coll(config)
+    counties = _distinct_primary_counties(coll, _pass3_retryable_match(_build_states_filter(config)))
+    logging.info("Pass 3 distinct primary counties for state=%s: %d", config.get("states"), len(counties))
+    return {"counties": counties}
+
+
+def get_pass4_counties_for_state_fn(config: dict) -> dict:
+    """Distinct primary-address county.fips values for Pass 4 retryable providers."""
+    coll = _open_providers_coll(config)
+    counties = _distinct_primary_counties(coll, _pass4_retryable_match(_build_states_filter(config)))
+    logging.info("Pass 4 distinct primary counties for state=%s: %d", config.get("states"), len(counties))
+    return {"counties": counties}
+
+
+def get_pass6_counties_for_state_fn(config: dict) -> dict:
+    """Distinct primary-address county.fips values for Pass 6 retryable providers.
+    Includes the explicit None bucket so providers whose primary address never
+    resolved (no per-element county at index 0) are still processed."""
+    coll = _open_providers_coll(config)
+    counties = _distinct_primary_counties(coll, _pass6_retryable_match(_build_states_filter(config)))
+    logging.info("Pass 6 distinct primary counties for state=%s: %d", config.get("states"), len(counties))
+    return {"counties": counties}
+
+
+def get_nppes_retryable_fn(config: dict) -> dict:
+    """Return _id + npi list of providers eligible for NPPES lookup, throttled
+    by (state, primary_county_fips) so the return fits across the activity/
+    orchestrator process boundary.
+
+    Required config:
+      states              — mandatory state filter (raised if missing)
+      primary_county_fips — mandatory; practice_address[0].county.fips value to
+                            filter by, or None for the no-primary-county bucket
+    """
+    if "primary_county_fips" not in config:
+        raise ValueError(
+            "get_nppes_retryable_fn requires config['primary_county_fips'] "
+            "(use None for the no-primary-county bucket); the orchestrator "
+            "must iterate per (state, primary_county) to avoid unbounded returns."
+        )
+    coll = _open_providers_coll(config)
+    query = _pass6_retryable_match(_build_states_filter(config))
+    query["practice_address.0.county.fips"] = config["primary_county_fips"]
     providers = [
         {"id": str(doc["_id"]), "npi": doc["npi"]}
         for doc in coll.find(query, {"_id": 1, "npi": 1})
     ]
-    logging.info("Pass 6 NPPES-retryable providers: %d", len(providers))
+    logging.info(
+        "Pass 6 NPPES-retryable providers (state=%s primary_county=%s): %d",
+        config.get("states"), config["primary_county_fips"], len(providers),
+    )
     return {"count": len(providers), "providers": providers}
 
 
@@ -1716,60 +1837,73 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
 def county_enrichment_pass6_nppes_orchestrator_fn(context):
     """Pass 6: NPPES public registry lookup for remaining unenriched providers.
 
-    Free API, no key required. Rate-limited to ~5 req/s per calling IP.
-    Use states_filter to limit scope for test runs (e.g. ["RI", "HI", "ME"]).
-    Use nppes_batch_size (default 5000) to control fan-out; keep it large to
-    limit parallel workers sharing the same outbound IP.
+    Throttled per (state, primary_county). NPPES is free API, no key required,
+    rate-limited to ~5 req/s per calling IP. Use nppes_batch_size (default 5000)
+    to control per-county fan-out; keep large to limit parallel workers sharing
+    the same outbound IP.
     """
     config = context.get_input() or {}
     load_id = config.get("load_id", context.instance_id)
     config  = {**config, "load_id": load_id}
 
-    states        = config.get("states")
-    if states and isinstance(states, dict) and states.get("list"):
-        mode         = states.get("mode", "include")
-        states_label = f" ({mode}: {', '.join(states['list'])})"
-    elif states and isinstance(states, list):
-        states_label = f" (include: {', '.join(states)})"
-    else:
-        states_label = ""
-
-    context.set_custom_status(f"Step 1: Finding NPPES-retryable providers{states_label}")
-    retryable       = yield context.call_activity("get_nppes_retryable_activity", config)
-    retryable_count = retryable["count"]
-    providers       = retryable["providers"]
-
-    if not providers:
-        context.set_custom_status(f"Done — no NPPES-retryable providers{states_label}")
-        return {
-            "pass6_retryable": 0, "pass6_modified": 0,
-            "pass6_failed": 0, "pass6_batch_results": [],
-        }
+    states = config.get("states")
+    if not (isinstance(states, list) and states):
+        raise ValueError(
+            "Pass 6 orchestrator requires config['states'] as a non-empty list; "
+            "include/exclude dict form not supported under per-(state, county) throttle."
+        )
 
     nppes_batch_size = config.get("nppes_batch_size", 5000)
-    batches = [
-        providers[i:i + nppes_batch_size]
-        for i in range(0, len(providers), nppes_batch_size)
-    ]
-    context.set_custom_status(f"Step 2: NPPES registry lookup fan-out{states_label}")
-    pass6_tasks = [
-        context.call_activity("enrich_by_nppes_batch_activity", {**config, "provider_batch": batch})
-        for batch in batches
-    ]
-    pass6_results    = (yield context.task_all(pass6_tasks)) if pass6_tasks else []
-    pass6_modified   = sum(r.get("modified",          0) for r in pass6_results)
-    pass6_failed     = sum(r.get("nppes_failed",       0) for r in pass6_results)
-    pass6_not_found  = sum(r.get("nppes_not_found",    0) for r in pass6_results)
-    pass6_same_addr  = sum(r.get("nppes_same_address", 0) for r in pass6_results)
+    pass6_retryable = 0
+    pass6_modified  = 0
+    pass6_failed    = 0
+    pass6_not_found = 0
+    pass6_same_addr = 0
+    pass6_results: list = []
+
+    for st_idx, state in enumerate(states, 1):
+        single_state_cfg = {**config, "states": [state]}
+        context.set_custom_status(f"Pass6 [{st_idx}/{len(states)}] {state}: finding counties")
+        counties_result = yield context.call_activity(
+            "get_pass6_counties_for_state_activity", single_state_cfg
+        )
+        counties = counties_result["counties"]
+
+        for c_idx, county_fips in enumerate(counties, 1):
+            per_pair_cfg = {**single_state_cfg, "primary_county_fips": county_fips}
+            context.set_custom_status(
+                f"Pass6 {state} county [{c_idx}/{len(counties)}] {county_fips}: retryable list"
+            )
+            retryable = yield context.call_activity("get_nppes_retryable_activity", per_pair_cfg)
+            providers = retryable["providers"]
+            pass6_retryable += retryable["count"]
+            if not providers:
+                continue
+
+            batches = [providers[i:i + nppes_batch_size] for i in range(0, len(providers), nppes_batch_size)]
+            context.set_custom_status(
+                f"Pass6 {state} county {county_fips}: fanning out {len(batches)} batch(es)"
+            )
+            tasks = [
+                context.call_activity("enrich_by_nppes_batch_activity", {**per_pair_cfg, "provider_batch": batch})
+                for batch in batches
+            ]
+            results = yield context.task_all(tasks)
+            for r in results:
+                pass6_modified  += r.get("modified",          0)
+                pass6_failed    += r.get("nppes_failed",       0)
+                pass6_not_found += r.get("nppes_not_found",    0)
+                pass6_same_addr += r.get("nppes_same_address", 0)
+            pass6_results.extend(results)
 
     context.set_custom_status(
         f"Done — {pass6_modified:,} enriched via NPPES; "
         f"{pass6_same_addr:,} same address skipped; "
         f"{pass6_not_found:,} not in NPPES; "
-        f"{pass6_failed:,} failed{states_label}"
+        f"{pass6_failed:,} failed"
     )
     return {
-        "pass6_retryable":     retryable_count,
+        "pass6_retryable":     pass6_retryable,
         "pass6_modified":      pass6_modified,
         "pass6_failed":        pass6_failed,
         "pass6_not_found":     pass6_not_found,
