@@ -36,8 +36,10 @@ def get_mongo() -> MongoClient:
         conn_str = os.environ.get("MONGO_connectionString")
         if not conn_str:
             raise RuntimeError("MONGO_connectionString not set")
-        _mongo = MongoClient(conn_str)
-        _log.info("MongoDB connected")
+        # serverSelectionTimeoutMS=120_000 — survive Atlas autoscale elections
+        # (~30-90s); matches the timeout the provider load worker has used.
+        _mongo = MongoClient(conn_str, serverSelectionTimeoutMS=120_000)
+        _log.info("MongoDB connected (serverSelectionTimeoutMS=120s)")
     return _mongo
 
 

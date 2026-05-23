@@ -395,6 +395,14 @@ class ProviderWorker(PipelineWorkerBase):
         doc["record_id"] = record_id
         doc["worker_id"] = self.worker_id
         doc["county"] = {"fips": None}  # stub — overwritten by _attach_initial_county
+        # F-105: stamp can_prescribe and is_homeopathic with the placeholder
+        # value True at load time so every record has the fields. The
+        # apply_proprietary_flags activity overwrites these with the real
+        # catalog-derived values; if that activity fails the pipeline fails
+        # loud, so no record is ever silently left at the placeholder.
+        # Indexes on these fields cover every record (no sparse-index gap).
+        doc["can_prescribe"] = True
+        doc["is_homeopathic"] = True
         _attach_initial_county(doc, _get_crosswalk())
 
         if self._incremental:

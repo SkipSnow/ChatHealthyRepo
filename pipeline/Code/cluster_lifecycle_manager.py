@@ -310,3 +310,40 @@ class ClusterLifecycleManager:
         except Exception as e:
             _log.warning("State check failed: %s — %s", cluster_name, e)
             return "UNKNOWN"
+
+
+# ── Shared activity-fn wrappers (every pipeline orchestrator calls these) ───
+#
+# These live here, not in any per-pipeline module, so the Provider and
+# Specialty orchestrations remain 100% independent of each other (EPIC-010-
+# F-102-S-007-B3). The base orchestrator class invokes them via the
+# `register_reservation_activity` and `release_reservation_activity`
+# decorators registered in function_app.py.
+#
+# Mongo client comes from `pipeline_db.get_mongo()` — the single shared
+# MongoClient singleton (one per process) used across the pipeline.
+
+
+def register_reservation_fn(reservation_config: dict) -> dict:
+    """Register a cluster reservation. Wakes the cluster if needed."""
+    from pipeline_db import get_mongo
+    manager = ClusterLifecycleManager(
+        get_db_fn=get_mongo,
+        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+    )
+    return manager.reserve(
+        cluster_name=reservation_config["cluster_name"],
+        job_id=reservation_config["job_id"],
+        requester=reservation_config["requester"],
+        expected_duration_minutes=reservation_config["expected_duration_minutes"],
+    )
+
+
+def release_reservation_fn(reservation_config: dict) -> dict:
+    """Release a cluster reservation. Shuts down cluster if last one."""
+    from pipeline_db import get_mongo
+    manager = ClusterLifecycleManager(
+        get_db_fn=get_mongo,
+        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+    )
+    return manager.release(reservation_config["job_id"])

@@ -57,6 +57,7 @@ from county_enrichment_job import (
     reset_geocoder_failed_fn,
 )
 from instance_warmer import cool_instances_fn, warm_instances_fn
+from cluster_lifecycle_manager import register_reservation_fn, release_reservation_fn
 from provider_load_manager import (
     PROVIDER_PIPELINE_STEPS,
     attach_practice_locations_fn,
@@ -72,8 +73,6 @@ from provider_load_manager import (
     provider_pipeline_orchestrator_fn,
     provider_worker_fn,
     reconcile_fn,
-    register_reservation_fn,
-    release_reservation_fn,
     report_fn,
     stamp_embedding_version_fn,
     write_metadata_fn,
