@@ -48,6 +48,12 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+# Windows console defaults to cp1252; force UTF-8 so step notices with
+# em-dash / arrow / ellipsis don't UnicodeEncodeError out of the run.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
