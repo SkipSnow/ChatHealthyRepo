@@ -442,6 +442,74 @@
       "research_done": "Phase A normalize-prompt variant comparison + Phase B filter-prompt comparison + Phase C end-to-end matrix (840 pipeline runs) + Phase D cross-model matrix (1,680 runs) over 7 normalize variants × 5 filter variants × 9 model pairings × 8 sample queries. Data report at _oneshots/CandidateAdded_prompt_engineering_data_report.xlsx.",
       "documentation_pointer": "architecture/FindCare/ArchitectureDesignAndAuditDocs/EPIC-006-F-002_SpecialtyFilter_RequirementsSpec.docx",
       "implementing_feature": "EPIC-006-F-002 (Specialty Filter)"
+    },
+    {
+      "_record_id": "source_url_discovery_nppes",
+      "title": "Source URL Discovery — NPPES NPI Dissemination",
+      "role": "Pipeline Source URL Discoverer",
+      "cacheable": true,
+      "system_prompt": "Find the URL of the latest **full monthly** NPPES NPI Dissemination zip file. Rules: (a) Look for files whose name starts with `NPPES_Data_Dissemination_<Month>_<Year>` and ends with `.zip`. (b) The publisher sometimes appends a version stamp like `_V2`, `_V3`, etc. When multiple version stamps exist for the same month, return the HIGHEST version number for the LATEST month. (c) IGNORE filenames that contain `Weekly` (those are incremental diff files, not full files). (d) IGNORE filenames that contain `Deactivated` (those are deactivated-NPI reports, not provider data). (e) Return only the absolute URL of the chosen file.",
+      "description": "Per-source instructions block passed to the shared source_url_discovery agent for NPPES. Realizes EPIC-010-F-102-S-003-REQ-T-006.",
+      "publish": false,
+      "models": [
+        {
+          "vendor": "anthropic",
+          "name": "claude-haiku-4-5-20251001",
+          "status": "active",
+          "reason": "Lightweight URL-pick task"
+        }
+      ]
+    },
+    {
+      "_record_id": "source_url_discovery_nucc",
+      "title": "Source URL Discovery — NUCC Provider Taxonomy CSV",
+      "role": "Pipeline Source URL Discoverer",
+      "cacheable": true,
+      "system_prompt": "Find the URL of the latest NUCC Provider Taxonomy CSV file. Rules: (a) Look for the CSV file (filename ends with .csv) that contains the current taxonomy code set; the file usually has a name like `nucc_taxonomy_<version>.csv`. (b) If multiple versions are listed, return the URL of the most recent one. (c) IGNORE PDF, XLSX, and ZIP files — only the CSV is the data file we want. (d) Return only the absolute URL.",
+      "description": "Per-source instructions block passed to the shared source_url_discovery agent for NUCC. Realizes EPIC-010-F-102-S-003-REQ-T-006.",
+      "publish": false,
+      "models": [
+        {
+          "vendor": "anthropic",
+          "name": "claude-haiku-4-5-20251001",
+          "status": "active",
+          "reason": "Lightweight URL-pick task"
+        }
+      ]
+    },
+    {
+      "_record_id": "source_url_discovery_census_zcta_county",
+      "title": "Source URL Discovery — Census ZCTA-to-County crosswalk",
+      "role": "Pipeline Source URL Discoverer",
+      "cacheable": true,
+      "system_prompt": "Find the URL of the latest US Census ZCTA-to-County relationship file. Rules: (a) The file is a pipe-delimited TXT named like `tab20_zcta520_county20_natl.txt` — national-scope ZCTA-to-county crosswalk. (b) Pick the national-scope file (`_natl`), NOT a state-level extract. (c) Return only the absolute URL.",
+      "description": "Per-source instructions block passed to the shared source_url_discovery agent for the Census ZCTA-to-County relationship file. Realizes EPIC-010-F-102-S-003-REQ-T-006.",
+      "publish": false,
+      "models": [
+        {
+          "vendor": "anthropic",
+          "name": "claude-haiku-4-5-20251001",
+          "status": "active",
+          "reason": "Lightweight URL-pick task"
+        }
+      ]
+    },
+    {
+      "_record_id": "source_url_discovery_usda_rucc",
+      "title": "Source URL Discovery — USDA Rural-Urban Continuum Codes",
+      "role": "Pipeline Source URL Discoverer",
+      "cacheable": true,
+      "system_prompt": "Find the URL of the latest USDA Rural-Urban Continuum Codes (RUCC) spreadsheet file. Rules: (a) Look for the most recent year's RUCC file (filename typically `Ruralurbancontinuumcodes<YEAR>.xlsx` or similar). (b) MUST be an XLSX or CSV, not PDF. (c) Pick the file that contains the actual county-level RUCC codes 1-9, not documentation. (d) Return only the absolute URL.",
+      "description": "Per-source instructions block passed to the shared source_url_discovery agent for USDA Rural-Urban Continuum Codes. Realizes EPIC-010-F-102-S-003-REQ-T-006 and F-103-S-005.",
+      "publish": false,
+      "models": [
+        {
+          "vendor": "anthropic",
+          "name": "claude-haiku-4-5-20251001",
+          "status": "active",
+          "reason": "Lightweight URL-pick task"
+        }
+      ]
     }
   ]
 }

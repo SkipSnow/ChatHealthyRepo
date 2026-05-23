@@ -47,82 +47,66 @@ def _get_mongo_client() -> MongoClient:
 
 NPPES_INDEX_URL = "https://download.cms.gov/nppes/NPI_Files.html"
 
-# Last-known URL used as fallback when CMS page scraping fails.
-# WARNING: this fallback is currently STALE (April 2025; today is mid-2026).
-# The scraper logic was rewritten 2026-05-05 to be order-independent — once
-# the scraper succeeds against the current CMS page, update this fallback to
-# match that month so a future scraper failure doesn't quietly load year-old data.
-NPPES_FALLBACK_URL = (
-    "https://download.cms.gov/nppes/NPPES_Data_Dissemination_April_2025.zip"
-)
-
-
-_MONTH_NAME_TO_NUM = {
-    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
-    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
-}
-
 
 def _discover_nppes_url() -> tuple[str, str]:
-    """Scrape CMS NPPES page and return (zip_url, version_string) for the latest full file.
+    """Find the latest NPPES full-dissemination zip URL via AI-agent discovery.
 
-    Collects every `NPPES_Data_Dissemination_<Month>_<Year>.zip` link on the page,
-    parses month + year, and returns the chronologically latest. Order-independent:
-    does NOT trust the page's source order (which has historically varied).
+    F-102-S-003-REQ-T-006. No regex, no fallback constant — the agent reads the
+    CMS page and picks the latest full file, handling version-stamps (V1, V2,
+    V3, ...) and ignoring weekly diffs and deactivated-NPI reports. On failure
+    this function raises; the caller MUST NOT silently substitute a stale URL.
+
+    Returns (zip_url, version_string). The version_string is derived from the
+    filename and used to name the blob; if the filename is anomalous we fall
+    back to a hash of the URL so the blob name stays unique per release.
     """
-    resp = requests.get(NPPES_INDEX_URL, timeout=30)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
+    from source_url_discovery import find_latest_data_url
 
-    candidates: list[tuple[int, int, str, str]] = []  # (year, month, version, url)
-    for link in soup.find_all("a", href=True):
-        href = link["href"]
-        match = re.search(
-            r"NPPES_Data_Dissemination_([A-Za-z]+)_(\d{4})\.zip", href
-        )
-        if not match:
-            continue
-        month_name = match.group(1).lower()
-        year = int(match.group(2))
-        month = _MONTH_NAME_TO_NUM.get(month_name)
-        if not month:
-            logging.warning("NPPES discovery: unrecognized month %r in %r", match.group(1), href)
-            continue
-        version = f"{month_name}-{year}"
-        url = href if href.startswith("http") else f"https://download.cms.gov/nppes/{href}"
-        candidates.append((year, month, version, url))
-
-    if not candidates:
-        raise RuntimeError("Could not find NPPES full dissemination zip on CMS page.")
-
-    candidates.sort(reverse=True)  # newest first by (year, month)
-    year, month, version, url = candidates[0]
-    logging.info(
-        "NPPES discovery: %d candidate file(s) found; selected latest = %s (%s)",
-        len(candidates), url, version,
+    instructions = (
+        "Find the URL of the latest **full monthly** NPPES NPI Dissemination "
+        "zip file. Rules: "
+        "(a) Look for files whose name starts with "
+        "`NPPES_Data_Dissemination_<Month>_<Year>` and ends with `.zip`. "
+        "(b) The publisher sometimes appends a version stamp like `_V2`, "
+        "`_V3`, etc. When multiple version stamps exist for the same month, "
+        "return the HIGHEST version number for the LATEST month. "
+        "(c) IGNORE filenames that contain `Weekly` (those are incremental "
+        "diff files, not full files). "
+        "(d) IGNORE filenames that contain `Deactivated` (those are "
+        "deactivated-NPI reports, not provider data). "
+        "(e) Return only the absolute URL of the chosen file."
     )
+
+    url = find_latest_data_url(
+        source_name="nppes_npi",
+        page_url=NPPES_INDEX_URL,
+        instructions=instructions,
+    )
+
+    # Derive a stable version slug from the filename so blob naming is
+    # deterministic across re-runs of the same release.
+    filename = url.rsplit("/", 1)[-1]
+    version = filename.replace("NPPES_Data_Dissemination_", "").replace(".zip", "")
+    if not version:
+        # Pathological case — anomalous filename. Hash the URL for uniqueness.
+        import hashlib
+        version = hashlib.sha256(url.encode("utf-8")).hexdigest()[:16]
+
+    logging.info("NPPES discovery: agent selected %s (version=%s)", url, version)
     return url, version
 
 
 class NppesFetcher(DataFetcherBase):
     """NPPES NPI full dissemination zip fetcher.
 
-    Auto-discovers the current month's URL from the CMS index page.
-    Falls back to NPPES_FALLBACK_URL if scraping fails.
+    URL discovered by AI agent on each construction (F-102-S-003-REQ-T-006).
+    No fallback URL; on discovery failure the constructor raises.
     """
     source_name = "nppes_npi"
 
     def __init__(self, config: dict = None):
         super().__init__(config)
-        # Discover URL and version at construction time
-        try:
-            self.source_url, self._version = _discover_nppes_url()
-        except Exception as exc:
-            logging.warning(
-                "NPPES auto-discovery failed (%s). Using fallback URL.", exc
-            )
-            self.source_url = NPPES_FALLBACK_URL
-            self._version = config.get("version", "fallback") if config else "fallback"
+        self.source_url, self._version = _discover_nppes_url()
 
     def blob_name(self) -> str:
         return f"npi_{self._version}.zip"

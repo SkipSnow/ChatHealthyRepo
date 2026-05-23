@@ -59,11 +59,28 @@ class ChatHealthyLoadSpecialtyData:
     # ------------------------------------------------------------------
 
     def fetch_csv(self) -> None:
-        """Fetch current NUCC taxonomy CSV. Scrapes page first, falls back to Haiku."""
-        csv_url = self._scrape_csv_url()
-        if not csv_url:
-            logging.warning("Scrape failed — falling back to Haiku agent.")
-            csv_url = self._agent_find_csv_url()
+        """Fetch the latest NUCC taxonomy CSV.
+
+        URL discovered by AI-agent (F-102-S-003-REQ-T-006). No regex, no
+        fallback constant — the agent reads the NUCC page and picks the
+        latest CSV.
+        """
+        from source_url_discovery import find_latest_data_url
+
+        csv_url = find_latest_data_url(
+            source_name="nucc",
+            page_url=NUCC_PAGE_URL,
+            instructions=(
+                "Find the URL of the latest NUCC Provider Taxonomy CSV file. "
+                "Rules: (a) Look for the CSV file (filename ends with .csv) "
+                "that contains the current taxonomy code set; the file usually "
+                "has a name like `nucc_taxonomy_<version>.csv`. (b) If "
+                "multiple versions are listed, return the URL of the most "
+                "recent one. (c) IGNORE PDF, XLSX, and ZIP files — only the "
+                "CSV is the data file we want. (d) Return only the absolute "
+                "URL."
+            ),
+        )
 
         logging.info("Fetching CSV from: %s", csv_url)
         response = requests.get(csv_url, timeout=30)
@@ -71,40 +88,6 @@ class ChatHealthyLoadSpecialtyData:
         self._csv_content = response.text
         self._csv_filename = csv_url.split("/")[-1].split("?")[0] or "nucc_taxonomy.csv"
         logging.info("Fetched %d bytes as '%s'", len(self._csv_content), self._csv_filename)
-
-    def _scrape_csv_url(self) -> str | None:
-        try:
-            response = requests.get(NUCC_PAGE_URL, timeout=15)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-            for a in soup.find_all("a", href=True):
-                href = a["href"]
-                if href.lower().endswith(".csv"):
-                    return href if href.startswith("http") else "https://www.nucc.org" + href
-        except Exception as e:
-            logging.warning("Scrape error: %s", e)
-        return None
-
-    def _agent_find_csv_url(self) -> str:
-        import anthropic
-        client = anthropic.Anthropic(api_key=os.getenv("Anthropic_API_KEY"))
-        page_html = requests.get(NUCC_PAGE_URL, timeout=15).text[:8000]
-        message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=256,
-            messages=[{
-                "role": "user",
-                "content": (
-                    "Find the direct download URL for the current NUCC provider taxonomy "
-                    "CSV file from this HTML page. Return only the URL, nothing else.\n\n"
-                    + page_html
-                ),
-            }],
-        )
-        url = message.content[0].text.strip()
-        if not url.startswith("http"):
-            raise ValueError(f"Agent returned invalid URL: {url}")
-        return url
 
     # ------------------------------------------------------------------
     # Step 2: Store to Azure Blob

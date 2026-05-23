@@ -931,13 +931,18 @@ def apply_proprietary_flags_fn(config: dict) -> dict:
     coll = _get_mongo_client()[db_name][coll_name]
 
     sf = _build_states_filter(config)
+    # Combine via $and — Python dict spread of `**sf` would silently overwrite
+    # the flag-missing `$or` with the state-filter `$or` (single-key collision),
+    # leaving the activity running without an idempotency gate (2026-05-22).
     base_filter = {
-        "$or": [
-            {"can_prescribe": {"$exists": False}},
-            {"can_prescribe": {"$not": {"$type": "bool"}}},
-            {"is_homeopathic": {"$exists": False}},
+        "$and": [
+            {"$or": [
+                {"can_prescribe": {"$exists": False}},
+                {"can_prescribe": {"$not": {"$type": "bool"}}},
+                {"is_homeopathic": {"$exists": False}},
+            ]},
+            sf,
         ],
-        **sf,
     }
 
     total = coll.count_documents(base_filter)
