@@ -100,50 +100,30 @@ class LocalDeploy:
             "msg": msg,
         })
 
-    # ── Deployment-architecture gate (V18 substrate) ───────────────────
-    # The brain artifact at brain/machine_artifacts/content/
-    # deployment_architecture.json is the source of record for the
-    # deploy. Missing / empty / drifted artifact = REJECT before any
-    # other step runs. The gate runs the Crosswalk subchecks: target_id
-    # uniqueness, env_binding uniqueness, feature_id coverage, file
-    # drift (byte equality with disk), and no-secret-value leak.
+    # ── Deployment-architecture gate ───────────────────────────────────
+    # `brain/machine_artifacts/content/deployment_architecture.json` is
+    # operator-authored, like `agile_backlog.json`. The deploy MUST NOT
+    # regenerate or modify it. The gate LOADS the operator-authored
+    # collection and validates it against the backlog + against disk
+    # state via Crosswalk. Any drift fails the deploy loudly — never
+    # silently rewritten.
     def _deployment_architecture_gate(self) -> None:
-        """V18 change-management gate.
+        """Load the operator-authored manifest and validate it.
 
-        The deploy itself runs the substrate cycle on every invocation:
-          1. Builder enumerates the current disk → new collection.
-             During enumeration, the substrate scans every managed
-             file's embedded_content for path-shaped substrings; if a
-             substring isn't a current source_location AND its basename
-             matches exactly one current source_location, the substrate
-             rewrites the substring in embedded_content. The JSON is
-             the truth.
-          2. RecordWriter persists the (possibly-rewritten) collection
-             to deployment_architecture.json.
-          3. Extractor materializes managed files' embedded_content
-             back to disk so source_location bytes match the JSON.
-          4. Crosswalk validates the now-coherent state: managed files
-             byte-equal embedded_content; referenced files present.
+          1. RecordLoader reads `deployment_architecture.json` (no
+             automation may write to it; the file is hand-maintained).
+          2. Crosswalk validates: target_id uniqueness, env_binding
+             uniqueness, feature_id coverage, referenced-file presence
+             on disk, managed-file content equality, no-secret-value
+             leak. Any drift = exit non-zero.
         """
-        import urllib.request as _urlreq
-        opener = _urlreq.build_opener()
-        opener.addheaders = [
-            ("User-Agent",
-             "Mozilla/5.0 (deployment-substrate-loader; +chathealthy.ai)")
-        ]
-        _urlreq.install_opener(opener)
-
         # Discover substrate code dir from this module's own __file__.
-        # If the substrate is moved anywhere else, this still works
-        # without a Python edit — Builder rediscovers its own dir too.
         substrate_code_dir = Path(__file__).resolve().parent
         sys.path.insert(0, str(substrate_code_dir))
         try:
             from agile_backlog import AgileBacklogLoader
-            from builder import Builder
             from crosswalk import Crosswalk
-            from extractor import Extractor
-            from record_writer import RecordWriter
+            from record_loader import RecordLoader
             from secrets_resolver import SecretsResolver
         finally:
             if str(substrate_code_dir) in sys.path:
@@ -154,15 +134,10 @@ class LocalDeploy:
         deployment_path = self.repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
         env_path = self.repo_root / "Code" / ".env"
 
-        # 1. Builder regenerates from disk and applies stale-path
-        #    rewrites in managed files (scan + top-dir whitelist; no
-        #    prev artifact needed). JSON is the truth.
-        coll = Builder().build_collection(self.repo_root)
-        # 2. Persist the (possibly-rewritten) collection to disk.
-        RecordWriter().write_collection(coll, deployment_path)
-        # 3. Cascade: materialize managed bytes so disk matches JSON.
-        Extractor().materialize_collection(coll, self.repo_root)
-        # 4. Validate the coherent state.
+        # 1. Load the operator-authored manifest. No regeneration; no
+        #    write back. The file is the truth.
+        coll = RecordLoader().load_collection(deployment_path)
+        # 2. Validate the coherent state.
         backlog = AgileBacklogLoader(schema_uri=backlog_schema).load(backlog_path)
         env_values: set[str] = set()
         if env_path.is_file():

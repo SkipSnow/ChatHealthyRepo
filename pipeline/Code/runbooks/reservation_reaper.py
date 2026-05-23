@@ -191,7 +191,7 @@ def _maybe_send_streak_email(state, latest_cause):
         return
     now_utc = datetime.now(timezone.utc)
     streak_secs = (now_utc - earliest_dt).total_seconds()
-    if streak_secs < 3600:
+    if streak_secs < 3900:
         return
     emails = state.get("emails_sent") or []
     if emails:
