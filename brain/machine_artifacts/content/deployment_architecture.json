@@ -2361,7 +2361,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c9fdc5d3566ae42fae26c022cdf620114bfe0e8f5adaba158b9e5c65294eb348"
+          "content_hash": "e537128aafbbac502a002eb0494651fb7984a2544cccbdd7bfa546ebc9078a9c"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2462,164 +2462,10 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": ".github/workflows/deploy-pipelines.yml",
-          "handler_type": "workflow_yaml",
-          "disposition": "managed",
-          "embedded_content": "name: Deploy to Azure Functions\n'on':\n  push:\n    branches:\n    - dev\n    - qa\n    - main\n    paths:\n    - pipeline/Code/**\n    - .github/workflows/deploy-pipelines.yml\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n    - name: Checkout repository\n      uses: actions/checkout@v4\n      with:\n        fetch-depth: 1\n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.12'\n    - name: Install dependencies\n      run: 'cd pipeline/Code\n\n        pip install -r requirements-pipeline.txt\n\n        pip install -r ../../Code/Shared/ops/tools/requirements.txt\n\n        '\n    - name: Derive environment from branch\n      id: env\n      run: \"BRANCH=\\\"${GITHUB_REF_NAME}\\\"\\nif [ \\\"$BRANCH\\\" = \\\"main\\\" ]; then\\n  echo \\\"name=prod\\\" >> $GITHUB_OUTPUT\\nelse\\n  echo \\\"name=$BRANCH\\\" >> $GITHUB_OUTPUT\\nfi\\necho \\\"Environment: $BRANCH\\\"\\n\"\n    - name: Login to Azure\n      uses: azure/login@v2\n      with:\n        creds: ${{ secrets.AZURE_CREDENTIALS }}\n    - name: Check for active orchestrations (no overrides — blocks on any error)\n      run: \"# Rule: if we cannot CONFIRM zero active jobs, we block.\\n# There are no override flags and no escape hatches.\\n# The only way to unblock a deploy is to terminate the running job.\\n\\nMASTER_KEY=$(az functionapp keys list \\\\\\n  --resource-group FindCareDataPipelines-Dev \\\\\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \\\\\\n  --query \\\"masterKey\\\" -o tsv 2>/dev/null) || MASTER_KEY=\\\"\\\"\\n\\nif [ -z \\\"$MASTER_KEY\\\" ]; then\\n  echo \\\"DEPLOY BLOCKED: Cannot retrieve master key — cannot verify no pipeline is running.\\\"\\n  exit 1\\nfi\\n\\n# Flex Consumption uses a longer hostname; fetch it from Azure rather than\\n# constructing <appname>.azurewebsites.net which does not resolve for FC apps.\\nDEFAULT_HOST=$(az functionapp show \\\\\\n  --resource-group FindCareDataPipelines-Dev \\\\\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \\\\\\n  --query \\\"properties.defaultHostName\\\" -o tsv 2>/dev/null) || DEFAULT_HOST=\\\"\\\"\\n\\nif [ -z \\\"$DEFAULT_HOST\\\" ]; then\\n  echo \\\"DEPLOY BLOCKED: Cannot retrieve app hostname — cannot verify no pipeline is running.\\\"\\n  exit 1\\nfi\\n\\nAPP_URL=\\\"https://${DEFAULT_HOST}\\\"\\nBASE=\\\"${APP_URL}/runtime/webhooks/durabletask/instances?taskHub=DevPipelineManagmentService&code=${MASTER_KEY}\\\"\\n\\n# Kick the cold start immediately — fire-and-forget, response not checked.\\ncurl -s --max-time 5 \\\"${BASE}&runtimeStatus=Running\\\" -o /dev/null 2>/dev/null || true\\n\\n# Poll until the app responds or 6 minutes elapse.\\n# After OOM recovery the Durable extension can take 3-5 min to initialize\\n# against a large task hub. Each attempt: 20s timeout. Retry every 20s.\\nquery_instances() {\\n  local status=$1\\n  local deadline=$((SECONDS + 360))\\n  while [ $SECONDS -lt $deadline ]; do\\n    resp=$(curl -s --max-time 20 \\\"${BASE}&runtimeStatus=${status}\\\" 2>/dev/null)\\n    if echo \\\"$resp\\\" | python3 -c \\\"import sys,json; d=json.load(sys.stdin); isinstance(d,list) or sys.exit(1)\\\" 2>/dev/null; then\\n      echo \\\"$resp\\\"\\n      return 0\\n    fi\\n    echo \\\"Waiting for app warm-up (${status})...\\\"\\n    sleep 20\\n  done\\n  return 1\\n}\\n\\nRUNNING_RESP=$(query_instances \\\"Running\\\") || {\\n  echo \\\"DEPLOY BLOCKED: Could not query running instances — cannot verify safety.\\\"\\n  exit 1\\n}\\nPENDING_RESP=$(query_instances \\\"Pending\\\") || {\\n  echo \\\"DEPLOY BLOCKED: Could not query pending instances — cannot verify safety.\\\"\\n  exit 1\\n}\\n\\nRUNNING=$(echo \\\"$RUNNING_RESP\\\" | python3 -c \\\"import sys,json; d=json.load(sys.stdin); sys.exit(1) if not isinstance(d,list) else print(len(d))\\\") || { echo \\\"DEPLOY BLOCKED: Unexpected Running response: $RUNNING_RESP\\\"; exit 1; }\\n\\nPENDING=$(echo \\\"$PENDING_RESP\\\" | python3 -c \\\"import sys,json; d=json.load(sys.stdin); sys.exit(1) if not isinstance(d,list) else print(len(d))\\\") || { echo \\\"DEPLOY BLOCKED: Unexpected Pending response: $PENDING_RESP\\\"; exit 1; }\\n\\necho \\\"Guard check — Running: ${RUNNING}  Pending: ${PENDING}\\\"\\n\\nTOTAL=$((RUNNING + PENDING))\\nif [ \\\"$TOTAL\\\" -gt 0 ]; then\\n  echo \\\"DEPLOY BLOCKED: ${RUNNING} running + ${PENDING} pending orchestration(s) active.\\\"\\n  echo \\\"Terminate all pipeline runs before deploying orchestrator changes.\\\"\\n  exit 1\\nfi\\n\\necho \\\"Guard passed — no active orchestrations.\\\"\\n\"\n    - name: Deploy to Azure Functions\n      run: \"cd pipeline/Code\\ncp requirements-pipeline.txt requirements.txt\\nzip -r deploy.zip . --exclude \\\"*.pyc\\\" --exclude \\\"__pycache__/*\\\" --exclude \\\"venv/*\\\" --exclude \\\"venv_func/*\\\" --exclude \\\"local.settings.json\\\" --exclude \\\".env\\\"\\naz functionapp deployment source config-zip \\\\\\n  --resource-group FindCareDataPipelines-Dev \\\\\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \\\\\\n  --src deploy.zip\\n\"\n    - name: Restart function app to drain warm worker Python module cache\n      run: \"# Python workers cache `from foo import bar` in sys.modules and survive\\n# config-zip swaps. A field rename or moved symbol can be served stale on\\n# any warm worker until the function host restarts. Forcing a restart at\\n# the end of the deploy guarantees the next orchestration picks up the\\n# files we just shipped. Wait a few seconds for the host to come back so\\n# the next workflow can dispatch immediately.\\naz functionapp restart \\\\\\n  --resource-group FindCareDataPipelines-Dev \\\\\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }}\\necho \\\"Function app restart requested; sleeping 60s to let the host come back warm.\\\"\\nsleep 60\\n\"\n",
-          "layout": {
-            "name": "Deploy to Azure Functions",
-            "on": {
-              "push": {
-                "branches": [
-                  "dev",
-                  "qa",
-                  "main"
-                ],
-                "paths": [
-                  "pipeline/Code/**",
-                  ".github/workflows/deploy-pipelines.yml"
-                ]
-              }
-            },
-            "jobs": {
-              "deploy": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                  {
-                    "name": "Checkout repository",
-                    "uses": "actions/checkout@v4",
-                    "with": {
-                      "fetch-depth": 1
-                    }
-                  },
-                  {
-                    "name": "Set up Python",
-                    "uses": "actions/setup-python@v5",
-                    "with": {
-                      "python-version": "3.12"
-                    }
-                  },
-                  {
-                    "name": "Install dependencies",
-                    "run": "cd pipeline/Code\npip install -r requirements-pipeline.txt\npip install -r ../../Code/Shared/ops/tools/requirements.txt\n"
-                  },
-                  {
-                    "name": "Derive environment from branch",
-                    "id": "env",
-                    "run": "BRANCH=\"${GITHUB_REF_NAME}\"\nif [ \"$BRANCH\" = \"main\" ]; then\n  echo \"name=prod\" >> $GITHUB_OUTPUT\nelse\n  echo \"name=$BRANCH\" >> $GITHUB_OUTPUT\nfi\necho \"Environment: $BRANCH\"\n"
-                  },
-                  {
-                    "name": "Login to Azure",
-                    "uses": "azure/login@v2",
-                    "with": {
-                      "creds": "${{ secrets.AZURE_CREDENTIALS }}"
-                    }
-                  },
-                  {
-                    "name": "Check for active orchestrations (no overrides — blocks on any error)",
-                    "run": "# Rule: if we cannot CONFIRM zero active jobs, we block.\n# There are no override flags and no escape hatches.\n# The only way to unblock a deploy is to terminate the running job.\n\nMASTER_KEY=$(az functionapp keys list \\\n  --resource-group FindCareDataPipelines-Dev \\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \\\n  --query \"masterKey\" -o tsv 2>/dev/null) || MASTER_KEY=\"\"\n\nif [ -z \"$MASTER_KEY\" ]; then\n  echo \"DEPLOY BLOCKED: Cannot retrieve master key — cannot verify no pipeline is running.\"\n  exit 1\nfi\n\n# Flex Consumption uses a longer hostname; fetch it from Azure rather than\n# constructing <appname>.azurewebsites.net which does not resolve for FC apps.\nDEFAULT_HOST=$(az functionapp show \\\n  --resource-group FindCareDataPipelines-Dev \\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \\\n  --query \"properties.defaultHostName\" -o tsv 2>/dev/null) || DEFAULT_HOST=\"\"\n\nif [ -z \"$DEFAULT_HOST\" ]; then\n  echo \"DEPLOY BLOCKED: Cannot retrieve app hostname — cannot verify no pipeline is running.\"\n  exit 1\nfi\n\nAPP_URL=\"https://${DEFAULT_HOST}\"\nBASE=\"${APP_URL}/runtime/webhooks/durabletask/instances?taskHub=DevPipelineManagmentService&code=${MASTER_KEY}\"\n\n# Kick the cold start immediately — fire-and-forget, response not checked.\ncurl -s --max-time 5 \"${BASE}&runtimeStatus=Running\" -o /dev/null 2>/dev/null || true\n\n# Poll until the app responds or 6 minutes elapse.\n# After OOM recovery the Durable extension can take 3-5 min to initialize\n# against a large task hub. Each attempt: 20s timeout. Retry every 20s.\nquery_instances() {\n  local status=$1\n  local deadline=$((SECONDS + 360))\n  while [ $SECONDS -lt $deadline ]; do\n    resp=$(curl -s --max-time 20 \"${BASE}&runtimeStatus=${status}\" 2>/dev/null)\n    if echo \"$resp\" | python3 -c \"import sys,json; d=json.load(sys.stdin); isinstance(d,list) or sys.exit(1)\" 2>/dev/null; then\n      echo \"$resp\"\n      return 0\n    fi\n    echo \"Waiting for app warm-up (${status})...\"\n    sleep 20\n  done\n  return 1\n}\n\nRUNNING_RESP=$(query_instances \"Running\") || {\n  echo \"DEPLOY BLOCKED: Could not query running instances — cannot verify safety.\"\n  exit 1\n}\nPENDING_RESP=$(query_instances \"Pending\") || {\n  echo \"DEPLOY BLOCKED: Could not query pending instances — cannot verify safety.\"\n  exit 1\n}\n\nRUNNING=$(echo \"$RUNNING_RESP\" | python3 -c \"import sys,json; d=json.load(sys.stdin); sys.exit(1) if not isinstance(d,list) else print(len(d))\") || { echo \"DEPLOY BLOCKED: Unexpected Running response: $RUNNING_RESP\"; exit 1; }\n\nPENDING=$(echo \"$PENDING_RESP\" | python3 -c \"import sys,json; d=json.load(sys.stdin); sys.exit(1) if not isinstance(d,list) else print(len(d))\") || { echo \"DEPLOY BLOCKED: Unexpected Pending response: $PENDING_RESP\"; exit 1; }\n\necho \"Guard check — Running: ${RUNNING}  Pending: ${PENDING}\"\n\nTOTAL=$((RUNNING + PENDING))\nif [ \"$TOTAL\" -gt 0 ]; then\n  echo \"DEPLOY BLOCKED: ${RUNNING} running + ${PENDING} pending orchestration(s) active.\"\n  echo \"Terminate all pipeline runs before deploying orchestrator changes.\"\n  exit 1\nfi\n\necho \"Guard passed — no active orchestrations.\"\n"
-                  },
-                  {
-                    "name": "Deploy to Azure Functions",
-                    "run": "cd pipeline/Code\ncp requirements-pipeline.txt requirements.txt\nzip -r deploy.zip . --exclude \"*.pyc\" --exclude \"__pycache__/*\" --exclude \"venv/*\" --exclude \"venv_func/*\" --exclude \"local.settings.json\" --exclude \".env\"\naz functionapp deployment source config-zip \\\n  --resource-group FindCareDataPipelines-Dev \\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }} \\\n  --src deploy.zip\n"
-                  },
-                  {
-                    "name": "Restart function app to drain warm worker Python module cache",
-                    "run": "# Python workers cache `from foo import bar` in sys.modules and survive\n# config-zip swaps. A field rename or moved symbol can be served stale on\n# any warm worker until the function host restarts. Forcing a restart at\n# the end of the deploy guarantees the next orchestration picks up the\n# files we just shipped. Wait a few seconds for the host to come back so\n# the next workflow can dispatch immediately.\naz functionapp restart \\\n  --resource-group FindCareDataPipelines-Dev \\\n  --name ${{ secrets.AZURE_FUNCTION_APP_NAME }}\necho \"Function app restart requested; sleeping 60s to let the host come back warm.\"\nsleep 60\n"
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": ".github/workflows/deploy.yml",
-          "handler_type": "workflow_yaml",
-          "disposition": "managed",
-          "embedded_content": "name: Deploy (dev/qa/prod)\n'on':\n  workflow_dispatch:\n    inputs:\n      skip_smoke:\n        type: boolean\n        description: skip master smoke test after deploy (debug only)\n        default: false\n  push:\n    branches:\n    - dev\n    - qa\n    - main\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n    - name: Checkout repository\n      uses: actions/checkout@v4\n      with:\n        fetch-depth: 0\n    - name: Derive env from branch\n      id: env\n      run: 'BR=\"${GITHUB_REF_NAME}\"\n\n        if [ \"$BR\" = \"main\" ]; then ENV=\"prod\"; else ENV=\"$BR\"; fi\n\n        echo \"env=$ENV\" >> $GITHUB_OUTPUT\n\n        echo \"Deploying env: $ENV from branch $BR\"\n\n        '\n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.12'\n    - name: Set up Node.js\n      uses: actions/setup-node@v4\n      with:\n        node-version: 20\n    - name: Install dependencies\n      run: 'pip install --quiet pytest pytest-playwright httpx cryptography psutil python-dotenv jsonschema anyio pymongo requests\n\n        playwright install --with-deps chromium\n\n        '\n    - name: Run remote_deploy.py\n      env:\n        HF_TOKEN: ${{ secrets.HF_TOKEN }}\n        FINDCARE_SIGNING_KEY_B64: ${{ secrets.FINDCARE_SIGNING_KEY_B64 }}\n        SHARED_SIGNING_KEY_B64: ${{ secrets.SHARED_SIGNING_KEY_B64 }}\n        EVALCARE_SIGNING_KEY_B64: ${{ secrets.EVALCARE_SIGNING_KEY_B64 }}\n        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_ACCOUN_TOKEN }}\n        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}\n        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}\n        GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}\n        GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}\n        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}\n        ENV: ${{ steps.env.outputs.env }}\n      run: 'python architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_deploy.py --env ${{ steps.env.outputs.env }}${{ inputs.skip_smoke && '' --skip-smoke'' || '''' }} '\n",
-          "layout": {
-            "name": "Deploy (dev/qa/prod)",
-            "on": {
-              "workflow_dispatch": {
-                "inputs": {
-                  "skip_smoke": {
-                    "type": "boolean",
-                    "description": "skip master smoke test after deploy (debug only)",
-                    "default": false
-                  }
-                }
-              },
-              "push": {
-                "branches": [
-                  "dev",
-                  "qa",
-                  "main"
-                ]
-              }
-            },
-            "jobs": {
-              "deploy": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                  {
-                    "name": "Checkout repository",
-                    "uses": "actions/checkout@v4",
-                    "with": {
-                      "fetch-depth": 0
-                    }
-                  },
-                  {
-                    "name": "Derive env from branch",
-                    "id": "env",
-                    "run": "BR=\"${GITHUB_REF_NAME}\"\nif [ \"$BR\" = \"main\" ]; then ENV=\"prod\"; else ENV=\"$BR\"; fi\necho \"env=$ENV\" >> $GITHUB_OUTPUT\necho \"Deploying env: $ENV from branch $BR\"\n"
-                  },
-                  {
-                    "name": "Set up Python",
-                    "uses": "actions/setup-python@v5",
-                    "with": {
-                      "python-version": "3.12"
-                    }
-                  },
-                  {
-                    "name": "Set up Node.js",
-                    "uses": "actions/setup-node@v4",
-                    "with": {
-                      "node-version": 20
-                    }
-                  },
-                  {
-                    "name": "Install dependencies",
-                    "run": "pip install --quiet pytest pytest-playwright httpx cryptography psutil python-dotenv jsonschema anyio pymongo requests\nplaywright install --with-deps chromium\n"
-                  },
-                  {
-                    "name": "Run remote_deploy.py",
-                    "env": {
-                      "HF_TOKEN": "${{ secrets.HF_TOKEN }}",
-                      "FINDCARE_SIGNING_KEY_B64": "${{ secrets.FINDCARE_SIGNING_KEY_B64 }}",
-                      "SHARED_SIGNING_KEY_B64": "${{ secrets.SHARED_SIGNING_KEY_B64 }}",
-                      "EVALCARE_SIGNING_KEY_B64": "${{ secrets.EVALCARE_SIGNING_KEY_B64 }}",
-                      "CLOUDFLARE_API_TOKEN": "${{ secrets.CLOUDFLARE_ACCOUN_TOKEN }}",
-                      "CLOUDFLARE_ACCOUNT_ID": "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}",
-                      "GEMINI_API_KEY": "${{ secrets.GEMINI_API_KEY }}",
-                      "GOOGLE_OAUTH_CLIENT_ID": "${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}",
-                      "GOOGLE_OAUTH_CLIENT_SECRET": "${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}",
-                      "MONGO_FRONTEND_connectionString": "${{ secrets.MONGO_FRONTEND_connectionString }}",
-                      "ENV": "${{ steps.env.outputs.env }}"
-                    },
-                    "run": "python architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_deploy.py --env ${{ steps.env.outputs.env }}${{ inputs.skip_smoke && ' --skip-smoke' || '' }} "
-                  }
-                ]
-              }
-            }
-          }
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": ".github/workflows/promote-build.yml",
           "handler_type": "workflow_yaml",
           "disposition": "managed",
-          "embedded_content": "name: Promote Build Between Environments\n'on':\n  workflow_dispatch:\n    inputs:\n      from_env:\n        description: Source environment\n        required: true\n        type: choice\n        options:\n        - dev\n        - qa\n      to_env:\n        description: Target environment\n        required: true\n        type: choice\n        options:\n        - qa\n        - prod\n      confirm_prod:\n        description: Confirm production promotion (GOV-007)\n        required: false\n        type: boolean\n        default: false\n      dry_run:\n        description: Dry run (print plan, no changes)\n        required: false\n        type: boolean\n        default: true\njobs:\n  promote-build:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n      actions: write\n    steps:\n    - name: Validate promotion path\n      run: \"FROM=\\\"${{ inputs.from_env }}\\\"\\nTO=\\\"${{ inputs.to_env }}\\\"\\nif [ \\\"$FROM\\\" = \\\"dev\\\" ] && [ \\\"$TO\\\" = \\\"qa\\\" ]; then\\n  echo \\\"Valid: dev -> qa\\\"\\nelif [ \\\"$FROM\\\" = \\\"qa\\\" ] && [ \\\"$TO\\\" = \\\"prod\\\" ]; then\\n  echo \\\"Valid: qa -> prod\\\"\\n  if [ \\\"${{ inputs.confirm_prod }}\\\" != \\\"true\\\" ]; then\\n    echo \\\"ERROR: Production promotion requires confirm_prod=true (GOV-007)\\\"\\n    exit 1\\n  fi\\nelse\\n  echo \\\"ERROR: Invalid promotion path: $FROM -> $TO\\\"\\n  echo \\\"Valid paths: dev->qa, qa->prod\\\"\\n  exit 1\\nfi\\n\"\n    - name: Checkout repository\n      uses: actions/checkout@v4\n      with:\n        fetch-depth: 0\n        token: ${{ secrets.GITHUB_TOKEN }}\n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.12'\n    - name: Install dependencies\n      run: pip install -r Code/Shared/ops/tools/requirements.txt\n    - name: Merge source branch into target branch\n      if: inputs.dry_run == false\n      run: 'BRANCH_MAP_dev=\"dev\"\n\n        BRANCH_MAP_qa=\"qa\"\n\n        BRANCH_MAP_prod=\"main\"\n\n\n        FROM_BRANCH=\"BRANCH_MAP_${{ inputs.from_env }}\"\n\n        TO_BRANCH=\"BRANCH_MAP_${{ inputs.to_env }}\"\n\n        SRC=\"${!FROM_BRANCH}\"\n\n        DST=\"${!TO_BRANCH}\"\n\n\n        git config user.email \"skip.snow@gmail.com\"\n\n        git config user.name \"SkipSnow\"\n\n\n        echo \"Merging $SRC -> $DST\"\n\n        git checkout \"$DST\"\n\n        git merge \"origin/$SRC\" -m \"Promote ${{ inputs.from_env }} -> ${{ inputs.to_env }} (build promotion)\"\n\n        git push origin \"$DST\"\n\n        '\n    - name: Trigger deploy.yml for target env\n      if: inputs.dry_run == false\n      env:\n        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n      run: 'BR=\"${{ inputs.to_env }}\"\n\n        if [ \"$BR\" = \"prod\" ]; then BR=\"main\"; fi\n\n        gh workflow run deploy.yml --ref \"$BR\"\n\n        echo \"Dispatched deploy.yml on $BR\"\n\n        '\n    - name: Dry run summary\n      if: inputs.dry_run == true\n      env:\n        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}\n      run: \"python Code/Shared/ops/promote_build.py \\\\\\n  --from ${{ inputs.from_env }} \\\\\\n  --to ${{ inputs.to_env }} \\\\\\n  --dry-run\\n\"\n",
+          "embedded_content": "name: Promote Build Between Environments\n'on':\n  workflow_dispatch:\n    inputs:\n      from_env:\n        description: Source environment\n        required: true\n        type: choice\n        options:\n        - dev\n        - qa\n      to_env:\n        description: Target environment\n        required: true\n        type: choice\n        options:\n        - qa\n        - prod\n      confirm_prod:\n        description: Confirm production promotion (GOV-007)\n        required: false\n        type: boolean\n        default: false\n      dry_run:\n        description: Dry run (print plan, no changes)\n        required: false\n        type: boolean\n        default: true\njobs:\n  promote-build:\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n      actions: write\n    steps:\n    - name: Validate promotion path\n      run: \"FROM=\\\"${{ inputs.from_env }}\\\"\\nTO=\\\"${{ inputs.to_env }}\\\"\\nif [ \\\"$FROM\\\" = \\\"dev\\\" ] && [ \\\"$TO\\\" = \\\"qa\\\" ]; then\\n  echo \\\"Valid: dev -> qa\\\"\\nelif [ \\\"$FROM\\\" = \\\"qa\\\" ] && [ \\\"$TO\\\" = \\\"prod\\\" ]; then\\n  echo \\\"Valid: qa -> prod\\\"\\n  if [ \\\"${{ inputs.confirm_prod }}\\\" != \\\"true\\\" ]; then\\n    echo \\\"ERROR: Production promotion requires confirm_prod=true (GOV-007)\\\"\\n    exit 1\\n  fi\\nelse\\n  echo \\\"ERROR: Invalid promotion path: $FROM -> $TO\\\"\\n  echo \\\"Valid paths: dev->qa, qa->prod\\\"\\n  exit 1\\nfi\\n\"\n    - name: Checkout repository\n      uses: actions/checkout@v4\n      with:\n        fetch-depth: 0\n        token: ${{ secrets.GITHUB_TOKEN }}\n    - name: Set up Python\n      uses: actions/setup-python@v5\n      with:\n        python-version: '3.12'\n    - name: Install dependencies\n      run: pip install -r Code/Shared/ops/tools/requirements.txt\n    - name: Merge source branch into target branch\n      if: inputs.dry_run == false\n      run: 'BRANCH_MAP_dev=\"dev\"\n\n        BRANCH_MAP_qa=\"qa\"\n\n        BRANCH_MAP_prod=\"main\"\n\n\n        FROM_BRANCH=\"BRANCH_MAP_${{ inputs.from_env }}\"\n\n        TO_BRANCH=\"BRANCH_MAP_${{ inputs.to_env }}\"\n\n        SRC=\"${!FROM_BRANCH}\"\n\n        DST=\"${!TO_BRANCH}\"\n\n\n        git config user.email \"skip.snow@gmail.com\"\n\n        git config user.name \"SkipSnow\"\n\n\n        echo \"Merging $SRC -> $DST\"\n\n        git checkout \"$DST\"\n\n        git merge \"origin/$SRC\" -m \"Promote ${{ inputs.from_env }} -> ${{ inputs.to_env }} (build promotion)\"\n\n        git push origin \"$DST\"\n\n        '\n    - name: Post-promotion deploy is operator-driven\n      if: inputs.dry_run == false\n      run: 'echo \"Promotion merged into ${{ inputs.to_env }}. Operator must\n        now run: python architecture/DevOpsBuildDeployAndEnvironmentManagement/local_publish.py\n        --env ${{ inputs.to_env }} (from a local clone). Every deploy\n        package is built on the operator machine; no runner-side deploy.\"\n        '\n    - name: Dry run summary\n      if: inputs.dry_run == true\n      env:\n        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}\n      run: \"python Code/Shared/ops/promote_build.py \\\\\\n  --from ${{ inputs.from_env }} \\\\\\n  --to ${{ inputs.to_env }} \\\\\\n  --dry-run\\n\"\n",
           "layout": {
             "name": "Promote Build Between Environments",
             "on": {
@@ -2695,12 +2541,9 @@
                     "run": "BRANCH_MAP_dev=\"dev\"\nBRANCH_MAP_qa=\"qa\"\nBRANCH_MAP_prod=\"main\"\n\nFROM_BRANCH=\"BRANCH_MAP_${{ inputs.from_env }}\"\nTO_BRANCH=\"BRANCH_MAP_${{ inputs.to_env }}\"\nSRC=\"${!FROM_BRANCH}\"\nDST=\"${!TO_BRANCH}\"\n\ngit config user.email \"skip.snow@gmail.com\"\ngit config user.name \"SkipSnow\"\n\necho \"Merging $SRC -> $DST\"\ngit checkout \"$DST\"\ngit merge \"origin/$SRC\" -m \"Promote ${{ inputs.from_env }} -> ${{ inputs.to_env }} (build promotion)\"\ngit push origin \"$DST\"\n"
                   },
                   {
-                    "name": "Trigger deploy.yml for target env",
+                    "name": "Post-promotion deploy is operator-driven",
                     "if": "inputs.dry_run == false",
-                    "env": {
-                      "GH_TOKEN": "${{ secrets.GITHUB_TOKEN }}"
-                    },
-                    "run": "BR=\"${{ inputs.to_env }}\"\nif [ \"$BR\" = \"prod\" ]; then BR=\"main\"; fi\ngh workflow run deploy.yml --ref \"$BR\"\necho \"Dispatched deploy.yml on $BR\"\n"
+                    "run": "echo \"Promotion merged into ${{ inputs.to_env }}. Operator must now run: python architecture/DevOpsBuildDeployAndEnvironmentManagement/local_publish.py --env ${{ inputs.to_env }} (from a local clone). Every deploy package is built on the operator machine; no runner-side deploy.\" "
                   },
                   {
                     "name": "Dry run summary",
