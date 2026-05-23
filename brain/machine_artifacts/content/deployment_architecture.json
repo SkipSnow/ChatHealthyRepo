@@ -405,13 +405,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/user/__init__.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "81f195df829e1bc1b6abf67738c2baf0f3cb574637c6f9fd3aeefc0e73f8b8fe"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "evaluateCare/Code/.dockerignore",
           "handler_type": "static_asset",
           "disposition": "referenced",
@@ -1821,13 +1814,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/user/__init__.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "81f195df829e1bc1b6abf67738c2baf0f3cb574637c6f9fd3aeefc0e73f8b8fe"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "brain/machine_artifacts/content/agile_backlog.json",
           "handler_type": "json",
           "disposition": "referenced",
@@ -2019,13 +2005,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "9166d6b259926cbc9fc0181650ed529e7d205e7dd5ea6d44d212426302fa118f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/user/__init__.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "81f195df829e1bc1b6abf67738c2baf0f3cb574637c6f9fd3aeefc0e73f8b8fe"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2248,13 +2227,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "sharedServices/Code/externalInterface/.gitkeep",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "sharedServices/Code/healthcheck/health_endpoint.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -2273,13 +2245,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "9d14c021298654180f28f993c1fa338ae182ab7e77ca7e6a7c6a45e2d6d0c69b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "sharedServices/Code/utterance_tool.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "61d3cc4c1c416380c826edd50992e98ea42e7e5bb2b7b09b53a4c74d3c1c7eb2"
         }
       ]
     },
@@ -2333,7 +2298,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/builder.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7d286ef70f0d858526fb65e17dc3acdc06506121bce5d8a80533afc9212b939f"
+          "content_hash": "75a7f40a6dac443c33d2403c4c5e914e282cf49b048beda01df8ed9d35d9dadf"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2379,17 +2344,17 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/file_that_does_not_exist.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/record_loader.py",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "0e70d7a44005ef81f7a46fc9458bc9a00e064660316200009493bb292e780aa4"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/record_writer.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "727537eb2a0273bcd7867c2d1a43309b9cc7ab0c3f376249a0a8294053579708"
         },
         {
           "feature_id": "EPIC-008-F-012",
