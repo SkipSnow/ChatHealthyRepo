@@ -43,21 +43,37 @@ def _get_mongo_client() -> MongoClient:
     return _mongo
 
 
+_CENSUS_ZCTA_INDEX_URL = (
+    "https://www2.census.gov/geo/docs/maps-data/data/rel2020/zcta520/"
+)
+
+
 class CrosswalkFetcher(DataFetcherBase):
-    """US Census ZCTA-to-county relationship file fetcher."""
+    """US Census ZCTA-to-county relationship file fetcher.
+
+    URL discovered by AI agent (F-102-S-003-REQ-T-006). No fallback constant;
+    on discovery failure the constructor raises and the load fails loudly.
+    """
     source_name = "census_zcta_county"
-    source_url = (
-        "https://www2.census.gov/geo/docs/maps-data/data/rel2020/"
-        "zcta520/tab20_zcta520_county20_natl.txt"
-    )
+
+    def __init__(self, config: dict = None):
+        super().__init__(config)
+        from source_url_discovery import find_latest_data_url
+        self.source_url = find_latest_data_url(
+            source_name="census_zcta_county",
+            page_url=_CENSUS_ZCTA_INDEX_URL,
+            instructions=(
+                "Find the URL of the latest US Census ZCTA-to-County "
+                "relationship file. Rules: (a) The file is a pipe-delimited "
+                "TXT named like `tab20_zcta520_county20_natl.txt` — national-"
+                "scope ZCTA-to-county crosswalk. (b) Pick the national-scope "
+                "file (`_natl`), NOT a state-level extract. (c) Return only "
+                "the absolute URL."
+            ),
+        )
 
     def blob_name(self) -> str:
         return "census_zcta_county_2020.txt"
-
-CENSUS_ZCTA_COUNTY_URL = (
-    "https://www2.census.gov/geo/docs/maps-data/data/rel2020/"
-    "zcta520/tab20_zcta520_county20_natl.txt"
-)
 
 CROSSWALK_COLLECTION = "dev_PublicHealthData.ZipCountyCrosswalk"
 SPLIT_THRESHOLD = 0.98
