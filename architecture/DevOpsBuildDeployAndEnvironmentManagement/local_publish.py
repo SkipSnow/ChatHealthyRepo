@@ -89,19 +89,6 @@ def _ghcr_image_ref(target_id: str, env: str, sha7: str) -> str:
     return f"ghcr.io/{_GHCR_OWNER}/{_GHCR_IMAGE_NAME[target_id]}:{env}-{sha7}"
 
 
-# ── Per-env Azure Functions pipeline map ──────────────────────────────
-# The dev Function App + task hub come from the prior deploy-pipelines
-# workflow. qa/prod are not yet provisioned; operator fills the map
-# before publishing to those envs.
-_AZURE_DEPLOY_TARGETS: dict[str, dict[str, str]] = {
-    "dev": {
-        "resource_group": "FindCareDataPipelines-Dev",
-        "function_app":   "DevPipelineManagmentService",
-        "task_hub":       "DevPipelineManagmentService",
-    },
-}
-
-
 # ── Per-env Cloudflare Pages project map ──────────────────────────────
 _CLOUDFLARE_PROJECT: dict[str, str] = {
     "dev":  "chathealthy-website-dev",
@@ -434,13 +421,10 @@ def _publish_cloudflare(repo_root: Path, coll: DeploymentCollection, env: str,
 
 
 # ─────────────────────────────────────────────────────────────────────
-# Azure Functions pipeline — build zip here, push via az config-zip.
+# Azure Functions pipeline — build zip here from JSON files[], push via
+# az config-zip. resource_group / function_app / task_hub all come from
+# the JSON target's environments[].azure sub-object; nothing hardcoded.
 # ─────────────────────────────────────────────────────────────────────
-
-_AZURE_EXCLUDE_DIR_NAMES = {"__pycache__", "venv", "venv_func",
-                            ".pytest_cache", ".mypy_cache"}
-_AZURE_EXCLUDE_FILE_NAMES = {"local.settings.json", ".env"}
-_AZURE_EXCLUDE_SUFFIXES = {".pyc", ".pyo"}
 
 
 def _az_query(args: list[str], err_label: str) -> str:
@@ -516,42 +500,50 @@ def _block_if_active_orchestrations(rg: str, app: str, task_hub: str) -> None:
     _step(f"  no active orchestrations on {app} — safe to deploy")
 
 
-def _build_pipeline_zip(repo_root: Path, sha7: str) -> Path:
-    src = repo_root / "pipeline" / "Code"
-    if not src.is_dir():
-        sys.exit(f"ERROR: pipeline source dir missing: {src}")
-    src_req = src / "requirements-pipeline.txt"
-    if not src_req.is_file():
-        sys.exit(f"ERROR: requirements-pipeline.txt missing at {src_req}")
+_PIPELINE_SOURCE_PREFIX = "pipeline/Code/"
+_AZURE_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
+_AZURE_REQUIREMENTS_ZIP_PATH = "requirements.txt"
 
+
+def _build_pipeline_zip(repo_root: Path, target: TargetRecord, sha7: str) -> Path:
+    """Build the Azure Functions deploy zip by iterating target.files[] from
+    the JSON. The JSON is the manifest — every file in target.files[] (and
+    only those) ships in the zip. arcname inside the zip is the source path
+    with the pipeline/Code/ prefix stripped (Azure Functions expects the
+    function_app.py + host.json at the zip root). requirements-pipeline.txt
+    is renamed to requirements.txt at the zip root (Azure's lookup name).
+    """
     out_dir = repo_root / "_oneshots" / "local_publish" / "azure"
     out_dir.mkdir(parents=True, exist_ok=True)
     zip_path = out_dir / f"deploy_{sha7}.zip"
     if zip_path.exists():
         zip_path.unlink()
 
-    requirements_bytes = src_req.read_bytes()
-
-    _step(f"building zip from {src} → {zip_path}")
+    _step(f"building zip from {len(target.files)} JSON-declared files -> {zip_path}")
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("requirements.txt", requirements_bytes)
-        for path in src.rglob("*"):
-            if not path.is_file():
-                continue
-            parts = set(path.parts)
-            if parts & _AZURE_EXCLUDE_DIR_NAMES:
-                continue
-            if path.name in _AZURE_EXCLUDE_FILE_NAMES:
-                continue
-            if path.suffix.lower() in _AZURE_EXCLUDE_SUFFIXES:
-                continue
-            if path.name in ("requirements.txt", "requirements-pipeline.txt"):
-                continue
-            rel = path.relative_to(src)
-            zf.write(path, arcname=str(rel).replace("\\", "/"))
+        for f in target.files:
+            src_path = repo_root / f.source_location
+            if not src_path.is_file():
+                # Should be unreachable: Crosswalk gate already validated
+                # presence. Fail loud if we still got here somehow.
+                sys.exit(
+                    f"ERROR: file in JSON manifest not present on disk: "
+                    f"{f.source_location}"
+                )
+            if f.source_location == _AZURE_REQUIREMENTS_SRC:
+                arcname = _AZURE_REQUIREMENTS_ZIP_PATH
+            elif f.source_location.startswith(_PIPELINE_SOURCE_PREFIX):
+                arcname = f.source_location[len(_PIPELINE_SOURCE_PREFIX):]
+            else:
+                sys.exit(
+                    f"ERROR: azure target file {f.source_location!r} does "
+                    f"not start with {_PIPELINE_SOURCE_PREFIX!r}; cannot "
+                    f"map to a zip arcname."
+                )
+            zf.write(src_path, arcname=arcname)
 
     size_mb = zip_path.stat().st_size / (1024 * 1024)
-    _step(f"  zip built: {zip_path.name} ({size_mb:.1f} MB)")
+    _step(f"  zip built: {zip_path.name} ({size_mb:.1f} MB, {len(target.files)} entries)")
     return zip_path
 
 
@@ -589,21 +581,32 @@ def _az_restart(rg: str, app: str) -> None:
     _step("  restart requested")
 
 
-def _publish_azure_pipeline(repo_root: Path, env: str, sha7: str) -> str:
-    if env not in _AZURE_DEPLOY_TARGETS:
+def _publish_azure_function_app(repo_root: Path, target: TargetRecord,
+                                env: str, sha7: str) -> str:
+    """Publish one azure_function_app target. All metadata (resource_group,
+    function_app, task_hub) is read from the JSON's environments[].azure
+    sub-object — nothing is hardcoded in this script.
+    """
+    env_binding = next(
+        (e for e in target.environments if e.env_binding == env), None,
+    )
+    if env_binding is None:
         sys.exit(
-            f"ERROR: no Azure deploy target configured for env={env!r}. "
-            f"Operator must add resource_group / function_app / task_hub "
-            f"to _AZURE_DEPLOY_TARGETS in local_publish.py before "
-            f"publishing to {env}."
+            f"ERROR: target {target.target_id!r} has no env_binding "
+            f"matching {env!r}; cannot publish."
         )
-    target = _AZURE_DEPLOY_TARGETS[env]
-    rg = target["resource_group"]
-    app = target["function_app"]
-    task_hub = target["task_hub"]
-    _step(f"=== azure_function_app {app} (rg={rg}) ===")
+    if env_binding.azure is None:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} env={env!r} is missing "
+            f"the `azure` sub-object (resource_group / function_app / "
+            f"task_hub) in deployment_architecture.json."
+        )
+    rg = env_binding.azure["resource_group"]
+    app = env_binding.azure["function_app"]
+    task_hub = env_binding.azure["task_hub"]
+    _step(f"=== azure_function_app {target.target_id} -> {app} (rg={rg}) ===")
     _block_if_active_orchestrations(rg, app, task_hub)
-    zip_path = _build_pipeline_zip(repo_root, sha7)
+    zip_path = _build_pipeline_zip(repo_root, target, sha7)
     _az_push_zip(rg, app, zip_path)
     _az_restart(rg, app)
     return f"{app}@{sha7}"
@@ -660,7 +663,12 @@ def main(argv: list[str] | None = None) -> int:
     published: list[str] = []
 
     if target_filter in ("all", "azure"):
-        published.append(_publish_azure_pipeline(repo_root, env, sha7))
+        for target in coll:
+            if target.target_kind != "azure_function_app":
+                continue
+            if env not in target.env_binding_set():
+                continue
+            published.append(_publish_azure_function_app(repo_root, target, env, sha7))
 
     if target_filter in ("all", "hf"):
         hf_token = os.environ.get("HF_TOKEN") or env_kv.get("HF_TOKEN", "")
