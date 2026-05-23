@@ -663,6 +663,11 @@ def ensure_postload_indexes_fn(config: dict) -> None:
         "taxonomies.code",
         name="taxonomy_code",
     )
+    # F-105 proprietary flag indexes — every record has these fields (worker
+    # pre-stamps placeholder True at load; apply_proprietary_flags overwrites
+    # with catalog-derived values). Non-sparse so the index covers every doc.
+    collection.create_index("can_prescribe", name="can_prescribe_idx")
+    collection.create_index("is_homeopathic", name="is_homeopathic_idx")
     logging.info("Post-load indexes ensured on %s", provider_collection)
 
 
@@ -918,6 +923,7 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
                 "incremental": config["incremental"],
                 "provider_collection": config["provider_collection"],
                 "metadata_collection": config["metadata_collection"],
+                "flag_stamp_batch_size": config.get("flag_stamp_batch_size", 500),
             }
             load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
             step_statuses.append({"step": PROVIDER_LABEL_LOAD, "status": "completed_success"})
@@ -1049,30 +1055,7 @@ def provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
     return result
 
 
-# ── Cluster Lifecycle Activities ─────────────────────────────────────────────
-
-def register_reservation_fn(reservation_config: dict) -> dict:
-    """Register a cluster reservation. Wakes the cluster if needed."""
-    from cluster_lifecycle_manager import ClusterLifecycleManager
-
-    manager = ClusterLifecycleManager(
-        get_db_fn=lambda: _get_mongo_client(),
-        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
-    )
-    return manager.reserve(
-        cluster_name=reservation_config["cluster_name"],
-        job_id=reservation_config["job_id"],
-        requester=reservation_config["requester"],
-        expected_duration_minutes=reservation_config["expected_duration_minutes"],
-    )
-
-
-def release_reservation_fn(reservation_config: dict) -> dict:
-    """Release a cluster reservation. Shuts down cluster if last one."""
-    from cluster_lifecycle_manager import ClusterLifecycleManager
-
-    manager = ClusterLifecycleManager(
-        get_db_fn=lambda: _get_mongo_client(),
-        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
-    )
-    return manager.release(reservation_config["job_id"])
+# Cluster-lifecycle activity wrappers (register_reservation_fn,
+# release_reservation_fn) used to live here; they now live in
+# cluster_lifecycle_manager.py so the Provider and Specialty pipelines
+# stay 100% independent of each other (EPIC-010-F-102-S-007-B3).

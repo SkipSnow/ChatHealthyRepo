@@ -913,16 +913,22 @@ def _evaluate_zip_state_mismatch(
 def apply_proprietary_flags_fn(config: dict) -> dict:
     """Stamp can_prescribe and is_homeopathic booleans on provider records.
 
-    The provider's primary taxonomy code (or first, if no primary) is looked
-    up in the proprietary catalog blob. Both flags are written as plain
-    booleans. Organizations (entity_type_code "2") get can_prescribe=False
-    and is_homeopathic=False regardless of taxonomy.
+    Every in-scope record gets its flags overwritten from the proprietary
+    catalog on every run — there is no idempotency filter. The worker
+    pre-stamps both fields as placeholder True at load time so the indexes
+    on can_prescribe and is_homeopathic cover every record; this activity
+    then overwrites every in-scope record with the catalog-derived value
+    (Organizations / entity_type_code '2' → both False).
 
-    Idempotent: providers whose `can_prescribe` already exists as a boolean
-    are skipped via the {"$type": "bool"} filter. (Legacy nested-dict
-    `can_prescribe.flagged` shape — written by an earlier dead code path —
-    is intentionally re-stamped.)
+    Fail-hard: any BulkWriteError or cursor failure raises; the
+    orchestrator will release the reservation and mark the pipeline
+    failed. Partial-success that silently leaves placeholder Trues on
+    the records is NOT acceptable.
+
+    Tunables (read from config, conservative defaults):
+        flag_stamp_batch_size — bulk_write op batch size (default 500)
     """
+    from pymongo.errors import BulkWriteError
     from specialty_classification_catalog import load_catalog
     catalog = load_catalog()
 
@@ -930,32 +936,50 @@ def apply_proprietary_flags_fn(config: dict) -> dict:
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
-    sf = _build_states_filter(config)
-    # Combine via $and — Python dict spread of `**sf` would silently overwrite
-    # the flag-missing `$or` with the state-filter `$or` (single-key collision),
-    # leaving the activity running without an idempotency gate (2026-05-22).
-    base_filter = {
-        "$and": [
-            {"$or": [
-                {"can_prescribe": {"$exists": False}},
-                {"can_prescribe": {"$not": {"$type": "bool"}}},
-                {"is_homeopathic": {"$exists": False}},
-            ]},
-            sf,
-        ],
-    }
+    batch_size = int(config.get("flag_stamp_batch_size", 500))
+    if batch_size < 1:
+        raise ValueError(f"flag_stamp_batch_size must be >= 1, got {batch_size}")
+
+    base_filter = _build_states_filter(config)
 
     total = coll.count_documents(base_filter)
-    logging.info("F5: %d providers need proprietary-flag stamping (catalog has %d entries)",
-                 total, len(catalog))
+    logging.info(
+        "F5: %d providers in scope for proprietary-flag stamping "
+        "(catalog has %d entries, batch_size=%d)",
+        total, len(catalog), batch_size,
+    )
     if total == 0:
         return {"classified": 0, "prescribers": 0, "homeopathic": 0,
-                "unknown_taxonomy": 0}
+                "unknown_taxonomy": 0, "batch_size": batch_size}
 
     ops = []
+    written = 0
     prescribers = 0
     homeopathic = 0
     unknown_taxonomy = 0
+
+    def _flush(pending_ops):
+        nonlocal written
+        if not pending_ops:
+            return
+        try:
+            result = coll.bulk_write(pending_ops, ordered=False)
+        except BulkWriteError as exc:
+            # Fail hard — re-raise so the orchestrator marks the pipeline
+            # failed. Partial-success that leaves placeholder Trues is
+            # the very thing we are guarding against.
+            details = exc.details or {}
+            logging.error(
+                "F5 bulk_write FAILED: code=%s nModified=%s writeErrors=%s",
+                getattr(exc, "code", None),
+                details.get("nModified"),
+                str(details.get("writeErrors", ""))[:500],
+            )
+            raise
+        # `matched_count`, not `modified_count` — on a re-run against already-
+        # correctly-stamped records, modified_count would be 0 (no-op writes)
+        # which would falsely trip the `written < total` sanity check.
+        written += result.matched_count
 
     cursor = coll.find(
         base_filter,
@@ -974,8 +998,6 @@ def apply_proprietary_flags_fn(config: dict) -> dict:
             tax_code = tax.get("code", "") if isinstance(tax, dict) else ""
             entry = catalog.get(tax_code)
             if entry is None:
-                # Taxonomy code not in catalog → cannot classify.
-                # Default both flags to False and count separately.
                 can_prescribe = False
                 is_homeopathic = False
                 unknown_taxonomy += 1
@@ -996,20 +1018,34 @@ def apply_proprietary_flags_fn(config: dict) -> dict:
             }},
         ))
 
-        if len(ops) >= 1000:
-            coll.bulk_write(ops, ordered=False)
+        if len(ops) >= batch_size:
+            _flush(ops)
             ops = []
 
-    if ops:
-        coll.bulk_write(ops, ordered=False)
+    _flush(ops)
 
-    logging.info("F5: classified %d providers — prescribers: %d, homeopathic: %d, "
-                 "unknown_taxonomy: %d", total, prescribers, homeopathic, unknown_taxonomy)
+    # Sanity check: every in-scope record must have been overwritten.
+    # If `written` is short of `total` the activity ran but didn't
+    # complete the work — fail loudly so the pipeline doesn't ship
+    # placeholder Trues on un-stamped records.
+    if written < total:
+        raise RuntimeError(
+            f"F5: only {written} of {total} in-scope records were stamped "
+            f"(short by {total - written}). The pipeline is failing rather "
+            f"than ship placeholder True values on un-classified records."
+        )
+
+    logging.info(
+        "F5: classified %d providers — prescribers=%d, homeopathic=%d, "
+        "unknown_taxonomy=%d, batch_size=%d",
+        written, prescribers, homeopathic, unknown_taxonomy, batch_size,
+    )
     return {
-        "classified": total,
+        "classified": written,
         "prescribers": prescribers,
         "homeopathic": homeopathic,
         "unknown_taxonomy": unknown_taxonomy,
+        "batch_size": batch_size,
     }
 
 

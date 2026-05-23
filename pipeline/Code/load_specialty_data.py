@@ -256,15 +256,33 @@ def enrich_specialty_flags(collection_fqn: str) -> dict:
 # ------------------------------------------------------------------
 
 def run_load_specialty_data(payload: dict = None) -> dict:
-    _env = (payload or {}).get("env_prefix", os.getenv("ENV_PREFIX", "dev"))
+    payload = payload or {}
+    _env = payload.get("env_prefix", os.getenv("ENV_PREFIX", "dev"))
     collection_fqn = os.getenv("SPECIALTY_COLLECTION", f"{_env}_PublicHealthData.SpecialtyMetaData")
+    # embedding_enabled mirrors the Provider pipeline's flag. When the caller
+    # passes False the Specialty pipeline skips the OpenAI embedding pass —
+    # used in cheap-test runs that only need flag enrichment to land.
+    embedding_enabled = bool(payload.get("embedding_enabled", True))
+
     loader = ChatHealthyLoadSpecialtyData(collection_fqn)
     loader.fetch_csv()
     blob_name = loader.store_to_blob()
     count = loader.load_to_mongo()
-    embedded = loader.generate_embeddings()
+
+    embedded = 0
+    if embedding_enabled:
+        embedded = loader.generate_embeddings()
+    else:
+        logging.info("Specialty embeddings SKIPPED (embedding_enabled=False)")
+
     enrichment = enrich_specialty_flags(collection_fqn)
-    return {"blob": blob_name, "inserted": count, "embedded": embedded, "enrichment": enrichment}
+    return {
+        "blob": blob_name,
+        "inserted": count,
+        "embedded": embedded,
+        "embedding_enabled": embedding_enabled,
+        "enrichment": enrichment,
+    }
 
 
 # ── Specialty Pipeline Orchestrator (F-104) ─────────────────────────────────
@@ -298,7 +316,11 @@ class SpecialtyPipelineOrchestrator(BasePipelineOrchestrator):
 
         self.context.set_custom_status(SPECIALTY_LABEL_LOAD)
         load_result = yield self.context.call_activity(
-            "load_specialty_data_activity", {"env_prefix": self.config["env_prefix"]},
+            "load_specialty_data_activity",
+            {
+                "env_prefix": self.config["env_prefix"],
+                "embedding_enabled": self.config.get("embedding_enabled", True),
+            },
         )
         return {"load": load_result}
 

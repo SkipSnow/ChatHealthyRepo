@@ -77,6 +77,11 @@ def test_apply_proprietary_flags_against_synthetic_providers(monkeypatch):
     ]
     writes = []
 
+    class FakeBulkResult:
+        def __init__(self, n):
+            self.modified_count = n
+            self.matched_count = n
+
     class FakeColl:
         def count_documents(self, q):
             return len(docs)
@@ -86,6 +91,7 @@ def test_apply_proprietary_flags_against_synthetic_providers(monkeypatch):
 
         def bulk_write(self, ops, ordered=False):
             writes.extend(ops)
+            return FakeBulkResult(len(ops))
 
     class FakeDb:
         def __getitem__(self, name):
