@@ -11382,7 +11382,7 @@
                   {
                     "story_id": "EPIC-008-F-012-S-001",
                     "name": "Universal deploy contract",
-                    "description": "The 'deployment_architecture.json' currently hosted by 'the brain and residing in firm's cursor project's 'file system' as well as in GITHUB is the single source of truth for all deployment facts for ChatHealthy.ai's components. This file must be the source of One local and one remote deploys script. It must, regardless of environment, contain all necessary information to do full deployments to each required component. This includes fulsome facts about code branches, or the local file directories for the local build. These facts include but are not limited to port assignments, atomicity, source code file facts, secrets and environment keys must be included, but the secrets may never be in any file that is part of a build package. Each deployment must have an enforced human-authorization gate. A build script for each component must build a release package stored in GIT Hub with appropriate Version information. And All builds must be done on a local workstation, and then shipped via a deploy script, which will also be accountable to build and configure the components as necessary.",
+                    "description": "The 'deployment_architecture.json' currently hosted by 'the brain and residing in firm's cursor project's 'file system' as well as in GITHUB is the single source of truth for all deployment facts for ChatHealthy.ai's components. This file must be the source of One local and one remote deploys script. It must, regardless of environment, contain all necessary information to do full deployments to each required component. This includes fulsome facts about code branches, or the local file directories for the local build. These facts include but are not limited to port assignments, atomicity, source code file facts, secrets and environment keys must be included, but the secrets may never be in any file that is part of a build package. Each deployment must have an enforced human-authorization gate. A build script for each remote component must build a release package stored in GIT Hub with appropriate Version information. And All builds must be done on a local workstation, and then shipped via a deploy script, which will also be accountable to build and configure the components as necessary.",
                     "size": "L",
                     "status": "in_progress",
                     "orphan": false,
@@ -12684,6 +12684,82 @@
                           "status": "deferred",
                           "orphan": false,
                           "approval": "proposed",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-002-REQ-B-002",
+                          "name": "Every runtime component contained in the docker image",
+                          "requirement": "Every runtime component of the Local enviornment must be contained inside the docker image used to host the local build.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-002-REQ-T-006",
+                          "name": "Single Docker engine on the workstation",
+                          "requirement": "The Local environment runs in a single Docker engine instance on the operator's workstation. The engine is Docker Desktop on Windows / macOS or Docker Engine on Linux. No Kubernetes orchestrator, no Docker Swarm, no second engine instance. All containers enumerated in REQ-T-007 MUST run inside this one engine.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-002-REQ-T-007",
+                          "name": "Five containers managed by local_deploy",
+                          "requirement": "local_deploy.py MUST teardown and re-launch exactly five Docker containers per invocation: the three backend service containers (ch-findcare, ch-evalcare, ch-sharedsvc) per REQ-T-001, the Website wrapper container per REQ-T-002, and the Kafka container. No container is treated as \"separate infrastructure\"; all five live under the same Docker engine (REQ-T-006) and the same atomic deploy lifecycle (S-001-REQ-B-001).",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-002-REQ-T-008",
+                          "name": "One Dockerfile per container",
+                          "requirement": "Each of the five containers in REQ-T-007 MUST be built from its own dedicated Dockerfile checked into the repo. No two containers share a Dockerfile. No container runs more than one of the named services (i.e., no multi-process container hosting two backends, or a backend and the Website, or the Website and Kafka).",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
                           "tests": {
                             "test": [
                               {
