@@ -16,12 +16,18 @@ The helper NEVER logs or writes the values it reads.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from target_record import DeploymentCollection
 
 
 _STORE_LOCAL_ENV: str = "local_env"
 _STORE_GHA: str = "gha_secret"
 _STORE_HF_SPACE: str = "hf_space_secret"
 _STORE_CLOUDFLARE: str = "cloudflare_env"
+_STORE_AZURE_FA: str = "azure_function_app_setting"
+_STORE_AZURE_AA: str = "azure_automation_variable"
 
 
 class SecretsResolver:
@@ -41,6 +47,39 @@ class SecretsResolver:
         self._bindings: dict[tuple[str, str], str] = dict(bindings or {})
         self._env_file: Path | None = env_file
         self._env_cache: dict[str, str] | None = None
+
+    @classmethod
+    def from_collection(
+        cls,
+        coll: "DeploymentCollection",
+        env_file: Path | None = None,
+    ) -> "SecretsResolver":
+        """Build bindings by reading per-target `secrets` declarations.
+
+        Per EPIC-008-F-012-S-001-REQ-T-038: bindings dict MUST be
+        constructed by reading per-target key declarations from the
+        manifest. Each TargetRecord enumerates its own keys; each
+        (name, env_binding) pair in any target maps to that target's
+        bound store_id. If two targets declare the same (name, env)
+        with different store ids, that is a hairball — raise.
+        """
+        bindings: dict[tuple[str, str], str] = {}
+        for record in coll:
+            if not record.secrets:
+                continue
+            envs = [e.env_binding for e in record.environments]
+            for name, store_id in record.secrets.items():
+                for env in envs:
+                    key = (name, env)
+                    existing = bindings.get(key)
+                    if existing is not None and existing != store_id:
+                        raise ValueError(
+                            f"binding conflict for {key!r}: "
+                            f"target {record.target_id!r} declares "
+                            f"{store_id!r}, prior target declared {existing!r}"
+                        )
+                    bindings[key] = store_id
+        return cls(bindings=bindings, env_file=env_file)
 
     def resolve(self, name: str, env: str) -> str:
         key = (name, env)
@@ -68,6 +107,10 @@ class SecretsResolver:
             self._read_hf_space_secrets(env)
         if store == _STORE_CLOUDFLARE:
             self._read_cloudflare_env_vars(env)
+        if store == _STORE_AZURE_FA:
+            self._read_azure_function_app_settings(env)
+        if store == _STORE_AZURE_AA:
+            self._read_azure_automation_variables(env)
         raise RuntimeError(
             f"binding {key!r} maps to unknown store {store!r}; no fallback"
         )
@@ -129,6 +172,18 @@ class SecretsResolver:
 
     @staticmethod
     def _read_cloudflare_env_vars(env: str) -> dict[str, str]:
+        raise NotImplementedError(
+            "authored separately; only local .env is wired today"
+        )
+
+    @staticmethod
+    def _read_azure_function_app_settings(env: str) -> dict[str, str]:
+        raise NotImplementedError(
+            "authored separately; only local .env is wired today"
+        )
+
+    @staticmethod
+    def _read_azure_automation_variables(env: str) -> dict[str, str]:
         raise NotImplementedError(
             "authored separately; only local .env is wired today"
         )

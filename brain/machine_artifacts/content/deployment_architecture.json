@@ -2387,7 +2387,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/secrets_resolver.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "808f25b23815e0ba1b5d434efd2b41102ccd8a067c51ae4caf9970f9189b7769"
+          "content_hash": "1eb1d2f9b76a136d6d9c9bb4d3f6d1d9a098bcd20519aedf24cb6fb331ebfb57"
         },
         {
           "feature_id": "EPIC-008-F-012",
