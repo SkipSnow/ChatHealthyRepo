@@ -1,23 +1,15 @@
-"""remote_deploy.py — helper module for HF Space / Cloudflare publishing.
+"""hf_helpers.py - HF Space helper library imported by the deploy chain.
 
-The original script-style entry point (run from a GitHub Actions runner
-via `deploy.yml`) has been retired in favor of operator-driven
-`local_publish.py`. Every byte that ships to a cloud destination is now
-built on the operator's machine and pushed from there.
+Library-only module (no main(), no CLI). Used by local_build.py and
+local_deploy.py for HF Space target_kind handling. Exposes:
 
-What remains here is shared library code that `local_publish.py` imports:
-
-  - HF Space naming + peer URL helpers (`_hf_space_name`, `_hf_peer_url`)
-  - HF API write helpers (`_hf_set_variable`, `_hf_set_secret`)
+  - HF Space naming + peer URL helpers (_hf_space_name, _hf_peer_url)
+  - HF API write helpers (_hf_set_variable, _hf_set_secret)
   - Source-set definitions for each HF Space target (which dirs get
     staged into each Space's docker build context)
-  - Filesystem copy helper (`_copy_tree`) using the same exclusion
-    rules Builder uses
-  - React frontend build for FindCare (`_build_react_frontend`)
-  - build_info.json writer for each HF Space (`_write_hf_build_info`)
-
-Nothing in this file calls `main()` or dispatches deploys. The publish
-orchestration lives in `local_publish.py`.
+  - Filesystem copy helper (_copy_tree) using Builder's exclusion rules
+  - React frontend build for FindCare (_build_react_frontend)
+  - build_info.json writer for each HF Space (_write_hf_build_info)
 """
 from __future__ import annotations
 
@@ -63,7 +55,7 @@ def _hf_peer_url(target_id: str, env: str) -> str:
 
 # ── Step notice helper ─────────────────────────────────────────────────
 def _step(msg: str) -> None:
-    print(f"[remote_deploy] {msg}", flush=True)
+    print(f"[hf_helpers] {msg}", flush=True)
 
 
 # ── build_info.json baked into each HF Space ──────────────────────────

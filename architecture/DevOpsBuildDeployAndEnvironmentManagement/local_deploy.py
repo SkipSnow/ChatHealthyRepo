@@ -57,7 +57,7 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 import ch_fonts_inliner
-import old_remote_deploy as rd
+import hf_helpers as rd
 from agile_backlog import AgileBacklogLoader
 from crosswalk import Crosswalk
 from record_loader import RecordLoader
