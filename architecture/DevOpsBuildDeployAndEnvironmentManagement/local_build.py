@@ -53,6 +53,7 @@ import old_remote_deploy as rd
 
 
 _BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build")
+REMOTE_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_build")
 
 
 def _step(msg: str) -> None:
@@ -128,8 +129,11 @@ def _read_dev_build_number() -> int:
     sys.exit("ERROR: admin.Versions latest record has no dev slot in builds[].")
 
 
-def _target_build_dir(repo_root: Path, build_n: int, target_id: str) -> Path:
-    return repo_root / _BUILD_ROOT_REL / f"v{build_n}" / target_id
+def _target_build_dir(repo_root: Path, build_n: int, target_id: str, build_root_rel: Path | None = None) -> Path:
+    """Resolve the per-target build directory. local_build emits under
+    _BUILD_ROOT_REL by default; remote_build passes REMOTE_BUILD_ROOT_REL."""
+    root = build_root_rel if build_root_rel is not None else _BUILD_ROOT_REL
+    return repo_root / root / f"v{build_n}" / target_id
 
 
 def _write_manifest_snapshot(
@@ -277,8 +281,8 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
     _step(f"  zip built: {zip_path.name} ({size_mb:.1f} MB, {len(target.files)} entries)")
 
 
-def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str) -> Path:
-    build_dir = _target_build_dir(repo_root, build_n, target.target_id)
+def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str, build_root_rel: Path | None = None) -> Path:
+    build_dir = _target_build_dir(repo_root, build_n, target.target_id, build_root_rel)
     _step(f"=== {target.target_kind} {target.target_id} -> {build_dir} ===")
     if target.target_kind == "cloudflare_pages_project":
         _build_cloudflare(repo_root, target, build_dir)
