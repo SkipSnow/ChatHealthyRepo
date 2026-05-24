@@ -2289,6 +2289,13 @@
       "files": [
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/WebsiteWrapper/Dockerfile",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "5b1f9620c68e6483f8de9c7a825e8d2aa6bf5de3551d4990fc92fa5319d31262"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/_localhost_server.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -2376,7 +2383,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7f744eee32681045573b93dd872c5f4f9f6690926bf900f9c04800a59cd45a84"
+          "content_hash": "776bf16405f1283bfd9c284d71895b182823297db15b07a0c0f8d8182d36576d"
         },
         {
           "feature_id": "EPIC-008-F-012",

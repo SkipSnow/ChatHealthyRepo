@@ -595,6 +595,13 @@ class LocalDeploy:
         "ch-sharedsvc": ("shared",   "sharedServices/Code",      "sharedServices/Code"),
     }
 
+    # Website wrapper runs in its own container per S-002-REQ-T-002 / T-007.
+    # Dockerfile lives at WebsiteWrapper/Dockerfile; build context = repo
+    # root so the Dockerfile can COPY _start_website.py from its canonical
+    # path in the deploy substrate.
+    WEBSITE_CONTAINER_NAME = "ch-website"
+    WEBSITE_DOCKERFILE = "architecture/DevOpsBuildDeployAndEnvironmentManagement/WebsiteWrapper/Dockerfile"
+
     def __init__(self) -> None:
         if _REPO_ROOT_ENV not in os.environ:
             sys.exit(f"ERROR: {_REPO_ROOT_ENV} env var not set. Cannot resolve paths.")
@@ -685,7 +692,10 @@ class LocalDeploy:
     # REQ-T-005 — atomic teardown precondition
     def _teardown_precondition(self) -> None:
         cflags = _cflags()
-        for container_name in self.BACKEND_CONTAINERS:
+        # All containers under local_deploy's lifecycle (REQ-T-007): the 3
+        # backends + the Website wrapper. Kafka container stays as separate
+        # infra for now (its lifecycle migration is a follow-up).
+        for container_name in list(self.BACKEND_CONTAINERS) + [self.WEBSITE_CONTAINER_NAME]:
             result = subprocess.run(
                 ["docker", "stop", container_name],
                 capture_output=True, text=True, creationflags=cflags,
@@ -855,6 +865,31 @@ class LocalDeploy:
                     f"{result.stderr.strip()[:500]}"
                 )
 
+    def _build_website_container(self) -> None:
+        """Build the Website wrapper container per S-002-REQ-T-002 / T-007 /
+        T-008. One Dockerfile, build context = repo root so the Dockerfile
+        can COPY _start_website.py from the deploy substrate."""
+        dockerfile_abs = self.repo_root / self.WEBSITE_DOCKERFILE
+        if not dockerfile_abs.is_file():
+            sys.exit(
+                f"ERROR: Website Dockerfile missing at {dockerfile_abs}. "
+                "S-002-REQ-T-002 requires the Website wrapper to run in a "
+                "Docker container; its Dockerfile is the source of that image."
+            )
+        self._step_notice(f"building image {self.WEBSITE_CONTAINER_NAME}")
+        result = subprocess.run(
+            ["docker", "build",
+             "-t", self.WEBSITE_CONTAINER_NAME,
+             "-f", str(dockerfile_abs), str(self.repo_root)],
+            cwd=str(self.repo_root),
+            capture_output=True, text=True, creationflags=_cflags(),
+        )
+        if result.returncode != 0:
+            sys.exit(
+                f"ERROR: docker build failed for {self.WEBSITE_CONTAINER_NAME}: "
+                f"{result.stderr.strip()[:500]}"
+            )
+
     def _stage_wrapper_website(self) -> None:
         n = ch_fonts_inliner.stage_and_inline(
             self.website_dir, self.website_staging_dir
@@ -958,26 +993,37 @@ class LocalDeploy:
             self._step_notice(
                 f"docker run {container_name} -> host port {host_port}"
             )
-        certs_arg = str(self.certs_dir)
-        website_arg = str(self.website_staging_dir)
-        log_dir = self.output_dir / "process_logs"
-        log_dir.mkdir(exist_ok=True)
-        log_file = (log_dir / f"website-80-443_{self.results['started_at']}.log")
-        log_fh = open(log_file, "w", encoding="utf-8")
-        proc = subprocess.Popen(
-            [sys.executable, str(self.deploy_dir / "_start_website.py"),
-             certs_arg, website_arg],
-            cwd=str(self.repo_root),
-            stdout=log_fh, stderr=subprocess.STDOUT,
-            creationflags=(
-                (subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW)
-                if sys.platform == "win32" else 0
-            ),
+        # Website wrapper runs as a Docker container per S-002-REQ-T-002 +
+        # REQ-T-007. Mount certs read-only at /certs; mount the website
+        # staging dir read-only at /website (the Dockerfile's ENTRYPOINT
+        # reads these paths). Map host ports 80 + 443 directly.
+        certs_host = str(self.certs_dir).replace("\\", "/")
+        website_host = str(self.website_staging_dir).replace("\\", "/")
+        subprocess.run(
+            ["docker", "rm", "-f", self.WEBSITE_CONTAINER_NAME],
+            capture_output=True, text=True, creationflags=cflags,
         )
-        self.backend_procs.append(proc)
+        run_cmd = [
+            "docker", "run", "-d",
+            "--name", self.WEBSITE_CONTAINER_NAME,
+            "--add-host", "host.docker.internal:host-gateway",
+            "-p", "80:80",
+            "-p", "443:443",
+            "-v", f"{certs_host}:/certs:ro",
+            "-v", f"{website_host}:/website:ro",
+            self.WEBSITE_CONTAINER_NAME,
+        ]
+        run_result = subprocess.run(
+            run_cmd, capture_output=True, text=True, creationflags=cflags,
+        )
+        if run_result.returncode != 0:
+            sys.exit(
+                f"ERROR: docker run {self.WEBSITE_CONTAINER_NAME} failed: "
+                f"{run_result.stderr.strip()[:500]}"
+            )
         self._step_notice(
-            f"started website pid={proc.pid} log={log_file.name} "
-            "(host-OS per V11 S-002-REQ-T-002)"
+            f"docker run {self.WEBSITE_CONTAINER_NAME} -> host ports 80+443 "
+            "(per S-002-REQ-T-002)"
         )
 
     # REQ-B-003 — wait for components
@@ -1210,6 +1256,7 @@ class LocalDeploy:
         # React build MUST run before backend container build.
         self._build_react_frontend()
         self._build_backend_containers()
+        self._build_website_container()
         self._start_backend_processes()
         self._wait_for_all_components()
         self._verify_components()
