@@ -2359,7 +2359,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7cd78e4b8d429e322c4626c8d8027f5f446f777ca336265d66640363385a20eb"
+          "content_hash": "00dcd773819652747be07daccd47e88570b77aa46834a4380d02841cbb1d8afa"
         },
         {
           "feature_id": "EPIC-008-F-012",
