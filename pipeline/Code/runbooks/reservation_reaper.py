@@ -13,7 +13,7 @@ Runs every 5 minutes on schedule SCH-Reaper-5min in the
 ChatHealthyJobManager Automation Account.
 
 Environment (Automation Variables, exposed via os.environ at runtime):
-  MONGO_connectionString          - pipeline cluster MongoDB URI
+  MONGO_FRONTEND_connectionString - front-end (always-on) cluster MongoDB URI
   ATLAS_PUBLIC_KEY                - Atlas API public key
   ATLAS_PRIVATE_KEY               - Atlas API private key
   ATLAS_PROJECT_ID                - Atlas group/project ID
@@ -42,7 +42,7 @@ from pymongo import MongoClient
 
 try:
     import automationassets
-    for k in ("MONGO_connectionString", "ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY",
+    for k in ("MONGO_FRONTEND_connectionString", "ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY",
               "ATLAS_PROJECT_ID", "ENV_PREFIX", "PIPELINE_CLUSTER",
               "GRACE_MINUTES", "ACTIVITY_WINDOW_MINUTES",
               "AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
@@ -59,7 +59,7 @@ GRACE_MINUTES    = int(os.environ.get("GRACE_MINUTES", "30"))
 ACTIVITY_WINDOW  = int(os.environ.get("ACTIVITY_WINDOW_MINUTES", "30"))
 ENV_PREFIX       = os.environ.get("ENV_PREFIX", "dev")
 CLUSTER_NAME     = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
-MONGO_URI        = os.environ["MONGO_connectionString"]
+MONGO_URI        = os.environ["MONGO_FRONTEND_connectionString"]
 ATLAS_PUB        = os.environ["ATLAS_PUBLIC_KEY"]
 ATLAS_PRIV       = os.environ["ATLAS_PRIVATE_KEY"]
 ATLAS_PROJECT    = os.environ["ATLAS_PROJECT_ID"]
@@ -70,9 +70,8 @@ WEBJOBS_STORAGE  = os.environ.get("AZURE_WEBJOBS_STORAGE", "")
 SPARKPOST_KEY    = os.environ.get("SPARKMAIL_API_KEY", "")
 EMAIL_FROM       = os.environ.get("NOTIFICATION_FROM_EMAIL", "Skip.Snow@mail.chatHealthy.ai")
 EMAIL_TO         = os.environ.get("NOTIFICATION_TO_EMAIL", "Skip@chatHealthy.ai")
-DB_NAME          = f"{ENV_PREFIX}_System"
+DB_NAME          = "admin"
 COLLECTION       = "cluster_lifecycle"
-DOC_ID           = "cluster_reservations"
 ATLAS_BASE       = f"https://cloud.mongodb.com/api/atlas/v2/groups/{ATLAS_PROJECT}"
 ATLAS_CLUSTER_URL= f"{ATLAS_BASE}/clusters/{CLUSTER_NAME}"
 ATLAS_HEADERS    = {
@@ -327,8 +326,7 @@ def _main():
     client = MongoClient(MONGO_URI, appname=REAPER_APPNAME,
                         serverSelectionTimeoutMS=15000)
     coll = client[DB_NAME][COLLECTION]
-    doc = coll.find_one({"_id": DOC_ID}) or {"_id": DOC_ID, "reservations": []}
-    reservations = list(doc.get("reservations") or [])
+    reservations = list(coll.find({}))
     log.info("Loaded %d reservations from %s.%s", len(reservations), DB_NAME, COLLECTION)
 
     grace = timedelta(minutes=GRACE_MINUTES)
@@ -349,11 +347,8 @@ def _main():
         log.info("Reaping overdue automated reservation: job_id=%s requester=%s",
                  r.get("job_id", ""), r.get("requester", ""))
 
-    coll.replace_one(
-        {"_id": DOC_ID},
-        {"_id": DOC_ID, "reservations": kept, "last_updated": now.isoformat()},
-        upsert=True,
-    )
+    if reaped:
+        coll.delete_many({"_id": {"$in": [r["_id"] for r in reaped]}})
 
     live = [r for r in kept if r.get("status", "active") == "active"]
     client_active = _r1_client_active_recently(atlas_auth, window_ms_start, window_ms_end)
@@ -367,11 +362,7 @@ def _main():
         should_pause = True
         pause_reason = "R1_idle_window"
         log.info("R1: %d live reservations being deleted under idle-window pause", len(live))
-        coll.replace_one(
-            {"_id": DOC_ID},
-            {"_id": DOC_ID, "reservations": [], "last_updated": now.isoformat()},
-            upsert=True,
-        )
+        coll.delete_many({"_id": {"$in": [r["_id"] for r in live]}})
         live = []
 
     cluster_state = "UNKNOWN"

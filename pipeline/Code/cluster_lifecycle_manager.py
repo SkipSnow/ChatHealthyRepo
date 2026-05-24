@@ -22,6 +22,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone, timedelta
 
 import requests
+from pymongo.errors import DuplicateKeyError
 from requests.auth import HTTPDigestAuth
 
 _log = logging.getLogger("ops.cluster_lifecycle")
@@ -92,35 +93,16 @@ class ClusterLifecycleManager:
     Never touches: pipeline data, task logic, collection schemas.
     """
 
-    def __init__(self, get_db_fn, env_prefix: str, push_fn=None):
+    def __init__(self, get_db_fn, env_prefix: str = "", push_fn=None):
         self._get_db = get_db_fn
         self._env = env_prefix
         self._push = push_fn
-        self._coll_name = f"{env_prefix}_System"
-        self._doc_id = "cluster_reservations"
 
-    # ── State persistence ────────────────────────────────────
+    def _coll(self):
+        client = self._get_db()
+        return client["admin"]["cluster_lifecycle"] if client is not None else None
 
-    def _get_state(self) -> dict:
-        db = self._get_db()
-        if db is None:
-            return {"_id": self._doc_id, "reservations": []}
-        doc = db[self._coll_name]["cluster_lifecycle"].find_one({"_id": self._doc_id})
-        if not doc:
-            doc = {"_id": self._doc_id, "reservations": []}
-            db[self._coll_name]["cluster_lifecycle"].insert_one(doc)
-        return doc
-
-    def _save_state(self, state: dict):
-        db = self._get_db()
-        if db is None:
-            return
-        state["last_updated"] = datetime.now(timezone.utc).isoformat()
-        db[self._coll_name]["cluster_lifecycle"].replace_one(
-            {"_id": self._doc_id}, state, upsert=True
-        )
-
-    def wake(self, cluster_name: str) -> None:
+    def wake(self, cluster_name: str, job_id: str | None = None) -> None:
         try:
             resp = requests.patch(
                 _atlas_url(cluster_name),
@@ -130,11 +112,11 @@ class ClusterLifecycleManager:
                 timeout=30,
             )
             state_name = resp.json().get("stateName", "unknown")
-            _log.info("Wake requested: %s (state: %s)", cluster_name, state_name)
+            _log.info("Wake requested: %s by job=%s (state: %s)", cluster_name, job_id, state_name)
         except Exception as e:
-            _log.error("Wake failed: %s — %s", cluster_name, e)
+            _log.error("Wake failed: %s by job=%s — %s", cluster_name, job_id, e)
             if self._push:
-                self._push("Cluster Wake Failed", f"{cluster_name}: {e}")
+                self._push("Cluster Wake Failed", f"{cluster_name} (job={job_id}): {e}")
 
     def reserve(self, cluster_name: str, job_id: str, requester: str,
                 expected_duration_minutes: int, expected_min_minutes: int = 0,
@@ -144,83 +126,64 @@ class ClusterLifecycleManager:
                 f"reservation_class must be 'automated' or 'human', got {reservation_class!r}"
             )
         now = datetime.now(timezone.utc)
-        reservation = ResourceReservation(
-            job_id=job_id,
-            requester=requester,
-            cluster_name=cluster_name,
-            expected_duration_minutes=expected_duration_minutes,
-            expected_min_minutes=expected_min_minutes,
-            start_time=now.isoformat(),
-            expected_end_time=(now + timedelta(minutes=expected_duration_minutes)).isoformat(),
-            status="active",
-            reservation_class=reservation_class,
-        )
-
-        state = self._get_state()
-        state["reservations"].append(reservation.to_dict())
-        self._save_state(state)
-        return reservation.to_dict()
+        doc = {
+            "_id": job_id,
+            "job_id": job_id,
+            "requester": requester,
+            "cluster_name": cluster_name,
+            "expected_duration_minutes": expected_duration_minutes,
+            "expected_min_minutes": expected_min_minutes,
+            "start_time": now.isoformat(),
+            "expected_end_time": (now + timedelta(minutes=expected_duration_minutes)).isoformat(),
+            "status": "active",
+            "reservation_class": reservation_class,
+        }
+        coll = self._coll()
+        if coll is None:
+            return doc
+        try:
+            coll.insert_one(doc)
+        except DuplicateKeyError:
+            _log.warning("Reservation already exists for job_id=%s", job_id)
+        return doc
 
     # ── v0.1 API: ClusterStatus ──────────────────────────────
 
-    def status(self, cluster_name: str) -> dict:
-        """Return cluster state and active reservations.
-
-        Called by pipeline tasks polling for IDLE before starting work.
-        """
+    def status(self, cluster_name: str, job_id: str | None = None) -> dict:
         cluster_state = self._get_cluster_state(cluster_name)
-        state = self._get_state()
-        active = [r for r in state["reservations"] if r.get("cluster_name") == cluster_name]
-
+        coll = self._coll()
+        active = list(coll.find({"cluster_name": cluster_name})) if coll is not None else []
+        if job_id is not None:
+            _log.info("Status check: %s by job=%s (state: %s, active=%d)",
+                      cluster_name, job_id, cluster_state, len(active))
         return {
             "cluster_name": cluster_name,
             "cluster_state": cluster_state,
             "active_reservations": len(active),
             "reservations": active,
-            "last_updated": state.get("last_updated", ""),
         }
 
     # ── v0.1 API: Release ────────────────────────────────────
 
     def release(self, job_id: str) -> dict:
-        """Release a reservation. Shuts down cluster if last one.
-
-        Called in pipeline finally block. Always called — success or failure.
-        """
-        state = self._get_state()
-
-        # Find the reservation to get cluster_name
-        released = None
-        remaining = []
-        for r in state["reservations"]:
-            if r.get("job_id") == job_id:
-                released = r
-            else:
-                remaining.append(r)
-
-        state["reservations"] = remaining
-        self._save_state(state)
-
-        if released:
+        coll = self._coll()
+        if coll is None:
+            return {"released": job_id, "deleted_count": 0}
+        result = coll.delete_one({"_id": job_id})
+        if result.deleted_count:
             _log.info("Released: %s", job_id)
-            cluster_name = released.get("cluster_name", "")
-            # Shut down if no more reservations for this cluster
-            cluster_reservations = [r for r in remaining if r.get("cluster_name") == cluster_name]
-            if not cluster_reservations:
-                self._send_pause(cluster_name)
         else:
             _log.warning("Release called for unknown job_id: %s", job_id)
-
-        return {"released": job_id, "remaining": len(remaining)}
+        return {"released": job_id, "deleted_count": result.deleted_count}
 
     # ── Timer: ops only ──────────────────────────────────────
 
     def check_overdue(self):
-        """Called by 5-minute timer. Ops work only — no task execution."""
+        coll = self._coll()
+        if coll is None:
+            return
         now = datetime.now(timezone.utc)
-        state = self._get_state()
-
-        for r in state["reservations"]:
+        for r in coll.find({}):
             expected_end = r.get("expected_end_time", "")
             if not expected_end:
                 continue
@@ -242,15 +205,14 @@ class ClusterLifecycleManager:
 
     def force_release_all(self, cluster_name: str) -> dict:
         """human kill switch. Release everything, shut down."""
-        state = self._get_state()
-        released = len(state["reservations"])
-        state["reservations"] = [r for r in state["reservations"]
-                                  if r.get("cluster_name") != cluster_name]
-        state["last_force_release"] = datetime.now(timezone.utc).isoformat()
-        self._save_state(state)
+        coll = self._coll()
+        if coll is None:
+            return {"released": 0, "cluster": cluster_name}
+        result = coll.delete_many({"cluster_name": cluster_name})
         self._send_pause(cluster_name)
-        _log.warning("FORCE RELEASE: %d reservations cleared, %s shutting down", released, cluster_name)
-        return {"released": released, "cluster": cluster_name}
+        _log.warning("FORCE RELEASE: %d reservations cleared, %s shutting down",
+                     result.deleted_count, cluster_name)
+        return {"released": result.deleted_count, "cluster": cluster_name}
 
     def _send_pause(self, cluster_name: str):
         """Send pause request — non-blocking."""

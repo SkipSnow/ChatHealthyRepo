@@ -14,6 +14,7 @@ from pymongo import MongoClient
 _log = logging.getLogger("pipeline_db")
 
 _mongo: MongoClient | None = None
+_frontend_mongo: MongoClient | None = None
 
 # CV-010: environment controlled vocabulary
 _VALID_ENVIRONMENTS = {"local", "dev", "qa", "prod"}
@@ -41,6 +42,22 @@ def get_mongo() -> MongoClient:
         _mongo = MongoClient(conn_str, serverSelectionTimeoutMS=120_000)
         _log.info("MongoDB connected (serverSelectionTimeoutMS=120s)")
     return _mongo
+
+
+def get_frontend_mongo() -> MongoClient:
+    """Get the shared MongoClient singleton for the always-on front-end cluster.
+
+    Used by ClusterLifecycleManager so reservation reads/writes never depend
+    on the pipeline cluster being awake.
+    """
+    global _frontend_mongo
+    if _frontend_mongo is None:
+        conn_str = os.environ.get("MONGO_FRONTEND_connectionString")
+        if not conn_str:
+            raise RuntimeError("MONGO_FRONTEND_connectionString not set")
+        _frontend_mongo = MongoClient(conn_str, serverSelectionTimeoutMS=120_000)
+        _log.info("MongoDB front-end connected (serverSelectionTimeoutMS=120s)")
+    return _frontend_mongo
 
 
 def get_db(env_prefix: str = None):
