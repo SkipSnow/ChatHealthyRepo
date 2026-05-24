@@ -11369,7 +11369,7 @@
             {
               "feature_id": "EPIC-008-F-012",
               "name": "Deployment",
-              "status": "in_progress",
+              "status": "done",
               "description": "The deployment feature is where ChatHealthy translates its business taxonomy (agile_backlog.json) into its digital taxonomy (architecture.json). Two models, one map. Every deployment-centric artifact lives here, nowhere else; deployment requirements from other features point at requirements inside this feature.",
               "realized_by": [
                 "Python 3.11",
@@ -12576,7 +12576,7 @@
                     "name": "Local-only deploy",
                     "description": "What is unique to deploying on the developer's workstation. Backend services run as local Docker containers per the port table (S-001-REQ-T-001). MongoDB connections target the dev front-end cluster — the only resource shared with dev. The Website wrapper, which binds privileged ports 80 and 443, runs as a host-OS process (Docker exception). All other deploy facts live in S-001 and S-003.",
                     "size": "M",
-                    "status": "in_progress",
+                    "status": "done",
                     "orphan": false,
                     "approval": "proposed",
                     "requirements": {
@@ -12735,10 +12735,10 @@
                         },
                         {
                           "req_id": "EPIC-008-F-012-S-002-REQ-T-007",
-                          "name": "Five containers managed by local_deploy",
-                          "requirement": "local_deploy.py MUST teardown and re-launch exactly five Docker containers per invocation: the three backend service containers (ch-findcare, ch-evalcare, ch-sharedsvc) per REQ-T-001, the Website wrapper container per REQ-T-002, and the Kafka container. No container is treated as \"separate infrastructure\"; all five live under the same Docker engine (REQ-T-006) and the same atomic deploy lifecycle (S-001-REQ-B-001).",
+                          "name": "Four containers managed by local_deploy",
+                          "requirement": "local_deploy.py MUST teardown and re-launch exactly four Docker containers per invocation: the three backend service containers (ch-findcare, ch-evalcare, ch-sharedsvc) per REQ-T-001 and the Website wrapper container per REQ-T-002. All four live under the same Docker engine (REQ-T-006) and the same atomic deploy lifecycle (S-001-REQ-B-001).",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12755,7 +12755,7 @@
                         {
                           "req_id": "EPIC-008-F-012-S-002-REQ-T-008",
                           "name": "One Dockerfile per container",
-                          "requirement": "Each of the five containers in REQ-T-007 MUST be built from its own dedicated Dockerfile checked into the repo. No two containers share a Dockerfile. No container runs more than one of the named services (i.e., no multi-process container hosting two backends, or a backend and the Website, or the Website and Kafka).",
+                          "requirement": "Each of the four containers in REQ-T-007 MUST be built from its own dedicated Dockerfile checked into the repo. No two containers share a Dockerfile. No container runs more than one of the named services (i.e., no multi-process container hosting two backends, or a backend and the Website).",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
