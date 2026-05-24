@@ -154,21 +154,19 @@ PROVIDER_PIPELINE_STEPS = [
 ]
 
 
-LOAD_LABEL_RESERVE       = "Step 1: Registering cluster reservation"
-LOAD_LABEL_DOWNLOAD      = "Step 2: Downloading NPI zip from CMS"
-LOAD_LABEL_EXTRACT       = "Step 3: Extracting CSV"
-LOAD_LABEL_PARTITION     = "Step 4: Partitioning file"
-LOAD_LABEL_DRAIN         = "Step 5: Draining staging collection"
-LOAD_LABEL_DRAIN_SKIP    = "Step 5: Skipping drain (incremental=true)"
-LOAD_LABEL_PRELOAD_IDX   = "Step 6: Ensuring pre-load index"
-LOAD_LABEL_PRELOAD_SKIP  = "Step 6: Skipping pre-load index (full load)"
-LOAD_LABEL_METADATA      = "Step 7: Writing metadata"
-LOAD_LABEL_WARM          = "Step 8: Pre-warming instances"
-LOAD_LABEL_WORKERS       = "Step 9: Loading workers"
-LOAD_LABEL_COOL          = "Step 10: Resetting always_ready"
-LOAD_LABEL_INDEXES       = "Step 11: Building indexes + reconciling"
-LOAD_LABEL_REPORT        = "Step 12: Writing report"
-LOAD_LABEL_RELEASE       = "Step 13: Releasing cluster reservation"
+LOAD_LABEL_DOWNLOAD      = "Step 1: Downloading NPI zip from CMS"
+LOAD_LABEL_EXTRACT       = "Step 2: Extracting CSV"
+LOAD_LABEL_PARTITION     = "Step 3: Partitioning file"
+LOAD_LABEL_DRAIN         = "Step 4: Draining staging collection"
+LOAD_LABEL_DRAIN_SKIP    = "Step 4: Skipping drain (incremental=true)"
+LOAD_LABEL_PRELOAD_IDX   = "Step 5: Ensuring pre-load index"
+LOAD_LABEL_PRELOAD_SKIP  = "Step 5: Skipping pre-load index (full load)"
+LOAD_LABEL_METADATA      = "Step 6: Writing metadata"
+LOAD_LABEL_WARM          = "Step 7: Pre-warming instances"
+LOAD_LABEL_WORKERS       = "Step 8: Loading workers"
+LOAD_LABEL_COOL          = "Step 9: Resetting always_ready"
+LOAD_LABEL_INDEXES       = "Step 10: Building indexes + reconciling"
+LOAD_LABEL_REPORT        = "Step 11: Writing report"
 
 
 # ── Orchestrators ─────────────────────────────────────────────────────────────
@@ -185,16 +183,6 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     # Propagate load_id (= orchestration instance_id) through all activities.
     load_id = context.instance_id
     config = {**config, "load_id": load_id}
-
-    # Register cluster reservation — wake the pipeline DB
-    reservation = {
-        "job_id": load_id,
-        "requester": "FindCarePipeline",
-        "cluster_name": config.get("pipeline_cluster", "ChatHealthyDataPipelines"),
-        "expected_duration_minutes": config.get("expected_duration_minutes", 240),
-    }
-    context.set_custom_status(LOAD_LABEL_RESERVE)
-    yield context.call_activity("register_reservation_activity", reservation)
 
     context.set_custom_status(LOAD_LABEL_DOWNLOAD)
     download_result = yield context.call_activity("download_zip_activity", config)
@@ -285,12 +273,6 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     total = sum(r.get("num_records", 0) for r in worker_results)
     any_failed = any(not r.get("success", True) for r in worker_results)
     status = "failed" if any_failed else "complete"
-
-    # Release cluster reservation — always runs after pipeline completes.
-    # If orchestrator fails mid-way, ClusterLifecycleManager timer catches
-    # the overdue reservation and alerts human.
-    context.set_custom_status(LOAD_LABEL_RELEASE)
-    yield context.call_activity("release_reservation_activity", reservation)
 
     context.set_custom_status(f"Done — {status}, {total:,} records loaded")
 
@@ -1055,7 +1037,3 @@ def provider_pipeline_orchestrator_fn(context: df.DurableOrchestrationContext):
     return result
 
 
-# Cluster-lifecycle activity wrappers (register_reservation_fn,
-# release_reservation_fn) used to live here; they now live in
-# cluster_lifecycle_manager.py so the Provider and Specialty pipelines
-# stay 100% independent of each other (EPIC-010-F-102-S-007-B3).

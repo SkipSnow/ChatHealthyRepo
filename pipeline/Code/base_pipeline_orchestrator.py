@@ -46,8 +46,8 @@ class BasePipelineOrchestrator:
             "expected_duration_minutes": self.config["expected_duration_minutes"],
         }
 
-        self.context.set_custom_status("Step 1: Reserving cluster")
-        yield self.context.call_activity("register_reservation_activity", reservation)
+        self.context.set_custom_status("Step 1: Waking cluster")
+        yield self.context.call_activity("wake_cluster_activity", {"cluster_name": cluster_name})
 
         deadline = self.context.current_utc_datetime + datetime.timedelta(minutes=15)
         while self.context.current_utc_datetime < deadline:
@@ -59,22 +59,14 @@ class BasePipelineOrchestrator:
             next_check = self.context.current_utc_datetime + datetime.timedelta(seconds=30)
             yield self.context.create_timer(next_check)
 
-        pipeline_error = None
-        result = None
+        self.context.set_custom_status("Step 2: Reserving cluster")
+        yield self.context.call_activity("register_reservation_activity", reservation)
+
         try:
             result = yield from self._pipeline_steps()
-        except Exception as exc:
-            pipeline_error = str(exc)
-            self.context.set_custom_status(f"FAILED: {pipeline_error[:200]}")
-            logging.exception("%s pipeline failed: %s", self.requester_name, pipeline_error)
-
-        self.context.set_custom_status("Releasing cluster reservation")
-        yield self.context.call_activity("release_reservation_activity", {"job_id": job_id})
-
-        if pipeline_error:
-            raise Exception(
-                f"{self.requester_name} failed (reservation released): {pipeline_error}"
-            )
+        finally:
+            self.context.set_custom_status("Releasing cluster reservation")
+            yield self.context.call_activity("release_reservation_activity", {"job_id": job_id})
         return result
 
     # ────────────────────────────────────────────────────────────────────────

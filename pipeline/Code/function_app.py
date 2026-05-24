@@ -60,7 +60,7 @@ from county_enrichment_job import (
     reset_geocoder_failed_fn,
 )
 from instance_warmer import cool_instances_fn, warm_instances_fn
-from cluster_lifecycle_manager import register_reservation_fn, release_reservation_fn
+from cluster_lifecycle_manager import ClusterLifecycleManager
 from provider_load_manager import (
     PROVIDER_PIPELINE_STEPS,
     attach_practice_locations_fn,
@@ -507,13 +507,36 @@ def write_metadata_activity(config: dict) -> list:
 
 
 @app.activity_trigger(input_name="config")
+def wake_cluster_activity(config: dict) -> dict:
+    from pipeline_db import get_mongo
+    ClusterLifecycleManager(
+        get_db_fn=get_mongo,
+        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+    ).wake(config["cluster_name"])
+    return {"cluster_name": config["cluster_name"], "wake_sent": True}
+
+
+@app.activity_trigger(input_name="config")
 def register_reservation_activity(config: dict) -> dict:
-    return register_reservation_fn(config)
+    from pipeline_db import get_mongo
+    return ClusterLifecycleManager(
+        get_db_fn=get_mongo,
+        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+    ).reserve(
+        cluster_name=config["cluster_name"],
+        job_id=config["job_id"],
+        requester=config["requester"],
+        expected_duration_minutes=config["expected_duration_minutes"],
+    )
 
 
 @app.activity_trigger(input_name="config")
 def release_reservation_activity(config: dict) -> dict:
-    return release_reservation_fn(config)
+    from pipeline_db import get_mongo
+    return ClusterLifecycleManager(
+        get_db_fn=get_mongo,
+        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+    ).release(config["job_id"])
 
 
 @app.activity_trigger(input_name="config")
