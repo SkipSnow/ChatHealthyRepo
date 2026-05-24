@@ -12697,8 +12697,8 @@
                         },
                         {
                           "req_id": "EPIC-008-F-012-S-002-REQ-B-002",
-                          "name": "Every runtime component contained in the docker image",
-                          "requirement": "Every runtime component of the Local enviornment must be contained inside the docker image used to host the local build.",
+                          "name": "Every deployed service runs in its own Docker container; deploy tooling via automation",
+                          "requirement": "Every deployed service of the Local environment (FindCare, EvaluateCare, SharedServices, the Website wrapper) runs inside its own Docker container per REQ-T-007 / REQ-T-008. The deploy tooling of the ChatHealthy.ai front-end components all must be deployed via automation.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
