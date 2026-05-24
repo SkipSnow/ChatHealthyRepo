@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyUserStateSchema.json",
+  "title": "ChatHealthy User State",
+  "description": "The in-session and post-session representation of a ChatHealthy user, per EPIC-002-F-003-S-005.",
+  "type": "object",
+  "required": ["$schema", "user"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "user": {
+      "type": "object",
+      "required": [
+        "session_conversation_history",
+        "is_locked_out",
+        "silly_question_counts",
+        "ip_address",
+        "is_registered"
+      ],
+      "if": {
+        "properties": { "is_registered": { "const": true } },
+        "required": ["is_registered"]
+      },
+      "then": {
+        "required": ["OAuthIdentities", "user_id"],
+        "properties": {
+          "OAuthIdentities": { "minItems": 1 }
+        }
+      },
+      "properties": {
+        "session_conversation_history": {
+          "type": "object",
+          "required": ["unanswered_questions"],
+          "properties": {
+            "unanswered_questions": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "is_locked_out": { "type": "boolean" },
+        "silly_question_counts": {
+          "type": "object",
+          "required": ["session_total", "current_sequence_total"],
+          "properties": {
+            "session_total": { "type": "integer", "minimum": 0 },
+            "current_sequence_total": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "ip_address": {
+          "type": "string",
+          "description": "Representation TBD pending REQ; string for now."
+        },
+        "is_registered": { "type": "boolean" },
+        "OAuthIdentities": {
+          "type": "array",
+          "description": "One entry per identity provider the user has linked. Required (and non-empty) whenever is_registered is true.",
+          "items": {
+            "type": "object",
+            "required": ["identity_provider", "identity_provider_user_id", "email"],
+            "properties": {
+              "identity_provider": {
+                "type": "string",
+                "description": "Identity provider name (e.g., Google, Facebook, Apple). Open enum; additional identity providers added as introduced."
+              },
+              "identity_provider_user_id": {
+                "type": "string",
+                "description": "Identity provider's stable identifier for the user."
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "description": "Verified email returned by the identity provider on its most recent OAuth callback."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "user_id": {
+          "type": "string",
+          "description": "ChatHealthy-minted GUID (RFC 4122 UUIDv4). Required when is_registered is true."
+        },
+        "registered_profile": {
+          "type": "object",
+          "description": "Populated when is_registered is true.",
+          "required": ["user_id", "user_type", "oauth_source", "auth_token", "profile_facts"],
+          "properties": {
+            "user_id": { "type": "string" },
+            "user_type": {
+              "type": "string",
+              "enum": ["Guest", "Owner", "Customer", "Prospect"]
+            },
+            "oauth_source": {
+              "type": "string",
+              "enum": ["Google"],
+              "description": "Other identity providers added when introduced."
+            },
+            "auth_token": { "type": "string" },
+            "profile_facts": {
+              "type": "object",
+              "required": [
+                "gender",
+                "sex",
+                "age",
+                "insurance_info",
+                "emr",
+                "unstructured_facts",
+                "financial_facts"
+              ],
+              "properties": {
+                "gender": {
+                  "type": "string",
+                  "description": "Free string; default UI choice list TBD pending REQ."
+                },
+                "sex": {
+                  "type": "string",
+                  "enum": ["Male", "Female", "Other", "Did not disclose"]
+                },
+                "age": { "type": "integer", "minimum": 0 },
+                "insurance_info": {
+                  "type": "object",
+                  "required": [
+                    "plan",
+                    "plan_state",
+                    "plan_url",
+                    "plan_begin_date",
+                    "plan_end_date",
+                    "portal_allowed"
+                  ],
+                  "properties": {
+                    "plan": { "type": "string" },
+                    "plan_state": { "type": "string" },
+                    "plan_url": { "type": "string", "format": "uri" },
+                    "plan_begin_date": { "type": "string", "format": "date" },
+                    "plan_end_date": { "type": "string", "format": "date" },
+                    "portal_allowed": { "type": "boolean" },
+                    "portal_access": {
+                      "type": "object",
+                      "description": "Populated when portal_allowed is true.",
+                      "required": ["last_update_date", "accumulator_facts", "last_three_claim_eobs", "credentials"],
+                      "properties": {
+                        "last_update_date": { "type": "string", "format": "date" },
+                        "accumulator_facts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["name", "value", "max"],
+                            "properties": {
+                              "name": { "type": "string" },
+                              "value": { "type": "number" },
+                              "max": { "type": "number" }
+                            }
+                          }
+                        },
+                        "last_three_claim_eobs": {
+                          "type": "array",
+                          "maxItems": 3,
+                          "items": {
+                            "type": "object",
+                            "description": "EOB shape TBD pending REQ."
+                          }
+                        },
+                        "credentials": {
+                          "type": "object",
+                          "description": "Plan-portal credentials shape TBD pending REQ."
+                        }
+                      }
+                    }
+                  }
+                },
+                "emr": {
+                  "type": "object",
+                  "required": ["portal_address", "credentials", "fhir_summary_document"],
+                  "properties": {
+                    "portal_address": { "type": "string", "format": "uri" },
+                    "credentials": {
+                      "type": "object",
+                      "description": "EMR portal credentials shape TBD pending REQ."
+                    },
+                    "fhir_summary_document": {
+                      "type": "object",
+                      "description": "FHIR summary document container TBD pending REQ."
+                    }
+                  }
+                },
+                "unstructured_facts": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "financial_facts": {
+                  "type": "object",
+                  "required": ["max_spend_out_of_pocket"],
+                  "properties": {
+                    "max_spend_out_of_pocket": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["condition", "spend_limit"],
+                        "properties": {
+                          "condition": { "type": "string" },
+                          "spend_limit": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "not_registered_followup": {
+          "type": "object",
+          "description": "Populated when is_registered is false.",
+          "required": ["has_asked_for_follow_ups"],
+          "properties": {
+            "has_asked_for_follow_ups": { "type": "boolean" },
+            "follow_up_record_id": { "type": ["string", "null"] }
+          }
+        }
+      }
+    }
+  }
+}

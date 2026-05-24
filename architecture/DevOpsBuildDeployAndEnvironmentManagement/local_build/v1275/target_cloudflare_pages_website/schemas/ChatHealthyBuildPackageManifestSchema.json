@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyBuildPackageManifestSchema.json",
+  "title": "ChatHealthy Build Package Manifest",
+  "description": "Per-target build-package manifest emitted by local_build / remote_build alongside the materialized deploy bytes under <build_root>/v{N}/<target_id>/. The manifest carries the target's slice of deployment_architecture.json (target_id, target_kind, environments, files, optional secrets), plus the build_number that mints v{N} and the build_sha that pins the source commit. Embedded file bytes are intentionally OMITTED from files[] — the materialized bytes live as actual files in the same package dir; carrying them in the manifest would double them. Secret VALUES never appear in this manifest (or anywhere in the package); the secrets map (when present) declares only the per-target {name -> store_id} bindings. local_deploy / remote_deploy read this file to drive shipping; SecretsResolver resolves values at deploy time from the bound store.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "build_number",
+    "build_sha",
+    "target_id",
+    "target_kind",
+    "environments",
+    "files"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "build_number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "System-wide build counter mint at build time, sourced from admin.Versions.latest.builds[env=dev].build on the front-end cluster (Rule-063 auto-increments on every non-deploy commit). v{build_number} names the package directory."
+    },
+    "build_sha": {
+      "type": "string",
+      "minLength": 7,
+      "maxLength": 40,
+      "description": "Short git SHA of HEAD when the build ran. Pins the source bytes from which this package was materialized."
+    },
+    "target_id": {
+      "type": "string",
+      "pattern": "^target_[a-z0-9_]{1,64}$",
+      "description": "Same identifier as in deployment_architecture.json's DeploymentTargetRecord."
+    },
+    "target_kind": {
+      "type": "string",
+      "enum": [
+        "hf_space",
+        "cloudflare_pages_project",
+        "azure_function_app",
+        "host_os_process",
+        "docker_local_container",
+        "mongodb_collection",
+        "github_actions_workflow_runner"
+      ]
+    },
+    "environments": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["env_binding", "node_address"],
+        "properties": {
+          "env_binding": {
+            "type": "string",
+            "enum": ["local", "dev", "qa", "prod"]
+          },
+          "node_address": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "azure": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["resource_group", "function_app", "task_hub"],
+            "properties": {
+              "resource_group": {"type": "string", "minLength": 1, "maxLength": 256},
+              "function_app":   {"type": "string", "minLength": 1, "maxLength": 256},
+              "task_hub":       {"type": "string", "minLength": 1, "maxLength": 256}
+            }
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Lean list of files that compose this target's package. Mirrors deployment_architecture.json's files[] entries but with embedded_content + layout STRIPPED — the materialized bytes live as actual files under the package dir at source_location.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["feature_id", "source_location", "handler_type", "disposition"],
+        "properties": {
+          "feature_id": {
+            "type": "string",
+            "pattern": "^EPIC-[0-9]{3}-F-[0-9]{3}$"
+          },
+          "source_location": {
+            "type": "string",
+            "pattern": "^(?!.*\\.\\.)[^\\\\:/][^\\\\:]*(?:/[^\\\\:/]+)*$",
+            "maxLength": 1024
+          },
+          "handler_type": {
+            "type": "string",
+            "enum": [
+              "python_source",
+              "python_test",
+              "python_requirements",
+              "dockerfile",
+              "workflow_yaml",
+              "shell_script",
+              "bat_script",
+              "markdown",
+              "json",
+              "static_asset",
+              "cert_or_key"
+            ]
+          },
+          "disposition": {
+            "type": "string",
+            "enum": ["managed", "referenced"]
+          },
+          "content_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "description": "Per-target secret / environment key declarations carried forward from deployment_architecture.json. Map of key NAME -> store id. Values themselves NEVER appear in any package file.",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [
+          "local_env",
+          "gha_secret",
+          "hf_space_secret",
+          "cloudflare_env",
+          "azure_function_app_setting",
+          "azure_automation_variable"
+        ]
+      }
+    }
+  }
+}

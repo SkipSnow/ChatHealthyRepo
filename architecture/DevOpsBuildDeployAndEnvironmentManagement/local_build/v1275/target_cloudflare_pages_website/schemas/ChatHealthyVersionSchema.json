@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyVersionSchema.json",
+  "title": "ChatHealthy Version + Build Manifest",
+  "description": "Product versions and the builds that produced them. Each build records its causes (bug or requirement IDs that drove the work) and the files it touched.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "versions"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "versions": {
+      "type": "object",
+      "required": [
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Ordered list of product versions. Last entry is current.",
+          "items": {
+            "type": "object",
+            "required": [
+              "version_number",
+              "framework_version",
+              "builds"
+            ],
+            "properties": {
+              "version_number": {
+                "type": "string",
+                "description": "Product version, e.g. 0.1.4."
+              },
+              "framework_version": {
+                "type": "string",
+                "description": "Framework version pinned for this product version."
+              },
+              "builds": {
+                "type": "object",
+                "required": [
+                  "build"
+                ],
+                "properties": {
+                  "build": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Ordered list of builds that produced this version. Last entry is most recent.",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "build_number",
+                        "causes",
+                        "files_touched"
+                      ],
+                      "properties": {
+                        "build_number": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "Monotonically increasing build counter, never reused."
+                        },
+                        "causes": {
+                          "type": "object",
+                          "required": [
+                            "cause"
+                          ],
+                          "properties": {
+                            "cause": {
+                              "type": "array",
+                              "minItems": 1,
+                              "description": "One or more typed identifiers explaining why this build happened.",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "identifier_type",
+                                  "identifier"
+                                ],
+                                "properties": {
+                                  "identifier_type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "bug_id",
+                                      "requirement_id"
+                                    ],
+                                    "description": "Which kind of identifier the cause references."
+                                  },
+                                  "identifier": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "description": "The actual ID, e.g. BUG-... or ARCH-...-REQ-..."
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "files_touched": {
+                          "type": "array",
+                          "minItems": 1,
+                          "description": "Repo-relative paths of files modified in this build.",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          }
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
