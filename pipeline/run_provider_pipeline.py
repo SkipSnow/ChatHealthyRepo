@@ -82,9 +82,10 @@ def main(argv: list[str] | None = None) -> int:
                         help="Reset geocoder_failed providers before Pass 2.")
     parser.add_argument("--google-maps", action="store_true",
                         help="Enable Pass 4 Google Maps geocoding (paid).")
-    parser.add_argument("--embeddings", action="store_true",
-                        help="Enable Step 11 embedding pass. Default OFF "
-                             "(embeddings are expensive — opt in explicitly).")
+    parser.add_argument("--embeddings", action=argparse.BooleanOptionalAction,
+                        default=False, required=True,
+                        help="Enable Step 11 embedding pass. Pass --embeddings "
+                             "or --no-embeddings explicitly (no default).")
     parser.add_argument("--embed-model", default="text-embedding-3-large")
     parser.add_argument("--embed-batch-size", type=int, default=100)
     parser.add_argument("--embed-initial-jitter", type=int, default=0)
