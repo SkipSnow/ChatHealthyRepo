@@ -162,27 +162,89 @@ def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path) ->
     Extractor().materialize(target, build_dir)
 
 
+def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
+    """Stage the HF Space's source set into build_dir, build React frontend
+    (FindCare only), materialize managed bytes, copy the Dockerfile to root.
+
+    build_dir contains the docker build context that local_deploy passes
+    to `docker build`. Per Skip's framing: build = source bytes for that
+    target; deploy does the install procedure (docker build/push, HF API,
+    git push to Space repo).
+    """
+    if build_dir.exists():
+        shutil.rmtree(build_dir, ignore_errors=True)
+    build_dir.mkdir(parents=True)
+
+    target_id = target.target_id
+    if target_id == "target_hf_space_findcare_backend":
+        source_set = rd._findcare_source_set(repo_root)
+        # React frontend dist is consumed by the FindCare backend's static/
+        # serving path. Build now so the copy below picks up fresh bytes.
+        rd._build_react_frontend(repo_root, "dev")
+    elif target_id == "target_hf_space_evaluatecare_backend":
+        source_set = rd._evaluatecare_source_set(repo_root)
+    elif target_id == "target_hf_space_shared_services":
+        source_set = rd._sharedservices_source_set(repo_root)
+    else:
+        raise RuntimeError(f"unknown hf_space target {target_id!r}")
+
+    for src_rel, dst_rel in source_set:
+        _step(f"  stage  {src_rel} -> {dst_rel}")
+        rd._copy_tree(repo_root, build_dir, src_rel, dst_rel or src_rel)
+
+    rd._write_hf_build_info(build_dir, target_id, "dev")
+
+    if target_id == "target_hf_space_findcare_backend":
+        # FindCare React dist -> backend static/.
+        dist = (repo_root / "Code" / "ConversationalUX" / "FindCareChat"
+                / "frontend" / "dist")
+        static_dst = (build_dir / "Code" / "ConversationalUX"
+                      / "FindCareChat" / "backend" / "static")
+        if static_dst.exists():
+            shutil.rmtree(static_dst, ignore_errors=True)
+        if not dist.is_dir():
+            sys.exit(f"ERROR: React dist missing at {dist}")
+        shutil.copytree(dist, static_dst)
+
+    Extractor().materialize(target, build_dir)
+
+    if target_id == "target_hf_space_findcare_backend":
+        # FindCare's Dockerfile lives under DevOps/FindCareBackend/; HF
+        # Space's docker build context wants it at the root.
+        shutil.copy2(
+            build_dir / "DevOps" / "FindCareBackend" / "Dockerfile",
+            build_dir / "Dockerfile",
+        )
+
+
 def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str) -> Path:
     build_dir = _target_build_dir(repo_root, build_n, target.target_id)
     _step(f"=== {target.target_kind} {target.target_id} -> {build_dir} ===")
     if target.target_kind == "cloudflare_pages_project":
         _build_cloudflare(repo_root, target, build_dir)
+    elif target.target_kind == "hf_space":
+        _build_hf_space(repo_root, target, build_dir)
     else:
         raise RuntimeError(
             f"target_kind {target.target_kind!r} not yet supported in local_build. "
-            f"Use local_publish.py for hf_space / azure_function_app until the "
-            f"Phase 4 refactor lands those handlers."
+            f"Use old_local_publish.py for azure_function_app until the "
+            f"Phase 4 refactor lands that handler."
         )
     _write_manifest_snapshot(build_dir, target, build_n, build_sha)
     return build_dir
 
 
+_BUILDABLE_KINDS = ("cloudflare_pages_project", "hf_space")
+
+
 def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetRecord]:
     if target_arg == "all":
-        # Phase 4a scope: only cloudflare. HF + Azure still routed through local_publish.
-        return [t for t in coll if t.target_kind == "cloudflare_pages_project"]
+        # Phase 4b scope: cloudflare + hf. Azure still routed through old_local_publish.
+        return [t for t in coll if t.target_kind in _BUILDABLE_KINDS]
     if target_arg in ("cloudflare", "cloudflare_pages_project"):
         return [t for t in coll if t.target_kind == "cloudflare_pages_project"]
+    if target_arg in ("hf", "hf_space"):
+        return [t for t in coll if t.target_kind == "hf_space"]
     # Exact target_id match
     for t in coll:
         if t.target_id == target_arg:
