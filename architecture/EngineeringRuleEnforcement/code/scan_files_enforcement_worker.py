@@ -136,6 +136,7 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         "_scan_http": True,
         "_validate_json": False,
         "_block_regular_expressions_in_executable_code": False,
+        "_scan_no_secret_values": False,
     }
     # Class-level fallback (used if a check method is added without a per-
     # method default declared in SCOPE_DEFAULTS).
@@ -225,6 +226,12 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
 
             if self.is_in_scope(file_path, "_validate_json"):
                 for v in self._check_one_file_json(file_path):
+                    self._emit_violation(v)
+                    self.violation_count += 1
+                    any_violations = True
+
+            if self.is_in_scope(file_path, "_scan_no_secret_values"):
+                for v in self._scan_no_secret_values(file_path):
                     self._emit_violation(v)
                     self.violation_count += 1
                     any_violations = True
@@ -358,6 +365,78 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
                 )
             )
         return violations
+
+    # ────────────────────────────────────────────────────────────────────────
+    # _scan_no_secret_values  (Rule-008 statement #5 — REQ-T-053)
+    # ────────────────────────────────────────────────────────────────────────
+    def _scan_no_secret_values(self, file_path: str) -> list[ViolationRecord]:
+        """Reject if the staged file contains any value from the local .env.
+
+        Per EPIC-008-F-012-S-001-REQ-T-053: no file in any per-target build-
+        package directory may contain a literal secret VALUE. The check
+        loads every value from Code/.env via SecretsResolver's leak-check
+        helper, then substring-matches against the file's text bytes.
+        Matches emit a bare violation; the matched value is NEVER logged
+        or echoed in the message.
+
+        File-selection (which paths this method scans) lives in the scope
+        array on Rule-008-ENF-001. This method only does content matching
+        on whatever files the base class passes through.
+        """
+        absolute_path = (PROJECT_ROOT / file_path).resolve()
+        if not absolute_path.is_file():
+            return []
+        try:
+            text = absolute_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            # Binary file (e.g., zip) — bytes can still contain plaintext
+            # secrets. Fall through to a binary read.
+            try:
+                text = absolute_path.read_bytes().decode("latin-1", errors="replace")
+            except OSError:
+                return []
+
+        env_values = self._load_env_values()
+        if not env_values:
+            return []
+        violations: list[ViolationRecord] = []
+        seen_in_file = False
+        for v in env_values:
+            if v and v in text:
+                seen_in_file = True
+                break
+        if seen_in_file:
+            violations.append(
+                ViolationRecord(
+                    enforcement_id=self.enforcement_id,
+                    rule_id=self.rule_id,
+                    resource=file_path,
+                    message="secret VALUE present in build-package file",
+                    severity="error",
+                )
+            )
+        return violations
+
+    def _load_env_values(self) -> set[str]:
+        """Load .env values via SecretsResolver. Cached per worker run."""
+        if hasattr(self, "_env_values_cache"):
+            return self._env_values_cache  # type: ignore[attr-defined]
+        env_file = PROJECT_ROOT / "Code" / ".env"
+        if not env_file.is_file():
+            self._env_values_cache: set[str] = set()  # type: ignore[attr-defined]
+            return self._env_values_cache
+        deploy_dir = PROJECT_ROOT / "architecture" / "DevOpsBuildDeployAndEnvironmentManagement"
+        added = False
+        if str(deploy_dir) not in sys.path:
+            sys.path.insert(0, str(deploy_dir))
+            added = True
+        try:
+            from secrets_resolver import SecretsResolver
+            self._env_values_cache = SecretsResolver().env_values_for_leak_check(env_file)  # type: ignore[attr-defined]
+        finally:
+            if added and str(deploy_dir) in sys.path:
+                sys.path.remove(str(deploy_dir))
+        return self._env_values_cache
 
     # ────────────────────────────────────────────────────────────────────────
     # JSON validation orchestration — file parse + schema resolution

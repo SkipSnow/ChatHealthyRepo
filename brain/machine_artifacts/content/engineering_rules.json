@@ -125,6 +125,11 @@
               "statement_number": 4,
               "statement_body": "Regular expressions MUST NOT be in ChatHealthy.AI's executable front-end or Pipeline code.",
               "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "No file in any per-target build-package directory (local_build/v*/<target_id>/, remote_build/v*/<target_id>/) MAY contain any value held in the local secrets store (Code/.env). The pre-commit gate MUST scan every staged file in those paths and REJECT on any matched value, without echoing the matched value.",
+              "req_id": "EPIC-008-F-012-S-001-REQ-T-053"
             }
           ]
         },
@@ -234,6 +239,14 @@
                     "(^|/)__pycache__/",
                     "(^|/)node_modules/",
                     "(^|/)dist/"
+                  ]
+                ],
+                [
+                  "_scan_no_secret_values",
+                  "allowed_pattern",
+                  [
+                    "^architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build/v[0-9]+/",
+                    "^architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_build/v[0-9]+/"
                   ]
                 ]
               ],
