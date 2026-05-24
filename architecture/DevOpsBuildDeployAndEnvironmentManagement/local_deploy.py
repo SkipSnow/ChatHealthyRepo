@@ -111,6 +111,16 @@ def _cflags() -> int:
     return subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 
+def _require_local_context() -> None:
+    """REQ-T-055 — local_deploy MUST run only on an operator's workstation,
+    never on a GitHub Actions runner. For CI deploys use remote_deploy.py."""
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        sys.exit(
+            "ERROR: local_deploy.py MUST NOT run on a GitHub Actions runner. "
+            "Use remote_deploy.py instead (REQ-T-055)."
+        )
+
+
 def _find_repo_root(start: Path) -> Path:
     p = start.resolve()
     while p != p.parent:
@@ -1229,6 +1239,7 @@ def main(argv: list[str] | None = None) -> int:
         help="'all' | 'cloudflare' | 'hf' | a specific target_id. Ignored for --env local.",
     )
     args = parser.parse_args(argv)
+    _require_local_context()
     if args.env == "local":
         return LocalDeploy().run()
     return _run_cloud_deploy(args.env, args.version, args.target)
