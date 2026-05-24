@@ -7,15 +7,18 @@
       "environments": [
         {
           "env_binding": "dev",
-          "node_address": "dev.chathealthy.ai"
+          "node_address": "dev.chathealthy.ai",
+          "branch": "dev"
         },
         {
           "env_binding": "qa",
-          "node_address": "qa.chathealthy.ai"
+          "node_address": "qa.chathealthy.ai",
+          "branch": "qa"
         },
         {
           "env_binding": "prod",
-          "node_address": "chathealthy.ai"
+          "node_address": "chathealthy.ai",
+          "branch": "main"
         }
       ],
       "files": [

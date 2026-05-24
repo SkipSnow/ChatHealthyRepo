@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<!--
+  Copyright © 2026 ChatHealthy.ai LLC. All rights reserved.
+  Licensed under the FindCare Evaluation License (FEL-1.0).
+
+  Coded by Claude Sonnet 4.6 (Anthropic).
+  Developed in collaboration with ChatGPT (OpenAI).
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Provider Data Load Design — ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --warn:       #c0392b;
+      --border:     #d8e2e1;
+      --radius:     0.75em;
+      --max-w:      145em;
+      --content-w:  112.5em;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    header { background: var(--surface); border-bottom: 0.125em solid var(--border); box-shadow: 0 0.125em 0.75em rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 1em; padding: 1em; height: 7em; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 1.25em; text-decoration: none; }
+    .logo-mark { width: 4em; height: 4em; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 2.25em; height: 2.25em; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1em; color: var(--teal); }
+    .logo-text span { color: var(--accent); }
+
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 1em; padding: 1em; }
+
+    .page-header { border-bottom: 0.25em solid var(--teal-mid); padding-bottom: 1em; margin-bottom: 1em; }
+    .page-header .eyebrow { font-size: 1em; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 1em; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.1rem); color: var(--ink); line-height: 1.15; margin-bottom: 1em; }
+    .page-header .effective { font-size: 1em; color: var(--ink-soft); }
+
+    .arch-body { max-width: var(--content-w); }
+    .arch-body h2 { font-family: 'DM Serif Display', serif; font-size: 1em; color: var(--teal); margin: 1em; padding-bottom: 1em; border-bottom: 0.125em solid var(--teal-mid); }
+    .arch-body h2:first-child { margin-top: 1em; }
+    .arch-body h3 { font-size: 1em; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin: 1em; }
+    .arch-body p { font-size: 1em; line-height: 1.7; color: var(--ink); margin-bottom: 1em; }
+    .arch-body ul { margin: 1em; font-size: 1em; line-height: 1.7; }
+    .arch-body ul li { margin-bottom: 1em; }
+
+    .note { background: var(--teal-light); border-left: 0.375em solid var(--teal); padding: 1em; border-radius: 0 var(--radius) var(--radius) 0; margin: 1em; font-size: 1em; line-height: 1.6; }
+    .warn { background: #fdf3f2; border-left: 0.375em solid var(--warn); padding: 1em; border-radius: 0 var(--radius) var(--radius) 0; margin: 1em; font-size: 1em; line-height: 1.6; }
+    .warn strong { color: var(--warn); }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1em; }
+    table { width: 100%; border-collapse: collapse; font-size: 1em; min-width: 60em; }
+    th { background: var(--ink); color: #fff; padding: 1em; text-align: left; font-weight: 500; font-size: 1em; letter-spacing: 0.03em; }
+    td { border: 0.125em solid var(--border); padding: 1em; vertical-align: top; line-height: 1.5; }
+    tr:nth-child(even) td { background: var(--teal-light); }
+    code { font-family: monospace; font-size: 1em; background: #f4f4f4; padding: 1em; border-radius: 0.375em; }
+
+    .diagram { border: 0.125em solid var(--border); border-radius: var(--radius); background: #fff; padding: 1em; margin: 1em; font-size: 1em; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .diagram-inner { min-width: 70em; }
+    .d-center { display: flex; justify-content: center; }
+    .d-down { text-align: center; font-size: 1em; line-height: 1; margin: 1em; color: var(--ink-soft); }
+    .d-box { border: 0.25em solid var(--ink); padding: 1em; background: #fff; text-align: center; min-width: 17.5em; line-height: 1.4; border-radius: 0.25em; }
+    .d-box strong { display: block; font-size: 1em; }
+    .d-box small { display: block; font-size: 1em; color: var(--ink-soft); margin-top: 1em; }
+    .d-box-wide { min-width: 32.5em; }
+    .d-box-narrow { min-width: 13.75em; }
+    .d-box-teal { border-color: var(--teal); background: var(--teal-light); }
+    .d-box-warn { border-color: var(--warn); background: #fdf3f2; }
+    .d-vline { width: 0.25em; background: var(--ink); margin: 1em; height: 2em; }
+    .d-row { display: flex; justify-content: center; gap: 3em; }
+    .d-col { display: flex; flex-direction: column; align-items: center; }
+    .d-label { font-size: 1em; color: var(--ink-soft); margin: 1em; text-align: center; }
+
+    /* parallel workers */
+    .d-fan { display: flex; justify-content: center; gap: 1.5em; margin: 1em; }
+    .d-fan-box { border: 0.25em solid var(--ink); padding: 1em; background: #fff; text-align: center; min-width: 10em; border-radius: 0.25em; font-size: 1em; }
+    .d-fan-box strong { display: block; font-size: 1em; }
+    .d-fan-box small { display: block; font-size: 1em; color: var(--ink-soft); }
+
+    footer { border-top: 0.125em solid var(--border); background: var(--surface); }
+    .footer-inner { max-width: var(--max-w); margin: 1em; padding: 1em; }
+    .footer-copy { font-size: 1em; color: var(--ink-soft); font-style: italic; }
+
+    @media print { header, footer { display: none !important; } body { font-size: 11pt; } }
+  
+    /* ── Hamburger button (hidden on desktop) ──────── */
+    .menu-toggle {
+      display: none;
+      margin-left: 1em;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 1em;
+      border-radius: var(--radius);
+      color: var(--ink-soft);
+      transition: background 0.15s;
+    }
+    .menu-toggle:hover { background: var(--teal-light); color: var(--teal); }
+    .menu-toggle svg { display: block; width: 2.75em; height: 2.75em; }
+
+    .mobile-nav {
+      display: none;
+      flex-direction: column;
+      background: var(--surface);
+      border-bottom: 0.125em solid var(--border);
+      padding: 1em;
+    }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav a {
+      font-size: 1em;
+      color: var(--ink-soft);
+      text-decoration: none;
+      padding: 1em;
+      border-radius: var(--radius);
+      transition: color 0.15s, background 0.15s;
+    }
+    .mobile-nav a:hover { color: var(--teal); background: var(--teal-light); }
+
+    .mobile-home-bottom {
+      display: none;
+      text-align: center;
+      padding: 1em;
+      margin-top: 1em;
+      border-top: 0.125em solid var(--border);
+    }
+    .mobile-home-bottom a {
+      color: var(--teal);
+      text-decoration: none;
+      font-size: 1em;
+      font-weight: 500;
+    }
+
+    @media (max-width: 75em) {
+      .menu-toggle { display: flex; align-items: center; justify-content: center; }
+      .mobile-home-bottom { display: block; }
+    }
+  </style>
+  <!-- ChatHealthy.ai canonical font registry.
+     Single source of truth for font sizing app-wide. ONE knob (the
+     `html { font-size: ... }` rule below). Inlined into every HTML
+     page's <head> at deploy time via the CH_FONTS marker substitution
+     in local_deploy.py / remote_deploy.py. Never fetched at runtime,
+     never copied to disk as a separate served resource. Edit here and
+     redeploy. -->
+<style id="ch-fonts">
+  html { font-size: 9px !important; }
+  body, input, button, select, textarea, div, span, p, a,
+  h1, h2, h3, h4, h5, h6, label, li, td, th, dd, dt, code {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 1rem;
+  }
+  code, pre, .ch-mono {
+    font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace !important;
+  }
+</style>
+<script>
+  (function () {
+    window.chFont = function (scale) {
+      var s = (typeof scale === 'number' && isFinite(scale) && scale > 0) ? scale : 1;
+      return s + 'em';
+    };
+    window.CH_FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    window.CH_MONO_FAMILY = 'ui-monospace, Menlo, Consolas, "Liberation Mono", monospace';
+  })();
+</script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="/" target="_top" title="Back to ChatHealthy.ai">
+      <div class="logo-mark">
+        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="2" width="4" height="16" rx="1"/>
+          <rect x="2" y="8" width="16" height="4" rx="1"/>
+        </svg>
+      </div>
+      <span class="logo-text">Chat<span>Healthy</span>.ai</span>
+    </a>
+  </div>
+      <a href="/" class="login-link" style="margin-left: 1em;padding: 1em;text-decoration:none;color:#0b7a75;font-weight:600;">Login &amp; Registration</a>
+  </header>
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="/">Home</a>
+    <a href="/architecture.html">Architecture</a>
+    <a href="/security-architecture.html">Security</a>
+    <a href="/products.html">Products</a>
+    <a href="/roadmap.html">Roadmap</a>
+    <a href="/privacy.html">Privacy</a>
+    <a href="/terms.html">Terms</a>
+  </nav>
+
+
+<main>
+  <div class="page-header">
+    <p class="eyebrow">Design Document</p>
+    <h1>Provider Data Load &amp; County Enrichment — Design</h1>
+    <p class="effective">March 2026</p>
+  </div>
+
+  <div class="arch-body">
+
+    <!-- 1. Overview -->
+    <h2>1. Overview</h2>
+    <p>
+      This document covers the design for the provider data pipeline. For the two-cluster strategy
+      and data source roadmap, see the
+      <a href="architecture.html#pipeline-architecture" style="color:var(--teal);">Architecture Overview — Section 9</a>.
+      For the chat application design, see
+      <a href="chat-app-design.html" style="color:var(--teal);">Chat App Design</a>.
+    </p>
+    <p>
+      The top-level entry point is <code>FindCarePipeline</code> — an 8-step Durable Functions
+      orchestrator that runs health check → load → county enrichment → embeddings in sequence.
+      All steps are resumable via the <code>start_step</code> payload parameter (default: 1, full run).
+    </p>
+    <p>
+      <code>LoadProviderData</code> (Step 2) ingests the NPPES NPI file (~8 GB unzipped, ~8.8 million
+      records — Type 1 individual providers and Type 2 organizational facilities) from CMS into
+      <code>PublicHealthData.providers_staging</code>. The load runs asynchronously via Azure Durable
+      Functions; the Router returns a status URL immediately. Progress is tracked in
+      <code>admin.DataLoadMetadata</code>. A load report is sent via SparkPost email on completion.
+    </p>
+    <div class="note">
+      <strong>SLA: full 8M-record load completes in under 1 hour.</strong> First production run
+      (2026-03-19): 8,858,520 records loaded in ~35 minutes with 32 workers on Azure East US 2
+      + MongoDB Atlas M30. County enrichment and embedding generation run as Steps 3–8 of
+      FindCarePipeline after load completes.
+    </div>
+
+    <!-- 2. Async Handoff -->
+    <h2>2. Async Handoff</h2>
+    <div class="diagram">
+      <div class="diagram-inner">
+        <div class="d-center"><div class="d-box d-box-wide"><strong>POST /api/Router</strong><small>ChatHealthyTask: LoadProviderData</small></div></div>
+        <div class="d-down">↓</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>function_app.py — Router</strong><small>ASYNC_TASK_ORCHESTRATORS routes to provider_load_orchestrator · returns immediately</small></div></div>
+        <div class="d-down">↓ 202 Accepted</div>
+        <div class="d-row">
+          <div class="d-col">
+            <div class="d-box d-box-narrow"><strong>Caller</strong><small>receives status_url · polls for progress</small></div>
+          </div>
+          <div class="d-col">
+            <div class="d-box d-box-narrow d-box-teal"><strong>Durable Orchestrator</strong><small>runs independently · SLA &lt;1 hr · Azure managed</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2b. FindCarePipeline -->
+    <h2>2b. FindCarePipeline &#8212; Outer Orchestrator</h2>
+    <p>Triggered via <code>POST /api/Router</code> with <code>ChatHealthyTask: FindCarePipeline</code>.
+    Runs eight steps in sequence. Pass <code>start_step</code> (1&#8211;8) to skip completed steps on resume.</p>
+    <div class="diagram">
+      <div class="diagram-inner">
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>FindCarePipeline</strong><small>outer Durable orchestrator &#183; no timeout &#183; Azure manages state</small></div></div>
+        <div class="d-down">&#8595; Step 1</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>MongoDB Health Check</strong><small>ping cluster &#183; SparkPost email to admin + RuntimeError if unreachable</small></div></div>
+        <div class="d-down">&#8595; Step 2</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>LoadProviderData sub-orchestrator</strong><small>10-step inner orchestrator &#8212; see Section 3</small></div></div>
+        <div class="d-down">&#8595; Step 3</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 1 (sub-orchestrator)</strong><small>ZIP crosswalk + out_of_scope classification &#183; mark inactive/foreign/deactivated/ZIP-state-mismatch as out_of_scope with reason sub-field &#183; updateMany</small></div></div>
+        <div class="d-down">&#8595; Step 4</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 2 (sub-orchestrator)</strong><small>Census Geocoder, practice address &#183; batch 500 addresses &#183; fan-out workers</small></div></div>
+        <div class="d-down">&#8595; Step 5</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 3 (sub-orchestrator)</strong><small>Census Geocoder, billing address &#183; retry for geocoder_failed &#183; batch 500 addresses</small></div></div>
+        <div class="d-down">&#8595; Step 6</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 4 (sub-orchestrator)</strong><small>Google Maps Geocoding API &#183; requires google_maps_enabled=true &#183; paid API</small></div></div>
+        <div class="d-down">&#8595; Step 7</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>County Enrichment &#8212; Pass 6 (sub-orchestrator)</strong><small>NPPES CMS Registry lookup &#183; free &#183; NPI-based &#183; ~5 req/s &#183; optional states filter</small></div></div>
+        <div class="d-down">&#8595; Step 8 &#8212; fan-out &#183; one activity per load worker</div><div class="note">
+      <strong>Idempotent at every step.</strong> Download uses ETag guard (skip if unchanged).
+      CSV extraction checks if blob already exists (skip if present). Embedding worker skips
+      documents that already have an <code>embedding</code> field. Vector index creation
+      catches "already exists" and continues.
+    </div>
+
+    <!-- 3. Full Load Flow -->
+    <h2>3. Full Load Flow</h2>
+    <div class="diagram">
+      <div class="diagram-inner">
+
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Durable Orchestrator — ProviderLoadManager</strong><small>SLA &lt;1 hr (est. ~25 min) · no timeout · Azure manages state and restarts</small></div></div>
+
+        <div class="d-down">↓ Step 1</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Download ZIP → Azure Blob</strong><small>Scrapes cms.gov/nppes to discover latest file URL · no manual URL needed · stored for audit trail</small></div></div>
+
+        <div class="d-down">↓ Step 2</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Extract CSV → Azure Blob</strong><small>unzip in-stream · CSV stays in blob for all workers</small></div></div>
+
+        <div class="d-down">↓ Step 3</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Partition File (byte-based)</strong><small>file_size / N workers → byte ranges · each aligned to next newline</small></div></div>
+
+        <div class="d-down">↓ Step 4</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Drain Staging Collection</strong><small>delete all existing documents from providers_staging · safe to drain only after download + extract + partition succeeded</small></div></div>
+
+        <div class="d-down">↓ Step 5</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Ensure Staging Indexes</strong><small>unique index on (load_id, record_id) · idempotent · runs before any worker</small></div></div>
+
+        <div class="d-down">↓ Step 6</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Write N Metadata Records</strong><small>admin.DataLoadMetadata · one per worker · status: 0 (new)</small></div></div>
+
+        <div class="d-down">↓ Step 7 — fan-out · up to 200 workers · each is an independent Durable activity with its own 10-min budget</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>Worker 1</strong><small>load chunk</small></div>
+          <div class="d-fan-box"><strong>Worker 2</strong><small>load chunk</small></div>
+          <div class="d-fan-box"><strong>Worker 3</strong><small>…</small></div>
+          <div class="d-fan-box"><strong>Worker N</strong><small>remainder</small></div>
+        </div>
+        <div class="d-label">Each worker: read byte range → skip leading blanks → parse CSV → normalize fields → batch insert to staging → update metadata status</div>
+
+        <div class="d-down">↓ Step 8 — fan-in · all workers complete</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Record Count Reconciliation</strong><small>stream CSV · count newlines (trailing-newline safe) · compare expected_records vs inserted_records · report failed_records · mismatch → fail + report</small></div></div>
+
+        <div class="d-down">↓ Step 9 — report always generated (match or mismatch)</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>DiscrepancyReporter</strong><small>write full run data to admin.PipelineDiscrepancyReport · SparkPost email with key stats + load_id</small></div></div>
+
+      </div>
+    </div>
+
+    <!-- 3b. County Enrichment Flow -->
+    <h2>3b. County Enrichment Flow</h2>
+    <p>County enrichment runs as a series of Durable sub-orchestrators called sequentially by FindCarePipeline.
+    Each pass targets only providers not yet enriched by prior passes. The enrichment SLA (98% of in-scope providers)
+    applies only to addressable providers &#8212; those not flagged as out_of_scope.</p>
+    <div class="diagram">
+      <div class="diagram-inner">
+
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 1 sub-orchestrator</strong><small>out_of_scope classification + ZIP crosswalk bulk update</small></div></div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>mark_out_of_scope</strong><small>inactive/foreign/deactivated</small></div>
+          <div class="d-fan-box"><strong>mark_zip_state_mismatch</strong><small>ZIP belongs to different state</small></div>
+          <div class="d-fan-box"><strong>get_distinct_zips</strong><small>~40K distinct ZIPs</small></div>
+          <div class="d-fan-box"><strong>lookup_crosswalk</strong><small>res_ratio &#8805; 0.98</small></div>
+        </div>
+        <div class="d-label">fan-out &#8594; enrich_by_zip_batch workers &#183; one updateMany per ZIP batch</div>
+
+        <div class="d-down">&#8595;</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 2 sub-orchestrator</strong><small>Census Geocoder, practice address</small></div></div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>get_unenriched</strong><small>county_fips still null</small></div>
+        </div>
+        <div class="d-label">fan-out &#8594; enrich_by_address_batch workers &#183; 500 addresses per Census Geocoder POST &#183; bulk update matching providers</div>
+
+        <div class="d-down">&#8595;</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 3 sub-orchestrator</strong><small>Census Geocoder, billing address retry</small></div></div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>get_billing_retryable</strong><small>geocoder_failed after Pass 2</small></div>
+        </div>
+        <div class="d-label">fan-out &#8594; enrich_by_address_batch workers &#183; mailing/billing address &#183; 500 per batch</div>
+
+        <div class="d-down">&#8595;</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 4 sub-orchestrator</strong><small>Google Maps Geocoding API &#183; requires google_maps_enabled=true</small></div></div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>get_maps_retryable</strong><small>geocoder_failed after Pass 3</small></div>
+        </div>
+        <div class="d-label">fan-out &#8594; enrich_by_maps_batch workers &#183; paid API beyond free tier &#183; opt-in via google_maps_enabled</div>
+
+        <div class="d-down">&#8595;</div>
+        <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 6 sub-orchestrator</strong><small>NPPES CMS Registry lookup by NPI</small></div></div>
+        <div class="d-down">&#8595;</div>
+        <div class="d-fan">
+          <div class="d-fan-box"><strong>get_nppes_retryable</strong><small>geocoder_failed or unenriched after Pass 4</small></div>
+        </div>
+        <div class="d-label">fan-out &#8594; enrich_by_nppes_batch workers &#183; free &#183; ~5 req/s &#183; optional states filter</div>
+
+        <div class="d-down">&#8595;</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>Enrichment Report</strong><small>written to admin.PipelineDiscrepancyReports after full run</small></div></div>
+
+      </div>
+    </div>
+    <div class="note">
+      <strong>Pass 1 data source:</strong> HUD USPS ZIP-to-county crosswalk
+      (<code>huduser.gov/portal/datasets/usps_crosswalk.html</code>), published quarterly.
+      Only ZIPs with <code>res_ratio &#8805; 0.98</code> are resolved (effectively single-county ZIPs).
+      Prerequisite: ZipCountyCrosswalk loaded first.
+    </div>
+    <div class="note">
+      <strong>Pass 2/3 data source:</strong> US Census Geocoder API (free, US-only, 500-address batches).
+      Pass 2 uses <code>practice_address</code>; Pass 3 retries <code>geocoder_failed</code> using mailing_address/billing address.
+    </div>
+    <div class="note">
+      <strong>Pass 4 data source:</strong> Google Maps Geocoding API (paid beyond free tier).
+      Requires <code>google_maps_enabled=true</code>. Targets providers still <code>geocoder_failed</code> after Pass 3.
+    </div>
+    <div class="note">
+      <strong>Pass 6 data source:</strong> NPPES CMS Registry (free, no API key). Fetches canonical practice address
+      registered with CMS by NPI. Rate-limited to ~5 req/s per calling IP. Use <code>states</code> parameter to limit
+      scope for test runs. Targets providers still <code>geocoder_failed</code> or unenriched after Pass 4.
+    </div>
+
+    <!-- 3c. Multi-Pass Enrichment Strategy -->
+    <h2>3c. Multi-Pass Enrichment Strategy</h2>
+    <p>County enrichment follows multiple passes against escalating data sources. Each pass runs only against
+    records the previous passes could not resolve. Every record is tagged with its provenance source so the
+    pipeline never re-attempts a record that has already been given a definitive result (success or permanent failure).</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Pass</th><th>Method</th><th>Source</th><th>Provenance Tag</th><th>Status</th></tr>
+        <tr><td>1</td><td>ZIP &#8594; county crosswalk &#183; <code>updateMany</code> per ZIP</td><td>HUD USPS crosswalk</td><td><code>crosswalk_pass1</code></td><td>Live</td></tr>
+        <tr><td>2</td><td>Practice address &#8594; Census Geocoder &#183; batch 500</td><td>US Census Geocoder API</td><td><code>geocoder_pass2_batch</code></td><td>Live</td></tr>
+        <tr><td>3</td><td>Billing address &#8594; Census Geocoder &#183; batch 500 (geocoder_failed retry)</td><td>US Census Geocoder API</td><td><code>geocoder_pass3_billing</code></td><td>Live</td></tr>
+        <tr><td>4</td><td>Practice address &#8594; Google Maps Geocoding API (paid, opt-in)</td><td>Google Maps Platform</td><td><code>geocoder_pass4_maps</code></td><td>Live</td></tr>
+        <tr><td>6</td><td>NPPES registry lookup by NPI (free, ~5 req/s)</td><td>CMS NPPES API</td><td><code>geocoder_pass6_nppes</code></td><td>Live</td></tr>
+      </table>
+    </div>
+    <p>Records flagged <code>geocoder_failed</code> after all passes can be resolved at runtime by the AI agent
+    during the FindCare conversation &#8212; no pipeline re-run needed. Records successfully enriched in any pass
+    are not re-attempted. The 98% enrichment SLA requires passes 1&#8211;3 (all free); passes 4 and 6 are
+    improvement passes that push toward 100%.</p>
+
+    <!-- 3d. Out-of-Scope Providers -->
+    <h2 id="out-of-scope">3d. Out-of-Scope Providers</h2>
+    <p>Not all records in the NPPES file are active US providers. Records that cannot receive
+    a county assignment are tagged <code>county.source = "out_of_scope"</code> and excluded
+    from the enrichment ratio calculation. The 98% enrichment SLA applies only to
+    <em>in-scope</em> providers &#8212; those where county assignment is meaningful.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Category</th><th>Criteria</th><th>county.reason</th><th>Notes</th></tr>
+        <tr><td>No address</td><td>Both <code>practice_address</code> and <code>mailing_address</code> absent</td><td><code>no_address</code></td><td>No location data &#8212; geocoder has nothing to work with</td></tr>
+        <tr><td>Foreign provider</td><td><code>practice_address.country</code> set and &#8800; "US"</td><td><code>foreign_provider</code></td><td>NPPES sets "US" for domestic; non-US = international</td></tr>
+        <tr><td>Deactivated NPI</td><td><code>npi_deactivation_date</code> set and <code>npi_reactivation_date</code> absent</td><td><code>deactivated</code></td><td>Surrendered or deactivated by CMS</td></tr>
+        <tr><td>ZIP/state mismatch</td><td><code>practice_address.zip</code> belongs to a different state than <code>practice_address.state</code> (per crosswalk)</td><td><code>zip_state_mismatch</code></td><td>Bad source data in NPPES itself; ~0.03% of providers</td></tr>
+        <tr><td>Legacy</td><td>Records marked out_of_scope before reason field was added</td><td><code>legacy</code></td><td>Pre-existing records; treated same as out_of_scope</td></tr>
+      </table>
+    </div>
+    <p><code>county.reason</code> is a sub-field of the county document:
+    <code>county: &#123;fips: null, source: 'out_of_scope', reason: 'zip_state_mismatch'&#125;</code>.
+    The out_of_scope classification and reason are written by Pass 1 before any geocoding begins.
+    The enrichment report includes a by_reason breakdown.</p>
+    <p>These records are present in the NPPES export and loaded into
+    <code>providers_staging</code> &#8212; they are not dropped. The <code>out_of_scope</code> tag
+    ensures they are not counted as enrichment failures.</p>
+
+    <!-- 4. Class Responsibilities -->
+    <h2>4. Classes</h2>
+
+    <p style="font-size: 1em;color:#4a5568;margin: 1em;"><em>italic</em> = abstract method &nbsp;·&nbsp; &#9651; = extends (arrow points toward superclass)</p>
+
+    <!-- Fetcher Hierarchy -->
+    <p style="font-size: 1em;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin: 1em;">Fetcher Hierarchy</p>
+    <div style="overflow-x:auto;margin-bottom: 1em;border:0.125em solid #d8e2e1;padding: 1em;border-radius:0.5em;background:#fff;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="760" height="398" font-family="'Courier New',monospace" font-size="10" fill="#0d1117">
+      <!-- DataFetcherBase -->
+      <rect x="260" y="10" width="240" height="204" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="260" y="10" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="260" y1="40" x2="500" y2="40" stroke="#0d1117" stroke-width="1"/>
+      <line x1="260" y1="112" x2="500" y2="112" stroke="#0d1117" stroke-width="1"/>
+      <text x="380" y="30" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">DataFetcherBase</text>
+      <text x="268" y="56">+ source_name: str</text>
+      <text x="268" y="71">+ source_url: str</text>
+      <text x="268" y="86"># config: dict</text>
+      <text x="268" y="101"># container: str</text>
+      <text x="268" y="128">+ fetch() &#8594; dict</text>
+      <text x="268" y="143">+ blob_name() &#8594; str</text>
+      <text x="268" y="158"># _remote_signature()</text>
+      <text x="268" y="173"># _download_to_blob()</text>
+      <text x="268" y="188"># _load_registry()</text>
+      <text x="268" y="203"># _update_registry()</text>
+      <!-- Connector: parent bottom → triangle → junction → children -->
+      <polygon points="370,234 390,234 380,214" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="380" y1="234" x2="380" y2="254" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="120" y1="254" x2="640" y2="254" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="120" y1="254" x2="120" y2="264" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="380" y1="254" x2="380" y2="264" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="640" y1="254" x2="640" y2="264" stroke="#0d1117" stroke-width="1.5"/>
+      <!-- NppesFetcher x=0, w=240, h=114 -->
+      <rect x="0" y="264" width="240" height="114" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="0" y="264" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="0" y1="294" x2="240" y2="294" stroke="#0d1117" stroke-width="1"/>
+      <line x1="0" y1="336" x2="240" y2="336" stroke="#0d1117" stroke-width="1"/>
+      <text x="120" y="284" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">NppesFetcher</text>
+      <text x="8" y="310">+ source_name = "nppes_npi"</text>
+      <text x="8" y="325">- _version: str</text>
+      <text x="8" y="352">+ blob_name() &#8594; str</text>
+      <text x="8" y="367">+ version: str  [property]</text>
+      <!-- Icd10Fetcher x=260, w=240, h=99 -->
+      <rect x="260" y="264" width="240" height="99" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="260" y="264" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="260" y1="294" x2="500" y2="294" stroke="#0d1117" stroke-width="1"/>
+      <line x1="260" y1="321" x2="500" y2="321" stroke="#0d1117" stroke-width="1"/>
+      <text x="380" y="284" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">Icd10Fetcher</text>
+      <text x="268" y="310">+ source_name = "icd10_cm"</text>
+      <text x="268" y="337">+ blob_name() &#8594; str</text>
+      <text x="268" y="352">+ poll_frequency: str  [prop]</text>
+      <!-- CrosswalkFetcher x=520, w=240, h=99 -->
+      <rect x="520" y="264" width="240" height="99" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="520" y="264" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="520" y1="294" x2="760" y2="294" stroke="#0d1117" stroke-width="1"/>
+      <line x1="520" y1="336" x2="760" y2="336" stroke="#0d1117" stroke-width="1"/>
+      <text x="640" y="284" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">CrosswalkFetcher</text>
+      <text x="528" y="310">+ source_name = "census_zcta..."</text>
+      <text x="528" y="325">+ source_url: str</text>
+      <text x="528" y="352">+ blob_name() &#8594; str</text>
+    </svg>
+    </div>
+
+    <!-- Worker Hierarchy -->
+    <p style="font-size: 1em;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin: 1em;">Worker Hierarchy</p>
+    <div style="overflow-x:auto;margin-bottom: 1em;border:0.125em solid #d8e2e1;padding: 1em;border-radius:0.5em;background:#fff;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="760" height="593" font-family="'Courier New',monospace" font-size="10" fill="#0d1117">
+      <!-- PipelineWorkerBase(ABC) x=260, y=10, w=240, h=279 -->
+      <rect x="260" y="10" width="240" height="279" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="260" y="10" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="260" y1="40" x2="500" y2="40" stroke="#0d1117" stroke-width="1"/>
+      <line x1="260" y1="127" x2="500" y2="127" stroke="#0d1117" stroke-width="1"/>
+      <text x="380" y="30" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">PipelineWorkerBase (ABC)</text>
+      <text x="268" y="56">+ fail_on_row_error: bool</text>
+      <text x="268" y="71">+ row_errors: list[dict]</text>
+      <text x="268" y="86">- _job_failed: bool</text>
+      <text x="268" y="101">- _load_id: str</text>
+      <text x="268" y="116">- _worker_id: str</text>
+      <text x="268" y="143">+ pipeline_execute() &#8594; dict</text>
+      <text x="268" y="158"># _pipeline_open()</text>
+      <text x="268" y="173"># _pipeline_close()</text>
+      <text x="268" y="188"># _pipeline_on_job_failure(exc)</text>
+      <text x="268" y="203"># _pipeline_step()</text>
+      <text x="268" y="218" font-style="italic"># _pipeline_process()</text>
+      <text x="268" y="233" font-style="italic"># _pipeline_has_next() &#8594; bool</text>
+      <text x="268" y="248" font-style="italic"># _pipeline_row_key() &#8594; str</text>
+      <text x="268" y="263" font-style="italic"># _pipeline_resume()</text>
+      <text x="268" y="278" font-style="italic"># _pipeline_build_result() &#8594; dict</text>
+      <!-- Connector -->
+      <polygon points="370,309 390,309 380,289" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="380" y1="309" x2="380" y2="329" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="120" y1="329" x2="640" y2="329" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="120" y1="329" x2="120" y2="339" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="380" y1="329" x2="380" y2="339" stroke="#0d1117" stroke-width="1.5"/>
+      <line x1="640" y1="329" x2="640" y2="339" stroke="#0d1117" stroke-width="1.5"/>
+      <!-- ProviderWorker x=0, y=339, w=240, h=234 -->
+      <rect x="0" y="339" width="240" height="234" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="0" y="339" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="0" y1="369" x2="240" y2="369" stroke="#0d1117" stroke-width="1"/>
+      <line x1="0" y1="471" x2="240" y2="471" stroke="#0d1117" stroke-width="1"/>
+      <text x="120" y="359" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">ProviderWorker</text>
+      <text x="8" y="385">+ worker_id: int</text>
+      <text x="8" y="400">+ start_byte: int</text>
+      <text x="8" y="415">+ end_byte: int</text>
+      <text x="8" y="430">+ load_id: str</text>
+      <text x="8" y="445">+ batch_size: int</text>
+      <text x="8" y="460">- _num_records: int</text>
+      <text x="8" y="487"># _pipeline_process()</text>
+      <text x="8" y="502"># _pipeline_has_next() &#8594; bool</text>
+      <text x="8" y="517"># _pipeline_row_key() &#8594; str</text>
+      <text x="8" y="532"># _pipeline_resume()</text>
+      <text x="8" y="547"># _pipeline_build_result() &#8594; dict</text>
+      <text x="8" y="562">- _update_status(status, error)</text>
+      <!-- EmbeddingWorker x=260, y=339, w=240, h=189 -->
+      <rect x="260" y="339" width="240" height="189" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="260" y="339" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="260" y1="369" x2="500" y2="369" stroke="#0d1117" stroke-width="1"/>
+      <line x1="260" y1="441" x2="500" y2="441" stroke="#0d1117" stroke-width="1"/>
+      <text x="380" y="359" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">EmbeddingWorker</text>
+      <text x="268" y="385">+ worker_id: int</text>
+      <text x="268" y="400">+ staging_collection: str</text>
+      <text x="268" y="415">- _docs: list</text>
+      <text x="268" y="430">- _embedded: int</text>
+      <text x="268" y="457"># _pipeline_process()</text>
+      <text x="268" y="472"># _pipeline_has_next() &#8594; bool</text>
+      <text x="268" y="487"># _pipeline_row_key() &#8594; str</text>
+      <text x="268" y="502"># _pipeline_resume()</text>
+      <text x="268" y="517"># _pipeline_build_result() &#8594; dict</text>
+      <!-- ZipEnrichmentWorker x=520, y=339, w=240, h=189 -->
+      <rect x="520" y="339" width="240" height="189" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="520" y="339" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="520" y1="369" x2="760" y2="369" stroke="#0d1117" stroke-width="1"/>
+      <line x1="520" y1="441" x2="760" y2="441" stroke="#0d1117" stroke-width="1"/>
+      <text x="640" y="359" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">ZipEnrichmentWorker</text>
+      <text x="528" y="385">+ zip_batch: list</text>
+      <text x="528" y="400">+ staging_collection: str</text>
+      <text x="528" y="415">- _idx: int</text>
+      <text x="528" y="430">- _total_modified: int</text>
+      <text x="528" y="457"># _pipeline_process()</text>
+      <text x="528" y="472"># _pipeline_has_next() &#8594; bool</text>
+      <text x="528" y="487"># _pipeline_row_key() &#8594; str</text>
+      <text x="528" y="502"># _pipeline_resume()</text>
+      <text x="528" y="517"># _pipeline_build_result() &#8594; dict</text>
+    </svg>
+    </div>
+
+    <!-- Standalone Classes -->
+    <p style="font-size: 1em;font-weight:600;text-transform:uppercase;letter-spacing:0.09em;color:#0b7a75;margin: 1em;">Standalone Classes</p>
+    <div style="overflow-x:auto;margin-bottom: 1em;border:0.125em solid #d8e2e1;padding: 1em;border-radius:0.5em;background:#fff;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="760" height="204" font-family="'Courier New',monospace" font-size="10" fill="#0d1117">
+      <!-- DiscrepancyReporter x=0, w=240, h=84 -->
+      <rect x="0" y="10" width="240" height="84" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="0" y="10" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="0" y1="40" x2="240" y2="40" stroke="#0d1117" stroke-width="1"/>
+      <line x1="0" y1="67" x2="240" y2="67" stroke="#0d1117" stroke-width="1"/>
+      <text x="120" y="30" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold">DiscrepancyReporter</text>
+      <text x="8" y="56" font-style="italic" fill="#4a5568">— no instance attributes —</text>
+      <text x="8" y="83">+ send(config: dict) &#8594; dict</text>
+      <!-- ChatHealthyMongoUtilities x=260, w=240, h=144 -->
+      <rect x="260" y="10" width="240" height="144" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="260" y="10" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="260" y1="40" x2="500" y2="40" stroke="#0d1117" stroke-width="1"/>
+      <line x1="260" y1="82" x2="500" y2="82" stroke="#0d1117" stroke-width="1"/>
+      <text x="380" y="30" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="bold">ChatHealthyMongoUtilities</text>
+      <text x="268" y="56">- _connection_string: str</text>
+      <text x="268" y="71">- _client: MongoClient | None</text>
+      <text x="268" y="98">+ getConnection() &#8594; MongoClient</text>
+      <text x="268" y="113">+ close()</text>
+      <text x="268" y="128">+ __enter__()</text>
+      <text x="268" y="143">+ __exit__()</text>
+      <!-- ChatHealthyLoadSpecialtyData x=520, w=240, h=174 -->
+      <rect x="520" y="10" width="240" height="174" fill="white" stroke="#0d1117" stroke-width="1.5"/>
+      <rect x="520" y="10" width="240" height="30" fill="#e6f4f3" stroke="none"/>
+      <line x1="520" y1="40" x2="760" y2="40" stroke="#0d1117" stroke-width="1"/>
+      <line x1="520" y1="97" x2="760" y2="97" stroke="#0d1117" stroke-width="1"/>
+      <text x="640" y="30" text-anchor="middle" font-family="sans-serif" font-size="10" font-weight="bold">ChatHealthyLoadSpecialtyData</text>
+      <text x="528" y="56">+ db_name: str</text>
+      <text x="528" y="71">+ collection_name: str</text>
+      <text x="528" y="86">- _csv_content: str | None</text>
+      <text x="528" y="113">+ fetch_csv()</text>
+      <text x="528" y="128">+ store_to_blob() &#8594; str</text>
+      <text x="528" y="143">+ load_to_mongo() &#8594; int</text>
+      <text x="528" y="158">- _scrape_csv_url()</text>
+      <text x="528" y="173">- _agent_find_csv_url()</text>
+    </svg>
+    </div>
+
+    <h3>ProviderLoadManager</h3>
+    <p>Durable orchestrator. 9 steps: download ZIP, extract CSV, partition file, drain staging, ensure indexes, write metadata, fan-out up to 200 load workers, reconcile record counts, write report. No timeout. County enrichment is a separate orchestrator triggered by FindCarePipeline after this orchestrator completes.</p>
+
+    <h3>ProviderWorker</h3>
+    <p>Reads one byte-range slice of the CSV from blob. Partition boundaries are newline-aligned; workers 2–N defensively discard their first row if it has the wrong field count (partial row from alignment fallback). Parses rows. Skips blank/whitespace-only lines. Normalizes fields: taxonomy codes → <code>taxonomies: [{code, primary, group}]</code>; license numbers + states → <code>licenses: [{state, number}]</code>; practice and mailing addresses → sub-documents with ZIP truncated to 5 digits; other identifiers → arrays. Assigns a synthetic <code>record_id = worker_id × MAX_ROWS_PER_WORKER + local_row_index</code> (<code>MAX_ROWS_PER_WORKER = 1,000,000</code>; max 200 workers × 1,000,000 = 200,000,000 — fits in a 32-bit signed int) — unique across all workers, no coordination needed. NPI is the business key. Stamps each document with <code>load_id</code> (= Durable orchestration instance ID) and a stub <code>county: {fips: null}</code> enriched by CountyEnrichment. Batch-upserts to <code>PublicHealthData.providers_staging</code> using <code>$setOnInsert</code> on <code>(load_id, record_id)</code> — safe to retry; duplicates are silently ignored. Returns observability metrics: <code>rows_processed</code>, <code>num_records</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>. Updates its metadata record on completion or failure.</p>
+
+    <h3>EmbeddingWorker</h3>
+    <p>Reads all documents for a given <code>worker_id</code> that do not yet have an
+    <code>embedding</code> field (idempotent on retry). Builds a text representation from all
+    meaningful fields — name, taxonomies, licenses, addresses, credentials, identifiers — by
+    recursively extracting string values and joining them. Excludes internal housekeeping fields
+    (<code>record_id</code>, <code>load_id</code>, <code>worker_id</code>, <code>county</code>,
+    <code>embedding</code>). Calls OpenAI <code>text-embedding-3-small</code> in batches of 500,
+    stores the returned 1536-dimension float array as <code>embedding</code> on each document via
+    <code>bulk_write</code>.</p>
+
+    <h3>CountyEnrichmentOrchestrator</h3>
+    <p>Separate Durable Function orchestrator — not part of ProviderLoadManager. Triggered by
+    FindCarePipeline after ProviderLoadManager completes. Multi-pass enrichment triggered by FindCarePipeline.
+    Pass 1: mark out_of_scope (with reason), ZIP crosswalk bulk update.
+    Pass 2: Census Geocoder batch (practice address).
+    Pass 3: Census Geocoder batch (billing address retry).
+    Pass 4: Google Maps batch (paid, opt-in).
+    Pass 6: NPPES CMS registry lookup by NPI (free).
+    Enrichment report written to admin.PipelineDiscrepancyReports after each full run.
+    Prerequisite: <code>PublicHealthData.ZipCountyCrosswalk</code>
+    must be populated by the LoadCrosswalk pipeline before enrichment runs.</p>
+
+    <h3>ZipEnrichmentWorker (Pass 1)</h3>
+    <p>Accepts a batch of ZIP codes where <code>res_ratio ≥ 0.98</code>. For each ZIP: looks up
+    the county FIPS code from <code>PublicHealthData.ZipCountyCrosswalk</code> and issues one
+    <code>updateMany</code> on <code>providers_staging</code>, adding <code>county_fips</code>
+    and <code>county_name</code> to all matching provider records. Returns count of documents
+    modified.</p>
+
+    <h3>AddressEnrichmentWorker (Pass 2/3)</h3>
+    <p>Accepts a batch of provider records. Submits addresses to the US Census Geocoder API in
+    batches of 500. Pass 2 uses <code>practice_address</code>; Pass 3 uses mailing/billing address
+    for providers still <code>geocoder_failed</code> after Pass 2. Tags each record with its
+    provenance source: <code>geocoder_pass2_batch</code>, <code>geocoder_pass3_billing</code>,
+    <code>geocoder_failed</code> (geocoder returned no match), or <code>geocoder_no_address</code>
+    (both addresses blank). Pass 2/3 uses batch geocoding &#8212; 500 addresses per Census Geocoder POST.
+    Each worker issues one batch request and bulk-updates matching providers. Returns counts for each outcome.</p>
+
+    <h3>DiscrepancyReporter</h3>
+    <p>Writes the complete run data (all worker results + reconciliation + summary) as a document to <code>admin.PipelineDiscrepancyReport</code> in MongoDB. Sends a SparkPost email notification with key stats and the <code>load_id</code> for lookup. No blob storage or file generation.</p>
+
+    <!-- 4b. Exception Handling Framework -->
+    <h2>4b. Pipeline Exception Handling Framework</h2>
+    <p>
+      <strong>Pattern: Gang of Four — Template Method.<sup><a id="ref-1-src" href="#ref-1" style="color:var(--teal);text-decoration:none;">[1]</a></sup></strong>
+      <code>PipelineWorkerBase</code> (<code>pipeline_worker_base.py</code>) is an abstract base
+      class that all pipeline row-processing workers extend. It centralises exception handling,
+      error accumulation, and lifecycle control so that worker classes focus purely on data
+      processing logic.
+    </p>
+
+    <h3>Ownership</h3>
+    <p>The base class owns:</p>
+    <ul>
+      <li>The processing loop — <code>pipeline_execute()</code></li>
+      <li>All exception catching and logging — <code>_pipeline_step()</code> (private template method)</li>
+      <li>The <code>row_errors</code> accumulator — list of <code>{row_key, reason}</code> objects written to the discrepancy report</li>
+    </ul>
+
+    <h3>Control Flow</h3>
+    <div class="diagram">
+      <div class="diagram-inner">
+        <div class="d-center"><div class="d-box d-box-wide"><strong>pipeline_execute()</strong><small>public · called by orchestration · base class</small></div></div>
+        <div class="d-down">↓</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>_pipeline_open()</strong><small>optional hook · subclass sets up resources</small></div></div>
+        <div class="d-down">↓ while _pipeline_has_next()</div>
+        <div class="d-center"><div class="d-box d-box-teal d-box-wide"><strong>_pipeline_step()</strong><small>private template method · base class</small></div></div>
+        <div class="d-down">↓ calls</div>
+        <div class="d-row">
+          <div class="d-col">
+            <div class="d-box"><strong>_pipeline_process()</strong><small>abstract · subclass</small></div>
+            <div class="d-label">success → continue</div>
+          </div>
+          <div class="d-col">
+            <div class="d-box d-box-warn"><strong>exception raised</strong><small>base class catches</small></div>
+            <div class="d-label">log · append row_errors</div>
+            <div class="d-box d-box-warn"><strong>fail_on_row_error?</strong><small>True → abend · False → _pipeline_resume()</small></div>
+          </div>
+        </div>
+        <div class="d-down">↓ after loop</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>_pipeline_close()</strong><small>always called · success and failure · subclass flushes resources</small></div></div>
+        <div class="d-down">↓ success only</div>
+        <div class="d-center"><div class="d-box d-box-wide"><strong>_pipeline_build_result()</strong><small>abstract · subclass returns result dict to orchestrator</small></div></div>
+      </div>
+    </div>
+
+    <h3>Abstract Methods — Subclasses Must Implement</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Method</th><th>Contract</th></tr>
+        <tr><td><code>_pipeline_has_next()</code></td><td>Advance the internal cursor. Return <code>True</code> if a row is ready to process.</td></tr>
+        <tr><td><code>_pipeline_process()</code></td><td>Process the current row. Raise on error. Must not catch exceptions or log errors — the base class owns the row lifecycle.</td></tr>
+        <tr><td><code>_pipeline_row_key()</code></td><td>Return the business key of the current row (e.g. NPI number). Called by the base class immediately after an exception is raised.</td></tr>
+        <tr><td><code>_pipeline_resume()</code></td><td>Advance past the failed row and reset any partial state. Must not raise.</td></tr>
+        <tr><td><code>_pipeline_build_result()</code></td><td>Build and return the result dict for the orchestrator. Called only on success, after <code>_pipeline_close()</code>.</td></tr>
+      </table>
+    </div>
+
+    <h3>Optional Hooks</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Method</th><th>Default</th><th>Override for</th></tr>
+        <tr><td><code>_pipeline_open()</code></td><td>no-op</td><td>Resource setup — blob streams, DB connections, cursors</td></tr>
+        <tr><td><code>_pipeline_close()</code></td><td>no-op</td><td>Flush remaining batch, release connections. Always called — on success and failure. Must be safe to call even if <code>_pipeline_open()</code> did not complete.</td></tr>
+        <tr><td><code>_pipeline_on_job_failure(exc)</code></td><td>no-op</td><td>Fatal error cleanup — e.g. write status code 11 to metadata. Do not re-raise.</td></tr>
+      </table>
+    </div>
+
+    <h3>Error Policy — fail_on_row_error</h3>
+    <p>Set via <code>fail_on_row_error</code> (bool) in the worker config dict. Default: <code>False</code>.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Value</th><th>Behaviour</th></tr>
+        <tr><td><code>False</code></td><td>Row error is logged, appended to <code>row_errors</code>, <code>_pipeline_resume()</code> is called, loop continues. All errors accumulate in the discrepancy report.</td></tr>
+        <tr><td><code>True</code></td><td>First row error abends the job — re-raises the exception after logging. Use when every row must succeed (e.g. reference data loads where partial results are unsafe).</td></tr>
+      </table>
+    </div>
+
+    <h3>Workers Using This Framework</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Worker</th><th>Row concept</th><th>Row key</th><th>fail_on_row_error default</th></tr>
+        <tr><td><code>ProviderWorker</code></td><td>One NPI CSV row</td><td>NPI number</td><td><code>False</code> — bad rows are skipped and reported</td></tr>
+        <tr><td><code>EmbeddingWorker</code></td><td>One OpenAI embedding batch (500 documents)</td><td><code>worker_N_batch_M</code></td><td><code>False</code> — failed batches are skipped and reported</td></tr>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>None of the <code>pipeline_</code> method names are mandated by Azure or any external
+      framework.</strong> The prefix exists solely to distinguish this class hierarchy's methods
+      from any framework-required methods and to signal that they are internal to the pipeline
+      architecture.
+    </div>
+
+    <!-- 5. API Payload -->
+    <h2>5. FindCarePipeline — API Payload Fields</h2>
+    <p>Passed as the <code>payload</code> object in the POST to <code>/api/Router</code>
+    with <code>ChatHealthyTask: FindCarePipeline</code>. All fields are optional — omit
+    entirely for a full production run.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Field</th><th>Type</th><th>Default</th><th>Notes</th></tr>
+        <tr><td><code>start_step</code></td><td>int</td><td>1</td><td>Resume from this step (1&#8211;8). Use to skip completed steps after a partial failure. 1=health check, 2=load, 3=enrichment pass 1 (ZIP crosswalk + out_of_scope), 4=enrichment pass 2 (Census practice), 5=enrichment pass 3 (Census billing), 6=enrichment pass 4 (Google Maps), 7=enrichment pass 6 (NPPES), 8=embeddings.</td></tr>
+        <tr><td><code>num_workers</code></td><td>int</td><td>32</td><td>Number of parallel load workers (Step 2). Embedding workers (Step 8) use the same value. Each load worker gets an equal byte slice of the CSV.</td></tr>
+        <tr><td><code>batch_size</code></td><td>int</td><td>5000</td><td>MongoDB <code>bulk_write</code> batch size per load worker insert cycle.</td></tr>
+        <tr><td><code>blob_container</code></td><td>str</td><td><code>provider-data</code></td><td>Azure Blob container for zip and CSV storage.</td></tr>
+        <tr><td><code>enrich_workers</code></td><td>int</td><td>200</td><td>Number of parallel county enrichment workers (Steps 3&#8211;7).</td></tr>
+        <tr><td><code>addr_batch_size</code></td><td>int</td><td>500</td><td>Providers per Census Geocoder batch in Passes 2 and 3. Max 500 (Census API limit).</td></tr>
+        <tr><td><code>google_maps_enabled</code></td><td>bool</td><td>false</td><td>Enable Pass 4 Google Maps geocoding. Paid API beyond free tier &#8212; must be explicitly true.</td></tr>
+        <tr><td><code>nppes_batch_size</code></td><td>int</td><td>5000</td><td>Providers per NPPES worker batch in Pass 6. Keep large (one worker per batch shares one outbound IP against the ~5 req/s rate limit).</td></tr>
+        <tr><td><code>states</code></td><td>object</td><td>null</td><td>Optional state filter for Pass 6 NPPES. Shape: <code>&#123;"mode": "include"/"exclude", "list": ["RI", "HI", "ME"]&#125;</code>. Omit for all states.</td></tr>
+        <tr><td><code>reset_failed</code></td><td>bool</td><td>false</td><td>Reset geocoder_failed providers to unenriched before Pass 2. Use when retrying after a geocoder strategy change.</td></tr>
+        <tr><td><code>embedding_enabled</code></td><td>bool</td><td>false</td><td>Enable Step 8 embeddings. Omit for pipeline-only runs.</td></tr>
+        <tr><td><code>staging_collection</code></td><td>str</td><td><code>PublicHealthData.providers_staging</code></td><td>Target collection for provider records and embeddings.</td></tr>
+        <tr><td><code>max_bytes</code></td><td>int / null</td><td><code>None</code></td><td>Hard byte limit on CSV rows read (excludes header). Omit for full production load. Pass <code>50000000</code> (~50 MB, ~42K records) for a dev test run.</td></tr>
+        <tr><td><code>debug</code></td><td>bool</td><td>false</td><td>Enables DEBUG-level logging for this request only.</td></tr>
+      </table>
+    </div>
+
+    <!-- 6. Status Codes -->
+    <h2>6. Status Codes — admin.DataLoadMetadata</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Code</th><th>Meaning</th></tr>
+        <tr><td><code>0</code></td><td>New — metadata record created, worker not yet started</td></tr>
+        <tr><td><code>10</code></td><td>Load invoked — worker started</td></tr>
+        <tr><td><code>11</code></td><td>Load failed — worker error, see error_detail field</td></tr>
+        <tr><td><code>12</code></td><td>Load succeeded — all records inserted for this worker</td></tr>
+      </table>
+    </div>
+
+    <!-- 7. Metadata Schema -->
+    <h2>7. admin.DataLoadMetadata — Record Schema</h2>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+        <tr><td><code>type</code></td><td>string</td><td><code>"ProviderData"</code></td></tr>
+        <tr><td><code>load_id</code></td><td>string</td><td>Durable orchestration instance ID — ties all workers in one run together</td></tr>
+        <tr><td><code>date</code></td><td>ISO string</td><td>Load run start timestamp</td></tr>
+        <tr><td><code>version</code></td><td>string</td><td>NPI file version (e.g. <code>"2026-03"</code>)</td></tr>
+        <tr><td><code>worker_id</code></td><td>int</td><td>1-based sequential, one per worker per run</td></tr>
+        <tr><td><code>file_location</code></td><td>string</td><td>Azure Blob path to the extracted CSV</td></tr>
+        <tr><td><code>start_byte</code></td><td>int</td><td>Byte offset of first record (newline-aligned)</td></tr>
+        <tr><td><code>end_byte</code></td><td>int</td><td>Byte offset past last record (newline-aligned)</td></tr>
+        <tr><td><code>num_records</code></td><td>int</td><td>Actual records processed by this worker</td></tr>
+        <tr><td><code>status</code></td><td>int</td><td>See status code table above</td></tr>
+        <tr><td><code>error_detail</code></td><td>string / null</td><td>Error message on status 11 or 21</td></tr>
+      </table>
+    </div>
+
+    <!-- 8. Assumptions -->
+    <h2>8. Assumptions</h2>
+    <div class="note">
+      <strong>NPPES CSV — No Embedded Newlines in Quoted Fields</strong><br />
+      The byte-based partition boundary logic scans for the next <code>\n</code> to align partition boundaries.
+      This is correct only if NPPES data does not contain embedded newlines inside quoted CSV fields.
+      This assumption is empirically consistent with all CMS NPPES dissemination files observed to date.
+      If CMS changes this, partition boundaries will be misaligned, workers will produce rows with wrong field counts
+      (counted as <code>rows_failed</code>), and the reconciliation step will detect the resulting
+      <code>expected_records ≠ inserted_records</code> mismatch. No silent data loss occurs.
+    </div>
+    <div class="note">
+      <strong>Worker Partition Alignment — Newline-Aligned Boundaries</strong><br />
+      <code>partition_file_fn</code> aligns each boundary to the next <code>\n</code> by scanning a 1024-byte window.
+      In the rare edge case where no <code>\n</code> is found in 1024 bytes (extraordinarily long row),
+      the boundary falls at the nominal byte offset (mid-row). Workers 2–N defensively discard their first row
+      if it has the wrong field count. Complete first rows (normal aligned case) are processed normally.
+    </div>
+
+    <!-- 9. Design Review Notes -->
+    <h2>9. Design Review Notes</h2>
+    <p>The following issues were identified in an external design review and resolved before alpha.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>#</th><th>Issue</th><th>Resolution</th></tr>
+        <tr><td>1</td><td><code>load_id</code> not propagated — workers had no shared run identifier; retries could not be deduped.</td><td>Orchestrator sets <code>load_id = context.instance_id</code> at start and propagates through all config dicts. Every staging document and metadata record carries <code>load_id</code>.</td></tr>
+        <tr><td>2</td><td>No idempotency on retry — <code>InsertOne</code> would duplicate records on orchestration replay.</td><td>Changed to <code>UpdateOne($setOnInsert)</code> upsert on <code>(load_id, record_id)</code>. Safe to replay any number of times.</td></tr>
+        <tr><td>3</td><td>No staging index — upsert filter had no supporting index; full collection scans on every row.</td><td>Added <code>ensure_indexes_activity</code> (Step 5) before workers start. Creates unique compound index on <code>(load_id, record_id)</code>. Idempotent.</td></tr>
+        <tr><td>4</td><td>CMS scraping had no fallback — runtime failure on CMS page change would abort the entire load.</td><td>Added <code>NPPES_FALLBACK_URL</code> constant. <code>download_zip_fn</code> catches scrape failures and falls back to last-known URL with a warning log.</td></tr>
+        <tr><td>5</td><td>Reconciliation miscounted trailing newline — file ending without <code>\n</code> was undercounted by 1.</td><td>Track last chunk; if last byte ≠ <code>\n</code>, add 1 to <code>csv_record_count</code>.</td></tr>
+        <tr><td>6</td><td>Partition scan window too small (256 bytes) — NPI rows average ~500 bytes; window could miss the newline.</td><td>Increased scan window to 1024 bytes in <code>partition_file_fn</code>.</td></tr>
+        <tr><td>7</td><td>No observability metrics from workers — no way to diagnose throughput or partial failures post-run.</td><td><code>ProviderWorker.run()</code> now returns <code>rows_processed</code>, <code>rows_failed</code>, <code>duration_seconds</code>, <code>rows_per_second</code>.</td></tr>
+        <tr><td>8</td><td><code>MAX_ROWS_PER_WORKER</code> implicit — magic number inline in worker code.</td><td>Extracted to named constant <code>MAX_ROWS_PER_WORKER = 1_000_000</code> at module level. Max record_id = 200 workers × 1,000,000 = 200,000,000 — fits in a 32-bit signed int.</td></tr>
+        <tr><td>9</td><td>Excel report added unnecessary complexity — blob storage, SAS URLs, openpyxl dependency, and a 10K-row cap workaround.</td><td>Replaced with a MongoDB document written to <code>admin.PipelineDiscrepancyReport</code>. Full run data stored directly; no file generation or blob storage needed for reporting.</td></tr>
+        <tr><td>10</td><td><code>download_zip_fn</code> returned <code>str</code> in original design — auto-discovered <code>version</code> was lost.</td><td>Returns <code>dict {"zip_path", "version"}</code>. Orchestrator propagates <code>version</code> into config for all downstream activities. <em>(Fixed.)</em></td></tr>
+        <tr><td>11</td><td><code>max_records</code> was approximate — required sampling rows to estimate a byte offset, adding complexity and a ±5% error margin.</td><td>Replaced with <code>max_bytes</code>: a direct byte limit applied to the data region after the header. No sampling needed. Used for dev limiting only; production runs omit the parameter.</td></tr>
+        <tr><td>12</td><td>Partial failure strategy unspecified — if 1 of 5 workers fails, what happens?</td><td>All pairs run to completion (no short-circuit). If any worker fails, the orchestrator returns <code>status: "failed"</code>. Successful inserts are NOT rolled back — <code>load_id</code> isolates this run. A re-run is safe due to upsert idempotency.</td></tr>
+        <tr><td>13</td><td>Staging retained stale records across load runs — old provider data visible alongside new load until collection swap.</td><td>Added <code>drain_staging_activity</code> (Step 4) to delete all existing documents before workers start. Drain runs only after download + extract + partition succeed, ensuring the file is viable before the old data is removed. Each run's documents are still isolated by <code>load_id</code> for dedup safety.</td></tr>
+      </table>
+    </div>
+
+    <!-- 10. Open Issues -->
+    <h2>10. Open Issues</h2>
+    <div class="warn">
+      <strong>SECURITY — Durable Functions status URL exposes orchestration state without our auth layer</strong><br />
+      The <code>202 Accepted</code> response returned to the caller includes a <code>statusQueryGetUri</code>
+      containing an Azure-generated webhook <code>code</code> parameter. Anyone in possession of that URL
+      can poll the run status (load ID, record counts, worker results) without a Bearer token.
+      This is standard Azure Durable Functions behavior but fails enterprise security review —
+      a hospital or insurance company would flag it.<br /><br />
+      <strong>Fix (before enterprise sale):</strong> Proxy the status check through our own
+      <code>/api/Router</code> endpoint (authenticated with Bearer token), strip <code>statusQueryGetUri</code>
+      from the 202 response, and store the webhook URL server-side keyed by <code>load_id</code>.
+    </div>
+
+    <!-- 10b. Release Gates -->
+    <h2>10b. Release Gates — Promoting Data to Production</h2>
+    <p>Pipeline success alone is not sufficient to deploy. Two independent gates must pass
+    before data is promoted from <code>ChatHealthyDataPipelines</code> to
+    <code>ChatHealthyFrontEnd</code>. These are product/business decisions, not engineering
+    decisions — thresholds are defined here, not in the pipeline code.</p>
+
+    <h3>Gate 1 — SIT (System Integration Testing)</h3>
+    <p>Automated. Run <code>qa_provider_load.py</code> after the pipeline declares done.
+    Exit code 0 = pass; exit code 1 = fail, do not promote.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Check</th><th>Threshold</th><th>Action if failed</th></tr>
+        <tr><td>Total record count</td><td>8.5M – 10.5M; warn if &gt;5% from last known good (8.9M)</td><td>Investigate load — possible source file change or partial load</td></tr>
+        <tr><td>Enrichment ratio</td><td>≥ 98% of <em>in-scope</em> providers have <code>county.fips</code> &nbsp;<small style="color:var(--ink-soft);">(out-of-scope = inactive, foreign, deactivated, or ZIP/state mismatch; see <a href="#out-of-scope">§3d</a>)</small></td><td>Do not promote — re-run enrichment or investigate failures</td></tr>
+        <tr><td>Any state coverage</td><td>≥ 85% enrichment per state</td><td>Investigate that state — bad ZIP data, geocoder outage</td></tr>
+        <tr><td>Missing NPI</td><td>= 0</td><td>Hard stop — data integrity failure</td></tr>
+        <tr><td>Spot check error rate</td><td>0 errors across 64 random samples (2 per NPI partition)</td><td>Investigate flagged NPIs before promoting</td></tr>
+        <tr><td>FIPS–state agreement</td><td>county.fips state prefix matches practice_address.state</td><td>Enrichment bug — investigate crosswalk or geocoder output</td></tr>
+      </table>
+    </div>
+
+    <h3>Gate 2 — UAT (User Acceptance Testing)</h3>
+    <p>Manual. A human (currently: Skip) asks 3–5 real FindCare questions against the
+    chat UI after data is promoted to <code>ChatHealthyFrontEnd</code> and wired into
+    the HuggingFace app. Questions must cover different intents and geographies.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Scenario</th><th>Pass criteria</th></tr>
+        <tr><td>"Find me a cardiologist in Denver, Colorado"</td><td>Returns ≥1 result with correct specialty, Colorado address, county populated</td></tr>
+        <tr><td>"Who are the top oncologists in New York?"</td><td>Returns relevant results; no obviously wrong specialties or states</td></tr>
+        <tr><td>Provider lookup by name — a known NPI</td><td>Correct name, address, and specialty returned</td></tr>
+        <tr><td>Edge case — rural ZIP with low provider density</td><td>Returns honest "no results nearby" or nearest match — does not crash or hallucinate</td></tr>
+        <tr><td>Out-of-scope provider (inactive or foreign NPI)</td><td>Not returned in results</td></tr>
+      </table>
+    </div>
+    <p>UAT sign-off is a human decision. If any scenario fails or the answers feel wrong,
+    the data does not go to production regardless of SIT result.</p>
+
+    <h3>Handoff Protocol</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Step</th><th>Who</th><th>Action</th></tr>
+        <tr><td>1</td><td>Dev (pipeline)</td><td>Pipeline completes — enrichment reconciliation written to <code>admin.PipelineDiscrepancyReport</code></td></tr>
+        <tr><td>2</td><td>QA</td><td>Run <code>qa_provider_load.py</code> — review SIT report</td></tr>
+        <tr><td>3</td><td>QA</td><td>SIT pass → trigger <code>CopyToFrontEnd</code> API call</td></tr>
+        <tr><td>4</td><td>QA / human</td><td>Run Step 6 embeddings (<code>start_step: 6, embedding_enabled: true</code>) if not already done</td></tr>
+        <tr><td>5</td><td>Human</td><td>UAT — 3–5 real FindCare questions against the live chat UI</td></tr>
+        <tr><td>6</td><td>Human</td><td>UAT pass → declare release. UAT fail → file defect, do not ship.</td></tr>
+      </table>
+    </div>
+
+    <!-- 11. Deferred -->
+    <h2>11. Deferred</h2>
+    <ul>
+      <li>Incremental / delta loads — current design always loads the full NPI file</li>
+      <li>Duplicate NPI detection — some individual providers have multiple NPIs; deduplication requires fuzzy matching on name + taxonomy + credential (see RESEARCH-001 backlog)</li>
+      <li>Multi-location provider data — NPPES captures one practice address per individual NPI; supplementing with payer directory data would surface all billing locations (see RESEARCH-001 backlog)</li>
+      <li>Update <code>NPPES_FALLBACK_URL</code> constant whenever a new monthly file is confirmed working</li>
+      <li>Durable Functions status URL exposes orchestration state without our auth layer — proxy through <code>/api/Router</code> before enterprise sale (see Open Issues)</li>
+      <li>SparkPost sender domain verification — <code>Skip.Snow@mail.chatHealthy.ai</code> must be verified in SparkPost portal</li>
+      <li>Timer Triggers — autonomous pipeline scheduling (monthly NPI load, weekly specialty data) not yet wired</li>
+      <li>Idle monitor re-enable — disabled because it paused the cluster mid-run; requires pipeline lock mechanism</li>
+      <li>Cluster manager agent — dedicated service to start/stop ChatHealthyDataPipelines on schedule, decoupled from the pipeline</li>
+    </ul>
+
+  </div>
+    <div class="mobile-home-bottom">
+      <a href="/">&larr; Back to ChatHealthy.ai</a>
+    </div>
+  </main>
+
+<footer>
+  <div class="footer-inner">
+    <p class="footer-copy">© 2026 ChatHealthy.ai LLC &nbsp;·&nbsp; ChatHealthy.ai &nbsp;·&nbsp; Design Document</p>
+    <p id="ref-1" class="footer-copy" style="margin-top: 1em;">
+      [1] Gamma, E., Helm, R., Johnson, R., &amp; Vlissides, J. (1994).
+      <em>Design Patterns: Elements of Reusable Object-Oriented Software.</em>
+      Addison-Wesley. Template Method pattern, pp. 325–330. &nbsp;·&nbsp;
+      <a href="https://en.wikipedia.org/wiki/Template_method_pattern" target="_blank" rel="noopener">Wikipedia: Template Method</a>
+      &nbsp;·&nbsp; <a href="#ref-1-src">↑ back</a>
+    </p>
+  </div>
+</footer>
+
+  <script>
+    // Hamburger menu
+    (function() {
+      var btn = document.getElementById('menuToggle');
+      var nav = document.getElementById('mobileNav');
+      if (btn && nav) {
+        btn.addEventListener('click', function() {
+          var open = nav.classList.toggle('open');
+          btn.setAttribute('aria-expanded', open);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
