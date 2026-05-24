@@ -31,9 +31,9 @@ def _resolve_repo_root() -> Path:
 
 def _run_deploy(repo_root: Path) -> int:
     deploy_dir = repo_root / "architecture" / "DevOpsBuildDeployAndEnvironmentManagement"
-    deploy_script = deploy_dir / "local_deploy.py"
+    deploy_script = deploy_dir / "old_local_deploy.py"
     if not deploy_script.is_file():
-        sys.exit(f"ERROR: local_deploy.py not found at {deploy_script}")
+        sys.exit(f"ERROR: old_local_deploy.py not found at {deploy_script}")
 
     env = os.environ.copy()
     env["CHATHEALTHY_DEPLOY_AUTHORIZED"] = "1"
