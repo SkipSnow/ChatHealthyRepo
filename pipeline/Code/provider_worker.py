@@ -249,6 +249,7 @@ def _normalize_row(header: list, row: list) -> dict:
     if "zip" in primary:
         primary["zip"] = primary["zip"][:5]
     if primary:
+        primary["county"] = {"fips": None}
         doc["practice_address"] = [primary]
 
     # Collapse mailing address fields into sub-document
