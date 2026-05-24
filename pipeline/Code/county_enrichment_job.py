@@ -711,6 +711,7 @@ class ZipEnrichmentWorker(PipelineWorkerBase):
 
 def enrich_by_zip_batch_fn(config: dict) -> dict:
     """Pass 1: updateMany for each ZIP in batch. One command per ZIP."""
+    config = {**config, "report_collection": config.get("report_collection", "admin.PipelineDiscrepancyReports")}
     return ZipEnrichmentWorker(config).pipeline_execute()
 
 

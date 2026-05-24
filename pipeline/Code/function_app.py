@@ -853,6 +853,7 @@ def prescriber_load_activity(config: dict) -> dict:
         "env_prefix": config.get("env_prefix", "dev"),
         "states": config.get("states", ["DE"]),
         "batch_size": 500,
+        "report_collection": config.get("report_collection", "admin.PipelineDiscrepancyReports"),
     })
     return worker.pipeline_execute()
 
