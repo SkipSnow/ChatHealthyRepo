@@ -5,3 +5,7 @@ Before taking any action that would change state in any file or service, Claude 
 
 
 The boot class in `Code/Shared/ops/tools/chathealthy_devops_boot.py` governs your session. It runs deterministically on every hook event via `.claude/settings.json`. Follow its output.
+
+@brain/machine_artifacts/content/bugs.json
+@brain/machine_artifacts/content/engineering_rules.json
+@_oneshots/test_output/backlog_stories.json
