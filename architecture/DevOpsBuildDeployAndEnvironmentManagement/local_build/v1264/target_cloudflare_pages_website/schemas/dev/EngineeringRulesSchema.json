@@ -1,0 +1,368 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/dev/EngineeringRulesSchema.json",
+  "title": "ChatHealthy Engineering Rules Schema",
+  "description": "Engineering rules with binding statements and runtime enforcements.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "rules"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "rules": {
+      "type": "object",
+      "required": [
+        "rule"
+      ],
+      "properties": {
+        "rule": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Each rule.id and rule.name MUST be unique across the array. JSON Schema does not natively express cross-record uniqueness; the validator enforces it.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "description",
+              "rule_statements",
+              "status"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^Rule-\\d{3}$",
+                "description": "Sequential, never reused. Format Rule-NNN."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 101,
+                "description": "Unique, human-readable label, <= 101 characters."
+              },
+              "description": {
+                "type": "string",
+                "description": "Non-binding prose description of the rule."
+              },
+              "rule_statements": {
+                "type": "object",
+                "required": [
+                  "rule_statement"
+                ],
+                "properties": {
+                  "rule_statement": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "statement_number",
+                        "statement_body",
+                        "req_id"
+                      ],
+                      "properties": {
+                        "statement_number": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "description": "Sequential integer starting at 1 within the rule."
+                        },
+                        "statement_body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Boolean-testable assertion. The binding rule text."
+                        },
+                        "req_id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Reference to the agile_backlog requirement that authorizes this statement."
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              "enforcements": {
+                "type": "object",
+                "required": [
+                  "enforcement",
+                  "risk_acceptance_id"
+                ],
+                "properties": {
+                  "enforcement": {
+                    "type": "array",
+                    "description": "May be empty when no runtime enforcement is wired yet.",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "hook",
+                        "requirements",
+                        "environment_scoped"
+                      ],
+                      "properties": {
+                        "hook": {
+                          "type": "string",
+                          "enum": [
+                            "SessionStart",
+                            "UserPromptSubmit",
+                            "PreToolUse",
+                            "PostToolUse",
+                            "Stop",
+                            "SubagentStop",
+                            "SessionEnd",
+                            "PreCompact",
+                            "Notification"
+                          ]
+                        },
+                        "requirements": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "not": {
+                              "const": "Orphan"
+                            }
+                          }
+                        },
+                        "environment_scoped": {
+                          "type": "boolean"
+                        },
+                        "environments": {
+                          "type": "object",
+                          "required": [
+                            "local",
+                            "dev",
+                            "qa",
+                            "prod"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "local": {
+                              "type": "object",
+                              "required": [
+                                "scriptPath",
+                                "args"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "scriptPath": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "args": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "dev": {
+                              "type": "object",
+                              "required": [
+                                "scriptPath",
+                                "args"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "scriptPath": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "args": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "qa": {
+                              "type": "object",
+                              "required": [
+                                "scriptPath",
+                                "args"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "scriptPath": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "args": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            },
+                            "prod": {
+                              "type": "object",
+                              "required": [
+                                "scriptPath",
+                                "args"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "scriptPath": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "args": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "script": {
+                          "type": "object",
+                          "required": [
+                            "scriptPath",
+                            "args"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "scriptPath": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "args": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "environment_scoped": {
+                                "const": true
+                              }
+                            },
+                            "required": [
+                              "environment_scoped"
+                            ]
+                          },
+                          "then": {
+                            "required": [
+                              "environments"
+                            ],
+                            "not": {
+                              "required": [
+                                "script"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "if": {
+                            "properties": {
+                              "environment_scoped": {
+                                "const": false
+                              }
+                            },
+                            "required": [
+                              "environment_scoped"
+                            ]
+                          },
+                          "then": {
+                            "required": [
+                              "script"
+                            ],
+                            "not": {
+                              "required": [
+                                "environments"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "risk_acceptance_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "ID of the risk_acceptance.json entry covering every enforcement in this block."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "unenforced",
+                  "enforcement_proposed",
+                  "enforcement_sit_testing",
+                  "enforcement_sit_failed",
+                  "enforcement_uat_testing",
+                  "enforcement_uat_failed",
+                  "enforced"
+                ],
+                "description": "Rule enforcement lifecycle status."
+              }
+            },
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "unenforced"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "required": [
+                      "enforcements"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "not": {
+                        "const": "unenforced"
+                      }
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "enforcements"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

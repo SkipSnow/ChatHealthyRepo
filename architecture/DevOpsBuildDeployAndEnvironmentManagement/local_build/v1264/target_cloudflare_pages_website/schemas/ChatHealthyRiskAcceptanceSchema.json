@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyRiskAcceptanceSchema.json",
+  "title": "ChatHealthy Risk Acceptance",
+  "description": "Formal risk-acceptance register. Every accepted risk (including rollbacks under v4-040) is recorded here.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "collection",
+    "entries"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "collection": {
+      "type": "string",
+      "const": "risk_acceptance"
+    },
+    "description": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "date",
+          "title",
+          "risk",
+          "status",
+          "mitigation",
+          "description",
+          "version",
+          "framework",
+          "claude_stipulation"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "title": {
+            "type": "string"
+          },
+          "risk": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "mitigation": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "framework": {
+            "type": "string"
+          },
+          "claude_stipulation": {
+            "type": "string",
+            "description": "ChatHealthy.LLC Chief Engineer's justification or objection."
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
