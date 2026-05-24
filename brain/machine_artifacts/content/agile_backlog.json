@@ -12415,6 +12415,158 @@
                             ]
                           },
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-049",
+                          "name": "One local + one remote deploy script pair (symmetric)",
+                          "requirement": "The deploy toolchain MUST consist of exactly two operator-facing local scripts (`local_build.py`, `local_deploy.py`) and exactly two CI-facing remote scripts (`remote_build.py`, `remote_deploy.py`). No other script MAY exist on the deploy chain. The two pairs are symmetric: each `build` produces a versioned per-target package; the paired `deploy` ships that package to its target. Adding a script outside this four-way symmetry MUST cause the gate to REJECT.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-050",
+                          "name": "Code-branch facts live in deployment_architecture.json",
+                          "requirement": "Every TargetRecord whose `target_kind` resolves to a git-branch-bound cloud destination MUST declare the source code branch as a fact in `environments[].node_address` (or an equivalent typed field reachable from the manifest). The build and deploy scripts MUST read the branch from the manifest and MUST NOT carry a hard-coded branch map anywhere in code.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-051",
+                          "name": "Local-build source directories live in deployment_architecture.json",
+                          "requirement": "Every TargetRecord whose `target_kind` requires materialized local source for the build MUST declare every contributing source path in `files[].source_location`. `local_build.py` MUST read source bytes ONLY from local-disk paths declared in the manifest. No remote fetch of source bytes (git remote, HTTP, registry pull, etc.) is permitted during `local_build`; any such call MUST cause the build to REJECT.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-052",
+                          "name": "Per-target `secrets` map declares secret/env-key NAMES and store bindings",
+                          "requirement": "Every TargetRecord MAY carry a `secrets` map of `name -> store_id`. Each entry names a secret or environment key the target requires at runtime and binds it to exactly one store from the closed enum: `local_env` | `gha_secret` | `hf_space_secret` | `cloudflare_env` | `azure_function_app_setting` | `azure_automation_variable`. Secret VALUES MUST NEVER appear in the manifest. SecretsResolver bindings (per REQ-T-038) MUST be constructed by reading these declarations; no other inventory of (name, store) pairs may exist on the deploy chain.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-053",
+                          "name": "Build packages contain no secret VALUES",
+                          "requirement": "No file inside any per-target build-package directory under `local_build/v{N}/<target_id>/` or `remote_build/v{N}/<target_id>/` MAY contain any secret VALUE held in any bound secrets store (operator `.env`, GHA secrets, HF Space secrets, Cloudflare env, Azure Function App settings, Azure Automation Variables). The build MUST emit only (a) the per-target manifest snapshot declaring secret NAMES + store bindings and (b) the source bytes needed by the deploy. The pre-commit gate MUST scan every staged build-package file and REJECT on any matched value.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-054",
+                          "name": "Versioned build packages tracked in git",
+                          "requirement": "`local_build` MUST emit per-target packages under `architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build/v{N}/<target_id>/` and `remote_build` MUST emit them under the matching `remote_build/v{N}/<target_id>/`. Each package directory MUST be tracked in git (no gitignore exemption). `N` is the system-wide build counter read from `admin.Versions` on the front-end cluster `chathealthyfrontend` (per REQ-T-002 / REQ-T-003), so the git history carries exactly one versioned tree per system release.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-055",
+                          "name": "All builds run on a local workstation or a named CI runner; never elsewhere",
+                          "requirement": "Every build action MUST execute either on the operator's local workstation (`local_build.py`) or on a named GitHub Actions runner (`remote_build.py`). No build action MAY execute on a deploy target, a customer-facing host, an HF Space, an Azure Function App, a Cloudflare worker, or any other environment outside the two named build contexts. The build chain MUST hard-fail if invoked outside these two contexts.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-056",
+                          "name": "Deploy script is accountable to install, configure, and component-build at deploy time",
+                          "requirement": "`local_deploy.py` and `remote_deploy.py` MUST be the SINGLE accountable entry points for getting a target from its build package into its running state. For each target the deploy script MUST: read the package manifest under `local_build/v{N}/<target_id>/` or `remote_build/v{N}/<target_id>/`; install the package on its target; configure the target's runtime environment (env vars / secrets / app settings) by resolving each declared `secrets` binding via SecretsResolver against the bound store; and build any deploy-time-built components the target requires (docker image, zip, container, etc.). No post-deploy step outside the deploy script may exist.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
                         }
                       ]
                     }
