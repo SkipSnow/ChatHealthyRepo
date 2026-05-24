@@ -69,6 +69,16 @@ def _find_repo_root(start: Path) -> Path:
     raise RuntimeError(f"no .git found walking up from {start}")
 
 
+def _require_local_context() -> None:
+    """REQ-T-055 — local_build MUST run only on an operator's workstation,
+    never on a GitHub Actions runner. For CI builds use remote_build.py."""
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        sys.exit(
+            "ERROR: local_build.py MUST NOT run on a GitHub Actions runner. "
+            "Use remote_build.py instead (REQ-T-055)."
+        )
+
+
 def _require_clean_working_tree(repo_root: Path) -> str:
     """HEAD SHA pins the source bytes we build. Reject uncommitted source
     changes. Build OUTPUTS under local_build/ are not source and do NOT
@@ -328,6 +338,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    _require_local_context()
     repo_root = _find_repo_root(Path(__file__))
     _step(f"repo_root={repo_root} target={args.target}")
 
