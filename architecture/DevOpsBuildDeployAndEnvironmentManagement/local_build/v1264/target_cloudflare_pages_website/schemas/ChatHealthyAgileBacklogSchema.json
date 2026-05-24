@@ -1,0 +1,515 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyAgileBacklogSchema.json",
+  "title": "ChatHealthy Agile Backlog",
+  "description": "All epics, features, stories, and boolean testable requirements for ChatHealthy.ai LLC.",
+  "type": "object",
+  "required": [
+    "$schema",
+    "version",
+    "created",
+    "description",
+    "epics"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "created": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "epics": {
+      "type": "object",
+      "required": [
+        "epic"
+      ],
+      "properties": {
+        "epic": {
+          "type": "array",
+          "x-unique-by": "epic_id",
+          "items": {
+            "type": "object",
+            "description": "Top-level business component. Contains features.",
+            "required": [
+              "orphan",
+              "name",
+              "type",
+              "status",
+              "description",
+              "features",
+              "approval"
+            ],
+            "properties": {
+              "epic_id": {
+                "type": "string",
+                "pattern": "^EPIC-\\d{3}$",
+                "description": "Required when orphan=false; forbidden when orphan=true."
+              },
+              "orphan": {
+                "type": "boolean",
+                "description": "True => no canonical id; descendants also orphan."
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "operational",
+                  "functional"
+                ],
+                "description": "functional = user-facing product capability. operational = business function."
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "not_started",
+                  "in_progress",
+                  "done",
+                  "done_known_issue",
+                  "to_test",
+                  "blocked",
+                  "deferred"
+                ]
+              },
+              "description": {
+                "type": "string"
+              },
+              "approval": {
+                "type": "string",
+                "enum": [
+                  "approved",
+                  "proposed",
+                  "rejected"
+                ]
+              },
+              "features": {
+                "type": "object",
+                "required": [
+                  "feature"
+                ],
+                "properties": {
+                  "feature": {
+                    "type": "array",
+                    "x-unique-by": "feature_id",
+                    "items": {
+                      "type": "object",
+                      "description": "A capability within an epic. Contains stories.",
+                      "required": [
+                        "orphan",
+                        "name",
+                        "status",
+                        "description",
+                        "priority",
+                        "realized_by",
+                        "stories",
+                        "approval",
+                        "due_date"
+                      ],
+                      "properties": {
+                        "feature_id": {
+                          "type": "string",
+                          "pattern": "^EPIC-\\d{3}-F-\\d{3}$",
+                          "description": "Required when orphan=false; forbidden when orphan=true."
+                        },
+                        "orphan": {
+                          "type": "boolean"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "not_started",
+                            "in_progress",
+                            "done",
+                            "done_known_issue",
+                            "to_test",
+                            "blocked",
+                            "deferred"
+                          ]
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "priority": {
+                          "type": "string"
+                        },
+                        "realized_by": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "approval": {
+                          "type": "string",
+                          "enum": [
+                            "approved",
+                            "proposed",
+                            "rejected"
+                          ]
+                        },
+                        "due_date": {
+                          "type": "string"
+                        },
+                        "stories": {
+                          "type": "object",
+                          "required": [
+                            "story"
+                          ],
+                          "properties": {
+                            "story": {
+                              "type": "array",
+                              "x-unique-by": "story_id",
+                              "items": {
+                                "type": "object",
+                                "description": "A unit of deliverable work within a feature. Contains requirements.",
+                                "required": [
+                                  "orphan",
+                                  "name",
+                                  "description",
+                                  "size",
+                                  "status",
+                                  "requirements",
+                                  "approval"
+                                ],
+                                "properties": {
+                                  "story_id": {
+                                    "type": "string",
+                                    "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}$",
+                                    "description": "Required when orphan=false; forbidden when orphan=true."
+                                  },
+                                  "orphan": {
+                                    "type": "boolean"
+                                  },
+                                  "name": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "size": {
+                                    "type": "string",
+                                    "enum": [
+                                      "S",
+                                      "M",
+                                      "L",
+                                      "XL"
+                                    ]
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "not_started",
+                                      "in_progress",
+                                      "done",
+                                      "done_known_issue",
+                                      "to_test",
+                                      "blocked",
+                                      "deferred"
+                                    ]
+                                  },
+                                  "approval": {
+                                    "type": "string",
+                                    "enum": [
+                                      "approved",
+                                      "proposed",
+                                      "rejected"
+                                    ]
+                                  },
+                                  "requirements": {
+                                    "type": "object",
+                                    "required": [
+                                      "requirement"
+                                    ],
+                                    "properties": {
+                                      "requirement": {
+                                        "type": "array",
+                                        "x-unique-by": "req_id",
+                                        "items": {
+                                          "type": "object",
+                                          "description": "A boolean-testable assertion. Contains test children.",
+                                          "required": [
+                                            "orphan",
+                                            "name",
+                                            "requirement",
+                                            "priority",
+                                            "status",
+                                            "depends_on",
+                                            "tests",
+                                            "approval"
+                                          ],
+                                          "properties": {
+                                            "req_id": {
+                                              "type": "string",
+                                              "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}-REQ-[BT]-\\d{3}$",
+                                              "description": "Required when orphan=false; forbidden when orphan=true."
+                                            },
+                                            "orphan": {
+                                              "type": "boolean"
+                                            },
+                                            "name": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 200
+                                            },
+                                            "requirement": {
+                                              "type": "string"
+                                            },
+                                            "priority": {
+                                              "type": "string",
+                                              "enum": [
+                                                "must-have",
+                                                "should-have",
+                                                "nice-to-have"
+                                              ]
+                                            },
+                                            "status": {
+                                              "type": "string",
+                                              "enum": [
+                                                "not_started",
+                                                "in_progress",
+                                                "done",
+                                                "done_known_issue",
+                                                "to_test",
+                                                "blocked",
+                                                "deferred"
+                                              ]
+                                            },
+                                            "depends_on": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "object",
+                                                "required": [
+                                                  "story_id",
+                                                  "reason"
+                                                ],
+                                                "properties": {
+                                                  "story_id": {
+                                                    "type": "string"
+                                                  },
+                                                  "reason": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "additionalProperties": false
+                                              }
+                                            },
+                                            "approval": {
+                                              "type": "string",
+                                              "enum": [
+                                                "approved",
+                                                "proposed",
+                                                "rejected"
+                                              ]
+                                            },
+                                            "tests": {
+                                              "type": "object",
+                                              "required": [
+                                                "test"
+                                              ],
+                                              "properties": {
+                                                "test": {
+                                                  "type": "array",
+                                                  "minItems": 1,
+                                                  "maxItems": 2,
+                                                  "x-unique-by": "test_id",
+                                                  "items": {
+                                                    "type": "object",
+                                                    "description": "A test that validates a requirement.",
+                                                    "required": [
+                                                      "orphan",
+                                                      "test_type",
+                                                      "file"
+                                                    ],
+                                                    "properties": {
+                                                      "test_id": {
+                                                        "type": "string",
+                                                        "pattern": "^EPIC-\\d{3}-F-\\d{3}-S-\\d{3}-REQ-[BT]-\\d{3}-TEST-(?:[12]|[Uu][Nn][Ss][Uu][Pp][Pp][Oo][Rr][Tt][Aa][Bb][Ll][Ee])$",
+                                                        "description": "Required when orphan=false; forbidden when orphan=true."
+                                                      },
+                                                      "orphan": {
+                                                        "type": "boolean"
+                                                      },
+                                                      "test_type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                          "playwright",
+                                                          "ordinary",
+                                                          "unit",
+                                                          "integration",
+                                                          "analysis",
+                                                          "ORPHAN",
+                                                          "Unsupportable"
+                                                        ]
+                                                      },
+                                                      "file": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "additionalProperties": false,
+                                                    "allOf": [
+                                                      {
+                                                        "if": {
+                                                          "properties": {
+                                                            "orphan": {
+                                                              "const": false
+                                                            }
+                                                          },
+                                                          "required": [
+                                                            "orphan"
+                                                          ]
+                                                        },
+                                                        "then": {
+                                                          "required": [
+                                                            "test_id"
+                                                          ]
+                                                        },
+                                                        "else": {
+                                                          "properties": {
+                                                            "test_id": false
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              },
+                                              "additionalProperties": false
+                                            }
+                                          },
+                                          "additionalProperties": false,
+                                          "allOf": [
+                                            {
+                                              "if": {
+                                                "properties": {
+                                                  "orphan": {
+                                                    "const": false
+                                                  }
+                                                },
+                                                "required": [
+                                                  "orphan"
+                                                ]
+                                              },
+                                              "then": {
+                                                "required": [
+                                                  "req_id"
+                                                ]
+                                              },
+                                              "else": {
+                                                "properties": {
+                                                  "req_id": false
+                                                }
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    },
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "additionalProperties": false,
+                                "allOf": [
+                                  {
+                                    "if": {
+                                      "properties": {
+                                        "orphan": {
+                                          "const": false
+                                        }
+                                      },
+                                      "required": [
+                                        "orphan"
+                                      ]
+                                    },
+                                    "then": {
+                                      "required": [
+                                        "story_id"
+                                      ]
+                                    },
+                                    "else": {
+                                      "properties": {
+                                        "story_id": false
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false,
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "orphan": {
+                                "const": false
+                              }
+                            },
+                            "required": [
+                              "orphan"
+                            ]
+                          },
+                          "then": {
+                            "required": [
+                              "feature_id"
+                            ]
+                          },
+                          "else": {
+                            "properties": {
+                              "feature_id": false
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "orphan": {
+                      "const": false
+                    }
+                  },
+                  "required": [
+                    "orphan"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "epic_id"
+                  ]
+                },
+                "else": {
+                  "properties": {
+                    "epic_id": false
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

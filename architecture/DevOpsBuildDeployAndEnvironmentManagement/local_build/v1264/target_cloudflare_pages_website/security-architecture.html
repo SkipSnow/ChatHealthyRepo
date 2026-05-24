@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<!--
+  Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+  Licensed under the FindCare Evaluation License (FEL-1.0).
+
+  GENERATED FILE — do not edit directly.
+  Source of truth: brain/machine_artifacts/content/security.json
+  Generator: Code/Shared/ops/generate_security_page.py
+  Generated: 2026-04-06T17:17:19Z
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Security Architecture &mdash; ChatHealthy.ai</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink:        #0d1117;
+      --ink-soft:   #4a5568;
+      --surface:    #ffffff;
+      --teal:       #0b7a75;
+      --teal-light: #e6f4f3;
+      --teal-mid:   #d0eeec;
+      --accent:     #f0a500;
+      --warn:       #c0392b;
+      --border:     #d8e2e1;
+      --radius:     0.75em;
+      --max-w:      145em;
+      --content-w:  107.5em;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: 'DM Sans', sans-serif; background: var(--surface); color: var(--ink); }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    header { background: var(--surface); border-bottom: 0.125em solid var(--border); box-shadow: 0 0.125em 0.75em rgba(11,122,117,0.06); }
+    .header-inner { max-width: var(--max-w); margin: 1em; padding: 1em; height: 7em; display: flex; align-items: center; }
+    .logo { display: flex; align-items: center; gap: 1.25em; text-decoration: none; flex-shrink: 0; }
+    .logo-mark { width: 4em; height: 4em; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; }
+    .logo-mark svg { width: 2.25em; height: 2.25em; fill: white; }
+    .logo-text { font-family: 'DM Serif Display', serif; font-size: 1em; color: var(--teal); letter-spacing: -0.01em; }
+    .logo-text span { color: var(--accent); }
+
+    main { flex: 1; max-width: var(--max-w); width: 100%; margin: 1em; padding: 1em; }
+
+    .page-header { border-bottom: 0.25em solid var(--teal-mid); padding-bottom: 1em; margin-bottom: 1em; }
+    .page-header .eyebrow { font-size: 1em; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 1em; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(1.5rem,4vw,2.25rem); color: var(--ink); line-height: 1.15; margin-bottom: 1em; }
+    .page-header .effective { font-size: 1em; color: var(--ink-soft); }
+
+    .arch-body { max-width: var(--content-w); }
+    .arch-body h2 { font-family: 'DM Serif Display', serif; font-size: 1em; color: var(--teal); margin: 1em; padding-bottom: 1em; border-bottom: 0.375em solid var(--teal); }
+    .arch-body h2:first-child { margin-top: 1em; }
+    .arch-body h3 { font-size: 1em; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-soft); margin: 1em; }
+    .arch-body p { font-size: 1em; line-height: 1.7; color: var(--ink); margin-bottom: 1em; }
+    .arch-body ul, .arch-body ol { margin: 1em; font-size: 1em; line-height: 1.7; }
+    .arch-body ul li, .arch-body ol li { margin-bottom: 1em; }
+
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1em; }
+    table { width: 100%; border-collapse: collapse; font-size: 1em; min-width: 60em; }
+    th { background: var(--ink); color: #fff; padding: 1em; text-align: left; font-weight: 500; font-size: 1em; letter-spacing: 0.03em; }
+    td { border: 0.125em solid var(--border); padding: 1em; vertical-align: top; line-height: 1.5; }
+    tr:nth-child(even) td { background: var(--teal-light); }
+
+    .diagram-container {
+      border: 0.125em solid var(--border);
+      border-radius: var(--radius);
+      background: #fafafa;
+      padding: 1em;
+      margin: 1em;
+      overflow: hidden;
+    }
+    .diagram-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .control-badge {
+      display: inline-block;
+      background: var(--teal-light);
+      border: 0.125em solid var(--teal-mid);
+      border-radius: 0.375em;
+      padding: 1em;
+      font-size: 1em;
+      font-weight: 500;
+      color: var(--teal);
+      margin-right: 1em;
+      margin-bottom: 1em;
+    }
+
+    .compliance-card {
+      border: 0.125em solid var(--border);
+      border-radius: var(--radius);
+      padding: 1em;
+      margin: 1em;
+      background: #fff;
+    }
+    .compliance-card h4 {
+      font-size: 1em;
+      font-weight: 500;
+      color: var(--teal);
+      margin-bottom: 1em;
+    }
+
+    .gen-notice { font-size: 1em; color: var(--ink-soft); margin-top: 1em; padding-top: 1em; border-top: 0.125em solid var(--border); }
+
+    /* ── Hamburger button (hidden on desktop) ──────── */
+    .menu-toggle {
+      display: none;
+      margin-left: 1em;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 1em;
+      border-radius: var(--radius);
+      color: var(--ink-soft);
+      transition: background 0.15s;
+    }
+    .menu-toggle:hover { background: var(--teal-light); color: var(--teal); }
+    .menu-toggle svg { display: block; width: 2.75em; height: 2.75em; }
+
+    .mobile-nav {
+      display: none;
+      flex-direction: column;
+      background: var(--surface);
+      border-bottom: 0.125em solid var(--border);
+      padding: 1em;
+    }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav a {
+      font-size: 1em;
+      color: var(--ink-soft);
+      text-decoration: none;
+      padding: 1em;
+      border-radius: var(--radius);
+      transition: color 0.15s, background 0.15s;
+    }
+    .mobile-nav a:hover { color: var(--teal); background: var(--teal-light); }
+
+    .mobile-home-bottom {
+      display: none;
+      text-align: center;
+      padding: 1em;
+      margin-top: 1em;
+      border-top: 0.125em solid var(--border);
+    }
+    .mobile-home-bottom a {
+      color: var(--teal);
+      text-decoration: none;
+      font-size: 1em;
+      font-weight: 500;
+    }
+
+    @media (max-width: 75em) {
+      .menu-toggle { display: flex; align-items: center; justify-content: center; }
+      .mobile-home-bottom { display: block; }
+    }
+
+    footer { background: var(--surface); border-top: 0.125em solid var(--border); padding: 1em; text-align: center; font-size: 1em; color: var(--ink-soft); }
+  </style>
+  <!-- ChatHealthy.ai canonical font registry.
+     Single source of truth for font sizing app-wide. ONE knob (the
+     `html { font-size: ... }` rule below). Inlined into every HTML
+     page's <head> at deploy time via the CH_FONTS marker substitution
+     in local_deploy.py / remote_deploy.py. Never fetched at runtime,
+     never copied to disk as a separate served resource. Edit here and
+     redeploy. -->
+<style id="ch-fonts">
+  html { font-size: 9px !important; }
+  body, input, button, select, textarea, div, span, p, a,
+  h1, h2, h3, h4, h5, h6, label, li, td, th, dd, dt, code {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+    font-size: 1rem;
+  }
+  code, pre, .ch-mono {
+    font-family: ui-monospace, Menlo, Consolas, "Liberation Mono", monospace !important;
+  }
+</style>
+<script>
+  (function () {
+    window.chFont = function (scale) {
+      var s = (typeof scale === 'number' && isFinite(scale) && scale > 0) ? scale : 1;
+      return s + 'em';
+    };
+    window.CH_FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    window.CH_MONO_FAMILY = 'ui-monospace, Menlo, Consolas, "Liberation Mono", monospace';
+  })();
+</script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="/">
+      <div class="logo-mark"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 14.5v-2h2v2h-2Zm0-4v-5h2v5h-2Z"/></svg></div>
+      <div class="logo-text">chat<span>Healthy</span>.ai</div>
+    </a>
+          <a href="/" class="login-link" style="margin-left: 1em;padding: 1em;text-decoration:none;color:#0b7a75;font-weight:600;">Login &amp; Registration</a>
+       id="menuToggle" aria-label="Open menu" aria-expanded="false">
+      <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="3" y1="6"  x2="19" y2="6"  />
+        <line x1="3" y1="11" x2="19" y2="11" />
+        <line x1="3" y1="16" x2="19" y2="16" />
+      </svg>
+    </button>
+  </div>
+</header>
+
+<nav class="mobile-nav" id="mobileNav">
+  <a href="/">Home</a>
+  <a href="/architecture.html">Architecture</a>
+  <a href="/security-architecture.html">Security</a>
+  <a href="/products.html">Products</a>
+  <a href="/roadmap.html">Roadmap</a>
+  <a href="/privacy.html">Privacy</a>
+  <a href="/terms.html">Terms</a>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div class="eyebrow">EPIC-4: Security</div>
+    <h1>Security Architecture</h1>
+    <div class="effective">PKI, Key Vault, and Zero-Trust Credential Management &mdash; 2026-04-06</div>
+  </div>
+
+  <div class="arch-body">
+
+    <h2>1. Local Security Architecture</h2>
+
+    <div class="diagram-container">
+      <img src="Images/security_architecture_local.svg" alt="Local Security Architecture Diagram" />
+    </div>
+
+    <p>The local development environment mirrors production security boundaries. All inter-service communication uses mutual TLS &mdash; Caddy acts as the single entry point, terminating TLS for consumers and enforcing mTLS for service-to-service traffic. No service binds directly to a consumer-accessible port without Caddy mediation. Three backend services (FindCare :8000, EvaluateCare :8001, Shared Services :8002) communicate exclusively through mTLS-authenticated channels. The SecretManager component in Shared Services authenticates to Azure Key Vault using an x509 certificate registered with Azure AD. The private key resides on local disk in a directory excluded from git. At startup, SecretManager fetches all credentials (MongoDB connection strings, API keys, mTLS certificates) from Key Vault and serves them to FindCare and EvaluateCare over mTLS. No service holds API keys or connection strings in its own configuration, environment variables, or code. The encrypted secure cookie (AES-256, HttpOnly, Secure, SameSite=Strict) tracks visit frequency and query patterns with a 90-day auto-delete TTL. The admin website is gated behind basic authentication locally, addressing Perplexity audit finding F-13 (architecture docs publicly accessible).</p>
+
+    <h3>Local Security Controls</h3>
+    <ul>
+      <li>mTLS on all inter-service communication</li>
+      <li>x509 certificate authentication to Key Vault (no bearer tokens)</li>
+      <li>Private key never in git (.gitignore enforced)</li>
+      <li>SecretManager: in-memory only, never writes secrets to disk or logs</li>
+      <li>Caddy rejects direct port access &mdash; all traffic through proxy</li>
+      <li>Admin site auth-gated (F-13)</li>
+      <li>Cookie: AES-256, HttpOnly, Secure, SameSite=Strict, 90-day TTL</li>
+      <li>DR-009: zombie process cleanup before port binding</li>
+    </ul>
+
+    <h2>2. Deployed Security Architecture</h2>
+
+    <div class="diagram-container">
+      <img src="Images/security_architecture_deployed.svg" alt="Deployed Security Architecture Diagram" />
+    </div>
+
+    <p>The deployed architecture eliminates all bearer tokens from the credential chain. HuggingFace Spaces (9 spaces: 3 services x 3 environments) authenticate to Azure Key Vault using x509 certificates registered with Azure AD &mdash; each Space holds one certificate (the private key in HF Secrets) instead of six API keys. Azure Functions authenticate to Key Vault via Managed Identity, which requires zero credentials &mdash; Azure handles authentication internally through the instance metadata service. This is the most secure authentication mechanism available on Azure. Azure Key Vault is FedRAMP High authorized, HIPAA BAA eligible, and uses FIPS 140-2 Level 2 validated HSMs for key storage. Public access to Key Vault is disabled &mdash; access is restricted to Azure VNet private endpoints and authorized x509 certificate holders. The Azure VNet provides network isolation with separate subnets for DataPipelines, BIZOperations, and private endpoints. An Azure Firewall enforces deny-all default egress, allowing only explicitly listed destinations (MongoDB Atlas, Anthropic, OpenAI, HuggingFace, SparkPost). All firewall traffic is logged for audit. MongoDB Atlas clusters are accessible only via Azure Private Endpoints and Skip&#39;s static IP &mdash; no public internet exposure. Cloudflare provides TLS termination, HSTS, DDoS protection, and Cloudflare Access for the admin site. All inter-service traffic between HuggingFace Spaces uses mTLS with certificates fetched from Key Vault at startup.</p>
+
+    <h3>Deployed Security Controls</h3>
+    <ul>
+      <li>Zero bearer tokens &mdash; all auth via x509 cert or Managed Identity</li>
+      <li>Azure Key Vault: FedRAMP High, HIPAA BAA, FIPS 140-2 L2</li>
+      <li>Key Vault public access disabled &mdash; private endpoint only for Azure resources</li>
+      <li>Azure Firewall: deny-all default, explicit allowlist, audit logging</li>
+      <li>VNet subnet isolation with NSG per subnet</li>
+      <li>Private endpoints: Key Vault and MongoDB Atlas never on public internet</li>
+      <li>MongoDB IP allowlist: VNet private endpoint + Skip&#39;s IP only</li>
+      <li>Cloudflare: TLS 1.2 minimum, HSTS, Bot Fight Mode, DDoS protection</li>
+      <li>Cloudflare Access: admin site authenticated</li>
+      <li>mTLS between all HuggingFace Spaces</li>
+      <li>Managed Identity for Azure Functions (zero credentials)</li>
+      <li>HF Spaces: one x509 cert per Space instead of six API keys</li>
+    </ul>
+
+    <h2>3. Component Handoff — Security in Action</h2>
+
+    <p>Sample inter-component handoff demonstrating the security architecture in action. FindCare returns providers, user opts into evaluation, FindCare builds a handoff payload (chat history, provider list, user DB reference for paid users only, encrypted cookie stats) and sends it to EvaluateCare over mTLS. EvaluateCare resolves user context, scores providers against quality signals, and paints the chat screen via postMessage. This flow exercises mTLS, SecretManager, cookie encryption, conditional DB access, and the GOV-011 principle (AI translates, system answers).</p>
+
+    <div class="diagram-container">
+      <img src="Images/findcare_evalcare_handoff_sequence.svg" alt="FindCare to EvaluateCare Handoff Sequence Diagram" />
+    </div>
+
+    <h2>4. EPIC-4 Security Features</h2>
+
+    <div class="table-wrap">
+      <table>
+        <tr><th>Feature ID</th><th>Name</th><th>Stories</th><th>Requirements</th><th>Status</th></tr>
+        <tr>
+          <td>SEC-CLOUDFLARE</td>
+          <td>Cloudflare Security Findings</td>
+          <td>11</td>
+          <td>11</td>
+          <td>accepted</td>
+        </tr>
+        <tr>
+          <td>SEC-KEYVAULT</td>
+          <td>Azure Key Vault Provisioning</td>
+          <td>3</td>
+          <td>13</td>
+          <td>accepted</td>
+        </tr>
+        <tr>
+          <td>SEC-CERTAUTH-REMOTE</td>
+          <td>x509 Certificate Authentication &mdash; Remote (dev/qa/prod)</td>
+          <td>4</td>
+          <td>15</td>
+          <td>accepted</td>
+        </tr>
+        <tr>
+          <td>SEC-CERTAUTH-LOCAL</td>
+          <td>x509 Certificate Authentication &mdash; Local (Skip&#39;s PC)</td>
+          <td>2</td>
+          <td>9</td>
+          <td>accepted</td>
+        </tr>
+        <tr>
+          <td>SEC-MANAGED-ID</td>
+          <td>Managed Identity &mdash; Azure Functions</td>
+          <td>1</td>
+          <td>5</td>
+          <td>accepted</td>
+        </tr>
+        <tr>
+          <td>SEC-SECRETMGR</td>
+          <td>SecretManager Component (Shared Services)</td>
+          <td>4</td>
+          <td>13</td>
+          <td>accepted</td>
+        </tr>
+        <tr>
+          <td>SEC-NETWORK</td>
+          <td>Azure Network Security &mdash; Subnet, Firewall, Private Endpoints</td>
+          <td>5</td>
+          <td>18</td>
+          <td>accepted</td>
+        </tr>
+        <tr>
+          <td>SEC-MTLS</td>
+          <td>mTLS Service-to-Service Authentication</td>
+          <td>4</td>
+          <td>9</td>
+          <td>accepted</td>
+        </tr>
+      </table>
+    </div>
+
+    <h2>5. NIST SP 800-171 Compliance</h2>
+
+    <p>Required for DFARS 252.204-7012 compliance (DoD contractors handling CUI). Covers any federal health data classified as CUI.</p>
+
+    <div class="table-wrap">
+      <table>
+        <tr><th>Control</th><th>Requirement</th><th>How Satisfied</th></tr>
+        <tr>
+          <td><span class="control-badge">3.1.1</span></td>
+          <td>Limit system access to authorized users</td>
+          <td>mTLS client certificates restrict service-to-service access. Key Vault access policies limit secret retrieval to registered certificates and Managed Identities.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.1.2</span></td>
+          <td>Limit system access to authorized transactions and functions</td>
+          <td>ToolRouter allowlist restricts tool execution (F-05 fix). SharedServicesFacade exposes only defined methods.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.1.3</span></td>
+          <td>Control the flow of CUI</td>
+          <td>Azure Firewall deny-all default with explicit allowlist. Private endpoints prevent CUI from traversing public internet. MongoDB IP allowlist.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.1.13</span></td>
+          <td>Employ cryptographic mechanisms to protect confidentiality of remote access sessions</td>
+          <td>mTLS on all inter-service. TLS 1.2 minimum on Cloudflare. x509 cert auth to Key Vault.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.1.17</span></td>
+          <td>Protect wireless access using authentication and encryption</td>
+          <td>Not applicable &mdash; no wireless access in architecture. All traffic over TLS/mTLS.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.5.1</span></td>
+          <td>Identify system users, processes, and devices</td>
+          <td>x509 certificates identify each service (FindCare, EvaluateCare, Shared Services). Managed Identity identifies Azure Functions. CAC/PKI identifies federal beneficiaries (future).</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.5.2</span></td>
+          <td>Authenticate users, processes, and devices</td>
+          <td>mTLS mutual authentication. x509 cert auth to Azure AD for Key Vault. Managed Identity for Azure Functions. OAuth 2.0 with PKCE for end users (EPIC-6).</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.5.3</span></td>
+          <td>Use multifactor authentication</td>
+          <td>Cloudflare account: MFA enforced (SEC-CF-005). End users: OAuth social login (inherits provider MFA). CAC/PKI: hardware token + PIN (inherent MFA).</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.5.10</span></td>
+          <td>Store and transmit only cryptographically-protected passwords</td>
+          <td>No passwords in the system. All authentication is certificate-based or Managed Identity. API keys stored in Key Vault (FIPS 140-2 L2 HSM), transmitted only over mTLS.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.8.1</span></td>
+          <td>Protect system media containing CUI</td>
+          <td>No CUI on local disk except ephemeral in-memory processing. MongoDB at rest encryption. Key Vault HSM-backed storage. Brain JSON on local disk is not CUI &mdash; it is governance/SDLC data.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.8.6</span></td>
+          <td>Implement cryptographic mechanisms to protect CUI on portable media</td>
+          <td>Secure cookie: AES-256 encrypted. No other portable media in architecture.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.13.1</span></td>
+          <td>Monitor, control, and protect communications at external system boundaries</td>
+          <td>Azure Firewall at VNet boundary. Cloudflare WAF at public boundary. mTLS at service boundary.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.13.5</span></td>
+          <td>Implement subnetworks for publicly accessible system components</td>
+          <td>Azure VNet with separate subnets for DataPipelines, BIZOperations, and Private Endpoints. NSG per subnet.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.13.8</span></td>
+          <td>Implement cryptographic mechanisms to prevent unauthorized disclosure of CUI during transmission</td>
+          <td>mTLS (mutual TLS) on all inter-service traffic. TLS 1.2 minimum on all external connections. x509 cert auth &mdash; private keys never transmitted.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.13.11</span></td>
+          <td>Employ FIPS-validated cryptography when used to protect confidentiality of CUI</td>
+          <td>Azure Key Vault uses FIPS 140-2 Level 2 validated HSMs. AES-256 for cookie encryption.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.14.1</span></td>
+          <td>Identify, report, and correct system flaws in a timely manner</td>
+          <td>Perplexity external audits (EXT-AUDIT-001, EXT-AUDIT-002). Development rules (DR-*) capture and enforce incident learnings. EPIC-4 backlog tracks all findings.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.14.6</span></td>
+          <td>Monitor system security alerts and advisories</td>
+          <td>Cloudflare Security Insights (11 findings tracked). Azure Application Insights for runtime monitoring. Firewall audit logging.</td>
+        </tr>
+        <tr>
+          <td><span class="control-badge">3.14.7</span></td>
+          <td>Identify unauthorized use of the system</td>
+          <td>MongoDB audit logging. Key Vault access logging. Firewall denied-traffic logging. Safety system IP lockout with audit trail.</td>
+        </tr>
+      </table>
+    </div>
+
+    <h2>6. HITRUST CSF v11 Compliance</h2>
+
+    <p>Gold standard for health tech. Maps to HIPAA, NIST, ISO 27001. Required by healthcare enterprise buyers.</p>
+
+    <h3>01 Information Security Management Program</h3>
+    <div class="compliance-card">
+      <h4><span class="control-badge">01.a</span> Information Security Management Program</h4>
+      <p>The Brain (App 4) functions as the ISMS &mdash; governance policies (GOV-001 through GOV-014), operating rules (v4-001 through v4-020), risk acceptance register, external audit registry, and continuous improvement KPIs (IDEA-004).</p>
+    </div>
+    <h3>05 Access Control</h3>
+    <div class="compliance-card">
+      <h4><span class="control-badge">05.a</span> Business requirement for access control</h4>
+      <p>Zero-trust: all services authenticate via mTLS. Key Vault access requires x509 cert or Managed Identity. MongoDB requires VNet PE or IP allowlist.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">05.d</span> Password management</h4>
+      <p>No passwords in system. Certificate-based auth eliminates password lifecycle entirely.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">05.i</span> Policy on use of network services</h4>
+      <p>Azure Firewall deny-all default. NSG per subnet. Only explicitly allowed destinations.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">05.j</span> User identification and authentication</h4>
+      <p>x509 for services. OAuth 2.0 + PKCE for consumers. CAC/PKI for federal users (future). Managed Identity for Azure.</p>
+    </div>
+    <h3>06 Cryptography</h3>
+    <div class="compliance-card">
+      <h4><span class="control-badge">06.d</span> Cryptographic controls</h4>
+      <p>mTLS (TLS 1.2+), AES-256 cookie encryption, FIPS 140-2 L2 HSM in Key Vault, x509 certificate auth. No custom cryptography &mdash; all industry-standard.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">06.f</span> Key management</h4>
+      <p>Azure Key Vault is the single key management system. Certificate rotation via dual-cert acceptance window. Secrets cached in-memory with TTL. Keys never on disk except local dev private key (.gitignore).</p>
+    </div>
+    <h3>09 Communications and Operations Management</h3>
+    <div class="compliance-card">
+      <h4><span class="control-badge">09.m</span> Network controls</h4>
+      <p>Azure VNet with subnets, NSGs, firewall. Private endpoints for Key Vault and MongoDB. Cloudflare DDoS and WAF for public surface.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">09.s</span> Information exchange policies and procedures</h4>
+      <p>GOV-011: AI translates, system answers. GOV-012: environment isolation. v4-006: deploy authority. All data flows documented in architecture.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">09.ab</span> Monitoring system use</h4>
+      <p>Azure Firewall audit logs. Key Vault access logs. MongoDB audit. Application Insights. Safety system audit trail.</p>
+    </div>
+    <h3>10 Information Systems Acquisition, Development, and Maintenance</h3>
+    <div class="compliance-card">
+      <h4><span class="control-badge">10.a</span> Security requirements analysis and specification</h4>
+      <p>EPIC-4 Security with 8 features, 27 stories, 70+ boolean testable requirements. Perplexity external audits. GOV-007 engineering rules as binding standards.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">10.f</span> Technical review of applications after operating platform changes</h4>
+      <p>Three-environment promotion (dev, qa, prod). QA gate requires GPT sign-off. Production requires human sign-off (GOV-007). Full regression after every architecture change.</p>
+    </div>
+    <div class="compliance-card">
+      <h4><span class="control-badge">10.h</span> Control of technical vulnerabilities</h4>
+      <p>Perplexity audit findings tracked in backlog with priority. Cloudflare Security Insights monitored. Development rules (DR-*) encode incident learnings as enforceable standards.</p>
+    </div>
+
+
+    <h2>7. CUI Readiness</h2>
+
+    <p>This architecture satisfies the protection requirements for Controlled Unclassified Information as defined by NIST SP 800-171. CUI includes federal health data, DoD beneficiary data, and any data designated CUI by a federal agency. The architecture does not stipulate a specific use case &mdash; it provides CUI-level protection as a capability.</p>
+
+    <h3>Architecture Supports</h3>
+    <ul>
+      <li>CAC/PKI authentication via x509 (same mechanism as service auth)</li>
+      <li>In-memory only processing of federal user identity &mdash; never persisted to disk</li>
+      <li>FIPS 140-2 Level 2 cryptography via Key Vault HSM</li>
+      <li>DFARS 252.204-7012 compliance via NIST 800-171 control satisfaction</li>
+      <li>FedRAMP High authorization of all Azure components</li>
+    </ul>
+
+    <h3>Requires Before Deployment</h3>
+    <ul>
+      <li>Formal ATO (Authority to Operate) from the sponsoring federal agency</li>
+      <li>Legal review by federal healthcare contracts attorney</li>
+      <li>Potential upgrade to Azure Government (IL4) depending on agency assessment</li>
+    </ul>
+
+    <p class="gen-notice">
+      Generated from brain/machine_artifacts/content/security.json and agile_backlog.json (EPIC-4).<br/>
+      Generator: Code/Shared/ops/generate_security_page.py<br/>
+      Generated: 2026-04-06T17:17:19Z<br/>
+      Do not edit this file directly &mdash; edit the brain JSON and regenerate.
+    </p>
+
+    <div class="mobile-home-bottom">
+      <a href="/">&larr; Back to ChatHealthy.ai</a>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  &copy; 2026 ChatHealthy.ai LLC. All rights reserved.
+</footer>
+
+<script>
+  // Hamburger menu
+  (function() {
+    var btn = document.getElementById('menuToggle');
+    var nav = document.getElementById('mobileNav');
+    if (btn && nav) {
+      btn.addEventListener('click', function() {
+        var open = nav.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open);
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>

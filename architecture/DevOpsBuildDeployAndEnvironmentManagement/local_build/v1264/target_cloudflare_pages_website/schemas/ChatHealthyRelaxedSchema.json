@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyRelaxedSchema.json",
+  "title": "ChatHealthy Relaxed Schema",
+  "description": "Temporary placeholder schema with no field-level constraints. Per EPIC-008-F-007-S-020-REQ-T-003, any ChatHealthy JSON file that does not yet have a specific schema MUST reference this schema.",
+  "type": "object"
+}
