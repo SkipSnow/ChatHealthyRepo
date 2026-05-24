@@ -68,16 +68,34 @@ def _find_repo_root(start: Path) -> Path:
 
 
 def _require_clean_working_tree(repo_root: Path) -> str:
-    """HEAD SHA pins the bytes we build. Reject uncommitted state."""
+    """HEAD SHA pins the source bytes we build. Reject uncommitted source
+    changes. Build OUTPUTS under local_build/ are not source and do NOT
+    block — they're produced by this very script.
+    """
     r = subprocess.run(
         ["git", "status", "--porcelain"],
         cwd=str(repo_root), capture_output=True, text=True, check=True,
     )
-    if r.stdout.strip():
+    build_root_prefix = str(_BUILD_ROOT_REL).replace("\\", "/") + "/"
+    offending = []
+    for line in r.stdout.splitlines():
+        # Porcelain v1 line is "XY path" (or rename "XY orig -> new").
+        if not line.strip():
+            continue
+        path = line[3:]
+        # Ignore renames' second path; the porcelain status code already
+        # captures the change above.
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        path = path.strip('"')
+        if path.startswith(build_root_prefix):
+            continue
+        offending.append(line)
+    if offending:
         sys.exit(
-            "ERROR: working tree has uncommitted changes. Commit them "
-            "first so HEAD SHA pins the bytes we build.\n\n"
-            f"{r.stdout}"
+            "ERROR: working tree has uncommitted source changes. Commit "
+            "them first so HEAD SHA pins the source bytes we build.\n\n"
+            + "\n".join(offending)
         )
     r = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
