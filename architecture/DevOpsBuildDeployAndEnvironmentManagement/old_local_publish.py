@@ -68,7 +68,7 @@ from target_record import DeploymentCollection, TargetRecord
 # Reuse the source-set + HF helpers from remote_deploy. They're pure
 # functions; the runner-side script still owns its own dispatch.
 import ch_fonts_inliner
-import remote_deploy as rd
+import old_remote_deploy as rd
 
 
 # ── GHCR image-ref convention (HF Spaces) ─────────────────────────────
