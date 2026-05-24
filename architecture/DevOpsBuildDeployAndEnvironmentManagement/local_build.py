@@ -31,6 +31,7 @@ import os
 import shutil
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -235,6 +236,47 @@ def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path) -> N
         )
 
 
+_PIPELINE_SOURCE_PREFIX = "pipeline/Code/"
+_AZURE_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
+_AZURE_REQUIREMENTS_ZIP_PATH = "requirements.txt"
+
+
+def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
+    """Materialize the Azure FA deploy.zip from target.files[].
+
+    Each entry in target.files[] is added to the zip; arcname strips the
+    `pipeline/Code/` prefix so Azure Functions sees function_app.py +
+    host.json at the zip root. `requirements-pipeline.txt` is renamed to
+    `requirements.txt` (Azure's lookup name).
+    """
+    if build_dir.exists():
+        shutil.rmtree(build_dir, ignore_errors=True)
+    build_dir.mkdir(parents=True)
+    zip_path = build_dir / "deploy.zip"
+    _step(f"  building deploy.zip from {len(target.files)} JSON-declared files")
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for f in target.files:
+            src_path = repo_root / f.source_location
+            if not src_path.is_file():
+                sys.exit(
+                    f"ERROR: file in JSON manifest not present on disk: "
+                    f"{f.source_location}"
+                )
+            if f.source_location == _AZURE_REQUIREMENTS_SRC:
+                arcname = _AZURE_REQUIREMENTS_ZIP_PATH
+            elif f.source_location.startswith(_PIPELINE_SOURCE_PREFIX):
+                arcname = f.source_location[len(_PIPELINE_SOURCE_PREFIX):]
+            else:
+                sys.exit(
+                    f"ERROR: azure target file {f.source_location!r} does "
+                    f"not start with {_PIPELINE_SOURCE_PREFIX!r}; cannot "
+                    f"map to a zip arcname."
+                )
+            zf.write(src_path, arcname=arcname)
+    size_mb = zip_path.stat().st_size / (1024 * 1024)
+    _step(f"  zip built: {zip_path.name} ({size_mb:.1f} MB, {len(target.files)} entries)")
+
+
 def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str) -> Path:
     build_dir = _target_build_dir(repo_root, build_n, target.target_id)
     _step(f"=== {target.target_kind} {target.target_id} -> {build_dir} ===")
@@ -242,17 +284,17 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
         _build_cloudflare(repo_root, target, build_dir)
     elif target.target_kind == "hf_space":
         _build_hf_space(repo_root, target, build_dir)
+    elif target.target_kind == "azure_function_app":
+        _build_azure_function_app(repo_root, target, build_dir)
     else:
         raise RuntimeError(
-            f"target_kind {target.target_kind!r} not yet supported in local_build. "
-            f"Use old_local_publish.py for azure_function_app until the "
-            f"Phase 4 refactor lands that handler."
+            f"target_kind {target.target_kind!r} not supported in local_build."
         )
     _write_manifest_snapshot(build_dir, target, build_n, build_sha)
     return build_dir
 
 
-_BUILDABLE_KINDS = ("cloudflare_pages_project", "hf_space")
+_BUILDABLE_KINDS = ("cloudflare_pages_project", "hf_space", "azure_function_app")
 
 
 def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetRecord]:
@@ -263,6 +305,8 @@ def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetR
         return [t for t in coll if t.target_kind == "cloudflare_pages_project"]
     if target_arg in ("hf", "hf_space"):
         return [t for t in coll if t.target_kind == "hf_space"]
+    if target_arg in ("azure", "azure_function_app"):
+        return [t for t in coll if t.target_kind == "azure_function_app"]
     # Exact target_id match
     for t in coll:
         if t.target_id == target_arg:

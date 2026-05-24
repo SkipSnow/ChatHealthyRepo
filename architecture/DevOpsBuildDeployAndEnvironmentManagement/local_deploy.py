@@ -326,6 +326,134 @@ def _deploy_hf_space(
 
 
 # ═════════════════════════════════════════════════════════════════════════
+# Azure Function App handler (--env dev|qa|prod, target_kind=azure_function_app)
+# ═════════════════════════════════════════════════════════════════════════
+
+def _az_query(args: list[str], err_label: str) -> str:
+    r = subprocess.run(
+        args, capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: {err_label} failed (exit {r.returncode})\n"
+            f"  args: {' '.join(args)}\n"
+            f"  stderr: {(r.stderr or '').strip()[:1000]}"
+        )
+    return r.stdout.strip()
+
+
+def _block_if_active_orchestrations(rg: str, app: str, task_hub: str) -> None:
+    """Reject the deploy if any orchestration is Running or Pending on
+    this FA. The pipeline cannot be reloaded mid-run safely."""
+    _step("checking for active orchestrations …")
+    master_key = _az_query(
+        ["az", "functionapp", "keys", "list",
+         "--resource-group", rg, "--name", app,
+         "--query", "masterKey", "-o", "tsv"],
+        err_label="az functionapp keys list",
+    )
+    if not master_key:
+        sys.exit("ERROR: empty masterKey from Azure — cannot verify pipeline state.")
+    default_host = _az_query(
+        ["az", "functionapp", "show",
+         "--resource-group", rg, "--name", app,
+         "--query", "properties.defaultHostName", "-o", "tsv"],
+        err_label="az functionapp show",
+    )
+    if not default_host:
+        sys.exit("ERROR: empty defaultHostName from Azure.")
+    base = (
+        f"https://{default_host}/runtime/webhooks/durabletask/instances"
+        f"?taskHub={task_hub}&code={master_key}"
+    )
+    try:
+        urllib.request.urlopen(f"{base}&runtimeStatus=Running", timeout=5).read()
+    except Exception:
+        pass
+
+    def _query(status: str) -> list:
+        deadline = time.time() + 360
+        while time.time() < deadline:
+            try:
+                with urllib.request.urlopen(
+                    f"{base}&runtimeStatus={status}", timeout=20,
+                ) as resp:
+                    body = resp.read().decode("utf-8", errors="replace")
+                    data = json.loads(body)
+                    if isinstance(data, list):
+                        return data
+            except (urllib.error.URLError, urllib.error.HTTPError,
+                    TimeoutError, json.JSONDecodeError):
+                pass
+            _step(f"  waiting for warm-up to query {status} …")
+            time.sleep(20)
+        sys.exit(
+            f"ERROR: could not query {status} orchestrations within 6 min."
+        )
+
+    running = _query("Running")
+    pending = _query("Pending")
+    total = len(running) + len(pending)
+    if total > 0:
+        sys.exit(
+            f"DEPLOY BLOCKED: {len(running)} Running + {len(pending)} "
+            f"Pending orchestration(s) active on {app}. Terminate them "
+            "before deploying."
+        )
+    _step(f"  no active orchestrations on {app} — safe to deploy")
+
+
+def _az_push_zip(rg: str, app: str, zip_path: Path) -> None:
+    _step(f"pushing zip to Azure: {app}")
+    r = subprocess.run(
+        ["az", "functionapp", "deployment", "source", "config-zip",
+         "--resource-group", rg, "--name", app,
+         "--src", str(zip_path)],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: az config-zip failed (exit {r.returncode})\n"
+            f"  stderr: {(r.stderr or '').strip()[:1500]}\n"
+            f"  stdout: {(r.stdout or '').strip()[:500]}"
+        )
+    _step(f"  config-zip pushed to {app}")
+
+
+def _deploy_azure_function_app(
+    build_dir: Path,
+    target: TargetRecord,
+    env: str,
+) -> str:
+    env_binding = next(
+        (e for e in target.environments if e.env_binding == env), None,
+    )
+    if env_binding is None:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} has no env_binding "
+            f"matching {env!r}; cannot deploy."
+        )
+    if env_binding.azure is None:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} env={env!r} is missing "
+            f"the `azure` sub-object (resource_group / function_app / "
+            f"task_hub) in deployment_architecture.json."
+        )
+    rg = env_binding.azure["resource_group"]
+    app = env_binding.azure["function_app"]
+    task_hub = env_binding.azure["task_hub"]
+    _step(f"=== azure_function_app {target.target_id} env={env} -> {app} (rg={rg}) ===")
+    zip_path = build_dir / "deploy.zip"
+    if not zip_path.is_file():
+        sys.exit(f"ERROR: deploy.zip missing at {zip_path}")
+    _block_if_active_orchestrations(rg, app, task_hub)
+    _az_push_zip(rg, app, zip_path)
+    return f"{app}"
+
+
+# ═════════════════════════════════════════════════════════════════════════
 # Cloud dispatch (--env dev|qa|prod)
 # ═════════════════════════════════════════════════════════════════════════
 
@@ -336,6 +464,7 @@ def _deploy_one(
     target_kind: str,
     env: str,
     resolver: SecretsResolver,
+    coll: DeploymentCollection,
 ) -> str:
     build_dir = repo_root / _BUILD_ROOT_REL / f"v{build_n}" / target_id
     if not build_dir.is_dir():
@@ -344,14 +473,15 @@ def _deploy_one(
         return _deploy_cloudflare(build_dir, env, resolver)
     if target_kind == "hf_space":
         return _deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver)
+    if target_kind == "azure_function_app":
+        target = coll.by_target_id(target_id)
+        return _deploy_azure_function_app(build_dir, target, env)
     raise RuntimeError(
-        f"target_kind {target_kind!r} not yet supported in local_deploy. "
-        f"Use old_local_publish.py for azure_function_app "
-        f"until the Phase 4 refactor lands that handler."
+        f"target_kind {target_kind!r} not supported in local_deploy."
     )
 
 
-_DEPLOYABLE_KINDS = ("cloudflare_pages_project", "hf_space")
+_DEPLOYABLE_KINDS = ("cloudflare_pages_project", "hf_space", "azure_function_app")
 
 
 def _select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tuple[str, str]]:
@@ -370,6 +500,11 @@ def _select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tupl
         return [
             (t.target_id, t.target_kind) for t in coll
             if t.target_kind == "hf_space"
+        ]
+    if target_arg in ("azure", "azure_function_app"):
+        return [
+            (t.target_id, t.target_kind) for t in coll
+            if t.target_kind == "azure_function_app"
         ]
     for t in coll:
         if t.target_id == target_arg:
@@ -397,7 +532,7 @@ def _run_cloud_deploy(env: str, version: str | None, target_arg: str) -> int:
             _step(f"  skip {target_id}: no env_binding for {env!r}")
             continue
         deployed.append(_deploy_one(
-            repo_root, build_n, target_id, target_kind, env, resolver,
+            repo_root, build_n, target_id, target_kind, env, resolver, coll,
         ))
     if not deployed:
         sys.exit(
