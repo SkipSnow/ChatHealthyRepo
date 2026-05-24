@@ -131,6 +131,7 @@ def _write_manifest_snapshot(
         d.pop("layout", None)
         files_lean.append(d)
     snapshot: dict = {
+        "$schema": "https://dev.chathealthy.ai/schemas/ChatHealthyBuildPackageManifestSchema.json",
         "build_number": build_n,
         "build_sha": build_sha,
         "target_id": target.target_id,

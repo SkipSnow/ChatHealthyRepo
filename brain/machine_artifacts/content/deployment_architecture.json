@@ -217,6 +217,13 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/schemas/ChatHealthyBuildPackageManifestSchema.json",
+          "handler_type": "json",
+          "disposition": "referenced",
+          "content_hash": "adc9b18a2f9fdf562cce4ebd1afe597a7cea1c7f2333c5e1ed9c99e486c0b18f"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
@@ -2352,7 +2359,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ff4d9ab62f2a3a1f3f67e2a1f8c55d298c13415b738fb276dc4bdc042e85bc12"
+          "content_hash": "8223cf32ccde4187313d036a01855642dc920d3df09c7d7e2867fb657ad005a4"
         },
         {
           "feature_id": "EPIC-008-F-012",
