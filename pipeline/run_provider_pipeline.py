@@ -78,8 +78,6 @@ def main(argv: list[str] | None = None) -> int:
                         help="Providers per Census Geocoder batch (Passes 2-3, max 500).")
     parser.add_argument("--nppes-batch-size", type=int, default=100,
                         help="Providers per NPPES batch (Pass 6).")
-    parser.add_argument("--reset-failed", action="store_true",
-                        help="Reset geocoder_failed providers before Pass 2.")
     parser.add_argument("--google-maps", action="store_true",
                         help="Enable Pass 4 Google Maps geocoding (paid).")
     parser.add_argument("--embeddings", action=argparse.BooleanOptionalAction,
@@ -109,7 +107,6 @@ def main(argv: list[str] | None = None) -> int:
         "enrich_workers": args.enrich_workers,
         "addr_batch_size": args.addr_batch_size,
         "nppes_batch_size": args.nppes_batch_size,
-        "reset_failed": args.reset_failed,
         "google_maps_enabled": args.google_maps,
         "embedding_enabled": args.embeddings,
         "embed_model": args.embed_model,

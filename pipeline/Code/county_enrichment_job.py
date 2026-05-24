@@ -1147,15 +1147,18 @@ def _unenriched_elements(provider: dict):
 
 
 def _failed_elements(provider: dict):
-    """Yield (idx, addr_dict) for each practice_address element flagged
-    geocoder_failed by an earlier pass. Used by Pass 3/4 retry logic."""
+    """Yield (idx, addr_dict) for each practice_address element that still
+    has county.fips == null after an earlier pass. Used by Pass 3/4/6
+    retry logic. county.fips IS NULL is the one and only canonical flag
+    for 'this element still needs enrichment'; existing source-tag writes
+    remain as informational metadata until each record is correct."""
     pa = provider.get("practice_address")
     if not isinstance(pa, list):
         return
     for idx, addr in enumerate(pa):
         if not isinstance(addr, dict):
             continue
-        if (addr.get("county") or {}).get("source") == "geocoder_failed":
+        if (addr.get("county") or {}).get("fips") is None:
             yield idx, addr
 
 
@@ -1241,10 +1244,11 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     if end_id_hex:
         id_filter["_id"]["$lt"] = ObjectId(end_id_hex)
 
-    providers = list(coll.find(
+    # Stream providers via cursor — don't materialize the slice into memory.
+    cursor = coll.find(
         {**_UNENRICHED_FILTER, **id_filter, **sf},
         {"_id": 1, "practice_address": 1},
-    ))
+    )
 
     # Per-element fan-out
     geocode_rows: list = []                           # (cid, line1, city, state, zip5)
@@ -1252,7 +1256,7 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     ops: list = []
     no_address = 0
 
-    for p in providers:
+    for p in cursor:
         pid_obj = p["_id"]
         pid_str = str(pid_obj)
         for idx, addr in _unenriched_elements(p):
@@ -1370,13 +1374,15 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
     coll = _get_mongo_client()[db_name][coll_name]
 
     object_ids = [ObjectId(i) for i in id_batch]
-    providers  = list(coll.find(
+    # Stream via cursor; skip providers with no usable mailing address
+    # before keeping a reference.
+    geocodable = []  # list of (pid_str, mailing_dict, provider_doc)
+    providers_assigned = 0
+    for p in coll.find(
         {"_id": {"$in": object_ids}},
         {"_id": 1, "mailing_address": 1, "practice_address": 1},
-    ))
-
-    geocodable = []  # list of (pid_str, mailing_dict, provider_doc)
-    for p in providers:
+    ):
+        providers_assigned += 1
         m = p.get("mailing_address") or {}
         if m.get("line1") or m.get("city"):
             geocodable.append((str(p["_id"]), m, p))
@@ -1431,7 +1437,7 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
         modified_elements, providers_failed,
     )
     return {
-        "assigned":         len(providers),
+        "assigned":         providers_assigned,
         "succeeded":        modified_elements,
         "modified":         modified_elements,
         "geocoder_failed":  providers_failed,
@@ -1489,16 +1495,17 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
     coll = _get_mongo_client()[db_name][coll_name]
 
     object_ids = [ObjectId(i) for i in id_batch]
-    providers  = list(coll.find(
+    # Stream via cursor — one provider at a time, no slice materialization.
+    cursor = coll.find(
         {"_id": {"$in": object_ids}},
         {"_id": 1, "practice_address": 1},
-    ))
+    )
 
     lookup = _get_maps_county_lookup()
     ops: list = []
     modified = maps_failed = 0
 
-    for p in providers:
+    for p in cursor:
         for idx, addr in _failed_elements(p):
             line1 = (addr.get("line1") or "").strip()
             city  = (addr.get("city")  or "").strip()
@@ -1711,23 +1718,24 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
     crosswalk = _get_crosswalk()
 
     object_ids = [ObjectId(p["id"]) for p in provider_batch]
-    stored = {
-        str(doc["_id"]): doc
-        for doc in coll.find(
-            {"_id": {"$in": object_ids}},
-            {"_id": 1, "npi": 1, "practice_address": 1},
-        )
-    }
+    # Pre-build a small {id: npi} lookup so we can stream the provider
+    # cursor without holding the full docs in memory.
+    pid_to_npi = {p["id"]: p["npi"] for p in provider_batch}
+    seen_pids: set[str] = set()
 
     ops: list = []
     modified = nppes_failed = nppes_not_found = nppes_same_address = 0
 
-    for p in provider_batch:
-        pid, npi = p["id"], p["npi"]
-        doc = stored.get(pid)
-        if not doc:
-            nppes_failed += 1
-            continue
+    # Stream providers from the cursor (one at a time) instead of
+    # materializing them into a dict — the dict pattern caused the Pass 6
+    # OOM on the 832,859-record run.
+    for doc in coll.find(
+        {"_id": {"$in": object_ids}},
+        {"_id": 1, "npi": 1, "practice_address": 1},
+    ):
+        pid = str(doc["_id"])
+        seen_pids.add(pid)
+        npi = pid_to_npi[pid]
 
         try:
             resp = requests.get(
@@ -1813,6 +1821,10 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
 
         if delay:
             time.sleep(delay)
+
+    # Any pid the cursor didn't return = provider doc missing from Mongo;
+    # count those as nppes_failed to preserve the prior semantic.
+    nppes_failed += len(set(pid_to_npi) - seen_pids)
 
     if ops:
         coll.bulk_write(ops, ordered=False)
