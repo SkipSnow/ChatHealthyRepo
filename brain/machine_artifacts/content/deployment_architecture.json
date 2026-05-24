@@ -220,7 +220,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "58906361f9bada052eaf320e48cc4a47e64545b779947197b621d72bc55a26f0"
+          "content_hash": "2a98d2b666e48581c72931892fbd70d0c5d650e287d943e061cc33c73aed93d0"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1817,7 +1817,7 @@
           "source_location": "brain/machine_artifacts/content/agile_backlog.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "da5c6064da68b6c6d0e0a404ad684c4eb245f96e9eb58a58c728d84c805ea3a1"
+          "content_hash": "d3a36d865b16fb1fcba9cd7d3cf39fba84a32f46cc33c6f46a3af5eb2ec3e333"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2347,7 +2347,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_publish.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "26d677eb36cc3104ba62c552a444bcb2986de2afc38e9f857029ebbb15354884"
+          "content_hash": "21e445ff1525038ed9f83a43f4d46dda82eacf058312cebc4881931137b7a786"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2375,7 +2375,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/target_record.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "cc47ae465b126586f6289b99bb2d2f2dbf388186818668b4d69ed74ee0c8e361"
+          "content_hash": "0fbd1b9b1c287c285bb9af42dd576f97ccbcdcb4b7af1e19e927157190acd4a1"
         },
         {
           "feature_id": "EPIC-008-F-012",
