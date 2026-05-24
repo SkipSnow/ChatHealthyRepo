@@ -3018,7 +3018,7 @@
           "source_location": "pipeline/Code/provider_worker.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "987838a84d6825a5733ba56736c1439bcb08d7d516a40f9c9bc5e5a0781e38f3"
+          "content_hash": "6807a1a1ec9c0cf7d617fcec65e956ba7d41766dd37637ee1a6e2a200492c19a"
         },
         {
           "feature_id": "EPIC-010-F-007",
