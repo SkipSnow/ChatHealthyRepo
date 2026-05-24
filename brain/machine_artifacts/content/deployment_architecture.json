@@ -334,7 +334,11 @@
           "disposition": "referenced",
           "content_hash": "7018cd20bc72d0341bd35a2e9cb343f97324177ce6fcc7066b26653fcbc7f57b"
         }
-      ]
+      ],
+      "secrets": {
+        "CLOUDFLARE_API_TOKEN": "local_env",
+        "CLOUDFLARE_ACCOUNT_ID": "local_env"
+      }
     },
     {
       "target_id": "target_hf_space_evaluatecare_backend",
@@ -589,7 +593,11 @@
           "disposition": "referenced",
           "content_hash": "be21d7063fda239549bac2272d22a6466b4ec1b4dc199f8ee522e18efa870d2d"
         }
-      ]
+      ],
+      "secrets": {
+        "EVALCARE_SIGNING_KEY_B64": "local_env",
+        "HF_TOKEN": "local_env"
+      }
     },
     {
       "target_id": "target_hf_space_findcare_backend",
@@ -1937,7 +1945,12 @@
           "disposition": "referenced",
           "content_hash": "d0b977f249b29035ce9902fef48680196fbd53702d26691e4bfe064c3f8fa56f"
         }
-      ]
+      ],
+      "secrets": {
+        "FINDCARE_SIGNING_KEY_B64": "local_env",
+        "GEMINI_API_KEY": "local_env",
+        "HF_TOKEN": "local_env"
+      }
     },
     {
       "target_id": "target_hf_space_shared_services",
@@ -2246,7 +2259,13 @@
           "disposition": "referenced",
           "content_hash": "9d14c021298654180f28f993c1fa338ae182ab7e77ca7e6a7c6a45e2d6d0c69b"
         }
-      ]
+      ],
+      "secrets": {
+        "SHARED_SIGNING_KEY_B64": "local_env",
+        "GOOGLE_OAUTH_CLIENT_ID": "local_env",
+        "GOOGLE_OAUTH_CLIENT_SECRET": "local_env",
+        "HF_TOKEN": "local_env"
+      }
     },
     {
       "target_id": "target_host_local_deploy_tool",
@@ -3040,7 +3059,23 @@
           "disposition": "referenced",
           "content_hash": "f0d3477b9ad6a6d9622fbcb5b6d2c8fe86724e283e88ed32469043bc2e3f2a63"
         }
-      ]
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "AZURE_SUBSCRIPTION_ID": "local_env",
+        "AZURE_RESOURCE_GROUP": "local_env",
+        "AZURE_TENANT_ID": "local_env",
+        "AZURE_PIPELINE_CLIENT_ID": "local_env",
+        "AZURE_PIPELINE_CLIENT_SECRET": "local_env",
+        "OPENAI_API_KEY": "local_env",
+        "GOOGLE_MAPS_API_KEY": "local_env",
+        "ENV_PREFIX": "local_env"
+      }
     }
   ]
 }
