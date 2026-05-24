@@ -19,7 +19,6 @@ Environment (Automation Variables, exposed via os.environ at runtime):
   ATLAS_PROJECT_ID                - Atlas group/project ID
   ENV_PREFIX                      - "dev" | "qa" | "prod"
   PIPELINE_CLUSTER                - Atlas cluster name (default ChatHealthyDataPipelines)
-  GRACE_MINUTES                   - int, default 30
   ACTIVITY_WINDOW_MINUTES         - int, default 30 (R1)
   AZ_SUBSCRIPTION_ID              - Azure subscription hosting the Automation Account (R2)
   AZ_RESOURCE_GROUP               - RG hosting ChatHealthyJobManager (R2)
@@ -44,7 +43,7 @@ try:
     import automationassets
     for k in ("MONGO_FRONTEND_connectionString", "ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY",
               "ATLAS_PROJECT_ID", "ENV_PREFIX", "PIPELINE_CLUSTER",
-              "GRACE_MINUTES", "ACTIVITY_WINDOW_MINUTES",
+              "ACTIVITY_WINDOW_MINUTES",
               "AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
               "AZURE_WEBJOBS_STORAGE", "SPARKMAIL_API_KEY",
               "NOTIFICATION_FROM_EMAIL", "NOTIFICATION_TO_EMAIL"):
@@ -55,7 +54,6 @@ try:
 except ImportError:
     pass
 
-GRACE_MINUTES    = int(os.environ.get("GRACE_MINUTES", "30"))
 ACTIVITY_WINDOW  = int(os.environ.get("ACTIVITY_WINDOW_MINUTES", "30"))
 ENV_PREFIX       = os.environ.get("ENV_PREFIX", "dev")
 CLUSTER_NAME     = os.environ.get("PIPELINE_CLUSTER", "ChatHealthyDataPipelines")
@@ -329,11 +327,8 @@ def _main():
     reservations = list(coll.find({}))
     log.info("Loaded %d reservations from %s.%s", len(reservations), DB_NAME, COLLECTION)
 
-    grace = timedelta(minutes=GRACE_MINUTES)
     kept, reaped = [], []
     for r in reservations:
-        if r.get("reservation_class", "automated") != "automated":
-            kept.append(r); continue
         end_str = r.get("expected_end_time")
         if not end_str:
             kept.append(r); continue
@@ -341,10 +336,10 @@ def _main():
             end_dt = datetime.fromisoformat(end_str)
         except (ValueError, TypeError):
             kept.append(r); continue
-        if now <= end_dt + grace:
+        if now <= end_dt:
             kept.append(r); continue
         reaped.append(r)
-        log.info("Reaping overdue automated reservation: job_id=%s requester=%s",
+        log.info("Reaping overdue reservation: job_id=%s requester=%s",
                  r.get("job_id", ""), r.get("requester", ""))
 
     if reaped:
