@@ -227,7 +227,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "2a98d2b666e48581c72931892fbd70d0c5d650e287d943e061cc33c73aed93d0"
+          "content_hash": "4188bc6bf415dbb4567b467d84c0a84a78c1f952b90c6a67cae503780cd6b318"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2373,7 +2373,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "35df95364bdb20ddae71c486ff49d2ac92fd452ae8f4487aafb2e3d106eb5ed7"
+          "content_hash": "7f744eee32681045573b93dd872c5f4f9f6690926bf900f9c04800a59cd45a84"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2408,7 +2408,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/target_record.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "0fbd1b9b1c287c285bb9af42dd576f97ccbcdcb4b7af1e19e927157190acd4a1"
+          "content_hash": "f0c8ad20930600d599357a482a1ff8112eaea7c8a5633b56836daa48494ba367"
         },
         {
           "feature_id": "EPIC-008-F-012",

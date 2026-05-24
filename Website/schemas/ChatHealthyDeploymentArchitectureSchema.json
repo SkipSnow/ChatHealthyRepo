@@ -91,6 +91,14 @@
                       "maxLength": 256
                     }
                   }
+                },
+
+                "branch": {
+                  "type": "string",
+                  "description": "Source-code git branch this env_binding deploys from. Required for target_kind whose deploy destination is git-branch-bound (cloudflare_pages_project, github_actions_workflow_runner). The deploy script MUST read the branch from this field and MUST NOT carry a hard-coded branch map (REQ-T-050). Pattern: a valid git ref name fragment without leading slash or `..` segments.",
+                  "pattern": "^[a-zA-Z0-9_./-]+$",
+                  "minLength": 1,
+                  "maxLength": 256
                 }
               }
             }

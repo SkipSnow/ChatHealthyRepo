@@ -67,17 +67,13 @@ from target_record import DeploymentCollection, TargetRecord
 
 _BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build")
 
-# Per-env Cloudflare Pages project map. The branch flag passed to wrangler
-# selects which deployment slot (dev/qa/prod) the bytes land in.
+# Per-env Cloudflare Pages project map. (The branch flag is read from the
+# manifest's environments[].branch field per REQ-T-050 — no hard-coded
+# branch map here.)
 _CLOUDFLARE_PROJECT: dict[str, str] = {
     "dev":  "chathealthy-website-dev",
     "qa":   "chathealthy-website-qa",
     "prod": "chathealthywebsite",
-}
-_CLOUDFLARE_BRANCH: dict[str, str] = {
-    "dev":  "dev",
-    "qa":   "qa",
-    "prod": "main",
 }
 
 _GHCR_OWNER: str = "skipsnow"
@@ -172,10 +168,20 @@ def _deploy_cloudflare(
     build_dir: Path,
     env: str,
     resolver: SecretsResolver,
+    target: TargetRecord,
 ) -> str:
     project = _CLOUDFLARE_PROJECT[env]
-    branch = _CLOUDFLARE_BRANCH[env]
-    _step(f"=== cloudflare_pages env={env} project={project} dir={build_dir} ===")
+    env_binding = next(
+        (e for e in target.environments if e.env_binding == env), None,
+    )
+    if env_binding is None or not env_binding.branch:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} env={env!r} has no `branch` "
+            f"declared in deployment_architecture.json (REQ-T-050). The deploy "
+            f"script reads the branch from the manifest; no hard-coded fallback."
+        )
+    branch = env_binding.branch
+    _step(f"=== cloudflare_pages env={env} project={project} branch={branch} dir={build_dir} ===")
     api_token = resolver.resolve("CLOUDFLARE_API_TOKEN", env)
     account_id = resolver.resolve("CLOUDFLARE_ACCOUNT_ID", env)
     env_for_wrangler = dict(os.environ)
@@ -480,7 +486,8 @@ def _deploy_one(
     if not build_dir.is_dir():
         sys.exit(f"ERROR: build dir missing: {build_dir}")
     if target_kind == "cloudflare_pages_project":
-        return _deploy_cloudflare(build_dir, env, resolver)
+        target = coll.by_target_id(target_id)
+        return _deploy_cloudflare(build_dir, env, resolver, target)
     if target_kind == "hf_space":
         return _deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver)
     if target_kind == "azure_function_app":
