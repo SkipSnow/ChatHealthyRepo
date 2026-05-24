@@ -11384,7 +11384,7 @@
                     "name": "Universal deploy contract",
                     "description": "The 'deployment_architecture.json' currently hosted by 'the brain and residing in firm's cursor project's 'file system' as well as in GITHUB is the single source of truth for all deployment facts for ChatHealthy.ai's components. This file must be the source of One local and one remote deploys script. It must, regardless of environment, contain all necessary information to do full deployments to each required component. This includes fulsome facts about code branches, or the local file directories for the local build. These facts include but are not limited to port assignments, atomicity, source code file facts, secrets and environment keys must be included, but the secrets may never be in any file that is part of a build package. Each deployment must have an enforced human-authorization gate. A build script for each remote component must build a release package stored in GIT Hub with appropriate Version information. And All builds must be done on a local workstation, and then shipped via a deploy script, which will also be accountable to build and configure the components as necessary.",
                     "size": "L",
-                    "status": "in_progress",
+                    "status": "done",
                     "orphan": false,
                     "approval": "proposed",
                     "requirements": {
@@ -12003,7 +12003,7 @@
                           "name": "Crosswalk runs exactly four checks beyond schema validation",
                           "requirement": "Beyond the schema-validation step on both brain JSONs, Crosswalk MUST run exactly four checks: (1) REQ-to-artifact coverage (every feature node in `agile_backlog.json` whose status indicates active engineering work has at least one corresponding `files[i].feature_id` reference somewhere in the persisted collection); (2) artifact-to-REQ orphan check (no `files[i].feature_id` points at a feature absent from `agile_backlog.json`); (3) byte-equality of every on-disk artifact at `files[i].source_location` with the corresponding `files[i].embedded_content`; (4) no `.env` value appears anywhere in any TargetRecord. Each check terminates as PASS or REJECT; no other check MAY be added without a schema/design revision.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12041,7 +12041,7 @@
                           "name": "Crosswalk coverage check: every active backlog feature is referenced by at least one files[].feature_id",
                           "requirement": "The crosswalk validator MUST assert that every feature node in `agile_backlog.json` whose status indicates active engineering work has at least one corresponding `files[i].feature_id` reference somewhere in the persisted deployment collection. A feature with zero references MUST cause the gate to REJECT. The check operates across the entire collection of TargetRecords; it does not require coverage within any single document.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12250,7 +12250,7 @@
                           "name": "PreCommitHook is a pure gate: on_commit(staged_files) -> int, 0=PASS / 1=REJECT",
                           "requirement": "PreCommitHook MUST expose `on_commit(staged_files) -> int` as its sole entry point. The return value MUST be exactly `0` on PASS and exactly `1` on REJECT. PreCommitHook MUST be a pure gate. PreCommitHook MUST NOT auto-extract, MUST NOT auto-build, MUST NOT auto-repair, MUST NOT mutate the staged tree, MUST NOT mutate the persisted collection, and MUST NOT write to disk on its own behalf. PreCommitHook MUST NOT carry a configurable `reject_message` attribute; the reject text is fixed in code per finding (REQ-T-028).",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12269,7 +12269,7 @@
                           "name": "Gate trigger is the git commit boundary only; no watcher, no save-time trigger",
                           "requirement": "The deployment gate MUST be invoked exclusively at the `git commit` boundary by the existing pre-commit hook chain. No filesystem watcher MAY engage the gate. No IDE save-time trigger MAY engage the gate. No auto-extractor side effect MAY engage the gate. Save events, ad-hoc tooling runs, and experimentation MUST NOT engage the gate. The gate is also invokable explicitly by the operator (e.g. as a CLI), but never automatically outside the commit boundary.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12288,7 +12288,7 @@
                           "name": "No \"configure if absent\" patterns anywhere on the deploy chain",
                           "requirement": "No code on the deploy chain (Builder, Extractor, Crosswalk, RecordLoader, RecordWriter, SecretsResolver, PreCommitHook, local deployer, promote workflow) MAY implement a \"configure if absent\" pattern. A missing TargetRecord, a missing `environments[]` entry, a missing `files[]` entry, a missing `(name, env)` binding in SecretsResolver, a missing on-disk artifact, or any other missing state MUST be treated as REJECT. The deploy chain MUST NOT synthesize defaults to paper over missing state.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12326,7 +12326,7 @@
                           "name": "All deploy chain code lives under architecture/DevOpsBuildDeployAndEnvironmentManagement/code/",
                           "requirement": "All implementation modules for the deploy chain (Builder, Extractor, Crosswalk, RecordLoader, RecordWriter, DeploymentCollection, SecretsResolver, PreCommitHook, local deployer, and the CLI bootstrap helper) MUST live under `architecture/DevOpsBuildDeployAndEnvironmentManagement/code/`. After migration, no deploy chain code MAY live under `Code/deploy/`. The deploy chain MUST NOT assume a `code/` subdirectory inside any other feature directory.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12383,7 +12383,7 @@
                           "name": "Initial-load CLI bootstrap enumerates target_ids; Builder derives each TargetRecord per-target",
                           "requirement": "A one-shot initial-load CLI bootstrap MUST exist that enumerates deployment targets from the live tree and emits a `target_id` list. The operator MUST then drive `Builder.build_record(target_id, repo_root)` per target_id; each invocation MUST derive `target_kind` from the closed V18 enum, enumerate `environments[]` (one entry per env_binding under which the target is realized along with its `node_address`), enumerate `files[]` (each row's `feature_id`, `source_location`, `handler_type`, and `embedded_content`), and self-validate the constructed record against the V18 schema before return. The CLI bootstrap MUST NOT read or embed any secret value. On any schema violation Builder raises and the operator halts (no retry loop, no iteration to repair).",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12421,7 +12421,7 @@
                           "name": "One local + one remote deploy script pair (symmetric)",
                           "requirement": "The deploy toolchain MUST consist of exactly two operator-facing local scripts (`local_build.py`, `local_deploy.py`) and exactly two CI-facing remote scripts (`remote_build.py`, `remote_deploy.py`). No other script MAY exist on the deploy chain. The two pairs are symmetric: each `build` produces a versioned per-target package; the paired `deploy` ships that package to its target. Adding a script outside this four-way symmetry MUST cause the gate to REJECT.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12440,7 +12440,7 @@
                           "name": "Code-branch facts live in deployment_architecture.json",
                           "requirement": "Every TargetRecord whose `target_kind` resolves to a git-branch-bound cloud destination MUST declare the source code branch as a fact in `environments[].node_address` (or an equivalent typed field reachable from the manifest). The build and deploy scripts MUST read the branch from the manifest and MUST NOT carry a hard-coded branch map anywhere in code.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12459,7 +12459,7 @@
                           "name": "Local-build source directories live in deployment_architecture.json",
                           "requirement": "Every TargetRecord whose `target_kind` requires materialized local source for the build MUST declare every contributing source path in `files[].source_location`. `local_build.py` MUST read source bytes ONLY from local-disk paths declared in the manifest. No remote fetch of source bytes (git remote, HTTP, registry pull, etc.) is permitted during `local_build`; any such call MUST cause the build to REJECT.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12497,7 +12497,7 @@
                           "name": "Build packages contain no secret VALUES",
                           "requirement": "No file inside any per-target build-package directory under `local_build/v{N}/<target_id>/` or `remote_build/v{N}/<target_id>/` MAY contain any secret VALUE held in any bound secrets store (operator `.env`, GHA secrets, HF Space secrets, Cloudflare env, Azure Function App settings, Azure Automation Variables). The build MUST emit only (a) the per-target manifest snapshot declaring secret NAMES + store bindings and (b) the source bytes needed by the deploy. The pre-commit gate MUST scan every staged build-package file and REJECT on any matched value.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12516,7 +12516,7 @@
                           "name": "Versioned build packages tracked in git",
                           "requirement": "`local_build` MUST emit per-target packages under `architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build/v{N}/<target_id>/` and `remote_build` MUST emit them under the matching `remote_build/v{N}/<target_id>/`. Each package directory MUST be tracked in git (no gitignore exemption). `N` is the system-wide build counter read from `admin.Versions` on the front-end cluster `chathealthyfrontend` (per REQ-T-002 / REQ-T-003), so the git history carries exactly one versioned tree per system release.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12535,7 +12535,7 @@
                           "name": "All builds run on a local workstation or a named CI runner; never elsewhere",
                           "requirement": "Every build action MUST execute either on the operator's local workstation (`local_build.py`) or on a named GitHub Actions runner (`remote_build.py`). No build action MAY execute on a deploy target, a customer-facing host, an HF Space, an Azure Function App, a Cloudflare worker, or any other environment outside the two named build contexts. The build chain MUST hard-fail if invoked outside these two contexts.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12554,7 +12554,7 @@
                           "name": "Deploy script is accountable to install, configure, and component-build at deploy time",
                           "requirement": "`local_deploy.py` and `remote_deploy.py` MUST be the SINGLE accountable entry points for getting a target from its build package into its running state. For each target the deploy script MUST: read the package manifest under `local_build/v{N}/<target_id>/` or `remote_build/v{N}/<target_id>/`; install the package on its target; configure the target's runtime environment (env vars / secrets / app settings) by resolving each declared `secrets` binding via SecretsResolver against the bound store; and build any deploy-time-built components the target requires (docker image, zip, container, etc.). No post-deploy step outside the deploy script may exist.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12605,7 +12605,7 @@
                           "name": "Local Host WebSite must run from within Local docker image",
                           "requirement": "Local Host WebSite must run from within Local docker image. No other requirement is waived because of this requirement.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12643,7 +12643,7 @@
                           "name": "'deployment_architecture.json' and the project's '.env' (for secrets) file is the single source of truth for all deployment facts",
                           "requirement": "Local-runtime deployer reads ports table, container list, and file-system paths from the typed TargetRecord collection loaded by RecordLoader at runtime. The deployer MUST navigate the collection's target-keyed shape (filter records by `target_kind`; read the entry in `environments[]` whose `env_binding` matches `local` for the addressable node; iterate `files[]` for source-file composition) rather than any flat lookup. The deployer MUST NOT carry any hardcoded ports dict, container dict, or path constant in source. All facts necessary to build, deploy assets to, or describe a server in the ChatHealthy digital portfolio must reside only in the local .env file or the single source of truth for these facts. Any constant previously embedded in source that drives deploy behavior MUST move into the appropriate TargetRecord verbatim. After migration, no port number, container name, or file-system path that drives local deploy behavior MAY appear as a literal in any resource other than the Brain file, 'deployment_architecture.json'. If it is necessary to construct YAML, DOCKER, or other files in order to accomplish a build or deployment to a server, those assets MUST be built during the primary script's execution and deleted as soon as possible after being transmitted to the nodes that need them.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12662,7 +12662,7 @@
                           "name": "Local deployer binds local-env secrets via SecretsResolver only; no cross-store fallback",
                           "requirement": "When the local-runtime deployer requires a secret VALUE (e.g. to start a local container with the local-env binding), it MUST obtain that value exclusively through `SecretsResolver.resolve(name, env='local')`. The local-env binding MUST resolve to the local `.env` store only; no other store MAY be queried, and no cross-store fallback MAY be attempted. If the bound store is unavailable, SecretsResolver raises and the local deployer halts; the deployer MUST NOT continue with a default, an empty value, or a value sourced from a different env.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12681,7 +12681,7 @@
                           "name": "Local deployer halts on any missing-state condition; no \"configure if absent\" path",
                           "requirement": "If the TargetRecord collection at runtime does not contain a `target_kind` the deployer needs, a `local` entry in `environments[]` for a target the deployer is starting, a required `(name, 'local')` binding in SecretsResolver, or a required `files[]` row on disk, the deployer MUST halt with a non-zero exit and the bare-reject form (REQ-T-028). The deployer MUST NOT synthesize a default port, default path, default container name, or default secret value to paper over missing state.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12700,7 +12700,7 @@
                           "name": "Every runtime component contained in the docker image",
                           "requirement": "Every runtime component of the Local enviornment must be contained inside the docker image used to host the local build.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12719,7 +12719,7 @@
                           "name": "Single Docker engine on the workstation",
                           "requirement": "The Local environment runs in a single Docker engine instance on the operator's workstation. The engine is Docker Desktop on Windows / macOS or Docker Engine on Linux. No Kubernetes orchestrator, no Docker Swarm, no second engine instance. All containers enumerated in REQ-T-007 MUST run inside this one engine.",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12738,7 +12738,7 @@
                           "name": "Five containers managed by local_deploy",
                           "requirement": "local_deploy.py MUST teardown and re-launch exactly five Docker containers per invocation: the three backend service containers (ch-findcare, ch-evalcare, ch-sharedsvc) per REQ-T-001, the Website wrapper container per REQ-T-002, and the Kafka container. No container is treated as \"separate infrastructure\"; all five live under the same Docker engine (REQ-T-006) and the same atomic deploy lifecycle (S-001-REQ-B-001).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "deferred",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12757,7 +12757,7 @@
                           "name": "One Dockerfile per container",
                           "requirement": "Each of the five containers in REQ-T-007 MUST be built from its own dedicated Dockerfile checked into the repo. No two containers share a Dockerfile. No container runs more than one of the named services (i.e., no multi-process container hosting two backends, or a backend and the Website, or the Website and Kafka).",
                           "priority": "must-have",
-                          "status": "not_started",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12779,7 +12779,7 @@
                     "name": "Deployed-env deploy (dev/qa/prod)",
                     "description": "What is unique to deploying to the dev, qa, or prod environments. A single script accepts the environment as parameter and pushes to the matching HuggingFace paid Space (Docker, lowest tier) via GitHub Actions. Cloudflare Pages serves the static chathealthy.ai site for these envs.",
                     "size": "M",
-                    "status": "in_progress",
+                    "status": "done",
                     "orphan": false,
                     "approval": "proposed",
                     "requirements": {
@@ -12865,7 +12865,7 @@
                           "name": "Cloudflare 404 error page",
                           "requirement": "Cloudflare Pages returns HTTP 404 for unknown paths and renders a dedicated error page (not a blank response, not a redirect, not the home page). CloudFlare's default convention of redirecting unknown paths to the site root MUST be explicitly disabled. The deploy script verifies this setting and configures it if absent.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12884,7 +12884,7 @@
                           "name": "promote-build.yml invokes Crosswalk on the source-branch tip before merging; each step is an explicit operator action",
                           "requirement": "`promote-build.yml` MUST invoke Crosswalk (full check: schema-validation of both brain JSONs; REQ-to-artifact coverage; artifact-to-REQ orphan check; byte-equality of every `files[i].embedded_content` against its on-disk `source_location`; no `.env` value anywhere in the collection) on the source-branch tip before any merge into the target branch. Both branches of the alt block MUST be explicit: on PASS the workflow proceeds to merge; on REJECT the workflow MUST exit 1 with the bare-reject form `REJECT - crosswalk failure on <tip>` and halt; no merge MAY occur, no Mongo write MAY occur. Each promotion step (dev to qa, qa to main) MUST be an independently triggered explicit operator action; the chain MUST NOT auto-progress past one step into the next.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12903,7 +12903,7 @@
                           "name": "promote-build.yml writes admin.Versions builds[<env>].build only after Crosswalk PASS",
                           "requirement": "On the dev-to-qa step, after Crosswalk on the dev tip terminates as PASS, `promote-build.yml` MUST merge dev into qa and write `builds[qa].build = builds[dev].build` into `admin.Versions`. On the qa-to-main step, after Crosswalk on the qa tip terminates as PASS, the workflow MUST merge qa into main and write `builds[prod].build = builds[dev].build` per the existing per-env build-counter semantic. On REJECT at either step, the workflow MUST NOT merge and MUST NOT write to `admin.Versions`.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12922,7 +12922,7 @@
                           "name": "Each runtime env binds to its own secret store; values never cross stores",
                           "requirement": "Each runtime `env_binding` (`local`, `dev`, `qa`, `prod`) MUST bind to its own secret store at SecretsResolver construction time. The promote-build chain MUST NOT copy a value from one env's store into another env's store. The promote-build chain MUST NOT resolve a secret value for one env and use it under another env_binding. SecretsResolver's `resolve(name, env)` MUST raise if the bound store for the requested `(name, env)` pair is unavailable; no cross-store fallback MAY be attempted by the promote workflow or any other deploy-chain consumer.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12941,7 +12941,7 @@
                           "name": "'deployment_architecture.json' and the project's '.env' (for secrets) file is the single source of truth for all deployment facts",
                           "requirement": "Deployed-env deployer reads ports table, container list, and file-system paths from the typed TargetRecord collection loaded by RecordLoader at runtime. The deployer MUST navigate the collection's target-keyed shape (filter records by `target_kind`; read the entry in `environments[]` whose `env_binding` matches the target environment — `dev`, `qa`, or `prod` — for the addressable node; iterate `files[]` for source-file composition) rather than any flat lookup. The deployer MUST NOT carry any hardcoded ports dict, container dict, or path constant in source. All facts necessary to build, deploy assets to, or describe a server in the ChatHealthy digital portfolio must reside only in the local .env file or the single source of truth for these facts. Any constant previously embedded in source that drives deploy behavior MUST move into the appropriate TargetRecord verbatim. After migration, no port number, container name, or file-system path that drives deployed-env deploy behavior MAY appear as a literal in any resource other than the Brain file, 'deployment_architecture.json'. If it is necessary to construct YAML, DOCKER, or other files in order to accomplish a build or deployment to a server, those assets MUST be built during the primary script's execution and deleted as soon as possible after being transmitted to the nodes that need them.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -12963,7 +12963,7 @@
                     "name": "Prod-only behaviors",
                     "description": "The only differences between prod and the dev/qa environments, aside from their different addresses, are: (1) the chrome banner with versions and navigation between the servers does not appear in prod, and (2) the security GUI widget does not appear in prod.",
                     "size": "S",
-                    "status": "in_progress",
+                    "status": "done",
                     "orphan": false,
                     "approval": "proposed",
                     "requirements": {
@@ -12973,7 +12973,7 @@
                           "name": "Version & framework ID assignment",
                           "requirement": "When environment=prod, after human UAT sign-off, the deploy script accepts human-supplied values for a new version ID (and potentially a new framework ID) and writes them to the version document (per S-001-REQ-T-002). Dev and qa deploys never change these fields. No automation, ever, sets version or framework.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -12992,7 +12992,7 @@
                           "name": "Display chrome OFF",
                           "requirement": "In prod, the non-prod display chrome (S-005) MUST NOT render: no environment banner, no security token panel, no service-switching buttons. The smoke test (S-006) skips display-chrome checks when env=prod via its macro-variance dimension.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -13014,7 +13014,7 @@
                     "name": "Non-prod display chrome",
                     "description": "Display chrome visible in local, dev, and qa; absent in prod (see S-004-REQ-B-002). Owns the environment banner, the security-token panel, and the three service-switching buttons. Banner reads /health from whichever service currently owns the page (FindCare, EvaluateCare, or SharedServices).",
                     "size": "S",
-                    "status": "in_progress",
+                    "status": "done",
                     "orphan": false,
                     "approval": "approved",
                     "requirements": {
@@ -13043,7 +13043,7 @@
                           "name": "Banner re-fetches on ownership transfer",
                           "requirement": "When page ownership transfers between services, the banner re-fetches /health from the new owner and updates inline.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -13062,7 +13062,7 @@
                           "name": "Service buttons + active is cold",
                           "requirement": "Three service-switching buttons (FindCare, EvaluateCare, SharedServices) appear in the banner. The currently-active service's button is cold (greyed, disabled); on click it shows tooltip 'You are here already'. The other two buttons are hot (clickable, styled). Clicking a hot button transfers page ownership to that service, which then controls the entire frame. The content of this display must be served by the HuggingFace server that owns the content.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -13081,7 +13081,7 @@
                           "name": "Unimplemented placeholder",
                           "requirement": "The center panel displays the service name and 'is still unimplemented.' when SharedServices or EvaluateCare has control, until those services have real implementations. The content of this display must be served by the HuggingFace server that owns the content.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -13100,7 +13100,7 @@
                           "name": "Security token panel",
                           "requirement": "Each service displays a security token panel rendered per the mock at {projectRoot}/brain/machine_artifacts/diagramsAndImages/GUIImagesAndMockUps/NonProdSecuriytToken.jpg. Right panel and lower regions display the security information defined by EPIC-002-F-001-S-012-REQ-B-007. The content of this display must be served by the HuggingFace server that owns the content.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -13122,7 +13122,7 @@
                     "name": "Smoke test",
                     "description": "One master Playwright pytest (`Code/deploy/localSmokeTestPyTest.py`) runs against any environment. The script varies along three dimensions: (1) environment — localhost / dev / qa / prod; (2) macro variance — display chrome (banner, token, service buttons) is exercised in non-prod and skipped in prod per S-004-REQ-B-002; (3) micro variance — PKI certificates differ across environments and the cert-verification step asserts the env-appropriate cert is in use. The actual script is the source of truth: where these requirements differ from the script's behavior, the script wins and these requirements MUST be reverse-engineered to match. Per-step requirements below (REQ-B-002 through REQ-B-037) capture each test class in the script.",
                     "size": "L",
-                    "status": "in_progress",
+                    "status": "done",
                     "orphan": false,
                     "approval": "approved",
                     "requirements": {
@@ -13875,7 +13875,7 @@
                     "name": "Step notices and human-instructed bell",
                     "description": "On-screen notices at significant deploy steps (the mechanism for S-001-REQ-B-005). The bell is HUMAN-INSTRUCTED ONLY: it never rings as default behavior. Default deploy behavior is silent except for the on-screen notices.",
                     "size": "S",
-                    "status": "in_progress",
+                    "status": "done",
                     "orphan": false,
                     "approval": "proposed",
                     "requirements": {
@@ -13904,7 +13904,7 @@
                           "name": "Bell rings only on explicit human instruction",
                           "requirement": "The bell MUST NOT ring by default. The human operator may instruct Claude (via IDE prompt, command-line flag, or other explicit invocation) to ring the bell at specific times, in specific patterns. The operator chooses both WHEN and HOW. There is no requirement for unattended-deploy bell behavior; all deploys are human-supervised (per S-001-REQ-B-006).",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -13926,7 +13926,7 @@
                     "name": "React serving migration (opportunistic architectural evolution, one-time)",
                     "description": "ONE-TIME architectural evolution included opportunistically in this deploy-management feature. Moves the React frontend serving responsibility from FindCare (port 7860) to SharedServices (port 8002). After this story ships, it is permanently done — it does NOT belong to the enduring deploy facts and never re-fires.",
                     "size": "M",
-                    "status": "in_progress",
+                    "status": "done",
                     "orphan": false,
                     "approval": "proposed",
                     "requirements": {
@@ -13936,7 +13936,7 @@
                           "name": "React serving moves to SharedServices",
                           "requirement": "After this story ships, SharedServices (port 8002 per S-001-REQ-T-001) serves the React frontend in addition to its backend. FindCare (port 7860) serves only the FindCare backend. No other behavioral change.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -13955,7 +13955,7 @@
                           "name": "Build URLs updated",
                           "requirement": "S-001-REQ-T-008 (the universal React build req) builds the React frontend with the SharedServices URL baked in. Pre-migration FindCare URL is removed from all build paths.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -13974,7 +13974,7 @@
                           "name": "Smoke test passes post-migration",
                           "requirement": "The master smoke test (S-006) passes against an environment where SharedServices serves the React frontend, with no regression in any of the current step set (Step00..Step34 plus the cert-verification step in S-006-REQ-T-003 — currently 36 steps total).",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -13996,7 +13996,7 @@
                     "name": "Local Development File System & local Code Repository Management",
                     "description": "This story specifies how the local file system will materialize on the disk and in the Cursor IDE. It will also specify the file system's relationship to the local Git, which is an exact mirror, when pushed, of the same repository on GitHub. Due 2026-05-22.",
                     "size": "M",
-                    "status": "in_progress",
+                    "status": "done",
                     "orphan": false,
                     "approval": "approved",
                     "requirements": {
@@ -14025,7 +14025,7 @@
                           "name": "No code file spans more than one feature",
                           "requirement": "No code file CAN span more than one feature. Each source file belongs to exactly one feature in the agile_backlog hierarchy.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -14082,7 +14082,7 @@
                           "name": "Downstream artifacts on disk are never authored by hand; Extractor is the sole writer",
                           "requirement": "Every downstream on-disk artifact that corresponds to a `files[]` row in any TargetRecord (workflow YAMLs, Dockerfiles, shell scripts, bat scripts, certs, keys, static assets, and any other `handler_type` in the V18 enum) MUST be authored only by Extractor's `materialize` writing `embedded_content` byte-for-byte to `source_location`. Hand-authoring or hand-editing of any such file MUST be detected at the commit boundary as `file_drift` (REQ-T-031) and MUST be rejected with the bare reject form.",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -14120,7 +14120,7 @@
                           "name": "File-system level rename or move of a managed file requires a deliberate Builder.build_record invocation",
                           "requirement": "When the operator renames or moves a file that is referenced by `files[i].source_location` in any TargetRecord, the affected TargetRecord(s) MUST be refreshed by a deliberate `Builder.build_record(target_id, repo_root)` invocation per-target. No watcher, no IDE save event, and no auto-extractor side effect MAY refresh a TargetRecord in response to a filesystem event. If the operator commits without running Builder, Crosswalk's `check_file_drift` (REQ-T-031) MUST detect the divergence at the commit boundary and PreCommitHook MUST return `1` with the bare-reject form (REQ-T-028).",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "approval": "proposed",
                           "tests": {
@@ -14140,7 +14140,7 @@
                   {
                     "story_id": "EPIC-008-F-012-S-010",
                     "size": "M",
-                    "status": "in_progress",
+                    "status": "done",
                     "requirements": {
                       "requirement": []
                     },
@@ -14152,7 +14152,7 @@
                   {
                     "story_id": "EPIC-008-F-012-S-011",
                     "size": "S",
-                    "status": "in_progress",
+                    "status": "done",
                     "requirements": {
                       "requirement": [
                         {
@@ -14179,7 +14179,7 @@
                           "req_id": "EPIC-008-F-012-S-011-REQ-T-003",
                           "requirement": "start_local.bat must kill all orphaned python.exe processes running uvicorn before starting new instances",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
@@ -14198,7 +14198,7 @@
                           "req_id": "EPIC-008-F-012-S-011-REQ-T-004",
                           "requirement": "start_local.bat must kill all orphaned node.exe processes running vite/npm before starting new instances",
                           "priority": "must-have",
-                          "status": "deferred",
+                          "status": "done",
                           "orphan": false,
                           "tests": {
                             "test": [
