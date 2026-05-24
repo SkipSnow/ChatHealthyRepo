@@ -17,7 +17,7 @@ Three deploy targets — one entry point:
                deploy` from this machine.
   azure      — Azure Functions pipeline. Build deploy.zip from
                pipeline/Code/ on this machine, push via `az
-               functionapp deployment source config-zip`, then restart
+               functionapp deployment source config-zip`
                the host to drain warm sys.modules cache.
 
 usage:
@@ -565,22 +565,6 @@ def _az_push_zip(rg: str, app: str, zip_path: Path) -> None:
     _step(f"  config-zip pushed to {app}")
 
 
-def _az_restart(rg: str, app: str) -> None:
-    _step(f"restarting {app} (drain sys.modules cache)")
-    r = subprocess.run(
-        ["az", "functionapp", "restart",
-         "--resource-group", rg, "--name", app],
-        capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
-    )
-    if r.returncode != 0:
-        sys.exit(
-            f"ERROR: az functionapp restart failed (exit {r.returncode})\n"
-            f"  stderr: {(r.stderr or '').strip()[:1000]}"
-        )
-    _step("  restart requested")
-
-
 def _publish_azure_function_app(repo_root: Path, target: TargetRecord,
                                 env: str, sha7: str) -> str:
     """Publish one azure_function_app target. All metadata (resource_group,
@@ -608,7 +592,6 @@ def _publish_azure_function_app(repo_root: Path, target: TargetRecord,
     _block_if_active_orchestrations(rg, app, task_hub)
     zip_path = _build_pipeline_zip(repo_root, target, sha7)
     _az_push_zip(rg, app, zip_path)
-    _az_restart(rg, app)
     return f"{app}@{sha7}"
 
 
