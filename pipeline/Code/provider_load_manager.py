@@ -777,13 +777,18 @@ def report_fn(config: dict) -> dict:
     return DiscrepancyReporter().send(config)
 
 
+_PROVIDER_REPORT_COLLECTION = "admin.PipelineDiscrepancyReports"
+
+
 def provider_worker_fn(config: dict) -> dict:
     from provider_worker import ProviderWorker
+    config = {**config, "report_collection": config.get("report_collection", _PROVIDER_REPORT_COLLECTION)}
     return ProviderWorker(config).pipeline_execute()
 
 
 def embed_worker_fn(config: dict) -> dict:
     from embedding_worker import EmbeddingWorker
+    config = {**config, "report_collection": config.get("report_collection", _PROVIDER_REPORT_COLLECTION)}
     return EmbeddingWorker(config).pipeline_execute()
 
 

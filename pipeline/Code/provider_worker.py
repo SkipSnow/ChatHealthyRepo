@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from blob_client import get_blob_service
 from bson import ObjectId
 from pipeline_worker_base import PipelineWorkerBase
-from pymongo import MongoClient, InsertOne, ReplaceOne
+from pymongo import MongoClient, ReplaceOne
 
 _mongo: MongoClient | None = None
 _crosswalk_cache: dict | None = None
@@ -418,15 +418,13 @@ class ProviderWorker(PipelineWorkerBase):
                     doc.get("npi") or "unknown",
                 )
 
-        # Both incremental and non-incremental: upsert by NPI to avoid duplicate-key
-        # collisions when state-scoped drain misses cross-state-licensed records.
-        # Per 2026-05-06 directive: never lose records; ReplaceOne(upsert=True) ensures
-        # the new version always lands without npi_unique violations.
         npi = doc.get("npi")
-        if npi:
-            self._batch.append(ReplaceOne({"npi": npi}, doc, upsert=True))
-        else:
-            self._batch.append(InsertOne(doc))
+        if not npi:
+            raise ValueError(
+                f"NPPES corruption: row missing NPI "
+                f"(worker={self.worker_id}, local_index={self._local_index})"
+            )
+        self._batch.append(ReplaceOne({"npi": npi}, doc, upsert=True))
 
         self._local_index += 1
         self._num_records += 1
