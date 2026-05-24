@@ -47,12 +47,16 @@ class BasePipelineOrchestrator:
         }
 
         self.context.set_custom_status("Step 1: Waking cluster")
-        yield self.context.call_activity("wake_cluster_activity", {"cluster_name": cluster_name})
+        yield self.context.call_activity(
+            "wake_cluster_activity",
+            {"cluster_name": cluster_name, "job_id": job_id},
+        )
 
         deadline = self.context.current_utc_datetime + datetime.timedelta(minutes=15)
         while self.context.current_utc_datetime < deadline:
             status = yield self.context.call_activity(
-                "check_cluster_state_activity", {"cluster_name": cluster_name},
+                "check_cluster_state_activity",
+                {"cluster_name": cluster_name, "job_id": job_id},
             )
             if status.get("cluster_state") == "IDLE":
                 break

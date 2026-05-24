@@ -103,10 +103,13 @@ SYNC_TASK_HANDLERS = {
 def _get_mongo_conn():
     return os.environ.get("MONGO_connectionString", "")
 
+def _get_frontend_conn():
+    return os.environ.get("MONGO_FRONTEND_connectionString", "")
+
 def _get_ops_manager():
     from cluster_lifecycle_manager import ClusterLifecycleManager
     from pymongo import MongoClient
-    conn = _get_mongo_conn()
+    frontend_conn = _get_frontend_conn()
     push_fn = None
     email_fn = None
     try:
@@ -120,8 +123,7 @@ def _get_ops_manager():
     except Exception:
         pass
     return ClusterLifecycleManager(
-        get_db_fn=lambda: MongoClient(conn),
-        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+        get_db_fn=lambda: MongoClient(frontend_conn),
         push_fn=push_fn,
     )
 
@@ -131,7 +133,7 @@ def _get_ops_agent():
     from ops_manager import OpsManagerAgent
     from pymongo import MongoClient
     conn = _get_mongo_conn()
-    env_prefix = os.environ.get("ENV_PREFIX", "dev")
+    frontend_conn = _get_frontend_conn()
     push_fn = None
     email_fn = None
     try:
@@ -145,8 +147,7 @@ def _get_ops_agent():
     except Exception:
         pass
     mgr = ClusterLifecycleManager(
-        get_db_fn=lambda: MongoClient(conn),
-        env_prefix=env_prefix,
+        get_db_fn=lambda: MongoClient(frontend_conn),
         push_fn=push_fn,
     )
     return OpsManagerAgent(
@@ -433,7 +434,10 @@ def check_mongo_health_activity(config: dict) -> dict:
 def check_cluster_state_activity(config: dict) -> dict:
     """Return cluster state for orchestrator polling."""
     mgr = _get_ops_manager()
-    return mgr.status(config.get("cluster_name", "ChatHealthyDataPipelines"))
+    return mgr.status(
+        config.get("cluster_name", "ChatHealthyDataPipelines"),
+        job_id=config.get("job_id"),
+    )
 
 
 @app.activity_trigger(input_name="config")
@@ -508,20 +512,18 @@ def write_metadata_activity(config: dict) -> list:
 
 @app.activity_trigger(input_name="config")
 def wake_cluster_activity(config: dict) -> dict:
-    from pipeline_db import get_mongo
+    from pipeline_db import get_frontend_mongo
     ClusterLifecycleManager(
-        get_db_fn=get_mongo,
-        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
-    ).wake(config["cluster_name"])
+        get_db_fn=get_frontend_mongo,
+    ).wake(config["cluster_name"], job_id=config.get("job_id"))
     return {"cluster_name": config["cluster_name"], "wake_sent": True}
 
 
 @app.activity_trigger(input_name="config")
 def register_reservation_activity(config: dict) -> dict:
-    from pipeline_db import get_mongo
+    from pipeline_db import get_frontend_mongo
     return ClusterLifecycleManager(
-        get_db_fn=get_mongo,
-        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+        get_db_fn=get_frontend_mongo,
     ).reserve(
         cluster_name=config["cluster_name"],
         job_id=config["job_id"],
@@ -532,10 +534,9 @@ def register_reservation_activity(config: dict) -> dict:
 
 @app.activity_trigger(input_name="config")
 def release_reservation_activity(config: dict) -> dict:
-    from pipeline_db import get_mongo
+    from pipeline_db import get_frontend_mongo
     return ClusterLifecycleManager(
-        get_db_fn=get_mongo,
-        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
+        get_db_fn=get_frontend_mongo,
     ).release(config["job_id"])
 
 

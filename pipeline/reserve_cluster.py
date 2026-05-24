@@ -41,7 +41,7 @@ if ENV_FILE.is_file():
         os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 from cluster_lifecycle_manager import ClusterLifecycleManager  # noqa: E402
-from pipeline_db import get_mongo  # noqa: E402
+from pipeline_db import get_frontend_mongo  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -69,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
           f"class={args.cls} requester={args.requester} job_id={job_id}",
           flush=True)
 
-    mgr = ClusterLifecycleManager(get_db_fn=get_mongo, env_prefix=args.env_prefix)
+    mgr = ClusterLifecycleManager(get_db_fn=get_frontend_mongo)
     result = mgr.reserve(
         cluster_name=args.cluster,
         job_id=job_id,
