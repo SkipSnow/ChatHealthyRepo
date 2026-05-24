@@ -135,6 +135,8 @@ class TargetRecord:
     target_kind: str  # closed enum: hf_space|cloudflare_pages_project|...
     environments: list[EnvironmentBinding]
     files: list[FileComposition]
+    secrets: dict | None = None  # name -> store_id; same keys apply across all envs;
+                                  # per-env values resolved via SecretsResolver at deploy time
 
     def env_binding_set(self) -> set[str]:
         return {e.env_binding for e in self.environments}
@@ -146,12 +148,15 @@ class TargetRecord:
         return None
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        out: dict[str, object] = {
             "target_id": self.target_id,
             "target_kind": self.target_kind,
             "environments": [e.to_dict() for e in self.environments],
             "files": [f.to_dict() for f in self.files],
         }
+        if self.secrets:
+            out["secrets"] = self.secrets
+        return out
 
     @classmethod
     def from_dict(cls, d: dict[str, object]) -> "TargetRecord":
@@ -164,6 +169,7 @@ class TargetRecord:
             target_kind=str(d["target_kind"]),
             environments=[EnvironmentBinding.from_dict(e) for e in envs_raw],
             files=[FileComposition.from_dict(f) for f in files_raw],
+            secrets=d.get("secrets"),  # type: ignore[arg-type]
         )
 
 

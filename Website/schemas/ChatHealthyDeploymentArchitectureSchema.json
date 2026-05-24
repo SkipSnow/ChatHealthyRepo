@@ -201,6 +201,15 @@
                 }
               ]
             }
+          },
+
+          "secrets": {
+            "type": "object",
+            "description": "Secret / environment key declarations for this TARGET. Map of key NAME -> store id. The same keys apply across every env_binding of this target; per-env VALUES come from the bound store via SecretsResolver. The deploy script reads this inventory and configures the target's runtime env surface (FA app settings, Automation Variables, HF Space secrets, Cloudflare env, etc.). Values themselves NEVER appear in this JSON — only names + store ids. Each target enumerates ITS OWN full key list; no inheritance, no shared base, no implicit defaults. Per EPIC-008-F-012-S-001-REQ-T-037/T-038.",
+            "additionalProperties": {
+              "type": "string",
+              "enum": ["local_env", "gha_secret", "hf_space_secret", "cloudflare_env", "azure_function_app_setting", "azure_automation_variable"]
+            }
           }
         }
       }

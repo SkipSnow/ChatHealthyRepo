@@ -11382,7 +11382,7 @@
                   {
                     "story_id": "EPIC-008-F-012-S-001",
                     "name": "Universal deploy contract",
-                    "description": "The contract every deploy script obeys, regardless of environment. Port assignments, atomicity, version-document handling, build-bump rule, smoke-test invocation contract, and the human-authorization gate live here as the single source of truth.",
+                    "description": "The 'deployment_architecture.json' currently hosted by 'the brain and residing in firm's cursor project's 'file system' as well as in GITHUB is the single source of truth for all deployment facts for ChatHealthy.ai's components. This file must be the source of One local and one remote deploys script. It must, regardless of environment, contain all necessary information to do full deployments to each required component. This includes fulsome facts about code branches, or the local file directories for the local build. These facts include but are not limited to port assignments, atomicity, source code file facts, secrets and environment keys must be included, but the secrets may never be in any file that is part of a build package. Each deployment must have an enforced human-authorization gate. A build script for each component must build a release package stored in GIT Hub with appropriate Version information. And All builds must be done on a local workstation, and then shipped via a deploy script, which will also be accountable to build and configure the components as necessary.",
                     "size": "L",
                     "status": "in_progress",
                     "orphan": false,
@@ -12191,7 +12191,7 @@
                         {
                           "req_id": "EPIC-008-F-012-S-001-REQ-T-037",
                           "name": "SecretsResolver is the single value-fetching code path",
-                          "requirement": "SecretsResolver MUST be the SOLE public entry point for obtaining a secret VALUE at runtime. SecretsResolver MUST expose `resolve(name, env) -> str` as the only public method that returns a value. All file-read access to any store of secret values (local `.env`, CI store, hosting-platform store, cloud secret manager) MUST be encapsulated by private helper methods on SecretsResolver. No other module on the deploy chain (Builder, Extractor, Crosswalk, RecordLoader, RecordWriter, PreCommitHook, local deployer, promote workflow) MAY read a secret store directly.",
+                          "requirement": "SecretsResolver MUST be the SOLE public entry point for obtaining a secret VALUE at runtime. SecretsResolver MUST expose `resolve(name, env) -> str` as the only public method that returns a value. All file-read access to any store of secret values (local `.env`, CI store, hosting-platform store, cloud secret manager) MUST be encapsulated by private helper methods on SecretsResolver. No other module on the deploy chain (Builder, Extractor, Crosswalk, RecordLoader, RecordWriter, PreCommitHook, local deployer, promote workflow) MAY read a secret store directly. The set of `(name, env)` pairs SecretsResolver answers for MUST be sourced from `deployment_architecture.json`'s per-target per-env key declaration; no other inventory of keys may exist.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -12210,7 +12210,7 @@
                         {
                           "req_id": "EPIC-008-F-012-S-001-REQ-T-038",
                           "name": "SecretsResolver binds each (name, env) to exactly one store; no cross-store fallback",
-                          "requirement": "SecretsResolver MUST carry a `bindings: dict[tuple[str, str], str]` constructor argument that maps each `(name, env)` pair to exactly one store identifier. A private `_store_for(name, env) -> str` MUST look up the binding and raise when no binding exists for the pair. `resolve(name, env)` MUST read from the bound store ONLY. If the bound store is unavailable at resolution time, `resolve` MUST raise; it MUST NOT try another store. There is no cross-store fallback anywhere on the resolver path. Each runtime env binds to its own secret store; values never cross stores.",
+                          "requirement": "SecretsResolver MUST carry a `bindings: dict[tuple[str, str], str]` constructor argument that maps each `(name, env)` pair to exactly one store identifier. The `bindings` argument MUST be constructed by reading the per-target per-env key declarations from `deployment_architecture.json`; no hand-built constructor binding is permitted. A private `_store_for(name, env) -> str` MUST look up the binding and raise when no binding exists for the pair. `resolve(name, env)` MUST read from the bound store ONLY. If the bound store is unavailable at resolution time, `resolve` MUST raise; it MUST NOT try another store. There is no cross-store fallback anywhere on the resolver path. Each runtime env binds to its own secret store; values never cross stores.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
