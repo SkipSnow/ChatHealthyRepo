@@ -49,7 +49,7 @@ from record_loader import RecordLoader
 from secrets_resolver import SecretsResolver
 from target_record import DeploymentCollection, TargetRecord
 import ch_fonts_inliner
-import old_remote_deploy as rd
+import hf_helpers as rd
 
 
 _BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build")

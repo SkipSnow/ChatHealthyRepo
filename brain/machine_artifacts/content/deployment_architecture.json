@@ -2356,31 +2356,24 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/hf_helpers.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e7446060982c8748d9a04221abe2a7ee06f5cb319ef60e96078c84f0b3db83a0"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b04953ee7f10e977851d55d58fb2f7d94d8618b408a7f6783ee52d9a951a2d62"
+          "content_hash": "0831cfb6b27601a8e507440e85c4d1573a96a4f6cbdd69bcd64900a5164aaa2d"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "8df4c70cd53a8f06c38ca2e3ecc590bd8765c324730280de26e92836aee355fc"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/old_local_publish.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8962f08582af8ac780d7e3753643f90e3bd11cb340df584e383e687a55815d54"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/old_remote_deploy.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "e537128aafbbac502a002eb0494651fb7984a2544cccbdd7bfa546ebc9078a9c"
+          "content_hash": "1899243df652f3e1cf590ce6300491320d997d635a4a55f011ddb6569a1d722a"
         },
         {
           "feature_id": "EPIC-008-F-012",
