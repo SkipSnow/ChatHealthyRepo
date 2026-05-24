@@ -120,18 +120,25 @@ class ClusterLifecycleManager:
             {"_id": self._doc_id}, state, upsert=True
         )
 
-    # ── v0.1 API: WakeCluster ────────────────────────────────
+    def wake(self, cluster_name: str) -> None:
+        try:
+            resp = requests.patch(
+                _atlas_url(cluster_name),
+                json={"paused": False},
+                auth=_atlas_auth(),
+                headers=_atlas_headers(),
+                timeout=30,
+            )
+            state_name = resp.json().get("stateName", "unknown")
+            _log.info("Wake requested: %s (state: %s)", cluster_name, state_name)
+        except Exception as e:
+            _log.error("Wake failed: %s — %s", cluster_name, e)
+            if self._push:
+                self._push("Cluster Wake Failed", f"{cluster_name}: {e}")
 
     def reserve(self, cluster_name: str, job_id: str, requester: str,
                 expected_duration_minutes: int, expected_min_minutes: int = 0,
                 reservation_class: str = "automated") -> dict:
-        """Reserve a cluster. Sends wake request (non-blocking). Returns reservation.
-
-        Called by pipeline tasks before starting work.
-        The caller must poll status() until cluster is IDLE before doing work.
-        `reservation_class` is "automated" by default; pass "human" to mark the
-        reservation as held by a human operator (the timer will not auto-reap it).
-        """
         if reservation_class not in ("automated", "human"):
             raise ValueError(
                 f"reservation_class must be 'automated' or 'human', got {reservation_class!r}"
@@ -149,25 +156,9 @@ class ClusterLifecycleManager:
             reservation_class=reservation_class,
         )
 
-        # Wake cluster FIRST — must be up before we can write reservation to MongoDB
-        _log.info("Reservation: %s by %s (%d min) — waking cluster first",
-                   job_id, requester, expected_duration_minutes)
-        self._send_wake(cluster_name)
-
-        # Poll until cluster is IDLE (up to 10 min)
-        import time as _time
-        for attempt in range(60):  # 60 * 10s = 10 min
-            cluster_state = self._get_cluster_state(cluster_name)
-            if cluster_state == "IDLE":
-                break
-            _log.info("Waiting for cluster: %s (attempt %d)", cluster_state, attempt + 1)
-            _time.sleep(10)
-
-        # Now write reservation to MongoDB
         state = self._get_state()
         state["reservations"].append(reservation.to_dict())
         self._save_state(state)
-
         return reservation.to_dict()
 
     # ── v0.1 API: ClusterStatus ──────────────────────────────
@@ -261,25 +252,6 @@ class ClusterLifecycleManager:
         _log.warning("FORCE RELEASE: %d reservations cleared, %s shutting down", released, cluster_name)
         return {"released": released, "cluster": cluster_name}
 
-    # ── Atlas operations (private) ───────────────────────────
-
-    def _send_wake(self, cluster_name: str):
-        """Send resume request — non-blocking. Does NOT wait for IDLE."""
-        try:
-            resp = requests.patch(
-                _atlas_url(cluster_name),
-                json={"paused": False},
-                auth=_atlas_auth(),
-                headers=_atlas_headers(),
-                timeout=30,
-            )
-            state_name = resp.json().get("stateName", "unknown")
-            _log.info("Wake requested: %s (state: %s)", cluster_name, state_name)
-        except Exception as e:
-            _log.error("Wake failed: %s — %s", cluster_name, e)
-            if self._push:
-                self._push("Cluster Wake Failed", f"{cluster_name}: {e}")
-
     def _send_pause(self, cluster_name: str):
         """Send pause request — non-blocking."""
         try:
@@ -310,40 +282,3 @@ class ClusterLifecycleManager:
         except Exception as e:
             _log.warning("State check failed: %s — %s", cluster_name, e)
             return "UNKNOWN"
-
-
-# ── Shared activity-fn wrappers (every pipeline orchestrator calls these) ───
-#
-# These live here, not in any per-pipeline module, so the Provider and
-# Specialty orchestrations remain 100% independent of each other (EPIC-010-
-# F-102-S-007-B3). The base orchestrator class invokes them via the
-# `register_reservation_activity` and `release_reservation_activity`
-# decorators registered in function_app.py.
-#
-# Mongo client comes from `pipeline_db.get_mongo()` — the single shared
-# MongoClient singleton (one per process) used across the pipeline.
-
-
-def register_reservation_fn(reservation_config: dict) -> dict:
-    """Register a cluster reservation. Wakes the cluster if needed."""
-    from pipeline_db import get_mongo
-    manager = ClusterLifecycleManager(
-        get_db_fn=get_mongo,
-        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
-    )
-    return manager.reserve(
-        cluster_name=reservation_config["cluster_name"],
-        job_id=reservation_config["job_id"],
-        requester=reservation_config["requester"],
-        expected_duration_minutes=reservation_config["expected_duration_minutes"],
-    )
-
-
-def release_reservation_fn(reservation_config: dict) -> dict:
-    """Release a cluster reservation. Shuts down cluster if last one."""
-    from pipeline_db import get_mongo
-    manager = ClusterLifecycleManager(
-        get_db_fn=get_mongo,
-        env_prefix=os.environ.get("ENV_PREFIX", "dev"),
-    )
-    return manager.release(reservation_config["job_id"])
