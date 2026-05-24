@@ -122,12 +122,17 @@ TAX_GROUP_PREFIX = "Healthcare Provider Taxonomy Group_"
 LICENSE_NUMBER_PREFIX = "Provider License Number_"
 LICENSE_STATE_PREFIX  = "Provider License Number State Code_"
 
-ARRAY_FIELD_GROUPS = [
-    ("Other Provider Identifier_", "other_identifiers"),
-    ("Other Provider Identifier Type Code_", "other_identifier_types"),
-    ("Other Provider Identifier State_", "other_identifier_states"),
-    ("Other Provider Identifier Issuer_", "other_identifier_issuers"),
-]
+OID_PREFIX = "Other Provider Identifier_"
+OID_TYPE_PREFIX = "Other Provider Identifier Type Code_"
+OID_STATE_PREFIX = "Other Provider Identifier State_"
+OID_ISSUER_PREFIX = "Other Provider Identifier Issuer_"
+
+# NPPES Data Dissemination Code Values (Feb 2025), section 1.11 -
+# Other Provider Identifier Issuer Codes. Two-code closed dictionary.
+OID_TYPE_DESCRIPTIONS = {
+    "01": "OTHER",
+    "05": "MEDICAID",
+}
 
 PRACTICE_ADDRESS_FIELDS = {
     "Provider First Line Business Practice Location Address": "line1",
@@ -202,16 +207,35 @@ def _normalize_row(header: list, row: list) -> dict:
     if licenses:
         doc["licenses"] = licenses
 
-    # Collapse numbered groups into arrays
-    for prefix, key in ARRAY_FIELD_GROUPS:
-        values = [
-            raw[h].strip()
-            for h in header
-            if h.startswith(prefix) and raw.get(h, "").strip()
-        ]
+    # Collapse other-identifier parallel arrays into one array of objects.
+    # Each slot N yields ONE object {identifier, type_code, type_description,
+    # state, issuer} so the four fields stay aligned per slot (the prior
+    # per-prefix filter-then-zip pattern silently misaligned when any of the
+    # four was empty in a given slot). Slots with empty identifier are dropped.
+    for prefix in (OID_PREFIX, OID_TYPE_PREFIX, OID_STATE_PREFIX, OID_ISSUER_PREFIX):
         consumed.update(h for h in header if h.startswith(prefix))
-        if values:
-            doc[key] = values
+    other_identifiers = []
+    for h in sorted(h for h in header if h.startswith(OID_PREFIX)):
+        idx = h[len(OID_PREFIX):]
+        identifier = raw.get(h, "").strip()
+        if not identifier:
+            continue
+        type_code = raw.get(f"{OID_TYPE_PREFIX}{idx}", "").strip()
+        state = raw.get(f"{OID_STATE_PREFIX}{idx}", "").strip()
+        issuer = raw.get(f"{OID_ISSUER_PREFIX}{idx}", "").strip()
+        entry: dict = {"identifier": identifier}
+        if type_code:
+            entry["type_code"] = type_code
+            desc = OID_TYPE_DESCRIPTIONS.get(type_code)
+            if desc:
+                entry["type_description"] = desc
+        if state:
+            entry["state"] = state
+        if issuer:
+            entry["issuer"] = issuer
+        other_identifiers.append(entry)
+    if other_identifiers:
+        doc["other_identifiers"] = other_identifiers
 
     # Practice addresses are always a list. Element 0 is the primary practice
     # location from the main NPPES file (npidata_pfile). Secondary locations
