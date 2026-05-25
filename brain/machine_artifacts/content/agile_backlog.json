@@ -12567,6 +12567,25 @@
                             ]
                           },
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-T-057",
+                          "name": "Demotion of a secret to SecretSafe requires operator-echoed token",
+                          "requirement": "`Code/.env` MUST be organized into two top-level sections, `# Secrets` and `# SecretSafe`, and every `KEY=VALUE` line MUST live under exactly one of them. The leak-check needle set used by REQ-T-053 MUST be exactly the values whose key falls under `# Secrets`. The pre-commit gate MUST diff the staged `Code/.env` against the prior version on disk and REFUSE the commit unless the operator echoes a case-sensitive confirmation token at the prompt when the diff (a) adds a new key under `# SecretSafe`, or (b) moves an existing key from `# Secrets` into `# SecretSafe`. Additions under `# Secrets` and changes inside `# Secrets` pass without prompt. Default classification for any new key is `# Secrets`; demotion is the only path through the gate. Same echo mechanism as Rule-065 (`commit_authorization_worker`).",
+                          "priority": "must-have",
+                          "status": "deferred",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
                         }
                       ]
                     }

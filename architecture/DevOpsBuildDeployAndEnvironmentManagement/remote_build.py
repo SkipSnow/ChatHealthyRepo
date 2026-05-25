@@ -1,13 +1,14 @@
 """remote_build.py - GHA runner build manager.
 
-CI-side mirror of local_build.py per EPIC-008-F-012-S-001 REQ-T-049
-(symmetric 4-script set). Reads source from the runner's checked-out
-tree; emits per-target packages to remote_build/v{N}/<target_id>/.
-Build handlers are imported from local_build (no duplication).
+CI-side mirror of local_build.py per EPIC-008-F-012-S-001 REQ-T-049.
+Reads source from the runner's checked-out tree; emits per-target
+packages to remoteBuild/<target_id>/. Build handlers are imported from
+local_build (no duplication). remoteBuild/ is tracked in git: each
+branch HEAD holds that branch's current build; the promote chain
+carries the bytes forward via merge.
 
 Per REQ-T-055: this script MUST execute only on a named GitHub Actions
-runner (env var GITHUB_ACTIONS=true). Invocation outside that context
-hard-fails.
+runner (env var GITHUB_ACTIONS=true).
 
 usage (in a GHA workflow step):
     python architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_build.py --target all
@@ -71,7 +72,7 @@ def _require_gha_context() -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Build per-target deploy packages under remote_build/v{N}/ on a GHA runner."
+        description="Build per-target deploy packages under remoteBuild/<target_id>/ on a GHA runner."
     )
     parser.add_argument(
         "--target", default="all",
@@ -114,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
     for t in targets:
         built.append(_build_one(repo_root, t, build_n, build_sha, build_root_rel=REMOTE_BUILD_ROOT_REL))
 
-    _step(f"built {len(built)} package(s) at v{build_n} under remote_build/:")
+    _step(f"built {len(built)} package(s) (build={build_n}) under remoteBuild/:")
     for b in built:
         _step(f"  {b.relative_to(repo_root)}")
     return 0

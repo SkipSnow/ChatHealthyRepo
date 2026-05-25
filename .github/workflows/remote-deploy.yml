@@ -1,0 +1,83 @@
+name: Remote build + deploy (CI)
+'on':
+  workflow_dispatch:
+    inputs:
+      env:
+        description: Target environment to deploy to
+        required: true
+        type: choice
+        options:
+        - qa
+        - prod
+        default: qa
+      target:
+        description: 'Target filter: all | cloudflare | hf | azure | <target_id>'
+        required: false
+        type: string
+        default: all
+jobs:
+  remote-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Install Python dependencies
+      run: pip install pymongo python-dotenv httpx psutil pyyaml jsonschema requests
+    - name: Materialize Code/.env from GHA secrets
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+        GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+        FINDCARE_SIGNING_KEY_B64: ${{ secrets.FINDCARE_SIGNING_KEY_B64 }}
+        EVALCARE_SIGNING_KEY_B64: ${{ secrets.EVALCARE_SIGNING_KEY_B64 }}
+        SHARED_SIGNING_KEY_B64: ${{ secrets.SHARED_SIGNING_KEY_B64 }}
+        MONGO_connectionString: ${{ secrets.MONGO_connectionString }}
+        MONGO_FRONTEND_connectionString: ${{ secrets.MONGO_FRONTEND_connectionString }}
+        ATLAS_PUBLIC_KEY: ${{ secrets.ATLAS_PUBLIC_KEY }}
+        ATLAS_PRIVATE_KEY: ${{ secrets.ATLAS_PRIVATE_KEY }}
+        ATLAS_PROJECT_ID: ${{ secrets.ATLAS_PROJECT_ID }}
+        AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        AZURE_PIPELINE_CLIENT_ID: ${{ secrets.AZURE_PIPELINE_CLIENT_ID }}
+        AZURE_PIPELINE_CLIENT_SECRET: ${{ secrets.AZURE_PIPELINE_CLIENT_SECRET }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+        ENV_PREFIX: ${{ inputs.env }}
+      run: 'mkdir -p Code
+
+        { echo "CLOUDFLARE_API_TOKEN=$CLOUDFLARE_API_TOKEN"; echo "CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID"; echo "HF_TOKEN=$HF_TOKEN"; echo "GEMINI_API_KEY=$GEMINI_API_KEY"; echo "GOOGLE_OAUTH_CLIENT_ID=$GOOGLE_OAUTH_CLIENT_ID"; echo "GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET"; echo "FINDCARE_SIGNING_KEY_B64=$FINDCARE_SIGNING_KEY_B64"; echo "EVALCARE_SIGNING_KEY_B64=$EVALCARE_SIGNING_KEY_B64"; echo "SHARED_SIGNING_KEY_B64=$SHARED_SIGNING_KEY_B64"; echo "MONGO_connectionString=$MONGO_connectionString"; echo "MONGO_FRONTEND_connectionString=$MONGO_FRONTEND_connectionString"; echo "ATLAS_PUBLIC_KEY=$ATLAS_PUBLIC_KEY"; echo "ATLAS_PRIVATE_KEY=$ATLAS_PRIVATE_KEY"; echo "ATLAS_PROJECT_ID=$ATLAS_PROJECT_ID"; echo "AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING"; echo "AZURE_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID"; echo "AZURE_RESOURCE_GROUP=$AZURE_RESOURCE_GROUP"; echo "AZURE_TENANT_ID=$AZURE_TENANT_ID"; echo "AZURE_PIPELINE_CLIENT_ID=$AZURE_PIPELINE_CLIENT_ID"; echo "AZURE_PIPELINE_CLIENT_SECRET=$AZURE_PIPELINE_CLIENT_SECRET"; echo "OPENAI_API_KEY=$OPENAI_API_KEY"; echo "GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY"; echo "ENV_PREFIX=$ENV_PREFIX"; } > Code/.env'
+    - name: Login to GHCR (for HF Space image push)
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Azure CLI login (for azure_function_app deploy)
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - name: remote_build
+      run: python architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_build.py --target ${{ inputs.target }}
+    - name: remote_deploy
+      run: python architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_deploy.py --env ${{ inputs.env }} --target ${{ inputs.target }}
+    - name: Cleanup Code/.env
+      if: always()
+      run: rm -f Code/.env
