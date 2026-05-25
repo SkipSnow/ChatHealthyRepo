@@ -282,6 +282,7 @@ def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
     ]
 
     fan_cfg = {
+        "load_id":         load_id,
         "worker_activity": "provider_worker_activity",
         "worker_configs":  worker_configs,
         "num_workers":     len(partitions),
@@ -1012,6 +1013,8 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             "pipeline_health_and_zombie_kill_orchestrator",
             {
                 "orchestrator_name": "provider_pipeline_orchestrator",
+                "current_load_id":   load_id,
+                "load_id":           load_id,
                 "states":            config["states"],
             },
         )
@@ -1086,6 +1089,7 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
         if _run(PROVIDER_LABEL_MULTI_PRACTICE):
             context.set_custom_status(PROVIDER_LABEL_MULTI_PRACTICE)
             mp_cfg = {
+                "load_id":              load_id,
                 "blob_container":       config["blob_container"],
                 "states":               config["states"],
                 "provider_collection":  config["provider_collection"],
@@ -1157,6 +1161,7 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
         if _run(PROVIDER_LABEL_URBAN):
             context.set_custom_status(PROVIDER_LABEL_URBAN)
             urban_cfg = {
+                "load_id":             load_id,
                 "blob_container":      config["blob_container"],
                 "states":              config["states"],
                 "provider_collection": config["provider_collection"],
@@ -1173,6 +1178,7 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
         if _run(PROVIDER_LABEL_PROVIDER_FLAGS):
             context.set_custom_status(PROVIDER_LABEL_PROVIDER_FLAGS)
             flags_cfg = {
+                "load_id":               load_id,
                 "states":                config["states"],
                 "provider_collection":   config["provider_collection"],
                 "flag_stamp_batch_size": config.get("flag_stamp_batch_size", 500),
@@ -1188,6 +1194,7 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
         if _run(PROVIDER_LABEL_EMBED) and config["embedding_enabled"]:
             context.set_custom_status(PROVIDER_LABEL_EMBED)
             embed_cfg = {
+                "load_id":              load_id,
                 "num_workers":          config["num_workers"],
                 "provider_collection":  config["provider_collection"],
                 "states":               config["states"],

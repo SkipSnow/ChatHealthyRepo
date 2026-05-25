@@ -306,6 +306,7 @@ def normalize_provider_rows_orchestrator_fn(context):
     ]
 
     fan_cfg = {
+        "load_id":          cfg.get("load_id"),
         "worker_activity":  "normalize_provider_rows_worker_activity",
         "worker_configs":   worker_configs,
         "num_workers":      num_workers,
