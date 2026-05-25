@@ -48,10 +48,14 @@ def test_catalog_entry_shape():
     cat = load_catalog()
     for code, entry in cat.items():
         assert isinstance(entry, dict)
-        assert set(entry.keys()) == {"can_prescribe", "is_homeopathic", "is_npi_registered"}
+        assert set(entry.keys()) == {
+            "can_prescribe", "is_homeopathic",
+            "is_npi_registered", "is_disqualified",
+        }
         assert isinstance(entry["can_prescribe"], bool)
         assert isinstance(entry["is_homeopathic"], bool)
         assert isinstance(entry["is_npi_registered"], bool)
+        assert isinstance(entry["is_disqualified"], bool)
 
 
 def test_catalog_has_known_md_codes():
@@ -68,7 +72,9 @@ def test_catalog_has_known_md_codes():
 def test_apply_proprietary_flags_against_synthetic_providers(monkeypatch):
     # Build a fake collection that captures bulk_write ops so we can assert
     # the flags landed without touching real Mongo.
-    from county_enrichment_job import apply_proprietary_flags_fn
+    # Flag-stamping moved from county_enrichment_job to provider_flags_enrichment
+    # as part of the Skip-authorized pipeline refactor (Step 13 sub-orch).
+    from provider_flags_enrichment import apply_provider_flags_fn
 
     docs = [
         {"_id": "a", "npi": "1111111111", "entity_type_code": "1",
@@ -104,9 +110,9 @@ def test_apply_proprietary_flags_against_synthetic_providers(monkeypatch):
         def __getitem__(self, name):
             return FakeDb()
 
-    monkeypatch.setattr("county_enrichment_job._get_mongo_client", lambda: FakeClient())
+    monkeypatch.setattr("provider_flags_enrichment._get_mongo_client", lambda: FakeClient())
 
-    res = apply_proprietary_flags_fn({
+    res = apply_provider_flags_fn({
         "provider_collection": "x.y",
         "states": ["NE"],
     })

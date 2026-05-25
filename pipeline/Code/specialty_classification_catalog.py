@@ -1,10 +1,14 @@
 """Single-source-of-truth loader for the proprietary NUCC classification catalog.
 
-Maps every NUCC taxonomy code to three booleans:
+Maps every NUCC taxonomy code to four booleans:
   - can_prescribe     (true if the role has prescribing authority)
   - is_homeopathic    (true if the role is homeopathic)
   - is_npi_registered (true if the code appears as a taxonomy on at least
                        one provider record in NPPES)
+  - is_disqualified   (true if the code represents a non-clinical role —
+                       curated per BUG-005 from the NUCC Grouping field;
+                       codes under "Other Service Providers" or
+                       "Student, Health Care" are disqualified)
 
 The catalog lives in the MongoDB collection
 `ProprietaryData.SpecialtyAndProviderFlags` on the pipeline cluster
@@ -46,7 +50,8 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
         try:
             cursor = client[_DB_NAME][_COLL_NAME].find(
                 {}, {"_id": 0, "Code": 1, "can_prescribe": 1,
-                     "is_homeopathic": 1, "is_npi_registered": 1}
+                     "is_homeopathic": 1, "is_npi_registered": 1,
+                     "is_disqualified": 1}
             )
             out: Dict[str, Dict[str, bool]] = {}
             for row in cursor:
@@ -57,6 +62,7 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
                     "can_prescribe": bool(row.get("can_prescribe", False)),
                     "is_homeopathic": bool(row.get("is_homeopathic", False)),
                     "is_npi_registered": bool(row.get("is_npi_registered", False)),
+                    "is_disqualified": bool(row.get("is_disqualified", False)),
                 }
         finally:
             client.close()

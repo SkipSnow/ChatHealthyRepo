@@ -127,160 +127,257 @@ def _ensure_container(container: str) -> None:
 
 # ── Step labels (one canonical string per stage; used as both the
 #    set_custom_status display and the start_step API value) ─────────────────
-PROVIDER_LABEL_RESERVE   = "Step 1: Reserving cluster"
-PROVIDER_LABEL_HEALTH    = "Step 2: Checking MongoDB health"
-PROVIDER_LABEL_LOAD      = "Step 3: Loading provider data"
-PROVIDER_LABEL_ATTACH_PL = "Step 4: Attaching secondary practice locations"
-PROVIDER_LABEL_PASS1     = "Step 5: County enrichment Pass 1 — ZIP crosswalk"
-PROVIDER_LABEL_PASS2     = "Step 6: County enrichment Pass 2 — Census Geocoder, practice address"
-PROVIDER_LABEL_PASS3     = "Step 7: County enrichment Pass 3 — Census Geocoder, billing address"
-PROVIDER_LABEL_PASS4     = "Step 8: County enrichment Pass 4 — Google Maps"
-PROVIDER_LABEL_PASS6     = "Step 9: County enrichment Pass 6 — NPPES registry lookup"
-PROVIDER_LABEL_URBAN     = "Step 10: Stamping urban flag from Census 2020_UA_COUNTY"
-PROVIDER_LABEL_EMBED     = "Step 11: Generating embeddings + vector index"
+#
+# Step 3 (fan_out_workers) is the SHARED SUBSTRATE invoked by every
+# worker-based step below — it does not appear in the executable sequence,
+# so PROVIDER_PIPELINE_STEPS skips from Step 2 straight to Step 4.
+PROVIDER_LABEL_HEALTH_AND_ZOMBIES = "Step 1: Health check + kill THIS pipeline's zombies"
+PROVIDER_LABEL_PREPARE_DATA       = "Step 2: Prepare data"
+PROVIDER_LABEL_LOAD_RAW           = "Step 4: Load raw provider rows"
+PROVIDER_LABEL_NORMALIZE          = "Step 5: Normalize provider rows"
+PROVIDER_LABEL_MULTI_PRACTICE     = "Step 6: Load multi practice addresses"
+PROVIDER_LABEL_PASS1              = "Step 7: County enrichment Pass 1 — ZIP crosswalk"
+PROVIDER_LABEL_PASS2              = "Step 8: County enrichment Pass 2 — Census batch, practice"
+PROVIDER_LABEL_PASS3              = "Step 9: County enrichment Pass 3 — Census, billing"
+PROVIDER_LABEL_PASS_NPPES         = "Step 10: County enrichment Pass NPPES — registry"
+PROVIDER_LABEL_PASS_MAPS          = "Step 11: County enrichment Pass Maps — Google geocoder"
+PROVIDER_LABEL_URBAN              = "Step 12: Urban flag per practice_address"
+PROVIDER_LABEL_PROVIDER_FLAGS     = "Step 13: Apply provider-level flags"
+PROVIDER_LABEL_EMBED              = "Step 14: Embeddings"
 
 PROVIDER_PIPELINE_STEPS = [
-    PROVIDER_LABEL_RESERVE,
-    PROVIDER_LABEL_HEALTH,
-    PROVIDER_LABEL_LOAD,
-    PROVIDER_LABEL_ATTACH_PL,
+    PROVIDER_LABEL_HEALTH_AND_ZOMBIES,
+    PROVIDER_LABEL_PREPARE_DATA,
+    PROVIDER_LABEL_LOAD_RAW,
+    PROVIDER_LABEL_NORMALIZE,
+    PROVIDER_LABEL_MULTI_PRACTICE,
     PROVIDER_LABEL_PASS1,
     PROVIDER_LABEL_PASS2,
     PROVIDER_LABEL_PASS3,
-    PROVIDER_LABEL_PASS4,
-    PROVIDER_LABEL_PASS6,
+    PROVIDER_LABEL_PASS_NPPES,
+    PROVIDER_LABEL_PASS_MAPS,
     PROVIDER_LABEL_URBAN,
+    PROVIDER_LABEL_PROVIDER_FLAGS,
     PROVIDER_LABEL_EMBED,
 ]
 
 
-LOAD_LABEL_DOWNLOAD      = "Step 1: Downloading NPI zip from CMS"
-LOAD_LABEL_EXTRACT       = "Step 2: Extracting CSV"
-LOAD_LABEL_PARTITION     = "Step 3: Partitioning file"
-LOAD_LABEL_DRAIN         = "Step 4: Draining staging collection"
-LOAD_LABEL_DRAIN_SKIP    = "Step 4: Skipping drain (incremental=true)"
-LOAD_LABEL_PRELOAD_IDX   = "Step 5: Ensuring pre-load index"
-LOAD_LABEL_PRELOAD_SKIP  = "Step 5: Skipping pre-load index (full load)"
-LOAD_LABEL_METADATA      = "Step 6: Writing metadata"
-LOAD_LABEL_WARM          = "Step 7: Pre-warming instances"
-LOAD_LABEL_WORKERS       = "Step 8: Loading workers"
-LOAD_LABEL_COOL          = "Step 9: Resetting always_ready"
-LOAD_LABEL_INDEXES       = "Step 10: Building indexes + reconciling"
-LOAD_LABEL_REPORT        = "Step 11: Writing report"
+# Step 2 (Prepare data) internal stage labels — set_custom_status only.
+PREP_LABEL_DOWNLOAD      = "Step 2a: Downloading NPI zip from CMS"
+PREP_LABEL_EXTRACT       = "Step 2b: Extracting CSV"
+PREP_LABEL_PARTITION     = "Step 2c: Partitioning file"
+PREP_LABEL_DRAIN         = "Step 2d: Draining staging collection"
+PREP_LABEL_DRAIN_SKIP    = "Step 2d: Skipping drain (incremental=true)"
+PREP_LABEL_PRELOAD_IDX   = "Step 2e: Ensuring pre-load index"
+PREP_LABEL_PRELOAD_SKIP  = "Step 2e: Skipping pre-load index (full load)"
+PREP_LABEL_METADATA      = "Step 2f: Writing metadata"
+
+# Step 4 (Load raw provider rows) internal stage labels.
+LOAD_LABEL_WORKERS  = "Step 4: Raw-load worker fan-out"
+LOAD_LABEL_INDEXES  = "Step 4: Building indexes + reconciling"
+LOAD_LABEL_REPORT   = "Step 4: Writing report"
 
 
 # ── Orchestrators ─────────────────────────────────────────────────────────────
 
-def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Main orchestrator. No timeouts — Azure manages state.
+def prepare_data_orchestrator_fn(context: df.DurableOrchestrationContext):
+    """Step 2 sub-orchestration — Prepare data.
 
-    Lifecycle: registers a cluster reservation at start, releases in finally.
-    If orchestrator fails, the ClusterLifecycleManager timer catches overdue
-    reservations and alerts human.
+    Acquires the NPPES source file in blob, extracts the CSV, computes the
+    byte-aligned partitions every Step-4 worker will read, drains the target
+    collection unless this is an incremental run, ensures pre-load indexes,
+    and writes one worker-ledger row per partition. Returns the structured
+    handoff Step 4 needs.
     """
-    config = context.get_input()
-
-    # Propagate load_id (= orchestration instance_id) through all activities.
-    load_id = context.instance_id
+    config = context.get_input() or {}
+    load_id = config.get("load_id") or context.instance_id
     config = {**config, "load_id": load_id}
 
-    context.set_custom_status(LOAD_LABEL_DOWNLOAD)
+    context.set_custom_status(PREP_LABEL_DOWNLOAD)
     download_result = yield context.call_activity("download_zip_activity", config)
     zip_path = download_result["zip_path"]
-    config = {**config, "version": download_result["version"]}
+    version = download_result["version"]
+    config = {**config, "version": version}
 
-    context.set_custom_status(LOAD_LABEL_EXTRACT)
+    context.set_custom_status(PREP_LABEL_EXTRACT)
     csv_path = yield context.call_activity(
         "extract_csv_activity", {**config, "zip_path": zip_path}
     )
 
-    context.set_custom_status(LOAD_LABEL_PARTITION)
+    context.set_custom_status(PREP_LABEL_PARTITION)
     partitions = yield context.call_activity(
         "partition_file_activity", {**config, "csv_path": csv_path}
     )
 
     if not config.get("incremental", False):
-        context.set_custom_status(LOAD_LABEL_DRAIN)
+        context.set_custom_status(PREP_LABEL_DRAIN)
         yield context.call_activity("drain_staging_activity", config)
     else:
-        context.set_custom_status(LOAD_LABEL_DRAIN_SKIP)
+        context.set_custom_status(PREP_LABEL_DRAIN_SKIP)
 
-    # Pre-load index only — unique compound index for idempotency on retry.
-    # Only needed for incremental loads. Full loads drop the collection (drain step),
-    # so there's nothing to deduplicate against. Skip on full load
-    # to avoid DuplicateKeyError in post-load index creation.
+    # Pre-load index only matters for incremental loads (full loads drop the
+    # collection in drain). Skip on full load so post-load index creation
+    # doesn't trip DuplicateKeyError.
     if config.get("incremental", False):
-        context.set_custom_status(LOAD_LABEL_PRELOAD_IDX)
+        context.set_custom_status(PREP_LABEL_PRELOAD_IDX)
         yield context.call_activity("ensure_preload_indexes_activity", config)
     else:
-        context.set_custom_status(LOAD_LABEL_PRELOAD_SKIP)
+        context.set_custom_status(PREP_LABEL_PRELOAD_SKIP)
 
-    context.set_custom_status(LOAD_LABEL_METADATA)
+    context.set_custom_status(PREP_LABEL_METADATA)
     metadata_ids = yield context.call_activity(
         "write_metadata_activity",
         {**config, "csv_path": csv_path, "partitions": partitions},
     )
 
-    # Pre-warm Flex Consumption instances before fan-out.
-    # Sets always_ready = num_workers via Azure Management API (SP-OAuth), then waits
-    # 3× PATCH latency for propagation. Prevents cold-start stacking (OOM, two-wave pattern).
-    # Non-fatal if SP role not yet assigned — warm-up is skipped and fan-out proceeds.
-    context.set_custom_status(LOAD_LABEL_WARM)
-    warm_metrics = yield context.call_activity("warm_instances_activity", config)
-    logging.info("Warm-up metrics: %s", warm_metrics)
+    return {
+        "load_id":      load_id,
+        "version":      version,
+        "zip_path":     zip_path,
+        "csv_path":     csv_path,
+        "partitions":   partitions,
+        "metadata_ids": metadata_ids,
+    }
 
-    # Fan-out — all workers run simultaneously (no chunking).
-    # 32 partitions → 32 concurrent MongoDB writers → ~25% WiredTiger write ticket utilization.
-    # Sub-orchestrators are avoided (direct activity calls) to prevent Durable Functions
-    # history explosion (~15K events for 200 workers vs ~600 with direct calls).
-    context.set_custom_status(LOAD_LABEL_WORKERS)
-    worker_tasks = [
-        context.call_activity(
-            "provider_worker_activity",
-            {**config, "csv_path": csv_path, "metadata_id": metadata_ids[i], **partition},
+
+def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
+    """Step 4 sub-orchestration — Load raw provider rows.
+
+    Consumes the prepare-data handoff (csv_path + partitions + metadata_ids),
+    fans the raw-load worker across the byte ranges via the shared
+    fan_out_workers substrate (warm + task_all + cool), then runs the
+    post-load index build in parallel with reconciliation, then writes the
+    report. Returns load status + count + per-worker results.
+
+    Apply-proprietary-flags has been factored OUT of this orchestrator and now
+    lives in Step 13 (provider_flags_enrichment) so it gets its own per-activity
+    budget and its own sub-orchestration boundary.
+    """
+    config = context.get_input() or {}
+
+    load_id      = config["load_id"]
+    csv_path     = config["csv_path"]
+    partitions   = config["partitions"]
+    metadata_ids = config["metadata_ids"]
+
+    # Build per-worker configs for the fan-out substrate.
+    base = {
+        k: config[k]
+        for k in (
+            "blob_container", "states", "incremental",
+            "provider_collection", "metadata_collection",
+            "batch_size", "num_workers",
         )
+        if k in config
+    }
+    base.update({"csv_path": csv_path, "load_id": load_id, "version": config.get("version")})
+
+    worker_configs = [
+        {
+            **base,
+            "metadata_id": metadata_ids[i],
+            **partition,
+        }
         for i, partition in enumerate(partitions)
     ]
-    worker_results = yield context.task_all(worker_tasks)
 
-    # Reset always_ready = 0 — no standby cost between runs.
-    context.set_custom_status(LOAD_LABEL_COOL)
-    yield context.call_activity("cool_instances_activity", config)
+    fan_cfg = {
+        "worker_activity": "provider_worker_activity",
+        "worker_configs":  worker_configs,
+        "num_workers":     len(partitions),
+        "step_label":      LOAD_LABEL_WORKERS,
+        "warm_config":     {"num_workers": len(partitions), "load_id": load_id},
+        "cool_config":     {"load_id": load_id},
+    }
+    fan_result = yield context.call_sub_orchestrator(
+        "fan_out_workers_orchestrator", fan_cfg
+    )
+    worker_results = fan_result.get("results") or []
 
-    # F5: stamp proprietary classification flags (can_prescribe, is_homeopathic)
-    # from the catalog blob. Single source of truth across pipelines.
-    context.set_custom_status("Applying proprietary classification flags")
-    flag_metrics = yield context.call_activity("apply_proprietary_flags_activity", config)
-    logging.info("F5 flag stamping: %s", flag_metrics)
-
-    # Index build (MongoDB) and reconcile (blob read) run in parallel — independent I/O.
+    # Index build + reconcile run in parallel — independent I/O.
     context.set_custom_status(LOAD_LABEL_INDEXES)
-    postload_task = context.call_activity("ensure_postload_indexes_activity", config)
+    postload_task = context.call_activity(
+        "ensure_postload_indexes_activity", {**base, "csv_path": csv_path},
+    )
     reconcile_task = context.call_activity(
         "reconcile_activity",
-        {**config, "csv_path": csv_path, "worker_results": worker_results},
+        {**base, "csv_path": csv_path, "worker_results": worker_results},
     )
     parallel_results = yield context.task_all([postload_task, reconcile_task])
     reconcile_result = parallel_results[1]
 
-    # Report — write to admin.PipelineDiscrepancyReport → SparkPost email
     context.set_custom_status(LOAD_LABEL_REPORT)
     yield context.call_activity(
         "report_activity",
-        {**config, "worker_results": worker_results, "reconcile_result": reconcile_result},
+        {**base, "csv_path": csv_path,
+         "worker_results": worker_results,
+         "reconcile_result": reconcile_result},
     )
 
     total = sum(r.get("num_records", 0) for r in worker_results)
     any_failed = any(not r.get("success", True) for r in worker_results)
     status = "failed" if any_failed else "complete"
 
-    context.set_custom_status(f"Done — {status}, {total:,} records loaded")
+    context.set_custom_status(f"Step 4 done — {status}, {total:,} raw rows loaded")
 
     return {
-        "status": status,
+        "status":         status,
         "records_loaded": total,
-        "version": config.get("version"),
-        "zip_path": zip_path,
+        "version":        config.get("version"),
+        "zip_path":       config.get("zip_path"),
+        "worker_results": worker_results,
+        "reconcile":      reconcile_result,
+    }
+
+
+def multi_practice_addresses_orchestrator_fn(context: df.DurableOrchestrationContext):
+    """Step 6 sub-orchestration — Load multi practice addresses.
+
+    Wraps the server-side `attach_practice_locations_activity` so the step is
+    autonomous (own per-activity budget, own custom status).
+    """
+    config = context.get_input() or {}
+
+    context.set_custom_status(PROVIDER_LABEL_MULTI_PRACTICE)
+    result = yield context.call_activity("attach_practice_locations_activity", config)
+    return result
+
+
+def embeddings_orchestrator_fn(context: df.DurableOrchestrationContext):
+    """Step 14 sub-orchestration — Embeddings.
+
+    Fans out embed_worker_activity across num_workers, then stamps embedding
+    metadata onto records. The downstream front-end migration job builds the
+    vector index on the front-end cluster — the pipeline cluster is paused
+    between runs so no live index lives here.
+    """
+    config = context.get_input() or {}
+    num_workers = int(config.get("num_workers", 1))
+    provider_collection = config.get("provider_collection", "dev_PublicHealthData.providers")
+
+    context.set_custom_status(PROVIDER_LABEL_EMBED)
+    embed_tasks = [
+        context.call_activity(
+            "embed_worker_activity",
+            {
+                "worker_id":            i + 1,
+                "provider_collection":  provider_collection,
+                "states":               config["states"],
+                "embed_model":          config["embed_model"],
+                "embed_batch_size":     config["embed_batch_size"],
+                "embed_initial_jitter": config["embed_initial_jitter"],
+            },
+        )
+        for i in range(num_workers)
+    ]
+    embed_results = yield context.task_all(embed_tasks)
+
+    total_embedded = sum(r.get("embedded", 0) for r in embed_results)
+    total_tokens   = sum(r.get("total_tokens", 0) for r in embed_results)
+    return {
+        "total_embedded": total_embedded,
+        "total_tokens":   total_tokens,
+        "worker_results": embed_results,
     }
 
 
@@ -645,9 +742,10 @@ def ensure_postload_indexes_fn(config: dict) -> None:
         "taxonomies.code",
         name="taxonomy_code",
     )
-    # F-105 proprietary flag indexes — every record has these fields (worker
-    # pre-stamps placeholder True at load; apply_proprietary_flags overwrites
-    # with catalog-derived values). Non-sparse so the index covers every doc.
+    # F-105 proprietary flag indexes. The flag values are written in Step 13
+    # (provider_flags_enrichment.apply_provider_flags_fn) which scans every
+    # in-scope record after normalization and county enrichment complete.
+    # Non-sparse so the index covers every doc.
     collection.create_index("can_prescribe", name="can_prescribe_idx")
     collection.create_index("is_homeopathic", name="is_homeopathic_idx")
     logging.info("Post-load indexes ensured on %s", provider_collection)
@@ -851,11 +949,19 @@ def create_vector_index_fn(config: dict) -> dict:
 # ── Full Pipeline Orchestrator ────────────────────────────────────────────────
 
 class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
-    """F-103 Provider Pipeline. Steps: reserve → health → load → attach pl_pfile →
-    Pass1..Pass6 → urban flag → embeddings → release.
+    """Provider Pipeline parent orchestrator.
+
+    Each step is its own sub-orchestration so each gets its own per-activity
+    2-hour budget. Step 3 (fan_out_workers) is the SHARED SUBSTRATE invoked by
+    most steps below — it does not appear in the executable sequence, so the
+    parent dispatches Step 1 → Step 2 → Step 4 → … → Step 14.
 
     Reservation, IDLE wait, and try/release live in BasePipelineOrchestrator.
     This subclass owns only the provider-specific orchestration body.
+
+    start_step semantics: every label in PROVIDER_PIPELINE_STEPS is a valid
+    start_step value; steps before the chosen label are skipped, except Step 1
+    (health + zombie kill) which is MANDATORY on every run.
     """
 
     requester_name = "ProviderPipeline"
@@ -867,10 +973,11 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
         context = self.context
         load_id = context.instance_id
 
-        start_label = config["start_step"]
+        start_label = config.get("start_step", PROVIDER_PIPELINE_STEPS[0])
         if start_label not in PROVIDER_PIPELINE_STEPS:
             raise ValueError(
-                f"Unknown start_step {start_label!r}. Valid: {PROVIDER_PIPELINE_STEPS}"
+                f"Unknown start_step {start_label!r}. "
+                f"Valid: {PROVIDER_PIPELINE_STEPS}"
             )
         start_idx = PROVIDER_PIPELINE_STEPS.index(start_label)
 
@@ -878,140 +985,225 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             return PROVIDER_PIPELINE_STEPS.index(label) >= start_idx
 
         enrich_config = {
-            "load_id": load_id,
-            "num_workers": config["enrich_workers"],
-            "addr_batch_size": config["addr_batch_size"],
-            "nppes_batch_size": config["nppes_batch_size"],
-            "states": config["states"],
+            "load_id":             load_id,
+            "num_workers":         config["enrich_workers"],
+            "addr_batch_size":     config["addr_batch_size"],
+            "nppes_batch_size":    config["nppes_batch_size"],
+            "states":              config["states"],
             "provider_collection": config["provider_collection"],
             "metadata_collection": config["metadata_collection"],
         }
 
-        load_result = {"status": "skipped"}
-        pass1_result = pass2_result = pass3_result = pass4_result = pass6_result = None
-        attach_result = None
+        step_statuses: list = []
+        prepare_result: dict | None = None
+        load_result: dict = {"status": "skipped"}
+        normalize_result: dict | None = None
+        multi_practice_result: dict | None = None
+        pass1_result = pass2_result = pass3_result = None
+        pass_nppes_result = pass_maps_result = None
+        urban_result: dict | None = None
+        flags_result: dict | None = None
+        embed_result: dict | None = None
         reconcile = None
-        embed_results = []
-        step_statuses = []
 
-        # Health check is MANDATORY — runs regardless of start_step.
-        context.set_custom_status(PROVIDER_LABEL_HEALTH)
-        yield context.call_activity("check_mongo_health_activity", config)
-        step_statuses.append({"step": PROVIDER_LABEL_HEALTH, "status": "completed_success"})
+        # ── Step 1: Health check + kill THIS pipeline's zombies (MANDATORY) ──
+        context.set_custom_status(PROVIDER_LABEL_HEALTH_AND_ZOMBIES)
+        health_kill = yield context.call_sub_orchestrator(
+            "pipeline_health_and_zombie_kill_orchestrator",
+            {
+                "orchestrator_name": "provider_pipeline_orchestrator",
+                "states":            config["states"],
+            },
+        )
+        step_statuses.append({"step": PROVIDER_LABEL_HEALTH_AND_ZOMBIES,
+                              "status": "completed_success",
+                              "summary": health_kill})
 
-        if _run(PROVIDER_LABEL_LOAD):
-            context.set_custom_status(PROVIDER_LABEL_LOAD)
-            load_config = {
-                "num_workers": config["num_workers"],
-                "batch_size": config["batch_size"],
-                "blob_container": config["blob_container"],
-                "states": config["states"],
-                "incremental": config["incremental"],
+        # ── Step 2: Prepare data ─────────────────────────────────────────────
+        if _run(PROVIDER_LABEL_PREPARE_DATA):
+            context.set_custom_status(PROVIDER_LABEL_PREPARE_DATA)
+            prep_cfg = {
+                "load_id":             load_id,
+                "num_workers":         config["num_workers"],
+                "blob_container":      config["blob_container"],
+                "states":              config["states"],
+                "incremental":         config["incremental"],
                 "provider_collection": config["provider_collection"],
                 "metadata_collection": config["metadata_collection"],
-                "flag_stamp_batch_size": config.get("flag_stamp_batch_size", 500),
             }
-            load_result = yield context.call_sub_orchestrator("provider_load_orchestrator", load_config)
-            step_statuses.append({"step": PROVIDER_LABEL_LOAD, "status": "completed_success"})
-
-        if _run(PROVIDER_LABEL_ATTACH_PL):
-            context.set_custom_status(PROVIDER_LABEL_ATTACH_PL)
-            attach_config = {
-                "blob_container": config["blob_container"],
-                "states": config["states"],
-                "provider_collection": config["provider_collection"],
-                "pl_lookup_collection": config["pl_lookup_collection"],
-                "version": load_result.get("version") if isinstance(load_result, dict) else None,
-            }
-            attach_result = yield context.call_activity(
-                "attach_practice_locations_activity", attach_config
+            prepare_result = yield context.call_sub_orchestrator(
+                "prepare_data_orchestrator", prep_cfg
             )
-            step_statuses.append({"step": PROVIDER_LABEL_ATTACH_PL, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_PREPARE_DATA,
+                                  "status": "completed_success"})
 
+        # ── Step 4: Load raw provider rows ───────────────────────────────────
+        if _run(PROVIDER_LABEL_LOAD_RAW):
+            if prepare_result is None:
+                raise ValueError(
+                    "start_step skipped Step 2 (Prepare data) so Step 4 has no "
+                    "csv_path / partitions / metadata_ids handoff to consume. "
+                    "Re-start from Step 2 or earlier."
+                )
+            context.set_custom_status(PROVIDER_LABEL_LOAD_RAW)
+            load_cfg = {
+                "load_id":             load_id,
+                "num_workers":         config["num_workers"],
+                "batch_size":          config["batch_size"],
+                "blob_container":      config["blob_container"],
+                "states":              config["states"],
+                "incremental":         config["incremental"],
+                "provider_collection": config["provider_collection"],
+                "metadata_collection": config["metadata_collection"],
+                "version":             prepare_result["version"],
+                "zip_path":            prepare_result["zip_path"],
+                "csv_path":            prepare_result["csv_path"],
+                "partitions":          prepare_result["partitions"],
+                "metadata_ids":        prepare_result["metadata_ids"],
+            }
+            load_result = yield context.call_sub_orchestrator(
+                "provider_load_orchestrator", load_cfg
+            )
+            step_statuses.append({"step": PROVIDER_LABEL_LOAD_RAW,
+                                  "status": "completed_success"})
+
+        # ── Step 5: Normalize provider rows ──────────────────────────────────
+        if _run(PROVIDER_LABEL_NORMALIZE):
+            context.set_custom_status(PROVIDER_LABEL_NORMALIZE)
+            normalize_cfg = {
+                "load_id":              load_id,
+                "num_workers":          config["num_workers"],
+                "provider_collection":  config["provider_collection"],
+                "normalize_batch_size": config.get("normalize_batch_size", 500),
+            }
+            normalize_result = yield context.call_sub_orchestrator(
+                "normalize_provider_rows_orchestrator", normalize_cfg
+            )
+            step_statuses.append({"step": PROVIDER_LABEL_NORMALIZE,
+                                  "status": "completed_success"})
+
+        # ── Step 6: Load multi practice addresses ────────────────────────────
+        if _run(PROVIDER_LABEL_MULTI_PRACTICE):
+            context.set_custom_status(PROVIDER_LABEL_MULTI_PRACTICE)
+            mp_cfg = {
+                "blob_container":       config["blob_container"],
+                "states":               config["states"],
+                "provider_collection":  config["provider_collection"],
+                "pl_lookup_collection": config["pl_lookup_collection"],
+                "version": (
+                    load_result.get("version")
+                    if isinstance(load_result, dict) else None
+                ),
+            }
+            multi_practice_result = yield context.call_sub_orchestrator(
+                "multi_practice_addresses_orchestrator", mp_cfg
+            )
+            step_statuses.append({"step": PROVIDER_LABEL_MULTI_PRACTICE,
+                                  "status": "completed_success"})
+
+        # ── Steps 7-11: County enrichment passes ─────────────────────────────
         if _run(PROVIDER_LABEL_PASS1):
             context.set_custom_status(PROVIDER_LABEL_PASS1)
             pass1_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass1_orchestrator", enrich_config
             )
-            step_statuses.append({"step": PROVIDER_LABEL_PASS1, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_PASS1,
+                                  "status": "completed_success"})
 
         if _run(PROVIDER_LABEL_PASS2):
             context.set_custom_status(PROVIDER_LABEL_PASS2)
             pass2_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass2_orchestrator", enrich_config
             )
-            step_statuses.append({"step": PROVIDER_LABEL_PASS2, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_PASS2,
+                                  "status": "completed_success"})
 
         if _run(PROVIDER_LABEL_PASS3):
             context.set_custom_status(PROVIDER_LABEL_PASS3)
             pass3_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass3_orchestrator", enrich_config
             )
-            step_statuses.append({"step": PROVIDER_LABEL_PASS3, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_PASS3,
+                                  "status": "completed_success"})
 
-        if _run(PROVIDER_LABEL_PASS4) and config["google_maps_enabled"]:
-            context.set_custom_status(PROVIDER_LABEL_PASS4)
-            pass4_result = yield context.call_sub_orchestrator(
-                "county_enrichment_pass4_orchestrator", enrich_config
-            )
-            step_statuses.append({"step": PROVIDER_LABEL_PASS4, "status": "completed_success"})
-
-        if _run(PROVIDER_LABEL_PASS6):
-            context.set_custom_status(PROVIDER_LABEL_PASS6)
-            pass6_result = yield context.call_sub_orchestrator(
+        # NPPES (free) runs BEFORE Maps (paid). Tree order preserved.
+        if _run(PROVIDER_LABEL_PASS_NPPES):
+            context.set_custom_status(PROVIDER_LABEL_PASS_NPPES)
+            pass_nppes_result = yield context.call_sub_orchestrator(
                 "county_enrichment_pass6_nppes_orchestrator", enrich_config
             )
-            step_statuses.append({"step": PROVIDER_LABEL_PASS6, "status": "completed_success"})
+            step_statuses.append({"step": PROVIDER_LABEL_PASS_NPPES,
+                                  "status": "completed_success"})
 
-        if pass1_result or pass2_result or pass3_result or pass6_result:
+        if _run(PROVIDER_LABEL_PASS_MAPS) and config["google_maps_enabled"]:
+            context.set_custom_status(PROVIDER_LABEL_PASS_MAPS)
+            pass_maps_result = yield context.call_sub_orchestrator(
+                "county_enrichment_pass4_orchestrator", enrich_config
+            )
+            step_statuses.append({"step": PROVIDER_LABEL_PASS_MAPS,
+                                  "status": "completed_success"})
+
+        if any(r is not None for r in (pass1_result, pass2_result, pass3_result,
+                                       pass_nppes_result, pass_maps_result)):
             reconcile = _build_enrichment_reconcile(
                 pass1_result or {}, pass2_result or {}, pass3_result or {},
-                pass4_result or {}, pass6_result or {},
+                pass_maps_result or {}, pass_nppes_result or {},
             )
             yield context.call_activity(
                 "enrichment_report_activity", {**enrich_config, "reconcile": reconcile}
             )
 
+        # ── Step 12: Urban flag per practice_address ─────────────────────────
         if _run(PROVIDER_LABEL_URBAN):
             context.set_custom_status(PROVIDER_LABEL_URBAN)
-            urban_config = {
-                "blob_container": config["blob_container"],
-                "states": config["states"],
+            urban_cfg = {
+                "blob_container":      config["blob_container"],
+                "states":              config["states"],
                 "provider_collection": config["provider_collection"],
-                "bulk_batch_size": config["bulk_batch_size"],
+                "bulk_batch_size":     config["bulk_batch_size"],
             }
-            urban_result = yield context.call_activity(
-                "stamp_urban_flag_activity", urban_config
+            urban_result = yield context.call_sub_orchestrator(
+                "urban_flag_enrichment_orchestrator", urban_cfg
             )
-            step_statuses.append({"step": PROVIDER_LABEL_URBAN, "status": "completed_success",
+            step_statuses.append({"step": PROVIDER_LABEL_URBAN,
+                                  "status": "completed_success",
                                   "summary": urban_result})
 
-        if _run(PROVIDER_LABEL_EMBED) and config["embedding_enabled"]:
-            num_workers = config["num_workers"]
-            provider_collection = config["provider_collection"]
-            context.set_custom_status(PROVIDER_LABEL_EMBED)
-            embed_tasks = [
-                context.call_activity(
-                    "embed_worker_activity",
-                    {
-                        "worker_id": i + 1,
-                        "provider_collection": provider_collection,
-                        "states": config["states"],
-                        "embed_model": config["embed_model"],
-                        "embed_batch_size": config["embed_batch_size"],
-                        "embed_initial_jitter": config["embed_initial_jitter"],
-                    },
-                )
-                for i in range(num_workers)
-            ]
-            embed_results = yield context.task_all(embed_tasks)
-            yield context.call_activity(
-                "create_vector_index_activity", {"provider_collection": provider_collection}
+        # ── Step 13: Apply provider-level flags ──────────────────────────────
+        if _run(PROVIDER_LABEL_PROVIDER_FLAGS):
+            context.set_custom_status(PROVIDER_LABEL_PROVIDER_FLAGS)
+            flags_cfg = {
+                "states":                config["states"],
+                "provider_collection":   config["provider_collection"],
+                "flag_stamp_batch_size": config.get("flag_stamp_batch_size", 500),
+            }
+            flags_result = yield context.call_sub_orchestrator(
+                "provider_flags_enrichment_orchestrator", flags_cfg
             )
+            step_statuses.append({"step": PROVIDER_LABEL_PROVIDER_FLAGS,
+                                  "status": "completed_success",
+                                  "summary": flags_result})
 
-        total_embedded = sum(r.get("embedded", 0) for r in embed_results)
-        total_tokens = sum(r.get("total_tokens", 0) for r in embed_results)
-        pass3_enriched = pass3_result.get("pass3_modified", 0) if pass3_result else 0
+        # ── Step 14: Embeddings ──────────────────────────────────────────────
+        if _run(PROVIDER_LABEL_EMBED) and config["embedding_enabled"]:
+            context.set_custom_status(PROVIDER_LABEL_EMBED)
+            embed_cfg = {
+                "num_workers":          config["num_workers"],
+                "provider_collection":  config["provider_collection"],
+                "states":               config["states"],
+                "embed_model":          config["embed_model"],
+                "embed_batch_size":     config["embed_batch_size"],
+                "embed_initial_jitter": config["embed_initial_jitter"],
+            }
+            embed_result = yield context.call_sub_orchestrator(
+                "embeddings_orchestrator", embed_cfg
+            )
+            step_statuses.append({"step": PROVIDER_LABEL_EMBED,
+                                  "status": "completed_success"})
+
+        total_embedded = (embed_result or {}).get("total_embedded", 0)
+        total_tokens   = (embed_result or {}).get("total_tokens", 0)
+        pass3_enriched = (pass3_result or {}).get("pass3_modified", 0)
         enrich_status = (
             "complete" if reconcile and reconcile["match"]
             else "partial" if reconcile
@@ -1025,10 +1217,17 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             f"embedded {total_embedded:,}"
         )
         return {
-            "load": load_result,
-            "enrichment": reconcile,
-            "pass3": pass3_result,
-            "embeddings": {"total_embedded": total_embedded, "total_tokens": total_tokens},
+            "load":          load_result,
+            "normalize":     normalize_result,
+            "multi_practice": multi_practice_result,
+            "enrichment":    reconcile,
+            "pass3":         pass3_result,
+            "urban":         urban_result,
+            "flags":         flags_result,
+            "embeddings": {
+                "total_embedded": total_embedded,
+                "total_tokens":   total_tokens,
+            },
             "step_statuses": step_statuses,
         }
 
