@@ -2812,7 +2812,7 @@
           "azure": {
             "resource_group": "FindCareDataPipelines-Dev",
             "function_app": "DevPipelineManagmentService",
-            "task_hub": "DevPipelineNetherite"
+            "task_hub": "DevPipelineNetherite2"
           }
         }
       ],
@@ -2920,7 +2920,7 @@
           "source_location": "pipeline/Code/host.json",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "d4079f3c668d8a0a3119a1718fa7adf9a99a1af63c3c3a0ef866e74985eaf878"
+          "content_hash": "5c1e5b1d0ac84b44dc670bfa2f87b5be0f550746827836fc32c416bc4d74efda"
         },
         {
           "feature_id": "EPIC-010-F-007",
@@ -2955,7 +2955,7 @@
           "source_location": "pipeline/Code/normalize_provider_rows.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7861ab6aa3d4d42c880865a577e81cd7a8792553c9daf43b13059b394f718493"
+          "content_hash": "634d343ebaa7a3e192f91692121d018348759fe3ce639f452a71c605818d061d"
         },
         {
           "feature_id": "EPIC-010-F-007",
@@ -2983,7 +2983,7 @@
           "source_location": "pipeline/Code/pipeline_health_and_zombie_kill.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "88e2d90a761f086577d20125e7332abdfe5b6d3854078bca5e4a9c545cca8b27"
+          "content_hash": "b38016be56203e12f49b91db20701af05b902140bf66f034a49d675287d620c3"
         },
         {
           "feature_id": "EPIC-010-F-007",
@@ -3039,7 +3039,7 @@
           "source_location": "pipeline/Code/provider_load_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "af649e2826f8ace954d52e0c9dfdcdbbcd09a61ea2bcb0994e53732b8ac85ede"
+          "content_hash": "ff81f1982b966f2d4b6d0c0ba2fec4cec1bae2342eaf680efd31060f8e8d70ae"
         },
         {
           "feature_id": "EPIC-010-F-007",
