@@ -300,51 +300,15 @@ def county_enrichment_pass1_orchestrator_fn(context):
     }
 
 
-def reset_geocoder_failed_fn(config: dict) -> dict:
-    """Reset practice_address elements flagged geocoder_failed so the batch
-    geocoder can retry them. Operates per-element (multi-practice-address
-    shape).
-
-    Previous runs that used individual geocoder calls marked many elements as
-    geocoder_failed due to rate limiting — not genuine address failures. This
-    clears that flag so get_unenriched_fn picks them up again. Only call this
-    when switching geocoder strategy; not on routine reruns.
-    """
-    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
-    db_name, coll_name = collection.split(".", 1)
-    sf = _build_states_filter(config)
-    result = _get_mongo_client()[db_name][coll_name].update_many(
-        {
-            "practice_address": {"$elemMatch": {"county.source": "geocoder_failed"}},
-            "bad_data.flagged": {"$ne": True},
-            "out_of_scope.flagged": {"$ne": True},
-            **sf,
-        },
-        {"$set": {"practice_address.$[elem].county": {"fips": None}}},
-        array_filters=[{"elem.county.source": "geocoder_failed"}],
-    )
-    logging.info("Reset geocoder_failed elements on %d providers for retry", result.modified_count)
-    return {"reset": result.modified_count}
-
-
 def county_enrichment_pass2_orchestrator_fn(context):
     """Pass 2: Census Geocoder batch enrichment for providers with split or unknown ZIPs.
 
     Queries providers still missing county.fips, fans out Census Geocoder
     batch lookups, and returns results for the caller to combine with Pass 1.
-
-    reset_failed (bool, default False): reset geocoder_failed records before
-    querying so the batch geocoder can retry them. Use when switching from
-    the old individual-call approach.
     """
     config = context.get_input() or {}
     load_id = config.get("load_id", context.instance_id)
     config = {**config, "load_id": load_id}
-
-    # Optional: reset geocoder_failed records so batch geocoder can retry them
-    if config.get("reset_failed", False):
-        context.set_custom_status("Step 1: Resetting geocoder_failed records for retry")
-        yield context.call_activity("reset_geocoder_failed_activity", config)
 
     context.set_custom_status("Step 2: Counting unenriched providers")
     unenriched = yield context.call_activity("get_unenriched_activity", config)

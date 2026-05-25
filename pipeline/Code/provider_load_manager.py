@@ -881,7 +881,6 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             "load_id": load_id,
             "num_workers": config["enrich_workers"],
             "addr_batch_size": config["addr_batch_size"],
-            "reset_failed": config["reset_failed"],
             "nppes_batch_size": config["nppes_batch_size"],
             "states": config["states"],
             "provider_collection": config["provider_collection"],

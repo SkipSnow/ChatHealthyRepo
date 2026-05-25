@@ -57,7 +57,6 @@ from county_enrichment_job import (
     lookup_crosswalk_fn,
     mark_out_of_scope_fn,
     mark_zip_state_mismatch_fn,
-    reset_geocoder_failed_fn,
 )
 from instance_warmer import cool_instances_fn, warm_instances_fn
 from cluster_lifecycle_manager import ClusterLifecycleManager
@@ -635,11 +634,6 @@ def get_unenriched_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def enrich_by_address_batch_activity(config: dict) -> dict:
     return enrich_by_address_batch_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def reset_geocoder_failed_activity(config: dict) -> dict:
-    return reset_geocoder_failed_fn(config)
 
 
 @app.activity_trigger(input_name="config")
