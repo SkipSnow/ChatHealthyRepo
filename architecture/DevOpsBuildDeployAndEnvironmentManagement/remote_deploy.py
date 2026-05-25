@@ -1,13 +1,13 @@
 """remote_deploy.py - GHA runner deploy manager.
 
 CI-side mirror of local_deploy.py's cloud-deploy half per EPIC-008-F-012-S-001
-REQ-T-049. Ships per-target packages from remote_build/v{N}/<target_id>/
-to their cloud destinations. Deploy handlers are imported from
-local_deploy (no duplication).
+REQ-T-049. Ships per-target packages from remoteBuild/<target_id>/ to
+their cloud destinations. Deploy handlers are imported from local_deploy
+(no duplication). The branch checked out IS the version; promote chain
+carries the artifact bytes via merge.
 
 Per REQ-T-055: this script MUST execute only on a named GitHub Actions
-runner (env var GITHUB_ACTIONS=true). Invocation outside that context
-hard-fails.
+runner (env var GITHUB_ACTIONS=true).
 
 Secrets: resolved via SecretsResolver bindings sourced from
 deployment_architecture.json. In CI the bound store for each (name, env)
@@ -18,13 +18,12 @@ The store handlers other than local_env are stubs today
 
 usage (in a GHA workflow step):
     python remote_deploy.py --env qa  --target cloudflare
-    python remote_deploy.py --env prod --version v42
+    python remote_deploy.py --env prod
 """
 from __future__ import annotations
 
 import argparse
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -68,43 +67,11 @@ def _require_gha_context() -> None:
         )
 
 
-def _resolve_version_remote(repo_root: Path, version_arg: str | None) -> int:
-    """Same vN resolution as local_deploy but against the remote_build tree."""
-    build_root = repo_root / REMOTE_BUILD_ROOT_REL
-    if not build_root.is_dir():
-        sys.exit(
-            f"ERROR: build root {build_root} does not exist. "
-            f"Run remote_build.py first in the same job."
-        )
-    if version_arg is not None:
-        m = re.match(r"^v(\d+)$", version_arg)
-        if not m:
-            sys.exit(f"ERROR: --version must be vN (e.g., v42), got {version_arg!r}")
-        n = int(m.group(1))
-        if not (build_root / f"v{n}").is_dir():
-            sys.exit(f"ERROR: {build_root / f'v{n}'} does not exist.")
-        return n
-    versions = []
-    for child in build_root.iterdir():
-        if not child.is_dir():
-            continue
-        m = re.match(r"^v(\d+)$", child.name)
-        if m:
-            versions.append(int(m.group(1)))
-    if not versions:
-        sys.exit(f"ERROR: no v{{N}} build directories under {build_root}.")
-    return max(versions)
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Ship per-target build packages from remote_build/v{N}/ to cloud envs (CI)."
+        description="Ship per-target build packages from remoteBuild/<target_id>/ to cloud envs (CI)."
     )
     parser.add_argument("--env", required=True, choices=["dev", "qa", "prod"])
-    parser.add_argument(
-        "--version", default=None,
-        help="vN build to deploy. Default: highest v{N}/ present on disk.",
-    )
     parser.add_argument(
         "--target", default="all",
         help="'all' | 'cloudflare' | 'hf' | 'azure' | a specific target_id.",
@@ -115,14 +82,7 @@ def main(argv: list[str] | None = None) -> int:
     repo_root = _find_repo_root(Path(__file__))
     _step(f"repo_root={repo_root} env={args.env} target={args.target}")
 
-    build_n = _resolve_version_remote(repo_root, args.version)
-    _step(f"version=v{build_n}")
-
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
-    # In CI there is no Code/.env; SecretsResolver's local_env store will
-    # raise if a secret is bound to local_env. The workflow YAML is
-    # responsible for binding non-local_env stores (see store handler
-    # stubs in SecretsResolver).
     env_file = repo_root / "Code" / ".env"
 
     coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
@@ -132,9 +92,9 @@ def main(argv: list[str] | None = None) -> int:
     if not selected:
         sys.exit(f"ERROR: no targets matched --target={args.target!r}")
 
-    # We can't just call ld._deploy_one because it points at
-    # _BUILD_ROOT_REL (local). Monkey-patch the build root for this run.
-    # The handler functions themselves are env-agnostic.
+    # _deploy_one resolves build_dir against ld._BUILD_ROOT_REL; swap to
+    # the remoteBuild path for the duration of this run so the same
+    # handler code finds CI's emitted packages.
     original_build_root = ld._BUILD_ROOT_REL
     ld._BUILD_ROOT_REL = REMOTE_BUILD_ROOT_REL
     try:
@@ -146,7 +106,7 @@ def main(argv: list[str] | None = None) -> int:
                 _step(f"  skip {target_id}: no env_binding for {args.env!r}")
                 continue
             deployed.append(_deploy_one(
-                repo_root, build_n, target_id, target_kind, args.env, resolver, coll,
+                repo_root, target_id, target_kind, args.env, resolver, coll,
             ))
     finally:
         ld._BUILD_ROOT_REL = original_build_root

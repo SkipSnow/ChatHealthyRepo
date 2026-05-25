@@ -245,8 +245,8 @@
                   "_scan_no_secret_values",
                   "allowed_pattern",
                   [
-                    "^architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build/v[0-9]+/",
-                    "^architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_build/v[0-9]+/"
+                    "^architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild/",
+                    "^architecture/DevOpsBuildDeployAndEnvironmentManagement/remoteBuild/"
                   ]
                 ]
               ],

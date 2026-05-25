@@ -116,15 +116,68 @@ class SecretsResolver:
         )
 
     def env_values_for_leak_check(self, env_file: Path) -> set[str]:
-        """Return the set of values present in a `.env`.
+        """Return the set of secret VALUES the leak-check must guard.
 
-        Parses keys + values from each `key=value` line and returns the
-        values only — keys are public labels (variable names), values
-        are the secret material that the leak-check must guard against.
-        Nothing from this set is ever logged or persisted by this method.
+        Per EPIC-008-F-012-S-001-REQ-T-057 the `.env` is organized into
+        two top-level sections, `# Secrets` and `# SecretSafe`. Only
+        values whose key falls under `# Secrets` enter the needle set;
+        SecretSafe values (URLs, model names, identifiers, booleans) are
+        substring-matched freely in build-package files and never trip
+        the leak-check.
+
+        Fails loud if the `# Secrets` header is missing or no keys fall
+        under it. Nothing from this set is ever logged or persisted.
         """
-        parsed = self._read_env_file(env_file)
-        return {v for v in parsed.values() if v}
+        secrets = self._read_env_secrets(env_file)
+        return {v for v in secrets.values() if v}
+
+    @staticmethod
+    def _read_env_secrets(path: Path) -> dict[str, str]:
+        """Parse a `.env` and return only the `# Secrets` section's keys.
+
+        Recognizes two top-level section headers exactly: `# Secrets`
+        and `# SecretSafe`. Any other `# …` line (or `## …`) is a
+        comment / sub-header and does not change the active section.
+        Keys outside `# Secrets` are excluded from the result.
+        """
+        result: dict[str, str] = {}
+        section: str | None = None
+        with path.open("r", encoding="utf-8") as f:
+            for raw_line in f:
+                line = raw_line.rstrip("\r\n")
+                stripped = line.strip()
+                if stripped == "# Secrets":
+                    section = "Secrets"
+                    continue
+                if stripped == "# SecretSafe":
+                    section = "SecretSafe"
+                    continue
+                if not stripped or stripped.startswith("#"):
+                    continue
+                if "=" not in stripped:
+                    continue
+                if section != "Secrets":
+                    continue
+                key, _, val = stripped.partition("=")
+                key = key.strip()
+                if not key:
+                    continue
+                val = val.strip()
+                quoted: bool = False
+                if len(val) >= 2 and val[0] == val[-1] and val[0] in ("'", '"'):
+                    val = val[1:-1]
+                    quoted = True
+                if not quoted and "#" in val:
+                    val = val.split("#", 1)[0].rstrip()
+                result[key] = val
+        if not result:
+            raise RuntimeError(
+                f"{path}: `# Secrets` section missing or empty. "
+                "REQ-T-057 requires every key under exactly one of "
+                "`# Secrets` or `# SecretSafe`, and the leak-check "
+                "needle set cannot be empty."
+            )
+        return result
 
     @staticmethod
     def _read_env_file(path: Path) -> dict[str, str]:

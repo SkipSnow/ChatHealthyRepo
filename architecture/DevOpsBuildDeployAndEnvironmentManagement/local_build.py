@@ -1,27 +1,27 @@
 """local_build.py - operator's build manager.
 
-Produces a versioned, per-target build package on the local workstation.
+Produces the current per-target build package on the local workstation.
 Package layout:
 
     architecture/DevOpsBuildDeployAndEnvironmentManagement/
-        local_build/v{N}/<target_id>/
+        localBuild/<target_id>/
             <materialized deploy bytes for this target>
             manifest.json   # target's slice of deployment_architecture.json
                             # plus build_number and build_sha
 
-N comes from admin.Versions.latest.builds[env=dev].build on the front-end
-cluster (auto-incremented on every non-deploy commit by Rule-063). No
-secret VALUES are written into any file in the package; only names+stores
-appear in manifest.json. local_deploy reads from this tree.
+Only the current build lives on disk; localBuild/ is gitignored. The
+build_number comes from admin.Versions.latest.builds[env=dev].build on
+the front-end cluster (auto-incremented on every non-deploy commit by
+Rule-063) and is stamped into manifest.json. No secret VALUES are
+written into any file in the package; only names+stores appear in
+manifest.json. local_deploy reads from this tree.
 
 usage:
     python local_build.py --target all
     python local_build.py --target cloudflare
     python local_build.py --target target_cloudflare_pages_website
 
-Per EPIC-008-F-012-S-001. Phase 4a: cloudflare_pages_project only;
-HF Spaces and Azure FA still ship via local_publish.py until follow-up
-commits subsume them.
+Per EPIC-008-F-012-S-001.
 """
 from __future__ import annotations
 
@@ -52,8 +52,8 @@ import ch_fonts_inliner
 import hf_helpers as rd
 
 
-_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build")
-REMOTE_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/remote_build")
+_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild")
+REMOTE_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/remoteBuild")
 
 
 def _step(msg: str) -> None:
@@ -81,8 +81,9 @@ def _require_local_context() -> None:
 
 def _require_clean_working_tree(repo_root: Path) -> str:
     """HEAD SHA pins the source bytes we build. Reject uncommitted source
-    changes. Build OUTPUTS under local_build/ are not source and do NOT
-    block — they're produced by this very script.
+    changes. localBuild/ is gitignored so changes there never appear in
+    git status; remoteBuild/ IS tracked and uncommitted changes there
+    DO block (they belong to the operator to commit or revert).
     """
     r = subprocess.run(
         ["git", "status", "--porcelain"],
@@ -91,12 +92,9 @@ def _require_clean_working_tree(repo_root: Path) -> str:
     build_root_prefix = str(_BUILD_ROOT_REL).replace("\\", "/") + "/"
     offending = []
     for line in r.stdout.splitlines():
-        # Porcelain v1 line is "XY path" (or rename "XY orig -> new").
         if not line.strip():
             continue
         path = line[3:]
-        # Ignore renames' second path; the porcelain status code already
-        # captures the change above.
         if " -> " in path:
             path = path.split(" -> ", 1)[1]
         path = path.strip('"')
@@ -140,10 +138,8 @@ def _read_dev_build_number() -> int:
 
 
 def _target_build_dir(repo_root: Path, build_n: int, target_id: str, build_root_rel: Path | None = None) -> Path:
-    """Resolve the per-target build directory. local_build emits under
-    _BUILD_ROOT_REL by default; remote_build passes REMOTE_BUILD_ROOT_REL."""
     root = build_root_rel if build_root_rel is not None else _BUILD_ROOT_REL
-    return repo_root / root / f"v{build_n}" / target_id
+    return repo_root / root / target_id
 
 
 def _write_manifest_snapshot(
@@ -313,7 +309,6 @@ _BUILDABLE_KINDS = ("cloudflare_pages_project", "hf_space", "azure_function_app"
 
 def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetRecord]:
     if target_arg == "all":
-        # Phase 4b scope: cloudflare + hf. Azure still routed through old_local_publish.
         return [t for t in coll if t.target_kind in _BUILDABLE_KINDS]
     if target_arg in ("cloudflare", "cloudflare_pages_project"):
         return [t for t in coll if t.target_kind == "cloudflare_pages_project"]
@@ -321,7 +316,6 @@ def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetR
         return [t for t in coll if t.target_kind == "hf_space"]
     if target_arg in ("azure", "azure_function_app"):
         return [t for t in coll if t.target_kind == "azure_function_app"]
-    # Exact target_id match
     for t in coll:
         if t.target_id == target_arg:
             return [t]
@@ -330,11 +324,11 @@ def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetR
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Build per-target deploy packages under local_build/v{N}/."
+        description="Build per-target deploy packages under localBuild/<target_id>/."
     )
     parser.add_argument(
         "--target", default="all",
-        help="'all' | 'cloudflare' | a specific target_id. Default: all (Phase 4a = cloudflare only).",
+        help="'all' | 'cloudflare' | 'hf' | 'azure' | a specific target_id.",
     )
     args = parser.parse_args(argv)
 
@@ -376,7 +370,7 @@ def main(argv: list[str] | None = None) -> int:
     for t in targets:
         built.append(_build_one(repo_root, t, build_n, build_sha))
 
-    _step(f"built {len(built)} package(s) at v{build_n}:")
+    _step(f"built {len(built)} package(s) (build={build_n}):")
     for b in built:
         _step(f"  {b.relative_to(repo_root)}")
     return 0

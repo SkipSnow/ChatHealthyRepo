@@ -1,30 +1,27 @@
 """local_deploy.py - operator's deploy manager (all envs).
 
-Single operator-facing deploy entry point per REQ-T-049 (symmetric 4):
-ships per-target build packages from local_build/v{N}/<target_id>/ to
-their cloud destinations, AND stands up the local host stack for
---env local. Reads each per-target package manifest for the target's
-facts; resolves secret VALUES from the bound store via SecretsResolver
-(bindings constructed from deployment_architecture.json's per-target
-`secrets` map per REQ-T-038 / REQ-T-052). The package itself contains
-NO secret values (REQ-T-053).
+Single operator-facing deploy entry point per REQ-T-049: ships per-target
+build packages from localBuild/<target_id>/ to their cloud destinations,
+AND stands up the local host stack for --env local. Reads each
+per-target package manifest for the target's facts (build_number
+included); resolves secret VALUES from the bound store via
+SecretsResolver (bindings constructed from deployment_architecture.json's
+per-target `secrets` map per REQ-T-038 / REQ-T-052). The package itself
+contains NO secret values (REQ-T-053).
 
 usage:
     python local_deploy.py --env local
     python local_deploy.py --env dev --target cloudflare
-    python local_deploy.py --env qa  --version v42
+    python local_deploy.py --env qa
     python local_deploy.py --env prod --target target_cloudflare_pages_website
 
-If --version is omitted, the highest v{N}/ directory present on disk
-under local_build/ is used.
+One current build at a time lives under localBuild/; the checkout is
+the version. No --version flag.
 
---env local: instantiates LocalDeploy() (absorbed from the legacy
-`old_local_deploy.py`) and runs the full host-stack lifecycle per
-EPIC-008-F-012-S-001 REQ-T-001..T-008 (port table, atomic teardown,
-docker build + run for the 3 backends, host-OS Website wrapper, wait /
-verify / smoke / bump). --env dev|qa|prod: ships per-target packages
-to their cloud destinations (cloudflare wrangler, HF Space docker push,
-Azure FA config-zip).
+--env local: instantiates LocalDeploy() and runs the full host-stack
+lifecycle per EPIC-008-F-012-S-001 REQ-T-001..T-008. --env dev|qa|prod:
+ships per-target packages to their cloud destinations (cloudflare
+wrangler, HF Space docker push, Azure FA config-zip).
 """
 from __future__ import annotations
 
@@ -32,7 +29,6 @@ import argparse
 import base64
 import json
 import os
-import re
 import shutil
 import socket
 import subprocess
@@ -65,7 +61,7 @@ from secrets_resolver import SecretsResolver
 from target_record import DeploymentCollection, TargetRecord
 
 
-_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build")
+_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild")
 
 # Per-env Cloudflare Pages project map. (The branch flag is read from the
 # manifest's environments[].branch field per REQ-T-050 — no hard-coded
@@ -126,35 +122,9 @@ def _find_repo_root(start: Path) -> Path:
     raise RuntimeError(f"no .git found walking up from {start}")
 
 
-def _resolve_version(repo_root: Path, version_arg: str | None) -> int:
-    build_root = repo_root / _BUILD_ROOT_REL
-    if not build_root.is_dir():
-        sys.exit(
-            f"ERROR: build root {build_root} does not exist. "
-            f"Run local_build.py first."
-        )
-    if version_arg is not None:
-        m = re.match(r"^v(\d+)$", version_arg)
-        if not m:
-            sys.exit(f"ERROR: --version must be vN (e.g., v42), got {version_arg!r}")
-        n = int(m.group(1))
-        if not (build_root / f"v{n}").is_dir():
-            sys.exit(f"ERROR: {build_root / f'v{n}'} does not exist.")
-        return n
-    versions = []
-    for child in build_root.iterdir():
-        if not child.is_dir():
-            continue
-        m = re.match(r"^v(\d+)$", child.name)
-        if m:
-            versions.append(int(m.group(1)))
-    if not versions:
-        sys.exit(f"ERROR: no v{{N}} build directories under {build_root}.")
-    return max(versions)
-
-
-def _load_target_manifest(repo_root: Path, build_n: int, target_id: str) -> dict:
-    path = repo_root / _BUILD_ROOT_REL / f"v{build_n}" / target_id / "manifest.json"
+def _load_target_manifest(repo_root: Path, target_id: str, build_root_rel: Path | None = None) -> dict:
+    root = build_root_rel if build_root_rel is not None else _BUILD_ROOT_REL
+    path = repo_root / root / target_id / "manifest.json"
     if not path.is_file():
         sys.exit(f"ERROR: target manifest missing: {path}")
     return json.loads(path.read_text(encoding="utf-8"))
@@ -475,16 +445,17 @@ def _deploy_azure_function_app(
 
 def _deploy_one(
     repo_root: Path,
-    build_n: int,
     target_id: str,
     target_kind: str,
     env: str,
     resolver: SecretsResolver,
     coll: DeploymentCollection,
 ) -> str:
-    build_dir = repo_root / _BUILD_ROOT_REL / f"v{build_n}" / target_id
+    build_dir = repo_root / _BUILD_ROOT_REL / target_id
     if not build_dir.is_dir():
         sys.exit(f"ERROR: build dir missing: {build_dir}")
+    manifest = _load_target_manifest(repo_root, target_id)
+    build_n = int(manifest["build_number"])
     if target_kind == "cloudflare_pages_project":
         target = coll.by_target_id(target_id)
         return _deploy_cloudflare(build_dir, env, resolver, target)
@@ -529,11 +500,9 @@ def _select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tupl
     return []
 
 
-def _run_cloud_deploy(env: str, version: str | None, target_arg: str) -> int:
+def _run_cloud_deploy(env: str, target_arg: str) -> int:
     repo_root = _find_repo_root(Path(__file__))
     _step(f"repo_root={repo_root} env={env} target={target_arg}")
-    build_n = _resolve_version(repo_root, version)
-    _step(f"version=v{build_n}")
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     env_file = repo_root / "Code" / ".env"
     coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
@@ -549,7 +518,7 @@ def _run_cloud_deploy(env: str, version: str | None, target_arg: str) -> int:
             _step(f"  skip {target_id}: no env_binding for {env!r}")
             continue
         deployed.append(_deploy_one(
-            repo_root, build_n, target_id, target_kind, env, resolver, coll,
+            repo_root, target_id, target_kind, env, resolver, coll,
         ))
     if not deployed:
         sys.exit(
@@ -1285,10 +1254,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--env", required=True, choices=["local", "dev", "qa", "prod"])
     parser.add_argument(
-        "--version", default=None,
-        help="vN build to deploy (cloud envs). Default: highest v{N}/ on disk. Ignored for --env local.",
-    )
-    parser.add_argument(
         "--target", default="all",
         help="'all' | 'cloudflare' | 'hf' | a specific target_id. Ignored for --env local.",
     )
@@ -1296,7 +1261,7 @@ def main(argv: list[str] | None = None) -> int:
     _require_local_context()
     if args.env == "local":
         return LocalDeploy().run()
-    return _run_cloud_deploy(args.env, args.version, args.target)
+    return _run_cloud_deploy(args.env, args.target)
 
 
 if __name__ == "__main__":
