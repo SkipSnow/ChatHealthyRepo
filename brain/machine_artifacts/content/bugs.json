@@ -43,12 +43,7 @@
       "reproduction": "1. Connect to {env}_PublicHealthData.SpecialtyMetaData. 2. Query: db.SpecialtyMetaData.find({Section:'Individual', Grouping: {$in: ['Other Service Providers', 'Student, Health Care']}}).count() — observe 37 records present in the dev cluster. 3. Run a specialty search via the specialty filter (e.g., 'find me a foot doctor'); observe non-licensed/non-clinical entries (Homemaker, Reflexologist, Driver, etc.) appearing in vector-search results.",
       "orphan": false,
       "next_action": [
-        "Author new pipeline requirement (2026-05-04): SpecialtyMetaData load step MUST filter NUCC codes to the set actually present in NPPES NPI registrants (Type 1 + Type 2).",
-        "Pull the latest NPPES public NPI data dump (or query the NPPES API) and extract the distinct set of taxonomy codes registered against real NPIs (both Type 1 individual and Type 2 organization).",
-        "Enrich SpecialtyMetaData rows with the NPI Type(s) that registered each code, for diagnostic/audit traceability.",
-        "Update Code/DataPipelines/load_specialty_data.py to apply the NPPES-derived code set as an allow-list at insert time — only NUCC rows whose Code appears in the NPPES set are loaded into SpecialtyMetaData.",
-        "Re-run the specialty pipeline; verify SpecialtyMetaData no longer contains Homemaker/Reflexologist/Driver/etc.",
-        "Re-run the specialty filter UI test (e.g., 'find me a foot doctor') and confirm only legitimate licensed-practitioner specialties appear in the results."
+        "The list of legitimate clinical NUCC codes MUST be curated manually. The NPPES-derived allow-list approach was tried (is_npi_registered field on ProprietaryData.SpecialtyAndProviderFlags, populated 2026-05-24) and found insufficient: 821 of 883 catalog codes have NPI registrants in our 298K-provider sample, including the polluting codes (Homemaker 376J00000X, Reflexologist 173C00000X, Driver 172A00000X) — real people DO register their NPI under these codes. A curated allow/deny list is the only reliable discriminator."
       ]
     },
     {
@@ -106,24 +101,34 @@
       ]
     },
     {
-      "bugid": "BUG-009",
-      "title": "Deployment scripts do not use DeploymentArchitecture as the sole source of truth",
-      "description": "In the Code/deploy directory two scripts (local_deploy.py and remote_deploy.py), while being used as drivers of our deployments, often rely on YAML files used by GitHub and Dockerfiles used by ChatHealthy's components to store required information. This is because their original requirements and frankly design were not strictly adhered to. Violates EPIC-008-F-012-S-002-REQ-T-003 and EPIC-008-F-012-S-003-REQ-T-007.",
+      "bugid": "BUG-010",
+      "title": "No V18 deploy target for the ReservationReaper Automation Account runbook",
+      "description": "pipeline/Code/runbooks/reservation_reaper.py is the canonical source for the ReservationReaper runbook that runs every 5 minutes on the ChatHealthyJobManager Automation Account (rg ChatHhealthyResorceManager, eastus2) to reap overdue cluster_lifecycle reservations and pause the Atlas pipeline cluster when no live reservations remain. The runbook was manually published when ChatHealthyJobManager was provisioned (2026-05-09), but no V18 deployment target exists for it in brain/machine_artifacts/content/deployment_architecture.json. Net: any edit to the source file since the manual upload silently drifts from what is executing on the schedule. local_build picks up the file via the Azure Function App target's source-file glob and ships it inside the FA deploy.zip, where it sits as dead bytes (no @app trigger). Migration started 2026-05-09, never finished — drop-ball pattern.",
       "environments": [
-        "local",
         "dev",
         "qa",
         "prod"
       ],
-      "status": "deferred",
+      "status": "new",
       "severity": "high",
-      "req_id": "EPIC-008-F-012-S-003-REQ-T-007",
-      "story_id": "EPIC-008-F-012-S-003",
+      "req_id": "EPIC-010-F-029-S-006-REQ-T-001",
+      "story_id": "EPIC-010-F-029-S-006",
       "test_id": "",
-      "discovery_date": "2026-05-19",
-      "due_date": "2026-06-06",
-      "reproduction": "Inspect Code/deploy/local_deploy.py and Code/deploy/remote_deploy.py — observe references to GitHub workflow YAML files and component Dockerfiles for ports, paths, image names, and similar deploy facts, rather than reading those facts from the persisted TargetRecord collection (deployment_architecture.json) via RecordLoader at runtime.",
-      "orphan": false
+      "test_success_criteria": [
+        "Editing pipeline/Code/runbooks/reservation_reaper.py, committing, and running the standard build+deploy chain updates the runbook content on ChatHealthyJobManager so its next scheduled execution runs the new bytes.",
+        "Crosswalk fails loud if the runbook's source bytes drift from the published runbook content on the Automation Account."
+      ],
+      "discovery_date": "2026-05-24",
+      "due_date": "2026-05-25",
+      "reproduction": "1. Edit any line in pipeline/Code/runbooks/reservation_reaper.py. 2. Commit + push + local_build --target azure + local_deploy --env dev --target azure. 3. Inspect runbook content on ChatHealthyJobManager via `az automation runbook show-content --automation-account-name ChatHealthyJobManager --resource-group ChatHhealthyResorceManager --name ReservationReaper`. 4. Observe: published bytes do NOT contain the edit. They match whatever was manually uploaded at original provisioning.",
+      "orphan": false,
+      "next_action": [
+        "Extend ChatHealthyDeploymentArchitectureSchema.json target_kind enum with `azure_automation_runbook`; add an `azure_automation` coordinate block (resource_group + automation_account + runbook_name + schedule_names[]).",
+        "Add target_azure_automation_runbook_reservation_reaper to deployment_architecture.json with files=[pipeline/Code/runbooks/reservation_reaper.py], azure_automation coordinates, and the runbook's secret bindings (MONGO_FRONTEND_connectionString, ATLAS_PUBLIC_KEY, ATLAS_PRIVATE_KEY, ATLAS_PROJECT_ID, ENV_PREFIX, PIPELINE_CLUSTER, ACTIVITY_WINDOW_MINUTES, AZ_*, AZURE_WEBJOBS_STORAGE, SPARKMAIL_API_KEY, NOTIFICATION_FROM_EMAIL, NOTIFICATION_TO_EMAIL) bound to azure_automation_variable.",
+        "Remove pipeline/Code/runbooks/reservation_reaper.py from target_azure_function_app_pipeline's files[] so it stops shipping to the FA zip.",
+        "Implement build handler for target_kind=azure_automation_runbook in local_build.py: stages the single .py file + writes manifest.json with the secret bindings.",
+        "Implement deploy handler for target_kind=azure_automation_runbook in local_deploy.py + remote_deploy.py: pushes runbook content via `az automation runbook replace-content` and Automation Variables via `az automation variable update`."
+      ]
     }
   ]
 }

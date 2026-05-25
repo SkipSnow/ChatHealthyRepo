@@ -223,6 +223,7 @@ def enrich_specialty_flags(collection_fqn: str) -> dict:
     ops = []
     prescribers = 0
     homeopathic = 0
+    npi_registered = 0
     missing = 0
 
     for doc in docs:
@@ -233,22 +234,33 @@ def enrich_specialty_flags(collection_fqn: str) -> dict:
             continue
         can_prescribe = entry["can_prescribe"]
         is_homeopathic = entry["is_homeopathic"]
+        is_npi_registered = entry["is_npi_registered"]
         if can_prescribe:
             prescribers += 1
         if is_homeopathic:
             homeopathic += 1
+        if is_npi_registered:
+            npi_registered += 1
         ops.append(UpdateOne(
             {"_id": doc["_id"]},
-            {"$set": {"can_prescribe": can_prescribe, "is_homeopathic": is_homeopathic}},
+            {"$set": {
+                "can_prescribe": can_prescribe,
+                "is_homeopathic": is_homeopathic,
+                "is_npi_registered": is_npi_registered,
+            }},
         ))
 
     if ops:
         coll.bulk_write(ops, ordered=False)
-    logging.info("Enriched %d specialties: %d prescribers, %d homeopathic, %d not in catalog",
-                 len(ops), prescribers, homeopathic, missing)
+    logging.info(
+        "Enriched %d specialties: %d prescribers, %d homeopathic, "
+        "%d npi_registered, %d not in catalog",
+        len(ops), prescribers, homeopathic, npi_registered, missing,
+    )
 
     return {"total": len(docs), "matched": len(ops), "prescribers": prescribers,
-            "homeopathic": homeopathic, "missing_from_catalog": missing}
+            "homeopathic": homeopathic, "npi_registered": npi_registered,
+            "missing_from_catalog": missing}
 
 
 # ------------------------------------------------------------------
