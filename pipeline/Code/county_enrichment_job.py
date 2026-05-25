@@ -1223,8 +1223,10 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     composite_to_pidx: dict[str, tuple] = {}          # cid -> (provider_oid, elem_idx)
     ops: list = []
     no_address = 0
+    providers_assigned = 0
 
     for p in cursor:
+        providers_assigned += 1
         pid_obj = p["_id"]
         pid_str = str(pid_obj)
         for idx, addr in _unenriched_elements(p):
@@ -1285,7 +1287,7 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
         coll.bulk_write(ops, ordered=False)
 
     return {
-        "assigned":         len(providers),
+        "assigned":         providers_assigned,
         "succeeded":        modified,
         "modified":         modified,
         "billing_modified": 0,            # back-compat key — billing moved to Pass 3
@@ -1472,8 +1474,10 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
     lookup = _get_maps_county_lookup()
     ops: list = []
     modified = maps_failed = 0
+    providers_assigned = 0
 
     for p in cursor:
+        providers_assigned += 1
         for idx, addr in _failed_elements(p):
             line1 = (addr.get("line1") or "").strip()
             city  = (addr.get("city")  or "").strip()
@@ -1514,7 +1518,7 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
 
     logging.info("Pass 4 Maps batch: %d elements matched, %d still failed", modified, maps_failed)
     return {
-        "assigned":         len(providers),
+        "assigned":         providers_assigned,
         "succeeded":        modified,
         "modified":         modified,
         "maps_failed":      maps_failed,
