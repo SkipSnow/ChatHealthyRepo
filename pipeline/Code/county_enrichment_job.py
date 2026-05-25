@@ -1040,6 +1040,7 @@ def apply_proprietary_flags_fn(config: dict) -> dict:
         if entity_type == "2":
             can_prescribe = False
             is_homeopathic = False
+            is_npi_registered = True
         else:
             taxonomies = doc.get("taxonomies", []) or []
             primary = next((t for t in taxonomies if t.get("primary")), None)
@@ -1049,10 +1050,12 @@ def apply_proprietary_flags_fn(config: dict) -> dict:
             if entry is None:
                 can_prescribe = False
                 is_homeopathic = False
+                is_npi_registered = False
                 unknown_taxonomy += 1
             else:
                 can_prescribe = entry["can_prescribe"]
                 is_homeopathic = entry["is_homeopathic"]
+                is_npi_registered = entry["is_npi_registered"]
 
         if can_prescribe:
             prescribers += 1
@@ -1064,6 +1067,7 @@ def apply_proprietary_flags_fn(config: dict) -> dict:
             {"$set": {
                 "can_prescribe": can_prescribe,
                 "is_homeopathic": is_homeopathic,
+                "is_npi_registered": is_npi_registered,
             }},
         ))
 

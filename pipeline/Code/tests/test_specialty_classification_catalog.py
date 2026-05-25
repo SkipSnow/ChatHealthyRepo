@@ -1,8 +1,10 @@
 """Unit tests for the proprietary NUCC classification catalog loader.
 
-Requires AZURE_STORAGE_CONNECTION_STRING in env so the loader can read
-findcarestorage / chathealthy-public-data /
-enrichment_content/specialty_classification_gpt41.json.
+Requires MONGO_connectionString in env so the loader can read
+ProprietaryData.SpecialtyAndProviderFlags on the pipeline cluster
+(ChatHealthyDataPipelines). The pipeline cluster must be live —
+register a reservation against admin.cluster_lifecycle on the
+front-end cluster before running these tests interactively.
 """
 import os
 import sys
@@ -34,7 +36,7 @@ def _clear_catalog_cache():
     clear_cache()
 
 
-def test_catalog_loads_from_blob():
+def test_catalog_loads_from_collection():
     from specialty_classification_catalog import load_catalog
     cat = load_catalog()
     assert isinstance(cat, dict)
@@ -46,9 +48,10 @@ def test_catalog_entry_shape():
     cat = load_catalog()
     for code, entry in cat.items():
         assert isinstance(entry, dict)
-        assert set(entry.keys()) == {"can_prescribe", "is_homeopathic"}
+        assert set(entry.keys()) == {"can_prescribe", "is_homeopathic", "is_npi_registered"}
         assert isinstance(entry["can_prescribe"], bool)
         assert isinstance(entry["is_homeopathic"], bool)
+        assert isinstance(entry["is_npi_registered"], bool)
 
 
 def test_catalog_has_known_md_codes():
@@ -116,6 +119,9 @@ def test_apply_proprietary_flags_against_synthetic_providers(monkeypatch):
         upd = op._doc
         sets = upd.get("$set", {})
         by_id[flt["_id"]] = sets
-    assert by_id["a"] == {"can_prescribe": True, "is_homeopathic": False}
-    assert by_id["b"] == {"can_prescribe": False, "is_homeopathic": False}
-    assert by_id["c"] == {"can_prescribe": False, "is_homeopathic": True}
+    assert by_id["a"]["can_prescribe"] is True and by_id["a"]["is_homeopathic"] is False
+    assert by_id["b"]["can_prescribe"] is False and by_id["b"]["is_homeopathic"] is False
+    assert by_id["c"]["can_prescribe"] is False and by_id["c"]["is_homeopathic"] is True
+    # Every record now also carries is_npi_registered from the catalog.
+    for k in ("a", "b", "c"):
+        assert "is_npi_registered" in by_id[k]
