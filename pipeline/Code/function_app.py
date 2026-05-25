@@ -33,7 +33,6 @@ from count_providers_by_state import count_providers_by_state
 from pipeline_health import check_mongo_health
 # from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
 from county_enrichment_job import (
-    apply_proprietary_flags_fn,
     county_enrichment_orchestrator_fn,
     county_enrichment_pass1_orchestrator_fn,
     county_enrichment_pass2_orchestrator_fn,
@@ -67,10 +66,13 @@ from provider_load_manager import (
     download_zip_fn,
     drain_staging_fn,
     embed_worker_fn,
+    embeddings_orchestrator_fn,
     ensure_preload_indexes_fn,
     ensure_postload_indexes_fn,
     extract_csv_fn,
+    multi_practice_addresses_orchestrator_fn,
     partition_file_fn,
+    prepare_data_orchestrator_fn,
     provider_load_orchestrator_fn,
     provider_pipeline_orchestrator_fn,
     provider_worker_fn,
@@ -83,6 +85,23 @@ from load_specialty_data import (
     SPECIALTY_PIPELINE_STEPS,
     run_load_specialty_data,
     specialty_pipeline_orchestrator_fn,
+)
+
+# Refactor sub-orchestrations + activities (Skip-authorized parent topology).
+from fan_out_workers import fan_out_workers_orchestrator_fn
+from pipeline_health_and_zombie_kill import (
+    kill_zombie_orchestrations_fn,
+    pipeline_health_and_zombie_kill_orchestrator_fn,
+    ping_mongo_writable_fn,
+)
+from normalize_provider_rows import (
+    normalize_provider_rows_orchestrator_fn,
+    normalize_provider_rows_worker_fn,
+)
+from urban_flag_enrichment import urban_flag_enrichment_orchestrator_fn
+from provider_flags_enrichment import (
+    apply_provider_flags_fn,
+    provider_flags_enrichment_orchestrator_fn,
 )
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -550,11 +569,6 @@ def cool_instances_activity(config: dict) -> dict:
 
 
 @app.activity_trigger(input_name="config")
-def apply_proprietary_flags_activity(config: dict) -> dict:
-    return apply_proprietary_flags_fn(config)
-
-
-@app.activity_trigger(input_name="config")
 def provider_worker_activity(config: dict) -> dict:
     return provider_worker_fn(config)
 
@@ -577,6 +591,68 @@ def embed_worker_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def create_vector_index_activity(config: dict) -> dict:
     return create_vector_index_fn(config)
+
+
+# ── Refactor sub-orchestrations (Skip-authorized parent topology) ─────────────
+
+@app.orchestration_trigger(context_name="context")
+def fan_out_workers_orchestrator(context: df.DurableOrchestrationContext):
+    return fan_out_workers_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def pipeline_health_and_zombie_kill_orchestrator(context: df.DurableOrchestrationContext):
+    return pipeline_health_and_zombie_kill_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def prepare_data_orchestrator(context: df.DurableOrchestrationContext):
+    return prepare_data_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def normalize_provider_rows_orchestrator(context: df.DurableOrchestrationContext):
+    return normalize_provider_rows_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def multi_practice_addresses_orchestrator(context: df.DurableOrchestrationContext):
+    return multi_practice_addresses_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def urban_flag_enrichment_orchestrator(context: df.DurableOrchestrationContext):
+    return urban_flag_enrichment_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def provider_flags_enrichment_orchestrator(context: df.DurableOrchestrationContext):
+    return provider_flags_enrichment_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def embeddings_orchestrator(context: df.DurableOrchestrationContext):
+    return embeddings_orchestrator_fn(context)
+
+
+@app.activity_trigger(input_name="config")
+def ping_mongo_writable_activity(config: dict) -> dict:
+    return ping_mongo_writable_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def kill_zombie_orchestrations_activity(config: dict) -> dict:
+    return kill_zombie_orchestrations_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def normalize_provider_rows_worker_activity(config: dict) -> dict:
+    return normalize_provider_rows_worker_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def apply_provider_flags_activity(config: dict) -> dict:
+    return apply_provider_flags_fn(config)
 
 
 # ── County Enrichment Orchestrator + Activities ───────────────────────────────
