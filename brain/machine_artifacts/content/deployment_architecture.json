@@ -2812,7 +2812,7 @@
           "azure": {
             "resource_group": "FindCareDataPipelines-Dev",
             "function_app": "DevPipelineManagmentService",
-            "task_hub": "DevPipelineManagmentService"
+            "task_hub": "DevPipelineNetherite"
           }
         }
       ],
