@@ -432,16 +432,18 @@ def streaming_pipeline_orchestrator_fn(context):
             },
         )
 
-        # Fan-out: one streaming_partition_activity per partition.
+        # Fan-out via the shared substrate so we get pre-warm + task_all +
+        # cool-down for free. Flex Consumption's reactive auto-scale is too
+        # slow to hit num_workers concurrency without pre-warming; without
+        # this the FA boots ~10 instances at first and the other 90
+        # activities queue (observed on the first virgin-infra MO run: only
+        # 10 of 100 partition activities ran concurrently → throughput
+        # capped at ~20 records/sec/total vs the 1500 target).
         partitions = prepare_result["partitions"]
         csv_path   = prepare_result["csv_path"]
-        context.set_custom_status(
-            f"Step 4: Streaming raw→normalize→pass1 fan-out "
-            f"({len(partitions)} partition(s))"
-        )
 
-        tasks = [
-            context.call_activity("streaming_partition_activity", {
+        worker_configs = [
+            {
                 "worker_id":           p["worker_id"],
                 "csv_path":            csv_path,
                 "start_byte":          p["start_byte"],
@@ -451,10 +453,20 @@ def streaming_pipeline_orchestrator_fn(context):
                 "batch_size":          config["batch_size"],
                 "blob_container":      config["blob_container"],
                 "provider_collection": config["provider_collection"],
-            })
+            }
             for p in partitions
         ]
-        partition_results = yield context.task_all(tasks)
+
+        fan_out_result = yield context.call_sub_orchestrator(
+            "fan_out_workers_orchestrator",
+            {
+                "worker_activity": "streaming_partition_activity",
+                "worker_configs":  worker_configs,
+                "num_workers":     len(worker_configs),
+                "step_label":      "Step 4: Streaming raw->normalize->pass1",
+            },
+        )
+        partition_results = fan_out_result.get("results") or []
 
         # Roll-up
         summary = {
@@ -465,6 +477,8 @@ def streaming_pipeline_orchestrator_fn(context):
             "min_rate_per_sec": min((r["rate_per_sec"] for r in partition_results), default=0),
             "max_rate_per_sec": max((r["rate_per_sec"] for r in partition_results), default=0),
             "partition_results": partition_results,
+            "warm_metrics":     fan_out_result.get("warm_metrics"),
+            "cool_metrics":     fan_out_result.get("cool_metrics"),
         }
         context.set_custom_status(
             f"Done — upserted {summary['upserted']:,} records across "
