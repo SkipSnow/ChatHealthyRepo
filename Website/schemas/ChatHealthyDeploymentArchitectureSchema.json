@@ -38,6 +38,7 @@
               "hf_space",
               "cloudflare_pages_project",
               "azure_function_app",
+              "azure_container_app",
               "host_os_process",
               "docker_local_container",
               "mongodb_collection",
@@ -89,6 +90,62 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256
+                    }
+                  }
+                },
+
+                "azure_container_app": {
+                  "type": "object",
+                  "description": "Azure Container Apps deploy coordinates for this env binding. Present iff target_kind=='azure_container_app'. resource_group + container_app identify the ACA resource; container_app_environment names the Container Apps Environment that hosts it; registry names the Azure Container Registry that hosts the image (deploy issues `az acr login --name <registry>` and pushes <registry>.azurecr.io/<container_app>:<build_number>); min_replicas / max_replicas set the scale-to-zero envelope; task_hub names the Durable Functions task hub used by the Netherite storage provider that this ACA hosts.",
+                  "additionalProperties": false,
+                  "required": ["resource_group", "container_app", "container_app_environment", "task_hub"],
+                  "properties": {
+                    "resource_group": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "container_app": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "container_app_environment": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "registry": {
+                      "type": "string",
+                      "description": "Azure Container Registry short name (NOT the full <name>.azurecr.io login server). The deploy handler issues `az acr login --name <registry>` and tags images as <registry>.azurecr.io/<container_app>:<build_number>. If absent, the deploy handler derives one from resource_group (lowercased, dashes stripped) — operator should set this explicitly to avoid surprises.",
+                      "minLength": 1,
+                      "maxLength": 50,
+                      "pattern": "^[a-zA-Z0-9]+$"
+                    },
+                    "task_hub": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "min_replicas": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000
+                    },
+                    "max_replicas": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000
+                    },
+                    "cpu": {
+                      "type": "number",
+                      "minimum": 0.25,
+                      "maximum": 16
+                    },
+                    "memory_gi": {
+                      "type": "number",
+                      "minimum": 0.5,
+                      "maximum": 32
                     }
                   }
                 },
