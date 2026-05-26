@@ -104,6 +104,10 @@ from provider_flags_enrichment import (
     provider_flags_enrichment_orchestrator_fn,
 )
 from throttle_entities import token_bucket_entity_fn
+from streaming_pipeline import (
+    streaming_partition_activity_fn,
+    streaming_pipeline_orchestrator_fn,
+)
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -209,6 +213,7 @@ OPS_TASK_HANDLERS = {
 ASYNC_TASK_ORCHESTRATORS = {
     "CountyEnrichment": "county_enrichment_orchestrator",
     "ProviderPipeline": "provider_pipeline_orchestrator",
+    "StreamingPipeline": "streaming_pipeline_orchestrator",
     "SpecialtyPipeline": "specialty_pipeline_orchestrator",
     "SnapshotCollection": "snapshot_collection_orchestrator",
     "PrescriberEvaluateCarePipeline": "prescriber_pipeline_orchestrator",
@@ -441,6 +446,16 @@ def token_bucket(context: df.DurableEntityContext) -> None:
 @app.orchestration_trigger(context_name="context")
 def provider_pipeline_orchestrator(context: df.DurableOrchestrationContext):
     return provider_pipeline_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def streaming_pipeline_orchestrator(context: df.DurableOrchestrationContext):
+    return streaming_pipeline_orchestrator_fn(context)
+
+
+@app.activity_trigger(input_name="config")
+def streaming_partition_activity(config: dict) -> dict:
+    return streaming_partition_activity_fn(config)
 
 
 @app.orchestration_trigger(context_name="context")
