@@ -224,7 +224,7 @@ def _entity_base_url() -> str:
     """Build the Durable Functions HTTP management API URL for our entity."""
     host = os.environ.get("WEBSITE_HOSTNAME")
     code = os.environ.get("DURABLE_MGMT_CODE")
-    task_hub = os.environ.get("DURABLE_TASK_HUB") or "DevPipelineNetherite2"
+    task_hub = os.environ.get("DURABLE_TASK_HUB") or "DevPipelineV1"
     connection = os.environ.get("DURABLE_TASK_CONNECTION") or "AzureWebJobsStorage"
     if not host:
         raise RuntimeError(

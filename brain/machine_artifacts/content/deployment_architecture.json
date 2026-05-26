@@ -2812,7 +2812,7 @@
           "azure": {
             "resource_group": "FindCareDataPipelines-Dev",
             "function_app": "DevPipelineManagmentService",
-            "task_hub": "DevPipelineNetherite2"
+            "task_hub": "DevPipelineV1"
           }
         }
       ],
@@ -2920,7 +2920,7 @@
           "source_location": "pipeline/Code/host.json",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "5c1e5b1d0ac84b44dc670bfa2f87b5be0f550746827836fc32c416bc4d74efda"
+          "content_hash": "41c18860888c7616e0ea73ab6aad8db6a13fd211e0214cd33a3e8683ed5b5de6"
         },
         {
           "feature_id": "EPIC-010-F-007",
@@ -3102,7 +3102,7 @@
           "source_location": "pipeline/Code/task_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3103e3b292cd10c94758d0f7c8304e13d1b337ee907a0032d2079c330fe74da0"
+          "content_hash": "1fd2c638490cc7aa6337d8563f3ae00a8419ead7b172d83247c0ce1579519906"
         },
         {
           "feature_id": "EPIC-010-F-007",
