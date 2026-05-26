@@ -44,7 +44,7 @@ import io
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from pymongo import MongoClient, UpdateOne
 
@@ -243,108 +243,164 @@ def _iter_csv_partition(blob_client, start_byte: int, end_byte: int, header: lis
     # the next worker's territory — drop them.
 
 
-# ── Activity: streaming_partition_activity ─────────────────────────────────
+# ── Activity: get_csv_metadata (file_size + header_end for seed) ───────────
+
+def get_csv_metadata_fn(config: dict) -> dict:
+    """Read the CSV blob's file_size and header_end (byte offset after the
+    header line). Cheap blob op (32 KB peek + 1 properties call) — fast
+    enough to run as a single activity at orchestrator startup."""
+    from blob_client import get_blob_service
+
+    csv_path = config["csv_path"]
+    container = config.get("blob_container", "provider-data")
+    blob_client = get_blob_service().get_container_client(container).get_blob_client(csv_path)
+    props = blob_client.get_blob_properties()
+    file_size = props.size
+
+    header_bytes = blob_client.download_blob(offset=0, length=32768).readall()
+    header_text = header_bytes.decode("utf-8", errors="replace")
+    if "\n" not in header_text:
+        raise RuntimeError("Header line exceeds 32KB — unexpected CSV format.")
+    header_line = header_text.split("\n")[0]
+    header_end = len(header_line.encode("utf-8")) + 1  # +1 for \n
+    logging.info("csv_metadata: file_size=%d header_end=%d", file_size, header_end)
+    return {"file_size": file_size, "header_end": header_end}
+
+
+# ── Activity: streaming_partition_activity (pull-loop worker) ──────────────
 
 def streaming_partition_activity_fn(config: dict) -> dict:
-    """One activity = one CSV byte-range partition = independent stream.
+    """Pull-loop worker. Claims chunks from task_manager continuously,
+    processes each inline, releases, repeats. Exits when queue is empty.
 
-    For each row in the partition:
-        raw → state-filter → PipelineMessage → normalize → pass1-zip
-        → buffer → bulk-write (per batch_size).
+    Records-as-messages: the worker (this activity) "sends a message" to the
+    task_manager entity asking for the next 5K assignments. The entity
+    atomically pops a chunk from the queue; the worker processes it
+    straight-through (parse + normalize + pass1 + bulk-write) and signals
+    release before pulling the next.
 
-    Returns per-partition stats so the orchestrator can roll up totals.
+    Activity-runtime budget: stops claiming new chunks if we approach the
+    Durable 2 h activity timeout. Any in-flight chunk that doesn't complete
+    is left in task_manager.in_flight; a follow-up reaper or fresh run can
+    re-claim it (Mongo upsert is idempotent on NPI so re-processing is
+    safe). Spike scope: no reaper yet; relies on the budget margin.
     """
     from pipeline_message import PipelineMessage
     from county_enrichment_job import _get_crosswalk
     from blob_client import get_blob_service
+    from task_manager import claim_next_chunk, release_chunk
 
     started_at  = datetime.now(timezone.utc).isoformat()
     start_time  = time.monotonic()
-    worker_id   = config["worker_id"]
+    worker_id   = str(config["worker_id"])
     csv_path    = config["csv_path"]
-    start_byte  = config["start_byte"]
-    end_byte    = config["end_byte"]
     load_id     = config["load_id"]
     states      = [s.upper() for s in config["states"]]
     states_set  = set(states)
     batch_size  = config.get("batch_size", 500)
     container   = config.get("blob_container", "provider-data")
     collection  = config.get("provider_collection", "dev_PublicHealthData.pipeline_providers")
+    # Stop claiming new chunks when we have less than this much headroom
+    # before the 7200 s Durable activity hard timeout. Default 600 s = 10 min.
+    safety_margin = config.get("activity_safety_margin_seconds", 600)
+    max_runtime   = 7200 - safety_margin
 
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
 
     blob_client = get_blob_service().get_container_client(container).get_blob_client(csv_path)
-    # Header isn't in the orchestrator config (45 KB outbox spill limit at
-    # 16+ workers). Fetch from blob at startup; ~ms cost vs partition
-    # processing time.
     header = _fetch_header(blob_client)
     crosswalk = _get_crosswalk()
 
-    buffer: list = []
-    seen = filtered_out = upserted = 0
+    chunks_processed = 0
+    total_seen = total_filtered = total_upserted = 0
 
-    def _flush():
-        nonlocal upserted
-        if not buffer:
-            return
-        ops = [
-            UpdateOne(
-                {"npi": doc["npi"]},
-                {"$set": doc},
-                upsert=True,
+    while True:
+        if (time.monotonic() - start_time) > max_runtime:
+            logging.info(
+                "worker[%s]: hit %ds runtime ceiling — returning before next claim",
+                worker_id, max_runtime,
             )
-            for doc in buffer
-        ]
-        result = coll.bulk_write(ops, ordered=False)
-        upserted += (result.upserted_count + result.modified_count + result.matched_count)
-        buffer.clear()
+            break
 
-    for local_id, raw_row in _iter_csv_partition(blob_client, start_byte, end_byte, header):
-        seen += 1
-        if not _raw_row_matches_state(raw_row, states_set):
-            filtered_out += 1
-            continue
-        npi = (raw_row.get("NPI") or "").strip()
-        if not npi:
-            continue
+        chunk = claim_next_chunk(worker_id)
+        if chunk is None:
+            # task_manager queue is empty; worker's job is done.
+            logging.info("worker[%s]: queue drained — exiting", worker_id)
+            break
 
-        msg = PipelineMessage.from_raw_row(
-            npi=npi,
-            raw_row=raw_row,
-            load_id=load_id,
-            record_id=local_id,
-            worker_id=worker_id,
-            partition=(start_byte, end_byte),
+        chunk_id   = chunk["chunk_id"]
+        start_byte = chunk["start_byte"]
+        end_byte   = chunk["end_byte"]
+        chunk_t0   = time.monotonic()
+
+        buffer: list = []
+        seen = filtered = 0
+
+        def _flush():
+            nonlocal total_upserted
+            if not buffer:
+                return
+            ops = [
+                UpdateOne({"npi": doc["npi"]}, {"$set": doc}, upsert=True)
+                for doc in buffer
+            ]
+            result = coll.bulk_write(ops, ordered=False)
+            total_upserted += (result.upserted_count + result.modified_count + result.matched_count)
+            buffer.clear()
+
+        for local_id, raw_row in _iter_csv_partition(blob_client, start_byte, end_byte, header):
+            seen += 1
+            if not _raw_row_matches_state(raw_row, states_set):
+                filtered += 1
+                continue
+            npi = (raw_row.get("NPI") or "").strip()
+            if not npi:
+                continue
+
+            msg = PipelineMessage.from_raw_row(
+                npi=npi,
+                raw_row=raw_row,
+                load_id=load_id,
+                record_id=local_id,
+                worker_id=int(worker_id) if worker_id.isdigit() else 0,
+                partition=(start_byte, end_byte),
+            )
+            normalize_stage(msg)
+            pass1_zip_stage(msg, crosswalk)
+            buffer.append(msg.to_mongo_doc())
+            if len(buffer) >= batch_size:
+                _flush()
+
+        _flush()
+        release_chunk(chunk_id)
+
+        chunks_processed += 1
+        total_seen += seen
+        total_filtered += filtered
+        chunk_dur = time.monotonic() - chunk_t0
+        logging.info(
+            "worker[%s] chunk %d done: seen=%d filtered=%d upserted=%d "
+            "chunk_dur=%.1fs (chunks=%d)",
+            worker_id, chunk_id, seen, filtered, total_upserted, chunk_dur, chunks_processed,
         )
 
-        # Straight-through stage chain — record stays in local memory.
-        normalize_stage(msg)
-        pass1_zip_stage(msg, crosswalk)
-
-        buffer.append(msg.to_mongo_doc())
-        if len(buffer) >= batch_size:
-            _flush()
-
-    _flush()  # final partial batch
-
     duration = round(time.monotonic() - start_time, 2)
-    rate = round((upserted / duration), 1) if duration > 0 else 0.0
+    rate = round(total_upserted / duration, 1) if duration > 0 else 0.0
     logging.info(
-        "streaming_partition[%d]: seen=%d filtered_out=%d upserted=%d "
-        "duration=%.1fs rate=%.1f recs/s",
-        worker_id, seen, filtered_out, upserted, duration, rate,
+        "worker[%s] DONE: chunks=%d seen=%d filtered=%d upserted=%d duration=%.1fs rate=%.1f/s",
+        worker_id, chunks_processed, total_seen, total_filtered, total_upserted, duration, rate,
     )
     return {
-        "worker_id":    worker_id,
-        "partition":    [start_byte, end_byte],
-        "seen":         seen,
-        "filtered_out": filtered_out,
-        "upserted":     upserted,
-        "started_at":   started_at,
-        "finished_at":  datetime.now(timezone.utc).isoformat(),
-        "duration":     duration,
-        "rate_per_sec": rate,
+        "worker_id":        worker_id,
+        "chunks_processed": chunks_processed,
+        "seen":             total_seen,
+        "filtered_out":     total_filtered,
+        "upserted":         total_upserted,
+        "started_at":       started_at,
+        "finished_at":      datetime.now(timezone.utc).isoformat(),
+        "duration":         duration,
+        "rate_per_sec":     rate,
     }
 
 
@@ -443,57 +499,93 @@ def streaming_pipeline_orchestrator_fn(context):
             },
         )
 
-        # Fan-out via the shared substrate so we get pre-warm + task_all +
-        # cool-down for free. Flex Consumption's reactive auto-scale is too
-        # slow to hit num_workers concurrency without pre-warming; without
-        # this the FA boots ~10 instances at first and the other 90
-        # activities queue (observed on the first virgin-infra MO run: only
-        # 10 of 100 partition activities ran concurrently → throughput
-        # capped at ~20 records/sec/total vs the 1500 target).
-        partitions = prepare_result["partitions"]
-        csv_path   = prepare_result["csv_path"]
+        # ── Records-as-messages pipeline: seed task_manager + spawn workers ──
+        # The task_manager Durable Entity owns the queue of 5K-record byte
+        # chunks. Workers (streaming_partition_activity) loop continuously:
+        # claim a chunk via HTTP entity signal, process inline, release,
+        # claim the next. Continuous flow, no fan-out waves with idle gaps.
+        csv_path = prepare_result["csv_path"]
 
+        # Step 4a: read file_size + header_end so we can seed the task_manager.
+        context.set_custom_status("Step 4a: Reading CSV metadata for task_manager seed")
+        meta = yield context.call_activity("get_csv_metadata_activity", {
+            "csv_path":       csv_path,
+            "blob_container": config["blob_container"],
+        })
+
+        # Step 4b: seed the task_manager entity. signal_entity is one-way;
+        # the seed completes asynchronously inside the entity. Workers below
+        # will loop their claim until the seed lands and chunks become
+        # available (claim against an unseeded queue returns None, which
+        # would make workers exit prematurely — so we add a small synchronous
+        # warm-up wait via a Durable timer to give seed time to commit).
+        chunk_size_bytes = int(config.get("chunk_size_bytes", 2_500_000))
+        context.signal_entity(
+            df.EntityId("task_manager", "default"),
+            "seed",
+            {
+                "file_size":        meta["file_size"],
+                "header_end":       meta["header_end"],
+                "chunk_size_bytes": chunk_size_bytes,
+            },
+        )
+        # Give the entity a few seconds to process the seed before workers
+        # start claiming. Without this, race-against-empty-queue is possible.
+        seed_settle_seconds = int(config.get("seed_settle_seconds", 5))
+        yield context.create_timer(
+            context.current_utc_datetime + timedelta(seconds=seed_settle_seconds)
+        )
+
+        # Step 4c: warm the FA + spawn N stateless pull-loop workers via the
+        # shared fan_out_workers substrate. Each worker config has NO byte
+        # range — the worker pulls from task_manager continuously until
+        # the queue is drained.
+        num_workers = int(config["num_workers"])
         worker_configs = [
             {
-                "worker_id":           p["worker_id"],
+                "worker_id":           i + 1,
                 "csv_path":            csv_path,
-                "start_byte":          p["start_byte"],
-                "end_byte":            p["end_byte"],
                 "load_id":             load_id,
                 "states":              config["states"],
                 "batch_size":          config["batch_size"],
                 "blob_container":      config["blob_container"],
                 "provider_collection": config["provider_collection"],
             }
-            for p in partitions
+            for i in range(num_workers)
         ]
-
+        context.set_custom_status(
+            f"Step 4: Spawning {num_workers} pull-loop worker(s); "
+            f"~{meta['file_size'] // chunk_size_bytes} chunks queued"
+        )
         fan_out_result = yield context.call_sub_orchestrator(
             "fan_out_workers_orchestrator",
             {
                 "worker_activity": "streaming_partition_activity",
                 "worker_configs":  worker_configs,
-                "num_workers":     len(worker_configs),
-                "step_label":      "Step 4: Streaming raw->normalize->pass1",
+                "num_workers":     num_workers,
+                "step_label":      "Step 4: Streaming pull-loop workers",
             },
         )
-        partition_results = fan_out_result.get("results") or []
+        worker_results = fan_out_result.get("results") or []
 
         # Roll-up
         summary = {
-            "partitions_completed": len(partition_results),
-            "rows_seen":     sum(r["seen"] for r in partition_results),
-            "filtered_out":  sum(r["filtered_out"] for r in partition_results),
-            "upserted":      sum(r["upserted"] for r in partition_results),
-            "min_rate_per_sec": min((r["rate_per_sec"] for r in partition_results), default=0),
-            "max_rate_per_sec": max((r["rate_per_sec"] for r in partition_results), default=0),
-            "partition_results": partition_results,
-            "warm_metrics":     fan_out_result.get("warm_metrics"),
-            "cool_metrics":     fan_out_result.get("cool_metrics"),
+            "workers_completed":  len(worker_results),
+            "total_chunks":       sum(r.get("chunks_processed", 0) for r in worker_results),
+            "rows_seen":          sum(r.get("seen", 0) for r in worker_results),
+            "filtered_out":       sum(r.get("filtered_out", 0) for r in worker_results),
+            "upserted":           sum(r.get("upserted", 0) for r in worker_results),
+            "min_rate_per_sec":   min((r.get("rate_per_sec", 0) for r in worker_results), default=0),
+            "max_rate_per_sec":   max((r.get("rate_per_sec", 0) for r in worker_results), default=0),
+            "worker_results":     worker_results,
+            "warm_metrics":       fan_out_result.get("warm_metrics"),
+            "cool_metrics":       fan_out_result.get("cool_metrics"),
+            "csv_file_size":      meta["file_size"],
+            "chunk_size_bytes":   chunk_size_bytes,
         }
         context.set_custom_status(
             f"Done — upserted {summary['upserted']:,} records across "
-            f"{summary['partitions_completed']} partitions"
+            f"{summary['total_chunks']} chunks by {summary['workers_completed']} workers"
         )
 
     except Exception as exc:

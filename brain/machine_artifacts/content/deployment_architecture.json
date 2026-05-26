@@ -2913,7 +2913,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a6b6b7c7119e9ce16d3b5fa396eb99ea17d2f0ba0cbe4a0b832faf181f81d8f7"
+          "content_hash": "875910055b3c5cbc9846ab07e8b65deab37c79252c6595955a5c34738d6bf711"
         },
         {
           "feature_id": "EPIC-010-F-007",
@@ -3095,7 +3095,14 @@
           "source_location": "pipeline/Code/streaming_pipeline.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3ed1cfab3e565bf63942307c93fda2def86b728cec1ab83b3b73cda7b465ce7f"
+          "content_hash": "f3c31bdbba237ea8f077ac0eab37e46909e0d1d6527add717cbd9897e96620f7"
+        },
+        {
+          "feature_id": "EPIC-010-F-007",
+          "source_location": "pipeline/Code/task_manager.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "51e256dd4aabcf2775531dbc0df571b59bf5cb5493a9ce4c883e108595fe46ff"
         },
         {
           "feature_id": "EPIC-010-F-007",
