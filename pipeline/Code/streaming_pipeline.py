@@ -205,35 +205,42 @@ def _fetch_header(blob_client) -> list:
 def _iter_csv_partition(blob_client, start_byte: int, end_byte: int, header: list):
     """Yield (record_id, row_dict) for each CSV row in the byte range.
 
+    Streams the blob in chunks and emits one decoded line at a time — never
+    holds the full partition in memory. Identical pattern to
+    provider_worker._iter_lines. Required because a single worker on a
+    100-partition split of an 8 GB CSV would otherwise hold ~80 MB of bytes +
+    ~80 MB of decoded text + StringIO buffer, blowing the FA per-worker memory
+    ceiling (OOM-kill / SIGKILL / exit 137).
+
     Same partition contract as provider_worker:
-      - start_byte=0 starts in the data region (partition_file_fn returns
-        boundaries that begin at header_end, never inside the header)
-      - For start_byte > 0 the byte may land mid-line; drop the leading
-        partial line — preceding worker's territory.
-      - Stop at end_byte.
+      - start_byte > 0 lands mid-line; drop the leading partial line —
+        that's the preceding worker's territory.
+      - Stop at end_byte (length of the download).
     """
     stream = blob_client.download_blob(offset=start_byte, length=end_byte - start_byte)
-    raw_bytes = stream.readall()
-    text = raw_bytes.decode("utf-8", errors="replace")
-
-    # Drop partial leading line for every worker — boundaries were chosen
-    # at \n offsets, but the byte at start_byte itself is the \n we want
-    # to skip (every worker starts cleanly at the next char).
-    if start_byte > 0:
-        nl = text.find("\n")
-        if nl == -1:
-            return
-        text = text[nl + 1 :]
-
-    reader = csv.reader(io.StringIO(text))
     local_id = 0
-    for row in reader:
-        if not row:
-            continue
-        if len(row) < len(header):
-            continue
-        local_id += 1
-        yield local_id, dict(zip(header, row))
+    buffer = b""
+    expected_field_count = len(header)
+
+    for chunk in stream.chunks():
+        buffer += chunk
+        while b"\n" in buffer:
+            line_bytes, buffer = buffer.split(b"\n", 1)
+            line = line_bytes.decode("utf-8", errors="replace")
+            if not line:
+                continue
+            row = next(csv.reader([line]), None)
+            # Defensive: drop rows with wrong field count. This catches a
+            # partial leading row from boundary misalignment (rare; partition
+            # boundaries are pre-aligned to \n by partition_file_fn but the
+            # check is cheap insurance), and trailing rows that don't have
+            # a terminating \n in this partition (next worker's territory).
+            if not row or len(row) != expected_field_count:
+                continue
+            local_id += 1
+            yield local_id, dict(zip(header, row))
+    # Any bytes left in `buffer` (no terminating \n in this partition) are
+    # the next worker's territory — drop them.
 
 
 # ── Activity: streaming_partition_activity ─────────────────────────────────
