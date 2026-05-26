@@ -11,7 +11,7 @@
       "required": ["provider"],
       "properties": {
         "provider": {
-          "description": "Array of provider records. May be empty.",
+          "description": "ChatHealthy.AI's proprietary provider record. It contains an array of provider records. May be empty.",
           "type": "array",
           "items": { "$ref": "#/definitions/provider" }
         }
@@ -37,7 +37,7 @@
           "examples": ["1144247073", "1215954557"]
         },
         "loaded_at": {
-          "description": "ISO-8601 UTC timestamp stamped by the ChatHealthyDataPipelineProcessor.",
+          "description": "ISO-8601 UTC timestamp stamped by the ChatHealthyDataPipelineProcessor. This timestamp represents the moment when the first raw record JSON is constructed. ",
           "type": "string",
           "format": "date-time",
           "examples": ["2026-05-25T22:40:08.123456+00:00"]
@@ -109,7 +109,7 @@
           "minItems": 1
         },
         "taxonomies": {
-          "description": "Provider specialty taxonomy codes (NUCC Health Care Provider Taxonomy). Multiple entries represent additional specialties. Exactly one entry should have primary: true when present.",
+          "description": "Provider specialty taxonomy codes (NUCC Health Care Provider Taxonomy). EACH type 1 provider must have at least one NUCC code. Multiple entries represent additional specialties. Exactly one entry should have primary: true when present.",
           "type": "array",
           "items": {
             "type": "object",
