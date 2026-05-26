@@ -104,7 +104,9 @@ from provider_flags_enrichment import (
     provider_flags_enrichment_orchestrator_fn,
 )
 from throttle_entities import token_bucket_entity_fn
+from task_manager import task_manager_entity_fn
 from streaming_pipeline import (
+    get_csv_metadata_fn,
     streaming_partition_activity_fn,
     streaming_pipeline_orchestrator_fn,
 )
@@ -441,6 +443,15 @@ def token_bucket(context: df.DurableEntityContext) -> None:
     token_bucket_entity_fn(context)
 
 
+# task_manager: per-pipeline-run work allocator. Holds the byte-offset
+# chunk queue (5K-record chunks). Worker activities pull from it via the
+# HTTP entity management API. Skip 2026-05-26: "the partition goes back
+# sends a message to the parser to get 5K more assignments."
+@app.entity_trigger(context_name="context")
+def task_manager(context: df.DurableEntityContext) -> None:
+    task_manager_entity_fn(context)
+
+
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
 
 @app.orchestration_trigger(context_name="context")
@@ -456,6 +467,11 @@ def streaming_pipeline_orchestrator(context: df.DurableOrchestrationContext):
 @app.activity_trigger(input_name="config")
 def streaming_partition_activity(config: dict) -> dict:
     return streaming_partition_activity_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def get_csv_metadata_activity(config: dict) -> dict:
+    return get_csv_metadata_fn(config)
 
 
 @app.orchestration_trigger(context_name="context")
