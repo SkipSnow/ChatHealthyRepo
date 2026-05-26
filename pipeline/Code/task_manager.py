@@ -103,69 +103,74 @@ def task_manager_entity_fn(context) -> None:
         stats()
             Return {queued, in_flight, done, configured}.
     """
+    # State is intentionally SMALL. Chunks are derived arithmetically from
+    # config + chunk_id, never materialized as a 4,000+-entry queue in state
+    # (Durable Entities serialize state on every operation; a 270 KB queue
+    # blew the OperationResult serializer with cryptic OperationErrorException
+    # on every claim).
     state = context.get_state(lambda: {
-        "config":            None,
-        "queue":             [],
-        "in_flight":         {},
+        "config":            None,    # {file_size, header_end, chunk_size_bytes, total_chunks}
+        "next_chunk_id":     0,       # next id to dispense
+        "in_flight":         {},      # {chunk_id_str: {worker_id, claimed_at}}
         "done":              0,
-        "pending_responses": {},
+        "pending_responses": {},      # {request_id: chunk_or_None}
     })
     op_name = context.operation_name
     op_input = context.get_input() or {}
+
+    def _derive_chunk(cid: int) -> dict:
+        """Compute (start_byte, end_byte) for chunk_id from config."""
+        cfg = state["config"]
+        start_byte = cfg["header_end"] + cid * cfg["chunk_size_bytes"]
+        end_byte   = min(start_byte + cfg["chunk_size_bytes"], cfg["file_size"])
+        return {"chunk_id": cid, "start_byte": start_byte, "end_byte": end_byte}
 
     if op_name == "seed":
         file_size        = int(op_input["file_size"])
         header_end       = int(op_input["header_end"])
         chunk_size_bytes = int(op_input.get("chunk_size_bytes", 2_500_000))
+        total_chunks = (file_size - header_end + chunk_size_bytes - 1) // chunk_size_bytes
 
-        # Idempotent re-seed when config matches; loud failure otherwise.
         if state["config"] is not None:
             existing = state["config"]
             if (existing["file_size"] == file_size and
                 existing["header_end"] == header_end and
                 existing["chunk_size_bytes"] == chunk_size_bytes):
-                context.set_result({"chunks": len(state["queue"]) + len(state["in_flight"]) + state["done"],
-                                    "already_seeded": True})
+                # Re-seed with same config is a no-op (idempotent).
                 return
             raise ValueError(
                 f"task_manager already seeded with different config "
                 f"(existing={existing}, new={op_input}); reset state before re-seeding"
             )
 
-        # Build the chunk queue. Each chunk is [cur, min(cur+chunk_size, file_size)).
-        # NOTE: byte boundaries are NOT pre-aligned to \n here — the worker's
-        # CSV streamer drops partial leading rows defensively (same pattern as
-        # the legacy provider_worker).
-        chunks = []
-        cur = header_end
-        cid = 0
-        while cur < file_size:
-            nxt = min(cur + chunk_size_bytes, file_size)
-            chunks.append({"chunk_id": cid, "start_byte": cur, "end_byte": nxt})
-            cid += 1
-            cur = nxt
-        state["queue"] = chunks
         state["config"] = {
             "file_size":        file_size,
             "header_end":       header_end,
             "chunk_size_bytes": chunk_size_bytes,
+            "total_chunks":     total_chunks,
         }
+        state["next_chunk_id"] = 0
         context.set_state(state)
-        context.set_result({"chunks": len(chunks), "already_seeded": False})
         return
 
     if op_name == "claim":
         worker_id  = op_input["worker_id"]
         request_id = op_input["request_id"]
-        if state["queue"]:
-            chunk = state["queue"].pop(0)
-            state["in_flight"][str(chunk["chunk_id"])] = {
+        if state["config"] is None:
+            # Unseeded — return None so workers exit cleanly. Fail-loud at
+            # the orchestrator level (seed must precede spawn).
+            state["pending_responses"][request_id] = None
+        elif state["next_chunk_id"] < state["config"]["total_chunks"]:
+            cid = state["next_chunk_id"]
+            chunk = _derive_chunk(cid)
+            state["next_chunk_id"] = cid + 1
+            state["in_flight"][str(cid)] = {
                 "worker_id":  worker_id,
                 "claimed_at": time.time(),
             }
             state["pending_responses"][request_id] = chunk
         else:
-            state["pending_responses"][request_id] = None  # signal queue empty
+            state["pending_responses"][request_id] = None
         context.set_state(state)
         return
 
@@ -184,21 +189,22 @@ def task_manager_entity_fn(context) -> None:
         return
 
     if op_name == "stats":
+        cfg = state["config"]
+        total = cfg["total_chunks"] if cfg else 0
         context.set_result({
-            "configured": state["config"] is not None,
-            "queued":     len(state["queue"]),
-            "in_flight":  len(state["in_flight"]),
-            "done":       state["done"],
-            "config":     state["config"],
+            "configured":     cfg is not None,
+            "total_chunks":   total,
+            "next_chunk_id":  state["next_chunk_id"],
+            "queued":         total - state["next_chunk_id"],
+            "in_flight":      len(state["in_flight"]),
+            "done":           state["done"],
+            "config":         cfg,
         })
         return
 
     if op_name == "reset":
-        # For test/dev only. Production runs do not call reset; the entity
-        # is implicitly fresh per-pipeline-run because seed() raises on
-        # config drift.
         state["config"] = None
-        state["queue"] = []
+        state["next_chunk_id"] = 0
         state["in_flight"] = {}
         state["done"] = 0
         state["pending_responses"] = {}
