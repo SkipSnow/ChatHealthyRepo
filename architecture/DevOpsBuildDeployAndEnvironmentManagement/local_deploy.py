@@ -380,10 +380,20 @@ def _block_if_active_orchestrations(rg: str, app: str, task_hub: str) -> None:
 
     running = _query("Running")
     pending = _query("Pending")
-    total = len(running) + len(pending)
+    # Durable Entities (instance IDs prefixed with '@') are KV state actors,
+    # not orchestrations — they don't dispatch user code during a deploy and
+    # surviving across a deploy is the intended semantic (configure() is
+    # idempotent; each pipeline run resets state). Counting them as "active"
+    # was wedging every deploy that followed a run with entities.
+    def _is_user_orch(inst: dict) -> bool:
+        iid = inst.get("instanceId", "") or ""
+        return not iid.startswith("@")
+    running_user = [i for i in running if _is_user_orch(i)]
+    pending_user = [i for i in pending if _is_user_orch(i)]
+    total = len(running_user) + len(pending_user)
     if total > 0:
         sys.exit(
-            f"DEPLOY BLOCKED: {len(running)} Running + {len(pending)} "
+            f"DEPLOY BLOCKED: {len(running_user)} Running + {len(pending_user)} "
             f"Pending orchestration(s) active on {app}. Terminate them "
             "before deploying."
         )
