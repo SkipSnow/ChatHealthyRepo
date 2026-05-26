@@ -103,6 +103,7 @@ from provider_flags_enrichment import (
     apply_provider_flags_fn,
     provider_flags_enrichment_orchestrator_fn,
 )
+from throttle_entities import token_bucket_entity_fn
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -422,6 +423,17 @@ async def dev_pipeline_management(
 # def idle_monitor_timer(myTimer: func.TimerRequest) -> None:
 #     """Auto-pause ChatHealthyDataPipelines if idle longer than IDLE_MONITOR_THRESHOLD_HOURS."""
 #     check_and_pause()
+
+
+# ── Durable Entities ──────────────────────────────────────────────────────────
+
+# token_bucket: per-external-API rate-limit state holder. Instances are
+# created on first signal; the parent orchestrator's preamble configures
+# token_bucket/nppes, token_bucket/google_maps, token_bucket/openai with the
+# CLI-supplied refill_rate + capacity at every pipeline run.
+@app.entity_trigger(context_name="context")
+def token_bucket(context: df.DurableEntityContext) -> None:
+    token_bucket_entity_fn(context)
 
 
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
@@ -893,7 +905,7 @@ def prescriber_validate_activity(config: dict) -> dict:
     env_prefix = config.get("env_prefix", "dev")
     states = config.get("states", ["DE"])
     db = get_db(env_prefix)
-    state_filter = {"practice_address.state": {"$in": states}}
+    state_filter = {"addresses.state": {"$in": states}}
     return {
         "status": "valid",
         "pipeline": "PrescriberEvaluateCarePipeline",

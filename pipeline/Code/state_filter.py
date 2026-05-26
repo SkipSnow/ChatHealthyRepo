@@ -10,10 +10,10 @@ Behavior:
   - states missing / empty / malformed -> raises ValueError       (REQ-T-002)
   - states == ["ALL"]                  -> full-load sentinel       (REQ-B-002, T-004)
   - any other non-empty list           -> multi-state-bearing-field predicate
-                                          across practice_address.state,
-                                          mailing_address.state,
+                                          across addresses[].state (covers both
+                                          business + practice entries),
                                           licenses[].state,
-                                          other_identifier_states[]   (REQ-T-003)
+                                          other_identifiers[].state (REQ-T-003)
 
 Supports legacy dict input {"mode": "include"|"exclude", "list": [...]} for
 backward compatibility with the existing enrichment caller. Exclude mode is
@@ -26,11 +26,16 @@ ALL_STATES_SENTINEL = "ALL"
 
 # Every state-bearing field on a provider doc. If a future field is added,
 # put it here so every pipeline step picks it up automatically.
+#
+# Post-schema-reconciliation: practice_address + mailing_address unified into
+# addresses[] (with address_type discriminator). One Mongo path
+# "addresses.state" covers both. other_identifiers[] is now an array of
+# objects (each with .state); the old parallel-array `other_identifier_states`
+# is gone.
 STATE_BEARING_MONGO_FIELDS = (
-    "practice_address.state",
-    "mailing_address.state",
+    "addresses.state",
     "licenses.state",
-    "other_identifier_states",
+    "other_identifiers.state",
 )
 
 
@@ -51,8 +56,6 @@ def normalize_states(config: dict) -> list[str]:
             raise ValueError("states.list is empty. Cannot process all records.")
         if mode not in ("include", "exclude"):
             raise ValueError(f"invalid states mode: {mode!r}")
-        # Note: caller (mongo_state_filter) checks for the dict form to apply
-        # $nin instead of the multi-field $or. Return as a marker dict.
         return {"mode": mode, "list": [s.upper() for s in lst if s]}
     if not isinstance(states, list):
         raise ValueError(f"invalid states format: {states!r}")
@@ -75,40 +78,35 @@ def mongo_state_filter(states) -> dict:
     Returns `{}` (match all) when `states` is the ALL sentinel. Otherwise
     returns an `$or` across every state-bearing field.
 
-    For the legacy dict form, returns the single-field `practice_address.state`
-    `$in` / `$nin` filter that enrichment has used historically — this preserves
-    the existing exclude-mode behavior unchanged.
+    For the legacy dict form, returns the single-field `addresses.state`
+    `$in` / `$nin` filter that enrichment has used historically — this
+    preserves the existing exclude-mode behavior unchanged after the
+    practice_address -> addresses migration.
     """
     if is_full_load(states):
         return {}
     if isinstance(states, dict):
-        # legacy include/exclude — single field, historical behavior
         lst = states["list"]
         op = "$in" if states["mode"] == "include" else "$nin"
-        return {"practice_address.state": {op: lst}}
+        return {"addresses.state": {op: lst}}
     return {"$or": [{f: {"$in": states}} for f in STATE_BEARING_MONGO_FIELDS]}
 
 
-def _practice_states(doc: dict) -> list[str]:
-    """Return the list of upper-cased states across all practice addresses.
+def _addresses_states(doc: dict) -> list[str]:
+    """Return the list of upper-cased states across all entries in
+    `addresses` (both business and practice types).
 
-    `practice_address` is a list of address dicts post-multi-address support
-    (each element is one practice location). Pre-multi-address docs may still
-    carry a single dict — handled for backward compatibility.
+    Post-schema-reconciliation: `addresses` is always a list of address dicts
+    (one business + one or more practice). Pre-migration shapes (single dict,
+    or separate practice_address/mailing_address) are not supported here —
+    every read path is expected to operate against the new shape.
     """
-    pa = doc.get("practice_address")
-    if not pa:
-        return []
-    if isinstance(pa, dict):
-        st = (pa.get("state") or "").upper()
-        return [st] if st else []
     out: list[str] = []
-    if isinstance(pa, list):
-        for entry in pa:
-            if isinstance(entry, dict):
-                st = (entry.get("state") or "").upper()
-                if st:
-                    out.append(st)
+    for entry in (doc.get("addresses") or []):
+        if isinstance(entry, dict):
+            st = (entry.get("state") or "").upper()
+            if st:
+                out.append(st)
     return out
 
 
@@ -123,25 +121,21 @@ def doc_matches_state(doc: dict, states) -> bool:
         return True
     if isinstance(states, dict):
         lst = states["list"]
-        # Legacy include/exclude only checks practice_address.state. For the
-        # multi-practice-address shape, "the practice state" is ambiguous —
-        # treat any element as a match.
-        for st in _practice_states(doc):
+        for st in _addresses_states(doc):
             if st in lst:
                 return states["mode"] == "include"
         return states["mode"] != "include"
 
-    for st in _practice_states(doc):
+    for st in _addresses_states(doc):
         if st in states:
             return True
-    ma = (doc.get("mailing_address") or {}).get("state", "").upper()
-    if ma in states:
-        return True
     for lic in (doc.get("licenses") or []):
         st = (lic.get("state") or "").upper()
         if st in states:
             return True
-    for st in (doc.get("other_identifier_states") or []):
-        if (st or "").upper() in states:
-            return True
+    for oid in (doc.get("other_identifiers") or []):
+        if isinstance(oid, dict):
+            st = (oid.get("state") or "").upper()
+            if st in states:
+                return True
     return False

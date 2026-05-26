@@ -109,17 +109,23 @@ class TestStateFilterEnforcement(unittest.TestCase):
             _build_states_filter({"states": []})
 
     def test_build_states_filter_accepts_list(self):
-        """_build_states_filter must accept a plain list of state codes."""
+        """_build_states_filter must accept a plain list of state codes and
+        return an $or across every state-bearing field (addresses.state,
+        licenses.state, other_identifiers.state)."""
         from county_enrichment_job import _build_states_filter
         result = _build_states_filter({"states": ["DE", "VA"]})
-        self.assertIn("practice_address.state", result)
-        self.assertEqual(result["practice_address.state"]["$in"], ["DE", "VA"])
+        self.assertIn("$or", result)
+        keys = {k for clause in result["$or"] for k in clause.keys()}
+        self.assertIn("addresses.state", keys)
+        self.assertIn("licenses.state", keys)
+        self.assertIn("other_identifiers.state", keys)
 
     def test_build_states_filter_accepts_dict(self):
-        """_build_states_filter must accept dict format with mode and list."""
+        """_build_states_filter must accept dict format with mode and list.
+        Legacy dict form returns the single-field addresses.state filter."""
         from county_enrichment_job import _build_states_filter
         result = _build_states_filter({"states": {"mode": "include", "list": ["CA"]}})
-        self.assertIn("practice_address.state", result)
+        self.assertIn("addresses.state", result)
 
     def test_no_build_states_query_exists(self):
         """_build_states_query (permissive) must not exist — replaced by _build_states_filter."""

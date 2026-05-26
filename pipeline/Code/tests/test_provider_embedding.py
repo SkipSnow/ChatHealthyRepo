@@ -33,31 +33,36 @@ INDIVIDUAL_ENRICHED = {
         {"state": "GA", "number": "G12345"},
         {"state": "FL", "number": "F67890"},
     ],
-    "practice_address": {
-        "line1": "123 Peachtree St",
-        "line2": "Suite 400",
-        "city": "Atlanta",
-        "state": "GA",
-        "zip": "30301",
-        "country": "US",
-        "phone": "4045551234",
-    },
-    "mailing_address": {
-        "line1": "PO Box 999",
-        "city": "Atlanta",
-        "state": "GA",
-        "zip": "30302",
-    },
-    "county": {
-        "fips": "13121",
-        "name": "Fulton County",
-        "source": "crosswalk_pass1",
-        "zip_ratio": 0.99,
-    },
-    "other_identifiers": ["G123", "M456"],
-    "other_identifier_types": ["04", "05"],
-    "other_identifier_states": ["GA", "GA"],
-    "other_identifier_issuers": [],
+    "addresses": [
+        {
+            "address_type": "practice",
+            "line1": "123 Peachtree St",
+            "line2": "Suite 400",
+            "city": "Atlanta",
+            "state": "GA",
+            "zip": "30301",
+            "country": "US",
+            "phone": "4045551234",
+            "county": {
+                "fips": "13121",
+                "name": "Fulton County",
+                "source": "crosswalk_pass1",
+                "zip_ratio": 0.99,
+            },
+        },
+        {
+            "address_type": "business",
+            "line1": "PO Box 999",
+            "city": "Atlanta",
+            "state": "GA",
+            "zip": "30302",
+            "county": {"fips": None},
+        },
+    ],
+    "other_identifiers": [
+        {"identifier": "G123", "type": "04", "state": "GA"},
+        {"identifier": "M456", "type": "05", "state": "GA"},
+    ],
     "provider_enumeration_date": "07/16/2006",
     "last_update_date": "01/15/2024",
     "certification_date": "01/15/2024",
@@ -65,7 +70,6 @@ INDIVIDUAL_ENRICHED = {
     "_id": "mongo_object_id",
     "load_id": "ea36237b-377c-4888-8fa9-5faab71e4820:0",
     "record_id": 1,
-    "worker_id": 0,
 }
 
 ORGANIZATION_ENRICHED = {
@@ -85,31 +89,35 @@ ORGANIZATION_ENRICHED = {
     "authorized_official_credential_text": "M.D.",
     "taxonomies": [{"code": "282N00000X", "primary": True}],
     "licenses": [{"state": "MN", "number": "MN001"}],
-    "practice_address": {
-        "line1": "200 First St SW",
-        "city": "Rochester",
-        "state": "MN",
-        "zip": "55905",
-        "country": "US",
-    },
-    "mailing_address": {
-        "line1": "200 First St SW",
-        "city": "Rochester",
-        "state": "MN",
-        "zip": "55905",
-        "country": "US",
-    },
-    "county": {
-        "fips": "27109",
-        "name": "Olmsted County",
-        "source": "geocoder_pass2_batch",
-    },
+    "addresses": [
+        {
+            "address_type": "practice",
+            "line1": "200 First St SW",
+            "city": "Rochester",
+            "state": "MN",
+            "zip": "55905",
+            "country": "US",
+            "county": {
+                "fips": "27109",
+                "name": "Olmsted County",
+                "source": "geocoder_pass2_batch",
+            },
+        },
+        {
+            "address_type": "business",
+            "line1": "200 First St SW",
+            "city": "Rochester",
+            "state": "MN",
+            "zip": "55905",
+            "country": "US",
+            "county": {"fips": None},
+        },
+    ],
     "provider_enumeration_date": "04/01/2005",
     "last_update_date": "03/01/2024",
     "_id": "mongo_object_id",
     "load_id": "ea36237b-377c-4888-8fa9-5faab71e4820:1",
     "record_id": 2,
-    "worker_id": 0,
 }
 
 INDIVIDUAL_GEOCODER_FAILED = {
@@ -119,17 +127,17 @@ INDIVIDUAL_GEOCODER_FAILED = {
     "provider_last_name_legal_name": "Rivera",
     "provider_credential_text": "D.O.",
     "taxonomies": [{"code": "207P00000X", "primary": True}],
-    "practice_address": {
-        "line1": "456 Rural Rd",
-        "city": "Smalltown",
-        "state": "TX",
-        "zip": "79901",
-        "country": "US",
-    },
-    "county": {
-        "fips": None,
-        "source": "geocoder_failed",
-    },
+    "addresses": [
+        {
+            "address_type": "practice",
+            "line1": "456 Rural Rd",
+            "city": "Smalltown",
+            "state": "TX",
+            "zip": "79901",
+            "country": "US",
+            "county": {"fips": None, "source": "geocoder_failed"},
+        },
+    ],
 }
 
 INDIVIDUAL_FOREIGN = {
@@ -138,30 +146,29 @@ INDIVIDUAL_FOREIGN = {
     "provider_first_name": "Pierre",
     "provider_last_name_legal_name": "Dubois",
     "taxonomies": [{"code": "207R00000X", "primary": True}],
-    "practice_address": {
-        "line1": "12 Rue de Paris",
-        "city": "Paris",
-        "state": "FR",
-        "zip": "75001",
-        "country": "FR",
-    },
-    "county": {
-        "fips": None,
-        "source": "out_of_scope",
-        "reason": "foreign_provider",
-    },
+    "addresses": [
+        {
+            "address_type": "practice",
+            "line1": "12 Rue de Paris",
+            "city": "Paris",
+            "state": "FR",
+            "zip": "75001",
+            "country": "FR",
+            "county": {"fips": None},
+        },
+    ],
+    "out_of_scope": {"flagged": True, "reason": "foreign_provider"},
 }
 
+# Post-schema-reconciliation: no_address and zip_state_mismatch are bad_data
+# flag values written by the pipeline. They short-circuit should_embed.
 INDIVIDUAL_NO_ADDRESS = {
     "npi": "1111111111",
     "entity_type_code": "1",
     "provider_first_name": "Ghost",
     "provider_last_name_legal_name": "Provider",
-    "county": {
-        "fips": None,
-        "source": "out_of_scope",
-        "reason": "no_address",
-    },
+    "addresses": [],
+    "bad_data": {"flagged": True, "reason": "no_address"},
 }
 
 INDIVIDUAL_ZIP_STATE_MISMATCH = {
@@ -169,40 +176,48 @@ INDIVIDUAL_ZIP_STATE_MISMATCH = {
     "entity_type_code": "1",
     "provider_first_name": "Bad",
     "provider_last_name_legal_name": "Address",
-    "practice_address": {
-        "line1": "789 Confused Ave",
-        "city": "Somewhere",
-        "state": "CA",
-        "zip": "30301",  # GA zip in CA — mismatch
-        "country": "US",
-    },
-    "county": {
-        "fips": None,
-        "source": "out_of_scope",
-        "reason": "zip_state_mismatch",
-    },
+    "addresses": [
+        {
+            "address_type": "practice",
+            "line1": "789 Confused Ave",
+            "city": "Somewhere",
+            "state": "CA",
+            "zip": "30301",  # GA zip in CA — mismatch
+            "country": "US",
+            "county": {"fips": None},
+        },
+    ],
+    "bad_data": {"flagged": True, "reason": "zip_state_mismatch"},
 }
 
+# Post-schema-reconciliation: the `active` event log replaces the
+# npi_deactivation_date / npi_reactivation_date scalars. The last event's
+# is_active=False marks the provider inactive.
 INDIVIDUAL_INACTIVE = {
     "npi": "3333333333",
     "entity_type_code": "1",
     "provider_first_name": "Former",
     "provider_last_name_legal_name": "Doctor",
-    "npi_deactivation_date": "06/01/2020",
     "taxonomies": [{"code": "207R00000X", "primary": True}],
-    "practice_address": {
-        "line1": "100 Old Clinic Rd",
-        "city": "Nashville",
-        "state": "TN",
-        "zip": "37201",
-        "country": "US",
-    },
-    "county": {
-        "fips": "47037",
-        "name": "Davidson County",
-        "source": "crosswalk_pass1",
-        "zip_ratio": 0.98,
-    },
+    "addresses": [
+        {
+            "address_type": "practice",
+            "line1": "100 Old Clinic Rd",
+            "city": "Nashville",
+            "state": "TN",
+            "zip": "37201",
+            "country": "US",
+            "county": {
+                "fips": "47037",
+                "name": "Davidson County",
+                "source": "crosswalk_pass1",
+                "zip_ratio": 0.98,
+            },
+        },
+    ],
+    "active": [
+        {"event": "deactivated", "date": "06/01/2020", "is_active": False, "source": "NPPES"},
+    ],
 }
 
 
@@ -245,7 +260,6 @@ class TestProject:
         assert "_id" not in p
         assert "load_id" not in p
         assert "record_id" not in p
-        assert "worker_id" not in p
 
     def test_individual_display_name(self):
         p = project(INDIVIDUAL_ENRICHED)
@@ -377,15 +391,20 @@ class TestRender:
         text = render(project(ORGANIZATION_ENRICHED))
         assert "mailing_address" not in text
 
-    def test_geocoder_failed_renders_unresolved(self):
+    def test_geocoder_failed_omits_provenance(self):
+        # Provenance fields (county_trust_tier, county_resolution_status,
+        # county_source, county_reason) are kept on the projection dict for
+        # retrieval-time filtering but MUST NOT bleed into the embedding text.
         text = render(project(INDIVIDUAL_GEOCODER_FAILED))
-        assert "county_resolution_status: unresolved" in text
-        assert "county_trust_tier: low" in text
+        assert "county_resolution_status:" not in text
+        assert "county_trust_tier:" not in text
+        assert "county_source:" not in text
 
     def test_foreign_renders_flag(self):
         text = render(project(INDIVIDUAL_FOREIGN))
         assert "foreign_provider: yes" in text
-        assert "county_resolution_status: excluded" in text
+        # Provenance fields suppressed from rendered text.
+        assert "county_resolution_status:" not in text
 
     def test_inactive_renders_npi_status(self):
         text = render(project(INDIVIDUAL_INACTIVE))
@@ -406,7 +425,6 @@ class TestRender:
         # Check as label keys (with colon), not bare substrings — _id is a substring of other_identifiers
         assert "load_id:" not in text
         assert "record_id:" not in text
-        assert "worker_id:" not in text
         assert "_id:" not in text
 
 

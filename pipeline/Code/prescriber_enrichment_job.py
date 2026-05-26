@@ -24,23 +24,24 @@ _log = logging.getLogger("prescriber_enrichment")
 
 
 def _primary_practice_address(provider: dict) -> dict:
-    """Return the primary practice_address as a dict. Handles list-of-addresses
-    (post-multi-practice-address) and legacy single-dict shapes."""
-    pa = provider.get("practice_address")
-    if isinstance(pa, list):
-        return pa[0] if pa and isinstance(pa[0], dict) else {}
-    if isinstance(pa, dict):
-        return pa
+    """Return the first addresses[] entry with address_type=="practice".
+
+    Post-schema-reconciliation: practice_address + mailing_address are unified
+    into addresses[] with an address_type discriminator.
+    """
+    for a in (provider.get("addresses") or []):
+        if isinstance(a, dict) and a.get("address_type") == "practice":
+            return a
     return {}
 
 
 def _primary_county(provider: dict) -> dict:
-    """Return the primary county sub-doc; prefers per-element county on the
-    primary address, falls back to doc-level county for legacy records."""
+    """Return the primary practice address's county sub-doc.
+    Post-schema-reconciliation: county is always nested under each addresses[]
+    element; there is no top-level county to fall back to."""
     addr = _primary_practice_address(provider)
-    if isinstance(addr.get("county"), dict):
-        return addr["county"]
-    return provider.get("county") or {}
+    county = addr.get("county")
+    return county if isinstance(county, dict) else {}
 
 
 # ── Drug Indication Cache ──────────────────────────────────────────────────
@@ -228,7 +229,7 @@ def enrich_all(env_prefix: str = "dev", states: list = None, batch_size: int = 1
         # 4 + 5. Location + taxonomy from provider record
         provider = provider_coll.find_one(
             {"npi": npi},
-            {"practice_address": 1, "county": 1, "taxonomy_codes": 1,
+            {"addresses": 1, "taxonomy_codes": 1,
              "enumeration_date": 1, "_id": 0}
         )
 

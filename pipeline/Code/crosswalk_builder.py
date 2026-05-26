@@ -498,7 +498,7 @@ def enrich_providers_with_crosswalk(
     provider_coll = db["providers"]
     quality_coll = db["provider_quality"]
 
-    state_filter = {"practice_address.state": {"$in": states}, "can_prescribe.drugs": {"$exists": True}}
+    state_filter = {"addresses.state": {"$in": states}, "can_prescribe.drugs": {"$exists": True}}
     total = provider_coll.count_documents(state_filter)
     _log.info("Enriching %d providers with crosswalk data (states=%s)", total, states)
 
@@ -713,7 +713,7 @@ def compute_specialty_baselines(
     provider_coll = db["providers"]
 
     state_filter = {
-        "practice_address.state": {"$in": states},
+        "addresses.state": {"$in": states},
         "can_prescribe.flagged": True,
         "can_prescribe.drugs": {"$exists": True},
     }
