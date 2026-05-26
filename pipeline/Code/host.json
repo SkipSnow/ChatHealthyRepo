@@ -17,7 +17,7 @@
   },
   "extensions": {
     "durableTask": {
-      "hubName": "DevPipelineV1",
+      "hubName": "DevPipelineNetherite2",
       "maxConcurrentActivityFunctions": 200,
       "maxConcurrentOrchestratorFunctions": 10,
       "storageProvider": {
