@@ -372,15 +372,26 @@ def streaming_pipeline_orchestrator_fn(context):
     load_id = context.instance_id
     config = {**config, "load_id": load_id}
 
-    # Throttle preamble — for parity with the legacy orchestrator and to
-    # surface entity-config failures up-front. Spike doesn't yet call
-    # acquire() from the partition activity; entities here are
-    # configured-and-quiescent until external-API stages get wired.
+    # Throttle preamble — fire-and-forget signal to each entity. We do
+    # NOT yield on call_entity because Netherite's request/response message
+    # delivery between orchestrator and entity is unreliable on this hub
+    # (responses get dropped mid-flight, wedging the orchestrator on the
+    # call_entity yield forever — observed at instance cee585e7 and
+    # 2b234d35, both hung at 1/3 EventRaised even though entity peek showed
+    # all 3 buckets correctly configured). signal_entity is one-way; the
+    # entity processes the operation, no response is expected.
+    #
+    # Safety: configure() is idempotent on the entity side. Activities that
+    # later call acquire() must tolerate False (unconfigured bucket) and
+    # back off — covered by token_bucket_entity_fn returning False until
+    # configured.
     throttle = config["throttle"]
-    yield context.task_all([
-        context.call_entity(df.EntityId("token_bucket", b), "configure", throttle[b])
-        for b in ("nppes", "google_maps", "openai")
-    ])
+    for b in ("nppes", "google_maps", "openai"):
+        context.signal_entity(
+            df.EntityId("token_bucket", b),
+            "configure",
+            throttle[b],
+        )
 
     # Health + zombie kill (mandatory for every parent orchestrator).
     context.set_custom_status("Step 1: Health check + kill THIS pipeline's zombies")
