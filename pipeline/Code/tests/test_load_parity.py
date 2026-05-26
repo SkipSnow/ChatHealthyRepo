@@ -49,9 +49,16 @@ def pipeline_providers():
 def db_state_counts(pipeline_providers):
     """Count providers per state in the pipeline cluster."""
     counts = {}
+    # Post-schema-reconciliation a provider can have practice addresses in
+    # several states; the parity unit is "distinct providers with at least one
+    # practice address in state X". Same semantic on the front-end side
+    # (count_documents with $elemMatch on address_type=practice + state).
     for doc in pipeline_providers.aggregate([
-        {"$group": {"_id": "$practice_address.state", "count": {"$sum": 1}}},
-    ]):
+        {"$unwind": "$addresses"},
+        {"$match": {"addresses.address_type": "practice"}},
+        {"$group": {"_id": {"state": "$addresses.state", "npi": "$npi"}}},
+        {"$group": {"_id": "$_id.state", "count": {"$sum": 1}}},
+    ], allowDiskUse=True):
         state = doc["_id"]
         if state:
             counts[state] = doc["count"]
@@ -180,7 +187,9 @@ class TestFrontendParity:
 
         mismatches = []
         for state, pipeline_count in sorted(db_state_counts.items()):
-            fe_count = fe_coll.count_documents({"practice_address.state": state})
+            fe_count = fe_coll.count_documents(
+                {"addresses": {"$elemMatch": {"address_type": "practice", "state": state}}}
+            )
             if fe_count != pipeline_count:
                 mismatches.append({
                     "state": state,

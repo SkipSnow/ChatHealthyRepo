@@ -58,15 +58,40 @@ def _clean(value: Any) -> str | None:
     return None if (not s or s.upper() in _PLACEHOLDER_VALUES) else s
 
 
-def _practice_address_list(record: dict) -> list:
-    """Normalize practice_address to a list of address dicts.
-    Handles list-of-addresses (post-multi-practice-address) and legacy single-dict shapes."""
-    pa = record.get("practice_address")
-    if isinstance(pa, list):
-        return [a for a in pa if isinstance(a, dict)]
-    if isinstance(pa, dict):
-        return [pa]
-    return []
+def _practice_addresses(record: dict) -> list:
+    """Return practice-type entries from addresses[].
+
+    Post-schema-reconciliation: practice_address + mailing_address are unified
+    into addresses[] with an address_type discriminator. Practice locations are
+    every entry whose address_type == "practice".
+    """
+    return [
+        a for a in (record.get("addresses") or [])
+        if isinstance(a, dict) and a.get("address_type") == "practice"
+    ]
+
+
+def _business_address(record: dict) -> dict | None:
+    """Return the (single) business-type entry from addresses[], or None."""
+    for a in (record.get("addresses") or []):
+        if isinstance(a, dict) and a.get("address_type") == "business":
+            return a
+    return None
+
+
+def _is_active(record: dict) -> bool:
+    """True if the provider is currently active per the `active` event log.
+
+    Missing/empty `active` → True (default). Otherwise the last event's
+    is_active value is the current state.
+    """
+    events = record.get("active") or []
+    if not events:
+        return True
+    last = events[-1]
+    if not isinstance(last, dict):
+        return True
+    return bool(last.get("is_active", True))
 
 
 def _format_address(addr: dict | None) -> str | None:
@@ -148,17 +173,22 @@ def _format_licenses(licenses: list) -> str | None:
     return ", ".join(parts) if parts else None
 
 
-def _format_other_identifiers(
-    ids: list, types: list, states: list, issuers: list
-) -> str | None:
+def _format_other_identifiers(entries: list) -> str | None:
+    """Format the addresses[]-shape other_identifiers (list of dicts).
+
+    Each entry: {identifier, type, state, issuer}. Post-schema-reconciliation
+    other_identifiers is an array of objects (not the legacy parallel arrays).
+    """
     parts = []
-    for i, id_val in enumerate(ids):
-        id_clean = _clean(id_val)
+    for entry in entries or []:
+        if not isinstance(entry, dict):
+            continue
+        id_clean = _clean(entry.get("identifier"))
         if not id_clean:
             continue
-        type_val   = _clean(types[i])   if i < len(types)   else None
-        state_val  = _clean(states[i])  if i < len(states)  else None
-        issuer_val = _clean(issuers[i]) if i < len(issuers) else None
+        type_val   = _clean(entry.get("type"))
+        state_val  = _clean(entry.get("state"))
+        issuer_val = _clean(entry.get("issuer"))
         meta = ", ".join(p for p in [type_val, state_val, issuer_val] if p)
         parts.append(f"{id_clean} ({meta})" if meta else id_clean)
     return "; ".join(parts) if parts else None
@@ -188,12 +218,13 @@ def _format_authorized_official(record: dict) -> str | None:
 def should_embed(record: dict) -> bool:
     """Return False for records that must never be embedded.
 
-    Excluded:
-      - county.reason = 'no_address'        (no address whatsoever)
-      - county.reason = 'zip_state_mismatch' (address is internally inconsistent)
+    Excluded: any record with the bad_data flag set. The two reasons that
+    flag fires for (no_address, zip_state_mismatch) both leave the record
+    without a coherent address, which makes the embedding text meaningless
+    for similarity search.
     """
-    reason = (record.get("county") or {}).get("reason")
-    return reason not in ("no_address", "zip_state_mismatch")
+    bad_data = record.get("bad_data") or {}
+    return not bad_data.get("flagged", False)
 
 
 def project(record: dict) -> dict:
@@ -203,13 +234,12 @@ def project(record: dict) -> dict:
     System fields (_id, load_id, record_id, worker_id) are excluded.
     Blank and placeholder values are normalised to None.
     """
-    # Per-element county (post-multi-practice-address) takes precedence over
-    # the doc-level county field. Embedding describes the primary location's
-    # county trust + source.
-    _primary = next(iter(_practice_address_list(record)), {})
-    county      = (_primary.get("county") if isinstance(_primary.get("county"), dict)
-                   else None) or record.get("county") or {}
-    is_indiv    = record.get("entity_type_code") == "1"
+    # The primary practice address's county describes the provider's main
+    # location for embedding purposes. Post-schema-reconciliation, county
+    # is always nested under each addresses[] element — no top-level fallback.
+    _primary_practice = next(iter(_practice_addresses(record)), {})
+    county = _primary_practice.get("county") if isinstance(_primary_practice.get("county"), dict) else {}
+    is_indiv = record.get("entity_type_code") == "1"
 
     # --- derived: name ---
     display_name = (
@@ -227,11 +257,14 @@ def project(record: dict) -> dict:
     ) or None
 
     # --- derived: addresses ---
-    # Format every practice_address element so the embedding text reflects
-    # all locations a multi-site provider works at (not just the primary).
-    practice_addrs = [s for s in (_format_address(a) for a in _practice_address_list(record)) if s]
+    # Format every practice-type addresses[] entry so the embedding text
+    # reflects every location a multi-site provider works at (not just the
+    # primary). The business-type entry feeds the mailing/billing line.
+    practice_addrs = [
+        s for s in (_format_address(a) for a in _practice_addresses(record)) if s
+    ]
     practice_addr = " | ".join(practice_addrs) if practice_addrs else None
-    mailing_addr  = _format_address(record.get("mailing_address"))
+    mailing_addr  = _format_address(_business_address(record))
     if mailing_addr and mailing_addr in practice_addrs:   # omit if duplicate of any practice
         mailing_addr = None
 
@@ -241,17 +274,15 @@ def project(record: dict) -> dict:
     county_source_summary    = _county_source_summary(county)
 
     # --- derived: NPI status ---
-    deactivated = bool(
-        _clean(record.get("npi_deactivation_date"))
-        and not _clean(record.get("npi_reactivation_date"))
-    )
-    npi_status = "inactive" if deactivated else "active"
+    # Driven by the `active` event log (replaces npi_deactivation_date /
+    # npi_reactivation_date scalars per the schema reconciliation).
+    npi_status = "active" if _is_active(record) else "inactive"
 
     # --- derived: flags ---
-    # Multi-practice-address: the provider is foreign if ANY practice_address element
-    # has a non-US country code (matches the Pass-1 out-of-scope semantics).
+    # The provider is foreign if ANY practice-type addresses[] entry has a
+    # non-US country code (matches the Pass-1 out-of-scope semantics).
     foreign_provider = "no"
-    for _addr in _practice_address_list(record):
+    for _addr in _practice_addresses(record):
         _country = _addr.get("country")
         if _country and _country.upper() not in ("US", ""):
             foreign_provider = "yes"
@@ -353,12 +384,7 @@ def project(record: dict) -> dict:
         "foreign_provider":         foreign_provider,
         # --- licenses & identifiers ---
         "licenses":                 _format_licenses(record.get("licenses") or []),
-        "other_identifiers":        _format_other_identifiers(
-                                        record.get("other_identifiers")        or [],
-                                        record.get("other_identifier_types")   or [],
-                                        record.get("other_identifier_states")  or [],
-                                        record.get("other_identifier_issuers") or [],
-                                    ),
+        "other_identifiers":        _format_other_identifiers(record.get("other_identifiers")),
         # --- dates ---
         "enumeration_date":         _clean(record.get("provider_enumeration_date")),
         "last_update_date":         _clean(record.get("last_update_date")),
@@ -389,10 +415,6 @@ _INDIVIDUAL_FIELDS = [
     ("mailing_address",           "mailing_address"),
     ("county_name",               "county_name"),
     ("county_fips",               "county_fips"),
-    ("county_resolution_status",  "county_resolution_status"),
-    ("county_trust_tier",         "county_trust_tier"),
-    ("county_source",             "county_source_summary"),
-    ("county_reason",             "county_reason"),
     ("foreign_provider",          "foreign_provider"),
     ("licenses",                  "licenses"),
     ("other_identifiers",         "other_identifiers"),
@@ -426,10 +448,6 @@ _ORGANIZATION_FIELDS = [
     ("mailing_address",           "mailing_address"),
     ("county_name",               "county_name"),
     ("county_fips",               "county_fips"),
-    ("county_resolution_status",  "county_resolution_status"),
-    ("county_trust_tier",         "county_trust_tier"),
-    ("county_source",             "county_source_summary"),
-    ("county_reason",             "county_reason"),
     ("foreign_provider",          "foreign_provider"),
     ("licenses",                  "licenses"),
     ("other_identifiers",         "other_identifiers"),

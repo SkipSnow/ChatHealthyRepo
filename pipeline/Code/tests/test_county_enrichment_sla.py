@@ -4,10 +4,10 @@ Asserts EPIC-010-F-007-S-011-REQ-B-001:
   "97% or more of the total Provider records MUST have county data
    associated with them."
 
-A provider record "has county data" when at least one of:
-  - doc-level county.fips is non-null (legacy / single-address shape)
-  - any practice_address[i].county.fips is non-null (multi-practice-address shape)
-  - mailing_address.county.fips is non-null (billing-derived enrichment)
+A provider record "has county data" when at least one entry in addresses[]
+has a non-null county.fips. Post-schema-reconciliation, addresses[] holds
+both practice and business entries (address_type discriminator); the
+underlying Mongo path `addresses.county.fips` matches either kind.
 
 The test reads MONGO_connectionString from the environment, defaults the
 collection to dev_PublicHealthData.providers, and is overridable by the
@@ -47,13 +47,7 @@ def test_county_enrichment_sla_above_97_percent():
     if total == 0:
         pytest.skip(f"{coll_path} is empty; nothing to assert SLA against")
 
-    with_county_query = {
-        "$or": [
-            {"county.fips": {"$ne": None}},
-            {"practice_address.county.fips": {"$ne": None}},
-            {"mailing_address.county.fips": {"$ne": None}},
-        ]
-    }
+    with_county_query = {"addresses.county.fips": {"$ne": None}}
     with_county = coll.count_documents(with_county_query)
     ratio = with_county / total
 

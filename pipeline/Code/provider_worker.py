@@ -213,11 +213,15 @@ class ProviderWorker(PipelineWorkerBase):
 
         record_id = self.worker_id * MAX_ROWS_PER_WORKER + self._local_index
 
+        # loaded_at stamped here at parse time (Skip: "stamped by the
+        # ChatHealthyDataPipelineProcessor") — required by the provider
+        # schema, ISO-8601 UTC. Captures when our pipeline first touched
+        # the record in this load.
         doc = {
             "npi":        npi,
             "load_id":    self.load_id,
             "record_id":  record_id,
-            "worker_id":  self.worker_id,
+            "loaded_at":  datetime.now(timezone.utc).isoformat(),
             "raw":        raw,
         }
 

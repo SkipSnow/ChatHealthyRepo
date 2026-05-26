@@ -140,8 +140,8 @@ def test_a_initial_two_state_load(mongo, csv_path):
     assert drain["deleted"] == 0, f"first-run drain should delete nothing (collection didn't exist): {drain}"
 
     coll = mongo[TEST_DB][TEST_PROVIDERS_COLL]
-    keep_count = coll.count_documents({"practice_address.state": STATE_KEEP})
-    drain_count = coll.count_documents({"practice_address.state": STATE_DRAIN})
+    keep_count = coll.count_documents({"addresses.state": STATE_KEEP})
+    drain_count = coll.count_documents({"addresses.state": STATE_DRAIN})
     assert keep_count > 0, f"Step A: expected {STATE_KEEP} records loaded, got {keep_count}"
     assert drain_count > 0, f"Step A: expected {STATE_DRAIN} records loaded, got {drain_count}"
     print(f"\n[Step A] {STATE_KEEP}={keep_count}, {STATE_DRAIN}={drain_count}")
@@ -152,7 +152,7 @@ def test_a_initial_two_state_load(mongo, csv_path):
 def survivor_count_before(mongo):
     """Capture STATE_KEEP record count after Step A. Used by Step D assertion."""
     coll = mongo[TEST_DB][TEST_PROVIDERS_COLL]
-    n = coll.count_documents({"practice_address.state": STATE_KEEP})
+    n = coll.count_documents({"addresses.state": STATE_KEEP})
     assert n > 0, f"Step B: no {STATE_KEEP} records — Step A failed?"
     print(f"\n[Step B] survivor count captured: {STATE_KEEP}={n}")
     return n
@@ -185,7 +185,7 @@ def test_d_survivor_count_unchanged(mongo, survivor_count_before):
     """REQ-T-003 assertion: STATE_KEEP record count must be identical to Step B capture.
     If this fails, the drain incorrectly deleted out-of-scope records."""
     coll = mongo[TEST_DB][TEST_PROVIDERS_COLL]
-    survivor_count_after = coll.count_documents({"practice_address.state": STATE_KEEP})
+    survivor_count_after = coll.count_documents({"addresses.state": STATE_KEEP})
     print(f"\n[Step D] survivor count after: {STATE_KEEP}={survivor_count_after} (was {survivor_count_before})")
     assert survivor_count_after == survivor_count_before, (
         f"REQ-T-003 VIOLATED: {STATE_KEEP} record count changed during a "

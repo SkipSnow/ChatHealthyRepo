@@ -88,6 +88,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--embed-batch-size", type=int, default=100)
     parser.add_argument("--embed-initial-jitter", type=int, default=0)
 
+    # Throttle-bucket parameters — REQUIRED. Each external API (NPPES, Google
+    # Maps, OpenAI) is gated by a Durable Entity token bucket. The bucket's
+    # refill_rate (tokens per second) and capacity (max burst) MUST be set
+    # explicitly at every run; there are no defaults. The orchestrator signals
+    # each entity with these values before fan-out, and workers acquire a
+    # token before every external call so the global rate stays inside the
+    # configured envelope regardless of parallelism.
+    parser.add_argument("--nppes-refill-rate", type=float, required=True,
+                        help="NPPES API tokens added per second (e.g. 5.0).")
+    parser.add_argument("--nppes-capacity", type=int, required=True,
+                        help="NPPES bucket max burst (tokens).")
+    parser.add_argument("--maps-refill-rate", type=float, required=True,
+                        help="Google Maps API tokens added per second (e.g. 10.0).")
+    parser.add_argument("--maps-capacity", type=int, required=True,
+                        help="Google Maps bucket max burst (tokens).")
+    parser.add_argument("--openai-refill-rate", type=float, required=True,
+                        help="OpenAI embedding API tokens added per second.")
+    parser.add_argument("--openai-capacity", type=int, required=True,
+                        help="OpenAI bucket max burst (tokens).")
+
     args = parser.parse_args(argv)
 
     payload = {
@@ -112,6 +132,13 @@ def main(argv: list[str] | None = None) -> int:
         "embed_model": args.embed_model,
         "embed_batch_size": args.embed_batch_size,
         "embed_initial_jitter": args.embed_initial_jitter,
+        # Throttle-bucket config — consumed by the orchestrator preamble that
+        # signals each Durable Entity token bucket before fan-out.
+        "throttle": {
+            "nppes":      {"refill_rate": args.nppes_refill_rate,  "capacity": args.nppes_capacity},
+            "google_maps":{"refill_rate": args.maps_refill_rate,   "capacity": args.maps_capacity},
+            "openai":     {"refill_rate": args.openai_refill_rate, "capacity": args.openai_capacity},
+        },
     }
     return run_pipeline("ProviderPipeline", payload)
 

@@ -108,6 +108,17 @@ class EmbeddingWorker(PipelineWorkerBase):
         self._model = model
         self._model_dimensions = SUPPORTED_EMBED_MODELS[model]
 
+        # Throttle pacing — config["throttle"]["openai"]["refill_rate"] is the
+        # CLI-supplied tokens/sec for the openai token bucket; we derive a
+        # per-batch sleep (1 / refill_rate seconds) so each worker's outbound
+        # batch rate matches the configured envelope. The Durable Entity
+        # token_bucket/openai is configured with the same refill_rate by the
+        # parent orchestrator's preamble.
+        from throttle_entities import call_delay_seconds
+        self._batch_delay = call_delay_seconds(
+            config["throttle"]["openai"]["refill_rate"]
+        )
+
 
         # State initialised in _pipeline_open(); set to safe defaults so
         # _pipeline_close() is always safe to call even if _pipeline_open()
@@ -166,6 +177,12 @@ class EmbeddingWorker(PipelineWorkerBase):
     def _pipeline_process(self) -> None:
         batch = self._buffer
         texts = [render(project(doc)) for doc in batch]
+
+        # Throttle: pace consecutive batch calls per the configured openai
+        # bucket refill_rate. Acts BEFORE the API call so the rate ceiling is
+        # honoured regardless of how fast the previous batch returned.
+        if self._batch_delay > 0:
+            time.sleep(self._batch_delay)
 
         # Retry loop — 429 must not advance the cursor.
         # Only after MAX_RETRIES exhaustion does the exception propagate to

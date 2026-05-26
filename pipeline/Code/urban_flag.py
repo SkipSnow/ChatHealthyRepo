@@ -32,11 +32,13 @@ def stamp_urban_flag_fn(config):
 
 
 class UrbanFlagStamper:
-    """Stamp `practice_address[*].county.urban` (bool) from USDA RUCC codes 1-9.
+    """Stamp `addresses[*].county.urban` (bool) from USDA RUCC codes 1-9.
 
     1..3 → urban=True. 4..9 → urban=False.
-    Only practice_address elements whose own `state` matches the run's
-    `states` config get stamped; out-of-scope elements are left alone.
+    Every address entry (business AND practice) whose own `state` matches
+    the run's `states` config gets stamped; out-of-state elements are
+    left alone. Post-schema-reconciliation: practice_address + mailing_address
+    are unified into addresses[] with address_type discriminator.
     """
 
     URBAN_RUCC_MAX = 3  # codes <= 3 are urban; 4..9 are rural
@@ -177,20 +179,21 @@ class UrbanFlagStamper:
         try:
             self.coll = client[db_name][coll_name]
             _log.info(
-                "urban_flag: states=%s; only practice_address elements whose own "
-                ".state matches get stamped; bulk_write batches of %d",
+                "urban_flag: states=%s; every addresses[*] entry (business or "
+                "practice) whose own .state matches gets stamped; bulk_write "
+                "batches of %d",
                 self.states, self.bulk_batch_size,
             )
             for state in self.states:
                 try:
                     cursor = self.coll.find(
-                        {"practice_address.state": state},
-                        {"_id": 1, "npi": 1, "practice_address": 1},
+                        {"addresses.state": state},
+                        {"_id": 1, "npi": 1, "addresses": 1},
                     )
                     for provider in cursor:
                         self.stats["providers_scanned"] += 1
                         try:
-                            for idx, addr in enumerate(provider.get("practice_address") or []):
+                            for idx, addr in enumerate(provider.get("addresses") or []):
                                 if not isinstance(addr, dict) or addr.get("state") != state:
                                     continue
                                 self.stats["elements_scanned"] += 1
@@ -205,7 +208,7 @@ class UrbanFlagStamper:
                                         continue
                                     ops.append(UpdateOne(
                                         {"_id": provider["_id"]},
-                                        {"$set": {f"practice_address.{idx}.county.urban": urban}},
+                                        {"$set": {f"addresses.{idx}.county.urban": urban}},
                                     ))
                                 except Exception as exc:
                                     self.stats["element_exceptions"].append({

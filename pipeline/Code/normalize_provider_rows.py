@@ -166,31 +166,69 @@ def normalize_raw_record(raw: dict) -> dict:
     if other_identifiers:
         doc["other_identifiers"] = other_identifiers
 
-    # Primary practice address (always a list; secondary entries are joined
-    # in by Step 6 from pl_pfile_*.csv).
-    primary = {
+    # Unified addresses[] — one 'business' (the NPPES mailing address) and
+    # one or more 'practice' entries (primary from main NPPES file here;
+    # secondaries are concat'd by attach_practice_locations from pl_pfile_*.csv
+    # in Step 6). county subdoc carries fips=None placeholder on every entry
+    # regardless of address_type; the county enrichment passes populate it.
+    addresses: list = []
+
+    practice = {
         sub: (raw[field] or "").strip()
         for field, sub in PRACTICE_ADDRESS_FIELDS.items()
         if (raw.get(field) or "").strip()
     }
     consumed.update(PRACTICE_ADDRESS_FIELDS)
-    if "zip" in primary:
-        primary["zip"] = primary["zip"][:5]
-    if primary:
-        primary["county"] = {"fips": None}
-        doc["practice_address"] = [primary]
+    if "zip" in practice:
+        practice["zip"] = practice["zip"][:5]
+    if practice:
+        practice["address_type"] = "practice"
+        practice["county"] = {"fips": None}
+        addresses.append(practice)
 
-    # Mailing address (single sub-document)
-    mailing = {
+    business = {
         sub: (raw[field] or "").strip()
         for field, sub in MAILING_ADDRESS_FIELDS.items()
         if (raw.get(field) or "").strip()
     }
     consumed.update(MAILING_ADDRESS_FIELDS)
-    if "zip" in mailing:
-        mailing["zip"] = mailing["zip"][:5]
-    if mailing:
-        doc["mailing_address"] = mailing
+    if "zip" in business:
+        business["zip"] = business["zip"][:5]
+    if business:
+        business["address_type"] = "business"
+        business["county"] = {"fips": None}
+        addresses.append(business)
+
+    if addresses:
+        doc["addresses"] = addresses
+
+    # active event log — derived from NPPES NPI Deactivation Date /
+    # NPI Reactivation Date. Absent when neither is set (provider currently
+    # active with no inactivity history). Present when either is set,
+    # carrying one entry per event. Subsumes the former top-level
+    # npi_deactivation_date / npi_reactivation_date scalar fields.
+    DEACT_COL = "NPI Deactivation Date"
+    REACT_COL = "NPI Reactivation Date"
+    consumed.update([DEACT_COL, REACT_COL])
+    active: list = []
+    deact_date = (raw.get(DEACT_COL) or "").strip()
+    react_date = (raw.get(REACT_COL) or "").strip()
+    if deact_date:
+        active.append({
+            "event":     "deactivated",
+            "date":      deact_date,
+            "is_active": False,
+            "source":    "nppes_deactivation_date",
+        })
+    if react_date:
+        active.append({
+            "event":     "reactivated",
+            "date":      react_date,
+            "is_active": True,
+            "source":    "nppes_reactivation_date",
+        })
+    if active:
+        doc["active"] = active
 
     # Remaining scalar fields — snake_case the key, skip empty values
     for h, v in raw.items():

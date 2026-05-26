@@ -17,9 +17,9 @@ Enrichment strategy (six passes):
           Sends up to 500 addresses per batch POST. On error, providers are
           marked geocoder_failed for retry in later passes.
 
-  Pass 3: Census Geocoder batch API (billing/mailing address) for providers
-          marked geocoder_failed after Pass 2. Uses mailing_address instead
-          of practice_address.
+  Pass 3: Census Geocoder batch API (billing address) for providers
+          marked geocoder_failed after Pass 2. Uses the addresses[] entry
+          with address_type=="business" as the fallback geocoding input.
 
   Pass 4: Google Maps Geocoding API (practice address) for providers still
           geocoder_failed after Pass 3. Paid API — requires google_maps_enabled=True.
@@ -531,13 +531,13 @@ def county_enrichment_orchestrator_fn(context):
 
 def get_distinct_zips_fn(config: dict) -> dict:
     """Return total provider count and list of distinct 5-digit ZIPs across
-    every practice_address element of every in-scope provider.
+    every addresses[] element of every in-scope provider.
 
-    Handles both shapes (list of addresses post-multi-practice-address; legacy
-    single-dict) by $unwind-ing practice_address — Mongo's $unwind treats a
-    non-array field as a single-element list, so legacy records fall through
-    the same path. preserveNullAndEmptyArrays=False drops records with no
-    practice_address at all (those have no ZIP to enrich anyway)."""
+    Post-schema-reconciliation: addresses[] is the unified array of business
+    + practice entries (with address_type discriminator). $unwind addresses
+    and project the zip. preserveNullAndEmptyArrays=False drops records with
+    no addresses at all (no ZIP to enrich anyway).
+    """
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
@@ -545,9 +545,9 @@ def get_distinct_zips_fn(config: dict) -> dict:
     total = coll.count_documents(state_filter)
     pipeline = [
         {"$match": state_filter},
-        {"$unwind": {"path": "$practice_address", "preserveNullAndEmptyArrays": False}},
+        {"$unwind": {"path": "$addresses", "preserveNullAndEmptyArrays": False}},
         {"$project": {"zip5": {"$substr": [
-            {"$ifNull": [{"$toString": "$practice_address.zip"}, ""]},
+            {"$ifNull": [{"$toString": "$addresses.zip"}, ""]},
             0, 5
         ]}}},
         {"$group": {"_id": "$zip5"}},
@@ -613,48 +613,23 @@ class ZipEnrichmentWorker(PipelineWorkerBase):
         }
         zip_pat = {"$regex": f"^{zip5}"}
 
-        # Multi-practice-address support: enrich EVERY practice_address element
-        # whose zip matches and which doesn't already have a county. Uses a
-        # filtered positional update with arrayFilters so a provider with
-        # several practice locations gets each one's county resolved
-        # independently.
-        #
-        # The top-level `county` field is kept as a back-compat surface for
-        # consumers that still read `doc.county.fips`. After every update we
-        # reset top-level county to the PRIMARY's county (practice_address[0])
-        # in a separate sync pass at the end of the worker (_pipeline_close
-        # would be cleaner but the existing base class doesn't override-hook
-        # there reliably).
+        # Stamp county on every addresses[] element whose zip matches and
+        # which doesn't already have one. Operates on BOTH address_type
+        # values (business + practice) per the post-schema-reconciliation
+        # contract — county+urban enrichment applies to every address
+        # entry regardless of type. Uses filtered positional update with
+        # arrayFilters so each entry's county is resolved independently.
         result = self._collection.update_many(
             {
                 "bad_data.flagged": {"$ne": True},
                 "out_of_scope.flagged": {"$ne": True},
-                "practice_address": {"$elemMatch": {"zip": zip_pat, "county.fips": None}},
+                "addresses": {"$elemMatch": {"zip": zip_pat, "county.fips": None}},
                 **self._state_filter,
             },
-            {"$set": {"practice_address.$[elem].county": county_subdoc}},
+            {"$set": {"addresses.$[elem].county": county_subdoc}},
             array_filters=[{"elem.zip": zip_pat, "elem.county.fips": None}],
         )
         self._total_modified += result.modified_count
-
-        # Legacy path: providers whose practice_address is still the old single-
-        # dict shape (pre-multi-address commit) are matched by the original
-        # query. Idempotent because the per-element pipeline above won't have
-        # touched these (the $elemMatch requires an array). Both writes set
-        # the same county; whichever runs first is fine.
-        legacy = self._collection.update_many(
-            {
-                "county.fips": None,
-                "county.source": {"$ne": "out_of_scope"},
-                "bad_data.flagged": {"$ne": True},
-                "out_of_scope.flagged": {"$ne": True},
-                "practice_address": {"$type": "object", "$not": {"$type": "array"}},
-                "practice_address.zip": zip_pat,
-                **self._state_filter,
-            },
-            {"$set": {"county": county_subdoc}},
-        )
-        self._total_modified += legacy.modified_count
 
     def _pipeline_row_key(self) -> str:
         if 0 <= self._idx < len(self.zip_batch):
@@ -683,16 +658,21 @@ def mark_out_of_scope_fn(config: dict) -> dict:
     """Mark providers with data quality issues or out-of-scope status.
 
     PIPE-DQ-001 — bad_data flag (data quality issues, record retained but flagged):
-    - no_address: both practice_address and mailing_address are absent.
-      Sets bad_data: {flagged: true, reason: "no_address"}, county.fips: null.
+    - no_address: `addresses` field is absent or empty.
+      Sets bad_data: {flagged: true, reason: "no_address"}.
 
     PIPE-DQ-002 — out_of_scope flag (valid record, outside processing scope):
-    - foreign_provider: practice_address.country is set and is not "US".
-      Sets out_of_scope: {flagged: true, reason: "foreign_provider"}, county.fips: null.
-    - deactivated: npi_deactivation_date set without a later reactivation.
-      Sets out_of_scope: {flagged: true, reason: "deactivated"}, county.fips: null.
+    - foreign_provider: any practice address has country set and not 'US'.
+      Sets out_of_scope: {flagged: true, reason: "foreign_provider"}.
+    - deactivated: latest event in the active log has is_active=false.
+      Sets out_of_scope: {flagged: true, reason: "deactivated"}.
 
-    Uses controlled vocabulary values from CV-001 (bad_data_reasons) and CV-002 (out_of_scope_reasons).
+    Post-schema-reconciliation: addresses[] replaces practice_address +
+    mailing_address; the active event log replaces the
+    npi_deactivation_date / npi_reactivation_date scalars.
+
+    Uses controlled vocabulary values from CV-001 (bad_data_reasons) and
+    CV-002 (out_of_scope_reasons).
     """
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
     db_name, coll_name = collection.split(".", 1)
@@ -700,43 +680,50 @@ def mark_out_of_scope_fn(config: dict) -> dict:
 
     sf = _build_states_filter(config)
     _base = {
-        "county.fips": None,
-        "bad_data.flagged": {"$ne": True},
+        "bad_data.flagged":    {"$ne": True},
         "out_of_scope.flagged": {"$ne": True},
-        "county.source": {"$nin": ["geocoder_failed", "geocoder_no_address", "out_of_scope"]},
         **sf,
     }
 
-    # PIPE-DQ-001: no_address → bad_data flag
+    # PIPE-DQ-001: no_address → bad_data flag (addresses absent or empty)
     r_no_address = coll.update_many(
         {**_base,
-         "practice_address": {"$exists": False},
-         "mailing_address":  {"$exists": False}},
+         "$or": [
+             {"addresses": {"$exists": False}},
+             {"addresses": {"$size": 0}},
+         ]},
         {"$set": {
             "bad_data": {"flagged": True, "reason": "no_address"},
-            "county": {"fips": None},
         }},
     )
     logging.info("PIPE-DQ-001: flagged %d providers as bad_data (no_address)", r_no_address.modified_count)
 
-    # PIPE-DQ-002: foreign_provider → out_of_scope flag
+    # PIPE-DQ-002: foreign_provider → out_of_scope flag. Checks practice
+    # address country specifically (a provider whose business address is
+    # foreign but whose practice is US is NOT a foreign provider).
     r_foreign = coll.update_many(
-        {**_base, "practice_address.country": {"$exists": True, "$ne": "US"}},
+        {**_base,
+         "addresses": {"$elemMatch": {
+             "address_type": "practice",
+             "country": {"$exists": True, "$ne": "US"},
+         }}},
         {"$set": {
             "out_of_scope": {"flagged": True, "reason": "foreign_provider"},
-            "county": {"fips": None},
         }},
     )
     logging.info("PIPE-DQ-002: flagged %d providers as out_of_scope (foreign_provider)", r_foreign.modified_count)
 
-    # PIPE-DQ-002: deactivated → out_of_scope flag
+    # PIPE-DQ-002: deactivated → out_of_scope flag. The active event log's
+    # LAST entry's is_active=false indicates "currently inactive." Mongo
+    # arrays are ordered; $arrayElemAt with -1 reads the latest event.
     r_deactivated = coll.update_many(
         {**_base,
-         "npi_deactivation_date":  {"$exists": True},
-         "npi_reactivation_date":  {"$exists": False}},
+         "$expr": {"$and": [
+             {"$gt": [{"$size": {"$ifNull": ["$active", []]}}, 0]},
+             {"$eq": [{"$arrayElemAt": ["$active.is_active", -1]}, False]},
+         ]}},
         {"$set": {
             "out_of_scope": {"flagged": True, "reason": "deactivated"},
-            "county": {"fips": None},
         }},
     )
     logging.info("PIPE-DQ-002: flagged %d providers as out_of_scope (deactivated)", r_deactivated.modified_count)
@@ -759,13 +746,18 @@ def mark_out_of_scope_fn(config: dict) -> dict:
 def mark_zip_state_mismatch_fn(config: dict) -> dict:
     """PIPE-DQ-003: Detect and repair zip/state mismatches using provider license data.
 
+    Operates on practice-type entries inside `addresses[]` only — business
+    addresses are not subject to the zip/state mismatch repair logic (that
+    semantic is specific to where the provider physically practices, not
+    where their mail is sent).
+
     Loads ZipCountyCrosswalk to build a ZIP → expected_state mapping.
-    Providers where practice_address.zip maps to a different state than
-    practice_address.state have bad source data from NPPES.
+    Practice-address elements where `zip` maps to a different state than
+    the element's `state` indicate bad NPPES source data.
 
     Repair logic (checks provider licenses array):
     - If exactly one license state matches the zip's expected state → repair
-      practice_address.state, clear bad_data flag (auto-repair).
+      the element's state, clear bad_data flag (auto-repair).
     - If multiple license states match → bad_data (zip_state_mismatch_multiple_licenses).
     - If no license data → bad_data (zip_state_mismatch_no_license).
     - If license doesn't resolve → bad_data (zip_state_mismatch).
@@ -790,31 +782,23 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
 
     sf = _build_states_filter(config)
 
-    # Normalize every dict-shape practice_address to a list-of-1 first.
-    # After this, every record in scope has list-shape practice_address —
-    # one canonical shape, one code path, no bifurcation downstream.
-    norm = coll.update_many(
-        {"practice_address": {"$type": "object", "$not": {"$type": "array"}}, **sf},
-        [{"$set": {"practice_address": ["$practice_address"]}}],
-    )
-    if norm.modified_count:
-        logging.info(
-            "PIPE-DQ-003: normalized %d dict-shape practice_address records to list-of-1",
-            norm.modified_count,
-        )
+    # Post-schema-reconciliation: addresses[] is always an array of objects;
+    # the legacy dict-shape normalization that lived here is gone.
 
     # Stream the cursor element-wise. Materializing the full result set with
-    # list() blows the worker's heap on large multi-state runs (TX+CA+NY+VA+MS
-    # ≈ 700K docs × ~10KB → ~7GB → OOM exit 137).
+    # list() blows the worker's heap on large multi-state runs.
     cursor = coll.find(
         {
             "out_of_scope.flagged": {"$ne": True},
             "bad_data.flagged": {"$ne": True},
-            "practice_address.state": {"$exists": True},
-            "practice_address.zip":   {"$exists": True},
+            "addresses": {"$elemMatch": {
+                "address_type": "practice",
+                "state": {"$exists": True},
+                "zip":   {"$exists": True},
+            }},
             **sf,
         },
-        {"_id": 1, "practice_address": 1, "licenses": 1},
+        {"_id": 1, "addresses": 1, "licenses": 1},
     )
 
     total_repaired = 0
@@ -823,12 +807,14 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
 
     for p in cursor:
         licenses = p.get("licenses") or []
-        pa = p.get("practice_address") or []
-        if not isinstance(pa, list):
-            continue  # normalize() above ensures this never fires
+        addresses = p.get("addresses") or []
+        if not isinstance(addresses, list):
+            continue
 
-        for idx, addr in enumerate(pa):
+        for idx, addr in enumerate(addresses):
             if not isinstance(addr, dict):
+                continue
+            if addr.get("address_type") != "practice":
                 continue
             decision, reason, repaired_state = _evaluate_zip_state_mismatch(
                 addr, licenses, zip_to_state,
@@ -838,7 +824,7 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
             if decision == "repair":
                 ops.append(UpdateOne(
                     {"_id": p["_id"]},
-                    {"$set": {f"practice_address.{idx}.state": repaired_state}},
+                    {"$set": {f"addresses.{idx}.state": repaired_state}},
                 ))
                 total_repaired += 1
                 logging.info(
@@ -848,7 +834,7 @@ def mark_zip_state_mismatch_fn(config: dict) -> dict:
             else:  # "bad"
                 ops.append(UpdateOne(
                     {"_id": p["_id"]},
-                    {"$set": {f"practice_address.{idx}.county": {
+                    {"$set": {f"addresses.{idx}.county": {
                         "fips": None,
                         "source": "out_of_scope_zip_state_mismatch",
                         "reason": reason,
@@ -878,7 +864,7 @@ def _evaluate_zip_state_mismatch(
     licenses: list,
     zip_to_state: dict,
 ) -> tuple:
-    """Single-address evaluator. Called once per practice_address element.
+    """Single-address evaluator. Called once per practice-type addresses[] element.
 
     Returns (decision, reason, repaired_state):
       decision in {"ok", "repair", "bad"}
@@ -936,11 +922,11 @@ _CLASSIFIED_ELEMENT_SOURCES = [
 
 
 _UNENRICHED_FILTER = {
-    # At least one practice_address element still needs county and hasn't been
-    # classified by a prior pass. Multi-practice-address shape (list of dicts).
-    # Legacy single-dict-shape records are skipped here — Pass 1 has its own
-    # legacy path that handles them; passes 2-6 only target list-shape records.
-    "practice_address": {"$elemMatch": {
+    # At least one addresses[] element still needs county and hasn't been
+    # classified by a prior pass. Post-schema-reconciliation: addresses[]
+    # is the unified array of business + practice entries; county+urban
+    # enrichment applies to every entry regardless of address_type.
+    "addresses": {"$elemMatch": {
         "county.fips": None,
         "county.source": {"$nin": _CLASSIFIED_ELEMENT_SOURCES},
     }},
@@ -950,17 +936,17 @@ _UNENRICHED_FILTER = {
 
 
 def _unenriched_elements(provider: dict):
-    """Yield (idx, addr_dict) for each practice_address element of `provider`
+    """Yield (idx, addr_dict) for each addresses[] element of `provider`
     that still needs county enrichment (county.fips null and not classified
     as geocoder_failed / geocoder_no_address / out_of_scope).
 
-    Yields nothing for legacy single-dict shape — those are handled by Pass 1's
-    legacy path. Passes 2-6 operate on list-shape records exclusively.
+    Iterates BOTH business and practice entries — county enrichment applies
+    to every address regardless of address_type.
     """
-    pa = provider.get("practice_address")
-    if not isinstance(pa, list):
+    addresses = provider.get("addresses")
+    if not isinstance(addresses, list):
         return
-    for idx, addr in enumerate(pa):
+    for idx, addr in enumerate(addresses):
         if not isinstance(addr, dict):
             continue
         c = addr.get("county") or {}
@@ -972,15 +958,16 @@ def _unenriched_elements(provider: dict):
 
 
 def _failed_elements(provider: dict):
-    """Yield (idx, addr_dict) for each practice_address element that still
-    has county.fips == null after an earlier pass. Used by Pass 3/4/6
-    retry logic. county.fips IS NULL is the one and only canonical flag
-    for 'this element still needs enrichment'; existing source-tag writes
-    remain as informational metadata until each record is correct."""
-    pa = provider.get("practice_address")
-    if not isinstance(pa, list):
+    """Yield (idx, addr_dict) for each addresses[] element that still has
+    county.fips == null after an earlier pass. Used by Pass 3/4/6 retry
+    logic. county.fips IS NULL is the canonical flag for 'this element
+    still needs enrichment'; existing source-tag writes remain as
+    informational metadata until each record is correct.
+    """
+    addresses = provider.get("addresses")
+    if not isinstance(addresses, list):
         return
-    for idx, addr in enumerate(pa):
+    for idx, addr in enumerate(addresses):
         if not isinstance(addr, dict):
             continue
         if (addr.get("county") or {}).get("fips") is None:
@@ -1042,19 +1029,18 @@ def get_unenriched_fn(config: dict) -> dict:
 
 
 def enrich_by_address_batch_fn(config: dict) -> dict:
-    """Pass 2: Census Geocoder batch API — per-practice-address-element.
+    """Pass 2: Census Geocoder batch API — per addresses[] element.
 
-    For each provider in this _id range, iterates every practice_address element
-    that still needs a county. Each element gets one CSV row in the Census batch
-    keyed by composite ID `<provider_oid>_<elem_idx>`. Results are written back
-    via per-element `practice_address.<idx>.county` updates.
+    For each provider in this _id range, iterates every addresses[] element
+    (business + practice) that still needs a county. Each element gets one
+    CSV row in the Census batch keyed by composite ID
+    `<provider_oid>_<elem_idx>`. Results are written back via per-element
+    `addresses.<idx>.county` updates.
 
     Elements with no usable address (no line1 and no city) are flagged
     `geocoder_no_address`. Elements the geocoder couldn't match are flagged
-    `geocoder_failed` (Pass 3 will retry these via the doc's mailing address).
-
-    Billing-fallback that the old Pass 2 did per-provider has moved entirely to
-    Pass 3 — Pass 2 now ONLY tries the practice address.
+    `geocoder_failed` (Pass 3 retries these using the provider's business
+    address as a fallback geocoding input).
     """
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.monotonic()
@@ -1072,7 +1058,7 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
     # Stream providers via cursor — don't materialize the slice into memory.
     cursor = coll.find(
         {**_UNENRICHED_FILTER, **id_filter, **sf},
-        {"_id": 1, "practice_address": 1},
+        {"_id": 1, "addresses": 1},
     )
 
     # Per-element fan-out
@@ -1098,7 +1084,7 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
             else:
                 ops.append(UpdateOne(
                     {"_id": pid_obj},
-                    {"$set": {f"practice_address.{idx}.county": {
+                    {"$set": {f"addresses.{idx}.county": {
                         "fips": None, "source": "geocoder_no_address",
                     }}},
                 ))
@@ -1124,7 +1110,7 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
                     fips = matched[cid]
                     ops.append(UpdateOne(
                         {"_id": pid_obj},
-                        {"$set": {f"practice_address.{idx}.county": {
+                        {"$set": {f"addresses.{idx}.county": {
                             "fips": fips,
                             "name": _get_fips_to_name().get(fips, ""),
                             "source": "geocoder_pass2_batch",
@@ -1134,7 +1120,7 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
                 else:
                     ops.append(UpdateOne(
                         {"_id": pid_obj},
-                        {"$set": {f"practice_address.{idx}.county": {
+                        {"$set": {f"addresses.{idx}.county": {
                             "fips": None, "source": "geocoder_failed",
                         }}},
                     ))
@@ -1163,8 +1149,9 @@ def get_billing_retryable_fn(config: dict) -> dict:
 
     Required config:
       states              — mandatory state filter
-      primary_county_fips — mandatory; practice_address[0].county.fips value to
-                            filter by, or None for the no-primary-county bucket
+      primary_county_fips — mandatory; the county.fips of the first addresses[]
+                            entry with address_type=="practice", or None for the
+                            no-primary-county bucket
     """
     if "primary_county_fips" not in config:
         raise ValueError(
@@ -1174,7 +1161,24 @@ def get_billing_retryable_fn(config: dict) -> dict:
         )
     coll = _open_providers_coll(config)
     query = _pass3_retryable_match(_build_states_filter(config))
-    query["practice_address.0.county.fips"] = config["primary_county_fips"]
+    # Primary county = first addresses[] entry with address_type=="practice".
+    query["$expr"] = {
+        "$eq": [
+            {"$let": {
+                "vars": {
+                    "practices": {
+                        "$filter": {
+                            "input": "$addresses",
+                            "as": "a",
+                            "cond": {"$eq": ["$$a.address_type", "practice"]},
+                        }
+                    }
+                },
+                "in": {"$arrayElemAt": ["$$practices.county.fips", 0]},
+            }},
+            config["primary_county_fips"],
+        ]
+    }
     ids = [str(doc["_id"]) for doc in coll.find(query, {"_id": 1})]
     logging.info(
         "Pass 3 billing-retryable providers (state=%s primary_county=%s): %d",
@@ -1184,11 +1188,16 @@ def get_billing_retryable_fn(config: dict) -> dict:
 
 
 def enrich_by_billing_batch_fn(config: dict) -> dict:
-    """Pass 3: For each provider with one or more geocoder_failed practice_address
-    elements, geocode the doc's mailing/billing address ONCE. On match, apply
-    that billing-derived county to every element flagged geocoder_failed.
+    """Pass 3: For each provider with one or more geocoder_failed addresses[]
+    elements, geocode the provider's BUSINESS address ONCE. On match, apply
+    that business-derived county to every element still flagged
+    geocoder_failed.
 
-    Rationale: the doc has a single mailing address; a successful billing
+    Post-schema-reconciliation: the former separate `mailing_address` field
+    is now the entry in `addresses[]` with address_type='business'. Pass 3
+    reads that entry as the fallback geocoding input.
+
+    Rationale: the provider has a single business address; a successful
     geocode gives one fallback county we can apply to every still-unresolved
     practice location. Element-specific geocoding (per-element address) is
     Pass 4's job (Maps).
@@ -1201,18 +1210,24 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
     coll = _get_mongo_client()[db_name][coll_name]
 
     object_ids = [ObjectId(i) for i in id_batch]
-    # Stream via cursor; skip providers with no usable mailing address
+    # Stream via cursor; skip providers with no usable business address
     # before keeping a reference.
-    geocodable = []  # list of (pid_str, mailing_dict, provider_doc)
+    geocodable = []  # list of (pid_str, business_dict, provider_doc)
     providers_assigned = 0
     for p in coll.find(
         {"_id": {"$in": object_ids}},
-        {"_id": 1, "mailing_address": 1, "practice_address": 1},
+        {"_id": 1, "addresses": 1},
     ):
         providers_assigned += 1
-        m = p.get("mailing_address") or {}
-        if m.get("line1") or m.get("city"):
-            geocodable.append((str(p["_id"]), m, p))
+        # Locate the business-type address (there's exactly one per provider
+        # in conformant records).
+        business = None
+        for a in (p.get("addresses") or []):
+            if isinstance(a, dict) and a.get("address_type") == "business":
+                business = a
+                break
+        if business and (business.get("line1") or business.get("city")):
+            geocodable.append((str(p["_id"]), business, p))
 
     modified_elements = providers_failed = 0
     ops: list = []
@@ -1252,7 +1267,7 @@ def enrich_by_billing_batch_fn(config: dict) -> dict:
                 for idx, _addr in _failed_elements(p):
                     ops.append(UpdateOne(
                         {"_id": p["_id"]},
-                        {"$set": {f"practice_address.{idx}.county": county_subdoc}},
+                        {"$set": {f"addresses.{idx}.county": county_subdoc}},
                     ))
                     modified_elements += 1
 
@@ -1280,8 +1295,9 @@ def get_maps_retryable_fn(config: dict) -> dict:
 
     Required config:
       states              — mandatory state filter
-      primary_county_fips — mandatory; practice_address[0].county.fips value to
-                            filter by, or None for the no-primary-county bucket
+      primary_county_fips — mandatory; the county.fips of the first addresses[]
+                            entry with address_type=="practice", or None for the
+                            no-primary-county bucket
     """
     if "primary_county_fips" not in config:
         raise ValueError(
@@ -1291,7 +1307,24 @@ def get_maps_retryable_fn(config: dict) -> dict:
         )
     coll = _open_providers_coll(config)
     query = _pass4_retryable_match(_build_states_filter(config))
-    query["practice_address.0.county.fips"] = config["primary_county_fips"]
+    # Primary county = first addresses[] entry with address_type=="practice".
+    query["$expr"] = {
+        "$eq": [
+            {"$let": {
+                "vars": {
+                    "practices": {
+                        "$filter": {
+                            "input": "$addresses",
+                            "as": "a",
+                            "cond": {"$eq": ["$$a.address_type", "practice"]},
+                        }
+                    }
+                },
+                "in": {"$arrayElemAt": ["$$practices.county.fips", 0]},
+            }},
+            config["primary_county_fips"],
+        ]
+    }
     ids = [str(doc["_id"]) for doc in coll.find(query, {"_id": 1})]
     logging.info(
         "Pass 4 Maps-retryable providers (state=%s primary_county=%s): %d",
@@ -1301,21 +1334,26 @@ def get_maps_retryable_fn(config: dict) -> dict:
 
 
 def enrich_by_maps_batch_fn(config: dict) -> dict:
-    """Pass 4: Google Maps Geocoding API per failed practice_address element.
+    """Pass 4: Google Maps Geocoding API per failed addresses[] element.
 
-    For each provider in id_batch, iterates every practice_address element
-    flagged geocoder_failed and calls Maps for that element's address. Resolves
-    Maps (county_name, state_abbr) -> FIPS via ZipCountyCrosswalk and writes
-    per-element `practice_address.<idx>.county`. Elements that Maps can't
-    resolve stay flagged geocoder_failed (Pass 6 / NPPES is the next try).
+    For each provider in id_batch, iterates every addresses[] element flagged
+    geocoder_failed and calls Maps for that element's address. Resolves Maps
+    (county_name, state_abbr) -> FIPS via ZipCountyCrosswalk and writes
+    per-element `addresses.<idx>.county`. Elements that Maps can't resolve
+    stay flagged geocoder_failed (Pass 6 / NPPES is the next try).
 
-    Rate-limited by maps_call_delay_seconds (default 0.1 -> ~10 calls/s/worker).
+    Per-call pacing comes from config["throttle"]["google_maps"]["refill_rate"]
+    (tokens per second). The orchestrator preamble configured the
+    token_bucket/google_maps Durable Entity with the same refill_rate; this
+    activity derives its local sleep delay as 1 / refill_rate so the
+    per-worker outbound rate matches the configured rate.
     """
     started_at = datetime.now(timezone.utc).isoformat()
     start_time = time.monotonic()
     id_batch   = config["id_batch"]
     collection = config.get("provider_collection", PROVIDERS_COLLECTION)
-    delay      = config.get("maps_call_delay_seconds", 0.1)
+    from throttle_entities import call_delay_seconds
+    delay = call_delay_seconds(config["throttle"]["google_maps"]["refill_rate"])
     api_key    = os.environ["GOOGLE_MAPS_API_KEY"]
 
     db_name, coll_name = collection.split(".", 1)
@@ -1325,7 +1363,7 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
     # Stream via cursor — one provider at a time, no slice materialization.
     cursor = coll.find(
         {"_id": {"$in": object_ids}},
-        {"_id": 1, "practice_address": 1},
+        {"_id": 1, "addresses": 1},
     )
 
     lookup = _get_maps_county_lookup()
@@ -1357,7 +1395,7 @@ def enrich_by_maps_batch_fn(config: dict) -> dict:
             if fips:
                 ops.append(UpdateOne(
                     {"_id": p["_id"]},
-                    {"$set": {f"practice_address.{idx}.county": {
+                    {"$set": {f"addresses.{idx}.county": {
                         "fips": fips,
                         "name": county_name or "",
                         "source": "geocoder_pass4_maps",
@@ -1407,31 +1445,40 @@ def _open_providers_coll(config: dict):
 
 
 def _pass3_retryable_match(states_filter: dict) -> dict:
+    # Pass 3 fallback: geocode the BUSINESS address (CMS billing entry in
+    # addresses[]) when the practice geocoder failed. Skip providers whose
+    # `active` event log's last event marks them inactive.
     return {
-        "practice_address": {"$elemMatch": {"county.source": "geocoder_failed"}},
+        "addresses": {"$elemMatch": {"county.source": "geocoder_failed"}},
         "bad_data.flagged": {"$ne": True},
         "out_of_scope.flagged": {"$ne": True},
         **states_filter,
         "$and": [
+            {"addresses": {"$elemMatch": {
+                "address_type": "business",
+                "$or": [
+                    {"line1": {"$nin": [None, ""]}},
+                    {"city":  {"$nin": [None, ""]}},
+                ],
+            }}},
+            {"addresses": {"$not": {"$elemMatch": {
+                "address_type": "business",
+                "country": {"$nin": [None, "", "US"]},
+            }}}},
             {"$or": [
-                {"mailing_address.line1": {"$nin": [None, ""]}},
-                {"mailing_address.city":  {"$nin": [None, ""]}},
+                {"active": {"$exists": False}},
+                {"active": {"$size": 0}},
+                {"$expr": {"$eq": [
+                    {"$arrayElemAt": ["$active.is_active", -1]}, True,
+                ]}},
             ]},
-            {"$or": [
-                {"npi_deactivation_date": {"$exists": False}},
-                {"npi_reactivation_date": {"$exists": True}},
-            ]},
-        ],
-        "$or": [
-            {"mailing_address.country": {"$exists": False}},
-            {"mailing_address.country": {"$in": [None, "", "US"]}},
         ],
     }
 
 
 def _pass4_retryable_match(states_filter: dict) -> dict:
     return {
-        "practice_address": {"$elemMatch": {"county.source": "geocoder_failed"}},
+        "addresses": {"$elemMatch": {"county.source": "geocoder_failed"}},
         "bad_data.flagged": {"$ne": True},
         "out_of_scope.flagged": {"$ne": True},
         **states_filter,
@@ -1440,7 +1487,7 @@ def _pass4_retryable_match(states_filter: dict) -> dict:
 
 def _pass6_retryable_match(states_filter: dict) -> dict:
     return {
-        "practice_address": {"$elemMatch": {"county.fips": None}},
+        "addresses": {"$elemMatch": {"county.fips": None}},
         "bad_data.flagged": {"$ne": True},
         "out_of_scope.flagged": {"$ne": True},
         "npi": {"$nin": [None, ""]},
@@ -1449,9 +1496,25 @@ def _pass6_retryable_match(states_filter: dict) -> dict:
 
 
 def _distinct_primary_counties(coll, match_filter: dict) -> list:
+    # "Primary" = the first addresses[] entry with address_type=="practice".
+    # Post-schema-reconciliation, practice_address is gone; the throttling
+    # bucket still keys on the provider's first practice address's county.
     pipeline = [
         {"$match": match_filter},
-        {"$group": {"_id": {"$arrayElemAt": ["$practice_address.county.fips", 0]}}},
+        {"$group": {"_id": {
+            "$let": {
+                "vars": {
+                    "practices": {
+                        "$filter": {
+                            "input": "$addresses",
+                            "as": "a",
+                            "cond": {"$eq": ["$$a.address_type", "practice"]},
+                        }
+                    }
+                },
+                "in": {"$arrayElemAt": ["$$practices.county.fips", 0]},
+            }
+        }}},
     ]
     return [r["_id"] for r in coll.aggregate(pipeline, allowDiskUse=True)]
 
@@ -1491,8 +1554,9 @@ def get_nppes_retryable_fn(config: dict) -> dict:
 
     Required config:
       states              — mandatory state filter (raised if missing)
-      primary_county_fips — mandatory; practice_address[0].county.fips value to
-                            filter by, or None for the no-primary-county bucket
+      primary_county_fips — mandatory; the county.fips of the first addresses[]
+                            entry with address_type=="practice", or None for the
+                            no-primary-county bucket
     """
     if "primary_county_fips" not in config:
         raise ValueError(
@@ -1502,7 +1566,26 @@ def get_nppes_retryable_fn(config: dict) -> dict:
         )
     coll = _open_providers_coll(config)
     query = _pass6_retryable_match(_build_states_filter(config))
-    query["practice_address.0.county.fips"] = config["primary_county_fips"]
+    # Primary county = first addresses[] entry with address_type=="practice".
+    # Use $expr because we need an aggregation expression to pick out the first
+    # practice element; legacy practice_address.0.* dot-path no longer exists.
+    query["$expr"] = {
+        "$eq": [
+            {"$let": {
+                "vars": {
+                    "practices": {
+                        "$filter": {
+                            "input": "$addresses",
+                            "as": "a",
+                            "cond": {"$eq": ["$$a.address_type", "practice"]},
+                        }
+                    }
+                },
+                "in": {"$arrayElemAt": ["$$practices.county.fips", 0]},
+            }},
+            config["primary_county_fips"],
+        ]
+    }
     providers = [
         {"id": str(doc["_id"]), "npi": doc["npi"]}
         for doc in coll.find(query, {"_id": 1, "npi": 1})
@@ -1517,7 +1600,7 @@ def get_nppes_retryable_fn(config: dict) -> dict:
 def enrich_by_nppes_batch_fn(config: dict) -> dict:
     """Pass 6: NPPES public registry lookup, per-element.
 
-    For each provider in provider_batch with at least one practice_address
+    For each provider in provider_batch with at least one addresses[]
     element still missing county, calls the NPPES API ONCE per NPI to fetch
     the canonical CMS-registered addresses. Then for each unenriched element
     (county.fips null), looks for an NPPES address with a different ZIP from
@@ -1527,7 +1610,11 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
     Skips elements where the only matching NPPES address has the same ZIP we
     already failed to resolve (no benefit to retry).
 
-    Rate-limited by nppes_call_delay_seconds (default 0.2 s = 5 calls/s).
+    Per-call pacing comes from config["throttle"]["nppes"]["refill_rate"]
+    (tokens per second). The orchestrator preamble configured the
+    token_bucket/nppes Durable Entity with the same refill_rate; this
+    activity derives its local sleep delay as 1 / refill_rate so the
+    per-worker outbound rate matches the configured rate.
     Keep nppes_batch_size large so few activities fan out — workers share the
     same outbound IP and hit the same NPPES rate limit.
 
@@ -1540,7 +1627,8 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
     start_time = time.monotonic()
     provider_batch = config["provider_batch"]   # list of {id, npi}
     collection     = config.get("provider_collection", PROVIDERS_COLLECTION)
-    delay          = config.get("nppes_call_delay_seconds", 0.2)
+    from throttle_entities import call_delay_seconds
+    delay = call_delay_seconds(config["throttle"]["nppes"]["refill_rate"])
 
     db_name, coll_name = collection.split(".", 1)
     coll = _get_mongo_client()[db_name][coll_name]
@@ -1560,7 +1648,7 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
     # OOM on the 832,859-record run.
     for doc in coll.find(
         {"_id": {"$in": object_ids}},
-        {"_id": 1, "npi": 1, "practice_address": 1},
+        {"_id": 1, "npi": 1, "addresses": 1},
     ):
         pid = str(doc["_id"])
         seen_pids.add(pid)
@@ -1639,7 +1727,7 @@ def enrich_by_nppes_batch_fn(config: dict) -> dict:
 
             ops.append(UpdateOne(
                 {"_id": ObjectId(pid)},
-                {"$set": {f"practice_address.{idx}.county": {
+                {"$set": {f"addresses.{idx}.county": {
                     "fips": cw["fips"],
                     "name": cw.get("name", ""),
                     "source": "geocoder_pass6_nppes",
@@ -1774,25 +1862,36 @@ def enrichment_report_fn(config: dict) -> dict:
     staging_coll = client[db_name_s][coll_name_s]
     sf = _build_states_filter(config)  # mandatory state filter
 
-    # Live count by county.source (null source = never touched)
+    # Post-schema-reconciliation: county is per-address, not top-level. The
+    # per-provider classification = the first practice-type addresses[] entry's
+    # county.source. Mirrors `_distinct_primary_counties` so the report bucket
+    # for a provider matches the throttling bucket the enrichment passes used.
+    _primary_practice_county_source = {
+        "$let": {
+            "vars": {
+                "practices": {
+                    "$filter": {
+                        "input": "$addresses",
+                        "as": "a",
+                        "cond": {"$eq": ["$$a.address_type", "practice"]},
+                    }
+                }
+            },
+            "in": {"$arrayElemAt": ["$$practices.county.source", 0]},
+        }
+    }
     source_counts: dict = {
         doc["_id"]: doc["count"]
         for doc in staging_coll.aggregate([
             {"$match": sf},
-            {"$group": {"_id": "$county.source", "count": {"$sum": 1}}}
-        ])
+            {"$group": {
+                "_id": _primary_practice_county_source,
+                "count": {"$sum": 1},
+            }},
+        ], allowDiskUse=True)
     }
 
-    # Out-of-scope breakdown by reason (None key → "legacy" for records without reason field)
-    out_of_scope_by_reason: dict = {
-        (doc["_id"] or "legacy"): doc["count"]
-        for doc in staging_coll.aggregate([
-            {"$match": {"county.source": "out_of_scope", **sf}},
-            {"$group": {"_id": "$county.reason", "count": {"$sum": 1}}},
-        ])
-    }
-
-    # PIPE-DQ-001/002: count records with new bad_data and out_of_scope flags
+    # PIPE-DQ-001/002: count records with bad_data and out_of_scope flags
     bad_data_count = staging_coll.count_documents({"bad_data.flagged": True, **sf})
     out_of_scope_flagged_count = staging_coll.count_documents({"out_of_scope.flagged": True, **sf})
 
@@ -1805,7 +1904,7 @@ def enrichment_report_fn(config: dict) -> dict:
         ])
     }
 
-    # Out-of-scope (new flag) breakdown by reason
+    # Out-of-scope breakdown by reason
     out_of_scope_flagged_by_reason: dict = {
         (doc["_id"] or "unknown"): doc["count"]
         for doc in staging_coll.aggregate([
@@ -1814,11 +1913,9 @@ def enrichment_report_fn(config: dict) -> dict:
         ])
     }
 
-    total      = sum(source_counts.values())
-    out_of_scope = source_counts.get("out_of_scope", 0)
-    # Excluded = legacy out_of_scope + new bad_data + new out_of_scope flags
-    total_excluded = out_of_scope + bad_data_count + out_of_scope_flagged_count
-    addressable  = total - total_excluded  # providers the geocoder can reach
+    total          = sum(source_counts.values())
+    total_excluded = bad_data_count + out_of_scope_flagged_count
+    addressable    = total - total_excluded  # providers the geocoder can reach
 
     def pct(n: int, d: int) -> float:
         return round(n / d * 100, 1) if d else 0.0
@@ -1850,19 +1947,13 @@ def enrichment_report_fn(config: dict) -> dict:
         "pass6_nppes":      bucket(["geocoder_pass6_nppes"]),
         "geocoder_failed":  bucket(["geocoder_failed"]),
         "no_address":       bucket(["geocoder_no_address"]),
-        "out_of_scope":     {   # pct_of_addressable is N/A — these ARE the excluded set
-            "count":              out_of_scope,
-            "pct_of_total":       pct(out_of_scope, total),
-            "pct_of_addressable": None,
-            "by_reason":          out_of_scope_by_reason,
-        },
         "bad_data": {  # PIPE-DQ-001: records with data quality flags
             "count":              bad_data_count,
             "pct_of_total":       pct(bad_data_count, total),
             "pct_of_addressable": None,
             "by_reason":          bad_data_by_reason,
         },
-        "out_of_scope_flagged": {  # PIPE-DQ-002: records with out_of_scope flags
+        "out_of_scope": {  # PIPE-DQ-002: records with out_of_scope flag (deactivated/foreign)
             "count":              out_of_scope_flagged_count,
             "pct_of_total":       pct(out_of_scope_flagged_count, total),
             "pct_of_addressable": None,

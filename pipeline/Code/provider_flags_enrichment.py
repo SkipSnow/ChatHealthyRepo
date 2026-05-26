@@ -46,13 +46,17 @@ def compute_provider_flags(
     Pure function — no I/O. The catalog argument is the in-memory dict
     returned by specialty_classification_catalog.load_catalog().
     """
+    # is_npi_registered dropped from the provider record per the schema
+    # reconciliation: at the provider level it's tautologically true (every
+    # provider we load came from NPPES, by definition). The flag remains
+    # on the catalog where it actually discriminates (used vs unused NUCC
+    # codes); it just doesn't bubble up to the provider doc.
     entity_type = doc.get("entity_type_code", "")
     if entity_type == "2":
         return {
-            "can_prescribe":     False,
-            "is_homeopathic":    False,
-            "is_npi_registered": True,
-            "is_disqualified":   False,
+            "can_prescribe":   False,
+            "is_homeopathic":  False,
+            "is_disqualified": False,
         }
 
     taxonomies = doc.get("taxonomies", []) or []
@@ -68,17 +72,15 @@ def compute_provider_flags(
         # Treat as disqualified — the provider is outside the proprietary
         # catalog's curated allow-list.
         return {
-            "can_prescribe":     False,
-            "is_homeopathic":    False,
-            "is_npi_registered": False,
-            "is_disqualified":   True,
+            "can_prescribe":   False,
+            "is_homeopathic":  False,
+            "is_disqualified": True,
         }
 
     return {
-        "can_prescribe":     any(e["can_prescribe"]     for e in entries),
-        "is_homeopathic":    any(e["is_homeopathic"]    for e in entries),
-        "is_npi_registered": any(e["is_npi_registered"] for e in entries),
-        "is_disqualified":   all(e["is_disqualified"]   for e in entries),
+        "can_prescribe":   any(e["can_prescribe"]   for e in entries),
+        "is_homeopathic":  any(e["is_homeopathic"]  for e in entries),
+        "is_disqualified": all(e["is_disqualified"] for e in entries),
     }
 
 

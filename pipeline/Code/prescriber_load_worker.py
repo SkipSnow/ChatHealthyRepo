@@ -23,24 +23,24 @@ _log = logging.getLogger("prescriber_load")
 
 
 def _primary_practice_address(provider: dict) -> dict:
-    """Return the primary practice_address as a dict. Handles both shapes:
-    list-of-addresses (post-multi-practice-address) and legacy single-dict."""
-    pa = provider.get("practice_address")
-    if isinstance(pa, list):
-        return pa[0] if pa and isinstance(pa[0], dict) else {}
-    if isinstance(pa, dict):
-        return pa
+    """Return the first addresses[] entry with address_type=="practice".
+
+    Post-schema-reconciliation: practice_address + mailing_address are unified
+    into addresses[] with an address_type discriminator.
+    """
+    for a in (provider.get("addresses") or []):
+        if isinstance(a, dict) and a.get("address_type") == "practice":
+            return a
     return {}
 
 
 def _primary_county(provider: dict) -> dict:
-    """Return the primary county sub-doc for the provider.
-    Prefers per-element county on the primary practice address; falls back to
-    the doc-level county field for legacy records."""
+    """Return the primary practice address's county sub-doc.
+    Post-schema-reconciliation: county is always nested under each addresses[]
+    element; there is no top-level county to fall back to."""
     addr = _primary_practice_address(provider)
-    if isinstance(addr.get("county"), dict):
-        return addr["county"]
-    return provider.get("county") or {}
+    county = addr.get("county")
+    return county if isinstance(county, dict) else {}
 
 
 # CMS Part D CSV columns
@@ -144,13 +144,13 @@ class PrescriberLoadWorker(PipelineWorkerBase):
                   len(self._cms_by_npi), skipped)
 
         # Step B: Open cursor on ALL providers in our states
-        state_filter = {"practice_address.state": {"$in": self.states}}
+        state_filter = {"addresses.state": {"$in": self.states}}
         total_providers = self._provider_collection().count_documents(state_filter)
         _log.info("Providers in %s: %d — building provider_quality for ALL", self.states, total_providers)
 
         self._provider_cursor = self._provider_collection().find(
             state_filter,
-            {"npi": 1, "practice_address": 1, "county": 1,
+            {"npi": 1, "addresses": 1,
              "taxonomy_codes": 1, "enumeration_date": 1, "_id": 0}
         )
 

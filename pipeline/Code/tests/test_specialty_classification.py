@@ -218,8 +218,8 @@ class TestCrosswalkOnProviders:
 
     def test_providers_have_can_prescribe(self, providers_coll):
         """DE providers should have can_prescribe flag."""
-        has = providers_coll.count_documents({"practice_address.state": "DE", "can_prescribe": {"$exists": True}})
-        total = providers_coll.count_documents({"practice_address.state": "DE"})
+        has = providers_coll.count_documents({"addresses.state": "DE", "can_prescribe": {"$exists": True}})
+        total = providers_coll.count_documents({"addresses.state": "DE"})
         if total == 0:
             pytest.skip("No DE providers on frontend")
         rate = has / total

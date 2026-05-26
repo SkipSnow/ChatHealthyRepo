@@ -4,7 +4,7 @@
 """urban_flag_enrichment — Step 11 sub-orchestration wrapping the existing
 USDA RUCC urban-flag stamper (urban_flag.py).
 
-Per-county derivation, stamped onto practice_address[*].county.urban for every
+Per-county derivation, stamped onto addresses[*].county.urban for every
 in-scope element. The underlying stamper traverses providers state-by-state in
 a single activity; this sub-orch exists so the step is autonomous from the
 prior step in the parent pipeline and gets its own per-activity budget.

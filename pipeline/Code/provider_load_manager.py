@@ -367,6 +367,7 @@ def embeddings_orchestrator_fn(context: df.DurableOrchestrationContext):
                 "embed_model":          config["embed_model"],
                 "embed_batch_size":     config["embed_batch_size"],
                 "embed_initial_jitter": config["embed_initial_jitter"],
+                "throttle":             config["throttle"],
             },
         )
         for i in range(num_workers)
@@ -557,6 +558,12 @@ def attach_practice_locations_fn(config: dict) -> dict:
                     continue
                 if "zip" in addr:
                     addr["zip"] = addr["zip"][:5]
+                # Stamp address_type + county placeholder so the secondaries
+                # are schema-conformant the moment they land in the lookup
+                # collection — when the $merge concatenates them onto the
+                # provider's existing addresses[] there's no remapping required.
+                addr["address_type"] = "practice"
+                addr["county"] = {"fips": None}
                 npi_to_addrs.setdefault(npi, []).append(addr)
                 rows_loaded += 1
 
@@ -571,8 +578,12 @@ def attach_practice_locations_fn(config: dict) -> dict:
             pl_coll.bulk_write(ops[i:i + BATCH], ordered=False)
 
     # Phase B: server-side `providers.aggregate → $merge providers` —
-    # concat secondary addresses onto each provider's practice_address array.
-    # State-scoped via the same predicate every other step uses (REQ-T-001).
+    # concat the pl_pfile secondary addresses onto each provider's
+    # addresses[] array. State-scoped via the shared predicate every other
+    # step uses (REQ-T-001). Post-schema-reconciliation: addresses[] is the
+    # unified array (business + practice entries with address_type
+    # discriminator); secondaries from pl_pfile arrive already shaped with
+    # address_type='practice' and county={fips:null}.
     states = normalize_states(config)
     state_match = {} if is_full_load(states) else mongo_state_filter(states)
 
@@ -587,17 +598,9 @@ def attach_practice_locations_fn(config: dict) -> dict:
         }},
         {"$match": {"_pl.0": {"$exists": True}}},
         {"$set": {
-            "practice_address": {
+            "addresses": {
                 "$concatArrays": [
-                    {"$cond": [
-                        {"$isArray": "$practice_address"},
-                        "$practice_address",
-                        {"$cond": [
-                            {"$ifNull": ["$practice_address", False]},
-                            ["$practice_address"],
-                            [],
-                        ]},
-                    ]},
+                    {"$ifNull": ["$addresses", []]},
                     {"$ifNull": [{"$arrayElemAt": ["$_pl.addresses", 0]}, []]},
                 ],
             },
@@ -719,8 +722,8 @@ def ensure_postload_indexes_fn(config: dict) -> None:
             name="load_record_unique",
         )
     collection.create_index(
-        "practice_address.zip",
-        name="practice_zip",
+        "addresses.zip",
+        name="addresses_zip",
     )
     collection.create_index(
         "county.fips",
@@ -736,8 +739,8 @@ def ensure_postload_indexes_fn(config: dict) -> None:
         name="npi_unique",
     )
     collection.create_index(
-        "practice_address.state",
-        name="state_idx",
+        "addresses.state",
+        name="addresses_state_idx",
     )
     collection.create_index(
         "taxonomies.code",
@@ -1007,6 +1010,26 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
         embed_result: dict | None = None
         reconcile = None
 
+        # ── Throttle preamble: configure every Durable Entity token bucket ──
+        # Skip 2026-05-25: all throttle constraints are CLI parameters, no
+        # defaults; the orchestrator MUST signal each bucket before any
+        # external-API work fans out. Missing keys fail loud at config["..."]
+        # below — no .get() fallback.
+        throttle = config["throttle"]
+        throttle_configs = yield context.task_all([
+            context.call_entity(
+                df.EntityId("token_bucket", bucket_name),
+                "configure",
+                throttle[bucket_name],
+            )
+            for bucket_name in ("nppes", "google_maps", "openai")
+        ])
+        # Propagate throttle params into the enrich_config so workers receive
+        # the same values that the entities were configured with. Workers
+        # derive per-call pacing from refill_rate locally; the entity is the
+        # canonical state holder for ops visibility (and future global gating).
+        enrich_config["throttle"] = throttle
+
         # ── Step 1: Health check + kill THIS pipeline's zombies (MANDATORY) ──
         context.set_custom_status(PROVIDER_LABEL_HEALTH_AND_ZOMBIES)
         health_kill = yield context.call_sub_orchestrator(
@@ -1201,6 +1224,7 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
                 "embed_model":          config["embed_model"],
                 "embed_batch_size":     config["embed_batch_size"],
                 "embed_initial_jitter": config["embed_initial_jitter"],
+                "throttle":             throttle,
             }
             embed_result = yield context.call_sub_orchestrator(
                 "embeddings_orchestrator", embed_cfg
