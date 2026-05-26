@@ -244,7 +244,7 @@
           "source_location": "Website/schemas/ChatHealthyProvidersSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "60b5e37b66199ee81e61e5ea20e8c70289bf3c4f419460bc39786f479741c630"
+          "content_hash": "8090bfc131ef7c11e7dbb0734511c2376cd8d3f90b560ccd63694f1ba466eb43"
         },
         {
           "feature_id": "EPIC-008-F-012",
