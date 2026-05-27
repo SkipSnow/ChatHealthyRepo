@@ -76,6 +76,13 @@ def throttle_entity_fn(context) -> None:
     })
     op = context.operation_name
     inp = context.get_input()
+    if isinstance(inp, str):
+        try:
+            inp = json.loads(inp)
+        except Exception:
+            inp = {}
+    if inp is None:
+        inp = {}
 
     if op == "configure":
         if not isinstance(inp, dict):

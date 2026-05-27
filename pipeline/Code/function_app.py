@@ -108,6 +108,7 @@ from throttle_entity import throttle_entity_fn
 from work_manager_entity import work_manager_entity_fn
 from record_worker_orchestrator import record_worker_orchestrator_fn
 from source_gather_orchestrator import source_gather_orchestrator_fn
+from throttle_dispatcher_orchestrator import throttle_dispatcher_orchestrator_fn
 from process_assignment_activity import process_assignment_activity_fn
 from gather_activities import (
     gather_nppes_zip_activity_fn,
@@ -179,6 +180,7 @@ def streaming_pipeline_orchestrator_fn(context):
     summary = {}
     pipeline_error = None
     try:
+        throttle_names = list(throttle_cfg.keys())
         for name, params in throttle_cfg.items():
             context.signal_entity(df.EntityId("throttle", name), "configure", params)
         if "pool_size" not in throttle_cfg:
@@ -187,12 +189,22 @@ def streaming_pipeline_orchestrator_fn(context):
                 "configure",
                 {"refill_rate": float(pool_size), "capacity": pool_size},
             )
+            throttle_names.append("pool_size")
         if "source_gather" not in throttle_cfg:
             context.signal_entity(
                 df.EntityId("throttle", "source_gather"),
                 "configure",
                 {"refill_rate": 2.0, "capacity": 6},
             )
+            throttle_names.append("source_gather")
+
+        dispatchers = [
+            context.call_sub_orchestrator(
+                "throttle_dispatcher_orchestrator",
+                {"throttle_name": tn, "tick_interval_seconds": 0.2},
+            )
+            for tn in throttle_names
+        ]
 
         yield context.call_sub_orchestrator("source_gather_orchestrator", config)
 
@@ -630,6 +642,11 @@ def record_worker_orchestrator(context: df.DurableOrchestrationContext):
 @app.orchestration_trigger(context_name="context")
 def source_gather_orchestrator(context: df.DurableOrchestrationContext):
     return source_gather_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def throttle_dispatcher_orchestrator(context: df.DurableOrchestrationContext):
+    return throttle_dispatcher_orchestrator_fn(context)
 
 
 @app.activity_trigger(input_name="config")
