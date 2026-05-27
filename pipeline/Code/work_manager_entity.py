@@ -10,6 +10,7 @@ by the parent orchestrator and addressed by reference, not by spawn.
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 import time
@@ -38,7 +39,14 @@ def work_manager_entity_fn(context) -> None:
         "mongo_write_ops": 0,
     })
     op = context.operation_name
-    inp = context.get_input() or {}
+    inp = context.get_input()
+    if isinstance(inp, str):
+        try:
+            inp = json.loads(inp)
+        except Exception:
+            inp = {}
+    if inp is None:
+        inp = {}
 
     state["entity_signal_ops"] = int(state.get("entity_signal_ops", 0)) + 1
 
