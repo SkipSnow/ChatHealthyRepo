@@ -15,15 +15,30 @@ from blob_client import get_blob_service
 
 STAGING_CONTAINER = "pipeline-staging"
 
+# Module-level singleton. _container_client() previously called create_container
+# on every invocation — that's 150+ wasted Storage HTTP calls per activity
+# (one per staging_write/read/delete). Cache the client; ensure the container
+# exists exactly once per process.
+import threading as _threading_for_staging
+_CC_CLIENT = None
+_CC_INIT_LOCK = _threading_for_staging.Lock()
+
 
 def _container_client():
-    svc = get_blob_service()
-    client = svc.get_container_client(STAGING_CONTAINER)
-    try:
-        client.create_container()
-    except Exception:
-        pass
-    return client
+    global _CC_CLIENT
+    if _CC_CLIENT is not None:
+        return _CC_CLIENT
+    with _CC_INIT_LOCK:
+        if _CC_CLIENT is not None:
+            return _CC_CLIENT
+        svc = get_blob_service()
+        client = svc.get_container_client(STAGING_CONTAINER)
+        try:
+            client.create_container()
+        except Exception:
+            pass  # already exists is fine; auth errors will surface on first real op
+        _CC_CLIENT = client
+        return _CC_CLIENT
 
 
 def staging_path(load_id: str, assignment_id, worker_id, npi: str) -> str:

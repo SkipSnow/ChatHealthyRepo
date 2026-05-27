@@ -3,14 +3,14 @@
 
 """record_worker_orchestrator - per-pool-slot sub-orchestration.
 
-Loop: ask work manager for next assignment, acquire one pool_size permit
-(chunk-admission control), run process_assignment_activity, ack, repeat
-until queue drained or age limit reached.
+Pulls a batch of assignments from work_manager (in-RAM deque), claims one
+pool_size token for the batch, runs process_assignment_activity per chunk,
+sends fire-and-forget acks. Cuts the per-chunk blocking entity ops from 3
+to ~0.4.
 
 Per-API rate limiting (Census/Maps/NPPES/OpenAI) happens inside the activity
-via in-process _TokenBucket instances. The Durable @throttle@ surface is
-intentionally minimal: pool_size for concurrency and source_gather for the
-one-shot startup gate.
+via in-process _TokenBucket. The Durable @throttle@ surface is intentionally
+minimal: pool_size for concurrency, source_gather for startup gate.
 """
 from __future__ import annotations
 
@@ -23,22 +23,31 @@ def record_worker_orchestrator_fn(context):
     wid = cfg["worker_id"]
     load_id = cfg["load_id"]
     age_limit = int(cfg.get("age_limit_seconds", 6600))
+    claim_n = int(cfg.get("claim_batch", 5))
 
     wm = df.EntityId("work_manager", load_id)
     start_time = context.current_utc_datetime
 
     while True:
-        assignment = yield context.call_entity(wm, "next_assignment", {"worker_id": wid})
-        if assignment is None:
+        # Batch-claim N assignments in one entity call instead of N calls.
+        batch = yield context.call_entity(wm, "next_assignment_batch", {
+            "worker_id": wid, "n": claim_n,
+        })
+        if not batch:
             break
 
+        # One pool_size token for the whole batch.
         yield from acquire(context, "pool_size", n=1)
 
-        yield context.call_activity("process_assignment_activity", {
-            **cfg,
-            "assignment": assignment,
-        })
-        yield context.call_entity(wm, "ack", {"worker_id": wid})
+        for assignment in batch:
+            yield context.call_activity("process_assignment_activity", {
+                **cfg,
+                "assignment": assignment,
+            })
+            # Fire-and-forget ack — bookkeeping only, doesn't gate progress.
+            context.signal_entity(wm, "ack", {
+                "worker_id": wid, "chunk_id": assignment.get("chunk_id"),
+            })
 
         elapsed = (context.current_utc_datetime - start_time).total_seconds()
         if elapsed > age_limit:
