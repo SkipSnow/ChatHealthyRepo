@@ -3038,7 +3038,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a6f1c71274b54aa01090cabe13a0375e7482f21c048e251d4e7dcca4fe981174"
+          "content_hash": "116f74bcaf70eef523ff02a4d2bc2b92c867acd2aa9962d24085e67180604e2b"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3324,8 +3324,6 @@
         "AZURE_SUBSCRIPTION_ID": "local_env",
         "AZURE_RESOURCE_GROUP": "local_env",
         "AZURE_TENANT_ID": "local_env",
-        "AZURE_PIPELINE_CLIENT_ID": "local_env",
-        "AZURE_PIPELINE_CLIENT_SECRET": "local_env",
         "OPENAI_API_KEY": "local_env",
         "GOOGLE_MAPS_API_KEY": "local_env",
         "ENV_PREFIX": "local_env"

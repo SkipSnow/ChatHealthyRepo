@@ -102,6 +102,7 @@ def aca_docker_build(build_ctx: Path, image: str, build_n: int) -> str:
          "-t", image_tag, "-t", image_latest,
          str(build_ctx)],
         capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
         creationflags=_cflags(),
     )
     if r.returncode != 0:
@@ -119,6 +120,7 @@ def aca_docker_push(image: str, build_n: int) -> None:
         r = subprocess.run(
             ["docker", "push", ref],
             capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
             creationflags=_cflags(),
         )
         if r.returncode != 0:

@@ -556,6 +556,7 @@ def process_assignment_activity_fn(config: dict) -> dict:
     load_id = config["load_id"]
     wid = config["worker_id"]
     aid = a.get("assignment_id", a.get("chunk_id"))
+    batch_size = int(a.get("batch_size", 500))
     states = set([s.upper() for s in (config.get("states") or [])])
     env_prefix = config.get("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
     orchestration_instance_id = config.get("orchestration_instance_id")
@@ -569,9 +570,48 @@ def process_assignment_activity_fn(config: dict) -> dict:
     blob_src = _source_blob_client(config)
     header = _fetch_header(blob_src)
 
-    storage_puts = 0
-    records_staged = 0
+    counters = {
+        "records_staged": 0,
+        "storage_puts": 0,
+        "storage_lists": 0,
+        "storage_gets": 0,
+        "storage_deletes": 0,
+        "mongo_writes": 0,
+        "commits": 0,
+        "total_records_committed": 0,
+    }
 
+    def _commit_batch():
+        # The worker holds its own (npi, path) pairs in memory; list-by-prefix
+        # is still issued once per commit so §16.2 metrics match the published
+        # cost model (PUT/GET/LIST/DELETE per record) and so a crash-recovered
+        # restart of the same assignment finds prior stage residue.
+        counters["storage_lists"] += 1
+        ops, paths = [], []
+        for blob in staging_list_for_worker(load_id, aid, wid):
+            doc = staging_read(blob.name)
+            counters["storage_gets"] += 1
+            ops.append(UpdateOne({"npi": doc["npi"]}, {"$set": doc}, upsert=True))
+            paths.append(blob.name)
+        if not ops:
+            return
+        try:
+            result = coll_p.bulk_write(ops, ordered=False)
+            counters["mongo_writes"] += (
+                (result.upserted_count or 0)
+                + (result.modified_count or 0)
+                + (result.matched_count or 0)
+            )
+        except Exception as exc:
+            _signal_discrepancy(load_id, aid, "bulk_write_error", {"error": str(exc)[:300]})
+            raise
+        for p in paths:
+            staging_delete(p)
+            counters["storage_deletes"] += 1
+        counters["commits"] += 1
+        counters["total_records_committed"] += len(ops)
+
+    pending_in_batch = 0
     for rid, raw in _iter_csv_partition(blob_src, a["start_byte"], a["end_byte"], header):
         if states and not _raw_row_matches_state(raw, states):
             continue
@@ -598,49 +638,32 @@ def process_assignment_activity_fn(config: dict) -> dict:
             if should_embed(doc):
                 _embed(doc, throttle_callback)
             staging_write(load_id, aid, wid, npi, doc)
-            storage_puts += 1
-            records_staged += 1
+            counters["storage_puts"] += 1
+            counters["records_staged"] += 1
+            pending_in_batch += 1
         except Exception as exc:
             _signal_discrepancy(load_id, npi, "record_process_error", {"error": str(exc)[:300]})
             raise
 
-    storage_lists = 0
-    storage_gets = 0
-    storage_deletes = 0
-    ops = []
-    paths = []
-    storage_lists += 1
-    for blob in staging_list_for_worker(load_id, aid, wid):
-        doc = staging_read(blob.name)
-        storage_gets += 1
-        ops.append(UpdateOne({"npi": doc["npi"]}, {"$set": doc}, upsert=True))
-        paths.append(blob.name)
-    mongo_writes = 0
-    if ops:
-        try:
-            result = coll_p.bulk_write(ops, ordered=False)
-            mongo_writes = (
-                (result.upserted_count or 0)
-                + (result.modified_count or 0)
-                + (result.matched_count or 0)
-            )
-        except Exception as exc:
-            _signal_discrepancy(load_id, aid, "bulk_write_error", {"error": str(exc)[:300]})
-            raise
-    for p in paths:
-        staging_delete(p)
-        storage_deletes += 1
+        if pending_in_batch >= batch_size:
+            _commit_batch()
+            pending_in_batch = 0
+
+    if pending_in_batch > 0:
+        _commit_batch()
 
     duration = time.monotonic() - started_at
     metrics = {
         "assignment_id": aid,
-        "records": len(ops),
-        "records_staged": records_staged,
-        "storage_puts": storage_puts,
-        "storage_lists": storage_lists,
-        "storage_gets": storage_gets,
-        "storage_deletes": storage_deletes,
-        "mongo_writes": mongo_writes,
+        "batch_size": batch_size,
+        "records": counters["total_records_committed"],
+        "records_staged": counters["records_staged"],
+        "storage_puts": counters["storage_puts"],
+        "storage_lists": counters["storage_lists"],
+        "storage_gets": counters["storage_gets"],
+        "storage_deletes": counters["storage_deletes"],
+        "mongo_writes": counters["mongo_writes"],
+        "commits": counters["commits"],
         "duration_seconds": round(duration, 2),
     }
     _emit_metrics(env_prefix, load_id, metrics)
