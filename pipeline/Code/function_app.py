@@ -180,28 +180,32 @@ def streaming_pipeline_orchestrator_fn(context):
     summary = {}
     pipeline_error = None
     try:
-        throttle_names = list(throttle_cfg.keys())
-        for name, params in throttle_cfg.items():
+        # v9 §3.2 throttle inventory. Defaults reflect documented external-API
+        # ceilings; any present in throttle_cfg override.
+        throttle_defaults = {
+            "census":        {"refill_rate": 10.0, "capacity": 50},
+            "google_maps":   {"refill_rate": 50.0, "capacity": 100},
+            "nppes":         {"refill_rate": 5.0,  "capacity": 25},
+            "openai":        {"refill_rate": 100.0, "capacity": 500},
+            "pool_size":     {"refill_rate": float(pool_size), "capacity": pool_size},
+            "source_gather": {"refill_rate": 2.0, "capacity": 6},
+        }
+        throttle_params = {**throttle_defaults, **throttle_cfg}
+        throttle_names = list(throttle_params.keys())
+        for name, params in throttle_params.items():
             context.signal_entity(df.EntityId("throttle", name), "configure", params)
-        if "pool_size" not in throttle_cfg:
-            context.signal_entity(
-                df.EntityId("throttle", "pool_size"),
-                "configure",
-                {"refill_rate": float(pool_size), "capacity": pool_size},
-            )
-            throttle_names.append("pool_size")
-        if "source_gather" not in throttle_cfg:
-            context.signal_entity(
-                df.EntityId("throttle", "source_gather"),
-                "configure",
-                {"refill_rate": 2.0, "capacity": 6},
-            )
-            throttle_names.append("source_gather")
 
+        max_runtime_seconds = float(
+            int(config.get("expected_duration_minutes", 120)) * 60 + 600
+        )
         dispatchers = [
             context.call_sub_orchestrator(
                 "throttle_dispatcher_orchestrator",
-                {"throttle_name": tn, "tick_interval_seconds": 0.2},
+                {
+                    "throttle_name": tn,
+                    "tick_interval_seconds": 0.2,
+                    "max_runtime_seconds": max_runtime_seconds,
+                },
             )
             for tn in throttle_names
         ]
@@ -258,7 +262,11 @@ def streaming_pipeline_orchestrator_fn(context):
             )
             for wid in range(1, pool_size + 1)
         ]
-        worker_results = yield context.task_all(pool)
+        # Dispatchers must be in the same task_all so Durable Python actually
+        # schedules them. Dispatchers self-exit at max_runtime_seconds; pool
+        # workers exit when their assignment loop sees None from work_manager.
+        all_results = yield context.task_all(pool + dispatchers)
+        worker_results = all_results[: len(pool)]
 
         yield context.call_activity("cool_instances_activity", {})
 
