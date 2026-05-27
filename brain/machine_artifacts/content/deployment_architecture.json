@@ -3332,7 +3332,8 @@
         "WEBSITE_HOSTNAME": "local_env",
         "API_TOKEN_MAP": "local_env",
         "Anthropic_API_KEY": "local_env",
-        "DURABLE_MGMT_CODE": "local_env"
+        "DURABLE_MGMT_CODE": "local_env",
+        "DURABLE_TASK_CONNECTION": "local_env"
       }
     }
   ]
