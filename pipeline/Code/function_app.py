@@ -189,21 +189,16 @@ def streaming_pipeline_orchestrator_fn(context):
         "expected_duration_minutes": config.get("expected_duration_minutes", 120),
     })
 
-    # v9 §3.2 throttle inventory. Each is a Durable Entity token bucket; the
-    # record_worker_orchestrator acquires per-chunk worst-case via call_entity
-    # before scheduling the per-chunk activity. Capacity must accommodate one
-    # full chunk's worst-case demand (batch_size * worst_case_calls_per_record),
-    # otherwise the entity raises n>capacity. Refill rates reflect the
-    # documented external-API steady-state. Hoisted out of try so the finally
-    # block can fan out reset signals for clean-environment hygiene.
-    _bs = int(config.get("batch_size", 500))
+    # Durable throttle inventory shrunk to two semantic gates:
+    #   pool_size     — chunk-admission control (concurrency)
+    #   source_gather — one-shot startup gate for the gather fan-out
+    # Per-API rate limits (census/maps/nppes/openai) are enforced inside the
+    # activity via process_assignment_activity._TokenBucket — at the point
+    # where the API call actually happens, which the v9 design requires and
+    # Microsoft documents (activities cannot call_entity).
     throttle_defaults = {
-        "census":        {"refill_rate": 100.0, "capacity": max(4000, _bs * 8)},
-        "google_maps":   {"refill_rate": 50.0,  "capacity": max(1500, _bs * 3)},
-        "nppes":         {"refill_rate": 20.0,  "capacity": max(600,  _bs * 1)},
-        "openai":        {"refill_rate": 100.0, "capacity": max(600,  _bs * 1)},
         "pool_size":     {"refill_rate": float(pool_size), "capacity": pool_size},
-        "source_gather": {"refill_rate": 2.0,   "capacity": 6},
+        "source_gather": {"refill_rate": 2.0, "capacity": 6},
     }
     throttle_params = {**throttle_defaults, **throttle_cfg}
     throttle_names = list(throttle_params.keys())
