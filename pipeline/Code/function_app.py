@@ -161,6 +161,19 @@ def streaming_pipeline_orchestrator_fn(context):
     batch_size = int(config.get("batch_size", 500))
     discrepancy_threshold = int(config.get("discrepancy_threshold", 1000))
 
+    # Per F-102-S-003-REQ-B-002 "Manage data source freshness": each source
+    # has its own staleness TTL declared as an array of {source_name, number_of_days}.
+    # Provider pipeline default: NPPES=30 (operator policy of at-most-monthly),
+    # others use the research-recommended TTLs. Payload override wins.
+    if not config.get("source_staleness"):
+        config["source_staleness"] = [
+            {"source_name": "nppes_npi",          "number_of_days":  30},
+            {"source_name": "census_zcta_county", "number_of_days": 365},
+            {"source_name": "usda_rucc",          "number_of_days": 365},
+            {"source_name": "icd10_cm",           "number_of_days":  90},
+            {"source_name": "nucc",               "number_of_days":  90},
+        ]
+
     yield context.call_activity("wake_cluster_activity", {
         "cluster_name": config["pipeline_cluster"],
         "job_id": load_id,

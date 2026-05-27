@@ -41,12 +41,15 @@ def gather_rucc_activity_fn(config: dict) -> dict:
         f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData.providers",
     )
     bulk_batch_size = int(config.get("bulk_batch_size", 1000))
-    result = stamp_urban_flag_fn({
+    inner = {
         "blob_container": blob_container,
         "states": states,
         "provider_collection": provider_collection,
         "bulk_batch_size": bulk_batch_size,
-    })
+    }
+    if config.get("source_staleness"):
+        inner["source_staleness"] = config["source_staleness"]
+    result = stamp_urban_flag_fn(inner)
     return {"source": "rucc", "result": result}
 
 

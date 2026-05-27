@@ -60,19 +60,9 @@ class CrosswalkFetcher(DataFetcherBase):
         super().__init__(config)
         self.source_url = ""
 
-    def fetch(self) -> dict:
-        container = self.config.get("blob_container", "provider-data")
-        blob_path = self.blob_name()
-        bc = get_blob_service().get_container_client(container).get_blob_client(blob_path)
-        if bc.exists():
-            return {
-                "blob_path": blob_path,
-                "version": "cached",
-                "skipped": True,
-                "checksum_sha256": "",
-            }
+    def _resolve_source_url(self) -> str:
         from source_url_discovery import find_latest_data_url
-        self.source_url = find_latest_data_url(
+        return find_latest_data_url(
             source_name="census_zcta_county",
             page_url=_CENSUS_ZCTA_INDEX_URL,
             instructions=(
@@ -84,7 +74,6 @@ class CrosswalkFetcher(DataFetcherBase):
                 "the absolute URL."
             ),
         )
-        return super().fetch()
 
     def blob_name(self) -> str:
         return "census_zcta_county_2020.txt"
