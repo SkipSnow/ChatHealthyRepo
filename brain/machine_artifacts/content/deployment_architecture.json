@@ -3328,7 +3328,8 @@
         "AZURE_TENANT_ID": "local_env",
         "OPENAI_API_KEY": "local_env",
         "GOOGLE_MAPS_API_KEY": "local_env",
-        "ENV_PREFIX": "local_env"
+        "ENV_PREFIX": "local_env",
+        "WEBSITE_HOSTNAME": "local_env"
       }
     }
   ]
