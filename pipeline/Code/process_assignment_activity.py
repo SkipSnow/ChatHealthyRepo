@@ -854,7 +854,7 @@ def process_assignment_activity_fn(config: dict) -> dict:
             raise
         return doc
 
-    inner_workers = int(config.get("inner_workers", 4))
+    inner_workers = int(config.get("inner_workers", 16))
     rows = list(_iter_csv_partition(blob_src, a["start_byte"], a["end_byte"], header))
 
     # Phase 1: parallel non-embed processing
