@@ -112,3 +112,4 @@ _oneshots/
 # archive for these. The remoteBuild/ tree IS tracked (per-branch HEAD
 # carries the artifact promoted via merge), so it is NOT listed here.
 architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild/
+.claude/worktrees/
