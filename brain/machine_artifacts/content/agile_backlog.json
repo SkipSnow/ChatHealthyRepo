@@ -15277,6 +15277,25 @@
                           }
                         },
                         {
+                          "req_id": "EPIC-010-F-102-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "Manage data source freshness",
+                          "requirement": "Because each data source might be published on different frequencies, it is required that for the pipeline, an array of staleness facts be argued at the user level. This array must include a data source name, and a value of how many days to wait before looking for new data, even if data exists in ChatHealthy.ai's repository. If 0 is the value then one must look for data each time the function is invoked. If any number of days are argued then if the number of days (exactly as per file's time stamp) is exceeded, the file must be gathered again. If a file that should be gathered is not gathered: (1) the old file must be deleted, and (2) the program must abend.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
                           "req_id": "EPIC-010-F-102-S-003-REQ-T-001",
                           "orphan": false,
                           "name": "Source-gather workers are short-lived activities, one per source",

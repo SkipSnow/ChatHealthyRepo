@@ -99,14 +99,21 @@ def _discover_nppes_url() -> tuple[str, str]:
 class NppesFetcher(DataFetcherBase):
     """NPPES NPI full dissemination zip fetcher.
 
-    URL discovered by AI agent on each construction (F-102-S-003-REQ-T-006).
-    No fallback URL; on discovery failure the constructor raises.
+    URL discovered by AI agent only when cache is missing or older than
+    MAX_CACHE_AGE_DAYS. CMS posts a weekly incremental + monthly full
+    dissemination; 7-day TTL keeps the full file fresh within one cycle.
     """
     source_name = "nppes_npi"
+    MAX_CACHE_AGE_DAYS = 7
 
     def __init__(self, config: dict = None):
         super().__init__(config)
+        self.source_url = ""
+        self._version = ""
+
+    def _resolve_source_url(self) -> str:
         self.source_url, self._version = _discover_nppes_url()
+        return self.source_url
 
     def blob_name(self) -> str:
         return f"npi_{self._version}.zip"

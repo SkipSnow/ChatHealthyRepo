@@ -50,10 +50,45 @@ def _get_mongo_client() -> MongoClient:
 class DataFetcherBase:
     source_name: str = NotImplemented
     source_url: str = NotImplemented
+    # Each subclass MUST declare its own staleness TTL. Staleness is a
+    # per-source attribute (different sources update at different cadences:
+    # NPPES weekly, Census ZCTA decennial, etc.). There is no base default.
+    # The runtime value can also be overridden by config (operator-set).
+    MAX_CACHE_AGE_DAYS: int = NotImplemented
 
     def __init__(self, config: dict = None):
         self.config = config or {}
         self.container = self.config.get("blob_container", "provider-data")
+
+    def _max_cache_age_days(self) -> int:
+        """Resolve the effective staleness TTL for this source.
+
+        The orchestrator passes 'source_staleness' as a list of
+        {source_name, number_of_days} entries. Each fetcher looks up its
+        own source_name. Subclass MAX_CACHE_AGE_DAYS is a fallback if the
+        array is not supplied (e.g., legacy callers); the array is the
+        canonical configuration path."""
+        staleness = self.config.get("source_staleness") or []
+        for entry in staleness:
+            if isinstance(entry, dict) and entry.get("source_name") == self.source_name:
+                return int(entry.get("number_of_days"))
+        v = self.MAX_CACHE_AGE_DAYS
+        if v is NotImplemented or v is None:
+            raise RuntimeError(
+                f"{self.source_name}: no staleness TTL configured "
+                f"(supply via source_staleness array or set "
+                f"MAX_CACHE_AGE_DAYS on the subclass)"
+            )
+        return int(v)
+
+    # ── Subclass hook for lazy URL discovery ──────────────────────────────────
+
+    def _resolve_source_url(self) -> str:
+        """Return the source URL to fetch. Called only when cache is missing
+        or stale. Subclasses with expensive/flaky URL discovery override this
+        and leave class-level source_url empty so discovery never fires on
+        the cache-hit path."""
+        return self.source_url
 
     # ── Public entry point ────────────────────────────────────────────────────
 
@@ -68,40 +103,111 @@ class DataFetcherBase:
                 "checksum_sha256": str, — SHA-256 of downloaded file
             }
         """
-        registry = self._load_registry()
-        remote_sig = self._remote_signature()
-
-        if registry and remote_sig and registry.get("remote_signature") == remote_sig:
-            # verify blob actually exists before skipping
-            blob_path = registry["blob_path"]
-            try:
-                service = get_blob_service()
-                service.get_container_client(self.container).get_blob_client(blob_path).get_blob_properties()
-                logging.info(
-                    "[%s] Remote signature unchanged (%s), blob exists — skipping download.",
-                    self.source_name, remote_sig,
-                )
-                return {
-                    "blob_path": blob_path,
-                    "version": registry.get("version", remote_sig),
-                    "skipped": True,
-                    "checksum_sha256": registry.get("checksum_sha256", ""),
-                }
-            except Exception:
-                logging.warning(
-                    "[%s] Registry says skip but blob '%s' not found — re-downloading.",
-                    self.source_name, blob_path,
-                )
-
-        logging.info(
-            "[%s] Downloading from %s (signature: %s → %s)",
-            self.source_name, self.source_url,
-            registry.get("remote_signature", "none") if registry else "none",
-            remote_sig or "unknown",
+        # Per F-102-S-003-REQ-B-002: each source has its own TTL (in days)
+        # resolved from the source_staleness array in config. 0 = always
+        # re-fetch every invocation. >0 = use cached blob if its last_modified
+        # is within N days. If the cache is stale AND remote re-fetch fails,
+        # the stale blob is DELETED and the activity aborts (no fallback).
+        max_age_days = self._max_cache_age_days()
+        blob_name = self.blob_name()
+        bc = (
+            get_blob_service()
+            .get_container_client(self.container)
+            .get_blob_client(blob_name)
         )
+        blob_exists = False
+        try:
+            blob_exists = bc.exists()
+        except Exception as exc:
+            logging.warning("[%s] cache exists() check failed (%s).", self.source_name, exc)
 
-        blob_path, checksum, size_bytes = self._download_to_blob()
-        version = remote_sig or checksum[:16]
+        if blob_exists and max_age_days > 0:
+            try:
+                props = bc.get_blob_properties()
+                age_days = (datetime.now(timezone.utc) - props.last_modified).days
+                if age_days < max_age_days:
+                    logging.info(
+                        "[%s] cache-first hit: %s aged %dd < TTL %dd; skipping remote.",
+                        self.source_name, blob_name, age_days, max_age_days,
+                    )
+                    return {
+                        "blob_path": blob_name,
+                        "version": "cached",
+                        "skipped": True,
+                        "checksum_sha256": "",
+                    }
+                logging.info(
+                    "[%s] cache stale: %s aged %dd >= TTL %dd; forcing remote re-fetch.",
+                    self.source_name, blob_name, age_days, max_age_days,
+                )
+            except Exception as exc:
+                logging.warning("[%s] cache props check failed (%s); treating as stale.", self.source_name, exc)
+
+        # Cache is stale OR missing OR TTL=0. Try remote re-fetch. Per REQ-B-002,
+        # if re-fetch fails, delete the stale blob and abend.
+        try:
+            if not self.source_url or self.source_url is NotImplemented:
+                self.source_url = self._resolve_source_url()
+        except Exception as exc:
+            if blob_exists:
+                logging.error(
+                    "[%s] URL discovery failed (%s); deleting stale blob %s per REQ-B-002.",
+                    self.source_name, exc, blob_name,
+                )
+                try:
+                    bc.delete_blob()
+                except Exception as del_exc:
+                    logging.error("[%s] stale-blob delete failed: %s", self.source_name, del_exc)
+            raise RuntimeError(
+                f"[{self.source_name}] gather failed and stale blob deleted; pipeline must abend."
+            ) from exc
+
+        try:
+            registry = self._load_registry()
+            remote_sig = self._remote_signature()
+
+            if registry and remote_sig and registry.get("remote_signature") == remote_sig:
+                # verify blob actually exists before skipping
+                blob_path = registry["blob_path"]
+                try:
+                    service = get_blob_service()
+                    service.get_container_client(self.container).get_blob_client(blob_path).get_blob_properties()
+                    logging.info(
+                        "[%s] Remote signature unchanged (%s), blob exists — skipping download.",
+                        self.source_name, remote_sig,
+                    )
+                    return {
+                        "blob_path": blob_path,
+                        "version": registry.get("version", remote_sig),
+                        "skipped": True,
+                        "checksum_sha256": registry.get("checksum_sha256", ""),
+                    }
+                except Exception:
+                    logging.warning(
+                        "[%s] Registry says skip but blob '%s' not found — re-downloading.",
+                        self.source_name, blob_path,
+                    )
+
+            logging.info(
+                "[%s] Downloading from %s (signature: %s → %s)",
+                self.source_name, self.source_url,
+                registry.get("remote_signature", "none") if registry else "none",
+                remote_sig or "unknown",
+            )
+
+            blob_path, checksum, size_bytes = self._download_to_blob()
+            version = remote_sig or checksum[:16]
+        except Exception as exc:
+            if blob_exists:
+                logging.error(
+                    "[%s] re-fetch failed (%s); deleting stale blob %s per REQ-B-002.",
+                    self.source_name, exc, blob_name,
+                )
+                try:
+                    bc.delete_blob()
+                except Exception as del_exc:
+                    logging.error("[%s] stale-blob delete failed: %s", self.source_name, del_exc)
+            raise
 
         self._update_registry(
             blob_path=blob_path,
