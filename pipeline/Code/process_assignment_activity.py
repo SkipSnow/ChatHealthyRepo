@@ -68,10 +68,13 @@ class _TokenBucket:
             time.sleep(wait_s)
 
 
-_CENSUS = _TokenBucket(rate_per_sec=100.0, burst=200)
-_GMAPS  = _TokenBucket(rate_per_sec=50.0,  burst=100)
-_NPPES  = _TokenBucket(rate_per_sec=20.0,  burst=50)
-_OPENAI = _TokenBucket(rate_per_sec=100.0, burst=200)
+_CENSUS = _TokenBucket(rate_per_sec=100.0,  burst=200)
+_GMAPS  = _TokenBucket(rate_per_sec=50.0,   burst=100)
+_NPPES  = _TokenBucket(rate_per_sec=20.0,   burst=50)
+# _OPENAI counts INPUTS embedded (not requests). One batched call burns
+# n=len(group) tokens, where group <= _EMBED_BATCH_SIZE (200). Sized to a
+# moderate inputs/sec ceiling; tune up/down if upstream returns 429.
+_OPENAI = _TokenBucket(rate_per_sec=500.0,  burst=2000)
 
 
 _mongo: MongoClient | None = None
@@ -500,24 +503,45 @@ def _mark_quality(doc: dict) -> None:
             doc["out_of_scope"] = {"flagged": True, "reason": "deactivated"}
 
 
-def _embed(doc: dict) -> None:
-    from provider_embedding import project, render
+_EMBED_BATCH_SIZE = 200  # OpenAI accepts up to 2048 inputs; 200 is the practical batch.
+
+
+def _embed_batch(docs: list[dict]) -> None:
+    """Batched embedding. Loops in groups of _EMBED_BATCH_SIZE so that long
+    chunks are split into multiple OpenAI calls each respecting the per-
+    request input limit. Each group counts as one token against _OPENAI.
+    """
+    from provider_embedding import project, render, should_embed
     from embedding_worker import EMBED_MODEL, EMBED_VERSION
-    text = render(project(doc))
-    if not text:
+    candidates: list[tuple[dict, str]] = []
+    for d in docs:
+        if not should_embed(d):
+            continue
+        text = render(project(d))
+        if text:
+            candidates.append((d, text[:8000]))
+    if not candidates:
         return
-    _OPENAI.acquire(n=1)
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-        resp = client.embeddings.create(model=EMBED_MODEL, input=text[:8000])
-        vector = resp.data[0].embedding
-    except Exception as exc:
-        logging.warning("embed failed: %s", exc)
-        return
-    doc["embedding"] = vector
-    doc["embedding_model"] = EMBED_MODEL
-    doc["embedding_version"] = EMBED_VERSION
+    from openai import OpenAI
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    for i in range(0, len(candidates), _EMBED_BATCH_SIZE):
+        group = candidates[i : i + _EMBED_BATCH_SIZE]
+        # Charge the throttle one token per INPUT being embedded, not one per
+        # request. Bucket budget represents total inputs/sec we are permitted
+        # against the upstream embedding service.
+        _OPENAI.acquire(n=len(group))
+        try:
+            resp = client.embeddings.create(
+                model=EMBED_MODEL,
+                input=[t for _, t in group],
+            )
+        except Exception as exc:
+            logging.warning("batch embed failed (group %d, size %d): %s", i // _EMBED_BATCH_SIZE, len(group), exc)
+            continue
+        for (d, _), item in zip(group, resp.data):
+            d["embedding"] = item.embedding
+            d["embedding_model"] = EMBED_MODEL
+            d["embedding_version"] = EMBED_VERSION
 
 
 def _load_rucc(env_prefix: str) -> dict:
@@ -645,16 +669,18 @@ def process_assignment_activity_fn(config: dict) -> dict:
         counters["commits"] += 1
         counters["total_records_committed"] += len(ops)
 
-    # Per-record fan-out across an in-process thread pool. Per-API rate
-    # limits are coordinated by the module-level _TokenBucket instances
-    # (threadsafe). I/O work releases the GIL so this scales for HTTP-bound
-    # passes (Census/Maps/NPPES/OpenAI).
+    # Three-phase chunk processing:
+    #   1. Per-record fan-out across an in-process thread pool — runs all
+    #      passes EXCEPT embed. I/O-bound passes (Census/Maps/NPPES)
+    #      release the GIL; the module-level _TokenBucket instances
+    #      coordinate API rate across threads.
+    #   2. Batched embedding — one OpenAI call for all embeddable docs in
+    #      this chunk. Burns one _OPENAI token regardless of input count.
+    #   3. Stage + commit — staging_write per doc, then bulk_write to Mongo.
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    from provider_embedding import should_embed
     import threading as _threading
 
     _counters_lock = _threading.Lock()
-    pending_in_batch = 0
 
     def _process_one(raw):
         if states and not _raw_row_matches_state(raw, states):
@@ -677,28 +703,40 @@ def process_assignment_activity_fn(config: dict) -> dict:
             _stamp_urban(doc, rucc, states)
             _stamp_flags(doc, catalog)
             _mark_quality(doc)
-            if should_embed(doc):
-                _embed(doc)
-            staging_write(load_id, aid, wid, npi, doc)
         except Exception as exc:
             _signal_discrepancy(load_id, npi, "record_process_error", {"error": str(exc)[:300]})
             raise
-        with _counters_lock:
-            counters["storage_puts"] += 1
-            counters["records_staged"] += 1
-        return npi
+        return doc
 
     inner_workers = int(config.get("inner_workers", 16))
     rows = list(_iter_csv_partition(blob_src, a["start_byte"], a["end_byte"], header))
+
+    # Phase 1: parallel non-embed processing
+    docs: list[dict] = []
     with ThreadPoolExecutor(max_workers=inner_workers) as pool:
         futures = [pool.submit(_process_one, raw) for _, raw in rows]
         for f in as_completed(futures):
-            if f.result() is None:
-                continue
-            pending_in_batch += 1
-            if pending_in_batch >= batch_size:
-                _commit_batch()
-                pending_in_batch = 0
+            d = f.result()
+            if d is not None:
+                docs.append(d)
+
+    # Phase 2: batched embed (one OpenAI call for the whole chunk)
+    _embed_batch(docs)
+
+    # Phase 3: stage + commit
+    pending_in_batch = 0
+    for d in docs:
+        try:
+            staging_write(load_id, aid, wid, d["npi"], d)
+        except Exception as exc:
+            _signal_discrepancy(load_id, d.get("npi"), "stage_write_error", {"error": str(exc)[:300]})
+            raise
+        counters["storage_puts"] += 1
+        counters["records_staged"] += 1
+        pending_in_batch += 1
+        if pending_in_batch >= batch_size:
+            _commit_batch()
+            pending_in_batch = 0
 
     if pending_in_batch > 0:
         _commit_batch()
