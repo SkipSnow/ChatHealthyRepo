@@ -8,13 +8,14 @@ def throttle_dispatcher_orchestrator_fn(context):
     cfg = context.get_input() or {}
     throttle_name = cfg["throttle_name"]
     tick_interval_seconds = float(cfg.get("tick_interval_seconds", 0.2))
-    max_ticks = int(cfg.get("max_ticks", 360_000))
+    max_runtime_seconds = float(cfg.get("max_runtime_seconds", 7200.0))
     throttle_eid = df.EntityId("throttle", throttle_name)
-    for _ in range(max_ticks):
-        if context.get_input() is None:
-            break
+    deadline = context.current_utc_datetime + timedelta(seconds=max_runtime_seconds)
+    ticks = 0
+    while context.current_utc_datetime < deadline:
         yield context.call_entity(throttle_eid, "tick", {})
         yield context.create_timer(
             context.current_utc_datetime + timedelta(seconds=tick_interval_seconds)
         )
-    return {"throttle_name": throttle_name, "reason": "max_ticks_reached"}
+        ticks += 1
+    return {"throttle_name": throttle_name, "ticks": ticks, "reason": "deadline_reached"}
