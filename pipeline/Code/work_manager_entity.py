@@ -55,7 +55,7 @@ def work_manager_entity_fn(context) -> None:
             "file_size": int(inp["file_size"]),
             "header_end": int(inp["header_end"]),
             "chunk_size_bytes": int(inp.get("chunk_size_bytes", 2_500_000)),
-            "batch_size": int(inp.get("batch_size", 500)),
+            "batch_size": int(inp.get("batch_size", 1000)),
             "discrepancy_threshold": int(inp.get("discrepancy_threshold", 1000)),
         }
         c["total_chunks"] = (
