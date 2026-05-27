@@ -3038,7 +3038,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "413683430befbff0bb71ca0c018fb9d033b41e5f0307c9e1d2d97cae0187b3aa"
+          "content_hash": "434d27893f06364193de16bb445e4b84957a6cc03a656fe38954405163857170"
         },
         {
           "feature_id": "EPIC-010-F-103",
