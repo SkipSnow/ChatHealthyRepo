@@ -58,10 +58,22 @@ def work_manager_entity_fn(context) -> None:
             "batch_size": int(inp.get("batch_size", 1000)),
             "discrepancy_threshold": int(inp.get("discrepancy_threshold", 1000)),
         }
-        c["total_chunks"] = (
-            c["file_size"] - c["header_end"] + c["chunk_size_bytes"] - 1
-        ) // c["chunk_size_bytes"]
+        # Pre-stage the full assignment list at configure time. Each entry is
+        # just [chunk_id, start_byte, end_byte] — ~24 bytes. The "buffer of
+        # all assignments" lives in entity RAM; records themselves stay in
+        # the source CSV blob and are streamed by the activity when it runs.
+        body_bytes = c["file_size"] - c["header_end"]
+        c["total_chunks"] = (body_bytes + c["chunk_size_bytes"] - 1) // c["chunk_size_bytes"]
+        pending = []
+        for cid in range(c["total_chunks"]):
+            start = c["header_end"] + cid * c["chunk_size_bytes"]
+            end = min(start + c["chunk_size_bytes"], c["file_size"])
+            pending.append([cid, start, end])
         state["config"] = c
+        state["pending"] = pending
+        state["claimed"] = {}
+        # next_chunk_id retained for stats compatibility; equals total - len(pending) - len(claimed).
+        state["next_chunk_id"] = 0
         context.set_state(state)
         return
 
@@ -71,24 +83,28 @@ def work_manager_entity_fn(context) -> None:
             context.set_result(None)
             context.set_state(state)
             return
-        if state["next_chunk_id"] >= cfg["total_chunks"]:
-            context.set_result(None)
-            context.set_state(state)
-            return
         if state["discrepancy_count"] >= cfg["discrepancy_threshold"]:
             context.set_result(None)
             context.set_state(state)
             return
-        cid = state["next_chunk_id"]
-        state["next_chunk_id"] = cid + 1
-        start = cfg["header_end"] + cid * cfg["chunk_size_bytes"]
-        end = min(start + cfg["chunk_size_bytes"], cfg["file_size"])
+        pending = state.get("pending") or []
+        if not pending:
+            context.set_result(None)
+            context.set_state(state)
+            return
+        cid, start, end = pending.pop(0)
         worker_id = str(inp["worker_id"])
+        state["claimed"][str(cid)] = {
+            "worker_id": worker_id,
+            "claimed_at": time.time(),
+        }
         state["workers"][worker_id] = {
             "chunk_id": cid,
             "claimed_at": time.time(),
             "kind": state["workers"].get(worker_id, {}).get("kind", "record_worker"),
         }
+        state["pending"] = pending
+        state["next_chunk_id"] = max(state.get("next_chunk_id", 0), cid + 1)
         context.set_state(state)
         context.set_result({
             "chunk_id": cid,
@@ -99,11 +115,83 @@ def work_manager_entity_fn(context) -> None:
         })
         return
 
+    if op == "next_assignment_batch":
+        cfg = state["config"]
+        if cfg is None:
+            context.set_result([])
+            context.set_state(state)
+            return
+        if state["discrepancy_count"] >= cfg["discrepancy_threshold"]:
+            context.set_result([])
+            context.set_state(state)
+            return
+        pending = state.get("pending") or []
+        n = max(1, int(inp.get("n", 5)))
+        worker_id = str(inp["worker_id"])
+        out = []
+        now = time.time()
+        for _ in range(n):
+            if not pending:
+                break
+            cid, start, end = pending.pop(0)
+            state["claimed"][str(cid)] = {"worker_id": worker_id, "claimed_at": now}
+            out.append({
+                "chunk_id": cid, "start_byte": start, "end_byte": end,
+                "batch_size": cfg["batch_size"], "assignment_id": cid,
+            })
+        if out:
+            state["workers"][worker_id] = {
+                "chunk_ids": [a["chunk_id"] for a in out],
+                "claimed_at": now,
+                "kind": state["workers"].get(worker_id, {}).get("kind", "record_worker"),
+            }
+            state["next_chunk_id"] = max(state.get("next_chunk_id", 0), out[-1]["chunk_id"] + 1)
+        state["pending"] = pending
+        context.set_state(state)
+        context.set_result(out)
+        return
+
     if op == "ack":
         worker_id = str(inp["worker_id"])
-        state["workers"].pop(worker_id, None)
+        chunk_id = inp.get("chunk_id")
+        if chunk_id is not None:
+            state["claimed"].pop(str(chunk_id), None)
+        else:
+            # Back-compat: ack without chunk_id — clear all claims for this worker
+            for cid_str, claim in list(state.get("claimed", {}).items()):
+                if claim.get("worker_id") == worker_id:
+                    state["claimed"].pop(cid_str, None)
+        # workers map cleanup
+        w = state["workers"].get(worker_id)
+        if w and chunk_id is not None and "chunk_ids" in w:
+            try:
+                w["chunk_ids"].remove(int(chunk_id))
+            except ValueError:
+                pass
+            if not w["chunk_ids"]:
+                state["workers"].pop(worker_id, None)
+        else:
+            state["workers"].pop(worker_id, None)
         state["done"] = int(state.get("done", 0)) + 1
         context.set_state(state)
+        return
+
+    if op == "reset_stale":
+        # Reaper: chunks claimed > max_age_seconds ago are pushed back onto pending.
+        max_age = float(inp.get("max_age_seconds", 1800))
+        now = time.time()
+        reclaimed = []
+        for cid_str, claim in list(state.get("claimed", {}).items()):
+            if now - float(claim.get("claimed_at", now)) > max_age:
+                state["claimed"].pop(cid_str, None)
+                cid = int(cid_str)
+                cfg = state.get("config") or {}
+                start = cfg.get("header_end", 0) + cid * cfg.get("chunk_size_bytes", 0)
+                end = min(start + cfg.get("chunk_size_bytes", 0), cfg.get("file_size", 0))
+                state["pending"].insert(0, [cid, start, end])
+                reclaimed.append(cid)
+        context.set_state(state)
+        context.set_result({"reclaimed": reclaimed})
         return
 
     if op == "spawn_pool":

@@ -140,13 +140,28 @@ def _source_blob_client(config: dict):
 
 # CSV streaming helpers moved verbatim from streaming_pipeline.py (now deleted).
 
+_HEADER_CACHE: dict[str, list] = {}
+_HEADER_CACHE_LOCK = threading.Lock()
+
+
 def _fetch_header(blob_client) -> list:
+    """Module-level cached. Key by blob URL — same spike re-uses the same
+    header across all chunks; same NPPES dissemination file across spikes
+    re-uses too. Avoids the 32KB header download per activity."""
+    key = getattr(blob_client, "url", None) or repr(blob_client)
+    with _HEADER_CACHE_LOCK:
+        cached = _HEADER_CACHE.get(key)
+        if cached is not None:
+            return cached
     header_bytes = blob_client.download_blob(offset=0, length=32768).readall()
     header_text = header_bytes.decode("utf-8", errors="replace")
     if "\n" not in header_text:
         raise RuntimeError("Header line exceeds 32KB - unexpected CSV format.")
     header_line = header_text.split("\n")[0]
-    return list(csv.reader([header_line]))[0]
+    parsed = list(csv.reader([header_line]))[0]
+    with _HEADER_CACHE_LOCK:
+        _HEADER_CACHE[key] = parsed
+    return parsed
 
 
 def _iter_csv_partition(blob_client, start_byte: int, end_byte: int, header: list):
@@ -377,7 +392,6 @@ def _pass6_nppes(doc: dict) -> None:
 
 def _call_census_for_addresses(doc, addresses, pass_label, retarget=None):
     from county_enrichment_job import _get_crosswalk
-    import requests
     if not addresses:
         return
     lines = []
@@ -392,7 +406,7 @@ def _call_census_for_addresses(doc, addresses, pass_label, retarget=None):
     files = {"addressFile": ("addresses.csv", payload)}
     data = {"benchmark": "Public_AR_Current", "vintage": "Current_Current"}
     try:
-        resp = requests.post(url, files=files, data=data, timeout=180)
+        resp = _http_session().post(url, files=files, data=data, timeout=180)
         resp.raise_for_status()
     except Exception as exc:
         logging.warning("census batch failed: %s", exc)
@@ -440,13 +454,13 @@ def _call_census_for_addresses(doc, addresses, pass_label, retarget=None):
 
 def _call_google_maps_for_addresses(doc, addresses, pass_label):
     from county_enrichment_job import _get_maps_county_lookup
-    import requests
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     if not api_key:
         for addr in addresses:
             addr["county"] = {**(addr.get("county") or {}), "source": "geocoder_failed"}
         return
     lookup = _get_maps_county_lookup()
+    sess = _http_session()
     for addr in addresses:
         line1 = (addr.get("line1") or "").strip()
         city = (addr.get("city") or "").strip()
@@ -454,7 +468,7 @@ def _call_google_maps_for_addresses(doc, addresses, pass_label):
         zip5 = (addr.get("zip") or "")[:5]
         q = f"{line1}, {city}, {state} {zip5}"
         try:
-            resp = requests.get(
+            resp = sess.get(
                 "https://maps.googleapis.com/maps/api/geocode/json",
                 params={"address": q, "key": api_key},
                 timeout=15,
@@ -505,10 +519,9 @@ def _state_abbr_to_fips(abbr: str) -> str | None:
 
 
 def _call_nppes_api_for_npi(doc, npi):
-    import requests
     from county_enrichment_job import _get_crosswalk
     try:
-        resp = requests.get(
+        resp = _http_session().get(
             "https://npiregistry.cms.hhs.gov/api/",
             params={"version": "2.1", "number": npi},
             timeout=15,
@@ -585,6 +598,46 @@ def _mark_quality(doc: dict) -> None:
 
 _EMBED_BATCH_SIZE = 200  # OpenAI accepts up to 2048 inputs; 200 is the practical batch.
 
+_OPENAI_CLIENT = None
+_OPENAI_CLIENT_LOCK = threading.Lock()
+
+
+_HTTP_SESSION = None
+_HTTP_SESSION_LOCK = threading.Lock()
+
+
+def _http_session():
+    """Module-level requests.Session — persists HTTPS connection pool across
+    Census/Maps/NPPES calls. Avoids TLS handshake on every request."""
+    global _HTTP_SESSION
+    if _HTTP_SESSION is not None:
+        return _HTTP_SESSION
+    with _HTTP_SESSION_LOCK:
+        if _HTTP_SESSION is not None:
+            return _HTTP_SESSION
+        import requests
+        from requests.adapters import HTTPAdapter
+        s = requests.Session()
+        adapter = HTTPAdapter(pool_connections=64, pool_maxsize=64)
+        s.mount("https://", adapter)
+        s.mount("http://", adapter)
+        _HTTP_SESSION = s
+        return _HTTP_SESSION
+
+
+def _get_openai_client():
+    """Module-level singleton. Constructing OpenAI() each call sets up a
+    new httpx session and TLS handshake — wasted per-chunk overhead."""
+    global _OPENAI_CLIENT
+    if _OPENAI_CLIENT is not None:
+        return _OPENAI_CLIENT
+    with _OPENAI_CLIENT_LOCK:
+        if _OPENAI_CLIENT is not None:
+            return _OPENAI_CLIENT
+        from openai import OpenAI
+        _OPENAI_CLIENT = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        return _OPENAI_CLIENT
+
 
 def _embed_batch(docs: list[dict]) -> None:
     """Batched embedding. Loops in groups of _EMBED_BATCH_SIZE so that long
@@ -602,8 +655,7 @@ def _embed_batch(docs: list[dict]) -> None:
             candidates.append((d, text[:8000]))
     if not candidates:
         return
-    from openai import OpenAI
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    client = _get_openai_client()
     for i in range(0, len(candidates), _EMBED_BATCH_SIZE):
         group = candidates[i : i + _EMBED_BATCH_SIZE]
         # Charge the throttle one token per INPUT being embedded, not one per
@@ -624,7 +676,18 @@ def _embed_batch(docs: list[dict]) -> None:
             d["embedding_version"] = EMBED_VERSION
 
 
+_RUCC_CACHE: dict[str, dict] = {}
+_RUCC_CACHE_LOCK = threading.Lock()
+
+
 def _load_rucc(env_prefix: str) -> dict:
+    """Module-level cached. RUCC is ~3,000 county rows that never change
+    inside a single pipeline run; loading it from Mongo every chunk was a
+    per-activity Mongo round-trip pure waste."""
+    with _RUCC_CACHE_LOCK:
+        cached = _RUCC_CACHE.get(env_prefix)
+        if cached is not None:
+            return cached
     from pipeline_db import get_db
     db = get_db(env_prefix)
     out = {}
@@ -632,6 +695,8 @@ def _load_rucc(env_prefix: str) -> dict:
         f = d.get("county_fips")
         if f:
             out[f] = bool(d.get("urban"))
+    with _RUCC_CACHE_LOCK:
+        _RUCC_CACHE[env_prefix] = out
     return out
 
 
