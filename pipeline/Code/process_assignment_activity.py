@@ -17,10 +17,61 @@ import io
 import json
 import logging
 import os
+import threading
 import time
 from datetime import datetime, timezone
 
 from pymongo import MongoClient, UpdateOne
+
+
+# ── In-process per-API rate limiters ──────────────────────────────────────────
+# Each external API has its own token bucket enforced inside this activity
+# process. The Durable @throttle@ entities are no longer used for per-API
+# rate control; they now gate only chunk-level concurrency (@throttle@pool_size)
+# and source-gather startup (@throttle@source_gather). The ACA pipeline runs
+# scale-to-1, so a process-local bucket is globally authoritative.
+class _TokenBucket:
+    """Threadsafe token bucket. acquire(n) blocks until n tokens are available."""
+    def __init__(self, rate_per_sec: float, burst: int):
+        self.rate = float(rate_per_sec)
+        self.burst = float(burst)
+        self.tokens = float(burst)
+        self.last = time.monotonic()
+        self.lock = threading.Lock()
+
+    def acquire(self, n: int = 1, max_wait_seconds: float = 600.0) -> None:
+        if n < 1:
+            return
+        if n > self.burst:
+            raise ValueError(
+                f"_TokenBucket.acquire: n={n} exceeds burst={self.burst}; caller must split"
+            )
+        deadline = time.monotonic() + max_wait_seconds
+        while True:
+            with self.lock:
+                now = time.monotonic()
+                self.tokens = min(
+                    self.burst,
+                    self.tokens + (now - self.last) * self.rate,
+                )
+                self.last = now
+                if self.tokens >= n:
+                    self.tokens -= n
+                    return
+                deficit = n - self.tokens
+                wait_s = deficit / self.rate if self.rate > 0 else 1.0
+            wait_s = max(0.005, min(wait_s, 1.0))
+            if time.monotonic() + wait_s > deadline:
+                raise TimeoutError(
+                    f"_TokenBucket.acquire: n={n} not granted within {max_wait_seconds}s"
+                )
+            time.sleep(wait_s)
+
+
+_CENSUS = _TokenBucket(rate_per_sec=100.0, burst=200)
+_GMAPS  = _TokenBucket(rate_per_sec=50.0,  burst=100)
+_NPPES  = _TokenBucket(rate_per_sec=20.0,  burst=50)
+_OPENAI = _TokenBucket(rate_per_sec=100.0, burst=200)
 
 
 _mongo: MongoClient | None = None
@@ -174,16 +225,15 @@ def _addresses_needing_geocoding(doc: dict, addr_type: str | None = None) -> lis
     return out
 
 
-def _pass2_census(doc: dict, throttle_callback) -> None:
+def _pass2_census(doc: dict) -> None:
     targets = _addresses_needing_geocoding(doc, addr_type="practice")
     if not targets:
         return
-    if throttle_callback:
-        throttle_callback("census", n=len(targets))
+    _CENSUS.acquire(n=len(targets))
     _call_census_for_addresses(doc, targets, pass_label="geocoder_pass2_batch")
 
 
-def _pass3_billing(doc: dict, throttle_callback) -> None:
+def _pass3_billing(doc: dict) -> None:
     targets = []
     for addr in doc.get("addresses") or []:
         if not isinstance(addr, dict):
@@ -203,12 +253,11 @@ def _pass3_billing(doc: dict, throttle_callback) -> None:
             break
     if not billing_addr:
         return
-    if throttle_callback:
-        throttle_callback("census", n=1)
+    _CENSUS.acquire(n=1)
     _call_census_for_addresses(doc, [billing_addr], pass_label="geocoder_pass3_billing", retarget=targets)
 
 
-def _pass4_maps(doc: dict, throttle_callback) -> None:
+def _pass4_maps(doc: dict) -> None:
     targets = []
     for addr in doc.get("addresses") or []:
         if not isinstance(addr, dict):
@@ -221,12 +270,11 @@ def _pass4_maps(doc: dict, throttle_callback) -> None:
         targets.append(addr)
     if not targets:
         return
-    if throttle_callback:
-        throttle_callback("google_maps", n=len(targets))
+    _GMAPS.acquire(n=len(targets))
     _call_google_maps_for_addresses(doc, targets, pass_label="geocoder_pass4_maps")
 
 
-def _pass6_nppes(doc: dict, throttle_callback) -> None:
+def _pass6_nppes(doc: dict) -> None:
     needs_last_resort = False
     for addr in doc.get("addresses") or []:
         if not isinstance(addr, dict):
@@ -240,8 +288,7 @@ def _pass6_nppes(doc: dict, throttle_callback) -> None:
     npi = doc.get("npi")
     if not npi:
         return
-    if throttle_callback:
-        throttle_callback("nppes", n=1)
+    _NPPES.acquire(n=1)
     _call_nppes_api_for_npi(doc, npi)
 
 
@@ -453,14 +500,13 @@ def _mark_quality(doc: dict) -> None:
             doc["out_of_scope"] = {"flagged": True, "reason": "deactivated"}
 
 
-def _embed(doc: dict, throttle_callback) -> None:
+def _embed(doc: dict) -> None:
     from provider_embedding import project, render
     from embedding_worker import EMBED_MODEL, EMBED_VERSION
     text = render(project(doc))
     if not text:
         return
-    if throttle_callback:
-        throttle_callback("openai", n=1)
+    _OPENAI.acquire(n=1)
     try:
         from openai import OpenAI
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -544,12 +590,11 @@ def process_assignment_activity_fn(config: dict) -> dict:
     batch_size = int(a.get("batch_size", 500))
     states = set([s.upper() for s in (config.get("states") or [])])
     env_prefix = config.get("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
-    # Throttle permits for this assignment were acquired by the parent
-    # record_worker_orchestrator via call_entity before this activity was
-    # scheduled. The activity makes API calls freely within that budget;
-    # no per-call entity round-trip from the activity (which Microsoft does
-    # not document as a supported entity-access context).
-    throttle_callback = None
+    # Per-API rate limiting happens in this process via the module-level
+    # _TokenBucket instances (_CENSUS, _GMAPS, _NPPES, _OPENAI). The
+    # record_worker_orchestrator acquires only @throttle@pool_size for
+    # chunk-admission control; per-call API rate enforcement is in-process
+    # because activities are not a supported entity-access context.
     csv_path = config["csv_path"]
 
     crosswalk = _get_crosswalk()
@@ -616,16 +661,16 @@ def process_assignment_activity_fn(config: dict) -> dict:
 
         try:
             _pass1_zip(doc, crosswalk)
-            _pass2_census(doc, throttle_callback)
-            _pass3_billing(doc, throttle_callback)
-            _pass4_maps(doc, throttle_callback)
-            _pass6_nppes(doc, throttle_callback)
+            _pass2_census(doc)
+            _pass3_billing(doc)
+            _pass4_maps(doc)
+            _pass6_nppes(doc)
             _stamp_urban(doc, rucc, states)
             _stamp_flags(doc, catalog)
             _mark_quality(doc)
             from provider_embedding import should_embed
             if should_embed(doc):
-                _embed(doc, throttle_callback)
+                _embed(doc)
             staging_write(load_id, aid, wid, npi, doc)
             counters["storage_puts"] += 1
             counters["records_staged"] += 1

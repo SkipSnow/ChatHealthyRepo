@@ -2919,7 +2919,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "87af37ed178205be372bbdc69384c5221f6f0efa85fd7bee442d64e50986e219"
+          "content_hash": "4625dcb00313faceed32c114e465c72d5ebb79936fa7b774e49adc98584a0ee5"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3038,7 +3038,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dc82684e2f57b0e6ed7ff0501c025b1d99857b4ff4375c419b4e92aad7b23b39"
+          "content_hash": "413683430befbff0bb71ca0c018fb9d033b41e5f0307c9e1d2d97cae0187b3aa"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3073,7 +3073,7 @@
           "source_location": "pipeline/Code/record_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dc6c911e6a39cc422ac2f11f6e320aa16902a0d66bf2e3ed0ba5c54a8fdaaaaa"
+          "content_hash": "5cfc43a7cea1e4af2c7bacd06a9ce905c8f7a693e83d535bea51f23ac99df7a8"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3333,7 +3333,9 @@
         "API_TOKEN_MAP": "local_env",
         "Anthropic_API_KEY": "local_env",
         "DURABLE_MGMT_CODE": "local_env",
-        "DURABLE_TASK_CONNECTION": "local_env"
+        "DURABLE_TASK_CONNECTION": "local_env",
+        "PYTHON_THREADPOOL_THREAD_COUNT": "local_env",
+        "FUNCTIONS_WORKER_PROCESS_COUNT": "local_env"
       }
     }
   ]
