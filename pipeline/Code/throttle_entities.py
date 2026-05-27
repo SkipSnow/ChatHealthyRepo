@@ -1,14 +1,12 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""throttle_entities — Durable Entity token buckets for external-API rate-limiting.
+"""throttle_entities - Durable Entity token buckets for external-API rate-limiting.
 
-Skip's directive (2026-05-25):
-  - "Except for throttling, we do what we do today."
-  - "We use Netherite as the means to manage messages and state."
-  - "You have to put all the constraints in as we have now as parameters."
-  - "This is a requirement that all these variables are variable
-     and that they actually do what they say they are to do."
+Per the records-as-messages design (§8.2, §15 Modify), the canonical entity body
+is now throttle_entity_fn in throttle_entity.py, which supports waiters[] and
+async grant callbacks. token_bucket_entity_fn is retained here as a transitional
+alias that delegates to the new generic entity body.
 
 One Durable Entity instance per external service:
     token_bucket / nppes
@@ -46,13 +44,13 @@ import time
 
 
 def token_bucket_entity_fn(context) -> None:
-    """Single-threaded actor body for one token bucket.
+    """Legacy entrypoint - delegates to the canonical throttle_entity body."""
+    from throttle_entity import throttle_entity_fn
+    return throttle_entity_fn(context)
 
-    Wired into Durable Functions via function_app.py:
-        @app.entity_trigger(context_name="context")
-        def token_bucket(context: df.DurableEntityContext) -> None:
-            token_bucket_entity_fn(context)
-    """
+
+def _legacy_token_bucket_entity_fn(context) -> None:
+    """Single-threaded actor body for one token bucket. Preserved for reference."""
     state = context.get_state(lambda: {
         "refill_rate":    None,   # tokens added per second; None until configured
         "capacity":       None,   # max burst (tokens)

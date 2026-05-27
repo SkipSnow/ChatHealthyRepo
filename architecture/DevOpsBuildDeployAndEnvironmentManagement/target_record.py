@@ -26,6 +26,11 @@ class EnvironmentBinding:
     node_address: str  # addressable location; {env} substitution allowed
     azure: dict | None = None  # present iff target_kind=='azure_function_app';
                                 # keys: resource_group, function_app, task_hub
+    azure_container_app: dict | None = None
+                                # present iff target_kind=='azure_container_app';
+                                # keys: resource_group, container_app,
+                                # container_app_environment, task_hub,
+                                # min_replicas, max_replicas, cpu, memory_gi
     branch: str | None = None   # source git branch this env deploys from;
                                  # required for git-branch-bound target_kinds
                                  # (cloudflare_pages_project, github_actions_workflow_runner)
@@ -35,6 +40,8 @@ class EnvironmentBinding:
         out: dict = {"env_binding": self.env_binding, "node_address": self.node_address}
         if self.azure is not None:
             out["azure"] = self.azure
+        if self.azure_container_app is not None:
+            out["azure_container_app"] = self.azure_container_app
         if self.branch is not None:
             out["branch"] = self.branch
         return out
@@ -45,6 +52,7 @@ class EnvironmentBinding:
             env_binding=d["env_binding"],
             node_address=d["node_address"],
             azure=d.get("azure"),
+            azure_container_app=d.get("azure_container_app"),
             branch=d.get("branch"),
         )
 

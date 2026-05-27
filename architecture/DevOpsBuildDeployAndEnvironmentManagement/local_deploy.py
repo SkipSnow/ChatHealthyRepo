@@ -52,6 +52,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
+import aca_helpers
 import ch_fonts_inliner
 import hf_helpers as rd
 from agile_backlog import AgileBacklogLoader
@@ -450,6 +451,98 @@ def _deploy_azure_function_app(
 
 
 # ═════════════════════════════════════════════════════════════════════════
+# Azure Container App handler (--env dev|qa|prod, target_kind=azure_container_app)
+# ═════════════════════════════════════════════════════════════════════════
+
+def _aca_image_repo(aca_coords: dict, env: str) -> str:
+    """Derive the ACR image repository from the env's ACA coords.
+
+    `<registry>.azurecr.io/<container_app>` is the convention: one repo
+    per Container App, tagged per build_number.
+    """
+    registry = aca_coords.get("registry")
+    if not registry:
+        # Default convention: ACR named after the resource group, dashes
+        # stripped, lowercased. Operator overrides via the
+        # azure_container_app.registry field if needed.
+        rg = str(aca_coords["resource_group"])
+        registry = rg.lower().replace("-", "")
+    container_app = aca_coords["container_app"]
+    return f"{registry}.azurecr.io/{container_app}"
+
+
+def _deploy_azure_container_app(
+    build_dir: Path,
+    target: TargetRecord,
+    env: str,
+    resolver: SecretsResolver,
+    build_n: int,
+) -> str:
+    env_binding = next(
+        (e for e in target.environments if e.env_binding == env), None,
+    )
+    if env_binding is None:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} has no env_binding "
+            f"matching {env!r}; cannot deploy."
+        )
+    if env_binding.azure_container_app is None:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} env={env!r} is missing "
+            f"the `azure_container_app` sub-object (resource_group / "
+            f"container_app / container_app_environment / task_hub) in "
+            f"deployment_architecture.json."
+        )
+    aca = env_binding.azure_container_app
+    rg = aca["resource_group"]
+    container_app = aca["container_app"]
+    image_repo = _aca_image_repo(aca, env)
+    registry = image_repo.split(".azurecr.io/", 1)[0]
+    image_ref = f"{image_repo}:{build_n}"
+    _step(
+        f"=== azure_container_app {target.target_id} env={env} -> "
+        f"{container_app} (rg={rg}) image={image_ref} ==="
+    )
+
+    # Verify the Dockerfile is present in the build context.
+    if not (build_dir / "Dockerfile").is_file():
+        sys.exit(
+            f"ERROR: Dockerfile missing at {build_dir / 'Dockerfile'}; "
+            f"run local_build.py --target aca first."
+        )
+
+    aca_helpers.aca_login_to_acr(registry)
+    aca_helpers.aca_docker_build(build_dir, image_repo, build_n)
+    aca_helpers.aca_docker_push(image_repo, build_n)
+
+    # Resolve env-binding values from the .env / bound stores. The target
+    # `secrets` map gives the names + store ids; SecretsResolver returns
+    # the per-env value. Skip names that don't resolve (e.g., not present
+    # in the local .env yet) — fail loud if a binding exists but the
+    # store can't service it.
+    env_var_values: dict[str, str] = {}
+    for name in (target.secrets or {}).keys():
+        env_var_values[name] = resolver.resolve(name, env)
+    # Ensure the task_hub from the coord block is shipped as an env var
+    # so the Functions worker's Netherite binding lands on the right hub.
+    env_var_values["TaskHubName"] = aca["task_hub"]
+    env_var_values["ENV_PREFIX"] = env
+
+    aca_helpers.aca_set_secrets(container_app, rg, env_var_values)
+    secret_names = list(env_var_values.keys())
+    # Both reference (via secretref:) so values stay in the ACA secret
+    # store and never leak into the revision template.
+    aca_helpers.aca_update_container_app(
+        container_app, rg, image_ref,
+        env_vars=env_var_values, secret_names=secret_names,
+    )
+    aca_helpers.aca_wait_for_revision(container_app, rg)
+    fqdn = aca_helpers.aca_query_fqdn(container_app, rg)
+    _step(f"  container app FQDN: https://{fqdn}")
+    return f"{container_app} ({fqdn})"
+
+
+# ═════════════════════════════════════════════════════════════════════════
 # Cloud dispatch (--env dev|qa|prod)
 # ═════════════════════════════════════════════════════════════════════════
 
@@ -474,12 +567,20 @@ def _deploy_one(
     if target_kind == "azure_function_app":
         target = coll.by_target_id(target_id)
         return _deploy_azure_function_app(build_dir, target, env)
+    if target_kind == "azure_container_app":
+        target = coll.by_target_id(target_id)
+        return _deploy_azure_container_app(build_dir, target, env, resolver, build_n)
     raise RuntimeError(
         f"target_kind {target_kind!r} not supported in local_deploy."
     )
 
 
-_DEPLOYABLE_KINDS = ("cloudflare_pages_project", "hf_space", "azure_function_app")
+_DEPLOYABLE_KINDS = (
+    "cloudflare_pages_project",
+    "hf_space",
+    "azure_function_app",
+    "azure_container_app",
+)
 
 
 def _select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tuple[str, str]]:
@@ -499,10 +600,20 @@ def _select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tupl
             (t.target_id, t.target_kind) for t in coll
             if t.target_kind == "hf_space"
         ]
-    if target_arg in ("azure", "azure_function_app"):
+    if target_arg == "azure":
+        return [
+            (t.target_id, t.target_kind) for t in coll
+            if t.target_kind in ("azure_function_app", "azure_container_app")
+        ]
+    if target_arg == "azure_function_app":
         return [
             (t.target_id, t.target_kind) for t in coll
             if t.target_kind == "azure_function_app"
+        ]
+    if target_arg in ("aca", "azure_container_app"):
+        return [
+            (t.target_id, t.target_kind) for t in coll
+            if t.target_kind == "azure_container_app"
         ]
     for t in coll:
         if t.target_id == target_arg:
@@ -1265,7 +1376,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--env", required=True, choices=["local", "dev", "qa", "prod"])
     parser.add_argument(
         "--target", default="all",
-        help="'all' | 'cloudflare' | 'hf' | a specific target_id. Ignored for --env local.",
+        help="'all' | 'cloudflare' | 'hf' | 'azure' | 'aca' | a specific target_id. "
+             "Ignored for --env local.",
     )
     args = parser.parse_args(argv)
     _require_local_context()
