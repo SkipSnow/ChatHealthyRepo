@@ -494,21 +494,6 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _make_throttle_callback(orchestration_instance_id: str | None):
-    if not orchestration_instance_id:
-        return None
-    from throttle_callback import request_permission_and_wait
-
-    def _cb(throttle_name: str, n: int = 1):
-        request_permission_and_wait(
-            throttle_name=throttle_name,
-            n=n,
-            orchestration_instance_id=orchestration_instance_id,
-        )
-
-    return _cb
-
-
 def _signal_discrepancy(load_id: str, record_key, reason: str, ctx: dict | None = None) -> None:
     """One-way signal to the work_manager entity. Activity context is gone here,
     so we use the Durable Functions HTTP management API."""
@@ -559,8 +544,12 @@ def process_assignment_activity_fn(config: dict) -> dict:
     batch_size = int(a.get("batch_size", 500))
     states = set([s.upper() for s in (config.get("states") or [])])
     env_prefix = config.get("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
-    orchestration_instance_id = config.get("orchestration_instance_id")
-    throttle_callback = _make_throttle_callback(orchestration_instance_id)
+    # Throttle permits for this assignment were acquired by the parent
+    # record_worker_orchestrator via call_entity before this activity was
+    # scheduled. The activity makes API calls freely within that budget;
+    # no per-call entity round-trip from the activity (which Microsoft does
+    # not document as a supported entity-access context).
+    throttle_callback = None
     csv_path = config["csv_path"]
 
     crosswalk = _get_crosswalk()

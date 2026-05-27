@@ -108,7 +108,6 @@ from throttle_entity import throttle_entity_fn
 from work_manager_entity import work_manager_entity_fn
 from record_worker_orchestrator import record_worker_orchestrator_fn
 from source_gather_orchestrator import source_gather_orchestrator_fn
-from throttle_dispatcher_orchestrator import throttle_dispatcher_orchestrator_fn
 from process_assignment_activity import process_assignment_activity_fn
 from gather_activities import (
     gather_nppes_zip_activity_fn,
@@ -190,38 +189,36 @@ def streaming_pipeline_orchestrator_fn(context):
         "expected_duration_minutes": config.get("expected_duration_minutes", 120),
     })
 
+    # v9 §3.2 throttle inventory. Each is a Durable Entity token bucket; the
+    # record_worker_orchestrator acquires per-chunk worst-case via call_entity
+    # before scheduling the per-chunk activity. Capacity must accommodate one
+    # full chunk's worst-case demand (batch_size * worst_case_calls_per_record),
+    # otherwise the entity raises n>capacity. Refill rates reflect the
+    # documented external-API steady-state. Hoisted out of try so the finally
+    # block can fan out reset signals for clean-environment hygiene.
+    _bs = int(config.get("batch_size", 500))
+    throttle_defaults = {
+        "census":        {"refill_rate": 100.0, "capacity": max(4000, _bs * 8)},
+        "google_maps":   {"refill_rate": 50.0,  "capacity": max(1500, _bs * 3)},
+        "nppes":         {"refill_rate": 20.0,  "capacity": max(600,  _bs * 1)},
+        "openai":        {"refill_rate": 100.0, "capacity": max(600,  _bs * 1)},
+        "pool_size":     {"refill_rate": float(pool_size), "capacity": pool_size},
+        "source_gather": {"refill_rate": 2.0,   "capacity": 6},
+    }
+    throttle_params = {**throttle_defaults, **throttle_cfg}
+    throttle_names = list(throttle_params.keys())
+
     summary = {}
     pipeline_error = None
     try:
-        # v9 §3.2 throttle inventory. Defaults reflect documented external-API
-        # ceilings; any present in throttle_cfg override.
-        throttle_defaults = {
-            "census":        {"refill_rate": 10.0, "capacity": 50},
-            "google_maps":   {"refill_rate": 50.0, "capacity": 100},
-            "nppes":         {"refill_rate": 5.0,  "capacity": 25},
-            "openai":        {"refill_rate": 100.0, "capacity": 500},
-            "pool_size":     {"refill_rate": float(pool_size), "capacity": pool_size},
-            "source_gather": {"refill_rate": 2.0, "capacity": 6},
-        }
-        throttle_params = {**throttle_defaults, **throttle_cfg}
-        throttle_names = list(throttle_params.keys())
+        # Clean-environment assumption: reset any stale entity state from a
+        # prior run before configuring. throttle.reset clears refill_rate to
+        # None so the configure that follows is the sole source of truth.
+        context.signal_entity(df.EntityId("work_manager", load_id), "reset", {})
+        for name in throttle_names:
+            context.signal_entity(df.EntityId("throttle", name), "reset", {})
         for name, params in throttle_params.items():
             context.signal_entity(df.EntityId("throttle", name), "configure", params)
-
-        max_runtime_seconds = float(
-            int(config.get("expected_duration_minutes", 120)) * 60 + 600
-        )
-        dispatchers = [
-            context.call_sub_orchestrator(
-                "throttle_dispatcher_orchestrator",
-                {
-                    "throttle_name": tn,
-                    "tick_interval_seconds": 0.2,
-                    "max_runtime_seconds": max_runtime_seconds,
-                },
-            )
-            for tn in throttle_names
-        ]
 
         yield context.call_sub_orchestrator("source_gather_orchestrator", config)
 
@@ -267,6 +264,7 @@ def streaming_pipeline_orchestrator_fn(context):
             "provider_collection": config.get("provider_collection"),
             "env_prefix": config.get("env_prefix", "dev"),
             "age_limit_seconds": int(config.get("age_limit_seconds", 6600)),
+            "batch_size": batch_size,
         }
         pool = [
             context.call_sub_orchestrator(
@@ -275,11 +273,7 @@ def streaming_pipeline_orchestrator_fn(context):
             )
             for wid in range(1, pool_size + 1)
         ]
-        # Dispatchers must be in the same task_all so Durable Python actually
-        # schedules them. Dispatchers self-exit at max_runtime_seconds; pool
-        # workers exit when their assignment loop sees None from work_manager.
-        all_results = yield context.task_all(pool + dispatchers)
-        worker_results = all_results[: len(pool)]
+        worker_results = yield context.task_all(pool)
 
         yield context.call_activity("cool_instances_activity", {})
 
@@ -302,6 +296,12 @@ def streaming_pipeline_orchestrator_fn(context):
         raise
     finally:
         yield context.call_activity("release_reservation_activity", {"job_id": load_id})
+        # Clean-environment assumption: reset entity state so a subsequent run
+        # starts from a known-empty baseline. Signals are fire-and-forget; if
+        # an entity is wedged the next run's start-of-run reset still covers it.
+        context.signal_entity(df.EntityId("work_manager", load_id), "reset", {})
+        for name in throttle_names:
+            context.signal_entity(df.EntityId("throttle", name), "reset", {})
 
     return {"load_id": load_id, "summary": summary, "error": pipeline_error}
 
@@ -663,11 +663,6 @@ def record_worker_orchestrator(context: df.DurableOrchestrationContext):
 @app.orchestration_trigger(context_name="context")
 def source_gather_orchestrator(context: df.DurableOrchestrationContext):
     return source_gather_orchestrator_fn(context)
-
-
-@app.orchestration_trigger(context_name="context")
-def throttle_dispatcher_orchestrator(context: df.DurableOrchestrationContext):
-    return throttle_dispatcher_orchestrator_fn(context)
 
 
 @app.activity_trigger(input_name="config")

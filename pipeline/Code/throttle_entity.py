@@ -1,60 +1,28 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""throttle_entity - generic token-bucket Durable Entity with waiters and callbacks.
+"""throttle_entity - generic token-bucket Durable Entity.
 
-State: {refill_rate, capacity, tokens, last_refill_at, waiters[]}.
+Canonical Microsoft-supported pattern: orchestrators call this entity via
+context.call_entity (two-way). request_permission computes refill on demand
+and returns immediately with either {"granted": True} or {"granted": False,
+"retry_after_seconds": N}. Callers poll with create_timer between attempts.
+
+No waiters list. No callback queues. No HTTP-management-API signaling. No
+storage queue. The entity holds bucket state and answers one question:
+"are there n tokens free right now, and if not, how long until there are?"
 
 Operations:
-  configure   - set rate, capacity; fill bucket
-  request_permission(n, request_id, callback_instance_id) - either deduct n tokens
-        immediately and deliver a {granted: true} callback, or append to waiters[]
-        (cap = pool_size; overflow is rejected loud).
-  tick        - refill, scan waiters[] FIFO, grant any whose n fits, deliver callbacks.
-  peek        - diagnostics.
-
-Callback delivery: posts a message to a Storage Queue named
-'throttle-callbacks-{callback_instance_id}' that the activity polls via
-throttle_callback.py.
+  configure(refill_rate, capacity)   - set rate and capacity; fill bucket
+  request_permission(n)               - deduct n if available; else compute
+                                        deficit / refill_rate as retry_after
+  peek                                - diagnostics: tokens, counters
+  reset                               - clean-environment hygiene
 """
 from __future__ import annotations
 
 import json
-import logging
-import os
 import time
-
-
-_DEFAULT_WAITER_CAP = 200
-
-
-def _enqueue_grant(callback_instance_id: str, request_id: str, n: int) -> None:
-    from azure.storage.queue import QueueClient
-    conn = os.environ.get("AZURE_STORAGE_CONNECTION_STRING") or os.environ.get("AzureWebJobsStorage")
-    if not conn:
-        raise RuntimeError("throttle_entity: storage connection string missing for callback")
-    queue_name = _safe_queue_name(f"throttle-callbacks-{callback_instance_id}")
-    client = QueueClient.from_connection_string(conn, queue_name)
-    try:
-        client.create_queue()
-    except Exception:
-        pass
-    client.send_message(json.dumps({"request_id": request_id, "granted": True, "n": n}))
-
-
-def _safe_queue_name(raw: str) -> str:
-    out_chars = []
-    for ch in raw.lower():
-        if ch.isalnum() or ch == "-":
-            out_chars.append(ch)
-        else:
-            out_chars.append("-")
-    name = "".join(out_chars).strip("-")
-    while "--" in name:
-        name = name.replace("--", "-")
-    if len(name) < 3:
-        name = (name + "-throttle")[:63]
-    return name[:63]
 
 
 def throttle_entity_fn(context) -> None:
@@ -62,9 +30,9 @@ def throttle_entity_fn(context) -> None:
         "refill_rate": None,
         "capacity": None,
         "tokens": 0.0,
-        "last_refill_at": time.monotonic(),
-        "waiters": [],
-        "waiter_cap": _DEFAULT_WAITER_CAP,
+        "last_refill_at_epoch": time.time(),
+        "requests_received": 0,
+        "grants_issued": 0,
     })
     op = context.operation_name
     inp = context.get_input()
@@ -86,74 +54,73 @@ def throttle_entity_fn(context) -> None:
         state["refill_rate"] = float(rate)
         state["capacity"] = int(cap)
         state["tokens"] = float(cap)
-        state["last_refill_at"] = time.monotonic()
-        state["waiters"] = state.get("waiters") or []
-        state["waiter_cap"] = int(inp.get("waiter_cap", _DEFAULT_WAITER_CAP))
+        state["last_refill_at_epoch"] = time.time()
+        state["requests_received"] = 0
+        state["grants_issued"] = 0
         context.set_state(state)
-        context.set_result({"configured": True, "refill_rate": state["refill_rate"], "capacity": state["capacity"]})
+        context.set_result({
+            "configured": True,
+            "refill_rate": state["refill_rate"],
+            "capacity": state["capacity"],
+        })
         return
 
-    if state["refill_rate"] is None:
+    if op == "reset":
+        state.update({
+            "refill_rate": None,
+            "capacity": None,
+            "tokens": 0.0,
+            "last_refill_at_epoch": time.time(),
+            "requests_received": 0,
+            "grants_issued": 0,
+        })
+        context.set_state(state)
+        context.set_result({"reset": True})
+        return
+
+    if state.get("refill_rate") is None:
         if op == "peek":
             context.set_result({"configured": False})
             return
         raise ValueError(f"throttle: entity not configured, cannot {op}")
 
-    now = time.monotonic()
-    elapsed = max(0.0, now - state["last_refill_at"])
+    # Refill on demand using wall-clock epoch seconds. time.monotonic() is
+    # process-local and unsafe across entity activations on different hosts.
+    now = time.time()
+    elapsed = max(0.0, now - float(state.get("last_refill_at_epoch", now)))
     state["tokens"] = min(
         float(state["capacity"]),
-        state["tokens"] + elapsed * state["refill_rate"],
+        float(state["tokens"]) + elapsed * float(state["refill_rate"]),
     )
-    state["last_refill_at"] = now
+    state["last_refill_at_epoch"] = now
 
     if op == "request_permission":
         n = int(inp.get("n", 1))
-        request_id = inp["request_id"]
-        callback_instance_id = inp["callback_instance_id"]
+        if n < 1:
+            raise ValueError(f"throttle.request_permission: n must be >=1, got {n}")
+        if n > int(state["capacity"]):
+            raise ValueError(
+                f"throttle.request_permission: n={n} exceeds capacity={state['capacity']}; "
+                f"caller must split the request"
+            )
         state["requests_received"] = int(state.get("requests_received", 0)) + 1
         if state["tokens"] >= n:
             state["tokens"] -= n
             state["grants_issued"] = int(state.get("grants_issued", 0)) + 1
             context.set_state(state)
-            _enqueue_grant(callback_instance_id, request_id, n)
-            context.set_result({"granted": True, "queued": False})
+            context.set_result({"granted": True, "tokens_remaining": state["tokens"]})
             return
-        waiters = state.get("waiters") or []
-        cap = int(state.get("waiter_cap", _DEFAULT_WAITER_CAP))
-        if len(waiters) >= cap:
-            context.set_state(state)
-            raise RuntimeError(
-                f"throttle: waiters list at cap ({cap}); rejecting request_id={request_id!r}"
-            )
-        waiters.append({
-            "request_id": request_id,
-            "callback_instance_id": callback_instance_id,
-            "n": n,
-            "enqueued_at": time.monotonic(),
+        deficit = float(n) - float(state["tokens"])
+        rate = float(state["refill_rate"])
+        retry_after = (deficit / rate) if rate > 0 else 1.0
+        # Floor at 0.05s to prevent thrash; cap at 60s to bound orchestrator wait history.
+        retry_after = max(0.05, min(retry_after, 60.0))
+        context.set_state(state)
+        context.set_result({
+            "granted": False,
+            "retry_after_seconds": retry_after,
+            "tokens_available": state["tokens"],
         })
-        state["waiters"] = waiters
-        context.set_state(state)
-        context.set_result({"granted": False, "queued": True, "position": len(waiters)})
-        return
-
-    if op == "tick":
-        waiters = state.get("waiters") or []
-        granted = []
-        remaining = []
-        for w in waiters:
-            n = int(w.get("n", 1))
-            if state["tokens"] >= n:
-                state["tokens"] -= n
-                state["grants_issued"] = int(state.get("grants_issued", 0)) + 1
-                granted.append(w)
-            else:
-                remaining.append(w)
-        state["waiters"] = remaining
-        context.set_state(state)
-        for w in granted:
-            _enqueue_grant(w["callback_instance_id"], w["request_id"], int(w.get("n", 1)))
-        context.set_result({"granted": len(granted), "still_waiting": len(remaining)})
         return
 
     if op == "peek":
@@ -163,8 +130,6 @@ def throttle_entity_fn(context) -> None:
             "refill_rate": state["refill_rate"],
             "capacity": state["capacity"],
             "tokens": state["tokens"],
-            "waiters": len(state.get("waiters") or []),
-            "waiter_cap": state.get("waiter_cap", _DEFAULT_WAITER_CAP),
             "requests_received": int(state.get("requests_received", 0)),
             "grants_issued": int(state.get("grants_issued", 0)),
         })
