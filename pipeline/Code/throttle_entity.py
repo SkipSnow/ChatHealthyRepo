@@ -29,25 +29,20 @@ _DEFAULT_WAITER_CAP = 200
 
 
 def _enqueue_grant(callback_instance_id: str, request_id: str, n: int) -> None:
-    try:
-        from azure.storage.queue import QueueClient
-    except Exception as exc:
-        logging.error("throttle_entity: azure.storage.queue unavailable: %s", exc)
-        return
+    from azure.storage.queue import QueueClient
     conn = os.environ.get("AZURE_STORAGE_CONNECTION_STRING") or os.environ.get("AzureWebJobsStorage")
     if not conn:
-        logging.error("throttle_entity: storage connection string missing for callback")
-        return
+        raise RuntimeError("throttle_entity: storage connection string missing for callback")
     queue_name = _safe_queue_name(f"throttle-callbacks-{callback_instance_id}")
+    logging.info(
+        "throttle_entity: enqueue grant queue=%s request_id=%s n=%d", queue_name, request_id, n
+    )
+    client = QueueClient.from_connection_string(conn, queue_name)
     try:
-        client = QueueClient.from_connection_string(conn, queue_name)
-        try:
-            client.create_queue()
-        except Exception:
-            pass
-        client.send_message(json.dumps({"request_id": request_id, "granted": True, "n": n}))
-    except Exception as exc:
-        logging.error("throttle_entity: queue send failed: %s", exc)
+        client.create_queue()
+    except Exception:
+        pass
+    client.send_message(json.dumps({"request_id": request_id, "granted": True, "n": n}))
 
 
 def _safe_queue_name(raw: str) -> str:
