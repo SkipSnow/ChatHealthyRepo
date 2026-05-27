@@ -3329,7 +3329,8 @@
         "OPENAI_API_KEY": "local_env",
         "GOOGLE_MAPS_API_KEY": "local_env",
         "ENV_PREFIX": "local_env",
-        "WEBSITE_HOSTNAME": "local_env"
+        "WEBSITE_HOSTNAME": "local_env",
+        "API_TOKEN_MAP": "local_env"
       }
     }
   ]
