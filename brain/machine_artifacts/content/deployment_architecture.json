@@ -1835,7 +1835,7 @@
           "source_location": "brain/machine_artifacts/content/agile_backlog.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "7acb5d86d5b90ce6614399e07e4ed4477894f798569ac508346910a8600a5bc5"
+          "content_hash": "e0391bd73eca2b6a980814603490aab22bb83634b88fc040644c86862fe9f456"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1849,7 +1849,7 @@
           "source_location": "brain/machine_artifacts/content/bugs.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "d33badd0009e40d7735e3ddf8e4d54c74d18e38bca9626429c6d0ef570476f7a"
+          "content_hash": "9a89078d51bca4e50e9219c386203e80548684fc0fd4fb19a041192f36bebada"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2376,14 +2376,14 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4710625228eace3b25cb7904c017dbf21a2c52f8509bb98576e45dc67731c26e"
+          "content_hash": "1da4f15064d1b94565db5ce6f947e17c6c73009efbb3abdf5c78b9ab6058c6b0"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e18b0027961036df4a72edc5791cc113a1a995149d1cd961bcb36c5d9c949804"
+          "content_hash": "0ebb9902de615fce28c888170ce17988201436a59aa81933b3062ffa2a4a1c58"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2418,7 +2418,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/target_record.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f0c8ad20930600d599357a482a1ff8112eaea7c8a5633b56836daa48494ba367"
+          "content_hash": "1b7277c8f0f28469087a6b761a5bd892d9f519f0e7db975fb8d6ae765c99f0ff"
         },
         {
           "feature_id": "EPIC-008-F-012",
