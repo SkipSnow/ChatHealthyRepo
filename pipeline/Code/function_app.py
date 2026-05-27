@@ -110,6 +110,7 @@ from record_worker_orchestrator import record_worker_orchestrator_fn
 from source_gather_orchestrator import source_gather_orchestrator_fn
 from process_assignment_activity import process_assignment_activity_fn
 from chunk_indexer import build_chunk_index_activity_fn
+from state_shard import build_state_shards_activity_fn
 from gather_activities import (
     gather_nppes_zip_activity_fn,
     gather_pl_pfile_activity_fn,
@@ -232,6 +233,31 @@ def streaming_pipeline_orchestrator_fn(context):
         )
         csv_path = prepare["csv_path"]
 
+        # State-shard routing: if the run is state-scoped, build (or reuse)
+        # the per-state shard blobs and switch csv_path to the target shard.
+        # If the run is "all" / unrestricted, skip the splitter entirely and
+        # use the master CSV directly. Worker never filters either way; the
+        # shard IS the filter when one is present.
+        _requested_states = config.get("states") or []
+        _normalized = [s.upper() for s in _requested_states if s and s.upper() != "ALL"]
+        if _normalized:
+            if len(_normalized) > 1:
+                raise RuntimeError(
+                    f"state-scoped runs support exactly one state per spike, got {_normalized}"
+                )
+            target_state = _normalized[0]
+            shard_manifest = yield context.call_activity("build_state_shards_activity", {
+                "blob_container": config["blob_container"],
+                "csv_path": csv_path,
+            })
+            shard_info = (shard_manifest.get("states") or {}).get(target_state)
+            if not shard_info:
+                raise RuntimeError(
+                    f"state {target_state!r} not present in shard manifest "
+                    f"(available: {sorted((shard_manifest.get('states') or {}).keys())})"
+                )
+            csv_path = shard_info["blob_path"]
+
         meta = yield context.call_activity("get_csv_metadata_activity", {
             "csv_path": csv_path,
             "blob_container": config["blob_container"],
@@ -267,7 +293,11 @@ def streaming_pipeline_orchestrator_fn(context):
         worker_cfg_base = {
             "load_id": load_id,
             "csv_path": csv_path,
-            "states": config["states"],
+            # No "states" key — worker no longer filters. If the run is
+            # state-scoped the csv_path above already points at the pre-
+            # filtered shard; if it's unrestricted the master file's rows
+            # are all kept. Either way the worker processes every row it
+            # sees and never branches on state.
             "blob_container": config["blob_container"],
             "provider_collection": config.get("provider_collection"),
             "env_prefix": config.get("env_prefix", "dev"),
@@ -681,6 +711,11 @@ def process_assignment_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def build_chunk_index_activity(config: dict) -> dict:
     return build_chunk_index_activity_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def build_state_shards_activity(config: dict) -> dict:
+    return build_state_shards_activity_fn(config)
 
 
 @app.activity_trigger(input_name="config")
