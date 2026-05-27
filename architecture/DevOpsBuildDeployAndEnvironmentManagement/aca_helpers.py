@@ -130,6 +130,21 @@ def aca_docker_push(image: str, build_n: int) -> None:
             )
 
 
+def _aca_secret_name(env_var_name: str) -> str:
+    """Map an env var name to an ACA-legal secret slot name.
+
+    ACA enforces: lowercase, alphanumeric + dashes, must start and end
+    alphanumeric, max 20 chars. Many of our env vars (e.g.
+    MONGO_FRONTEND_connectionString = 31 chars after dash-substitution)
+    overrun the cap, so we truncate and strip trailing dashes. The
+    env var name inside the container is unchanged; only the ACA-side
+    secret slot uses the truncated form.
+    """
+    lowered = env_var_name.lower().replace("_", "-")
+    truncated = lowered[:20].rstrip("-")
+    return truncated or "x"
+
+
 def aca_set_secrets(
     container_app: str,
     resource_group: str,
@@ -144,7 +159,7 @@ def aca_set_secrets(
     if not secrets:
         _step("no secrets to set")
         return
-    pairs = [f"{k.lower().replace('_', '-')}={v}" for k, v in secrets.items()]
+    pairs = [f"{_aca_secret_name(k)}={v}" for k, v in secrets.items()]
     _step(
         f"az containerapp secret set --name {container_app} "
         f"--resource-group {resource_group} --secrets <{len(pairs)} secrets>"
@@ -184,7 +199,7 @@ def aca_update_container_app(
     env_pairs: list[str] = []
     for name, value in env_vars.items():
         if name in secret_set:
-            env_pairs.append(f"{name}=secretref:{name.lower().replace('_', '-')}")
+            env_pairs.append(f"{name}=secretref:{_aca_secret_name(name)}")
         else:
             env_pairs.append(f"{name}={value}")
     _step(

@@ -3321,6 +3321,8 @@
         "ATLAS_PRIVATE_KEY": "local_env",
         "ATLAS_PROJECT_ID": "local_env",
         "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "AzureWebJobsStorage": "local_env",
+        "EventHubsConnection": "local_env",
         "AZURE_SUBSCRIPTION_ID": "local_env",
         "AZURE_RESOURCE_GROUP": "local_env",
         "AZURE_TENANT_ID": "local_env",
