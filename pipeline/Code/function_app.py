@@ -109,6 +109,7 @@ from work_manager_entity import work_manager_entity_fn
 from record_worker_orchestrator import record_worker_orchestrator_fn
 from source_gather_orchestrator import source_gather_orchestrator_fn
 from process_assignment_activity import process_assignment_activity_fn
+from chunk_indexer import build_chunk_index_activity_fn
 from gather_activities import (
     gather_nppes_zip_activity_fn,
     gather_pl_pfile_activity_fn,
@@ -237,6 +238,17 @@ def streaming_pipeline_orchestrator_fn(context):
         })
 
         chunk_size_bytes = int(config.get("chunk_size_bytes", 2_500_000))
+        # Precise record-boundary chunk index. One sequential scan of the CSV
+        # emits exact byte ranges per chunk (~batch_size records each).
+        # Workers stream their range without any boundary scan.
+        idx = yield context.call_activity("build_chunk_index_activity", {
+            "blob_container": config["blob_container"],
+            "csv_path": csv_path,
+            "file_size": meta["file_size"],
+            "header_end": meta["header_end"],
+            "batch_size": batch_size,
+        })
+
         yield context.call_entity(
             df.EntityId("work_manager", load_id),
             "seed",
@@ -246,6 +258,7 @@ def streaming_pipeline_orchestrator_fn(context):
                 "chunk_size_bytes": chunk_size_bytes,
                 "batch_size": batch_size,
                 "discrepancy_threshold": discrepancy_threshold,
+                "chunk_index": idx["chunks"],
             },
         )
 
@@ -663,6 +676,11 @@ def source_gather_orchestrator(context: df.DurableOrchestrationContext):
 @app.activity_trigger(input_name="config")
 def process_assignment_activity(config: dict) -> dict:
     return process_assignment_activity_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def build_chunk_index_activity(config: dict) -> dict:
+    return build_chunk_index_activity_fn(config)
 
 
 @app.activity_trigger(input_name="config")

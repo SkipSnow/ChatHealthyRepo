@@ -2852,6 +2852,13 @@
           "content_hash": "a26fb8f5d909d43e6aea1bdbcbb6c2f0df9ea9c2a4c19a0e7cccb39b080e244f"
         },
         {
+          "feature_id": "EPIC-010-F-102",
+          "source_location": "pipeline/Code/chunk_indexer.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "3be4d294f45351b3fbe85461726e4207e047a090deb85b1726f1b63158dd662a"
+        },
+        {
           "feature_id": "EPIC-010-F-101",
           "source_location": "pipeline/Code/cluster_lifecycle_manager.py",
           "handler_type": "python_source",
@@ -2919,7 +2926,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "5b4e911cf1c79c1d31d87a74480b4f74bcd39c57cb6dcc0ba31bfcf11aec3342"
+          "content_hash": "7e751770a7741eca4cffae27ec7427f195e7fd9f7332e48eedae441623d225e7"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3038,7 +3045,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "528c2a33e1f6b602d4d5341d721903d847a49498f1688b995aa6f7a7cd40021a"
+          "content_hash": "cadc664974e6446d3ea516f0925e132186aa990ca26aa95060e950325e025964"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3073,7 +3080,7 @@
           "source_location": "pipeline/Code/record_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c655d18fe2e5b447bf350ba92c45d76f797675753783f73fadd0d9abe0a2a021"
+          "content_hash": "d28021224ea6eefb2923667fa72679272d70b5b5f682e55080c71c98ae5cce51"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3304,7 +3311,7 @@
           "source_location": "pipeline/Code/work_manager_entity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a2a684cfe4d896a02ee15f6b90e1a96a7a5542cd7fc186eccb76ca1d008bf72f"
+          "content_hash": "693e68b592eb5c9522c945be2e6eb8423404b739be981a247b2165dcb438b041"
         },
         {
           "feature_id": "EPIC-010-F-102",

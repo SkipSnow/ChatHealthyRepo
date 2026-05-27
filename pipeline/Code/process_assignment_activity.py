@@ -165,22 +165,22 @@ def _fetch_header(blob_client) -> list:
 
 
 def _iter_csv_partition(blob_client, start_byte: int, end_byte: int, header: list):
-    stream = blob_client.download_blob(offset=start_byte, length=end_byte - start_byte)
-    local_id = 0
-    buffer = b""
+    """Stream a precise-record-boundary chunk. [start_byte, end_byte) was
+    computed by chunk_indexer to start at a record's first byte and end at
+    the byte after a record's terminating newline, so every \\n inside the
+    payload separates complete records — no boundary fix-up needed.
+    """
+    payload = blob_client.download_blob(
+        offset=start_byte, length=end_byte - start_byte,
+    ).readall()
+    text = payload.decode("utf-8", errors="replace")
     expected_field_count = len(header)
-    for chunk in stream.chunks():
-        buffer += chunk
-        while b"\n" in buffer:
-            line_bytes, buffer = buffer.split(b"\n", 1)
-            line = line_bytes.decode("utf-8", errors="replace")
-            if not line:
-                continue
-            row = next(csv.reader([line]), None)
-            if not row or len(row) != expected_field_count:
-                continue
-            local_id += 1
-            yield local_id, dict(zip(header, row))
+    local_id = 0
+    for row in csv.reader(text.splitlines()):
+        if not row or len(row) != expected_field_count:
+            continue
+        local_id += 1
+        yield local_id, dict(zip(header, row))
 
 
 _PRACTICE_STATE_COL = "Provider Business Practice Location Address State Name"
