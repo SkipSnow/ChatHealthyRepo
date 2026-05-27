@@ -72,9 +72,43 @@ _CENSUS = _TokenBucket(rate_per_sec=100.0,  burst=200)
 _GMAPS  = _TokenBucket(rate_per_sec=50.0,   burst=100)
 _NPPES  = _TokenBucket(rate_per_sec=20.0,   burst=50)
 # _OPENAI counts INPUTS embedded (not requests). One batched call burns
-# n=len(group) tokens, where group <= _EMBED_BATCH_SIZE (200). Sized to a
-# moderate inputs/sec ceiling; tune up/down if upstream returns 429.
-_OPENAI = _TokenBucket(rate_per_sec=500.0,  burst=2000)
+# n=len(group) tokens, where group <= _EMBED_BATCH_SIZE. Sized so a typical
+# sub-batch (500 inputs) drains less than one second of bucket.
+_OPENAI = _TokenBucket(rate_per_sec=1000.0, burst=5000)
+
+# ── Module-level address cache ────────────────────────────────────────────────
+# Same office address appears for many providers; once Census/Maps/NPPES
+# resolves it once, every future record at that address skips the API call.
+# Process-local (single ACA replica); thread-safe. Capped to avoid unbounded
+# growth on long runs.
+import threading as _threading_for_cache
+_ADDR_CACHE_LOCK = _threading_for_cache.Lock()
+_ADDR_CACHE: dict[str, dict] = {}
+_ADDR_CACHE_CAP = 200_000
+
+
+def _addr_key(addr: dict) -> str:
+    line1 = (addr.get("line1") or "").strip().upper()
+    city = (addr.get("city") or "").strip().upper()
+    state = (addr.get("state") or "").strip().upper()
+    zip5 = (addr.get("zip") or "")[:5]
+    return f"{line1}|{city}|{state}|{zip5}"
+
+
+def _addr_cache_get(addr: dict) -> dict | None:
+    k = _addr_key(addr)
+    with _ADDR_CACHE_LOCK:
+        return _ADDR_CACHE.get(k)
+
+
+def _addr_cache_put(addr: dict, county_doc: dict) -> None:
+    if not county_doc or not county_doc.get("fips"):
+        return
+    k = _addr_key(addr)
+    with _ADDR_CACHE_LOCK:
+        if len(_ADDR_CACHE) >= _ADDR_CACHE_CAP:
+            return  # cap reached; stop accepting new entries this run
+        _ADDR_CACHE[k] = dict(county_doc)
 
 
 _mongo: MongoClient | None = None
@@ -228,12 +262,30 @@ def _addresses_needing_geocoding(doc: dict, addr_type: str | None = None) -> lis
     return out
 
 
+def _try_addr_cache(addr: dict) -> bool:
+    """If we've already resolved this address in-process, stamp from cache.
+    Returns True when cached (skip the API call), False otherwise."""
+    cached = _addr_cache_get(addr)
+    if not cached:
+        return False
+    addr["county"] = dict(cached)
+    return True
+
+
 def _pass2_census(doc: dict) -> None:
     targets = _addresses_needing_geocoding(doc, addr_type="practice")
     if not targets:
         return
-    _CENSUS.acquire(n=len(targets))
-    _call_census_for_addresses(doc, targets, pass_label="geocoder_pass2_batch")
+    # Cache hits drop out before API
+    miss = [a for a in targets if not _try_addr_cache(a)]
+    if not miss:
+        return
+    _CENSUS.acquire(n=len(miss))
+    _call_census_for_addresses(doc, miss, pass_label="geocoder_pass2_batch")
+    for a in miss:
+        c = a.get("county") or {}
+        if c.get("fips"):
+            _addr_cache_put(a, c)
 
 
 def _pass3_billing(doc: dict) -> None:
@@ -249,6 +301,10 @@ def _pass3_billing(doc: dict) -> None:
         targets.append(addr)
     if not targets:
         return
+    # Cache hits on the failed practice addrs themselves first
+    targets = [a for a in targets if not _try_addr_cache(a)]
+    if not targets:
+        return
     billing_addr = None
     for addr in doc.get("addresses") or []:
         if isinstance(addr, dict) and addr.get("address_type") == "business":
@@ -256,8 +312,18 @@ def _pass3_billing(doc: dict) -> None:
             break
     if not billing_addr:
         return
+    # Cache the billing address too if we've resolved it before
+    cached_billing = _addr_cache_get(billing_addr)
+    if cached_billing and cached_billing.get("fips"):
+        for a in targets:
+            a["county"] = {**cached_billing, "source": "geocoder_pass3_billing"}
+        return
     _CENSUS.acquire(n=1)
     _call_census_for_addresses(doc, [billing_addr], pass_label="geocoder_pass3_billing", retarget=targets)
+    for a in targets:
+        c = a.get("county") or {}
+        if c.get("fips"):
+            _addr_cache_put(a, c)
 
 
 def _pass4_maps(doc: dict) -> None:
@@ -273,8 +339,15 @@ def _pass4_maps(doc: dict) -> None:
         targets.append(addr)
     if not targets:
         return
-    _GMAPS.acquire(n=len(targets))
-    _call_google_maps_for_addresses(doc, targets, pass_label="geocoder_pass4_maps")
+    miss = [a for a in targets if not _try_addr_cache(a)]
+    if not miss:
+        return
+    _GMAPS.acquire(n=len(miss))
+    _call_google_maps_for_addresses(doc, miss, pass_label="geocoder_pass4_maps")
+    for a in miss:
+        c = a.get("county") or {}
+        if c.get("fips"):
+            _addr_cache_put(a, c)
 
 
 def _pass6_nppes(doc: dict) -> None:
@@ -293,6 +366,13 @@ def _pass6_nppes(doc: dict) -> None:
         return
     _NPPES.acquire(n=1)
     _call_nppes_api_for_npi(doc, npi)
+    # Populate cache from any pass6-resolved addresses
+    for addr in doc.get("addresses") or []:
+        if not isinstance(addr, dict):
+            continue
+        c = addr.get("county") or {}
+        if c.get("source") == "geocoder_pass6_nppes" and c.get("fips"):
+            _addr_cache_put(addr, c)
 
 
 def _call_census_for_addresses(doc, addresses, pass_label, retarget=None):
@@ -611,7 +691,7 @@ def process_assignment_activity_fn(config: dict) -> dict:
     load_id = config["load_id"]
     wid = config["worker_id"]
     aid = a.get("assignment_id", a.get("chunk_id"))
-    batch_size = int(a.get("batch_size", 500))
+    batch_size = int(a.get("batch_size", 1000))
     states = set([s.upper() for s in (config.get("states") or [])])
     env_prefix = config.get("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
     # Per-API rate limiting happens in this process via the module-level
