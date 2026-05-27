@@ -34,9 +34,6 @@ def _enqueue_grant(callback_instance_id: str, request_id: str, n: int) -> None:
     if not conn:
         raise RuntimeError("throttle_entity: storage connection string missing for callback")
     queue_name = _safe_queue_name(f"throttle-callbacks-{callback_instance_id}")
-    logging.info(
-        "throttle_entity: enqueue grant queue=%s request_id=%s n=%d", queue_name, request_id, n
-    )
     client = QueueClient.from_connection_string(conn, queue_name)
     try:
         client.create_queue()
@@ -114,8 +111,10 @@ def throttle_entity_fn(context) -> None:
         n = int(inp.get("n", 1))
         request_id = inp["request_id"]
         callback_instance_id = inp["callback_instance_id"]
+        state["requests_received"] = int(state.get("requests_received", 0)) + 1
         if state["tokens"] >= n:
             state["tokens"] -= n
+            state["grants_issued"] = int(state.get("grants_issued", 0)) + 1
             context.set_state(state)
             _enqueue_grant(callback_instance_id, request_id, n)
             context.set_result({"granted": True, "queued": False})
@@ -146,6 +145,7 @@ def throttle_entity_fn(context) -> None:
             n = int(w.get("n", 1))
             if state["tokens"] >= n:
                 state["tokens"] -= n
+                state["grants_issued"] = int(state.get("grants_issued", 0)) + 1
                 granted.append(w)
             else:
                 remaining.append(w)
@@ -165,6 +165,8 @@ def throttle_entity_fn(context) -> None:
             "tokens": state["tokens"],
             "waiters": len(state.get("waiters") or []),
             "waiter_cap": state.get("waiter_cap", _DEFAULT_WAITER_CAP),
+            "requests_received": int(state.get("requests_received", 0)),
+            "grants_issued": int(state.get("grants_issued", 0)),
         })
         return
 
