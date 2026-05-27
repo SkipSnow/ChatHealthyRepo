@@ -2919,14 +2919,14 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "84696f38b5bed5db92b72179d5e0a401bf429ffbfaf3e62bffef6ed67f9a1afb"
+          "content_hash": "87af37ed178205be372bbdc69384c5221f6f0efa85fd7bee442d64e50986e219"
         },
         {
           "feature_id": "EPIC-010-F-102",
           "source_location": "pipeline/Code/gather_activities.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "39f0eef4fedace0873e74783fa29102a4f4f7d67d005c181e028059ae8658a79"
+          "content_hash": "e4248fb9830b106c250adcda519f4a197e30e05baf75ded2e81f1005315c5afe"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3038,7 +3038,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "116f74bcaf70eef523ff02a4d2bc2b92c867acd2aa9962d24085e67180604e2b"
+          "content_hash": "dc82684e2f57b0e6ed7ff0501c025b1d99857b4ff4375c419b4e92aad7b23b39"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3073,7 +3073,7 @@
           "source_location": "pipeline/Code/record_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "72f08f9aab0e9e2509621bc9ca7f605faa2ffe7e563be69a38967abd15076fc8"
+          "content_hash": "dc6c911e6a39cc422ac2f11f6e320aa16902a0d66bf2e3ed0ba5c54a8fdaaaaa"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3094,7 +3094,7 @@
           "source_location": "pipeline/Code/source_gather_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "eb817ced5baa0c86912d3a4df3719319f8edebeb00206ae8a9318e7aeab14675"
+          "content_hash": "24011a46a7461429972eb1be6e4607e72a53ed669afaec0800807ca94b2cba24"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3266,10 +3266,10 @@
         },
         {
           "feature_id": "EPIC-010-F-102",
-          "source_location": "pipeline/Code/throttle_callback.py",
+          "source_location": "pipeline/Code/throttle_acquire.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b5ac211be72835e76b66e08a67cda59ef3ac2b6f839c33b80d2ce03443b0e615"
+          "content_hash": "57e376ff0d358e861f2a05ceed2a3cfb192a98082666f13d9c2ac90d36256676"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3283,14 +3283,7 @@
           "source_location": "pipeline/Code/throttle_entity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dbfad3afcb70f370ea62324d5fa54cac0e9ad71f92d9c86877a9308d954ab790"
-        },
-        {
-          "feature_id": "EPIC-010-F-102",
-          "source_location": "pipeline/Code/throttle_dispatcher_orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c6da1bd05a408b5bf565d865f174279a3fac9a9d41bc88141db59f3426c0b664"
+          "content_hash": "f65f9f8ccd6ddd30ff377a4c19c437e44e75ba4580601de5ec2f3d921c9cbe2a"
         },
         {
           "feature_id": "EPIC-010-F-103",
