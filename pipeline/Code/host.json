@@ -18,8 +18,8 @@
   "extensions": {
     "durableTask": {
       "hubName": "DevPipelineNetherite2",
-      "maxConcurrentActivityFunctions": 200,
-      "maxConcurrentOrchestratorFunctions": 10,
+      "maxConcurrentActivityFunctions": 100,
+      "maxConcurrentOrchestratorFunctions": 100,
       "storageProvider": {
         "type": "Netherite",
         "partitionCount": 32,

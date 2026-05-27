@@ -2940,7 +2940,7 @@
           "source_location": "pipeline/Code/host.json",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "3b70f66edfc3827f397c386041461789773c80b0e2f52b9873e1bd19ce5fce89"
+          "content_hash": "6821b598af7e37a107510df4f0b996151814098c64c09288f0952fc25805d1d3"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3045,7 +3045,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "41129686b04d0de776e5e76de45fec15cf69dc2958d514c8cf8be64800f93d4d"
+          "content_hash": "1efbb986e84f347c62ebb0ef6df6b00f254fb0c4546585640b3ba018caee3897"
         },
         {
           "feature_id": "EPIC-010-F-103",
