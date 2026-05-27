@@ -39,14 +39,19 @@ def record_worker_orchestrator_fn(context):
         # One pool_size token for the whole batch.
         yield from acquire(context, "pool_size", n=1)
 
+        completed_chunk_ids = []
         for assignment in batch:
             yield context.call_activity("process_assignment_activity", {
                 **cfg,
                 "assignment": assignment,
             })
-            # Fire-and-forget ack — bookkeeping only, doesn't gate progress.
-            context.signal_entity(wm, "ack", {
-                "worker_id": wid, "chunk_id": assignment.get("chunk_id"),
+            completed_chunk_ids.append(assignment.get("chunk_id"))
+
+        # One batched ack per batch (deterministic + replay-safe). Awaiting
+        # is cheap — work_manager.ack_batch is an O(N) state update.
+        if completed_chunk_ids:
+            yield context.call_entity(wm, "ack_batch", {
+                "worker_id": wid, "chunk_ids": completed_chunk_ids,
             })
 
         elapsed = (context.current_utc_datetime - start_time).total_seconds()

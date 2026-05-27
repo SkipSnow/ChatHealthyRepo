@@ -58,21 +58,29 @@ def work_manager_entity_fn(context) -> None:
             "batch_size": int(inp.get("batch_size", 1000)),
             "discrepancy_threshold": int(inp.get("discrepancy_threshold", 1000)),
         }
-        # Pre-stage the full assignment list at configure time. Each entry is
-        # just [chunk_id, start_byte, end_byte] — ~24 bytes. The "buffer of
-        # all assignments" lives in entity RAM; records themselves stay in
-        # the source CSV blob and are streamed by the activity when it runs.
-        body_bytes = c["file_size"] - c["header_end"]
-        c["total_chunks"] = (body_bytes + c["chunk_size_bytes"] - 1) // c["chunk_size_bytes"]
+        # Prefer the precomputed chunk_index (record-boundary aligned) when
+        # the caller supplied one. Falls back to arithmetic byte slicing if
+        # absent — but the arithmetic path leaves partial records at chunk
+        # boundaries and the activity has to skip/extend, which we no longer
+        # want. Caller (streaming_pipeline_orchestrator) supplies the index
+        # via build_chunk_index_activity.
+        precomputed = inp.get("chunk_index")
         pending = []
-        for cid in range(c["total_chunks"]):
-            start = c["header_end"] + cid * c["chunk_size_bytes"]
-            end = min(start + c["chunk_size_bytes"], c["file_size"])
-            pending.append([cid, start, end])
+        if precomputed:
+            for cid, entry in enumerate(precomputed):
+                start, end = entry[0], entry[1]
+                pending.append([cid, int(start), int(end)])
+            c["total_chunks"] = len(pending)
+        else:
+            body_bytes = c["file_size"] - c["header_end"]
+            c["total_chunks"] = (body_bytes + c["chunk_size_bytes"] - 1) // c["chunk_size_bytes"]
+            for cid in range(c["total_chunks"]):
+                start = c["header_end"] + cid * c["chunk_size_bytes"]
+                end = min(start + c["chunk_size_bytes"], c["file_size"])
+                pending.append([cid, start, end])
         state["config"] = c
         state["pending"] = pending
         state["claimed"] = {}
-        # next_chunk_id retained for stats compatibility; equals total - len(pending) - len(claimed).
         state["next_chunk_id"] = 0
         context.set_state(state)
         return
@@ -173,6 +181,17 @@ def work_manager_entity_fn(context) -> None:
         else:
             state["workers"].pop(worker_id, None)
         state["done"] = int(state.get("done", 0)) + 1
+        context.set_state(state)
+        return
+
+    if op == "ack_batch":
+        worker_id = str(inp["worker_id"])
+        chunk_ids = inp.get("chunk_ids") or []
+        for cid in chunk_ids:
+            state["claimed"].pop(str(cid), None)
+        # workers map cleanup: remove the worker's chunk list entirely
+        state["workers"].pop(worker_id, None)
+        state["done"] = int(state.get("done", 0)) + len(chunk_ids)
         context.set_state(state)
         return
 
