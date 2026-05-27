@@ -104,12 +104,173 @@ from provider_flags_enrichment import (
     provider_flags_enrichment_orchestrator_fn,
 )
 from throttle_entities import token_bucket_entity_fn
-from task_manager import task_manager_entity_fn
-from streaming_pipeline import (
-    get_csv_metadata_fn,
-    streaming_partition_activity_fn,
-    streaming_pipeline_orchestrator_fn,
+from throttle_entity import throttle_entity_fn
+from work_manager_entity import work_manager_entity_fn
+from record_worker_orchestrator import record_worker_orchestrator_fn
+from source_gather_orchestrator import source_gather_orchestrator_fn
+from process_assignment_activity import process_assignment_activity_fn
+from gather_activities import (
+    gather_nppes_zip_activity_fn,
+    gather_pl_pfile_activity_fn,
+    gather_zip_crosswalk_activity_fn,
+    gather_rucc_activity_fn,
+    gather_specialty_catalog_activity_fn,
+    gather_icd10_activity_fn,
 )
+
+
+def get_csv_metadata_fn(config: dict) -> dict:
+    """Read the CSV blob's file_size and header_end (byte offset after the
+    header line). Cheap blob op - fast enough to run as a single activity
+    at orchestrator startup."""
+    from blob_client import get_blob_service
+    csv_path = config["csv_path"]
+    container = config.get("blob_container", "provider-data")
+    blob_client = get_blob_service().get_container_client(container).get_blob_client(csv_path)
+    props = blob_client.get_blob_properties()
+    file_size = props.size
+    header_bytes = blob_client.download_blob(offset=0, length=32768).readall()
+    header_text = header_bytes.decode("utf-8", errors="replace")
+    if "\n" not in header_text:
+        raise RuntimeError("Header line exceeds 32KB - unexpected CSV format.")
+    header_line = header_text.split("\n")[0]
+    header_end = len(header_line.encode("utf-8")) + 1
+    logging.info("csv_metadata: file_size=%d header_end=%d", file_size, header_end)
+    return {"file_size": file_size, "header_end": header_end}
+
+
+def streaming_pipeline_orchestrator_fn(context):
+    """Parent orchestrator for the records-as-messages pipeline.
+
+    Sequence:
+      reserve cluster -> configure throttles -> source_gather sub -> read CSV
+      metadata -> seed work_manager -> warm instances -> spawn pool ->
+      task_all(record_worker sub-orchestrations) -> cool instances ->
+      release cluster (finally).
+    """
+    import azure.durable_functions as df
+    from datetime import timedelta
+
+    config = context.get_input() or {}
+    load_id = context.instance_id
+    config = {**config, "load_id": load_id}
+
+    throttle_cfg = config.get("throttle") or {}
+    pool_size = int(config.get("pool_size", config.get("num_workers", 100)))
+    batch_size = int(config.get("batch_size", 500))
+    discrepancy_threshold = int(config.get("discrepancy_threshold", 1000))
+
+    yield context.call_activity("wake_cluster_activity", {
+        "cluster_name": config["pipeline_cluster"],
+        "job_id": load_id,
+        "requester": "streaming_pipeline",
+        "expected_duration_minutes": config.get("expected_duration_minutes", 120),
+    })
+    yield context.call_activity("check_cluster_state_activity", {
+        "cluster_name": config["pipeline_cluster"],
+    })
+    yield context.call_activity("register_reservation_activity", {
+        "cluster_name": config["pipeline_cluster"],
+        "job_id": load_id,
+        "requester": "streaming_pipeline",
+        "expected_duration_minutes": config.get("expected_duration_minutes", 120),
+    })
+
+    summary = {}
+    pipeline_error = None
+    try:
+        for name, params in throttle_cfg.items():
+            context.signal_entity(df.EntityId("throttle", name), "configure", params)
+        if "pool_size" not in throttle_cfg:
+            context.signal_entity(
+                df.EntityId("throttle", "pool_size"),
+                "configure",
+                {"refill_rate": float(pool_size), "capacity": pool_size},
+            )
+        if "source_gather" not in throttle_cfg:
+            context.signal_entity(
+                df.EntityId("throttle", "source_gather"),
+                "configure",
+                {"refill_rate": 2.0, "capacity": 6},
+            )
+
+        yield context.call_sub_orchestrator("source_gather_orchestrator", config)
+
+        prepare = yield context.call_sub_orchestrator(
+            "prepare_data_orchestrator",
+            {
+                "load_id": load_id,
+                "num_workers": pool_size,
+                "blob_container": config["blob_container"],
+                "states": config["states"],
+                "incremental": False,
+                "provider_collection": config.get("provider_collection"),
+                "metadata_collection": config.get("metadata_collection"),
+            },
+        )
+        csv_path = prepare["csv_path"]
+
+        meta = yield context.call_activity("get_csv_metadata_activity", {
+            "csv_path": csv_path,
+            "blob_container": config["blob_container"],
+        })
+
+        chunk_size_bytes = int(config.get("chunk_size_bytes", 2_500_000))
+        yield context.call_entity(
+            df.EntityId("work_manager", load_id),
+            "seed",
+            {
+                "file_size": meta["file_size"],
+                "header_end": meta["header_end"],
+                "chunk_size_bytes": chunk_size_bytes,
+                "batch_size": batch_size,
+                "discrepancy_threshold": discrepancy_threshold,
+            },
+        )
+
+        yield context.call_activity("warm_instances_activity", {"num_workers": pool_size})
+
+        worker_cfg_base = {
+            "load_id": load_id,
+            "csv_path": csv_path,
+            "states": config["states"],
+            "blob_container": config["blob_container"],
+            "provider_collection": config.get("provider_collection"),
+            "env_prefix": config.get("env_prefix", "dev"),
+            "age_limit_seconds": int(config.get("age_limit_seconds", 6600)),
+        }
+        pool = [
+            context.call_sub_orchestrator(
+                "record_worker_orchestrator",
+                {**worker_cfg_base, "worker_id": wid},
+            )
+            for wid in range(1, pool_size + 1)
+        ]
+        worker_results = yield context.task_all(pool)
+
+        yield context.call_activity("cool_instances_activity", {})
+
+        summary = {
+            "load_id": load_id,
+            "pool_size": pool_size,
+            "workers_completed": len(worker_results),
+            "csv_file_size": meta["file_size"],
+            "chunk_size_bytes": chunk_size_bytes,
+        }
+
+        context.signal_entity(
+            df.EntityId("work_manager", load_id),
+            "emit_metrics",
+            {"load_id": load_id},
+        )
+
+    except Exception as exc:
+        pipeline_error = {"type": type(exc).__name__, "message": str(exc)[:500]}
+        raise
+    finally:
+        yield context.call_activity("release_reservation_activity", {"job_id": load_id})
+
+    return {"load_id": load_id, "summary": summary, "error": pipeline_error}
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -434,22 +595,19 @@ async def dev_pipeline_management(
 
 # ── Durable Entities ──────────────────────────────────────────────────────────
 
-# token_bucket: per-external-API rate-limit state holder. Instances are
-# created on first signal; the parent orchestrator's preamble configures
-# token_bucket/nppes, token_bucket/google_maps, token_bucket/openai with the
-# CLI-supplied refill_rate + capacity at every pipeline run.
 @app.entity_trigger(context_name="context")
 def token_bucket(context: df.DurableEntityContext) -> None:
     token_bucket_entity_fn(context)
 
 
-# task_manager: per-pipeline-run work allocator. Holds the byte-offset
-# chunk queue (5K-record chunks). Worker activities pull from it via the
-# HTTP entity management API. Skip 2026-05-26: "the partition goes back
-# sends a message to the parser to get 5K more assignments."
 @app.entity_trigger(context_name="context")
-def task_manager(context: df.DurableEntityContext) -> None:
-    task_manager_entity_fn(context)
+def throttle(context: df.DurableEntityContext) -> None:
+    throttle_entity_fn(context)
+
+
+@app.entity_trigger(context_name="context")
+def work_manager(context: df.DurableEntityContext) -> None:
+    work_manager_entity_fn(context)
 
 
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
@@ -464,9 +622,49 @@ def streaming_pipeline_orchestrator(context: df.DurableOrchestrationContext):
     return streaming_pipeline_orchestrator_fn(context)
 
 
+@app.orchestration_trigger(context_name="context")
+def record_worker_orchestrator(context: df.DurableOrchestrationContext):
+    return record_worker_orchestrator_fn(context)
+
+
+@app.orchestration_trigger(context_name="context")
+def source_gather_orchestrator(context: df.DurableOrchestrationContext):
+    return source_gather_orchestrator_fn(context)
+
+
 @app.activity_trigger(input_name="config")
-def streaming_partition_activity(config: dict) -> dict:
-    return streaming_partition_activity_fn(config)
+def process_assignment_activity(config: dict) -> dict:
+    return process_assignment_activity_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def gather_nppes_zip_activity(config: dict) -> dict:
+    return gather_nppes_zip_activity_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def gather_pl_pfile_activity(config: dict) -> dict:
+    return gather_pl_pfile_activity_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def gather_zip_crosswalk_activity(config: dict) -> dict:
+    return gather_zip_crosswalk_activity_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def gather_rucc_activity(config: dict) -> dict:
+    return gather_rucc_activity_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def gather_specialty_catalog_activity(config: dict) -> dict:
+    return gather_specialty_catalog_activity_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def gather_icd10_activity(config: dict) -> dict:
+    return gather_icd10_activity_fn(config)
 
 
 @app.activity_trigger(input_name="config")

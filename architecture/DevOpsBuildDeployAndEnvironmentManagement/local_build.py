@@ -48,6 +48,7 @@ from extractor import Extractor
 from record_loader import RecordLoader
 from secrets_resolver import SecretsResolver
 from target_record import DeploymentCollection, TargetRecord
+import aca_helpers
 import ch_fonts_inliner
 import hf_helpers as rd
 
@@ -287,6 +288,87 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
     _step(f"  zip built: {zip_path.name} ({size_mb:.1f} MB, {len(target.files)} entries)")
 
 
+_ACA_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
+_ACA_STAGE_REQUIREMENTS_NAME = "requirements.txt"
+
+
+def _build_azure_container_app(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
+    """Stage the Pipeline source tree + render the Dockerfile.
+
+    layout under build_dir:
+        app/pipeline/Code/...          (every target.files[] entry)
+        app/pipeline/Code/requirements.txt   (renamed from requirements-pipeline.txt)
+        Dockerfile                     (rendered by aca_helpers)
+
+    The Dockerfile's COPY pulls from app/pipeline/Code/ so the Functions
+    runtime sees function_app.py + host.json at /home/site/wwwroot/.
+    """
+    if build_dir.exists():
+        shutil.rmtree(build_dir, ignore_errors=True)
+    build_dir.mkdir(parents=True)
+    app_root = build_dir / "app"
+    _step(f"  staging {len(target.files)} JSON-declared files into {app_root}")
+    for f in target.files:
+        src_path = repo_root / f.source_location
+        if not src_path.is_file():
+            sys.exit(
+                f"ERROR: file in JSON manifest not present on disk: "
+                f"{f.source_location}"
+            )
+        if f.source_location == _ACA_REQUIREMENTS_SRC:
+            dst_rel = (Path("pipeline") / "Code" / _ACA_STAGE_REQUIREMENTS_NAME).as_posix()
+        else:
+            dst_rel = f.source_location
+        dst_path = app_root / dst_rel
+        dst_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_path, dst_path)
+    # requirements.txt is required by the Dockerfile's pip install step.
+    req_dst = app_root / "pipeline" / "Code" / _ACA_STAGE_REQUIREMENTS_NAME
+    if not req_dst.is_file():
+        sys.exit(
+            f"ERROR: ACA build requires {_ACA_REQUIREMENTS_SRC} in target.files[]; "
+            f"absent at {req_dst}"
+        )
+    (build_dir / "Dockerfile").write_text(
+        aca_helpers.aca_render_dockerfile(), encoding="utf-8",
+    )
+    _step(f"  Dockerfile rendered -> {build_dir / 'Dockerfile'}")
+
+
+def _augment_manifest_for_aca(
+    build_dir: Path,
+    target: TargetRecord,
+    build_n: int,
+) -> None:
+    """Append ACA-specific fields to the manifest the snapshot writer
+    produced. The deploy handler reads these to know image repo, tag,
+    and integrity hash.
+    """
+    manifest_path = build_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    # Compute image_repo per env from azure_container_app.registry +
+    # container_app. We carry per-env image refs so the deploy handler
+    # doesn't have to re-derive.
+    image_refs: dict[str, dict[str, str]] = {}
+    for e in target.environments:
+        aca = e.azure_container_app
+        if aca is None:
+            continue
+        registry = aca.get("registry") or aca["resource_group"].lower().replace("-", "")
+        repo = f"{registry}.azurecr.io/{aca['container_app']}"
+        image_refs[e.env_binding] = {
+            "image_repo": repo,
+            "image_tag": str(build_n),
+            "image_ref": f"{repo}:{build_n}",
+        }
+    manifest["image_refs"] = image_refs
+    manifest["content_hash"] = aca_helpers.aca_content_hash_tree(build_dir / "app")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str, build_root_rel: Path | None = None) -> Path:
     build_dir = _target_build_dir(repo_root, build_n, target.target_id, build_root_rel)
     _step(f"=== {target.target_kind} {target.target_id} -> {build_dir} ===")
@@ -296,15 +378,24 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
         _build_hf_space(repo_root, target, build_dir)
     elif target.target_kind == "azure_function_app":
         _build_azure_function_app(repo_root, target, build_dir)
+    elif target.target_kind == "azure_container_app":
+        _build_azure_container_app(repo_root, target, build_dir)
     else:
         raise RuntimeError(
             f"target_kind {target.target_kind!r} not supported in local_build."
         )
     _write_manifest_snapshot(build_dir, target, build_n, build_sha)
+    if target.target_kind == "azure_container_app":
+        _augment_manifest_for_aca(build_dir, target, build_n)
     return build_dir
 
 
-_BUILDABLE_KINDS = ("cloudflare_pages_project", "hf_space", "azure_function_app")
+_BUILDABLE_KINDS = (
+    "cloudflare_pages_project",
+    "hf_space",
+    "azure_function_app",
+    "azure_container_app",
+)
 
 
 def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetRecord]:
@@ -314,8 +405,15 @@ def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetR
         return [t for t in coll if t.target_kind == "cloudflare_pages_project"]
     if target_arg in ("hf", "hf_space"):
         return [t for t in coll if t.target_kind == "hf_space"]
-    if target_arg in ("azure", "azure_function_app"):
+    if target_arg == "azure":
+        return [
+            t for t in coll
+            if t.target_kind in ("azure_function_app", "azure_container_app")
+        ]
+    if target_arg == "azure_function_app":
         return [t for t in coll if t.target_kind == "azure_function_app"]
+    if target_arg in ("aca", "azure_container_app"):
+        return [t for t in coll if t.target_kind == "azure_container_app"]
     for t in coll:
         if t.target_id == target_arg:
             return [t]
@@ -328,7 +426,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--target", default="all",
-        help="'all' | 'cloudflare' | 'hf' | 'azure' | a specific target_id.",
+        help="'all' | 'cloudflare' | 'hf' | 'azure' | 'aca' | a specific target_id.",
     )
     args = parser.parse_args(argv)
 

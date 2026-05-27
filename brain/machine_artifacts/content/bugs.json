@@ -57,8 +57,8 @@
       ],
       "status": "deferred",
       "severity": "medium",
-      "req_id": "EPIC-010-F-007-S-004-REQ-B-002",
-      "story_id": "EPIC-010-F-007-S-004",
+      "req_id": "ORPHAN",
+      "story_id": "EPIC-010-F-102-S-005",
       "test_id": "",
       "test_success_criteria": [
         "An `incremental=true` run against an NPPES dissemination file MUST delete every provider record whose NPI is not present in the source file.",
@@ -71,7 +71,8 @@
       "next_action": [
         "Deferred. No fix planned.",
         "If a real business need to use incremental loading arises (currently every load is full), this bug must be fixed before the first incremental run.",
-        "Until then, all loads are `incremental=false` (drain -> reload), which is correct behavior under REQ-B-002 for full-loads and avoids the gap entirely."
+        "Until then, all loads are `incremental=false` (drain -> reload), which is correct behavior under REQ-B-002 for full-loads and avoids the gap entirely.",
+        "V8 req capturing branch (b) of the legacy REQ-B-002 (full-source-file -> delete DB records absent from source) does NOT exist in EPIC-010-F-102-S-005. A new requirement under F-102-S-005 MUST be authored to capture this delete-on-absence semantic before this bug can be re-attached."
       ]
     },
     {
@@ -111,8 +112,8 @@
       ],
       "status": "new",
       "severity": "high",
-      "req_id": "EPIC-010-F-029-S-006-REQ-T-001",
-      "story_id": "EPIC-010-F-029-S-006",
+      "req_id": "ORPHAN",
+      "story_id": "EPIC-010-F-101-S-001",
       "test_id": "",
       "test_success_criteria": [
         "Editing pipeline/Code/runbooks/reservation_reaper.py, committing, and running the standard build+deploy chain updates the runbook content on ChatHealthyJobManager so its next scheduled execution runs the new bytes.",
@@ -127,7 +128,8 @@
         "Add target_azure_automation_runbook_reservation_reaper to deployment_architecture.json with files=[pipeline/Code/runbooks/reservation_reaper.py], azure_automation coordinates, and the runbook's secret bindings (MONGO_FRONTEND_connectionString, ATLAS_PUBLIC_KEY, ATLAS_PRIVATE_KEY, ATLAS_PROJECT_ID, ENV_PREFIX, PIPELINE_CLUSTER, ACTIVITY_WINDOW_MINUTES, AZ_*, AZURE_WEBJOBS_STORAGE, SPARKMAIL_API_KEY, NOTIFICATION_FROM_EMAIL, NOTIFICATION_TO_EMAIL) bound to azure_automation_variable.",
         "Remove pipeline/Code/runbooks/reservation_reaper.py from target_azure_function_app_pipeline's files[] so it stops shipping to the FA zip.",
         "Implement build handler for target_kind=azure_automation_runbook in local_build.py: stages the single .py file + writes manifest.json with the secret bindings.",
-        "Implement deploy handler for target_kind=azure_automation_runbook in local_deploy.py + remote_deploy.py: pushes runbook content via `az automation runbook replace-content` and Automation Variables via `az automation variable update`."
+        "Implement deploy handler for target_kind=azure_automation_runbook in local_deploy.py + remote_deploy.py: pushes runbook content via `az automation runbook replace-content` and Automation Variables via `az automation variable update`.",
+        "V8 req capturing 'deploy target for the ReservationReaper Automation Account runbook' does NOT exist under EPIC-010-F-101-S-001. A new requirement (or a deployment-architecture-side requirement) MUST be authored to capture the runbook-deploy-target gap before this bug can be re-attached."
       ]
     }
   ]
