@@ -645,20 +645,29 @@ def process_assignment_activity_fn(config: dict) -> dict:
         counters["commits"] += 1
         counters["total_records_committed"] += len(ops)
 
+    # Per-record fan-out across an in-process thread pool. Per-API rate
+    # limits are coordinated by the module-level _TokenBucket instances
+    # (threadsafe). I/O work releases the GIL so this scales for HTTP-bound
+    # passes (Census/Maps/NPPES/OpenAI).
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from provider_embedding import should_embed
+    import threading as _threading
+
+    _counters_lock = _threading.Lock()
     pending_in_batch = 0
-    for rid, raw in _iter_csv_partition(blob_src, a["start_byte"], a["end_byte"], header):
+
+    def _process_one(raw):
         if states and not _raw_row_matches_state(raw, states):
-            continue
+            return None
         npi = (raw.get("NPI") or "").strip()
         if not npi:
-            continue
+            return None
         normalized = normalize_raw_record(raw)
         doc = {"npi": npi}
         doc.update(normalized)
         _layer_passthrough_fields(raw, doc)
         doc["load_id"] = load_id
         doc["loaded_at"] = _iso_now()
-
         try:
             _pass1_zip(doc, crosswalk)
             _pass2_census(doc)
@@ -668,20 +677,28 @@ def process_assignment_activity_fn(config: dict) -> dict:
             _stamp_urban(doc, rucc, states)
             _stamp_flags(doc, catalog)
             _mark_quality(doc)
-            from provider_embedding import should_embed
             if should_embed(doc):
                 _embed(doc)
             staging_write(load_id, aid, wid, npi, doc)
-            counters["storage_puts"] += 1
-            counters["records_staged"] += 1
-            pending_in_batch += 1
         except Exception as exc:
             _signal_discrepancy(load_id, npi, "record_process_error", {"error": str(exc)[:300]})
             raise
+        with _counters_lock:
+            counters["storage_puts"] += 1
+            counters["records_staged"] += 1
+        return npi
 
-        if pending_in_batch >= batch_size:
-            _commit_batch()
-            pending_in_batch = 0
+    inner_workers = int(config.get("inner_workers", 16))
+    rows = list(_iter_csv_partition(blob_src, a["start_byte"], a["end_byte"], header))
+    with ThreadPoolExecutor(max_workers=inner_workers) as pool:
+        futures = [pool.submit(_process_one, raw) for _, raw in rows]
+        for f in as_completed(futures):
+            if f.result() is None:
+                continue
+            pending_in_batch += 1
+            if pending_in_batch >= batch_size:
+                _commit_batch()
+                pending_in_batch = 0
 
     if pending_in_batch > 0:
         _commit_batch()
