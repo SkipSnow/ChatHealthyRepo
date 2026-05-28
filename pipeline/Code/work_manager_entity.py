@@ -117,29 +117,25 @@ def work_manager_entity_fn(context) -> None:
     if op == "seed":
         q = _queue(state, work_kind)
         if work_kind == _DEFAULT_WORK_KIND:
+            # chunk_index is required. Precomputed record-boundary byte
+            # ranges from build_chunk_index_activity are the only chunking
+            # source the load supports. No coarse byte-range fallback.
+            chunk_index = inp.get("chunk_index")
+            if not chunk_index:
+                raise ValueError(
+                    "work_manager.seed (cms_chunks): chunk_index is required"
+                )
             cfg = {
                 "file_size": int(inp["file_size"]),
                 "header_end": int(inp["header_end"]),
-                "chunk_size_bytes": int(inp.get("chunk_size_bytes", 2_500_000)),
-                "batch_size": int(inp.get("batch_size", 1000)),
-                "discrepancy_threshold": int(inp.get("discrepancy_threshold", 1000)),
+                "batch_size": int(inp["batch_size"]),
+                "discrepancy_threshold": int(inp["discrepancy_threshold"]),
+                "total_chunks": len(chunk_index),
             }
-            precomputed = inp.get("chunk_index")
             pending: list = []
-            if precomputed:
-                for cid, entry in enumerate(precomputed):
-                    start, end = entry[0], entry[1]
-                    pending.append([cid, int(start), int(end)])
-                cfg["total_chunks"] = len(pending)
-            else:
-                body_bytes = cfg["file_size"] - cfg["header_end"]
-                cfg["total_chunks"] = (
-                    body_bytes + cfg["chunk_size_bytes"] - 1
-                ) // cfg["chunk_size_bytes"]
-                for cid in range(cfg["total_chunks"]):
-                    start = cfg["header_end"] + cid * cfg["chunk_size_bytes"]
-                    end = min(start + cfg["chunk_size_bytes"], cfg["file_size"])
-                    pending.append([cid, start, end])
+            for cid, entry in enumerate(chunk_index):
+                start, end = entry[0], entry[1]
+                pending.append([cid, int(start), int(end)])
             q["config"] = cfg
             q["pending"] = pending
             q["claimed"] = {}
@@ -310,10 +306,12 @@ def work_manager_entity_fn(context) -> None:
         return
 
     if op == "reset_stale":
-        # Reaper: chunks claimed > max_age_seconds ago are pushed back onto pending.
-        # Only the CMS queue uses byte-range reclaim because its pending entries
-        # are reconstructable from cfg. The repair queue's pending entries are
-        # NPI lists that we don't reconstruct from cfg — they're stored verbatim.
+        # Reaper: chunks claimed > max_age_seconds ago are dropped from the
+        # claimed set. Reclaim does NOT reconstruct the assignment — neither
+        # queue's pending entries are reconstructable from cfg alone (cms
+        # chunks come from a precomputed chunk_index, repair chunks carry
+        # NPI lists). The next pipeline run rebuilds the cohort from source
+        # state on either side.
         q = _queue(state, work_kind)
         max_age = float(inp.get("max_age_seconds", 1800))
         now = time.time()
@@ -321,16 +319,7 @@ def work_manager_entity_fn(context) -> None:
         for cid_str, claim in list(q.get("claimed", {}).items()):
             if now - float(claim.get("claimed_at", now)) > max_age:
                 q["claimed"].pop(cid_str, None)
-                cid = int(cid_str)
-                if work_kind == _DEFAULT_WORK_KIND:
-                    cfg = q.get("config") or {}
-                    start = cfg.get("header_end", 0) + cid * cfg.get("chunk_size_bytes", 0)
-                    end = min(start + cfg.get("chunk_size_bytes", 0), cfg.get("file_size", 0))
-                    q["pending"].insert(0, [cid, start, end])
-                # repair_chunks: the npi list isn't reconstructable from cfg;
-                # leaving it dropped is correct — the next pipeline run rebuilds
-                # the cohort from Mongo state.
-                reclaimed.append(cid)
+                reclaimed.append(int(cid_str))
         context.set_state(state)
         context.set_result({"reclaimed": reclaimed, "work_kind": work_kind})
         return

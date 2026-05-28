@@ -248,10 +248,11 @@ def provider_pipeline_orchestrator_fn(context):
             "blob_container": config["blob_container"],
         })
 
-        chunk_size_bytes = int(config.get("chunk_size_bytes", 2_500_000))
         # Precise record-boundary chunk index. One sequential scan of the CSV
         # emits exact byte ranges per chunk (~batch_size records each).
-        # Workers stream their range without any boundary scan.
+        # Workers stream their range without any boundary scan. The chunk
+        # index is the only chunking path the pipeline supports — there is
+        # no coarse byte-range fallback.
         idx = yield context.call_activity("build_chunk_index_activity", {
             "blob_container": config["blob_container"],
             "csv_path": csv_path,
@@ -266,7 +267,6 @@ def provider_pipeline_orchestrator_fn(context):
             {
                 "file_size": meta["file_size"],
                 "header_end": meta["header_end"],
-                "chunk_size_bytes": chunk_size_bytes,
                 "batch_size": batch_size,
                 "discrepancy_threshold": discrepancy_threshold,
                 "chunk_index": idx["chunks"],
@@ -353,7 +353,6 @@ def provider_pipeline_orchestrator_fn(context):
             "pool_size": pool_size,
             "workers_completed": len(worker_results),
             "csv_file_size": meta["file_size"],
-            "chunk_size_bytes": chunk_size_bytes,
             "recovery_chunks": len(recovery_chunks),
             "recovery_total_npis": (recovery_seed or {}).get("total_npis", 0),
             "recovery_workers_completed": len(recovery_results),
