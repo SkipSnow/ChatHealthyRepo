@@ -580,15 +580,26 @@ def _deploy_azure_automation_runbook(
     # (Code/.env for local). Values never land on disk; only the az process
     # sees them in argv.
     secret_names = sorted(target.secrets or {})
-    _step(f"  publishing {len(secret_names)} Automation Variable(s)")
+    _step(f"  attempting to publish {len(secret_names)} Automation Variable(s)")
+    pushed, skipped = 0, []
     for name in secret_names:
-        value = resolver.resolve(name, env)
+        try:
+            value = resolver.resolve(name, env)
+        except KeyError:
+            skipped.append(name)
+            continue
         if value is None or value == "":
-            sys.exit(
-                f"ERROR: secret {name!r} resolved to empty for env={env!r}; "
-                f"refusing to push a blank Automation Variable."
-            )
+            skipped.append(name)
+            continue
         _az_automation_variable_set(rg, aa, name, value)
+        pushed += 1
+    if skipped:
+        _step(
+            f"  skipped {len(skipped)} variable(s) not in operator's "
+            f"resolved store (likely have runbook-side defaults): "
+            f"{', '.join(skipped)}"
+        )
+    _step(f"  pushed {pushed} Automation Variable(s)")
 
     # Replace runbook bytes + publish (so next scheduled tick uses the new code).
     _az_automation_runbook_replace_content(rg, aa, runbook, content_path)
