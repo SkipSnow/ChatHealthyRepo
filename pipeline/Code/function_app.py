@@ -79,7 +79,6 @@ from normalize_provider_rows import (
     normalize_provider_rows_orchestrator_fn,
     normalize_provider_rows_worker_fn,
 )
-from urban_flag_enrichment import urban_flag_enrichment_orchestrator_fn
 from provider_flags_enrichment import (
     apply_provider_flags_fn,
     provider_flags_enrichment_orchestrator_fn,
@@ -857,17 +856,12 @@ _US_STATES_DC_TERRITORIES = [
 ]
 
 
-@app.activity_trigger(input_name="config")
-def stamp_urban_flag_activity(config: dict) -> dict:
-    from urban_flag import stamp_urban_flag_fn
-    from state_filter import normalize_states, is_full_load
-
-    states = normalize_states(config)
-    if isinstance(states, dict):
-        raise ValueError("urban_flag does not support legacy dict states; pass a list")
-    if is_full_load(states):
-        states = list(_US_STATES_DC_TERRITORIES)
-    return stamp_urban_flag_fn({**config, "states": states})
+# stamp_urban_flag_activity (and the urban_flag_enrichment_orchestrator
+# that drove it) were a standalone stamping pass under the retired OLD
+# ProviderPipeline. In the current ProviderPipeline (streaming) the
+# urban flag is stamped inline per-record during process_assignment_activity
+# using the rucc.json blob that gather_rucc_activity produces. Removed
+# 2026-05-28 along with UrbanFlagStamper.write_data_to_collection.
 
 
 @app.activity_trigger(input_name="config")
@@ -992,11 +986,6 @@ def normalize_provider_rows_orchestrator(context: df.DurableOrchestrationContext
 @app.orchestration_trigger(context_name="context")
 def multi_practice_addresses_orchestrator(context: df.DurableOrchestrationContext):
     return multi_practice_addresses_orchestrator_fn(context)
-
-
-@app.orchestration_trigger(context_name="context")
-def urban_flag_enrichment_orchestrator(context: df.DurableOrchestrationContext):
-    return urban_flag_enrichment_orchestrator_fn(context)
 
 
 @app.orchestration_trigger(context_name="context")

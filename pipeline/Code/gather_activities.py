@@ -33,21 +33,9 @@ def gather_zip_crosswalk_activity_fn(config: dict) -> dict:
 
 
 def gather_rucc_activity_fn(config: dict) -> dict:
-    from urban_flag import stamp_urban_flag_fn
-    states = config.get("states") or []
+    from urban_flag import cache_rucc_to_blob
     blob_container = config.get("blob_container", "provider-data")
-    provider_collection = config.get(
-        "provider_collection",
-        f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData.providers",
-    )
-    bulk_batch_size = int(config.get("bulk_batch_size", 1000))
-    result = stamp_urban_flag_fn({
-        "blob_container": blob_container,
-        "states": states,
-        "provider_collection": provider_collection,
-        "bulk_batch_size": bulk_batch_size,
-    })
-    return {"source": "rucc", "result": result}
+    return {"source": "rucc", "result": cache_rucc_to_blob(blob_container)}
 
 
 def gather_specialty_catalog_activity_fn(config: dict) -> dict:

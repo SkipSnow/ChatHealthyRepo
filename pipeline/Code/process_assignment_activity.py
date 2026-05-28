@@ -746,23 +746,30 @@ _RUCC_CACHE: dict[str, dict] = {}
 _RUCC_CACHE_LOCK = threading.Lock()
 
 
-def _load_rucc(env_prefix: str) -> dict:
-    """Module-level cached. RUCC is ~3,000 county rows that never change
-    inside a single pipeline run; loading it from Mongo every chunk was a
-    per-activity Mongo round-trip pure waste."""
+def _load_rucc(env_prefix: str, blob_container: str = "provider-data") -> dict:
+    """Module-level cached. Reads rucc.json (the source-of-truth blob the
+    gather_rucc_activity wrote) once per worker process, caches the
+    {fips: urban_bool} dict. Every chunk worker uses the same in-process
+    cache. RUCC is ~3,000 entries so the blob is tiny.
+    """
+    import json as _json
+    from urban_flag import RUCC_JSON_BLOB_NAME
+    cache_key = f"{env_prefix}|{blob_container}"
     with _RUCC_CACHE_LOCK:
-        cached = _RUCC_CACHE.get(env_prefix)
+        cached = _RUCC_CACHE.get(cache_key)
         if cached is not None:
             return cached
-    from pipeline_db import get_db
-    db = get_db(env_prefix)
-    out = {}
-    for d in db["pipeline_sources_rucc"].find({}, {"county_fips": 1, "urban": 1}):
-        f = d.get("county_fips")
-        if f:
-            out[f] = bool(d.get("urban"))
+    from blob_client import get_blob_service
+    blob = (
+        get_blob_service()
+        .get_container_client(blob_container)
+        .get_blob_client(RUCC_JSON_BLOB_NAME)
+    )
+    raw = blob.download_blob().readall()
+    out = {k: bool(v) for k, v in _json.loads(raw.decode("utf-8")).items()}
     with _RUCC_CACHE_LOCK:
-        _RUCC_CACHE[env_prefix] = out
+        _RUCC_CACHE[cache_key] = out
+    logging.info("rucc: loaded %d entries from %s", len(out), RUCC_JSON_BLOB_NAME)
     return out
 
 
@@ -833,7 +840,7 @@ def process_assignment_activity_fn(config: dict) -> dict:
     csv_path = config["csv_path"]
 
     crosswalk = _get_crosswalk()
-    rucc = _load_rucc(env_prefix)
+    rucc = _load_rucc(env_prefix, config.get("blob_container", "provider-data"))
     catalog = _load_catalog(env_prefix)
     coll_p = _providers_coll(config)
     blob_src = _source_blob_client(config)
