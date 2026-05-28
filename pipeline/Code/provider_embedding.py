@@ -39,9 +39,26 @@ _TRUST_TIER: dict[str, str] = {
     "geocoder_pass4_maps":      "medium",
     "geocoder_pass5_maps_billing": "medium",
     "geocoder_pass6_nppes":     "medium",
-    "geocoder_failed":          "low",
+    # Per-pass failure labels — the address went into the funnel and the
+    # named pass gave up. All four collapse to "low" trust for the embedding
+    # consumer, but the distinct labels remain so reports and recovery can
+    # see where the funnel stopped.
+    "geocoder_pass2_failed":    "low",
+    "geocoder_pass3_failed":    "low",
+    "geocoder_pass4_failed":    "low",
+    "geocoder_pass6_failed":    "low",
     "out_of_scope":             "excluded",
 }
+
+# Every failure-tag the funnel can write. Used by callers that need to
+# answer the question "did county enrichment give up on this address?"
+# without enumerating each pass label.
+_FAILED_SOURCES: frozenset[str] = frozenset({
+    "geocoder_pass2_failed",
+    "geocoder_pass3_failed",
+    "geocoder_pass4_failed",
+    "geocoder_pass6_failed",
+})
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -121,7 +138,7 @@ def _format_address(addr: dict | None) -> str | None:
 def _county_resolution_status(county: dict) -> str:
     if county.get("fips"):
         return "resolved"
-    if county.get("source") == "geocoder_failed":
+    if county.get("source") in _FAILED_SOURCES:
         return "unresolved"
     return "excluded"
 
@@ -139,7 +156,10 @@ def _county_source_summary(county: dict) -> str:
         "geocoder_pass4_maps":      lambda _: "Google Maps — practice address",
         "geocoder_pass5_maps_billing": lambda _: "Google Maps — billing address",
         "geocoder_pass6_nppes":     lambda _: "NPPES registry lookup",
-        "geocoder_failed":          lambda _: "unresolved — all passes exhausted",
+        "geocoder_pass2_failed":    lambda _: "unresolved — Pass 2 (Census batch on practice address) gave up",
+        "geocoder_pass3_failed":    lambda _: "unresolved — Pass 3 (Census batch on billing address) gave up",
+        "geocoder_pass4_failed":    lambda _: "unresolved — Pass 4 (Google Maps on practice address) gave up",
+        "geocoder_pass6_failed":    lambda _: "unresolved — Pass 6 (NPPES last resort) gave up; funnel exhausted",
         "out_of_scope":             lambda c: f"excluded ({c.get('reason', 'unknown')})",
     }
     fn = mapping.get(source)

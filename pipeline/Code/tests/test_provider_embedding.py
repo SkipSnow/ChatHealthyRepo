@@ -120,25 +120,56 @@ ORGANIZATION_ENRICHED = {
     "record_id": 2,
 }
 
-INDIVIDUAL_GEOCODER_FAILED = {
-    "npi": "1234567890",
-    "entity_type_code": "1",
-    "provider_first_name": "Carlos",
-    "provider_last_name_legal_name": "Rivera",
-    "provider_credential_text": "D.O.",
-    "taxonomies": [{"code": "207P00000X", "primary": True}],
-    "addresses": [
-        {
-            "address_type": "practice",
-            "line1": "456 Rural Rd",
-            "city": "Smalltown",
-            "state": "TX",
-            "zip": "79901",
-            "country": "US",
-            "county": {"fips": None, "source": "geocoder_failed"},
-        },
-    ],
-}
+def _individual_failed_at(pass_failure_label: str) -> dict:
+    """Build a one-address INDIVIDUAL fixture whose practice address carries
+    the given pass-specific failure label.
+
+    Used to verify that each of the four funnel-failure labels routes
+    through provider_embedding's reader paths the same way:
+      - the address is still embeddable (consumer can still search for them)
+      - the trust tier is "low"
+      - the resolution status is "unresolved"
+      - the county_source_summary text NAMES the pass that gave up
+        (this is the schema-cleanup contract — the record carries WHERE
+        in the funnel the failure happened)
+      - none of the provenance fields leak into the rendered embedding text
+    """
+    return {
+        "npi": "1234567890",
+        "entity_type_code": "1",
+        "provider_first_name": "Carlos",
+        "provider_last_name_legal_name": "Rivera",
+        "provider_credential_text": "D.O.",
+        "taxonomies": [{"code": "207P00000X", "primary": True}],
+        "addresses": [
+            {
+                "address_type": "practice",
+                "line1": "456 Rural Rd",
+                "city": "Smalltown",
+                "state": "TX",
+                "zip": "79901",
+                "country": "US",
+                "county": {"fips": None, "source": pass_failure_label},
+            },
+        ],
+    }
+
+
+# The four labels the load funnel can write when it gives up on an address.
+# Each must round-trip through every reader (should_embed, project, render)
+# the same way — pass-specific summary text, "low" trust, "unresolved" status,
+# no provenance leakage into the embedding payload.
+_FAILED_PASS_LABELS = [
+    ("geocoder_pass2_failed", "Pass 2"),
+    ("geocoder_pass3_failed", "Pass 3"),
+    ("geocoder_pass4_failed", "Pass 4"),
+    ("geocoder_pass6_failed", "Pass 6"),
+]
+
+INDIVIDUAL_PASS2_FAILED = _individual_failed_at("geocoder_pass2_failed")
+INDIVIDUAL_PASS3_FAILED = _individual_failed_at("geocoder_pass3_failed")
+INDIVIDUAL_PASS4_FAILED = _individual_failed_at("geocoder_pass4_failed")
+INDIVIDUAL_PASS6_FAILED = _individual_failed_at("geocoder_pass6_failed")
 
 INDIVIDUAL_FOREIGN = {
     "npi": "1987654321",
@@ -233,8 +264,17 @@ class TestShouldEmbed:
     def test_enriched_organization_embeds(self):
         assert should_embed(ORGANIZATION_ENRICHED) is True
 
-    def test_geocoder_failed_embeds(self):
-        assert should_embed(INDIVIDUAL_GEOCODER_FAILED) is True
+    @pytest.mark.parametrize(
+        "label,_label_human",
+        _FAILED_PASS_LABELS,
+        ids=[label for label, _ in _FAILED_PASS_LABELS],
+    )
+    def test_each_pass_failure_still_embeds(self, label, _label_human):
+        # A failed-county provider remains searchable. All four funnel-stop
+        # labels must keep should_embed -> True; otherwise the consumer
+        # silently loses providers whose addresses Census/Maps/NPPES
+        # couldn't resolve.
+        assert should_embed(_individual_failed_at(label)) is True
 
     def test_foreign_provider_embeds(self):
         assert should_embed(INDIVIDUAL_FOREIGN) is True
@@ -300,11 +340,27 @@ class TestProject:
         assert p["county_trust_tier"] == "high"
         assert p["county_resolution_status"] == "resolved"
 
-    def test_geocoder_failed_county_low_trust(self):
-        p = project(INDIVIDUAL_GEOCODER_FAILED)
+    @pytest.mark.parametrize(
+        "label,label_human",
+        _FAILED_PASS_LABELS,
+        ids=[label for label, _ in _FAILED_PASS_LABELS],
+    )
+    def test_each_pass_failure_low_trust_and_summary(self, label, label_human):
+        # The three reader paths affected by the schema change must all
+        # treat every funnel-stop label uniformly: low trust, unresolved,
+        # no fips. Additionally — and this is the schema-cleanup contract
+        # that justified the change — county_source_summary MUST name the
+        # specific pass that gave up, not the legacy "all passes exhausted"
+        # blanket text. Consumers reading the summary can see exactly where
+        # the funnel stopped.
+        p = project(_individual_failed_at(label))
         assert p["county_trust_tier"] == "low"
         assert p["county_resolution_status"] == "unresolved"
         assert p["county_fips"] is None
+        assert label_human in p["county_source_summary"], (
+            f"county_source_summary for {label!r} must name {label_human!r}; "
+            f"got {p['county_source_summary']!r}"
+        )
 
     def test_foreign_provider_flag(self):
         p = project(INDIVIDUAL_FOREIGN)
@@ -391,11 +447,17 @@ class TestRender:
         text = render(project(ORGANIZATION_ENRICHED))
         assert "mailing_address" not in text
 
-    def test_geocoder_failed_omits_provenance(self):
+    @pytest.mark.parametrize(
+        "label,_label_human",
+        _FAILED_PASS_LABELS,
+        ids=[label for label, _ in _FAILED_PASS_LABELS],
+    )
+    def test_each_pass_failure_omits_provenance_in_render(self, label, _label_human):
         # Provenance fields (county_trust_tier, county_resolution_status,
         # county_source, county_reason) are kept on the projection dict for
-        # retrieval-time filtering but MUST NOT bleed into the embedding text.
-        text = render(project(INDIVIDUAL_GEOCODER_FAILED))
+        # retrieval-time filtering but MUST NOT bleed into the embedding
+        # text — for any of the four funnel-stop labels.
+        text = render(project(_individual_failed_at(label)))
         assert "county_resolution_status:" not in text
         assert "county_trust_tier:" not in text
         assert "county_source:" not in text

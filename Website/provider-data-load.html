@@ -333,7 +333,7 @@
         <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 3 sub-orchestrator</strong><small>Census Geocoder, billing address retry</small></div></div>
         <div class="d-down">&#8595;</div>
         <div class="d-fan">
-          <div class="d-fan-box"><strong>get_billing_retryable</strong><small>geocoder_failed after Pass 2</small></div>
+          <div class="d-fan-box"><strong>get_billing_retryable</strong><small>geocoder_pass2_failed</small></div>
         </div>
         <div class="d-label">fan-out &#8594; enrich_by_address_batch workers &#183; mailing/billing address &#183; 500 per batch</div>
 
@@ -341,7 +341,7 @@
         <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 4 sub-orchestrator</strong><small>Google Maps Geocoding API &#183; requires google_maps_enabled=true</small></div></div>
         <div class="d-down">&#8595;</div>
         <div class="d-fan">
-          <div class="d-fan-box"><strong>get_maps_retryable</strong><small>geocoder_failed after Pass 3</small></div>
+          <div class="d-fan-box"><strong>get_maps_retryable</strong><small>geocoder_pass3_failed</small></div>
         </div>
         <div class="d-label">fan-out &#8594; enrich_by_maps_batch workers &#183; paid API beyond free tier &#183; opt-in via google_maps_enabled</div>
 
@@ -349,7 +349,7 @@
         <div class="d-center"><div class="d-box d-box-wide d-box-teal"><strong>Pass 6 sub-orchestrator</strong><small>NPPES CMS Registry lookup by NPI</small></div></div>
         <div class="d-down">&#8595;</div>
         <div class="d-fan">
-          <div class="d-fan-box"><strong>get_nppes_retryable</strong><small>geocoder_failed or unenriched after Pass 4</small></div>
+          <div class="d-fan-box"><strong>get_nppes_retryable</strong><small>geocoder_pass4_failed or unenriched</small></div>
         </div>
         <div class="d-label">fan-out &#8594; enrich_by_nppes_batch workers &#183; free &#183; ~5 req/s &#183; optional states filter</div>
 
@@ -366,7 +366,7 @@
     </div>
     <div class="note">
       <strong>Pass 2/3 data source:</strong> US Census Geocoder API (free, US-only, 500-address batches).
-      Pass 2 uses <code>practice_address</code>; Pass 3 retries <code>geocoder_failed</code> using mailing_address/billing address.
+      Pass 2 uses <code>practice_address</code>; Pass 3 retries records tagged <code>geocoder_pass2_failed</code> using mailing_address/billing address.
     </div>
     <div class="note">
       <strong>Pass 4 data source:</strong> Google Maps Geocoding API (paid beyond free tier).
@@ -388,15 +388,19 @@
         <tr><th>Pass</th><th>Method</th><th>Source</th><th>Provenance Tag</th><th>Status</th></tr>
         <tr><td>1</td><td>ZIP &#8594; county crosswalk &#183; <code>updateMany</code> per ZIP</td><td>HUD USPS crosswalk</td><td><code>crosswalk_pass1</code></td><td>Live</td></tr>
         <tr><td>2</td><td>Practice address &#8594; Census Geocoder &#183; batch 500</td><td>US Census Geocoder API</td><td><code>geocoder_pass2_batch</code></td><td>Live</td></tr>
-        <tr><td>3</td><td>Billing address &#8594; Census Geocoder &#183; batch 500 (geocoder_failed retry)</td><td>US Census Geocoder API</td><td><code>geocoder_pass3_billing</code></td><td>Live</td></tr>
+        <tr><td>3</td><td>Billing address &#8594; Census Geocoder &#183; batch 500 (retry on pass2 failure)</td><td>US Census Geocoder API</td><td><code>geocoder_pass3_billing</code></td><td>Live</td></tr>
         <tr><td>4</td><td>Practice address &#8594; Google Maps Geocoding API (paid, opt-in)</td><td>Google Maps Platform</td><td><code>geocoder_pass4_maps</code></td><td>Live</td></tr>
         <tr><td>6</td><td>NPPES registry lookup by NPI (free, ~5 req/s)</td><td>CMS NPPES API</td><td><code>geocoder_pass6_nppes</code></td><td>Live</td></tr>
       </table>
     </div>
-    <p>Records flagged <code>geocoder_failed</code> after all passes can be resolved at runtime by the AI agent
-    during the FindCare conversation &#8212; no pipeline re-run needed. Records successfully enriched in any pass
-    are not re-attempted. The 98% enrichment SLA requires passes 1&#8211;3 (all free); passes 4 and 6 are
-    improvement passes that push toward 100%.</p>
+    <p>Records that fail the funnel carry a pass-specific tag &mdash; <code>geocoder_pass2_failed</code>,
+    <code>geocoder_pass3_failed</code>, <code>geocoder_pass4_failed</code>, or <code>geocoder_pass6_failed</code> &mdash;
+    naming exactly which pass gave up. The streaming pipeline&rsquo;s post-load recovery phase uses the tag
+    to resume the funnel at the NEXT pass after the one that failed, so prior work is not re-attempted.
+    Records left at <code>geocoder_pass6_failed</code> have exhausted the funnel and can be resolved at
+    runtime by the AI agent during the FindCare conversation &mdash; no pipeline re-run needed.
+    Records successfully enriched in any pass are not re-attempted. The 98% enrichment SLA requires
+    passes 1&#8211;3 (all free); passes 4 and 6 are improvement passes that push toward 100%.</p>
 
     <!-- 3d. Out-of-Scope Providers -->
     <h2 id="out-of-scope">3d. Out-of-Scope Providers</h2>

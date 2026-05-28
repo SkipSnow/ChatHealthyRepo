@@ -244,7 +244,10 @@
         <tr><td><code>geocoder_pass3_billing</code></td><td>Full geo, billing address fallback</td></tr>
         <tr><td><code>geocoder_pass4_maps</code></td><td>Full geo, Google Maps</td></tr>
         <tr><td><code>geocoder_pass5_maps_billing</code></td><td>Full geo, Google Maps billing fallback</td></tr>
-        <tr><td><code>geocoder_failed</code></td><td>Valid US address — county just couldn't be resolved</td></tr>
+        <tr><td><code>geocoder_pass2_failed</code></td><td>Pass 2 (Census batch on practice address) gave up — recovery resumes at Pass 3</td></tr>
+        <tr><td><code>geocoder_pass3_failed</code></td><td>Pass 3 (Census batch on billing address) gave up — recovery resumes at Pass 4</td></tr>
+        <tr><td><code>geocoder_pass4_failed</code></td><td>Pass 4 (Google Maps on practice address) gave up — recovery resumes at Pass 6</td></tr>
+        <tr><td><code>geocoder_pass6_failed</code></td><td>Pass 6 (NPPES last resort) gave up — funnel exhausted, address remains un-countyed</td></tr>
         <tr><td><code>out_of_scope / deactivated</code></td><td>Valid address — NPI is inactive but record is searchable</td></tr>
         <tr><td><code>out_of_scope / foreign_provider</code></td><td>Valid address — non-US provider</td></tr>
         <tr><td><code>out_of_scope / legacy</code></td><td>Valid address — reason predates reason field</td></tr>
@@ -277,7 +280,7 @@
         <tr><td><code>location_display</code> (practice)</td><td>string</td><td><code>line1[, line2], city, state zip</code></td></tr>
         <tr><td><code>mailing_location_display</code></td><td>string / omitted</td><td>Same format. Omitted if identical to practice address.</td></tr>
         <tr><td><code>county_resolution_status</code></td><td><code>resolved</code> / <code>unresolved</code> / <code>excluded</code></td><td>Whether <code>county.fips</code> was set.</td></tr>
-        <tr><td><code>county_trust_tier</code></td><td><code>high</code> / <code>medium</code> / <code>low</code> / <code>excluded</code></td><td>crosswalk = high; geocoder/maps = medium; geocoder_failed = low; out_of_scope = excluded.</td></tr>
+        <tr><td><code>county_trust_tier</code></td><td><code>high</code> / <code>medium</code> / <code>low</code> / <code>excluded</code></td><td>crosswalk = high; geocoder/maps = medium; any of the four <code>geocoder_pass*_failed</code> labels = low; out_of_scope = excluded.</td></tr>
         <tr><td><code>county_source_summary</code></td><td>string</td><td>Human-readable enrichment method.</td></tr>
         <tr><td><code>npi_status</code></td><td><code>active</code> / <code>inactive</code></td><td>Inactive when <code>npi_deactivation_date</code> set and <code>npi_reactivation_date</code> absent.</td></tr>
         <tr><td><code>foreign_provider_flag</code></td><td><code>yes</code> / <code>no</code></td><td><code>yes</code> when <code>practice_address.country</code> is not <code>US</code>.</td></tr>

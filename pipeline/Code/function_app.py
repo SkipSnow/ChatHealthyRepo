@@ -32,31 +32,13 @@ from icd10_loader import load_icd10
 from count_providers_by_state import count_providers_by_state
 from pipeline_health import check_mongo_health
 # from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
-from county_enrichment_job import (
-    county_enrichment_orchestrator_fn,
-    county_enrichment_pass1_orchestrator_fn,
-    county_enrichment_pass2_orchestrator_fn,
-    county_enrichment_pass3_orchestrator_fn,
-    county_enrichment_pass4_orchestrator_fn,
-    county_enrichment_pass6_nppes_orchestrator_fn,
-    enrich_by_address_batch_fn,
-    enrich_by_billing_batch_fn,
-    enrich_by_maps_batch_fn,
-    enrich_by_nppes_batch_fn,
-    enrich_by_zip_batch_fn,
-    enrichment_report_fn,
-    get_billing_retryable_fn,
-    get_distinct_zips_fn,
-    get_maps_retryable_fn,
-    get_nppes_retryable_fn,
-    get_pass3_counties_for_state_fn,
-    get_pass4_counties_for_state_fn,
-    get_pass6_counties_for_state_fn,
-    get_unenriched_fn,
-    lookup_crosswalk_fn,
-    mark_out_of_scope_fn,
-    mark_zip_state_mismatch_fn,
-)
+# CountyEnrichment-as-a-standalone-pipeline has been retired (2026-05-28).
+# The provider pipeline (StreamingPipeline) owns the providers collection
+# end-to-end and does enrichment inline inside process_assignment_activity.
+# No external county-enrichment orchestrator is exposed here. Helper
+# utilities in county_enrichment_job.py (_get_crosswalk, _get_maps_county_lookup,
+# _build_states_filter, PROVIDERS_COLLECTION) remain importable for the
+# StampEmbeddingVersion task and other narrow internal uses.
 from instance_warmer import cool_instances_fn, warm_instances_fn
 from cluster_lifecycle_manager import ClusterLifecycleManager
 from provider_load_manager import (
@@ -74,7 +56,6 @@ from provider_load_manager import (
     partition_file_fn,
     prepare_data_orchestrator_fn,
     provider_load_orchestrator_fn,
-    provider_pipeline_orchestrator_fn,
     provider_worker_fn,
     reconcile_fn,
     report_fn,
@@ -107,6 +88,12 @@ from throttle_entities import token_bucket_entity_fn
 from throttle_entity import throttle_entity_fn
 from work_manager_entity import work_manager_entity_fn
 from record_worker_orchestrator import record_worker_orchestrator_fn
+from recovery_worker_orchestrator import recovery_worker_orchestrator_fn
+from recover_county_activity import (
+    build_recovery_assignments_fn,
+    process_recovery_assignment_fn,
+)
+from ensure_provider_indexes_activity import ensure_provider_indexes_fn
 from source_gather_orchestrator import source_gather_orchestrator_fn
 from process_assignment_activity import process_assignment_activity_fn
 from chunk_indexer import build_chunk_index_activity_fn
@@ -188,6 +175,14 @@ def streaming_pipeline_orchestrator_fn(context):
         "job_id": load_id,
         "requester": "streaming_pipeline",
         "expected_duration_minutes": config.get("expected_duration_minutes", 120),
+    })
+
+    # Software-managed provider indexes. Idempotent — already-existing
+    # indexes are a no-op. Required by build_chunk_index_activity (npi_1)
+    # and build_recovery_assignments_activity (addresses.county.source_1).
+    # No operator side-action; the pipeline owns its own index posture.
+    yield context.call_activity("ensure_provider_indexes_activity", {
+        "provider_collection": config.get("provider_collection"),
     })
 
     # Durable throttle inventory shrunk to two semantic gates:
@@ -292,6 +287,58 @@ def streaming_pipeline_orchestrator_fn(context):
         ]
         worker_results = yield context.task_all(pool)
 
+        # ── County recovery phase ─────────────────────────────────────────
+        # Per Skip 2026-05-28: ~9% of practice addresses end the load with
+        # county.source=geocoder_failed because the in-loop Census batch
+        # call missed them. Recover them here inside the same orchestration
+        # and the same reservation window using the same ingest -> process
+        # -> write-back pattern the CMS load uses:
+        #
+        #   1. build_recovery_assignments_activity returns chunk_index of
+        #      NPI lists — one entry per assignment.
+        #   2. work_manager.seed with work_kind="repair_chunks" loads the
+        #      second queue.
+        #   3. fan out recovery_worker sub-orchestrations; each claims one
+        #      assignment, runs the pass chain against the failed cohort
+        #      of real provider records, writes back per-NPI.
+        recovery_batch_size = int(config.get("recovery_batch_size", 50))
+        recovery_pool_size = int(config.get("recovery_pool_size", 20))
+        recovery_seed = yield context.call_activity(
+            "build_recovery_assignments_activity",
+            {
+                "load_id": load_id,
+                "provider_collection": config.get("provider_collection"),
+                "recovery_batch_size": recovery_batch_size,
+            },
+        )
+        recovery_chunks = (recovery_seed or {}).get("chunk_index") or []
+        recovery_results = []
+        if recovery_chunks:
+            yield context.call_entity(
+                df.EntityId("work_manager", load_id),
+                "seed",
+                {
+                    "work_kind": "repair_chunks",
+                    "chunk_index": recovery_chunks,
+                    "batch_size": recovery_batch_size,
+                    "discrepancy_threshold": discrepancy_threshold,
+                },
+            )
+            recovery_worker_cfg = {
+                "load_id": load_id,
+                "provider_collection": config.get("provider_collection"),
+                "env_prefix": config.get("env_prefix", "dev"),
+                "age_limit_seconds": int(config.get("age_limit_seconds", 6600)),
+            }
+            recovery_pool = [
+                context.call_sub_orchestrator(
+                    "recovery_worker_orchestrator",
+                    {**recovery_worker_cfg, "worker_id": f"recovery_{wid}"},
+                )
+                for wid in range(1, recovery_pool_size + 1)
+            ]
+            recovery_results = yield context.task_all(recovery_pool)
+
         yield context.call_activity("cool_instances_activity", {})
 
         summary = {
@@ -300,6 +347,9 @@ def streaming_pipeline_orchestrator_fn(context):
             "workers_completed": len(worker_results),
             "csv_file_size": meta["file_size"],
             "chunk_size_bytes": chunk_size_bytes,
+            "recovery_chunks": len(recovery_chunks),
+            "recovery_total_npis": (recovery_seed or {}).get("total_npis", 0),
+            "recovery_workers_completed": len(recovery_results),
         }
 
         context.signal_entity(
@@ -422,10 +472,14 @@ OPS_TASK_HANDLERS = {
     "ForceRelease": _handle_force_release,
 }
 
-# Asynchronous tasks — start a Durable orchestrator, return 202 + status URL
+# Asynchronous tasks — start a Durable orchestrator, return 202 + status URL.
+# Retired 2026-05-28: CountyEnrichment (standalone enrichment pipeline — no
+# business value on its own) and the OLD ProviderPipeline (delegated its
+# enrichment phase to external CountyEnrichment sub-orchestrators, violating
+# the principle that the provider pipeline owns the providers collection
+# end-to-end with no external orchestrations). StreamingPipeline is the
+# provider pipeline going forward.
 ASYNC_TASK_ORCHESTRATORS = {
-    "CountyEnrichment": "county_enrichment_orchestrator",
-    "ProviderPipeline": "provider_pipeline_orchestrator",
     "StreamingPipeline": "streaming_pipeline_orchestrator",
     "SpecialtyPipeline": "specialty_pipeline_orchestrator",
     "SnapshotCollection": "snapshot_collection_orchestrator",
@@ -663,11 +717,6 @@ def work_manager(context: df.DurableEntityContext) -> None:
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
 
 @app.orchestration_trigger(context_name="context")
-def provider_pipeline_orchestrator(context: df.DurableOrchestrationContext):
-    return provider_pipeline_orchestrator_fn(context)
-
-
-@app.orchestration_trigger(context_name="context")
 def streaming_pipeline_orchestrator(context: df.DurableOrchestrationContext):
     return streaming_pipeline_orchestrator_fn(context)
 
@@ -675,6 +724,26 @@ def streaming_pipeline_orchestrator(context: df.DurableOrchestrationContext):
 @app.orchestration_trigger(context_name="context")
 def record_worker_orchestrator(context: df.DurableOrchestrationContext):
     return record_worker_orchestrator_fn(context)
+
+
+@app.activity_trigger(input_name="config")
+def build_recovery_assignments_activity(config: dict) -> dict:
+    return build_recovery_assignments_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def process_recovery_assignment_activity(config: dict) -> dict:
+    return process_recovery_assignment_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def ensure_provider_indexes_activity(config: dict) -> dict:
+    return ensure_provider_indexes_fn(config)
+
+
+@app.orchestration_trigger(context_name="context")
+def recovery_worker_orchestrator(context: df.DurableOrchestrationContext):
+    return recovery_worker_orchestrator_fn(context)
 
 
 @app.orchestration_trigger(context_name="context")
@@ -951,121 +1020,23 @@ def apply_provider_flags_activity(config: dict) -> dict:
     return apply_provider_flags_fn(config)
 
 
-# ── County Enrichment Orchestrator + Activities ───────────────────────────────
-
-@app.orchestration_trigger(context_name="context")
-def county_enrichment_orchestrator(context: df.DurableOrchestrationContext):
-    return county_enrichment_orchestrator_fn(context)
-
-
-@app.orchestration_trigger(context_name="context")
-def county_enrichment_pass1_orchestrator(context: df.DurableOrchestrationContext):
-    return county_enrichment_pass1_orchestrator_fn(context)
-
-
-@app.orchestration_trigger(context_name="context")
-def county_enrichment_pass2_orchestrator(context: df.DurableOrchestrationContext):
-    return county_enrichment_pass2_orchestrator_fn(context)
-
-
-@app.orchestration_trigger(context_name="context")
-def county_enrichment_pass3_orchestrator(context: df.DurableOrchestrationContext):
-    return county_enrichment_pass3_orchestrator_fn(context)
-
-
-@app.orchestration_trigger(context_name="context")
-def county_enrichment_pass4_orchestrator(context: df.DurableOrchestrationContext):
-    return county_enrichment_pass4_orchestrator_fn(context)
-
-
-@app.orchestration_trigger(context_name="context")
-def county_enrichment_pass6_nppes_orchestrator(context: df.DurableOrchestrationContext):
-    return county_enrichment_pass6_nppes_orchestrator_fn(context)
-
-
-@app.activity_trigger(input_name="config")
-def get_distinct_zips_activity(config: dict) -> dict:
-    return get_distinct_zips_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def lookup_crosswalk_activity(config: dict) -> dict:
-    return lookup_crosswalk_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def enrich_by_zip_batch_activity(config: dict) -> dict:
-    return enrich_by_zip_batch_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def get_unenriched_activity(config: dict) -> dict:
-    return get_unenriched_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def enrich_by_address_batch_activity(config: dict) -> dict:
-    return enrich_by_address_batch_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def mark_out_of_scope_activity(config: dict) -> dict:
-    return mark_out_of_scope_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def mark_zip_state_mismatch_activity(config: dict) -> dict:
-    return mark_zip_state_mismatch_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def get_billing_retryable_activity(config: dict) -> dict:
-    return get_billing_retryable_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def enrich_by_billing_batch_activity(config: dict) -> dict:
-    return enrich_by_billing_batch_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def get_maps_retryable_activity(config: dict) -> dict:
-    return get_maps_retryable_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def enrich_by_maps_batch_activity(config: dict) -> dict:
-    return enrich_by_maps_batch_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def get_pass3_counties_for_state_activity(config: dict) -> dict:
-    return get_pass3_counties_for_state_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def get_pass4_counties_for_state_activity(config: dict) -> dict:
-    return get_pass4_counties_for_state_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def get_pass6_counties_for_state_activity(config: dict) -> dict:
-    return get_pass6_counties_for_state_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def get_nppes_retryable_activity(config: dict) -> dict:
-    return get_nppes_retryable_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def enrich_by_nppes_batch_activity(config: dict) -> dict:
-    return enrich_by_nppes_batch_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def enrichment_report_activity(config: dict) -> dict:
-    return enrichment_report_fn(config)
+# ── (CountyEnrichment Orchestrator + Activities retired 2026-05-28) ──────────
+# All CountyEnrichment-* and pass{1,2,3,4,6}-* orchestrator/activity triggers
+# have been removed. They existed only to expose CountyEnrichment as a
+# standalone pipeline (anti-pattern: standalone enrichment pipeline with no
+# business value on its own) and to back the OLD ProviderPipeline that
+# delegated its enrichment phase out to those external orchestrations
+# (violation of the "provider pipeline owns the providers collection
+# end-to-end with no external orchestrations" principle).
+#
+# The streaming provider pipeline (streaming_pipeline_orchestrator) is now
+# the sole provider pipeline and does enrichment inline inside
+# process_assignment_activity.
+#
+# Helper utilities still in county_enrichment_job.py — _get_crosswalk,
+# _get_maps_county_lookup, _build_states_filter, PROVIDERS_COLLECTION,
+# _build_enrichment_reconcile — are not Durable triggers and remain
+# importable by narrow internal callers (StampEmbeddingVersion, etc.).
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
