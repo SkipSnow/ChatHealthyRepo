@@ -59,77 +59,119 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+# Hard-coded recovery cohort (the three resume-able failure values our
+# code writes; pass6_failed is terminal and excluded). The strings are
+# the same ones process_assignment_activity writes; the schema enum
+# documents them. We do not load the enum from anywhere — the values
+# are closed-loop inside our own code.
+_RECOVERY_FAILURE_VALUES = (
+    "geocoder_pass2_failed",
+    "geocoder_pass3_failed",
+    "geocoder_pass4_failed",
+)
+
+
 def build_recovery_assignments_fn(config: dict) -> dict:
-    """INGEST: list NPIs needing county recovery, split into assignments.
+    """INGEST: query failed-source records, group by the failure value
+    they carry, and emit stage-stamped assignments.
 
     Returns:
       {
         "total_npis": int,
-        "chunk_index": [[npi, npi, ...], [npi, ...], ...],
+        "per_stage": {stage: count, ...},
+        "chunk_index": [
+            {"stage": "geocoder_pass2_failed", "npis": [...]},
+            {"stage": "geocoder_pass3_failed", "npis": [...]},
+            {"stage": "geocoder_pass4_failed", "npis": [...]},
+            ...
+        ],
       }
 
-    chunk_index is the work_manager seed format for work_kind="repair_chunks":
-    each entry is the NPI list for one assignment. Empty cohort -> empty
-    chunk_index -> work_manager seed sets total_chunks=0 -> recovery
-    workers exit on first next_assignment.
+    Each chunk is one assignment: a single stage value plus up to
+    recovery_batch_size NPIs that carry that stage. Worker reads the
+    stage off the assignment and dispatches to the right next pass.
     """
-    from process_assignment_activity import _RECOVERY_COHORT_SOURCES
-
     db_name, coll_name = _split_collection(config.get("provider_collection"))
-    batch_size = int(config.get("recovery_batch_size", 50))
+    batch_size = int(config.get("recovery_batch_size", 200))
 
     client = _get_client()
     coll = client[db_name][coll_name]
 
-    # Distinct NPIs touched by at least one non-terminal failure label
-    # (pass2/3/4_failed). Pass6_failed records are chain-exhausted and
-    # excluded — recovery has nowhere left in the funnel to resume them.
-    # The addresses.county.source_1 multikey index covers the $in match.
+    # Per-stage NPI buckets keyed by the failure value the records carry.
+    # A provider is placed in the bucket of the failure value it carries
+    # on any of its addresses; if it carries more than one we take the
+    # earliest in the funnel (pass2 < pass3 < pass4) so the resume work
+    # is done at the right step. addresses.county.source_1 multikey
+    # index covers the $in match.
+    funnel_order = {
+        "geocoder_pass2_failed": 0,
+        "geocoder_pass3_failed": 1,
+        "geocoder_pass4_failed": 2,
+    }
+    per_stage: dict[str, list[str]] = {v: [] for v in _RECOVERY_FAILURE_VALUES}
     cursor = coll.find(
-        {"addresses.county.source": {"$in": list(_RECOVERY_COHORT_SOURCES)}},
-        {"npi": 1, "_id": 0},
+        {"addresses.county.source": {"$in": list(_RECOVERY_FAILURE_VALUES)}},
+        {"npi": 1, "addresses.county.source": 1, "_id": 0},
     )
-    npis: list[str] = []
     for row in cursor:
         npi = row.get("npi")
-        if npi:
-            npis.append(str(npi))
+        if not npi:
+            continue
+        earliest: str | None = None
+        earliest_rank: int = 99
+        for a in row.get("addresses") or []:
+            src = (a.get("county") or {}).get("source") if isinstance(a, dict) else None
+            r = funnel_order.get(src, 99)
+            if r < earliest_rank:
+                earliest_rank = r
+                earliest = src
+        if earliest is not None:
+            per_stage[earliest].append(str(npi))
 
-    chunk_index: list[list[str]] = []
-    for i in range(0, len(npis), batch_size):
-        chunk_index.append(npis[i:i + batch_size])
+    chunk_index: list[dict] = []
+    for stage, npis in per_stage.items():
+        for i in range(0, len(npis), batch_size):
+            chunk_index.append({
+                "stage": stage,
+                "npis": npis[i:i + batch_size],
+            })
 
+    total_npis = sum(len(v) for v in per_stage.values())
     logging.info(
-        "build_recovery_assignments: %d npis -> %d chunks (batch_size=%d)",
-        len(npis), len(chunk_index), batch_size,
+        "build_recovery_assignments: %d npis -> %d chunks (batch_size=%d) per_stage=%s",
+        total_npis, len(chunk_index), batch_size,
+        {k: len(v) for k, v in per_stage.items()},
     )
     return {
-        "total_npis": len(npis),
+        "total_npis": total_npis,
+        "per_stage": {k: len(v) for k, v in per_stage.items()},
         "chunk_index": chunk_index,
         "batch_size": batch_size,
     }
 
 
 def process_recovery_assignment_fn(config: dict) -> dict:
-    """WORKER: re-run the pass chain on the assignment's NPIs.
+    """WORKER: re-run the existing pass chain on the assignment's NPIs.
 
-    Reuses process_assignment_activity's pass2/3/4/6 implementations and
-    its _TokenBucket instances (_CENSUS, _GMAPS, _NPPES) so this activity
-    shares the same per-API rate ceiling with the load phase running in
-    the same process. The shared _ADDR_CACHE there is also used here for
-    free; per Skip we start it warm-or-empty depending on whether the load
-    phase populated it during this run.
+    The assignment carries a single stage value as a tag for metrics.
+    The worker reuses the existing chain in process_assignment_activity
+    (_pass2_census -> _pass3_billing -> _pass4_maps -> _pass6_nppes);
+    each pass's selector decides per-address whether to act, so the
+    "continue down the funnel on lack of result" semantics fall out of
+    the existing logic. No new dispatch code, no new stage-routing
+    branch.
     """
     t0 = time.time()
     load_id = config["load_id"]
     worker_id = config.get("worker_id")
     assignment = config.get("assignment") or {}
     chunk_id = assignment.get("chunk_id")
+    stage = assignment.get("stage")
     npis = assignment.get("npis") or []
     n_in = len(npis)
 
-    if not npis:
-        return _empty_result(chunk_id, n_in, t0)
+    if not npis or not stage:
+        return _empty_result(chunk_id, stage, n_in, t0)
 
     db_name, coll_name = _split_collection(config.get("provider_collection"))
     client = _get_client()
@@ -139,8 +181,7 @@ def process_recovery_assignment_fn(config: dict) -> dict:
         _pass2_census, _pass3_billing, _pass4_maps, _pass6_nppes,
     )
 
-    # Fetch the assignment's docs in one round-trip — we need the full
-    # addresses array, so no projection narrowing.
+    # Fetch the assignment's docs in one round-trip.
     docs = {}
     for d in coll.find({"npi": {"$in": npis}}):
         npi = d.get("npi")
@@ -148,15 +189,14 @@ def process_recovery_assignment_fn(config: dict) -> dict:
             docs[str(npi)] = d
 
     ops: list[UpdateOne] = []
-    n_resolved_addresses = 0
-    n_still_failed_addresses = 0
+    n_addresses_at_stage_before = 0
+    n_addresses_at_stage_after = 0
 
     for npi in npis:
         doc = docs.get(str(npi))
         if doc is None:
             continue
-        # Snapshot the failed-practice-address count for metrics.
-        pre_failed = _count_failed_practice(doc)
+        before = _count_addresses_at_stage(doc, stage)
         try:
             _pass2_census(doc)
             _pass3_billing(doc)
@@ -164,19 +204,20 @@ def process_recovery_assignment_fn(config: dict) -> dict:
             _pass6_nppes(doc)
         except Exception as exc:
             logging.warning(
-                "recovery: npi=%s pass-chain failed: %s", npi, exc,
+                "recovery: npi=%s stage=%s chain raised: %s",
+                npi, stage, exc,
             )
             continue
-        post_failed = _count_failed_practice(doc)
-        n_resolved_addresses += max(0, pre_failed - post_failed)
-        n_still_failed_addresses += post_failed
-
+        after = _count_addresses_at_stage(doc, stage)
+        n_addresses_at_stage_before += before
+        n_addresses_at_stage_after += after
         ops.append(UpdateOne(
             {"npi": str(npi)},
             {"$set": {
                 "addresses": doc.get("addresses") or [],
                 "recovered_at": _iso_now(),
                 "recovery_load_id": load_id,
+                "recovery_stage": stage,
             }},
         ))
 
@@ -190,57 +231,55 @@ def process_recovery_assignment_fn(config: dict) -> dict:
             raise
 
     elapsed = time.time() - t0
+    n_moved_forward = max(0, n_addresses_at_stage_before - n_addresses_at_stage_after)
     metric = {
         "load_id": load_id,
         "emitted_at": _iso_now(),
         "kind": "county_recovery_chunk",
         "worker_id": worker_id,
         "chunk_id": chunk_id,
+        "stage": stage,
         "npis_in_chunk": n_in,
         "providers_found": len(docs),
         "providers_modified": n_modified,
-        "addresses_resolved": n_resolved_addresses,
-        "addresses_still_failed": n_still_failed_addresses,
+        "addresses_at_stage_before": n_addresses_at_stage_before,
+        "addresses_at_stage_after": n_addresses_at_stage_after,
+        "addresses_moved_forward": n_moved_forward,
         "duration_seconds": round(elapsed, 2),
     }
     _emit_chunk_metric(client, metric)
     logging.info(
-        "recovery chunk %s: npis=%d found=%d modified=%d resolved=%d still_failed=%d in %.1fs",
-        chunk_id, n_in, len(docs), n_modified,
-        n_resolved_addresses, n_still_failed_addresses, elapsed,
+        "recovery chunk %s stage=%s npis=%d modified=%d moved_forward=%d in %.1fs",
+        chunk_id, stage, n_in, n_modified, n_moved_forward, elapsed,
     )
     return {
         "chunk_id": chunk_id,
+        "stage": stage,
         "npis_in_chunk": n_in,
         "providers_modified": n_modified,
-        "addresses_resolved": n_resolved_addresses,
-        "addresses_still_failed": n_still_failed_addresses,
+        "addresses_moved_forward": n_moved_forward,
         "duration_seconds": elapsed,
     }
 
 
-def _count_failed_practice(doc: dict) -> int:
-    from process_assignment_activity import _RECOVERY_COHORT_SOURCES, _FAILED_PASS6
+def _count_addresses_at_stage(doc: dict, stage: str) -> int:
     n = 0
     for a in doc.get("addresses") or []:
         if not isinstance(a, dict):
             continue
-        if a.get("address_type") != "practice":
-            continue
         c = a.get("county") or {}
-        src = c.get("source")
-        if src in _RECOVERY_COHORT_SOURCES or src == _FAILED_PASS6:
+        if c.get("source") == stage:
             n += 1
     return n
 
 
-def _empty_result(chunk_id, n_in: int, t0: float) -> dict:
+def _empty_result(chunk_id, stage, n_in: int, t0: float) -> dict:
     return {
         "chunk_id": chunk_id,
+        "stage": stage,
         "npis_in_chunk": n_in,
         "providers_modified": 0,
-        "addresses_resolved": 0,
-        "addresses_still_failed": 0,
+        "addresses_moved_forward": 0,
         "duration_seconds": round(time.time() - t0, 2),
     }
 
