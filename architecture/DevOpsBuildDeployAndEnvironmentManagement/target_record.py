@@ -31,6 +31,10 @@ class EnvironmentBinding:
                                 # keys: resource_group, container_app,
                                 # container_app_environment, task_hub,
                                 # min_replicas, max_replicas, cpu, memory_gi
+    azure_automation: dict | None = None
+                                # present iff target_kind=='azure_automation_runbook';
+                                # keys: resource_group, automation_account,
+                                # runbook_name, schedule_names[]
     branch: str | None = None   # source git branch this env deploys from;
                                  # required for git-branch-bound target_kinds
                                  # (cloudflare_pages_project, github_actions_workflow_runner)
@@ -42,6 +46,8 @@ class EnvironmentBinding:
             out["azure"] = self.azure
         if self.azure_container_app is not None:
             out["azure_container_app"] = self.azure_container_app
+        if self.azure_automation is not None:
+            out["azure_automation"] = self.azure_automation
         if self.branch is not None:
             out["branch"] = self.branch
         return out
@@ -53,6 +59,7 @@ class EnvironmentBinding:
             node_address=d["node_address"],
             azure=d.get("azure"),
             azure_container_app=d.get("azure_container_app"),
+            azure_automation=d.get("azure_automation"),
             branch=d.get("branch"),
         )
 

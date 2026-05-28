@@ -292,6 +292,45 @@ _ACA_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
 _ACA_STAGE_REQUIREMENTS_NAME = "requirements.txt"
 
 
+def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
+    """Stage the runbook source for `az automation runbook replace-content`.
+
+    Azure Automation runbooks are a single Python file. target.files[]
+    MUST contain exactly one entry, the runbook source. We copy it into
+    build_dir as `runbook.py` (a stable filename the deploy handler can
+    find without re-parsing the manifest's source_location). The
+    manifest_snapshot writer downstream emits the secret bindings into
+    `manifest.json`; the deploy handler reads those and pushes each
+    binding into the Automation Account as an Automation Variable
+    before pushing the runbook content.
+    """
+    if build_dir.exists():
+        shutil.rmtree(build_dir, ignore_errors=True)
+    build_dir.mkdir(parents=True)
+    if len(target.files) != 1:
+        sys.exit(
+            f"ERROR: azure_automation_runbook target {target.target_id!r} "
+            f"MUST declare exactly one source file (the runbook .py); got "
+            f"{len(target.files)} files."
+        )
+    src_rel = target.files[0].source_location
+    src_path = repo_root / src_rel
+    if not src_path.is_file():
+        sys.exit(
+            f"ERROR: runbook source {src_rel!r} not present on disk for "
+            f"target {target.target_id!r}."
+        )
+    if not src_rel.endswith(".py"):
+        sys.exit(
+            f"ERROR: azure_automation_runbook source MUST be a Python file; "
+            f"got {src_rel!r} for {target.target_id!r}."
+        )
+    dst = build_dir / "runbook.py"
+    shutil.copyfile(src_path, dst)
+    size_kb = dst.stat().st_size / 1024.0
+    _step(f"  staged runbook -> {dst.name} ({size_kb:.1f} KB)")
+
+
 def _build_azure_container_app(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
     """Stage the Pipeline source tree + render the Dockerfile.
 
@@ -380,6 +419,8 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
         _build_azure_function_app(repo_root, target, build_dir)
     elif target.target_kind == "azure_container_app":
         _build_azure_container_app(repo_root, target, build_dir)
+    elif target.target_kind == "azure_automation_runbook":
+        _build_azure_automation_runbook(repo_root, target, build_dir)
     else:
         raise RuntimeError(
             f"target_kind {target.target_kind!r} not supported in local_build."
@@ -395,6 +436,7 @@ _BUILDABLE_KINDS = (
     "hf_space",
     "azure_function_app",
     "azure_container_app",
+    "azure_automation_runbook",
 )
 
 
@@ -414,6 +456,8 @@ def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetR
         return [t for t in coll if t.target_kind == "azure_function_app"]
     if target_arg in ("aca", "azure_container_app"):
         return [t for t in coll if t.target_kind == "azure_container_app"]
+    if target_arg in ("automation", "azure_automation_runbook"):
+        return [t for t in coll if t.target_kind == "azure_automation_runbook"]
     for t in coll:
         if t.target_id == target_arg:
             return [t]
