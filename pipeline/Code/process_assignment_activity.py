@@ -147,9 +147,9 @@ _HEADER_CACHE_LOCK = threading.Lock()
 
 
 def _fetch_header(blob_client) -> list:
-    """Module-level cached. Key by blob URL — same spike re-uses the same
-    header across all chunks; same NPPES dissemination file across spikes
-    re-uses too. Avoids the 32KB header download per activity."""
+    """Module-level cached. Key by blob URL — same ProviderPipelineRunner
+    re-uses the header across all chunks; same NPPES dissemination file
+    across runs re-uses too. Avoids the 32KB header download per activity."""
     key = getattr(blob_client, "url", None) or repr(blob_client)
     with _HEADER_CACHE_LOCK:
         cached = _HEADER_CACHE.get(key)
@@ -801,7 +801,7 @@ def process_assignment_activity_fn(config: dict) -> dict:
         if not ops:
             return
         # Plain insert (drain_staging guarantees the target state slice is
-        # empty before the spike fans out). Cheaper than upsert: no per-doc
+        # empty before the run fans out). Cheaper than upsert: no per-doc
         # lookup, no read-modify-write — one network round-trip for the whole
         # batch.
         try:
