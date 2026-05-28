@@ -11,12 +11,12 @@ by the parent orchestrator and addressed by reference, not by spawn.
 Two work kinds today:
 
   cms_chunks      The load phase's CSV byte-range assignments. Seeded by
-                  streaming_pipeline_orchestrator after build_chunk_index.
+                  provider_pipeline_orchestrator after build_chunk_index.
                   Each assignment is {chunk_id, start_byte, end_byte,
                   batch_size, work_kind, assignment_id}.
 
   repair_chunks   The recovery phase's per-NPI assignments. Seeded by
-                  streaming_pipeline_orchestrator after the load drains,
+                  provider_pipeline_orchestrator after the load drains,
                   during the recovery phase. Each assignment is
                   {chunk_id, npis: [...], batch_size, work_kind,
                   assignment_id}.

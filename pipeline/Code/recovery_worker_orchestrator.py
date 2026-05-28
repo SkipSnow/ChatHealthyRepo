@@ -8,7 +8,7 @@ work_manager entity's repair_chunks queue (work_kind="repair_chunks").
 Each iteration claims ONE NPI-list assignment, hands it to
 process_recovery_assignment_activity, then acks. The pool_size throttle
 is shared with the load phase — recovery either runs after load drains
-(streaming_pipeline_orchestrator_fn fans both in sequence) or with
+(provider_pipeline_orchestrator_fn fans both in sequence) or with
 whatever pool_size capacity remains.
 
 Per-API rate limits are enforced inside the activity via the shared

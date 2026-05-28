@@ -9,7 +9,7 @@ For one assignment (byte range of the NPPES CSV), inline chain:
   mark_quality -> should_embed? -> embed -> stage (one blob per record).
 
 At assignment close: list-by-prefix, read each, bulk_write insert, delete blobs.
-Pre-condition: the streaming_pipeline_orchestrator has called drain_staging
+Pre-condition: the provider_pipeline_orchestrator has called drain_staging
 for the requested states, so the target slice is empty and inserts are clean.
 """
 from __future__ import annotations
