@@ -4,6 +4,9 @@ code/.env
 Code/.env
 **/.env
 
+# Local proprietary source data — not source code; per Skip 2026-05-28
+SourcePropriataryData/
+
 # Ignore temporary / editor backup files
 ~*
 *.tmp
