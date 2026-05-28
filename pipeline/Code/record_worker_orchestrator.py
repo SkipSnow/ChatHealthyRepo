@@ -3,10 +3,11 @@
 
 """record_worker_orchestrator - per-pool-slot sub-orchestration.
 
-Pulls a batch of assignments from work_manager (in-RAM deque), claims one
-pool_size token for the batch, runs process_assignment_activity per chunk,
-sends fire-and-forget acks. Cuts the per-chunk blocking entity ops from 3
-to ~0.4.
+Per Skip 2026-05-27: each iteration claims ONE assignment, runs the
+activity for that one assignment, then acks that one assignment. No
+batched reservations. Workers never hold more chunks than they're
+about to process. ack moves per chunk so stalled work surfaces fast
+instead of being hidden behind a slowest-of-N batch.
 
 Per-API rate limiting (Census/Maps/NPPES/OpenAI) happens inside the activity
 via in-process _TokenBucket. The Durable @throttle@ surface is intentionally
@@ -23,36 +24,30 @@ def record_worker_orchestrator_fn(context):
     wid = cfg["worker_id"]
     load_id = cfg["load_id"]
     age_limit = int(cfg.get("age_limit_seconds", 6600))
-    claim_n = int(cfg.get("claim_batch", 5))
 
     wm = df.EntityId("work_manager", load_id)
     start_time = context.current_utc_datetime
 
     while True:
-        # Batch-claim N assignments in one entity call instead of N calls.
-        batch = yield context.call_entity(wm, "next_assignment_batch", {
-            "worker_id": wid, "n": claim_n,
+        # Claim ONE assignment per iteration. No reservation stash.
+        assignment = yield context.call_entity(wm, "next_assignment", {
+            "worker_id": wid,
         })
-        if not batch:
+        if not assignment:
             break
 
-        # One pool_size token for the whole batch.
+        # One pool_size token per chunk.
         yield from acquire(context, "pool_size", n=1)
 
-        completed_chunk_ids = []
-        for assignment in batch:
-            yield context.call_activity("process_assignment_activity", {
-                **cfg,
-                "assignment": assignment,
-            })
-            completed_chunk_ids.append(assignment.get("chunk_id"))
+        yield context.call_activity("process_assignment_activity", {
+            **cfg,
+            "assignment": assignment,
+        })
 
-        # One batched ack per batch (deterministic + replay-safe). Awaiting
-        # is cheap — work_manager.ack_batch is an O(N) state update.
-        if completed_chunk_ids:
-            yield context.call_entity(wm, "ack_batch", {
-                "worker_id": wid, "chunk_ids": completed_chunk_ids,
-            })
+        # Ack this one chunk so done/claimed move per chunk.
+        yield context.call_entity(wm, "ack", {
+            "worker_id": wid, "chunk_id": assignment.get("chunk_id"),
+        })
 
         elapsed = (context.current_utc_datetime - start_time).total_seconds()
         if elapsed > age_limit:
