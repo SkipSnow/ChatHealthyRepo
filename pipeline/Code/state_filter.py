@@ -32,11 +32,7 @@ ALL_STATES_SENTINEL = "ALL"
 # "addresses.state" covers both. other_identifiers[] is now an array of
 # objects (each with .state); the old parallel-array `other_identifier_states`
 # is gone.
-STATE_BEARING_MONGO_FIELDS = (
-    "addresses.state",
-    "licenses.state",
-    "other_identifiers.state",
-)
+BUSINESS_ADDRESS_TYPE = "business"
 
 
 def normalize_states(config: dict) -> list[str]:
@@ -73,69 +69,62 @@ def is_full_load(states) -> bool:
 
 
 def mongo_state_filter(states) -> dict:
-    """Build a Mongo filter for the multi-state-bearing-field predicate.
+    """Build a Mongo filter scoped to the BUSINESS address only.
 
     Returns `{}` (match all) when `states` is the ALL sentinel. Otherwise
-    returns an `$or` across every state-bearing field.
+    returns an `$elemMatch` predicate that fires when the provider's
+    business-typed address (addresses[].address_type == 'business') has
+    a `state` in the requested set. The wider any-address / licenses /
+    other_identifiers predicate is gone — business-address is the
+    canonical residency signal for state-scoped runs and the only one
+    the drain step should key off of (Skip 2026-05-27).
 
-    For the legacy dict form, returns the single-field `addresses.state`
-    `$in` / `$nin` filter that enrichment has used historically — this
-    preserves the existing exclude-mode behavior unchanged after the
-    practice_address -> addresses migration.
+    For the legacy dict form, `mode='exclude'` becomes a `$nor` on the
+    same business-address elemMatch — preserving the exclude semantic.
     """
     if is_full_load(states):
         return {}
     if isinstance(states, dict):
         lst = states["list"]
-        op = "$in" if states["mode"] == "include" else "$nin"
-        return {"addresses.state": {op: lst}}
-    return {"$or": [{f: {"$in": states}} for f in STATE_BEARING_MONGO_FIELDS]}
+        biz_match = {"addresses": {"$elemMatch": {
+            "address_type": BUSINESS_ADDRESS_TYPE,
+            "state": {"$in": lst},
+        }}}
+        return biz_match if states["mode"] == "include" else {"$nor": [biz_match]}
+    return {"addresses": {"$elemMatch": {
+        "address_type": BUSINESS_ADDRESS_TYPE,
+        "state": {"$in": states},
+    }}}
 
 
-def _addresses_states(doc: dict) -> list[str]:
-    """Return the list of upper-cased states across all entries in
-    `addresses` (both business and practice types).
+def _business_address_state(doc: dict) -> str:
+    """Return the upper-cased state from the provider's business-typed address,
+    or empty string if absent.
 
-    Post-schema-reconciliation: `addresses` is always a list of address dicts
-    (one business + one or more practice). Pre-migration shapes (single dict,
-    or separate practice_address/mailing_address) are not supported here —
-    every read path is expected to operate against the new shape.
+    Post-schema-reconciliation: `addresses` is a list with one
+    `address_type='business'` entry (plus zero-or-more `address_type='practice'`
+    entries). State-scoping keys off the business entry only — practice
+    addresses, licenses, and other_identifiers are no longer part of the
+    state predicate.
     """
-    out: list[str] = []
     for entry in (doc.get("addresses") or []):
-        if isinstance(entry, dict):
-            st = (entry.get("state") or "").upper()
-            if st:
-                out.append(st)
-    return out
+        if isinstance(entry, dict) and entry.get("address_type") == BUSINESS_ADDRESS_TYPE:
+            return (entry.get("state") or "").upper()
+    return ""
 
 
 def doc_matches_state(doc: dict, states) -> bool:
     """Row-level matcher equivalent to `mongo_state_filter(states)`.
 
     Used by the LOAD worker, which evaluates each parsed CSV row in Python
-    (not against Mongo). Mirrors the Mongo predicate exactly so load and
-    every Mongo-side step stay symmetrical (REQ-T-001).
+    (not against Mongo). Mirrors the Mongo predicate exactly: business
+    address state only.
     """
     if is_full_load(states):
         return True
+    biz_state = _business_address_state(doc)
     if isinstance(states, dict):
         lst = states["list"]
-        for st in _addresses_states(doc):
-            if st in lst:
-                return states["mode"] == "include"
-        return states["mode"] != "include"
-
-    for st in _addresses_states(doc):
-        if st in states:
-            return True
-    for lic in (doc.get("licenses") or []):
-        st = (lic.get("state") or "").upper()
-        if st in states:
-            return True
-    for oid in (doc.get("other_identifiers") or []):
-        if isinstance(oid, dict):
-            st = (oid.get("state") or "").upper()
-            if st in states:
-                return True
-    return False
+        hit = biz_state in lst
+        return hit if states["mode"] == "include" else not hit
+    return biz_state in states

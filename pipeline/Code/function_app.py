@@ -232,6 +232,15 @@ def streaming_pipeline_orchestrator_fn(context):
         )
         csv_path = prepare["csv_path"]
 
+        # Drain destination collection (business-address state scoped) BEFORE
+        # workers start writing. After drain we know the target slice is empty,
+        # so the per-record write becomes a plain insert (no upsert handshake).
+        yield context.call_activity("drain_staging_activity", {
+            "states": config["states"],
+            "incremental": False,
+            "provider_collection": config.get("provider_collection"),
+        })
+
         meta = yield context.call_activity("get_csv_metadata_activity", {
             "csv_path": csv_path,
             "blob_container": config["blob_container"],
