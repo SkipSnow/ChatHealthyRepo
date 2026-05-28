@@ -15,7 +15,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-ROUTER_URL = "https://dev-pipeline-records-as-messages.yellowbay-d50afa88.eastus2.azurecontainerapps.io/api/Router"
+ROUTER_URL = "https://devpipelinemanagmentservice-hqa9f5b0b7b4hqgg.eastus2-01.azurewebsites.net/api/Router"
 
 # Force UTF-8 stdout so step notices with em-dash/arrow/ellipsis don't
 # UnicodeEncodeError on Windows cp1252 consoles.
@@ -99,9 +99,9 @@ def status_url_for_instance(instance_id: str) -> str:
             "fetch via `az functionapp keys list`."
         )
     return (
-        f"https://dev-pipeline-records-as-messages.yellowbay-d50afa88.eastus2.azurecontainerapps.io"
+        f"https://devpipelinemanagmentservice-hqa9f5b0b7b4hqgg.eastus2-01.azurewebsites.net"
         f"/runtime/webhooks/durabletask/instances/{instance_id}"
-        f"?taskHub=DevPipelineNetherite2&code={code}"
+        f"?taskHub=DevPipelineNetherite2&connection=Storage&code={code}"
     )
 
 
