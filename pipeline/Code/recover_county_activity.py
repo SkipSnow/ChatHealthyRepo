@@ -101,26 +101,32 @@ def build_recovery_assignments_fn(config: dict) -> dict:
     # A provider is placed in the bucket of the failure value it carries
     # on any of its addresses; if it carries more than one we take the
     # earliest in the funnel (pass2 < pass3 < pass4) so the resume work
-    # is done at the right step. addresses.county.source_1 multikey
-    # index covers the $in match.
+    # is done at the right step. The aggregation groups by NPI so the
+    # cohort has at most one row per NPI even if the providers collection
+    # happens to carry duplicate documents for the same NPI — the
+    # downstream worker assignments are NPI-disjoint by construction.
     funnel_order = {
         "geocoder_pass2_failed": 0,
         "geocoder_pass3_failed": 1,
         "geocoder_pass4_failed": 2,
     }
     per_stage: dict[str, list[str]] = {v: [] for v in _RECOVERY_FAILURE_VALUES}
-    cursor = coll.find(
-        {"addresses.county.source": {"$in": list(_RECOVERY_FAILURE_VALUES)}},
-        {"npi": 1, "addresses.county.source": 1, "_id": 0},
-    )
-    for row in cursor:
-        npi = row.get("npi")
+    pipeline = [
+        {"$match": {"addresses.county.source": {"$in": list(_RECOVERY_FAILURE_VALUES)}}},
+        {"$unwind": "$addresses"},
+        {"$match": {"addresses.county.source": {"$in": list(_RECOVERY_FAILURE_VALUES)}}},
+        {"$group": {
+            "_id": "$npi",
+            "sources": {"$addToSet": "$addresses.county.source"},
+        }},
+    ]
+    for row in coll.aggregate(pipeline, allowDiskUse=True):
+        npi = row.get("_id")
         if not npi:
             continue
         earliest: str | None = None
         earliest_rank: int = 99
-        for a in row.get("addresses") or []:
-            src = (a.get("county") or {}).get("source") if isinstance(a, dict) else None
+        for src in row.get("sources") or []:
             r = funnel_order.get(src, 99)
             if r < earliest_rank:
                 earliest_rank = r

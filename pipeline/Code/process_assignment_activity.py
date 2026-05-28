@@ -935,10 +935,13 @@ def process_assignment_activity_fn(config: dict) -> dict:
     # Phase 2: batched embed (one OpenAI call for the whole chunk)
     _embed_batch(docs)
 
-    # Phase 3: stage + commit. The worker tracks the exact (path, doc) pairs
-    # it staged so the commit and delete loop operate on what it KNOWS it
-    # wrote, never on a re-listed view of the blob container.
-    pending_batch: list = []
+    # Phase 3: stage + commit. pending_batch is a path -> doc dict so that
+    # if a chunk's docs ever present the same NPI twice (a duplicate that
+    # the upstream chunk reader did not guard against), the second
+    # occurrence overwrites the first in this map and the delete loop
+    # gets each path exactly once. Keeps the per-path write/delete
+    # symmetric without a path scheme change.
+    pending_batch: dict = {}
     for d in docs:
         try:
             path = staging_write(load_id, aid, wid, d["npi"], d)
@@ -947,13 +950,13 @@ def process_assignment_activity_fn(config: dict) -> dict:
             raise
         counters["storage_puts"] += 1
         counters["records_staged"] += 1
-        pending_batch.append((path, d))
+        pending_batch[path] = d
         if len(pending_batch) >= batch_size:
-            _commit_batch(pending_batch)
-            pending_batch = []
+            _commit_batch(list(pending_batch.items()))
+            pending_batch = {}
 
     if pending_batch:
-        _commit_batch(pending_batch)
+        _commit_batch(list(pending_batch.items()))
 
     duration = time.monotonic() - started_at
     metrics = {
