@@ -757,10 +757,7 @@ def process_assignment_activity_fn(config: dict) -> dict:
     wid = config["worker_id"]
     aid = a.get("assignment_id", a.get("chunk_id"))
     batch_size = int(a.get("batch_size", 1000))
-    # No state filter inside the worker. Either the csv_path is the master
-    # file (caller wants every record) or it's a pre-filtered state shard
-    # (every row already matches by construction). The work_allocator is
-    # the only place that distinguishes the two cases.
+    states = set([s.upper() for s in (config.get("states") or [])])
     env_prefix = config.get("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
     # Per-API rate limiting happens in this process via the module-level
     # _TokenBucket instances (_CENSUS, _GMAPS, _NPPES, _OPENAI). The
@@ -831,6 +828,8 @@ def process_assignment_activity_fn(config: dict) -> dict:
     _counters_lock = _threading.Lock()
 
     def _process_one(raw):
+        if states and not _raw_row_matches_state(raw, states):
+            return None
         npi = (raw.get("NPI") or "").strip()
         if not npi:
             return None
@@ -846,7 +845,7 @@ def process_assignment_activity_fn(config: dict) -> dict:
             _pass3_billing(doc)
             _pass4_maps(doc)
             _pass6_nppes(doc)
-            _stamp_urban(doc, rucc, None)
+            _stamp_urban(doc, rucc, states)
             _stamp_flags(doc, catalog)
             _mark_quality(doc)
         except Exception as exc:
