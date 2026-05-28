@@ -14,14 +14,19 @@ index the pipeline depends on:
   addresses.county.source_1   multi-key index used by
                               build_recovery_assignments_fn's aggregation
                               that finds providers carrying any address
-                              currently tagged geocoder_failed. Without it
-                              the aggregation does a COLLSCAN -> Atlas
-                              cursor timeout at scale.
+                              currently tagged with a per-pass failure
+                              label. Without it the aggregation does a
+                              COLLSCAN -> Atlas cursor timeout at scale.
 
 create_index is idempotent on PyMongo — if the index already exists with
 the same spec, it returns the existing name and does nothing. We do not
 issue dropIndex; if a prior index spec drifted, the operator handles it
 out-of-band.
+
+The activity rides out Atlas wake/REPAIRING windows by polling the
+cluster every 5 seconds via _wait_for_cluster_ready until a configurable
+timeout (default 20 minutes) elapses. On timeout the activity raises;
+the orchestrator's try/finally then releases the reservation cleanly.
 
 Per Skip 2026-05-28: indexes are built by the software, not the operator.
 No external prerequisite. No manual side-action.
@@ -51,20 +56,62 @@ _REQUIRED_INDEXES = [
 ]
 
 
-def _providers_collection(provider_collection: str | None):
+def _wait_for_cluster_ready(
+    client: MongoClient,
+    timeout_minutes: int,
+    poll_seconds: int = 5,
+) -> None:
+    """Poll the cluster every poll_seconds with admin.ping until it
+    answers cleanly, or raise TimeoutError after timeout_minutes.
+
+    Sized to ride out Atlas paused->wake transitions (cluster goes
+    through REPAIRING and replicas come online one at a time). The
+    function is a deterministic timer — no orchestration retries
+    needed and no Durable history churn.
+    """
+    deadline = time.time() + timeout_minutes * 60
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            client.admin.command("ping")
+            logging.info(
+                "cluster ready after %d attempt(s) (~%.0fs)",
+                attempts, attempts * poll_seconds,
+            )
+            return
+        except Exception as exc:
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"cluster not ready after {timeout_minutes} min "
+                    f"({attempts} attempts): {exc}"
+                )
+            logging.info(
+                "cluster not ready (attempt %d, %.0fs remaining): %s",
+                attempts, remaining, exc,
+            )
+            time.sleep(poll_seconds)
+
+
+def _providers_collection_and_client(provider_collection: str | None) -> tuple:
     fqn = provider_collection or (
         f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData.providers"
     )
     db_name, coll_name = fqn.split(".", 1)
+    # serverSelectionTimeoutMS is short so each ping fails fast and the
+    # _wait_for_cluster_ready poll loop drives the cadence.
     client = MongoClient(
         os.environ["MONGO_connectionString"],
-        serverSelectionTimeoutMS=120_000,
+        serverSelectionTimeoutMS=5_000,
     )
-    return client[db_name][coll_name]
+    return client[db_name][coll_name], client
 
 
 def ensure_provider_indexes_fn(config: dict) -> dict:
-    coll = _providers_collection(config.get("provider_collection"))
+    coll, client = _providers_collection_and_client(config.get("provider_collection"))
+    cluster_wait_minutes = int(config.get("cluster_wait_minutes", 20))
+    _wait_for_cluster_ready(client, cluster_wait_minutes)
 
     existing_names = set()
     try:

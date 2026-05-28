@@ -188,8 +188,13 @@ def provider_pipeline_orchestrator_fn(context):
     # indexes are a no-op. Required by build_chunk_index_activity (npi_1)
     # and build_recovery_assignments_activity (addresses.county.source_1).
     # No operator side-action; the pipeline owns its own index posture.
+    #
+    # cluster_wait_minutes is a public API parameter: the operator
+    # controls how patient the pipeline is with Atlas wake/REPAIRING.
+    # The activity polls the cluster every 5s and abends on timeout.
     yield context.call_activity("ensure_provider_indexes_activity", {
         "provider_collection": config.get("provider_collection"),
+        "cluster_wait_minutes": int(config.get("cluster_wait_minutes", 20)),
     })
 
     # Durable throttle inventory shrunk to two semantic gates:
