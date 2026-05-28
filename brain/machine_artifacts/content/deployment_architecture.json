@@ -2383,7 +2383,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "14688182ae01a0edd8d5f2b3ed72327b69e695e6cec7e38f8d3fe5736b162d33"
+          "content_hash": "5fcc5ff89d8dd9a3d0613037280890ed7df3757f02315bf06032441441e4b946"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3897,20 +3897,20 @@
         }
       ],
       "secrets": {
-        "MONGO_FRONTEND_connectionString": "azure_automation_variable",
-        "ATLAS_PUBLIC_KEY": "azure_automation_variable",
-        "ATLAS_PRIVATE_KEY": "azure_automation_variable",
-        "ATLAS_PROJECT_ID": "azure_automation_variable",
-        "ENV_PREFIX": "azure_automation_variable",
-        "PIPELINE_CLUSTER": "azure_automation_variable",
-        "ACTIVITY_WINDOW_MINUTES": "azure_automation_variable",
-        "AZ_SUBSCRIPTION_ID": "azure_automation_variable",
-        "AZ_RESOURCE_GROUP": "azure_automation_variable",
-        "AZ_AUTOMATION_ACCOUNT": "azure_automation_variable",
-        "AZURE_WEBJOBS_STORAGE": "azure_automation_variable",
-        "SPARKMAIL_API_KEY": "azure_automation_variable",
-        "NOTIFICATION_FROM_EMAIL": "azure_automation_variable",
-        "NOTIFICATION_TO_EMAIL": "azure_automation_variable"
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "ENV_PREFIX": "local_env",
+        "PIPELINE_CLUSTER": "local_env",
+        "ACTIVITY_WINDOW_MINUTES": "local_env",
+        "AZ_SUBSCRIPTION_ID": "local_env",
+        "AZ_RESOURCE_GROUP": "local_env",
+        "AZ_AUTOMATION_ACCOUNT": "local_env",
+        "AZURE_WEBJOBS_STORAGE": "local_env",
+        "SPARKMAIL_API_KEY": "local_env",
+        "NOTIFICATION_FROM_EMAIL": "local_env",
+        "NOTIFICATION_TO_EMAIL": "local_env"
       }
     }
   ]
