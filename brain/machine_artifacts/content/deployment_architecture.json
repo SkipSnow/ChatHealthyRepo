@@ -2926,7 +2926,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "db3546e5346d789ed59a14ab315d0e7a577c69cd9e14ccf4fdc6dea8fd3aa04a"
+          "content_hash": "7e751770a7741eca4cffae27ec7427f195e7fd9f7332e48eedae441623d225e7"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3045,7 +3045,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "41129686b04d0de776e5e76de45fec15cf69dc2958d514c8cf8be64800f93d4d"
+          "content_hash": "cadc664974e6446d3ea516f0925e132186aa990ca26aa95060e950325e025964"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3130,13 +3130,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "778c32fea146c7e82d45a4dd9d7c68af3fb9b945d20aa45f2bd0d46fca405841"
-        },
-        {
-          "feature_id": "EPIC-010-F-102",
-          "source_location": "pipeline/Code/state_shard.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "071125b1757cac34872b8e979eaed686db076154f650a19f57c8aed98a72e341"
         },
         {
           "feature_id": "EPIC-010-F-102",
