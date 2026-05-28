@@ -39,6 +39,7 @@
               "cloudflare_pages_project",
               "azure_function_app",
               "azure_container_app",
+              "azure_automation_runbook",
               "host_os_process",
               "docker_local_container",
               "mongodb_collection",
@@ -90,6 +91,35 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256
+                    }
+                  }
+                },
+
+                "azure_automation": {
+                  "type": "object",
+                  "description": "Azure Automation runbook deploy coordinates for this env binding. Present iff target_kind=='azure_automation_runbook'. resource_group + automation_account identify the Automation Account; runbook_name names the runbook whose content this target ships (replace-content on every deploy). schedule_names[] lists the Automation Schedules that fire this runbook — informational only; the deploy handler does not touch schedules. Secret bindings whose store is `azure_automation_variable` get materialized as Automation Variables on the same Automation Account during deploy.",
+                  "additionalProperties": false,
+                  "required": ["resource_group", "automation_account", "runbook_name"],
+                  "properties": {
+                    "resource_group": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "automation_account": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "runbook_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "schedule_names": {
+                      "type": "array",
+                      "items": {"type": "string", "minLength": 1, "maxLength": 256},
+                      "uniqueItems": true
                     }
                   }
                 },
