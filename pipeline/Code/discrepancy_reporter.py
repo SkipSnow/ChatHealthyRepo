@@ -107,7 +107,16 @@ class DiscrepancyReporter:
         }
         total_providers = sum(source_counts.values())
         out_of_scope_total = source_counts.get("out_of_scope", 0)
-        geocoder_failed = source_counts.get("geocoder_failed", 0)
+        # Per-pass failure labels sum into one "geocoder funnel gave up" total.
+        # The four labels capture WHERE the funnel stopped (pass2/3/4/6);
+        # for the load-summary purpose we count them as one bucket.
+        geocoder_failed_by_pass: dict = {
+            "geocoder_pass2_failed": source_counts.get("geocoder_pass2_failed", 0),
+            "geocoder_pass3_failed": source_counts.get("geocoder_pass3_failed", 0),
+            "geocoder_pass4_failed": source_counts.get("geocoder_pass4_failed", 0),
+            "geocoder_pass6_failed": source_counts.get("geocoder_pass6_failed", 0),
+        }
+        geocoder_failed = sum(geocoder_failed_by_pass.values())
         unenriched = source_counts.get("unenriched", 0)
         addressable = total_providers - out_of_scope_total
         enriched = addressable - geocoder_failed - unenriched
@@ -150,7 +159,8 @@ class DiscrepancyReporter:
                 "enriched": enriched,
                 "pct_enriched": pct_enriched,
                 "unresolved_in_scope": unresolved_in_scope,
-                "geocoder_failed": geocoder_failed,
+                "geocoder_failed_total": geocoder_failed,
+                "geocoder_failed_by_pass": geocoder_failed_by_pass,
                 "unenriched": unenriched,
                 "out_of_scope_total": out_of_scope_total,
                 "out_of_scope_by_reason": out_of_scope_by_reason,
@@ -185,7 +195,13 @@ class DiscrepancyReporter:
             f"  Total providers:     {total_providers:,}\n"
             f"  Addressable:         {addressable:,}\n"
             f"  Enriched:            {enriched:,} ({pct_enriched}%)\n"
-            f"  Unresolved in-scope: {unresolved_in_scope:,} (geocoder_failed: {geocoder_failed:,}, unenriched: {unenriched:,})\n"
+            f"  Unresolved in-scope: {unresolved_in_scope:,} "
+            f"(funnel gave up: {geocoder_failed:,} "
+            f"[pass2={geocoder_failed_by_pass['geocoder_pass2_failed']:,}, "
+            f"pass3={geocoder_failed_by_pass['geocoder_pass3_failed']:,}, "
+            f"pass4={geocoder_failed_by_pass['geocoder_pass4_failed']:,}, "
+            f"pass6={geocoder_failed_by_pass['geocoder_pass6_failed']:,}], "
+            f"unenriched: {unenriched:,})\n"
             f"\n"
             f"Out-of-scope: {out_of_scope_total:,} total\n"
             f"{reason_lines}"

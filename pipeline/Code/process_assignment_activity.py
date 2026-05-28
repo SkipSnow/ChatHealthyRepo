@@ -205,6 +205,31 @@ def _raw_row_matches_state(raw_row: dict, states_set: set) -> bool:
     return False
 
 
+# ── County-source failure vocabulary ──────────────────────────────────────────
+# Each pass that gives up on an address tags that address with its own
+# pass-specific failure label. The recovery activity reads these labels and
+# resumes the funnel at the next pass after the one that failed — pass2 is
+# never re-attempted once tagged, pass3 is re-attempted only after pass2
+# failed, etc. There is no generic `geocoder_failed` label; that string is
+# illegal per the providers schema.
+_FAILED_PASS2 = "geocoder_pass2_failed"
+_FAILED_PASS3 = "geocoder_pass3_failed"
+_FAILED_PASS4 = "geocoder_pass4_failed"
+_FAILED_PASS6 = "geocoder_pass6_failed"
+
+# Per-pass "I should attempt this address" entry set. Pass2 is the top of the
+# address-level funnel (no source-based entry — only no-fips addresses), so it
+# has no entry set defined here. Pass3/4/6 each pick up exactly the prior
+# pass's failures.
+_PASS3_ENTRY = frozenset({_FAILED_PASS2})
+_PASS4_ENTRY = frozenset({_FAILED_PASS3})
+_PASS6_ENTRY = frozenset({_FAILED_PASS4})
+
+# The recovery cohort is anything that ended a load run with a non-terminal
+# failure label — pass6's failures are chain-exhausted and excluded.
+_RECOVERY_COHORT_SOURCES = frozenset({_FAILED_PASS2, _FAILED_PASS3, _FAILED_PASS4})
+
+
 _PASSTHROUGH_RAW_COLUMNS = {
     "NPI": "npi",
     "Entity Type Code": "entity_type_code",
@@ -267,6 +292,9 @@ def _pass1_zip(doc: dict, crosswalk: dict) -> None:
 
 
 def _addresses_needing_geocoding(doc: dict, addr_type: str | None = None) -> list:
+    """Pass2 entry: addresses with no fips. Pass2 is the top of the
+    address-level funnel; an already-failed pass leaves a pass-specific
+    label, never a missing fips."""
     out = []
     for addr in doc.get("addresses") or []:
         if not isinstance(addr, dict):
@@ -274,7 +302,7 @@ def _addresses_needing_geocoding(doc: dict, addr_type: str | None = None) -> lis
         if addr_type and addr.get("address_type") != addr_type:
             continue
         county = addr.get("county") or {}
-        if not county.get("fips") or county.get("source") == "geocoder_failed":
+        if not county.get("fips"):
             out.append(addr)
     return out
 
@@ -298,7 +326,11 @@ def _pass2_census(doc: dict) -> None:
     if not miss:
         return
     _CENSUS.acquire(n=len(miss))
-    _call_census_for_addresses(doc, miss, pass_label="geocoder_pass2_batch")
+    _call_census_for_addresses(
+        doc, miss,
+        pass_label="geocoder_pass2_batch",
+        failure_label=_FAILED_PASS2,
+    )
     for a in miss:
         c = a.get("county") or {}
         if c.get("fips"):
@@ -306,6 +338,7 @@ def _pass2_census(doc: dict) -> None:
 
 
 def _pass3_billing(doc: dict) -> None:
+    """Pass3 entry: practice addresses tagged _FAILED_PASS2."""
     targets = []
     for addr in doc.get("addresses") or []:
         if not isinstance(addr, dict):
@@ -313,7 +346,7 @@ def _pass3_billing(doc: dict) -> None:
         if addr.get("address_type") != "practice":
             continue
         county = addr.get("county") or {}
-        if county.get("source") != "geocoder_failed":
+        if county.get("source") not in _PASS3_ENTRY:
             continue
         targets.append(addr)
     if not targets:
@@ -328,6 +361,10 @@ def _pass3_billing(doc: dict) -> None:
             billing_addr = addr
             break
     if not billing_addr:
+        # No billing address to fall through to; tag pass3 failure so pass4
+        # picks them up at the next funnel stop.
+        for a in targets:
+            a["county"] = {**(a.get("county") or {}), "source": _FAILED_PASS3}
         return
     # Cache the billing address too if we've resolved it before
     cached_billing = _addr_cache_get(billing_addr)
@@ -336,7 +373,12 @@ def _pass3_billing(doc: dict) -> None:
             a["county"] = {**cached_billing, "source": "geocoder_pass3_billing"}
         return
     _CENSUS.acquire(n=1)
-    _call_census_for_addresses(doc, [billing_addr], pass_label="geocoder_pass3_billing", retarget=targets)
+    _call_census_for_addresses(
+        doc, [billing_addr],
+        pass_label="geocoder_pass3_billing",
+        failure_label=_FAILED_PASS3,
+        retarget=targets,
+    )
     for a in targets:
         c = a.get("county") or {}
         if c.get("fips"):
@@ -344,6 +386,7 @@ def _pass3_billing(doc: dict) -> None:
 
 
 def _pass4_maps(doc: dict) -> None:
+    """Pass4 entry: practice addresses tagged _FAILED_PASS3."""
     targets = []
     for addr in doc.get("addresses") or []:
         if not isinstance(addr, dict):
@@ -351,7 +394,7 @@ def _pass4_maps(doc: dict) -> None:
         if addr.get("address_type") != "practice":
             continue
         county = addr.get("county") or {}
-        if county.get("source") != "geocoder_failed":
+        if county.get("source") not in _PASS4_ENTRY:
             continue
         targets.append(addr)
     if not targets:
@@ -360,7 +403,11 @@ def _pass4_maps(doc: dict) -> None:
     if not miss:
         return
     _GMAPS.acquire(n=len(miss))
-    _call_google_maps_for_addresses(doc, miss, pass_label="geocoder_pass4_maps")
+    _call_google_maps_for_addresses(
+        doc, miss,
+        pass_label="geocoder_pass4_maps",
+        failure_label=_FAILED_PASS4,
+    )
     for a in miss:
         c = a.get("county") or {}
         if c.get("fips"):
@@ -368,21 +415,34 @@ def _pass4_maps(doc: dict) -> None:
 
 
 def _pass6_nppes(doc: dict) -> None:
+    """Pass6 entry: any address tagged _FAILED_PASS4. Last resort — after the
+    NPPES call, every still-entry address is re-tagged _FAILED_PASS6 so the
+    record carries the terminal state and the recovery cohort excludes it
+    on subsequent runs."""
     needs_last_resort = False
     for addr in doc.get("addresses") or []:
         if not isinstance(addr, dict):
             continue
         county = addr.get("county") or {}
-        if county.get("source") == "geocoder_failed" or not county.get("fips"):
+        if county.get("source") in _PASS6_ENTRY:
             needs_last_resort = True
             break
     if not needs_last_resort:
         return
     npi = doc.get("npi")
-    if not npi:
-        return
-    _NPPES.acquire(n=1)
-    _call_nppes_api_for_npi(doc, npi)
+    if npi:
+        _NPPES.acquire(n=1)
+        try:
+            _call_nppes_api_for_npi(doc, npi)
+        except Exception as exc:
+            logging.warning("nppes call failed for npi=%s: %s", npi, exc)
+    # Whatever NPPES did not resolve carries pass6-failed forward.
+    for addr in doc.get("addresses") or []:
+        if not isinstance(addr, dict):
+            continue
+        county = addr.get("county") or {}
+        if county.get("source") in _PASS6_ENTRY:
+            addr["county"] = {**county, "source": _FAILED_PASS6}
     # Populate cache from any pass6-resolved addresses
     for addr in doc.get("addresses") or []:
         if not isinstance(addr, dict):
@@ -392,7 +452,7 @@ def _pass6_nppes(doc: dict) -> None:
             _addr_cache_put(addr, c)
 
 
-def _call_census_for_addresses(doc, addresses, pass_label, retarget=None):
+def _call_census_for_addresses(doc, addresses, pass_label, failure_label, retarget=None):
     from county_enrichment_job import _get_crosswalk
     if not addresses:
         return
@@ -414,7 +474,7 @@ def _call_census_for_addresses(doc, addresses, pass_label, retarget=None):
         logging.warning("census batch failed: %s", exc)
         target_list = retarget if retarget else addresses
         for addr in target_list:
-            addr["county"] = {**(addr.get("county") or {}), "source": "geocoder_failed"}
+            addr["county"] = {**(addr.get("county") or {}), "source": failure_label}
         return
     cw = _get_crosswalk()
     target_list = retarget if retarget else addresses
@@ -439,7 +499,7 @@ def _call_census_for_addresses(doc, addresses, pass_label, retarget=None):
                 }
         else:
             for addr in target_list:
-                addr["county"] = {**(addr.get("county") or {}), "source": "geocoder_failed"}
+                addr["county"] = {**(addr.get("county") or {}), "source": failure_label}
         return
     for i, addr in enumerate(target_list):
         fips = parsed_by_id.get(str(i))
@@ -451,15 +511,15 @@ def _call_census_for_addresses(doc, addresses, pass_label, retarget=None):
                 "source": pass_label,
             }
         else:
-            addr["county"] = {**(addr.get("county") or {}), "source": "geocoder_failed"}
+            addr["county"] = {**(addr.get("county") or {}), "source": failure_label}
 
 
-def _call_google_maps_for_addresses(doc, addresses, pass_label):
+def _call_google_maps_for_addresses(doc, addresses, pass_label, failure_label):
     from county_enrichment_job import _get_maps_county_lookup
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     if not api_key:
         for addr in addresses:
-            addr["county"] = {**(addr.get("county") or {}), "source": "geocoder_failed"}
+            addr["county"] = {**(addr.get("county") or {}), "source": failure_label}
         return
     lookup = _get_maps_county_lookup()
     sess = _http_session()
@@ -478,11 +538,11 @@ def _call_google_maps_for_addresses(doc, addresses, pass_label):
             data = resp.json()
         except Exception as exc:
             logging.warning("google maps failed: %s", exc)
-            addr["county"] = {**(addr.get("county") or {}), "source": "geocoder_failed"}
+            addr["county"] = {**(addr.get("county") or {}), "source": failure_label}
             continue
         results = data.get("results") or []
         if not results:
-            addr["county"] = {**(addr.get("county") or {}), "source": "geocoder_failed"}
+            addr["county"] = {**(addr.get("county") or {}), "source": failure_label}
             continue
         county_name = None
         state_fips_2d = None
@@ -502,7 +562,7 @@ def _call_google_maps_for_addresses(doc, addresses, pass_label):
                     "source": pass_label,
                 }
                 continue
-        addr["county"] = {**(addr.get("county") or {}), "source": "geocoder_failed"}
+        addr["county"] = {**(addr.get("county") or {}), "source": failure_label}
 
 
 _STATE_FIPS = {

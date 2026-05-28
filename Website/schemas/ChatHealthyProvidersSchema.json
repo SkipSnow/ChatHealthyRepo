@@ -453,7 +453,7 @@
       "type": "object",
       "properties": {
         "fips": {
-          "description": "5-digit FIPS county code (2-digit state + 3-digit county). Null when enrichment failed (geocoder_failed) or the address is excluded (out_of_scope*). Example: '30063' = Missoula County, MT.",
+          "description": "5-digit FIPS county code (2-digit state + 3-digit county). Null when enrichment failed (source carries one of the geocoder_pass*_failed labels) or the address is excluded (out_of_scope*). Example: '30063' = Missoula County, MT.",
           "type": ["string", "null"],
           "pattern": "^[0-9]{5}$"
         },
@@ -469,11 +469,14 @@
             "crosswalk_zip_fixed",
             "geocoder_pass2_batch",
             "geocoder_pass2_batch_billing",
+            "geocoder_pass2_failed",
             "geocoder_pass3_billing",
+            "geocoder_pass3_failed",
             "geocoder_pass4_maps",
+            "geocoder_pass4_failed",
             "geocoder_pass5_maps_billing",
             "geocoder_pass6_nppes",
-            "geocoder_failed",
+            "geocoder_pass6_failed",
             "geocoder_no_address",
             "out_of_scope",
             "out_of_scope_zip_state_mismatch"
@@ -483,11 +486,14 @@
             "crosswalk_zip_fixed": "ZIP crosswalk applied after zip_state_mismatch detection corrected the state.",
             "geocoder_pass2_batch": "U.S. Census Geocoder batch API on practice address.",
             "geocoder_pass2_batch_billing": "U.S. Census Geocoder batch API on practice address with mailing fallback (legacy combined Pass 2 path).",
+            "geocoder_pass2_failed": "Pass 2 (Census batch on practice address) gave up. Recovery resumes at pass 3.",
             "geocoder_pass3_billing": "U.S. Census Geocoder batch API on mailing/billing address (Pass 2 fallback).",
+            "geocoder_pass3_failed": "Pass 3 (Census batch on billing address) gave up. Recovery resumes at pass 4.",
             "geocoder_pass4_maps": "Google Maps Geocoding API on practice address. Paid API.",
+            "geocoder_pass4_failed": "Pass 4 (Google Maps on practice address) gave up. Recovery resumes at pass 6.",
             "geocoder_pass5_maps_billing": "Google Maps Geocoding API on billing address. Paid API.",
             "geocoder_pass6_nppes": "NPI looked up in NPPES registry; returned address tried against ZIP crosswalk.",
-            "geocoder_failed": "All enrichment passes exhausted without a result.",
+            "geocoder_pass6_failed": "Pass 6 (NPPES last-resort) gave up. Chain exhausted; address remains un-countyed until the next monthly pipeline run.",
             "geocoder_no_address": "Address has no usable line1 / city to geocode.",
             "out_of_scope": "Address (or provider) excluded from enrichment. See 'reason' for the criterion.",
             "out_of_scope_zip_state_mismatch": "This address's ZIP does not match its state and license-based repair did not resolve it."

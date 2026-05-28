@@ -3,10 +3,31 @@
 
 """work_manager_entity - the single durable actor for the records-as-messages pipeline.
 
-Owns the implicit assignment queue (derived arithmetically from CSV size + chunk_size),
-the worker roster, the spawn counter (monotonic, never reused), and the discrepancy
-counter. Spawns and respawns are decisions taken here; throttle entities are configured
+Owns the per-work-kind assignment queues, the worker roster, the spawn
+counter (monotonic, never reused), and the discrepancy counter. Spawns
+and respawns are decisions taken here; throttle entities are configured
 by the parent orchestrator and addressed by reference, not by spawn.
+
+Two work kinds today:
+
+  cms_chunks      The load phase's CSV byte-range assignments. Seeded by
+                  streaming_pipeline_orchestrator after build_chunk_index.
+                  Each assignment is {chunk_id, start_byte, end_byte,
+                  batch_size, work_kind, assignment_id}.
+
+  repair_chunks   The recovery phase's per-NPI assignments. Seeded by
+                  streaming_pipeline_orchestrator after the load drains,
+                  during the recovery phase. Each assignment is
+                  {chunk_id, npis: [...], batch_size, work_kind,
+                  assignment_id}.
+
+Backward compatibility:
+  - Every queue-touching op takes a `work_kind` argument that defaults to
+    "cms_chunks". Callers from the existing load path pass nothing and get
+    the original behavior bit-for-bit.
+  - Existing in-flight entities with top-level pending/claimed/done/config
+    get one-time, transparent migration into queues["cms_chunks"] on the
+    first op handled after this code lands. The migration is idempotent.
 """
 from __future__ import annotations
 
@@ -21,22 +42,64 @@ _REPORT_DB_NAME = f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData"
 _REPORT_COLLECTION = "pipeline_discrepancy_reports"
 _METRICS_COLLECTION = "pipeline_run_metrics"
 
+_DEFAULT_WORK_KIND = "cms_chunks"
+_REPAIR_WORK_KIND = "repair_chunks"
+_VALID_WORK_KINDS = (_DEFAULT_WORK_KIND, _REPAIR_WORK_KIND)
+
 
 def _get_mongo_client():
     from pymongo import MongoClient
     return MongoClient(os.environ["MONGO_connectionString"])
 
 
+def _migrate_state_to_queues(state: dict) -> None:
+    """One-time, transparent promotion of pre-multi-queue state.
+
+    Old shape carried `config`, `pending`, `claimed`, and `done` at the
+    top level. New shape moves them under `state["queues"][work_kind]`.
+    Idempotent — if `queues` already exists, this is a no-op.
+    """
+    if "queues" in state:
+        return
+    queues = {
+        _DEFAULT_WORK_KIND: {
+            "config": state.pop("config", None),
+            "pending": state.pop("pending", []),
+            "claimed": state.pop("claimed", {}),
+            "done": int(state.pop("done", 0)),
+        }
+    }
+    state["queues"] = queues
+
+
+def _queue(state: dict, work_kind: str) -> dict:
+    """Return the queue dict for `work_kind`, creating an empty one on demand."""
+    if work_kind not in _VALID_WORK_KINDS:
+        raise ValueError(
+            f"work_manager: unknown work_kind {work_kind!r}; "
+            f"valid: {_VALID_WORK_KINDS}"
+        )
+    _migrate_state_to_queues(state)
+    queues = state["queues"]
+    if work_kind not in queues:
+        queues[work_kind] = {"config": None, "pending": [], "claimed": {}, "done": 0}
+    return queues[work_kind]
+
+
+def _all_queues(state: dict) -> dict:
+    _migrate_state_to_queues(state)
+    return state["queues"]
+
+
 def work_manager_entity_fn(context) -> None:
     state = context.get_state(lambda: {
-        "config": None,
         "next_chunk_id": 0,
         "next_worker_id": 1,
         "workers": {},
-        "done": 0,
         "discrepancy_count": 0,
         "entity_signal_ops": 0,
         "mongo_write_ops": 0,
+        "queues": {},
     })
     op = context.operation_name
     inp = context.get_input()
@@ -49,127 +112,178 @@ def work_manager_entity_fn(context) -> None:
         inp = {}
 
     state["entity_signal_ops"] = int(state.get("entity_signal_ops", 0)) + 1
+    work_kind = str(inp.get("work_kind", _DEFAULT_WORK_KIND))
 
     if op == "seed":
-        c = {
-            "file_size": int(inp["file_size"]),
-            "header_end": int(inp["header_end"]),
-            "chunk_size_bytes": int(inp.get("chunk_size_bytes", 2_500_000)),
-            "batch_size": int(inp.get("batch_size", 1000)),
-            "discrepancy_threshold": int(inp.get("discrepancy_threshold", 1000)),
-        }
-        # Prefer the precomputed chunk_index (record-boundary aligned) when
-        # the caller supplied one. Falls back to arithmetic byte slicing if
-        # absent — but the arithmetic path leaves partial records at chunk
-        # boundaries and the activity has to skip/extend, which we no longer
-        # want. Caller (streaming_pipeline_orchestrator) supplies the index
-        # via build_chunk_index_activity.
-        precomputed = inp.get("chunk_index")
-        pending = []
-        if precomputed:
-            for cid, entry in enumerate(precomputed):
-                start, end = entry[0], entry[1]
-                pending.append([cid, int(start), int(end)])
-            c["total_chunks"] = len(pending)
-        else:
-            body_bytes = c["file_size"] - c["header_end"]
-            c["total_chunks"] = (body_bytes + c["chunk_size_bytes"] - 1) // c["chunk_size_bytes"]
-            for cid in range(c["total_chunks"]):
-                start = c["header_end"] + cid * c["chunk_size_bytes"]
-                end = min(start + c["chunk_size_bytes"], c["file_size"])
-                pending.append([cid, start, end])
-        state["config"] = c
-        state["pending"] = pending
-        state["claimed"] = {}
-        state["next_chunk_id"] = 0
+        q = _queue(state, work_kind)
+        if work_kind == _DEFAULT_WORK_KIND:
+            cfg = {
+                "file_size": int(inp["file_size"]),
+                "header_end": int(inp["header_end"]),
+                "chunk_size_bytes": int(inp.get("chunk_size_bytes", 2_500_000)),
+                "batch_size": int(inp.get("batch_size", 1000)),
+                "discrepancy_threshold": int(inp.get("discrepancy_threshold", 1000)),
+            }
+            precomputed = inp.get("chunk_index")
+            pending: list = []
+            if precomputed:
+                for cid, entry in enumerate(precomputed):
+                    start, end = entry[0], entry[1]
+                    pending.append([cid, int(start), int(end)])
+                cfg["total_chunks"] = len(pending)
+            else:
+                body_bytes = cfg["file_size"] - cfg["header_end"]
+                cfg["total_chunks"] = (
+                    body_bytes + cfg["chunk_size_bytes"] - 1
+                ) // cfg["chunk_size_bytes"]
+                for cid in range(cfg["total_chunks"]):
+                    start = cfg["header_end"] + cid * cfg["chunk_size_bytes"]
+                    end = min(start + cfg["chunk_size_bytes"], cfg["file_size"])
+                    pending.append([cid, start, end])
+            q["config"] = cfg
+            q["pending"] = pending
+            q["claimed"] = {}
+            q["done"] = 0
+        elif work_kind == _REPAIR_WORK_KIND:
+            # Recovery seed: caller supplies chunk_index where each entry is a
+            # list of NPIs. batch_size names the per-assignment NPI count; the
+            # ingest activity sized it from the throttle config upstream.
+            chunk_index = inp.get("chunk_index") or []
+            cfg = {
+                "batch_size": int(inp.get("batch_size", len(chunk_index[0]) if chunk_index else 50)),
+                "discrepancy_threshold": int(inp.get("discrepancy_threshold", 1000)),
+                "total_chunks": len(chunk_index),
+            }
+            pending = []
+            for cid, npis in enumerate(chunk_index):
+                pending.append([cid, list(npis)])
+            q["config"] = cfg
+            q["pending"] = pending
+            q["claimed"] = {}
+            q["done"] = 0
         context.set_state(state)
         return
 
     if op == "next_assignment":
-        cfg = state["config"]
+        q = _queue(state, work_kind)
+        cfg = q.get("config")
         if cfg is None:
             context.set_result(None)
             context.set_state(state)
             return
-        if state["discrepancy_count"] >= cfg["discrepancy_threshold"]:
+        if state["discrepancy_count"] >= int(cfg.get("discrepancy_threshold", 1000)):
             context.set_result(None)
             context.set_state(state)
             return
-        pending = state.get("pending") or []
+        pending = q.get("pending") or []
         if not pending:
             context.set_result(None)
             context.set_state(state)
             return
-        cid, start, end = pending.pop(0)
         worker_id = str(inp["worker_id"])
-        state["claimed"][str(cid)] = {
+        entry = pending.pop(0)
+        now = time.time()
+        cid = entry[0]
+        if work_kind == _DEFAULT_WORK_KIND:
+            start, end = entry[1], entry[2]
+            assignment = {
+                "work_kind": work_kind,
+                "chunk_id": cid,
+                "assignment_id": cid,
+                "start_byte": start,
+                "end_byte": end,
+                "batch_size": cfg["batch_size"],
+            }
+        else:  # repair_chunks
+            npis = entry[1]
+            assignment = {
+                "work_kind": work_kind,
+                "chunk_id": cid,
+                "assignment_id": cid,
+                "npis": npis,
+                "batch_size": cfg["batch_size"],
+            }
+        q["claimed"][str(cid)] = {
             "worker_id": worker_id,
-            "claimed_at": time.time(),
+            "claimed_at": now,
+            "work_kind": work_kind,
         }
         state["workers"][worker_id] = {
             "chunk_id": cid,
-            "claimed_at": time.time(),
+            "claimed_at": now,
+            "work_kind": work_kind,
             "kind": state["workers"].get(worker_id, {}).get("kind", "record_worker"),
         }
-        state["pending"] = pending
-        state["next_chunk_id"] = max(state.get("next_chunk_id", 0), cid + 1)
+        q["pending"] = pending
+        state["next_chunk_id"] = max(int(state.get("next_chunk_id", 0)), cid + 1)
         context.set_state(state)
-        context.set_result({
-            "chunk_id": cid,
-            "start_byte": start,
-            "end_byte": end,
-            "batch_size": cfg["batch_size"],
-            "assignment_id": cid,
-        })
+        context.set_result(assignment)
         return
 
     if op == "next_assignment_batch":
-        cfg = state["config"]
+        q = _queue(state, work_kind)
+        cfg = q.get("config")
         if cfg is None:
             context.set_result([])
             context.set_state(state)
             return
-        if state["discrepancy_count"] >= cfg["discrepancy_threshold"]:
+        if state["discrepancy_count"] >= int(cfg.get("discrepancy_threshold", 1000)):
             context.set_result([])
             context.set_state(state)
             return
-        pending = state.get("pending") or []
+        pending = q.get("pending") or []
         n = max(1, int(inp.get("n", 5)))
         worker_id = str(inp["worker_id"])
-        out = []
+        out: list = []
         now = time.time()
         for _ in range(n):
             if not pending:
                 break
-            cid, start, end = pending.pop(0)
-            state["claimed"][str(cid)] = {"worker_id": worker_id, "claimed_at": now}
-            out.append({
-                "chunk_id": cid, "start_byte": start, "end_byte": end,
-                "batch_size": cfg["batch_size"], "assignment_id": cid,
-            })
+            entry = pending.pop(0)
+            cid = entry[0]
+            q["claimed"][str(cid)] = {
+                "worker_id": worker_id, "claimed_at": now, "work_kind": work_kind,
+            }
+            if work_kind == _DEFAULT_WORK_KIND:
+                out.append({
+                    "work_kind": work_kind,
+                    "chunk_id": cid,
+                    "assignment_id": cid,
+                    "start_byte": entry[1],
+                    "end_byte": entry[2],
+                    "batch_size": cfg["batch_size"],
+                })
+            else:
+                out.append({
+                    "work_kind": work_kind,
+                    "chunk_id": cid,
+                    "assignment_id": cid,
+                    "npis": entry[1],
+                    "batch_size": cfg["batch_size"],
+                })
         if out:
             state["workers"][worker_id] = {
                 "chunk_ids": [a["chunk_id"] for a in out],
                 "claimed_at": now,
+                "work_kind": work_kind,
                 "kind": state["workers"].get(worker_id, {}).get("kind", "record_worker"),
             }
-            state["next_chunk_id"] = max(state.get("next_chunk_id", 0), out[-1]["chunk_id"] + 1)
-        state["pending"] = pending
+            state["next_chunk_id"] = max(int(state.get("next_chunk_id", 0)), out[-1]["chunk_id"] + 1)
+        q["pending"] = pending
         context.set_state(state)
         context.set_result(out)
         return
 
     if op == "ack":
+        q = _queue(state, work_kind)
         worker_id = str(inp["worker_id"])
         chunk_id = inp.get("chunk_id")
         if chunk_id is not None:
-            state["claimed"].pop(str(chunk_id), None)
+            q["claimed"].pop(str(chunk_id), None)
         else:
-            # Back-compat: ack without chunk_id — clear all claims for this worker
-            for cid_str, claim in list(state.get("claimed", {}).items()):
+            for cid_str, claim in list(q.get("claimed", {}).items()):
                 if claim.get("worker_id") == worker_id:
-                    state["claimed"].pop(cid_str, None)
-        # workers map cleanup
+                    q["claimed"].pop(cid_str, None)
         w = state["workers"].get(worker_id)
         if w and chunk_id is not None and "chunk_ids" in w:
             try:
@@ -180,42 +294,50 @@ def work_manager_entity_fn(context) -> None:
                 state["workers"].pop(worker_id, None)
         else:
             state["workers"].pop(worker_id, None)
-        state["done"] = int(state.get("done", 0)) + 1
+        q["done"] = int(q.get("done", 0)) + 1
         context.set_state(state)
         return
 
     if op == "ack_batch":
+        q = _queue(state, work_kind)
         worker_id = str(inp["worker_id"])
         chunk_ids = inp.get("chunk_ids") or []
         for cid in chunk_ids:
-            state["claimed"].pop(str(cid), None)
-        # workers map cleanup: remove the worker's chunk list entirely
+            q["claimed"].pop(str(cid), None)
         state["workers"].pop(worker_id, None)
-        state["done"] = int(state.get("done", 0)) + len(chunk_ids)
+        q["done"] = int(q.get("done", 0)) + len(chunk_ids)
         context.set_state(state)
         return
 
     if op == "reset_stale":
         # Reaper: chunks claimed > max_age_seconds ago are pushed back onto pending.
+        # Only the CMS queue uses byte-range reclaim because its pending entries
+        # are reconstructable from cfg. The repair queue's pending entries are
+        # NPI lists that we don't reconstruct from cfg — they're stored verbatim.
+        q = _queue(state, work_kind)
         max_age = float(inp.get("max_age_seconds", 1800))
         now = time.time()
-        reclaimed = []
-        for cid_str, claim in list(state.get("claimed", {}).items()):
+        reclaimed: list = []
+        for cid_str, claim in list(q.get("claimed", {}).items()):
             if now - float(claim.get("claimed_at", now)) > max_age:
-                state["claimed"].pop(cid_str, None)
+                q["claimed"].pop(cid_str, None)
                 cid = int(cid_str)
-                cfg = state.get("config") or {}
-                start = cfg.get("header_end", 0) + cid * cfg.get("chunk_size_bytes", 0)
-                end = min(start + cfg.get("chunk_size_bytes", 0), cfg.get("file_size", 0))
-                state["pending"].insert(0, [cid, start, end])
+                if work_kind == _DEFAULT_WORK_KIND:
+                    cfg = q.get("config") or {}
+                    start = cfg.get("header_end", 0) + cid * cfg.get("chunk_size_bytes", 0)
+                    end = min(start + cfg.get("chunk_size_bytes", 0), cfg.get("file_size", 0))
+                    q["pending"].insert(0, [cid, start, end])
+                # repair_chunks: the npi list isn't reconstructable from cfg;
+                # leaving it dropped is correct — the next pipeline run rebuilds
+                # the cohort from Mongo state.
                 reclaimed.append(cid)
         context.set_state(state)
-        context.set_result({"reclaimed": reclaimed})
+        context.set_result({"reclaimed": reclaimed, "work_kind": work_kind})
         return
 
     if op == "spawn_pool":
         pool_size = int(inp["pool_size"])
-        spawned = []
+        spawned: list = []
         for _ in range(pool_size):
             wid = state["next_worker_id"]
             state["next_worker_id"] = wid + 1
@@ -272,14 +394,22 @@ def work_manager_entity_fn(context) -> None:
         return
 
     if op == "stats":
-        cfg = state["config"]
+        queues = _all_queues(state)
+        per_queue = {}
+        for kind, q in queues.items():
+            cfg = q.get("config") or {}
+            per_queue[kind] = {
+                "configured": q.get("config") is not None,
+                "total_chunks": int(cfg.get("total_chunks", 0)),
+                "pending": len(q.get("pending") or []),
+                "claimed": len(q.get("claimed") or {}),
+                "done": int(q.get("done", 0)),
+            }
         context.set_result({
-            "configured": cfg is not None,
-            "total_chunks": cfg["total_chunks"] if cfg else 0,
+            "queues": per_queue,
             "next_chunk_id": state["next_chunk_id"],
             "next_worker_id": state["next_worker_id"],
             "workers": len(state["workers"]),
-            "done": state["done"],
             "discrepancy_count": state["discrepancy_count"],
             "entity_signal_ops": state.get("entity_signal_ops", 0),
             "mongo_write_ops": state.get("mongo_write_ops", 0),
@@ -287,6 +417,7 @@ def work_manager_entity_fn(context) -> None:
         return
 
     if op == "emit_metrics":
+        queues = _all_queues(state)
         load_id = inp.get("load_id", "unknown")
         doc = {
             "load_id": load_id,
@@ -295,9 +426,15 @@ def work_manager_entity_fn(context) -> None:
             "entity_signal_ops": state.get("entity_signal_ops", 0),
             "mongo_write_ops": state.get("mongo_write_ops", 0),
             "discrepancy_count": state.get("discrepancy_count", 0),
-            "done_assignments": state.get("done", 0),
             "next_chunk_id": state.get("next_chunk_id", 0),
             "next_worker_id": state.get("next_worker_id", 1),
+            "queues": {
+                kind: {
+                    "done": int(q.get("done", 0)),
+                    "total_chunks": int((q.get("config") or {}).get("total_chunks", 0)),
+                }
+                for kind, q in queues.items()
+            },
         }
         try:
             _get_mongo_client()[_REPORT_DB_NAME][_METRICS_COLLECTION].insert_one(doc)
@@ -307,14 +444,13 @@ def work_manager_entity_fn(context) -> None:
         return
 
     if op == "reset":
-        state["config"] = None
         state["next_chunk_id"] = 0
         state["next_worker_id"] = 1
         state["workers"] = {}
-        state["done"] = 0
         state["discrepancy_count"] = 0
         state["entity_signal_ops"] = 0
         state["mongo_write_ops"] = 0
+        state["queues"] = {}
         context.set_state(state)
         return
 
