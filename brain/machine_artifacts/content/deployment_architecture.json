@@ -3090,13 +3090,6 @@
           "content_hash": "fa175b85f29493761844c9e4786ebad6be2366ec2fc17eb68cb559b98ad3f1ea"
         },
         {
-          "feature_id": "EPIC-010-F-101",
-          "source_location": "pipeline/Code/runbooks/reservation_reaper.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5ae66960d8a45a87469b679d5b56a2faf155483da36a6255e39303fee28780dc"
-        },
-        {
           "feature_id": "EPIC-010-F-102",
           "source_location": "pipeline/Code/source_gather_orchestrator.py",
           "handler_type": "python_source",
@@ -3627,13 +3620,6 @@
           "content_hash": "fa175b85f29493761844c9e4786ebad6be2366ec2fc17eb68cb559b98ad3f1ea"
         },
         {
-          "feature_id": "EPIC-010-F-101",
-          "source_location": "pipeline/Code/runbooks/reservation_reaper.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5ae66960d8a45a87469b679d5b56a2faf155483da36a6255e39303fee28780dc"
-        },
-        {
           "feature_id": "EPIC-010-F-102",
           "source_location": "pipeline/Code/source_gather_orchestrator.py",
           "handler_type": "python_source",
@@ -3880,6 +3866,51 @@
         "DURABLE_TASK_CONNECTION": "local_env",
         "PYTHON_THREADPOOL_THREAD_COUNT": "local_env",
         "FUNCTIONS_WORKER_PROCESS_COUNT": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_automation_runbook_reservation_reaper",
+      "target_kind": "azure_automation_runbook",
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/ReservationReaper",
+          "azure_automation": {
+            "resource_group": "ChatHhealthyResorceManager",
+            "automation_account": "ChatHealthyJobManager",
+            "runbook_name": "ReservationReaper",
+            "schedule_names": [
+              "SCH-Reaper-5min-a",
+              "SCH-Reaper-5min-b",
+              "SCH-Reaper-5min-c"
+            ]
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-010-F-101",
+          "source_location": "pipeline/Code/runbooks/reservation_reaper.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "5ae66960d8a45a87469b679d5b56a2faf155483da36a6255e39303fee28780dc"
+        }
+      ],
+      "secrets": {
+        "MONGO_FRONTEND_connectionString": "azure_automation_variable",
+        "ATLAS_PUBLIC_KEY": "azure_automation_variable",
+        "ATLAS_PRIVATE_KEY": "azure_automation_variable",
+        "ATLAS_PROJECT_ID": "azure_automation_variable",
+        "ENV_PREFIX": "azure_automation_variable",
+        "PIPELINE_CLUSTER": "azure_automation_variable",
+        "ACTIVITY_WINDOW_MINUTES": "azure_automation_variable",
+        "AZ_SUBSCRIPTION_ID": "azure_automation_variable",
+        "AZ_RESOURCE_GROUP": "azure_automation_variable",
+        "AZ_AUTOMATION_ACCOUNT": "azure_automation_variable",
+        "AZURE_WEBJOBS_STORAGE": "azure_automation_variable",
+        "SPARKMAIL_API_KEY": "azure_automation_variable",
+        "NOTIFICATION_FROM_EMAIL": "azure_automation_variable",
+        "NOTIFICATION_TO_EMAIL": "azure_automation_variable"
       }
     }
   ]

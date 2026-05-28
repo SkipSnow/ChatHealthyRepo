@@ -451,6 +451,153 @@ def _deploy_azure_function_app(
 
 
 # ═════════════════════════════════════════════════════════════════════════
+# Azure Automation Runbook handler (target_kind=azure_automation_runbook)
+# ═════════════════════════════════════════════════════════════════════════
+#
+# Two-step deploy:
+#   1. For every secret bound to azure_automation_variable, resolve the value
+#      via SecretsResolver and create-or-update the matching Automation
+#      Variable on the Automation Account.
+#   2. Replace the runbook content with the staged runbook.py bytes and
+#      publish (since `replace-content` leaves the runbook in Draft until
+#      published).
+#
+# Schedules are referenced informationally on the target's azure_automation
+# block; we do not touch them — the operator created them once and they
+# survive deploys.
+
+def _az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None:
+    """Idempotent create-or-update for an Automation Variable.
+
+    `az automation variable update` requires the variable to exist; `create`
+    requires it not to. We probe with `show`; the absent path returns a
+    non-zero exit. Variables are encrypted in transit + at rest by the
+    Automation Account; the value never lands on disk locally.
+    """
+    show = subprocess.run(
+        ["az", "automation", "variable", "show",
+         "--resource-group", rg, "--automation-account-name", aa,
+         "--name", name, "-o", "tsv", "--query", "name"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if show.returncode == 0 and show.stdout.strip():
+        verb = "update"
+    else:
+        verb = "create"
+    args = [
+        "az", "automation", "variable", verb,
+        "--resource-group", rg, "--automation-account-name", aa,
+        "--name", name, "--value", value,
+        "--encrypted", "true",
+        "-o", "none",
+    ]
+    r = subprocess.run(
+        args, capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: az automation variable {verb} for {name!r} failed "
+            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}"
+        )
+
+
+def _az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, content_path: Path) -> None:
+    _step(f"az automation runbook replace-content --name {runbook}")
+    args = [
+        "az", "automation", "runbook", "replace-content",
+        "--resource-group", rg, "--automation-account-name", aa,
+        "--name", runbook,
+        "--content", "@" + str(content_path),
+        "-o", "none",
+    ]
+    r = subprocess.run(
+        args, capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: az automation runbook replace-content failed for {runbook!r} "
+            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}"
+        )
+
+
+def _az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
+    _step(f"az automation runbook publish --name {runbook}")
+    args = [
+        "az", "automation", "runbook", "publish",
+        "--resource-group", rg, "--automation-account-name", aa,
+        "--name", runbook,
+        "-o", "none",
+    ]
+    r = subprocess.run(
+        args, capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: az automation runbook publish failed for {runbook!r} "
+            f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}"
+        )
+
+
+def _deploy_azure_automation_runbook(
+    build_dir: Path,
+    target: TargetRecord,
+    env: str,
+    resolver: SecretsResolver,
+) -> str:
+    env_binding = next(
+        (e for e in target.environments if e.env_binding == env), None,
+    )
+    if env_binding is None:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} has no env_binding "
+            f"matching {env!r}; cannot deploy."
+        )
+    aa_block = env_binding.azure_automation
+    if aa_block is None:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} env={env!r} is missing the "
+            f"`azure_automation` sub-object (resource_group / automation_account / "
+            f"runbook_name) in deployment_architecture.json."
+        )
+    rg = aa_block["resource_group"]
+    aa = aa_block["automation_account"]
+    runbook = aa_block["runbook_name"]
+    _step(
+        f"=== azure_automation_runbook {target.target_id} env={env} -> "
+        f"{aa}/{runbook} (rg={rg}) ==="
+    )
+
+    content_path = build_dir / "runbook.py"
+    if not content_path.is_file():
+        sys.exit(f"ERROR: runbook.py missing at {content_path}")
+
+    # Push every secret binding into the Automation Account as an Automation
+    # Variable. Resolver fetches the value from the operator's bound store
+    # (Code/.env for local). Values never land on disk; only the az process
+    # sees them in argv.
+    secret_names = sorted(target.secrets or {})
+    _step(f"  publishing {len(secret_names)} Automation Variable(s)")
+    for name in secret_names:
+        value = resolver.resolve(name, env)
+        if value is None or value == "":
+            sys.exit(
+                f"ERROR: secret {name!r} resolved to empty for env={env!r}; "
+                f"refusing to push a blank Automation Variable."
+            )
+        _az_automation_variable_set(rg, aa, name, value)
+
+    # Replace runbook bytes + publish (so next scheduled tick uses the new code).
+    _az_automation_runbook_replace_content(rg, aa, runbook, content_path)
+    _az_automation_runbook_publish(rg, aa, runbook)
+    _step(f"  runbook {runbook} published")
+    return f"{aa}/{runbook}"
+
+
+# ═════════════════════════════════════════════════════════════════════════
 # Azure Container App handler (--env dev|qa|prod, target_kind=azure_container_app)
 # ═════════════════════════════════════════════════════════════════════════
 
@@ -570,6 +717,9 @@ def _deploy_one(
     if target_kind == "azure_container_app":
         target = coll.by_target_id(target_id)
         return _deploy_azure_container_app(build_dir, target, env, resolver, build_n)
+    if target_kind == "azure_automation_runbook":
+        target = coll.by_target_id(target_id)
+        return _deploy_azure_automation_runbook(build_dir, target, env, resolver)
     raise RuntimeError(
         f"target_kind {target_kind!r} not supported in local_deploy."
     )
@@ -580,6 +730,7 @@ _DEPLOYABLE_KINDS = (
     "hf_space",
     "azure_function_app",
     "azure_container_app",
+    "azure_automation_runbook",
 )
 
 
@@ -614,6 +765,11 @@ def _select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tupl
         return [
             (t.target_id, t.target_kind) for t in coll
             if t.target_kind == "azure_container_app"
+        ]
+    if target_arg in ("automation", "azure_automation_runbook"):
+        return [
+            (t.target_id, t.target_kind) for t in coll
+            if t.target_kind == "azure_automation_runbook"
         ]
     for t in coll:
         if t.target_id == target_arg:
