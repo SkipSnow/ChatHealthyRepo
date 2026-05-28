@@ -3080,7 +3080,7 @@
           "source_location": "pipeline/Code/record_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d28021224ea6eefb2923667fa72679272d70b5b5f682e55080c71c98ae5cce51"
+          "content_hash": "1652785e9637df5b51090ea08568aa2483656c451eaabea34069c3e0cfd3b184"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3617,7 +3617,7 @@
           "source_location": "pipeline/Code/record_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d28021224ea6eefb2923667fa72679272d70b5b5f682e55080c71c98ae5cce51"
+          "content_hash": "1652785e9637df5b51090ea08568aa2483656c451eaabea34069c3e0cfd3b184"
         },
         {
           "feature_id": "EPIC-010-F-102",
