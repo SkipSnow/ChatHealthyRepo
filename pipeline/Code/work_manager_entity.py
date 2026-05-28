@@ -141,18 +141,22 @@ def work_manager_entity_fn(context) -> None:
             q["claimed"] = {}
             q["done"] = 0
         elif work_kind == _REPAIR_WORK_KIND:
-            # Recovery seed: caller supplies chunk_index where each entry is a
-            # list of NPIs. batch_size names the per-assignment NPI count; the
-            # ingest activity sized it from the throttle config upstream.
+            # Recovery seed: caller supplies chunk_index where each entry is
+            # a dict {stage, npis}. The stage value is the failure source
+            # that the assignment's NPIs carry; the worker stamps it onto
+            # its metrics for observability and reuses the existing chain
+            # logic on the NPIs themselves (no per-stage dispatch).
             chunk_index = inp.get("chunk_index") or []
             cfg = {
-                "batch_size": int(inp.get("batch_size", len(chunk_index[0]) if chunk_index else 50)),
+                "batch_size": int(inp.get("batch_size", 200)),
                 "discrepancy_threshold": int(inp.get("discrepancy_threshold", 1000)),
                 "total_chunks": len(chunk_index),
             }
             pending = []
-            for cid, npis in enumerate(chunk_index):
-                pending.append([cid, list(npis)])
+            for cid, entry in enumerate(chunk_index):
+                stage = entry.get("stage") if isinstance(entry, dict) else None
+                npis = entry.get("npis") if isinstance(entry, dict) else entry
+                pending.append([cid, stage, list(npis or [])])
             q["config"] = cfg
             q["pending"] = pending
             q["claimed"] = {}
@@ -191,11 +195,13 @@ def work_manager_entity_fn(context) -> None:
                 "batch_size": cfg["batch_size"],
             }
         else:  # repair_chunks
-            npis = entry[1]
+            stage = entry[1]
+            npis = entry[2]
             assignment = {
                 "work_kind": work_kind,
                 "chunk_id": cid,
                 "assignment_id": cid,
+                "stage": stage,
                 "npis": npis,
                 "batch_size": cfg["batch_size"],
             }
@@ -254,7 +260,8 @@ def work_manager_entity_fn(context) -> None:
                     "work_kind": work_kind,
                     "chunk_id": cid,
                     "assignment_id": cid,
-                    "npis": entry[1],
+                    "stage": entry[1],
+                    "npis": entry[2],
                     "batch_size": cfg["batch_size"],
                 })
         if out:

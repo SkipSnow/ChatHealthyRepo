@@ -484,9 +484,13 @@ def _call_census_for_addresses(doc, addresses, pass_label, failure_label, retarg
             continue
         rec_id = row[0]
         match_status = row[2] if len(row) > 2 else ""
-        county_fips = row[12] if len(row) > 12 else ""
-        if match_status == "Match" and county_fips:
-            parsed_by_id[rec_id] = county_fips[:5]
+        # Census batch returns 12 columns; the 5-digit county FIPS is
+        # row[8] (state FIPS, 2 digits) + row[9] (county FIPS, 3 digits).
+        state_fips = row[8] if len(row) > 8 else ""
+        county_fips_3 = row[9] if len(row) > 9 else ""
+        fips5 = state_fips + county_fips_3
+        if match_status == "Match" and len(fips5) == 5 and fips5.isdigit():
+            parsed_by_id[rec_id] = fips5
     if retarget is not None:
         fips = parsed_by_id.get("0")
         if fips:
