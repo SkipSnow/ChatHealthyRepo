@@ -231,11 +231,18 @@ def aca_wait_for_revision(
     resource_group: str,
     timeout_s: int = 300,
 ) -> str:
-    """Poll until the active revision reports runningState='Running'.
+    """Poll until the active revision is deployed and ready to serve.
 
-    Returns the active revision name. Fails loud on timeout — the
-    operator deals with a wedged deploy, the script doesn't paper over
-    it.
+    For ACA `min_replicas=0` apps a freshly-deployed revision sits at
+    `ScaledToZero` (replicas=0) until the first inbound request lands;
+    waiting for `runningState=='Running'` never succeeds in that case
+    even though the revision is provisioned and ready. We accept either
+    `Running` (warm) OR `ScaledToZero` (provisioned, scaled-to-zero) as
+    the deploy-complete signal. We additionally require the revision's
+    `provisioningState=='Provisioned'` so we don't accept a half-baked
+    revision.
+
+    Returns the active revision name. Fails loud on timeout.
     """
     deadline = time.time() + timeout_s
     last_state = "<none>"
@@ -246,20 +253,24 @@ def aca_wait_for_revision(
              "--resource-group", resource_group,
              "-o", "tsv",
              "--query",
-             "[?properties.active && properties.runningState=='Running'].name"],
+             "[?properties.active "
+             "&& properties.provisioningState=='Provisioned' "
+             "&& (properties.runningState=='Running' "
+             "    || properties.runningState=='RunningAtMaxScale' "
+             "    || properties.runningState=='ScaledToZero')].name"],
             capture_output=True, text=True,
             creationflags=_cflags(), shell=(sys.platform == "win32"),
         )
         if r.returncode == 0 and r.stdout.strip():
             rev = r.stdout.strip().splitlines()[0]
-            _step(f"active revision Running: {rev}")
+            _step(f"active revision provisioned: {rev}")
             return rev
         last_state = (r.stdout or "").strip() or (r.stderr or "").strip()
-        _step(f"  waiting for active+Running revision … last={last_state!r}")
+        _step(f"  waiting for active+provisioned revision … last={last_state!r}")
         time.sleep(10)
     sys.exit(
         f"ERROR: container app {container_app} did not report an active "
-        f"Running revision within {timeout_s}s. last_state={last_state!r}"
+        f"provisioned revision within {timeout_s}s. last_state={last_state!r}"
     )
 
 
