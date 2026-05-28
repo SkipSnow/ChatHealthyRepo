@@ -466,39 +466,57 @@ def _deploy_azure_function_app(
 # block; we do not touch them — the operator created them once and they
 # survive deploys.
 
-def _az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None:
-    """Idempotent create-or-update for an Automation Variable.
+_AUTOMATION_API = "2023-11-01"
 
-    `az automation variable update` requires the variable to exist; `create`
-    requires it not to. We probe with `show`; the absent path returns a
-    non-zero exit. Variables are encrypted in transit + at rest by the
-    Automation Account; the value never lands on disk locally.
-    """
-    show = subprocess.run(
-        ["az", "automation", "variable", "show",
-         "--resource-group", rg, "--automation-account-name", aa,
-         "--name", name, "-o", "tsv", "--query", "name"],
-        capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
-    )
-    if show.returncode == 0 and show.stdout.strip():
-        verb = "update"
-    else:
-        verb = "create"
-    args = [
-        "az", "automation", "variable", verb,
-        "--resource-group", rg, "--automation-account-name", aa,
-        "--name", name, "--value", value,
-        "--encrypted", "true",
-        "-o", "none",
-    ]
+
+def _az_subscription_id() -> str:
     r = subprocess.run(
-        args, capture_output=True, text=True,
+        ["az", "account", "show", "--query", "id", "-o", "tsv"],
+        capture_output=True, text=True,
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
-            f"ERROR: az automation variable {verb} for {name!r} failed "
+            f"ERROR: az account show failed (exit {r.returncode}); "
+            f"are you signed in?\n  stderr: {(r.stderr or '').strip()[:500]}"
+        )
+    return r.stdout.strip()
+
+
+def _az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None:
+    """Idempotent create-or-update of an Automation Variable via REST.
+
+    The `az automation variable` command group doesn't exist; the REST API
+    is the supported surface. PUT is create-or-update. The `value` field
+    on the wire is a JSON-encoded string (so a plain string becomes
+    `"\"actual_value\""`). isEncrypted=true ensures Azure encrypts at rest.
+    Values never land on disk locally — they live only in `body` until
+    `az rest` consumes them via --body @file (stdin-piped here).
+    """
+    sub = _az_subscription_id()
+    base = (
+        f"https://management.azure.com/subscriptions/{sub}"
+        f"/resourceGroups/{rg}/providers/Microsoft.Automation"
+        f"/automationAccounts/{aa}/variables/{name}"
+        f"?api-version={_AUTOMATION_API}"
+    )
+    body = json.dumps({
+        "name": name,
+        "properties": {
+            "value": json.dumps(value),
+            "isEncrypted": True,
+        },
+    })
+    r = subprocess.run(
+        ["az", "rest", "--method", "put", "--url", base,
+         "--headers", "Content-Type=application/json",
+         "--body", body, "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: PUT automation variable {name!r} failed "
             f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}"
         )
 
