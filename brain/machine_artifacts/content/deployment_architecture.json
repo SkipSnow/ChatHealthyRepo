@@ -230,7 +230,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "4b1c7c2a56c3faf1d33f1188ed048a1e841d7c54ff860325f3804ab3c4902d40"
+          "content_hash": "f20ef1b665bd8ccf6d3c307ee5af3386dd25d7be46af3d16efe175a85600675e"
         },
         {
           "feature_id": "EPIC-008-F-012",
