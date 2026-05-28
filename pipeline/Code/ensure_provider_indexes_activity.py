@@ -3,7 +3,7 @@
 
 """ensure_provider_indexes_activity - software-managed provider indexes.
 
-Called once per streaming_pipeline_orchestrator run, after the cluster is
+Called once per provider_pipeline_orchestrator run, after the cluster is
 awake and before the load fan-out starts. Idempotently creates every
 index the pipeline depends on:
 

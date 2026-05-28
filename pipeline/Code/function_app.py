@@ -33,16 +33,16 @@ from count_providers_by_state import count_providers_by_state
 from pipeline_health import check_mongo_health
 # from idle_monitor import check_and_pause  # disabled — see idle_monitor_timer below
 # CountyEnrichment-as-a-standalone-pipeline has been retired (2026-05-28).
-# The provider pipeline (StreamingPipeline) owns the providers collection
-# end-to-end and does enrichment inline inside process_assignment_activity.
-# No external county-enrichment orchestrator is exposed here. Helper
-# utilities in county_enrichment_job.py (_get_crosswalk, _get_maps_county_lookup,
-# _build_states_filter, PROVIDERS_COLLECTION) remain importable for the
-# StampEmbeddingVersion task and other narrow internal uses.
+# The provider pipeline (ProviderPipeline / provider_pipeline_orchestrator)
+# owns the providers collection end-to-end and does enrichment inline inside
+# process_assignment_activity. No external county-enrichment orchestrator
+# is exposed here. Helper utilities in county_enrichment_job.py
+# (_get_crosswalk, _get_maps_county_lookup, _build_states_filter,
+# PROVIDERS_COLLECTION) remain importable for the StampEmbeddingVersion
+# task and other narrow internal uses.
 from instance_warmer import cool_instances_fn, warm_instances_fn
 from cluster_lifecycle_manager import ClusterLifecycleManager
 from provider_load_manager import (
-    PROVIDER_PIPELINE_STEPS,
     attach_practice_locations_fn,
     create_vector_index_fn,
     download_zip_fn,
@@ -127,13 +127,20 @@ def get_csv_metadata_fn(config: dict) -> dict:
     return {"file_size": file_size, "header_end": header_end}
 
 
-def streaming_pipeline_orchestrator_fn(context):
-    """Parent orchestrator for the records-as-messages pipeline.
+def provider_pipeline_orchestrator_fn(context):
+    """Parent orchestrator for the provider pipeline.
+
+    The one and only code path that produces the front-end providers
+    collection ({env}_PublicHealthData.providers). Runs end-to-end with
+    no external orchestrations; enrichment, recovery, and embedding all
+    happen inline within this orchestration hierarchy.
 
     Sequence:
-      reserve cluster -> configure throttles -> source_gather sub -> read CSV
-      metadata -> seed work_manager -> warm instances -> spawn pool ->
-      task_all(record_worker sub-orchestrations) -> cool instances ->
+      reserve cluster -> ensure provider indexes -> configure throttles ->
+      source_gather sub -> read CSV metadata -> seed work_manager ->
+      warm instances -> spawn record_worker pool -> task_all -> recovery
+      phase (ingest failed cohort -> seed work_manager.repair_chunks ->
+      task_all(recovery_worker sub-orchestrations)) -> cool instances ->
       release cluster (finally).
     """
     import azure.durable_functions as df
@@ -474,13 +481,15 @@ OPS_TASK_HANDLERS = {
 
 # Asynchronous tasks — start a Durable orchestrator, return 202 + status URL.
 # Retired 2026-05-28: CountyEnrichment (standalone enrichment pipeline — no
-# business value on its own) and the OLD ProviderPipeline (delegated its
-# enrichment phase to external CountyEnrichment sub-orchestrators, violating
-# the principle that the provider pipeline owns the providers collection
-# end-to-end with no external orchestrations). StreamingPipeline is the
-# provider pipeline going forward.
+# business value on its own); the legacy multi-orchestrator ProviderPipeline
+# (delegated enrichment to external CountyEnrichment sub-orchestrators,
+# violating the principle that the provider pipeline owns its collection
+# end-to-end with no external orchestrations); and the legacy task name
+# "StreamingPipeline" — the records-as-messages parent IS the provider
+# pipeline, and the business name is "ProviderPipeline". One task entry,
+# one orchestrator, one code path to {env}_PublicHealthData.providers.
 ASYNC_TASK_ORCHESTRATORS = {
-    "StreamingPipeline": "streaming_pipeline_orchestrator",
+    "ProviderPipeline": "provider_pipeline_orchestrator",
     "SpecialtyPipeline": "specialty_pipeline_orchestrator",
     "SnapshotCollection": "snapshot_collection_orchestrator",
     "PrescriberEvaluateCarePipeline": "prescriber_pipeline_orchestrator",
@@ -522,10 +531,6 @@ PIPELINE_STEP_REGISTRY = {
             PRESCRIBER_LABEL_CROSSWALK: {"requires_collection": "provider_quality", "min_docs": 1, "note": "Crosswalk requires provider_quality records"},
             PRESCRIBER_LABEL_ENRICH:    {"requires_collection": "provider_quality", "min_docs": 1, "note": "Enrich requires provider_quality records"},
         },
-    },
-    "ProviderPipeline": {
-        "valid_steps": PROVIDER_PIPELINE_STEPS,
-        "preconditions": {},
     },
     "SpecialtyPipeline": {
         "valid_steps": SPECIALTY_PIPELINE_STEPS,
@@ -717,8 +722,8 @@ def work_manager(context: df.DurableEntityContext) -> None:
 # ── Durable Orchestrators ─────────────────────────────────────────────────────
 
 @app.orchestration_trigger(context_name="context")
-def streaming_pipeline_orchestrator(context: df.DurableOrchestrationContext):
-    return streaming_pipeline_orchestrator_fn(context)
+def provider_pipeline_orchestrator(context: df.DurableOrchestrationContext):
+    return provider_pipeline_orchestrator_fn(context)
 
 
 @app.orchestration_trigger(context_name="context")
@@ -1029,8 +1034,8 @@ def apply_provider_flags_activity(config: dict) -> dict:
 # (violation of the "provider pipeline owns the providers collection
 # end-to-end with no external orchestrations" principle).
 #
-# The streaming provider pipeline (streaming_pipeline_orchestrator) is now
-# the sole provider pipeline and does enrichment inline inside
+# The provider pipeline (provider_pipeline_orchestrator) is the one and only
+# provider pipeline and does enrichment inline inside
 # process_assignment_activity.
 #
 # Helper utilities still in county_enrichment_job.py — _get_crosswalk,

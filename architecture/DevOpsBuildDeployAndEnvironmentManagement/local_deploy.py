@@ -354,17 +354,23 @@ def _block_if_active_orchestrations(rg: str, app: str, task_hub: str) -> None:
         f"https://{default_host}/runtime/webhooks/durabletask/instances"
         f"?taskHub={task_hub}&code={master_key}"
     )
+    # Initial probe: long timeout so a Netherite cold start (~40s observed
+    # on dev Flex Consumption + scale-to-zero) doesn't waste the first
+    # iteration of the query loop below.
     try:
-        urllib.request.urlopen(f"{base}&runtimeStatus=Running", timeout=5).read()
+        urllib.request.urlopen(f"{base}&runtimeStatus=Running", timeout=90).read()
     except Exception:
         pass
 
     def _query(status: str) -> list:
+        # Per-request timeout sized for a cold Durable management endpoint
+        # (Netherite + Flex Consumption + scale-to-zero); the prior 20s
+        # value timed out every attempt for the same reason.
         deadline = time.time() + 360
         while time.time() < deadline:
             try:
                 with urllib.request.urlopen(
-                    f"{base}&runtimeStatus={status}", timeout=20,
+                    f"{base}&runtimeStatus={status}", timeout=90,
                 ) as resp:
                     body = resp.read().decode("utf-8", errors="replace")
                     data = json.loads(body)
@@ -374,7 +380,7 @@ def _block_if_active_orchestrations(rg: str, app: str, task_hub: str) -> None:
                     TimeoutError, json.JSONDecodeError):
                 pass
             _step(f"  waiting for warm-up to query {status} …")
-            time.sleep(20)
+            time.sleep(10)
         sys.exit(
             f"ERROR: could not query {status} orchestrations within 6 min."
         )

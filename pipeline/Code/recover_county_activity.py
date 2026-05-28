@@ -3,7 +3,7 @@
 
 """recover_county_activity - the post-load county-recovery worker.
 
-Two activity entry points wired into the streaming_pipeline_orchestrator
+Two activity entry points wired into the provider_pipeline_orchestrator
 recovery phase:
 
   build_recovery_assignments_activity
