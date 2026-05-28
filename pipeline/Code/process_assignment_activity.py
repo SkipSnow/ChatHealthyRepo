@@ -822,7 +822,7 @@ def _signal_discrepancy(load_id: str, record_key, reason: str, ctx: dict | None 
 def process_assignment_activity_fn(config: dict) -> dict:
     from normalize_provider_rows import normalize_raw_record
     from county_enrichment_job import _get_crosswalk
-    from staging import staging_write, staging_list_for_worker, staging_read, staging_delete
+    from staging import staging_write, staging_delete
 
     started_at = time.monotonic()
     a = config["assignment"]
@@ -849,28 +849,22 @@ def process_assignment_activity_fn(config: dict) -> dict:
     counters = {
         "records_staged": 0,
         "storage_puts": 0,
-        "storage_lists": 0,
-        "storage_gets": 0,
         "storage_deletes": 0,
         "mongo_writes": 0,
         "commits": 0,
         "total_records_committed": 0,
     }
 
-    def _commit_batch():
-        # The worker holds its own (npi, path) pairs in memory; list-by-prefix
-        # is still issued once per commit so §16.2 metrics match the published
-        # cost model (PUT/GET/LIST/DELETE per record) and so a crash-recovered
-        # restart of the same assignment finds prior stage residue.
-        counters["storage_lists"] += 1
-        ops, paths = [], []
-        for blob in staging_list_for_worker(load_id, aid, wid):
-            doc = staging_read(blob.name)
-            counters["storage_gets"] += 1
-            ops.append(InsertOne(doc))
-            paths.append(blob.name)
-        if not ops:
+    def _commit_batch(batch_pairs: list):
+        # batch_pairs is the local (path, doc) record the worker built as it
+        # staged. We bulk_write the in-memory docs directly (no staging_read)
+        # and delete by the tracked paths (no staging_list). Eliminates the
+        # eventually-consistent list/delete race that surfaced when the list
+        # API still returned a name a prior _commit_batch in the same activity
+        # had already deleted.
+        if not batch_pairs:
             return
+        ops = [InsertOne(doc) for _, doc in batch_pairs]
         # Plain insert (drain_staging guarantees the target state slice is
         # empty before the run fans out). Cheaper than upsert: no per-doc
         # lookup, no read-modify-write — one network round-trip for the whole
@@ -881,8 +875,8 @@ def process_assignment_activity_fn(config: dict) -> dict:
         except Exception as exc:
             _signal_discrepancy(load_id, aid, "bulk_write_error", {"error": str(exc)[:300]})
             raise
-        for p in paths:
-            staging_delete(p)
+        for path, _ in batch_pairs:
+            staging_delete(path)
             counters["storage_deletes"] += 1
         counters["commits"] += 1
         counters["total_records_committed"] += len(ops)
@@ -941,23 +935,25 @@ def process_assignment_activity_fn(config: dict) -> dict:
     # Phase 2: batched embed (one OpenAI call for the whole chunk)
     _embed_batch(docs)
 
-    # Phase 3: stage + commit
-    pending_in_batch = 0
+    # Phase 3: stage + commit. The worker tracks the exact (path, doc) pairs
+    # it staged so the commit and delete loop operate on what it KNOWS it
+    # wrote, never on a re-listed view of the blob container.
+    pending_batch: list = []
     for d in docs:
         try:
-            staging_write(load_id, aid, wid, d["npi"], d)
+            path = staging_write(load_id, aid, wid, d["npi"], d)
         except Exception as exc:
             _signal_discrepancy(load_id, d.get("npi"), "stage_write_error", {"error": str(exc)[:300]})
             raise
         counters["storage_puts"] += 1
         counters["records_staged"] += 1
-        pending_in_batch += 1
-        if pending_in_batch >= batch_size:
-            _commit_batch()
-            pending_in_batch = 0
+        pending_batch.append((path, d))
+        if len(pending_batch) >= batch_size:
+            _commit_batch(pending_batch)
+            pending_batch = []
 
-    if pending_in_batch > 0:
-        _commit_batch()
+    if pending_batch:
+        _commit_batch(pending_batch)
 
     duration = time.monotonic() - started_at
     metrics = {
@@ -966,8 +962,6 @@ def process_assignment_activity_fn(config: dict) -> dict:
         "records": counters["total_records_committed"],
         "records_staged": counters["records_staged"],
         "storage_puts": counters["storage_puts"],
-        "storage_lists": counters["storage_lists"],
-        "storage_gets": counters["storage_gets"],
         "storage_deletes": counters["storage_deletes"],
         "mongo_writes": counters["mongo_writes"],
         "commits": counters["commits"],
