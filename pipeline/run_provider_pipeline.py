@@ -41,7 +41,6 @@ def main(argv: list[str] | None = None) -> int:
                         help="Mongo bulk_write batch size per assignment.")
     parser.add_argument("--discrepancy-abort-threshold", type=int, default=1000,
                         help="Pipeline aborts when discrepancy count exceeds this.")
-    parser.add_argument("--chunk-size-bytes", type=int, default=2_500_000)
 
     parser.add_argument("--census-refill-rate", type=float, default=10.0)
     parser.add_argument("--census-capacity", type=int, default=20)
@@ -76,7 +75,6 @@ def main(argv: list[str] | None = None) -> int:
         "num_workers": pool_size,
         "batch_size": args.batch_size,
         "discrepancy_threshold": args.discrepancy_abort_threshold,
-        "chunk_size_bytes": args.chunk_size_bytes,
         "throttle": {
             "census": {"refill_rate": args.census_refill_rate, "capacity": args.census_capacity},
             "nppes": {"refill_rate": args.nppes_refill_rate, "capacity": args.nppes_capacity},
