@@ -8,7 +8,9 @@ For one assignment (byte range of the NPPES CSV), inline chain:
   pass3 billing -> pass4 maps -> pass6 nppes -> stamp_urban -> stamp_flags ->
   mark_quality -> should_embed? -> embed -> stage (one blob per record).
 
-At assignment close: list-by-prefix, read each, bulk_write upsert, delete blobs.
+At assignment close: list-by-prefix, read each, bulk_write insert, delete blobs.
+Pre-condition: the streaming_pipeline_orchestrator has called drain_staging
+for the requested states, so the target slice is empty and inserts are clean.
 """
 from __future__ import annotations
 
@@ -21,7 +23,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from pymongo import MongoClient, UpdateOne
+from pymongo import MongoClient, InsertOne
 
 
 # ── In-process per-API rate limiters ──────────────────────────────────────────
@@ -794,17 +796,17 @@ def process_assignment_activity_fn(config: dict) -> dict:
         for blob in staging_list_for_worker(load_id, aid, wid):
             doc = staging_read(blob.name)
             counters["storage_gets"] += 1
-            ops.append(UpdateOne({"npi": doc["npi"]}, {"$set": doc}, upsert=True))
+            ops.append(InsertOne(doc))
             paths.append(blob.name)
         if not ops:
             return
+        # Plain insert (drain_staging guarantees the target state slice is
+        # empty before the spike fans out). Cheaper than upsert: no per-doc
+        # lookup, no read-modify-write — one network round-trip for the whole
+        # batch.
         try:
             result = coll_p.bulk_write(ops, ordered=False)
-            counters["mongo_writes"] += (
-                (result.upserted_count or 0)
-                + (result.modified_count or 0)
-                + (result.matched_count or 0)
-            )
+            counters["mongo_writes"] += int(result.inserted_count or 0)
         except Exception as exc:
             _signal_discrepancy(load_id, aid, "bulk_write_error", {"error": str(exc)[:300]})
             raise
