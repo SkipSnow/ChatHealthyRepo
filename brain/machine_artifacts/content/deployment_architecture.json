@@ -2376,14 +2376,14 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1da4f15064d1b94565db5ce6f947e17c6c73009efbb3abdf5c78b9ab6058c6b0"
+          "content_hash": "7aaa8d1a0465f4fda87441497600d7bea6108f1ef9517b2dba3440cc21268dc2"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "0ebb9902de615fce28c888170ce17988201436a59aa81933b3062ffa2a4a1c58"
+          "content_hash": "14688182ae01a0edd8d5f2b3ed72327b69e695e6cec7e38f8d3fe5736b162d33"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2418,7 +2418,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/target_record.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1b7277c8f0f28469087a6b761a5bd892d9f519f0e7db975fb8d6ae765c99f0ff"
+          "content_hash": "161e671105dfa4cf297adbe03e089ea160c8280f5fa78b32016aa42dbba02595"
         },
         {
           "feature_id": "EPIC-008-F-012",
