@@ -349,7 +349,7 @@ def _main():
 
     # Precedence: the reservation queue is the primary signal (REQ-B-001). While a
     # live reservation exists the cluster stays up, full stop. dbAccessHistory is a
-    # lower-precedence confirmatory signal that only runs once the queue is empty —
+    # lower-precedence confirmatory signal that only runs once the queue is empty;
     # if something is still hitting the cluster despite no reservations, hold off on
     # the pause and surface that as unaccounted use.
     should_pause = False
