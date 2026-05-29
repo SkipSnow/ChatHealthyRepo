@@ -296,6 +296,8 @@ def provider_pipeline_orchestrator_fn(context):
             "env_prefix": config.get("env_prefix", "dev"),
             "age_limit_seconds": int(config.get("age_limit_seconds", 6600)),
             "batch_size": batch_size,
+            "embedding_enabled": bool(config.get("embedding_enabled", False)),
+            "google_maps_enabled": bool(config.get("google_maps_enabled", True)),
         }
         pool = [
             context.call_sub_orchestrator(
