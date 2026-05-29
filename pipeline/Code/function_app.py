@@ -158,6 +158,9 @@ def provider_pipeline_orchestrator_fn(context):
         "provider_collection",
         f"{os.environ.get('ENV_PREFIX', 'dev')}_PublicHealthData.providers",
     )
+    config.setdefault("metadata_collection", "admin.DataLoadMetadata")
+    config.setdefault("staging_container", "pipeline-staging")
+    config.setdefault("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
 
     # Per F-102-S-003-REQ-B-002 "Manage data source freshness": each source
     # has its own staleness TTL declared as an array of {source_name, number_of_days}.
