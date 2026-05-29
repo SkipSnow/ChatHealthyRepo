@@ -2,12 +2,22 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 #
 # Pipeline trigger and monitor.
-# Reads bearer token from pipeline.http, invokes FindCarePipeline via Router,
-# monitors status until completion, cleans up pipeline.http after run.
+#
+# Per EPIC-010-F-102-S-007:
+#   REQ-B-001 — the only entrance for invoking any pipeline is the HTTP
+#     POST 'Router' route on the Function App DevPipelineManagementService.
+#   REQ-B-002 — the pipeline name (ChatHealthyTask JSON body field) is the
+#     request's first positional argument and has no default. The payload
+#     object carries the rest; its shape varies by pipeline.
+#
+# Reads bearer token from pipeline.http, POSTs once to Router with
+# {ChatHealthyTask: <pipeline_name>, payload: <payload>}, monitors status
+# to completion, cleans up pipeline.http after the run.
 #
 # Usage:
-#   python pipeline_trigger.py --states MS --specialty-metadata
-#   python pipeline_trigger.py --states MS DE
+#   python pipeline_trigger.py ProviderPipeline \
+#       --payload-json '{"states":["CA"],"pool_size":100,"batch_size":3000}'
+#   python pipeline_trigger.py SpecialtyPipeline --payload-json '{}'
 #   python pipeline_trigger.py --status <instance_id>
 
 import argparse
@@ -48,12 +58,15 @@ def _cleanup():
         print(f"WARNING: Could not delete {HTTP_FILE}: {e}")
 
 
-def trigger(payload, token):
-    """Call Router to start FindCarePipeline. Returns instance_id and status_url."""
+def trigger(pipeline_name, payload, token):
+    """POST Router with {ChatHealthyTask: <pipeline_name>, payload}.
+
+    Returns (instance_id, status_url, raw_response_dict).
+    """
     import requests
 
     body = {
-        "ChatHealthyTask": "FindCarePipeline",
+        "ChatHealthyTask": pipeline_name,
         "payload": payload,
     }
 
@@ -138,19 +151,25 @@ def check_status(instance_id, token):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="FindCarePipeline trigger and monitor")
-    parser.add_argument("--states", nargs="+", help="State codes to load (e.g. MS DE)")
-    parser.add_argument("--specialty-metadata", action="store_true", default=True, help="Load SpecialtyMetaData (default: true)")
-    parser.add_argument("--no-specialty-metadata", action="store_true", help="Skip SpecialtyMetaData load")
-    parser.add_argument("--embedding", action="store_true", help="Enable embeddings")
+    parser = argparse.ArgumentParser(
+        description="Trigger a pipeline via the Function App Router and monitor it.",
+    )
     parser.add_argument(
-        "--start-step",
-        type=str,
-        default=None,
+        "pipeline_name",
+        nargs="?",
         help=(
-            "Canonical step LABEL string to start from (e.g. "
-            '"Step 4: Loading provider data"). Same string the orchestrator '
-            "displays in customStatus. Omit to start at Step 1."
+            "Pipeline name (the ChatHealthyTask body field). Required unless "
+            "--status. Per EPIC-010-F-102-S-007-REQ-B-002: first positional, "
+            "no default."
+        ),
+    )
+    parser.add_argument(
+        "--payload-json",
+        type=str,
+        default="{}",
+        help=(
+            "JSON object string for the payload (default '{}'). Shape varies "
+            "by pipeline; see the orchestrator for required fields."
         ),
     )
     parser.add_argument("--poll", type=int, default=15, help="Poll interval seconds (default 15)")
@@ -164,22 +183,21 @@ def main():
         check_status(args.status, token)
         return
 
-    payload = {
-        "states": args.states or [],
-        "specialty_metadata": not args.no_specialty_metadata,
-        "embedding_enabled": args.embedding,
-    }
-    if args.start_step is not None:
-        payload["start_step"] = args.start_step
+    if not args.pipeline_name:
+        parser.error("pipeline_name is required (or use --status <instance_id>)")
 
-    print(f"FindCarePipeline trigger")
-    print(f"  States: {payload['states']}")
-    print(f"  Specialty metadata: {payload['specialty_metadata']}")
-    print(f"  Embeddings: {payload['embedding_enabled']}")
-    print(f"  Start step: {payload.get('start_step', '(default — first step)')}")
+    try:
+        payload = json.loads(args.payload_json)
+    except json.JSONDecodeError as e:
+        parser.error(f"--payload-json is not valid JSON: {e}")
+    if not isinstance(payload, dict):
+        parser.error("--payload-json must be a JSON object")
+
+    print(f"{args.pipeline_name} trigger")
+    print(f"  payload: {json.dumps(payload)}")
     print()
 
-    instance_id, status_url, trigger_data = trigger(payload, token)
+    instance_id, status_url, trigger_data = trigger(args.pipeline_name, payload, token)
 
     # Save status URL to .http file for human to monitor
     with open(os.path.join(REPO_ROOT, "pipeline_status.http"), "w") as f:
