@@ -921,7 +921,8 @@ def process_assignment_activity_fn(config: dict) -> dict:
             _pass1_zip(doc, crosswalk)
             _pass2_census(doc)
             _pass3_billing(doc)
-            _pass4_maps(doc)
+            if google_maps_enabled:
+                _pass4_maps(doc)
             _pass6_nppes(doc)
             _stamp_urban(doc, rucc)
             _stamp_flags(doc, catalog)
@@ -936,6 +937,8 @@ def process_assignment_activity_fn(config: dict) -> dict:
     # bucket_size docs in flight, never an entire chunk.
     inner_workers = int(config.get("inner_workers", 16))
     bucket_size = int(config.get("bucket_size", 1000))
+    embedding_enabled = bool(config.get("embedding_enabled", False))
+    google_maps_enabled = bool(config.get("google_maps_enabled", True))
     batch_seq = 0
 
     def _flush_bucket(bucket_raw: list) -> None:
@@ -951,7 +954,8 @@ def process_assignment_activity_fn(config: dict) -> dict:
                 counters["records_staged"] += 1
         if not docs_bucket:
             return
-        _embed_batch(docs_bucket)
+        if embedding_enabled:
+            _embed_batch(docs_bucket)
         _commit_batch(docs_bucket, batch_seq)
         batch_seq += 1
 
