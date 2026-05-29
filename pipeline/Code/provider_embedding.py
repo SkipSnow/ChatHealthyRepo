@@ -236,15 +236,31 @@ def _format_authorized_official(record: dict) -> str | None:
 # ---------------------------------------------------------------------------
 
 def should_embed(record: dict) -> bool:
-    """Return False for records that must never be embedded.
+    """Return False for records that must not be embedded during the load.
 
-    Excluded: any record with the bad_data flag set. The two reasons that
-    flag fires for (no_address, zip_state_mismatch) both leave the record
-    without a coherent address, which makes the embedding text meaningless
-    for similarity search.
+    Excluded:
+      1. Records with bad_data.flagged set (no coherent address).
+      2. Records destined for the recovery phase — any address whose
+         county.source is a recoverable failure label (pass2/3/4_failed).
+         pass6_failed is terminal and not reprocessed, so it stays embeddable.
     """
     bad_data = record.get("bad_data") or {}
-    return not bad_data.get("flagged", False)
+    if bad_data.get("flagged", False):
+        return False
+    for a in record.get("addresses") or []:
+        if not isinstance(a, dict):
+            continue
+        c = a.get("county") or {}
+        if c.get("source") in _RECOVERABLE_FAILURE_SOURCES:
+            return False
+    return True
+
+
+_RECOVERABLE_FAILURE_SOURCES: frozenset[str] = frozenset({
+    "geocoder_pass2_failed",
+    "geocoder_pass3_failed",
+    "geocoder_pass4_failed",
+})
 
 
 def project(record: dict) -> dict:
