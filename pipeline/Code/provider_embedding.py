@@ -135,10 +135,23 @@ def _format_address(addr: dict | None) -> str | None:
     return ", ".join(parts) if parts else None
 
 
+_RECOVERY_SUFFIX = "_recovered"
+
+
+def _canonical_source(src: str | None) -> str:
+    """Strip the recovery suffix so the canonical pass label is what looks
+    up trust tier, summary text, etc. The suffix is purely a provenance
+    marker indicating the resolution came from the recovery phase, not a
+    different pass."""
+    if isinstance(src, str) and src.endswith(_RECOVERY_SUFFIX):
+        return src[: -len(_RECOVERY_SUFFIX)]
+    return src or ""
+
+
 def _county_resolution_status(county: dict) -> str:
     if county.get("fips"):
         return "resolved"
-    if county.get("source") in _FAILED_SOURCES:
+    if _canonical_source(county.get("source")) in _FAILED_SOURCES:
         return "unresolved"
     return "excluded"
 

@@ -209,6 +209,16 @@ def process_recovery_assignment_fn(config: dict) -> dict:
         if doc is None:
             continue
         before = _count_addresses_at_stage(doc, stage)
+        # Snapshot per-address county.source BEFORE re-running the pass
+        # chain. After the chain runs, addresses whose source changed (i.e.
+        # the recovery actually resolved them) get a "_recovered" suffix
+        # on their source label so the recovery phase is distinguishable
+        # from a first-pass success at terminal — per Skip 2026-05-29.
+        sources_before = [
+            (addr.get("county") or {}).get("source")
+            if isinstance(addr, dict) else None
+            for addr in (doc.get("addresses") or [])
+        ]
         try:
             _pass2_census(doc)
             _pass3_billing(doc)
@@ -221,6 +231,24 @@ def process_recovery_assignment_fn(config: dict) -> dict:
                 npi, stage, exc,
             )
             continue
+        # Label newly-resolved addresses with the recovery suffix. Skip
+        # addresses that didn't change source (already-resolved or still-
+        # failing) and addresses whose new source is itself a failure
+        # label (no point suffixing a failure).
+        for i, addr in enumerate(doc.get("addresses") or []):
+            if not isinstance(addr, dict):
+                continue
+            county = addr.get("county")
+            if not isinstance(county, dict):
+                continue
+            src = county.get("source")
+            if (
+                src
+                and src != sources_before[i]
+                and not src.endswith("_failed")
+                and not src.endswith("_recovered")
+            ):
+                county["source"] = f"{src}_recovered"
         after = _count_addresses_at_stage(doc, stage)
         n_addresses_at_stage_before += before
         n_addresses_at_stage_after += after
