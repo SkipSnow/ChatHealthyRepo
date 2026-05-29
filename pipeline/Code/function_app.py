@@ -181,9 +181,30 @@ def provider_pipeline_orchestrator_fn(context):
         "requester": "streaming_pipeline",
         "expected_duration_minutes": config.get("expected_duration_minutes", 120),
     })
-    yield context.call_activity("check_cluster_state_activity", {
-        "cluster_name": config["pipeline_cluster"],
-    })
+
+    # Poll until the pipeline cluster actually serves a read. Atlas's
+    # stateName can flip to IDLE before the cluster is reachable from
+    # outside; check_cluster_state_activity ground-truths with a
+    # find_one against providers and only reports IDLE when that
+    # succeeds. Bounded by cluster_wait_minutes (operator-tunable).
+    cluster_wait_minutes = int(config.get("cluster_wait_minutes", 20))
+    cluster_ready_deadline = (
+        context.current_utc_datetime + timedelta(minutes=cluster_wait_minutes)
+    )
+    while context.current_utc_datetime < cluster_ready_deadline:
+        cluster_status = yield context.call_activity(
+            "check_cluster_state_activity",
+            {
+                "cluster_name": config["pipeline_cluster"],
+                "env_prefix": config.get("env_prefix", "dev"),
+            },
+        )
+        if cluster_status.get("cluster_state") == "IDLE" and cluster_status.get("ping_ok"):
+            break
+        yield context.create_timer(
+            context.current_utc_datetime + timedelta(seconds=30)
+        )
+
     yield context.call_activity("register_reservation_activity", {
         "cluster_name": config["pipeline_cluster"],
         "job_id": load_id,
@@ -304,7 +325,23 @@ def provider_pipeline_orchestrator_fn(context):
             )
             for wid in range(1, pool_size + 1)
         ]
-        worker_results = yield context.task_all(pool)
+        # Deadline guard: if sub-orchestrations wedge (e.g. stuck in entity
+        # call or throttle backoff), task_all never resolves and the parent's
+        # finally never fires. Race the fan-out against a hard timer; on
+        # timer wins, raise so end_of_job_cleanup terminates the zombies and
+        # release_reservation runs.
+        worker_wedge_deadline = context.current_utc_datetime + timedelta(
+            minutes=int(config.get("expected_duration_minutes", 120)) + 30
+        )
+        worker_fanout = context.task_all(pool)
+        worker_timer = context.create_timer(worker_wedge_deadline)
+        winner = yield context.task_any([worker_fanout, worker_timer])
+        if winner == worker_timer:
+            raise RuntimeError(
+                f"worker fan-out wedge: task_all exceeded "
+                f"{int(config.get('expected_duration_minutes', 120)) + 30} min"
+            )
+        worker_results = worker_fanout.result
 
         # ── County recovery phase ─────────────────────────────────────────
         # Per Skip 2026-05-28: ~9% of practice addresses end the load with
@@ -356,7 +393,18 @@ def provider_pipeline_orchestrator_fn(context):
                 )
                 for wid in range(1, recovery_pool_size + 1)
             ]
-            recovery_results = yield context.task_all(recovery_pool)
+            recovery_wedge_deadline = context.current_utc_datetime + timedelta(
+                minutes=int(config.get("expected_duration_minutes", 120)) + 30
+            )
+            recovery_fanout = context.task_all(recovery_pool)
+            recovery_timer = context.create_timer(recovery_wedge_deadline)
+            winner = yield context.task_any([recovery_fanout, recovery_timer])
+            if winner == recovery_timer:
+                raise RuntimeError(
+                    f"recovery fan-out wedge: task_all exceeded "
+                    f"{int(config.get('expected_duration_minutes', 120)) + 30} min"
+                )
+            recovery_results = recovery_fanout.result
 
         yield context.call_activity("cool_instances_activity", {})
 
@@ -834,12 +882,35 @@ def check_mongo_health_activity(config: dict) -> dict:
 
 @app.activity_trigger(input_name="config")
 def check_cluster_state_activity(config: dict) -> dict:
-    """Return cluster state for orchestrator polling."""
+    """Return cluster state for orchestrator polling.
+
+    Atlas's stateName lags real readiness on resume, so we also issue a
+    real read against the pipeline cluster (one record from providers).
+    The orchestrator should only proceed when ping_ok is True; the
+    composite cluster_state is reported as WARMING until then even if
+    Atlas already says IDLE.
+    """
     mgr = _get_ops_manager()
-    return mgr.status(
+    status = mgr.status(
         config.get("cluster_name", "ChatHealthyDataPipelines"),
         job_id=config.get("job_id"),
     )
+    ping_ok = False
+    ping_error = None
+    if status.get("cluster_state") == "IDLE":
+        try:
+            from pipeline_db import get_db
+            env_prefix = config.get("env_prefix") or os.environ.get("ENV_PREFIX", "dev")
+            db = get_db(env_prefix)
+            db["providers"].find_one(projection={"_id": 1})
+            ping_ok = True
+        except Exception as exc:
+            ping_error = str(exc)[:200]
+    status["ping_ok"] = ping_ok
+    status["ping_error"] = ping_error
+    if not ping_ok:
+        status["cluster_state"] = "WARMING"
+    return status
 
 
 @app.activity_trigger(input_name="config")
