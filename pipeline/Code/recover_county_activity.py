@@ -185,6 +185,12 @@ def process_recovery_assignment_fn(config: dict) -> dict:
 
     from process_assignment_activity import (
         _pass2_census, _pass3_billing, _pass4_maps, _pass6_nppes,
+        _stamp_urban, _load_rucc, _embed_batch,
+    )
+
+    rucc = _load_rucc(
+        config.get("env_prefix", os.environ.get("ENV_PREFIX", "dev")),
+        config.get("blob_container", "provider-data"),
     )
 
     # Fetch the assignment's docs in one round-trip.
@@ -194,7 +200,7 @@ def process_recovery_assignment_fn(config: dict) -> dict:
         if npi:
             docs[str(npi)] = d
 
-    ops: list[UpdateOne] = []
+    resolved_docs: list[dict] = []
     n_addresses_at_stage_before = 0
     n_addresses_at_stage_after = 0
 
@@ -208,6 +214,7 @@ def process_recovery_assignment_fn(config: dict) -> dict:
             _pass3_billing(doc)
             _pass4_maps(doc)
             _pass6_nppes(doc)
+            _stamp_urban(doc, rucc)
         except Exception as exc:
             logging.warning(
                 "recovery: npi=%s stage=%s chain raised: %s",
@@ -217,15 +224,25 @@ def process_recovery_assignment_fn(config: dict) -> dict:
         after = _count_addresses_at_stage(doc, stage)
         n_addresses_at_stage_before += before
         n_addresses_at_stage_after += after
-        ops.append(UpdateOne(
-            {"npi": str(npi)},
-            {"$set": {
-                "addresses": doc.get("addresses") or [],
-                "recovered_at": _iso_now(),
-                "recovery_load_id": load_id,
-                "recovery_stage": stage,
-            }},
-        ))
+        resolved_docs.append(doc)
+
+    # Embed every recovered doc in one batched OpenAI call (should_embed
+    # filters out any that still carry a recoverable failure label).
+    _embed_batch(resolved_docs)
+
+    ops: list[UpdateOne] = []
+    for doc in resolved_docs:
+        set_fields = {
+            "addresses": doc.get("addresses") or [],
+            "recovered_at": _iso_now(),
+            "recovery_load_id": load_id,
+            "recovery_stage": stage,
+        }
+        if doc.get("embedding") is not None:
+            set_fields["embedding"] = doc["embedding"]
+            set_fields["embedding_model"] = doc.get("embedding_model")
+            set_fields["embedding_version"] = doc.get("embedding_version")
+        ops.append(UpdateOne({"npi": str(doc["npi"])}, {"$set": set_fields}))
 
     n_modified = 0
     if ops:

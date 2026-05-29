@@ -622,12 +622,11 @@ def _call_nppes_api_for_npi(doc, npi):
             }
 
 
-def _stamp_urban(doc: dict, rucc: dict, states_set: set) -> None:
+def _stamp_urban(doc: dict, rucc: dict) -> None:
     for addr in doc.get("addresses") or []:
         if not isinstance(addr, dict):
             continue
-        astate = (addr.get("state") or "").upper()
-        if states_set and astate not in states_set:
+        if addr.get("address_type") != "practice":
             continue
         county = addr.get("county") or {}
         fips = county.get("fips")
@@ -924,7 +923,7 @@ def process_assignment_activity_fn(config: dict) -> dict:
             _pass3_billing(doc)
             _pass4_maps(doc)
             _pass6_nppes(doc)
-            _stamp_urban(doc, rucc, states)
+            _stamp_urban(doc, rucc)
             _stamp_flags(doc, catalog)
             _mark_quality(doc)
         except Exception as exc:
