@@ -126,7 +126,7 @@
 
                 "azure_container_app": {
                   "type": "object",
-                  "description": "Azure Container Apps deploy coordinates for this env binding. Present iff target_kind=='azure_container_app'. resource_group + container_app identify the ACA resource; container_app_environment names the Container Apps Environment that hosts it; registry names the Azure Container Registry that hosts the image (deploy issues `az acr login --name <registry>` and pushes <registry>.azurecr.io/<container_app>:<build_number>); min_replicas / max_replicas set the scale-to-zero envelope; task_hub names the Durable Functions task hub used by the Netherite storage provider that this ACA hosts.",
+                  "description": "Azure Container Apps deploy coordinates for this env binding. Present iff target_kind=='azure_container_app'. resource_group + container_app identify the ACA resource; container_app_environment names the Container Apps Environment that hosts it; registry names the Azure Container Registry that hosts the image (deploy issues `az acr login --name <registry>` and pushes <registry>.azurecr.io/<container_app>:<build_number>); min_replicas / max_replicas set the scale-to-zero envelope; task_hub names the Durable Functions task hub used by the Netherite storage provider that this ACA hosts; event_hubs_namespace names the Azure Event Hubs namespace whose `partitions` Event Hub backs Netherite's partition queues — deploy verifies it exists with partitionCount matching host.json and creates it if missing (per the deploy-owns-permanent-infrastructure split).",
                   "additionalProperties": false,
                   "required": ["resource_group", "container_app", "container_app_environment", "task_hub"],
                   "properties": {
@@ -154,6 +154,12 @@
                     },
                     "task_hub": {
                       "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "event_hubs_namespace": {
+                      "type": "string",
+                      "description": "Azure Event Hubs namespace name (the short name, e.g. 'ChatHealthyDataPipelines', not the full FQDN). Deploy reads this and ensures the Netherite 'partitions' Event Hub exists inside it with partitionCount matching pipeline/Code/host.json. Event Hub partition count is immutable; deploy fails loud if the partition counts disagree so the operator can delete the Event Hub by hand and re-run.",
                       "minLength": 1,
                       "maxLength": 256
                     },
