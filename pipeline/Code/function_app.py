@@ -153,6 +153,7 @@ def provider_pipeline_orchestrator_fn(context):
     pool_size = int(config.get("pool_size", config.get("num_workers", 100)))
     batch_size = int(config.get("batch_size", 1000))
     discrepancy_threshold = int(config.get("discrepancy_threshold", 1000))
+    config.setdefault("blob_container", "provider-data")
 
     # Per F-102-S-003-REQ-B-002 "Manage data source freshness": each source
     # has its own staleness TTL declared as an array of {source_name, number_of_days}.
