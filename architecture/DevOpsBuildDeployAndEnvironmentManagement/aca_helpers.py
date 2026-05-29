@@ -12,6 +12,7 @@ Azure Container Apps.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import subprocess
 import sys
@@ -65,6 +66,118 @@ def aca_content_hash_tree(tree_root: Path) -> str:
         h.update(path.read_bytes().replace(b"\r\n", b"\n"))
         h.update(b"\0")
     return h.hexdigest()
+
+
+_NETHERITE_PARTITIONS_EH_NAME = "partitions"
+
+
+def aca_read_partition_count_from_host_json(repo_root: Path) -> int:
+    """Read the Netherite partitionCount declared in pipeline/Code/host.json.
+
+    host.json is the source of truth for the partition topology. Deploy
+    uses this value to provision (or verify) the Event Hub that backs
+    Netherite's partition queues.
+    """
+    host_json = repo_root / "pipeline" / "Code" / "host.json"
+    if not host_json.is_file():
+        sys.exit(f"ERROR: host.json not found at {host_json}")
+    cfg = json.loads(host_json.read_text(encoding="utf-8"))
+    try:
+        return int(
+            cfg["extensions"]["durableTask"]
+               ["storageProvider"]["partitionCount"]
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        sys.exit(
+            f"ERROR: could not read "
+            f"extensions.durableTask.storageProvider.partitionCount "
+            f"from {host_json}: {exc}"
+        )
+
+
+def aca_ensure_partitions_event_hub(
+    namespace: str,
+    resource_group: str,
+    partition_count: int,
+) -> None:
+    """Ensure the Netherite 'partitions' Event Hub exists with the expected
+    partition count.
+
+    Three cases, no fallbacks:
+      - missing      → create with N partitions
+      - matching     → no-op
+      - mismatched   → fail loud (Event Hub partition count is IMMUTABLE on
+                       Azure; the operator must delete the Event Hub by hand
+                       per the printed `az eventhubs eventhub delete` command,
+                       then re-run deploy; the next deploy will recreate it
+                       with the correct count).
+    """
+    eh = _NETHERITE_PARTITIONS_EH_NAME
+    _step(
+        f"verifying event hub '{eh}' in namespace '{namespace}' "
+        f"(want partitionCount={partition_count})"
+    )
+    show = subprocess.run(
+        [
+            "az", "eventhubs", "eventhub", "show",
+            "--namespace-name", namespace,
+            "--resource-group", resource_group,
+            "--name", eh,
+            "-o", "json",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+
+    if show.returncode == 0:
+        existing = json.loads(show.stdout or "{}")
+        existing_count = existing.get("partitionCount")
+        if existing_count == partition_count:
+            _step(
+                f"  event hub '{eh}' exists with "
+                f"partitionCount={partition_count} — no-op"
+            )
+            return
+        sys.exit(
+            f"ERROR: Event Hub '{eh}' in namespace '{namespace}' currently "
+            f"has partitionCount={existing_count}; host.json requires "
+            f"{partition_count}.\n"
+            f"  Azure Event Hubs partition count is IMMUTABLE — it cannot "
+            f"be changed in place.\n"
+            f"  Delete the Event Hub by hand, then re-run this deploy:\n"
+            f"    az eventhubs eventhub delete --namespace-name {namespace} "
+            f"--resource-group {resource_group} --name {eh}\n"
+            f"  The next deploy will recreate it with partitionCount="
+            f"{partition_count}. NOTE: this drops every Netherite hub on "
+            f"this namespace; ensure no live orchestrations remain first."
+        )
+
+    # show returned non-zero — assume not-found and create
+    _step(
+        f"  event hub '{eh}' not present — creating with "
+        f"partitionCount={partition_count}"
+    )
+    create = subprocess.run(
+        [
+            "az", "eventhubs", "eventhub", "create",
+            "--namespace-name", namespace,
+            "--resource-group", resource_group,
+            "--name", eh,
+            "--partition-count", str(partition_count),
+            "-o", "none",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if create.returncode != 0:
+        sys.exit(
+            f"ERROR: az eventhubs eventhub create failed "
+            f"(exit {create.returncode})\n"
+            f"  stderr: {(create.stderr or '').strip()[:1500]}"
+        )
+    _step(f"  event hub '{eh}' created.")
 
 
 def aca_login_to_acr(registry: str) -> None:

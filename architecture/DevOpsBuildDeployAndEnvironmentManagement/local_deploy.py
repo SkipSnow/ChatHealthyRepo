@@ -693,6 +693,24 @@ def _deploy_azure_container_app(
             f"run local_build.py --target aca first."
         )
 
+    # Ensure the Netherite 'partitions' Event Hub matches host.json's
+    # partitionCount BEFORE we push a new image. Event Hub partition
+    # count is immutable in Azure; this check creates the hub if missing
+    # and fails loud if it exists with the wrong count (operator must
+    # delete + re-deploy). Per the "deploy owns permanent infrastructure"
+    # split: the orchestrator never tries to provision Event Hubs.
+    event_hubs_namespace = aca.get("event_hubs_namespace")
+    if not event_hubs_namespace:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} env={env!r} azure_container_app "
+            f"block is missing 'event_hubs_namespace' — required so deploy "
+            f"can verify/provision the Netherite partitions Event Hub."
+        )
+    partition_count = aca_helpers.aca_read_partition_count_from_host_json(repo_root)
+    aca_helpers.aca_ensure_partitions_event_hub(
+        event_hubs_namespace, rg, partition_count,
+    )
+
     aca_helpers.aca_login_to_acr(registry)
     aca_helpers.aca_docker_build(build_dir, image_repo, build_n)
     aca_helpers.aca_docker_push(image_repo, build_n)

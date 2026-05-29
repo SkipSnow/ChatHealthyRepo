@@ -2383,7 +2383,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4f78f683b4ccb0c573c0af35867dce74e611b2a4a2e41007c39ce590a5b350f4"
+          "content_hash": "2eb058da71d06f8412619e5576423079b65bee9d5ffd60c15c27449de66dad94"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2815,6 +2815,7 @@
             "container_app_environment": "dev-pipeline-aca-env",
             "registry": "chathealthypipelinedev",
             "task_hub": "DevPipelineNetherite3",
+            "event_hubs_namespace": "ChatHealthyDataPipelines",
             "min_replicas": 0,
             "max_replicas": 1,
             "cpu": 2.0,
