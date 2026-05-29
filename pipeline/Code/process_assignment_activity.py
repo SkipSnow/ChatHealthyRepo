@@ -822,7 +822,7 @@ def _signal_discrepancy(load_id: str, record_key, reason: str, ctx: dict | None 
 def process_assignment_activity_fn(config: dict) -> dict:
     from normalize_provider_rows import normalize_raw_record
     from county_enrichment_job import _get_crosswalk
-    from staging import staging_write, staging_delete
+    from staging import staging_write_batch, staging_delete
 
     started_at = time.monotonic()
     a = config["assignment"]
@@ -855,29 +855,41 @@ def process_assignment_activity_fn(config: dict) -> dict:
         "total_records_committed": 0,
     }
 
-    def _commit_batch(batch_pairs: list):
-        # batch_pairs is the local (path, doc) record the worker built as it
-        # staged. We bulk_write the in-memory docs directly (no staging_read)
-        # and delete by the tracked paths (no staging_list). Eliminates the
-        # eventually-consistent list/delete race that surfaced when the list
-        # API still returned a name a prior _commit_batch in the same activity
-        # had already deleted.
-        if not batch_pairs:
+    def _commit_batch(batch_docs: list, batch_seq: int):
+        # One write, one delete per batch. The worker writes the WHOLE
+        # batch as a single blob keyed by (load_id, worker_id, chunk_id-
+        # batch_seq), bulk_writes the in-memory docs to Mongo, then deletes
+        # the single blob it just wrote. Write key === delete key; there is
+        # no per-doc explosion and no asymmetry between write and delete.
+        if not batch_docs:
             return
-        ops = [InsertOne(doc) for _, doc in batch_pairs]
-        # Plain insert (drain_staging guarantees the target state slice is
-        # empty before the run fans out). Cheaper than upsert: no per-doc
-        # lookup, no read-modify-write — one network round-trip for the whole
-        # batch.
+        sub_id = f"{aid}-{batch_seq}"
+        path = staging_write_batch(load_id, wid, sub_id, batch_docs)
+        counters["storage_puts"] += 1
+        ops = [InsertOne(doc) for doc in batch_docs]
         try:
             result = coll_p.bulk_write(ops, ordered=False)
             counters["mongo_writes"] += int(result.inserted_count or 0)
         except Exception as exc:
             _signal_discrepancy(load_id, aid, "bulk_write_error", {"error": str(exc)[:300]})
             raise
-        for path, _ in batch_pairs:
+        try:
             staging_delete(path)
             counters["storage_deletes"] += 1
+        except Exception as exc:
+            # Surface the exact path and op context so any future asymmetry
+            # is loud, not silent. Activity still raises so the failure
+            # propagates to Durable; this just makes the post-mortem easy.
+            logging.error(
+                "staging_delete failed: load_id=%s worker_id=%s chunk_id=%s "
+                "batch_seq=%d path=%s doc_count=%d err=%r",
+                load_id, wid, aid, batch_seq, path, len(batch_docs), exc,
+            )
+            _signal_discrepancy(load_id, aid, "staging_delete_failed", {
+                "path": path, "batch_seq": batch_seq,
+                "doc_count": len(batch_docs), "error": str(exc)[:300],
+            })
+            raise
         counters["commits"] += 1
         counters["total_records_committed"] += len(ops)
 
@@ -935,28 +947,23 @@ def process_assignment_activity_fn(config: dict) -> dict:
     # Phase 2: batched embed (one OpenAI call for the whole chunk)
     _embed_batch(docs)
 
-    # Phase 3: stage + commit. pending_batch is a path -> doc dict so that
-    # if a chunk's docs ever present the same NPI twice (a duplicate that
-    # the upstream chunk reader did not guard against), the second
-    # occurrence overwrites the first in this map and the delete loop
-    # gets each path exactly once. Keeps the per-path write/delete
-    # symmetric without a path scheme change.
-    pending_batch: dict = {}
+    # Phase 3: stage + commit. The worker batches up to batch_size docs in
+    # memory, then commits ONE blob containing the whole batch followed by
+    # ONE bulk_write to Mongo and ONE delete of that same blob. batch_seq
+    # disambiguates multiple batches inside the same chunk so each commit
+    # uses a unique blob path.
+    pending_batch: list = []
+    batch_seq = 0
     for d in docs:
-        try:
-            path = staging_write(load_id, aid, wid, d["npi"], d)
-        except Exception as exc:
-            _signal_discrepancy(load_id, d.get("npi"), "stage_write_error", {"error": str(exc)[:300]})
-            raise
-        counters["storage_puts"] += 1
+        pending_batch.append(d)
         counters["records_staged"] += 1
-        pending_batch[path] = d
         if len(pending_batch) >= batch_size:
-            _commit_batch(list(pending_batch.items()))
-            pending_batch = {}
+            _commit_batch(pending_batch, batch_seq)
+            pending_batch = []
+            batch_seq += 1
 
     if pending_batch:
-        _commit_batch(list(pending_batch.items()))
+        _commit_batch(pending_batch, batch_seq)
 
     duration = time.monotonic() - started_at
     metrics = {
