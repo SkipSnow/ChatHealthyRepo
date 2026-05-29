@@ -713,6 +713,19 @@ def _deploy_azure_container_app(
         event_hubs_namespace, rg, partition_count,
     )
 
+    # Ensure the Netherite Storage container for this TaskHub exists too.
+    # Pairs with the Event Hub ensure: deploy owns the existence of both
+    # pieces of permanent Azure infrastructure; their lazy auto-create by
+    # the runtime is what made stale state silently leak across runs.
+    task_hub = aca["task_hub"]
+    aws_conn = resolver.resolve("AzureWebJobsStorage", env)
+    storage_account, storage_account_key = (
+        aca_helpers.aca_parse_storage_connection_string(aws_conn)
+    )
+    aca_helpers.aca_ensure_netherite_storage_container(
+        storage_account, storage_account_key, task_hub,
+    )
+
     aca_helpers.aca_login_to_acr(registry)
     aca_helpers.aca_docker_build(build_dir, image_repo, build_n)
     aca_helpers.aca_docker_push(image_repo, build_n)
