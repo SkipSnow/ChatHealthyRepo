@@ -251,9 +251,23 @@ def provider_pipeline_orchestrator_fn(context):
         for name, params in throttle_params.items():
             context.signal_entity(df.EntityId("throttle", name), "configure", params)
 
-        yield context.call_sub_orchestrator("source_gather_orchestrator", config)
+        # Wedge guard: source_gather and prepare_data are sub-orchestrators
+        # whose yields can hang on entity calls or activity dispatch starvation.
+        # Race each sub against an outer timer so the parent's finally can fire
+        # cleanly even if a sub never returns.
+        sub_orch_deadline_minutes = int(config.get("sub_orch_deadline_minutes", 60))
 
-        prepare = yield context.call_sub_orchestrator(
+        sg_task = context.call_sub_orchestrator("source_gather_orchestrator", config)
+        sg_timer = context.create_timer(
+            context.current_utc_datetime + timedelta(minutes=sub_orch_deadline_minutes)
+        )
+        winner = yield context.task_any([sg_task, sg_timer])
+        if winner == sg_timer:
+            raise RuntimeError(
+                f"source_gather wedge: exceeded {sub_orch_deadline_minutes} min"
+            )
+
+        prepare_task = context.call_sub_orchestrator(
             "prepare_data_orchestrator",
             {
                 "load_id": load_id,
@@ -265,6 +279,15 @@ def provider_pipeline_orchestrator_fn(context):
                 "metadata_collection": config.get("metadata_collection"),
             },
         )
+        prepare_timer = context.create_timer(
+            context.current_utc_datetime + timedelta(minutes=sub_orch_deadline_minutes)
+        )
+        winner = yield context.task_any([prepare_task, prepare_timer])
+        if winner == prepare_timer:
+            raise RuntimeError(
+                f"prepare_data wedge: exceeded {sub_orch_deadline_minutes} min"
+            )
+        prepare = prepare_task.result
         csv_path = prepare["csv_path"]
 
         # Drain destination collection (business-address state scoped) BEFORE
