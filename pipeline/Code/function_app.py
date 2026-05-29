@@ -373,12 +373,15 @@ def provider_pipeline_orchestrator_fn(context):
         raise
     finally:
         yield context.call_activity("release_reservation_activity", {"job_id": load_id})
-        # Clean-environment assumption: reset entity state so a subsequent run
-        # starts from a known-empty baseline. Signals are fire-and-forget; if
-        # an entity is wedged the next run's start-of-run reset still covers it.
-        context.signal_entity(df.EntityId("work_manager", load_id), "reset", {})
-        for name in throttle_names:
-            context.signal_entity(df.EntityId("throttle", name), "reset", {})
+        # Durable state is transient. After the job ends (Completed, Failed,
+        # or Terminated) nothing this run created — sub-orchs, work_manager,
+        # throttles, staging blobs — survives. The activity is best-effort
+        # and never raises; its counters land in the run metric.
+        yield context.call_activity("end_of_job_cleanup_activity", {
+            "load_id": load_id,
+            "throttle_names": throttle_names,
+            "staging_container": config.get("staging_container", "pipeline-staging"),
+        })
 
     return {"load_id": load_id, "summary": summary, "error": pipeline_error}
 
@@ -924,6 +927,12 @@ def release_reservation_activity(config: dict) -> dict:
     return ClusterLifecycleManager(
         get_db_fn=get_frontend_mongo,
     ).release(config["job_id"])
+
+
+@app.activity_trigger(input_name="config")
+def end_of_job_cleanup_activity(config: dict) -> dict:
+    from end_of_job_cleanup import end_of_job_cleanup_fn
+    return end_of_job_cleanup_fn(config)
 
 
 @app.activity_trigger(input_name="config")
