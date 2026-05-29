@@ -2908,6 +2908,13 @@
           "content_hash": "95d227547edcf179572dd22c8fa0c8ad849639e7ef2cb3076c662946c718ddc2"
         },
         {
+          "feature_id": "EPIC-010-F-102",
+          "source_location": "pipeline/Code/end_of_job_cleanup.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "aa3ca9f92131d54b0ad76edc97b67ea707d1b249c1cead71e98c54738789a506"
+        },
+        {
           "feature_id": "EPIC-010-F-103",
           "source_location": "pipeline/Code/fan_out_workers.py",
           "handler_type": "python_source",
@@ -2926,7 +2933,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "777f123baf3ebc26dec7f3d6a512ace1da5e54f4da7fdd064b04489476b7b02c"
+          "content_hash": "97a4613f2a8c0e73ec8885700418451088af069c7de20f9bfb66a8e235f6e7d8"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3459,6 +3466,13 @@
           "content_hash": "95d227547edcf179572dd22c8fa0c8ad849639e7ef2cb3076c662946c718ddc2"
         },
         {
+          "feature_id": "EPIC-010-F-102",
+          "source_location": "pipeline/Code/end_of_job_cleanup.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "aa3ca9f92131d54b0ad76edc97b67ea707d1b249c1cead71e98c54738789a506"
+        },
+        {
           "feature_id": "EPIC-010-F-103",
           "source_location": "pipeline/Code/fan_out_workers.py",
           "handler_type": "python_source",
@@ -3477,7 +3491,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "777f123baf3ebc26dec7f3d6a512ace1da5e54f4da7fdd064b04489476b7b02c"
+          "content_hash": "97a4613f2a8c0e73ec8885700418451088af069c7de20f9bfb66a8e235f6e7d8"
         },
         {
           "feature_id": "EPIC-010-F-102",
