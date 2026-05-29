@@ -209,6 +209,7 @@ def work_manager_entity_fn(context) -> None:
             "worker_id": worker_id,
             "claimed_at": now,
             "work_kind": work_kind,
+            "entry": entry,
         }
         state["workers"][worker_id] = {
             "chunk_id": cid,
@@ -298,6 +299,23 @@ def work_manager_entity_fn(context) -> None:
         else:
             state["workers"].pop(worker_id, None)
         q["done"] = int(q.get("done", 0)) + 1
+        context.set_state(state)
+        return
+
+    if op == "release":
+        # A worker calls release when its activity failed. Move the chunk
+        # from claimed BACK ONTO pending so a sibling worker (or a fresh
+        # replay after a process restart) picks it up. Without release,
+        # any failed activity would orphan its chunk in claimed and the
+        # run would be silently short by exactly the failed chunks.
+        # Per Skip 2026-05-29: assignment reassignment is a requirement,
+        # not a fallback.
+        q = _queue(state, work_kind)
+        chunk_id = str(inp["chunk_id"])
+        claim = q.get("claimed", {}).pop(chunk_id, None)
+        if claim is not None and "entry" in claim:
+            q.setdefault("pending", []).insert(0, claim["entry"])
+        state["workers"].pop(str(inp.get("worker_id", "")), None)
         context.set_state(state)
         return
 

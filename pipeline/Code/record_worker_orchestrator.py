@@ -39,15 +39,25 @@ def record_worker_orchestrator_fn(context):
         # One pool_size token per chunk.
         yield from acquire(context, "pool_size", n=1)
 
-        yield context.call_activity("process_assignment_activity", {
-            **cfg,
-            "assignment": assignment,
-        })
-
-        # Ack this one chunk so done/claimed move per chunk.
-        yield context.call_entity(wm, "ack", {
-            "worker_id": wid, "chunk_id": assignment.get("chunk_id"),
-        })
+        try:
+            yield context.call_activity("process_assignment_activity", {
+                **cfg,
+                "assignment": assignment,
+            })
+            # Ack this one chunk so done/claimed move per chunk.
+            yield context.call_entity(wm, "ack", {
+                "worker_id": wid, "chunk_id": assignment.get("chunk_id"),
+            })
+        except Exception:
+            # The activity failed (OOM, transient Mongo, anything). Per
+            # Skip 2026-05-29 the assignment MUST be reassigned, not
+            # silently dropped. Release moves it from claimed back to
+            # pending so a sibling worker (or this worker on the next
+            # loop iteration) claims it. Continue the loop — the
+            # orchestration stays alive and the run progresses.
+            yield context.call_entity(wm, "release", {
+                "worker_id": wid, "chunk_id": assignment.get("chunk_id"),
+            })
 
         elapsed = (context.current_utc_datetime - start_time).total_seconds()
         if elapsed > age_limit:

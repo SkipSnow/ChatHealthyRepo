@@ -86,7 +86,7 @@ _OPENAI = _TokenBucket(rate_per_sec=1000.0, burst=5000)
 import threading as _threading_for_cache
 _ADDR_CACHE_LOCK = _threading_for_cache.Lock()
 _ADDR_CACHE: dict[str, dict] = {}
-_ADDR_CACHE_CAP = 200_000
+_ADDR_CACHE_CAP = 100_000
 
 
 def _addr_key(addr: dict) -> str:
@@ -931,38 +931,46 @@ def process_assignment_activity_fn(config: dict) -> dict:
             raise
         return doc
 
+    # Records-as-messages: stream rows in small buckets through the full
+    # process -> embed -> commit pipeline. Peak per-worker memory is at most
+    # `bucket_size` docs in flight, never an entire chunk. bucket_size is a
+    # small batch (defaults to 100) chosen for OpenAI embed-call efficiency,
+    # not a buffer for the chunk. The chunk-wide `docs: list[dict] = []`
+    # accumulator the prior pattern used violated the records-as-messages
+    # design principle by holding the entire assignment in RAM.
     inner_workers = int(config.get("inner_workers", 16))
-    rows = list(_iter_csv_partition(blob_src, a["start_byte"], a["end_byte"], header))
+    # bucket_size = peak per-worker docs in flight. Set conservatively at 500
+    # per Skip 2026-05-29 (2K would have likely worked but we're choosing
+    # headroom over throughput). With 100 workers × 500 ≈ 50K records peak in
+    # the 4 GiB container, ~ 300 MB across all workers — well under limit.
+    bucket_size = int(config.get("bucket_size", 500))
+    batch_seq = 0
 
-    # Phase 1: parallel non-embed processing
-    docs: list[dict] = []
-    with ThreadPoolExecutor(max_workers=inner_workers) as pool:
-        futures = [pool.submit(_process_one, raw) for _, raw in rows]
+    def _flush_bucket(bucket_raw: list) -> None:
+        nonlocal batch_seq
+        if not bucket_raw:
+            return
+        futures = [pool.submit(_process_one, raw) for _, raw in bucket_raw]
+        docs_bucket: list[dict] = []
         for f in as_completed(futures):
             d = f.result()
             if d is not None:
-                docs.append(d)
+                docs_bucket.append(d)
+                counters["records_staged"] += 1
+        if not docs_bucket:
+            return
+        _embed_batch(docs_bucket)
+        _commit_batch(docs_bucket, batch_seq)
+        batch_seq += 1
 
-    # Phase 2: batched embed (one OpenAI call for the whole chunk)
-    _embed_batch(docs)
-
-    # Phase 3: stage + commit. The worker batches up to batch_size docs in
-    # memory, then commits ONE blob containing the whole batch followed by
-    # ONE bulk_write to Mongo and ONE delete of that same blob. batch_seq
-    # disambiguates multiple batches inside the same chunk so each commit
-    # uses a unique blob path.
-    pending_batch: list = []
-    batch_seq = 0
-    for d in docs:
-        pending_batch.append(d)
-        counters["records_staged"] += 1
-        if len(pending_batch) >= batch_size:
-            _commit_batch(pending_batch, batch_seq)
-            pending_batch = []
-            batch_seq += 1
-
-    if pending_batch:
-        _commit_batch(pending_batch, batch_seq)
+    with ThreadPoolExecutor(max_workers=inner_workers) as pool:
+        bucket: list = []
+        for entry in _iter_csv_partition(blob_src, a["start_byte"], a["end_byte"], header):
+            bucket.append(entry)
+            if len(bucket) >= bucket_size:
+                _flush_bucket(bucket)
+                bucket = []
+        _flush_bucket(bucket)
 
     duration = time.monotonic() - started_at
     metrics = {
