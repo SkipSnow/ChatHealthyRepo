@@ -932,18 +932,10 @@ def process_assignment_activity_fn(config: dict) -> dict:
         return doc
 
     # Records-as-messages: stream rows in small buckets through the full
-    # process -> embed -> commit pipeline. Peak per-worker memory is at most
-    # `bucket_size` docs in flight, never an entire chunk. bucket_size is a
-    # small batch (defaults to 100) chosen for OpenAI embed-call efficiency,
-    # not a buffer for the chunk. The chunk-wide `docs: list[dict] = []`
-    # accumulator the prior pattern used violated the records-as-messages
-    # design principle by holding the entire assignment in RAM.
+    # process -> embed -> commit pipeline. Peak per-worker memory is bounded by
+    # bucket_size docs in flight, never an entire chunk.
     inner_workers = int(config.get("inner_workers", 16))
-    # bucket_size = peak per-worker docs in flight. Set conservatively at 500
-    # per Skip 2026-05-29 (2K would have likely worked but we're choosing
-    # headroom over throughput). With 100 workers × 500 ≈ 50K records peak in
-    # the 4 GiB container, ~ 300 MB across all workers — well under limit.
-    bucket_size = int(config.get("bucket_size", 500))
+    bucket_size = int(config.get("bucket_size", 1000))
     batch_seq = 0
 
     def _flush_bucket(bucket_raw: list) -> None:
