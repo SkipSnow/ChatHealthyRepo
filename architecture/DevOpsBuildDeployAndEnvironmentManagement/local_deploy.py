@@ -706,7 +706,9 @@ def _deploy_azure_container_app(
             f"block is missing 'event_hubs_namespace' — required so deploy "
             f"can verify/provision the Netherite partitions Event Hub."
         )
-    partition_count = aca_helpers.aca_read_partition_count_from_host_json(repo_root)
+    partition_count = aca_helpers.aca_read_partition_count_from_host_json(
+        _find_repo_root(Path(__file__)),
+    )
     aca_helpers.aca_ensure_partitions_event_hub(
         event_hubs_namespace, rg, partition_count,
     )
