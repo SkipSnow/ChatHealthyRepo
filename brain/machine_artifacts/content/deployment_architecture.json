@@ -3053,7 +3053,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c77ce5bc3047e92c56ad31747f354dc5f65b56e4a2f3328df43fb477b38c46bf"
+          "content_hash": "b8e65f6aaa48230286ebbfbe4b6b801875c5ccf2ad715b9ec6b68c6be7e95c86"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3088,7 +3088,7 @@
           "source_location": "pipeline/Code/record_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1652785e9637df5b51090ea08568aa2483656c451eaabea34069c3e0cfd3b184"
+          "content_hash": "0634036b3f127c459ae63a9de2eff4193c9d6a8bfbdd04a6af299d7f41b2661a"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3312,7 +3312,7 @@
           "source_location": "pipeline/Code/work_manager_entity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9138dc5ad72f55754fab54d122c543ef0cb08cc9948b3cf45d59c4cf27a11c77"
+          "content_hash": "d9ea905b8f29eff40d6bc8e33aa506c8925fb8c58fe88e96ba7b18b1c235a173"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3611,7 +3611,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c77ce5bc3047e92c56ad31747f354dc5f65b56e4a2f3328df43fb477b38c46bf"
+          "content_hash": "b8e65f6aaa48230286ebbfbe4b6b801875c5ccf2ad715b9ec6b68c6be7e95c86"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3646,7 +3646,7 @@
           "source_location": "pipeline/Code/record_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1652785e9637df5b51090ea08568aa2483656c451eaabea34069c3e0cfd3b184"
+          "content_hash": "0634036b3f127c459ae63a9de2eff4193c9d6a8bfbdd04a6af299d7f41b2661a"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3870,7 +3870,7 @@
           "source_location": "pipeline/Code/work_manager_entity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9138dc5ad72f55754fab54d122c543ef0cb08cc9948b3cf45d59c4cf27a11c77"
+          "content_hash": "d9ea905b8f29eff40d6bc8e33aa506c8925fb8c58fe88e96ba7b18b1c235a173"
         },
         {
           "feature_id": "EPIC-010-F-102",
