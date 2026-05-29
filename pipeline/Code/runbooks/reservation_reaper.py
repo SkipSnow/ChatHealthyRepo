@@ -346,19 +346,25 @@ def _main():
         coll.delete_many({"_id": {"$in": [r["_id"] for r in reaped]}})
 
     live = [r for r in kept if r.get("status", "active") == "active"]
-    client_active = _r1_client_active_recently(atlas_auth, window_ms_start, window_ms_end)
 
+    # Precedence: the reservation queue is the primary signal (REQ-B-001). While a
+    # live reservation exists the cluster stays up, full stop. dbAccessHistory is a
+    # lower-precedence confirmatory signal that only runs once the queue is empty —
+    # if something is still hitting the cluster despite no reservations, hold off on
+    # the pause and surface that as unaccounted use.
     should_pause = False
     pause_reason = ""
+    client_active = None
     if not live:
-        should_pause = True
-        pause_reason = "no_live_reservations"
-    elif not client_active:
-        should_pause = True
-        pause_reason = "R1_idle_window"
-        log.info("R1: %d live reservations being deleted under idle-window pause", len(live))
-        coll.delete_many({"_id": {"$in": [r["_id"] for r in live]}})
-        live = []
+        client_active = _r1_client_active_recently(
+            atlas_auth, window_ms_start, window_ms_end)
+        if not client_active:
+            should_pause = True
+            pause_reason = "no_live_reservations"
+        else:
+            pause_reason = "no_reservations_but_client_active"
+            log.warning("Pause withheld: no live reservations but cluster has "
+                        "recent client access; possible unaccounted use")
 
     cluster_state = "UNKNOWN"
     paused = False
