@@ -28,7 +28,10 @@ import time
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 HTTP_FILE = os.path.join(REPO_ROOT, "pipeline.http")
-ROUTER_URL = "https://devpipelinemanagmentservice-hqa9f5b0b7b4hqgg.eastus2-01.azurewebsites.net/api/Router"
+ROUTER_URL = (
+    "https://dev-pipeline-records-as-messages.yellowbay-d50afa88."
+    "eastus2.azurecontainerapps.io/api/Router"
+)
 
 
 def _get_bearer_token():
