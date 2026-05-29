@@ -17,12 +17,12 @@
   },
   "extensions": {
     "durableTask": {
-      "hubName": "DevPipelineNetherite2",
+      "hubName": "%TaskHubName%",
       "maxConcurrentActivityFunctions": 200,
       "maxConcurrentOrchestratorFunctions": 10,
       "storageProvider": {
         "type": "Netherite",
-        "partitionCount": 32,
+        "partitionCount": 4,
         "StorageConnectionName": "AzureWebJobsStorage",
         "EventHubsConnectionName": "EventHubsConnection"
       }

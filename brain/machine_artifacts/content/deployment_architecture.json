@@ -1472,7 +1472,7 @@
           "source_location": "Code/Shared/ops/tools/pipeline_trigger.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "fb735d59e8e8c534f11aa91c2ebab91a4a1a8562a82dbf21547f956920dacd51"
+          "content_hash": "7954045344403e1d045c5fc916fec01db65fcb9c593caee489fd273f4befad98"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2814,7 +2814,7 @@
             "container_app": "dev-pipeline-records-as-messages",
             "container_app_environment": "dev-pipeline-aca-env",
             "registry": "chathealthypipelinedev",
-            "task_hub": "DevPipelineNetherite2",
+            "task_hub": "DevPipelineNetherite3",
             "min_replicas": 0,
             "max_replicas": 1,
             "cpu": 2.0,
@@ -2947,7 +2947,7 @@
           "source_location": "pipeline/Code/host.json",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "3b70f66edfc3827f397c386041461789773c80b0e2f52b9873e1bd19ce5fce89"
+          "content_hash": "58be751be6c5bf554d415c3cf2af555ebc036177d5d41f94a925365a809877d5"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3376,7 +3376,7 @@
           "azure": {
             "resource_group": "FindCareDataPipelines-Dev",
             "function_app": "devpipelinemanagmentservice",
-            "task_hub": "DevPipelineNetherite2"
+            "task_hub": "DevPipelineNetherite3"
           }
         }
       ],
@@ -3505,7 +3505,7 @@
           "source_location": "pipeline/Code/host.json",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "3b70f66edfc3827f397c386041461789773c80b0e2f52b9873e1bd19ce5fce89"
+          "content_hash": "58be751be6c5bf554d415c3cf2af555ebc036177d5d41f94a925365a809877d5"
         },
         {
           "feature_id": "EPIC-010-F-102",
