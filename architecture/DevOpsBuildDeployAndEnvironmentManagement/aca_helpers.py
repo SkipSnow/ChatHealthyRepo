@@ -180,6 +180,86 @@ def aca_ensure_partitions_event_hub(
     _step(f"  event hub '{eh}' created.")
 
 
+def aca_ensure_netherite_storage_container(
+    storage_account: str,
+    storage_account_key: str,
+    task_hub: str,
+) -> None:
+    """Ensure the Netherite Storage container for this TaskHub exists.
+
+    Netherite persists partition state, checkpoints, and message logs in a
+    blob container named `<lowercase task_hub>-storage` inside the
+    AzureWebJobsStorage account. The container is auto-created lazily by
+    the runtime, but lazy-create means stale state from a prior incarnation
+    of the same TaskHub silently re-enters the new run. Deploy must own
+    the existence check so the topology is reproducible.
+
+    Behavior:
+      - missing → create (the new TaskHub starts with empty Netherite state)
+      - present → no-op (the operator hand-deletes if a fresh slate is
+                  desired; deploy never wipes contents)
+    """
+    container_name = f"{task_hub.lower()}-storage"
+    _step(
+        f"verifying storage container '{container_name}' on account "
+        f"'{storage_account}'"
+    )
+    show = subprocess.run(
+        [
+            "az", "storage", "container", "show",
+            "--account-name", storage_account,
+            "--account-key", storage_account_key,
+            "--name", container_name,
+            "-o", "none",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if show.returncode == 0:
+        _step(f"  storage container '{container_name}' exists — no-op")
+        return
+
+    _step(f"  storage container '{container_name}' missing — creating")
+    create = subprocess.run(
+        [
+            "az", "storage", "container", "create",
+            "--account-name", storage_account,
+            "--account-key", storage_account_key,
+            "--name", container_name,
+            "-o", "none",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if create.returncode != 0:
+        sys.exit(
+            f"ERROR: az storage container create failed "
+            f"(exit {create.returncode})\n"
+            f"  stderr: {(create.stderr or '').strip()[:1500]}"
+        )
+    _step(f"  storage container '{container_name}' created.")
+
+
+def aca_parse_storage_connection_string(conn_str: str) -> tuple[str, str]:
+    """Extract AccountName and AccountKey from an Azure storage connection
+    string. Fails loud if either is missing."""
+    parts = {}
+    for piece in conn_str.split(";"):
+        if "=" in piece:
+            k, v = piece.split("=", 1)
+            parts[k.strip()] = v.strip()
+    name = parts.get("AccountName")
+    key = parts.get("AccountKey")
+    if not name or not key:
+        sys.exit(
+            "ERROR: storage connection string is missing AccountName or "
+            "AccountKey; cannot verify Netherite storage container."
+        )
+    return name, key
+
+
 def aca_login_to_acr(registry: str) -> None:
     user_env = f"ACR_{registry.upper().replace('-', '_')}_USERNAME"
     pwd_env = f"ACR_{registry.upper().replace('-', '_')}_PASSWORD"
