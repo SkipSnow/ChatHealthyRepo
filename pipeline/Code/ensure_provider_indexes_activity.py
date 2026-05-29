@@ -18,6 +18,13 @@ index the pipeline depends on:
                               label. Without it the aggregation does a
                               COLLSCAN -> Atlas cursor timeout at scale.
 
+  addresses.address_type_1_   compound multi-key index supporting drain's
+  addresses.state_1           $elemMatch on (address_type='business',
+                              state in [...]) — the canonical residency
+                              signal for state-scoped drains. Without it
+                              drain COLLSCAN'd all 1.5M docs to find the
+                              handful of CA business-address matches.
+
 create_index is idempotent on PyMongo — if the index already exists with
 the same spec, it returns the existing name and does nothing. We do not
 issue dropIndex; if a prior index spec drifted, the operator handles it
@@ -50,6 +57,12 @@ _REQUIRED_INDEXES = [
     {
         "keys": [("addresses.county.source", 1)],
         "name": "addresses.county.source_1",
+        "background": True,
+        "unique": False,
+    },
+    {
+        "keys": [("addresses.address_type", 1), ("addresses.state", 1)],
+        "name": "addresses.address_type_1_addresses.state_1",
         "background": True,
         "unique": False,
     },

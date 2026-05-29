@@ -3340,7 +3340,7 @@
           "source_location": "pipeline/Code/ensure_provider_indexes_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "12ece6c008b8297e801ff291d46ca51262de1144bf5c719c16ea00190eafffc1"
+          "content_hash": "d4e4c8514298931b18b4bf730a9fab8dc2424d4a561ed545e9c3a445cd0b6801"
         }
       ],
       "secrets": {
@@ -3898,7 +3898,7 @@
           "source_location": "pipeline/Code/ensure_provider_indexes_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "12ece6c008b8297e801ff291d46ca51262de1144bf5c719c16ea00190eafffc1"
+          "content_hash": "d4e4c8514298931b18b4bf730a9fab8dc2424d4a561ed545e9c3a445cd0b6801"
         }
       ],
       "secrets": {
