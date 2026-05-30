@@ -6,12 +6,24 @@
       "default": "Information",
       "Host.Results": "Error",
       "Function": "Information",
-      "Host.Aggregator": "Warning"
+      "Host.Aggregator": "Warning",
+      "Azure.Core": "Warning",
+      "Azure.Messaging.EventHubs": "Warning",
+      "Azure.Storage": "Warning",
+      "Azure.Storage.Blobs": "Warning",
+      "DurableTask.Netherite": "Warning",
+      "DurableTask.Netherite.FasterStorage": "Warning",
+      "DurableTask.AzureStorage": "Warning",
+      "Function.record_worker_orchestrator": "Warning",
+      "Function.work_manager": "Warning",
+      "Function.throttle": "Warning",
+      "Function.token_bucket": "Warning"
     },
     "applicationInsights": {
       "samplingSettings": {
         "isEnabled": true,
-        "excludedTypes": "Request"
+        "maxTelemetryItemsPerSecond": 20,
+        "excludedTypes": "Request;Exception"
       }
     }
   },
