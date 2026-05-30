@@ -23,7 +23,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from pymongo import MongoClient, InsertOne
+from pymongo import MongoClient
 
 
 # ── In-process per-API rate limiters ──────────────────────────────────────────
@@ -821,7 +821,6 @@ def _signal_discrepancy(load_id: str, record_key, reason: str, ctx: dict | None 
 def process_assignment_activity_fn(config: dict) -> dict:
     from normalize_provider_rows import normalize_raw_record
     from county_enrichment_job import _get_crosswalk
-    from staging import staging_write_batch, staging_delete
 
     started_at = time.monotonic()
     a = config["assignment"]
@@ -854,53 +853,45 @@ def process_assignment_activity_fn(config: dict) -> dict:
         "total_records_committed": 0,
     }
 
-    def _commit_batch(batch_docs: list, batch_seq: int):
-        # One write, one delete per batch. The worker writes the WHOLE
-        # batch as a single blob keyed by (load_id, worker_id, chunk_id-
-        # batch_seq), bulk_writes the in-memory docs to Mongo, then deletes
-        # the single blob it just wrote. Write key === delete key; there is
-        # no per-doc explosion and no asymmetry between write and delete.
-        if not batch_docs:
+    def _embed_one(doc: dict) -> None:
+        from provider_embedding import project, render, should_embed
+        from embedding_worker import EMBED_MODEL, EMBED_VERSION
+        if not should_embed(doc):
             return
-        sub_id = f"{aid}-{batch_seq}"
-        path = staging_write_batch(load_id, wid, sub_id, batch_docs)
-        counters["storage_puts"] += 1
-        ops = [InsertOne(doc) for doc in batch_docs]
+        text = render(project(doc))
+        if not text:
+            return
+        _OPENAI.acquire(n=1)
+        client = _get_openai_client()
         try:
-            result = coll_p.bulk_write(ops, ordered=False)
-            counters["mongo_writes"] += int(result.inserted_count or 0)
-        except Exception as exc:
-            _signal_discrepancy(load_id, aid, "bulk_write_error", {"error": str(exc)[:300]})
-            raise
-        try:
-            staging_delete(path)
-            counters["storage_deletes"] += 1
-        except Exception as exc:
-            # Surface the exact path and op context so any future asymmetry
-            # is loud, not silent. Activity still raises so the failure
-            # propagates to Durable; this just makes the post-mortem easy.
-            logging.error(
-                "staging_delete failed: load_id=%s worker_id=%s chunk_id=%s "
-                "batch_seq=%d path=%s doc_count=%d err=%r",
-                load_id, wid, aid, batch_seq, path, len(batch_docs), exc,
+            resp = client.embeddings.create(
+                model=EMBED_MODEL,
+                input=[text[:8000]],
             )
-            _signal_discrepancy(load_id, aid, "staging_delete_failed", {
-                "path": path, "batch_seq": batch_seq,
-                "doc_count": len(batch_docs), "error": str(exc)[:300],
-            })
-            raise
-        counters["commits"] += 1
-        counters["total_records_committed"] += len(ops)
+        except Exception as exc:
+            logging.warning("embed_one failed npi=%s: %s", doc.get("npi"), exc)
+            return
+        doc["embedding"] = resp.data[0].embedding
+        doc["embedding_model"] = EMBED_MODEL
+        doc["embedding_version"] = EMBED_VERSION
 
-    # Three-phase chunk processing:
-    #   1. Per-record fan-out across an in-process thread pool — runs all
-    #      passes EXCEPT embed. I/O-bound passes (Census/Maps/NPPES)
-    #      release the GIL; the module-level _TokenBucket instances
-    #      coordinate API rate across threads.
-    #   2. Batched embedding — one OpenAI call for all embeddable docs in
-    #      this chunk. Burns one _OPENAI token regardless of input count.
-    #   3. Stage + commit — staging_write per doc, then bulk_write to Mongo.
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    def _commit_one(doc: dict) -> None:
+        try:
+            coll_p.insert_one(doc)
+        except Exception as exc:
+            _signal_discrepancy(load_id, doc.get("npi"), "insert_one_error",
+                                {"error": str(exc)[:300]})
+            raise
+        with _counters_lock:
+            counters["mongo_writes"] += 1
+            counters["commits"] += 1
+            counters["total_records_committed"] += 1
+
+    # Records-as-messages: each record streams through the full
+    # process -> embed -> commit pipeline independently. No bucket buffer,
+    # no in-memory accumulation. Peak per-activity record count is bounded
+    # by the in-flight cap below, never by bucket_size or chunk size.
+    from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait as fut_wait, as_completed
     import threading as _threading
 
     _counters_lock = _threading.Lock()
@@ -932,41 +923,35 @@ def process_assignment_activity_fn(config: dict) -> dict:
             raise
         return doc
 
-    # Records-as-messages: stream rows in small buckets through the full
-    # process -> embed -> commit pipeline. Peak per-worker memory is bounded by
-    # bucket_size docs in flight, never an entire chunk.
     inner_workers = int(config.get("inner_workers", 16))
-    bucket_size = int(config.get("bucket_size", 1000))
+    # Maximum number of records in flight in this activity at any moment.
+    # Each in-flight record carries enrichment + (optionally) a 3072-dim
+    # embedding (~12 KB) + base doc fields. Cap is the only memory bound;
+    # no chunk-wide list is ever assembled.
+    inflight_cap = int(config.get("inflight_cap", inner_workers * 2))
     embedding_enabled = bool(config.get("embedding_enabled", False))
     google_maps_enabled = bool(config.get("google_maps_enabled", True))
-    batch_seq = 0
 
-    def _flush_bucket(bucket_raw: list) -> None:
-        nonlocal batch_seq
-        if not bucket_raw:
+    def _process_embed_commit(raw):
+        doc = _process_one(raw)
+        if doc is None:
             return
-        futures = [pool.submit(_process_one, raw) for _, raw in bucket_raw]
-        docs_bucket: list[dict] = []
-        for f in as_completed(futures):
-            d = f.result()
-            if d is not None:
-                docs_bucket.append(d)
-                counters["records_staged"] += 1
-        if not docs_bucket:
-            return
+        with _counters_lock:
+            counters["records_staged"] += 1
         if embedding_enabled:
-            _embed_batch(docs_bucket)
-        _commit_batch(docs_bucket, batch_seq)
-        batch_seq += 1
+            _embed_one(doc)
+        _commit_one(doc)
 
     with ThreadPoolExecutor(max_workers=inner_workers) as pool:
-        bucket: list = []
-        for entry in _iter_csv_partition(blob_src, a["start_byte"], a["end_byte"], header):
-            bucket.append(entry)
-            if len(bucket) >= bucket_size:
-                _flush_bucket(bucket)
-                bucket = []
-        _flush_bucket(bucket)
+        in_flight = set()
+        for _, raw in _iter_csv_partition(blob_src, a["start_byte"], a["end_byte"], header):
+            while len(in_flight) >= inflight_cap:
+                done, in_flight = fut_wait(in_flight, return_when=FIRST_COMPLETED)
+                for f in done:
+                    f.result()
+            in_flight.add(pool.submit(_process_embed_commit, raw))
+        for f in as_completed(in_flight):
+            f.result()
 
     duration = time.monotonic() - started_at
     metrics = {
