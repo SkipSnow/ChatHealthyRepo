@@ -488,9 +488,19 @@ def attach_practice_locations_fn(config: dict) -> dict:
     service = get_blob_service()
     container_client = service.get_container_client(container)
 
-    with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
-        tmp_path = tmp.name
-        container_client.get_blob_client(zip_blob_name).download_blob().readinto(tmp)
+    # Open the temp file with non-exclusive write and stream the blob in
+    # explicit chunks so the Python worker's gRPC server thread can keep
+    # responding to Functions-host heartbeats during the multi-GB download.
+    # readinto() with a single call held the GIL long enough to cause
+    # SIGTERM (exit 143). Concurrent download streams the chunks with
+    # max_concurrency parallelism, and the per-chunk loop yields the GIL.
+    fd, tmp_path = tempfile.mkstemp(suffix=".zip")
+    os.close(fd)
+    blob_client = container_client.get_blob_client(zip_blob_name)
+    with open(tmp_path, "wb") as f:
+        stream = blob_client.download_blob(max_concurrency=4)
+        for chunk in stream.chunks():
+            f.write(chunk)
 
     pl_csv_name = None
     with zipfile.ZipFile(tmp_path) as zf:
