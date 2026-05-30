@@ -2899,7 +2899,7 @@
           "source_location": "pipeline/Code/discrepancy_reporter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "98b89966beb02506f28d8e233203cff183130c61f90e242776b94185f96215a1"
+          "content_hash": "7c3e761503c0dace2c533bcf5194767f1f73a30720d1e1a5ef884569e5f650c0"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3053,7 +3053,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "fb543de292b85906cd15d3ce3f1784ed96162c418656bdd358b5dace928b5de6"
+          "content_hash": "9a6b643517c96137050cf5a5dc53f95bcb088f0a3a5b625aeddc17a63f1588d1"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3364,7 +3364,8 @@
         "DURABLE_MGMT_CODE": "local_env",
         "DURABLE_TASK_CONNECTION": "local_env",
         "PYTHON_THREADPOOL_THREAD_COUNT": "local_env",
-        "FUNCTIONS_WORKER_PROCESS_COUNT": "local_env"
+        "FUNCTIONS_WORKER_PROCESS_COUNT": "local_env",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "local_env"
       }
     },
     {
@@ -3457,7 +3458,7 @@
           "source_location": "pipeline/Code/discrepancy_reporter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "98b89966beb02506f28d8e233203cff183130c61f90e242776b94185f96215a1"
+          "content_hash": "7c3e761503c0dace2c533bcf5194767f1f73a30720d1e1a5ef884569e5f650c0"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3611,7 +3612,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "fb543de292b85906cd15d3ce3f1784ed96162c418656bdd358b5dace928b5de6"
+          "content_hash": "9a6b643517c96137050cf5a5dc53f95bcb088f0a3a5b625aeddc17a63f1588d1"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3922,7 +3923,8 @@
         "DURABLE_MGMT_CODE": "local_env",
         "DURABLE_TASK_CONNECTION": "local_env",
         "PYTHON_THREADPOOL_THREAD_COUNT": "local_env",
-        "FUNCTIONS_WORKER_PROCESS_COUNT": "local_env"
+        "FUNCTIONS_WORKER_PROCESS_COUNT": "local_env",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "local_env"
       }
     },
     {

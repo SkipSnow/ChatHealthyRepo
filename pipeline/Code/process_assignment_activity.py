@@ -788,7 +788,7 @@ def _signal_discrepancy(load_id: str, record_key, reason: str, ctx: dict | None 
     import urllib.request
     host = os.environ.get("WEBSITE_HOSTNAME")
     code = os.environ.get("DURABLE_MGMT_CODE")
-    task_hub = os.environ.get("DURABLE_TASK_HUB") or "DevPipelineNetherite2"
+    task_hub = os.environ.get("DURABLE_TASK_HUB") or "DevPipelineNetherite3"
     connection = os.environ.get("DURABLE_TASK_CONNECTION") or "Storage"
     if not host or not code:
         logging.warning("discrepancy signal skipped (no mgmt creds)")
