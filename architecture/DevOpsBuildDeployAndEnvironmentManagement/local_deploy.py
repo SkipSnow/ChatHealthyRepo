@@ -732,6 +732,20 @@ def _deploy_azure_container_app(
         storage_account, storage_account_key, task_hub,
     )
 
+    # Ensure the Container App itself exists before we try to push secrets
+    # or update its template. Created with a placeholder image on first
+    # deploy; aca_update_container_app below replaces with the real image.
+    aca_helpers.aca_ensure_container_app_exists(
+        container_app=container_app,
+        resource_group=rg,
+        environment=aca["container_app_environment"],
+        registry=registry,
+        min_replicas=int(aca["min_replicas"]),
+        max_replicas=int(aca["max_replicas"]),
+        cpu=float(aca["cpu"]),
+        memory_gi=float(aca["memory_gi"]),
+    )
+
     aca_helpers.aca_login_to_acr(registry)
     aca_helpers.aca_docker_build(build_dir, image_repo, build_n)
     aca_helpers.aca_docker_push(image_repo, build_n)

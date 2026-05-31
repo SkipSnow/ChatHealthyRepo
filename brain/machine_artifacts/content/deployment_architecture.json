@@ -2383,7 +2383,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2d11af3dd969e41cbae0ffcc96e94bde01b97d4dc628dfee1018985f34fcc921"
+          "content_hash": "b6ccd0bdb2d228e3624042c09ce1f03bab13dc9ab0a3445df93d20d8685d099b"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3245,13 +3245,6 @@
           "content_hash": "d417c8539f19270a7b3f0270deb5ff7d2140b6dfa8627105e0b86e5efbedda98"
         },
         {
-          "feature_id": "EPIC-010-F-103",
-          "source_location": "pipeline/Code/tests/test_state_scoped_drain.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "1c08838f5d45c6cdda8e3fe20c979dea618006d521c7171e8258c9f7094b8281"
-        },
-        {
           "feature_id": "EPIC-010-F-102",
           "source_location": "pipeline/Code/tests/test_traceability.py",
           "handler_type": "python_source",
@@ -3795,13 +3788,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "d417c8539f19270a7b3f0270deb5ff7d2140b6dfa8627105e0b86e5efbedda98"
-        },
-        {
-          "feature_id": "EPIC-010-F-103",
-          "source_location": "pipeline/Code/tests/test_state_scoped_drain.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "1c08838f5d45c6cdda8e3fe20c979dea618006d521c7171e8258c9f7094b8281"
         },
         {
           "feature_id": "EPIC-010-F-102",
