@@ -2817,7 +2817,7 @@
             "task_hub": "DevPipelineNetherite3",
             "event_hubs_namespace": "ChatHealthyDataPipelines",
             "min_replicas": 0,
-            "max_replicas": 1,
+            "max_replicas": 4,
             "cpu": 2.0,
             "memory_gi": 4.0
           }
@@ -2941,7 +2941,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1f07047eee7ec8179a925a037c0e82f357c068abc8f824bb187aa0897390c6d1"
+          "content_hash": "9ffb3ea9882136587d7181322c8cbd07991c3f7b11039162c9e040cf2fa06e94"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3015,13 +3015,6 @@
         },
         {
           "feature_id": "EPIC-010-F-102",
-          "source_location": "pipeline/Code/pipeline_health_and_zombie_kill.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b38016be56203e12f49b91db20701af05b902140bf66f034a49d675287d620c3"
-        },
-        {
-          "feature_id": "EPIC-010-F-102",
           "source_location": "pipeline/Code/pipeline_worker_base.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -3088,7 +3081,7 @@
           "source_location": "pipeline/Code/record_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "0634036b3f127c459ae63a9de2eff4193c9d6a8bfbdd04a6af299d7f41b2661a"
+          "content_hash": "8aa2e983cee2d924fc534decd62e2bd219e48d40ce788966abe10464724b5ba3"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3102,7 +3095,7 @@
           "source_location": "pipeline/Code/source_gather_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b480a1757b3d27ca02ec8d997f83cd79a1f6a1b03f665639371a959596c7e0e8"
+          "content_hash": "8c90f486358f2a4f1c1cf35854d3bede3224a715d2140627d88e767fc50c101a"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3326,7 +3319,7 @@
           "source_location": "pipeline/Code/recovery_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c5a9a102be96ca8ff8c44dc95a81273f9fef5cd972fff0ab108048f9d321664c"
+          "content_hash": "44ca9e1491a6bdedeec7514664a1b03e156b686231e6e53ad3c2ecb9b685dc1a"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3493,7 +3486,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1f07047eee7ec8179a925a037c0e82f357c068abc8f824bb187aa0897390c6d1"
+          "content_hash": "9ffb3ea9882136587d7181322c8cbd07991c3f7b11039162c9e040cf2fa06e94"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3567,13 +3560,6 @@
         },
         {
           "feature_id": "EPIC-010-F-102",
-          "source_location": "pipeline/Code/pipeline_health_and_zombie_kill.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b38016be56203e12f49b91db20701af05b902140bf66f034a49d675287d620c3"
-        },
-        {
-          "feature_id": "EPIC-010-F-102",
           "source_location": "pipeline/Code/pipeline_worker_base.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -3640,7 +3626,7 @@
           "source_location": "pipeline/Code/record_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "0634036b3f127c459ae63a9de2eff4193c9d6a8bfbdd04a6af299d7f41b2661a"
+          "content_hash": "8aa2e983cee2d924fc534decd62e2bd219e48d40ce788966abe10464724b5ba3"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3654,7 +3640,7 @@
           "source_location": "pipeline/Code/source_gather_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b480a1757b3d27ca02ec8d997f83cd79a1f6a1b03f665639371a959596c7e0e8"
+          "content_hash": "8c90f486358f2a4f1c1cf35854d3bede3224a715d2140627d88e767fc50c101a"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3878,7 +3864,7 @@
           "source_location": "pipeline/Code/recovery_worker_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c5a9a102be96ca8ff8c44dc95a81273f9fef5cd972fff0ab108048f9d321664c"
+          "content_hash": "44ca9e1491a6bdedeec7514664a1b03e156b686231e6e53ad3c2ecb9b685dc1a"
         },
         {
           "feature_id": "EPIC-010-F-103",

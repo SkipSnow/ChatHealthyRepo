@@ -36,8 +36,9 @@ def record_worker_orchestrator_fn(context):
         if not assignment:
             break
 
-        # One pool_size token per chunk.
-        yield from acquire(context, "pool_size", n=1)
+        # One pool_size token per chunk. Throttle name is per-run to avoid
+        # tombstone collisions when cleanup terminates+purges the entity.
+        yield from acquire(context, f"pool_size@{load_id}", n=1)
 
         try:
             yield context.call_activity("process_assignment_activity", {

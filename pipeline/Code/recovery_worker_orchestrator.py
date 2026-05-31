@@ -37,7 +37,7 @@ def recovery_worker_orchestrator_fn(context):
         if not assignment:
             break
 
-        yield from acquire(context, "pool_size", n=1)
+        yield from acquire(context, f"pool_size@{load_id}", n=1)
 
         yield context.call_activity("process_recovery_assignment_activity", {
             **cfg,

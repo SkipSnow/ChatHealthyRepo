@@ -69,11 +69,6 @@ from load_specialty_data import (
 
 # Refactor sub-orchestrations + activities (Skip-authorized parent topology).
 from fan_out_workers import fan_out_workers_orchestrator_fn
-from pipeline_health_and_zombie_kill import (
-    kill_zombie_orchestrations_fn,
-    pipeline_health_and_zombie_kill_orchestrator_fn,
-    ping_mongo_writable_fn,
-)
 from normalize_provider_rows import (
     normalize_provider_rows_orchestrator_fn,
     normalize_provider_rows_worker_fn,
@@ -204,16 +199,12 @@ def provider_pipeline_orchestrator_fn(context):
         "cluster_wait_minutes": int(config.get("cluster_wait_minutes", 20)),
     })
 
-    # Durable throttle inventory shrunk to two semantic gates:
-    #   pool_size     — chunk-admission control (concurrency)
-    #   source_gather — one-shot startup gate for the gather fan-out
-    # Per-API rate limits (census/maps/nppes/openai) are enforced inside the
-    # activity via process_assignment_activity._TokenBucket — at the point
-    # where the API call actually happens, which the v9 design requires and
-    # Microsoft documents (activities cannot call_entity).
+    # Throttle entity names are suffixed with load_id so cleanup of one run
+    # never tombstones a name a future run will use. Shared names would
+    # accumulate Terminated history that silently discards future signals.
     throttle_defaults = {
-        "pool_size":     {"refill_rate": float(pool_size), "capacity": pool_size},
-        "source_gather": {"refill_rate": 2.0, "capacity": 6},
+        f"pool_size@{load_id}":     {"refill_rate": float(pool_size), "capacity": pool_size},
+        f"source_gather@{load_id}": {"refill_rate": 2.0, "capacity": 6},
     }
     throttle_params = {**throttle_defaults, **throttle_cfg}
     throttle_names = list(throttle_params.keys())
@@ -1038,11 +1029,6 @@ def fan_out_workers_orchestrator(context: df.DurableOrchestrationContext):
 
 
 @app.orchestration_trigger(context_name="context")
-def pipeline_health_and_zombie_kill_orchestrator(context: df.DurableOrchestrationContext):
-    return pipeline_health_and_zombie_kill_orchestrator_fn(context)
-
-
-@app.orchestration_trigger(context_name="context")
 def prepare_data_orchestrator(context: df.DurableOrchestrationContext):
     return prepare_data_orchestrator_fn(context)
 
@@ -1065,16 +1051,6 @@ def provider_flags_enrichment_orchestrator(context: df.DurableOrchestrationConte
 @app.orchestration_trigger(context_name="context")
 def embeddings_orchestrator(context: df.DurableOrchestrationContext):
     return embeddings_orchestrator_fn(context)
-
-
-@app.activity_trigger(input_name="config")
-def ping_mongo_writable_activity(config: dict) -> dict:
-    return ping_mongo_writable_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def kill_zombie_orchestrations_activity(config: dict) -> dict:
-    return kill_zombie_orchestrations_fn(config)
 
 
 @app.activity_trigger(input_name="config")
