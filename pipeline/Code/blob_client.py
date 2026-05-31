@@ -18,9 +18,14 @@ Container naming:
 
 import os
 
+import requests
+from requests.adapters import HTTPAdapter
+
+from azure.core.pipeline.transport import RequestsTransport
 from azure.storage.blob import BlobServiceClient
 
 _blob_service: BlobServiceClient | None = None
+_BLOB_POOL_MAXSIZE = 64
 
 # Container names
 CONTAINER_ADMIN = "admin"
@@ -41,7 +46,15 @@ def container_brain() -> str:
 def get_blob_service() -> BlobServiceClient:
     global _blob_service
     if _blob_service is None:
+        session = requests.Session()
+        adapter = HTTPAdapter(
+            pool_connections=_BLOB_POOL_MAXSIZE,
+            pool_maxsize=_BLOB_POOL_MAXSIZE,
+        )
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
         _blob_service = BlobServiceClient.from_connection_string(
-            os.environ["AZURE_STORAGE_CONNECTION_STRING"]
+            os.environ["AZURE_STORAGE_CONNECTION_STRING"],
+            transport=RequestsTransport(session=session),
         )
     return _blob_service
