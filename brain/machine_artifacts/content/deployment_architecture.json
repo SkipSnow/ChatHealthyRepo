@@ -2934,7 +2934,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "486f3599b02a763973877736a77a5a4bf9f3f356b27157d450dabb12159a9b56"
+          "content_hash": "99a2f6f8301246dceabe13f0dbdd6b018b23f92a2678ebdb91840f89ee2fe9a3"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -2983,7 +2983,7 @@
           "source_location": "pipeline/Code/normalize_provider_rows.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3a5143e09101585dbc987d9e80b26979791b7e536ee85a0909203e9f3a073b17"
+          "content_hash": "3a9e97cdeed54176cb87393d0b5d4938990d91da7b79d10e8db71e67f8cbc74d"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3053,7 +3053,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "5fd150759407eda574ccf305690027ab92cd3f5870c9956e0fb9fbcdcbf49641"
+          "content_hash": "101bd02602c01fa704ba96aad54f9145756841b6d72092e52df9ff02d4c6fd87"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3074,14 +3074,7 @@
           "source_location": "pipeline/Code/provider_load_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e4f7375c4e4db7b4ee17f9b663bc75a2e0baa1b1d96f13d5f0467cd827c68cdc"
-        },
-        {
-          "feature_id": "EPIC-010-F-103",
-          "source_location": "pipeline/Code/provider_worker.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "18e20b75689d6b8103268b1ffffb9f23527c62575324e6d031e9d2e6e80d1a26"
+          "content_hash": "a413a060b06d350dc0ce377c394f51abdc4f4fc28ea24c230314611dfb58b135"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3158,7 +3151,7 @@
           "source_location": "pipeline/Code/tests/test_data_quality.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7ec4d29f4a12a8987e389ee2ba6127f4d38fb917b9a78a6f44401b367e555d80"
+          "content_hash": "230c1873fbf6b95553a0c0bb47856e19d432ac4513b919df1ef92361734ebac6"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3340,7 +3333,7 @@
           "source_location": "pipeline/Code/ensure_provider_indexes_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d4e4c8514298931b18b4bf730a9fab8dc2424d4a561ed545e9c3a445cd0b6801"
+          "content_hash": "3c6a53133a0eceda7ea5d412093570247ee3b567cff3e8265d12327bdc6ccaee"
         }
       ],
       "secrets": {
@@ -3493,7 +3486,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "486f3599b02a763973877736a77a5a4bf9f3f356b27157d450dabb12159a9b56"
+          "content_hash": "99a2f6f8301246dceabe13f0dbdd6b018b23f92a2678ebdb91840f89ee2fe9a3"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3542,7 +3535,7 @@
           "source_location": "pipeline/Code/normalize_provider_rows.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3a5143e09101585dbc987d9e80b26979791b7e536ee85a0909203e9f3a073b17"
+          "content_hash": "3a9e97cdeed54176cb87393d0b5d4938990d91da7b79d10e8db71e67f8cbc74d"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3612,7 +3605,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "5fd150759407eda574ccf305690027ab92cd3f5870c9956e0fb9fbcdcbf49641"
+          "content_hash": "101bd02602c01fa704ba96aad54f9145756841b6d72092e52df9ff02d4c6fd87"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3633,14 +3626,7 @@
           "source_location": "pipeline/Code/provider_load_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e4f7375c4e4db7b4ee17f9b663bc75a2e0baa1b1d96f13d5f0467cd827c68cdc"
-        },
-        {
-          "feature_id": "EPIC-010-F-103",
-          "source_location": "pipeline/Code/provider_worker.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "18e20b75689d6b8103268b1ffffb9f23527c62575324e6d031e9d2e6e80d1a26"
+          "content_hash": "a413a060b06d350dc0ce377c394f51abdc4f4fc28ea24c230314611dfb58b135"
         },
         {
           "feature_id": "EPIC-010-F-103",
@@ -3717,7 +3703,7 @@
           "source_location": "pipeline/Code/tests/test_data_quality.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7ec4d29f4a12a8987e389ee2ba6127f4d38fb917b9a78a6f44401b367e555d80"
+          "content_hash": "230c1873fbf6b95553a0c0bb47856e19d432ac4513b919df1ef92361734ebac6"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3899,7 +3885,7 @@
           "source_location": "pipeline/Code/ensure_provider_indexes_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d4e4c8514298931b18b4bf730a9fab8dc2424d4a561ed545e9c3a445cd0b6801"
+          "content_hash": "3c6a53133a0eceda7ea5d412093570247ee3b567cff3e8265d12327bdc6ccaee"
         }
       ],
       "secrets": {
