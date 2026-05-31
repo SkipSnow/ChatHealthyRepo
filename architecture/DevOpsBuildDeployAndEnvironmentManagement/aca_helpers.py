@@ -69,6 +69,10 @@ def aca_content_hash_tree(tree_root: Path) -> str:
 
 
 _NETHERITE_PARTITIONS_EH_NAME = "partitions"
+_NETHERITE_LOADMONITOR_EH_NAME = "loadmonitor"
+_NETHERITE_LOADMONITOR_PARTITION_COUNT = 1
+_NETHERITE_CLIENTS_EH_NAMES = ("clients0", "clients1", "clients2", "clients3")
+_NETHERITE_CLIENTS_PARTITION_COUNT = 32
 
 
 def aca_read_partition_count_from_host_json(repo_root: Path) -> int:
@@ -95,24 +99,16 @@ def aca_read_partition_count_from_host_json(repo_root: Path) -> int:
         )
 
 
-def aca_ensure_partitions_event_hub(
+def _ensure_event_hub(
     namespace: str,
     resource_group: str,
+    eh: str,
     partition_count: int,
 ) -> None:
-    """Ensure the Netherite 'partitions' Event Hub exists with the expected
-    partition count.
-
-    Three cases, no fallbacks:
-      - missing      → create with N partitions
-      - matching     → no-op
-      - mismatched   → fail loud (Event Hub partition count is IMMUTABLE on
-                       Azure; the operator must delete the Event Hub by hand
-                       per the printed `az eventhubs eventhub delete` command,
-                       then re-run deploy; the next deploy will recreate it
-                       with the correct count).
+    """Generic ensure: present-and-matching → no-op, missing → create,
+    present-but-wrong-count → fail loud. Partition count is IMMUTABLE on
+    Azure Event Hubs — mismatch requires hand-delete + redeploy.
     """
-    eh = _NETHERITE_PARTITIONS_EH_NAME
     _step(
         f"verifying event hub '{eh}' in namespace '{namespace}' "
         f"(want partitionCount={partition_count})"
@@ -141,16 +137,13 @@ def aca_ensure_partitions_event_hub(
             return
         sys.exit(
             f"ERROR: Event Hub '{eh}' in namespace '{namespace}' currently "
-            f"has partitionCount={existing_count}; host.json requires "
+            f"has partitionCount={existing_count}; deploy requires "
             f"{partition_count}.\n"
             f"  Azure Event Hubs partition count is IMMUTABLE — it cannot "
             f"be changed in place.\n"
             f"  Delete the Event Hub by hand, then re-run this deploy:\n"
             f"    az eventhubs eventhub delete --namespace-name {namespace} "
-            f"--resource-group {resource_group} --name {eh}\n"
-            f"  The next deploy will recreate it with partitionCount="
-            f"{partition_count}. NOTE: this drops every Netherite hub on "
-            f"this namespace; ensure no live orchestrations remain first."
+            f"--resource-group {resource_group} --name {eh}"
         )
 
     # show returned non-zero — assume not-found and create
@@ -178,6 +171,46 @@ def aca_ensure_partitions_event_hub(
             f"  stderr: {(create.stderr or '').strip()[:1500]}"
         )
     _step(f"  event hub '{eh}' created.")
+
+
+def aca_ensure_partitions_event_hub(
+    namespace: str,
+    resource_group: str,
+    partition_count: int,
+) -> None:
+    """Ensure the Netherite 'partitions' Event Hub exists with the expected
+    partition count.
+    """
+    _ensure_event_hub(
+        namespace, resource_group,
+        _NETHERITE_PARTITIONS_EH_NAME, partition_count,
+    )
+
+
+def aca_ensure_loadmonitor_event_hub(
+    namespace: str,
+    resource_group: str,
+) -> None:
+    """Ensure the Netherite 'loadmonitor' Event Hub exists (1 partition,
+    fixed by Netherite's transport layer)."""
+    _ensure_event_hub(
+        namespace, resource_group,
+        _NETHERITE_LOADMONITOR_EH_NAME, _NETHERITE_LOADMONITOR_PARTITION_COUNT,
+    )
+
+
+def aca_ensure_clients_event_hubs(
+    namespace: str,
+    resource_group: str,
+) -> None:
+    """Ensure the Netherite 'clients0'..'clients3' Event Hubs exist
+    (32 partitions each, names and count fixed by Netherite's transport
+    layer)."""
+    for name in _NETHERITE_CLIENTS_EH_NAMES:
+        _ensure_event_hub(
+            namespace, resource_group,
+            name, _NETHERITE_CLIENTS_PARTITION_COUNT,
+        )
 
 
 def aca_ensure_netherite_storage_container(
