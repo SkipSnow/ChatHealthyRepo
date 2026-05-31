@@ -159,10 +159,13 @@ def prepare_data_orchestrator_fn(context: df.DurableOrchestrationContext):
     """Step 2 sub-orchestration — Prepare data.
 
     Acquires the NPPES source file in blob, extracts the CSV, computes the
-    byte-aligned partitions every Step-4 worker will read, drains the target
-    collection unless this is an incremental run, ensures pre-load indexes,
-    and writes one worker-ledger row per partition. Returns the structured
-    handoff Step 4 needs.
+    byte-aligned partitions every Step-4 worker will read, ensures pre-load
+    indexes, and writes one worker-ledger row per partition. Returns the
+    structured handoff Step 4 needs.
+
+    Drain happens upstream in provider_pipeline_orchestrator_fn before this
+    sub-orchestrator starts, so a mid-run terminate during download/extract/
+    partition still leaves the destination correctly drained.
     """
     config = context.get_input() or {}
     load_id = config.get("load_id") or context.instance_id
@@ -183,12 +186,6 @@ def prepare_data_orchestrator_fn(context: df.DurableOrchestrationContext):
     partitions = yield context.call_activity(
         "partition_file_activity", {**config, "csv_path": csv_path}
     )
-
-    if not config.get("incremental", False):
-        context.set_custom_status(PREP_LABEL_DRAIN)
-        yield context.call_activity("drain_staging_activity", config)
-    else:
-        context.set_custom_status(PREP_LABEL_DRAIN_SKIP)
 
     # Pre-load index only matters for incremental loads (full loads drop the
     # collection in drain). Skip on full load so post-load index creation
@@ -212,97 +209,6 @@ def prepare_data_orchestrator_fn(context: df.DurableOrchestrationContext):
         "csv_path":     csv_path,
         "partitions":   partitions,
         "metadata_ids": metadata_ids,
-    }
-
-
-def provider_load_orchestrator_fn(context: df.DurableOrchestrationContext):
-    """Step 4 sub-orchestration — Load raw provider rows.
-
-    Consumes the prepare-data handoff (csv_path + partitions + metadata_ids),
-    fans the raw-load worker across the byte ranges via the shared
-    fan_out_workers substrate (warm + task_all + cool), then runs the
-    post-load index build in parallel with reconciliation, then writes the
-    report. Returns load status + count + per-worker results.
-
-    Apply-proprietary-flags has been factored OUT of this orchestrator and now
-    lives in Step 13 (provider_flags_enrichment) so it gets its own per-activity
-    budget and its own sub-orchestration boundary.
-    """
-    config = context.get_input() or {}
-
-    load_id      = config["load_id"]
-    csv_path     = config["csv_path"]
-    partitions   = config["partitions"]
-    metadata_ids = config["metadata_ids"]
-
-    # Build per-worker configs for the fan-out substrate.
-    base = {
-        k: config[k]
-        for k in (
-            "blob_container", "states", "incremental",
-            "provider_collection", "metadata_collection",
-            "batch_size", "num_workers",
-        )
-        if k in config
-    }
-    base.update({"csv_path": csv_path, "load_id": load_id, "version": config.get("version")})
-
-    worker_configs = [
-        {
-            **base,
-            "metadata_id": metadata_ids[i],
-            **partition,
-        }
-        for i, partition in enumerate(partitions)
-    ]
-
-    fan_cfg = {
-        "load_id":         load_id,
-        "worker_activity": "provider_worker_activity",
-        "worker_configs":  worker_configs,
-        "num_workers":     len(partitions),
-        "step_label":      LOAD_LABEL_WORKERS,
-        "warm_config":     {"num_workers": len(partitions), "load_id": load_id},
-        "cool_config":     {"load_id": load_id},
-    }
-    fan_result = yield context.call_sub_orchestrator(
-        "fan_out_workers_orchestrator", fan_cfg
-    )
-    worker_results = fan_result.get("results") or []
-
-    # Index build + reconcile run in parallel — independent I/O.
-    context.set_custom_status(LOAD_LABEL_INDEXES)
-    postload_task = context.call_activity(
-        "ensure_postload_indexes_activity", {**base, "csv_path": csv_path},
-    )
-    reconcile_task = context.call_activity(
-        "reconcile_activity",
-        {**base, "csv_path": csv_path, "worker_results": worker_results},
-    )
-    parallel_results = yield context.task_all([postload_task, reconcile_task])
-    reconcile_result = parallel_results[1]
-
-    context.set_custom_status(LOAD_LABEL_REPORT)
-    yield context.call_activity(
-        "report_activity",
-        {**base, "csv_path": csv_path,
-         "worker_results": worker_results,
-         "reconcile_result": reconcile_result},
-    )
-
-    total = sum(r.get("num_records", 0) for r in worker_results)
-    any_failed = any(not r.get("success", True) for r in worker_results)
-    status = "failed" if any_failed else "complete"
-
-    context.set_custom_status(f"Step 4 done — {status}, {total:,} raw rows loaded")
-
-    return {
-        "status":         status,
-        "records_loaded": total,
-        "version":        config.get("version"),
-        "zip_path":       config.get("zip_path"),
-        "worker_results": worker_results,
-        "reconcile":      reconcile_result,
     }
 
 
@@ -671,7 +577,7 @@ def partition_file_fn(config: dict) -> list:
     # partition dict — at 16+ workers the cumulative orchestrator outbox
     # exceeds the Durable 45 KB largemessages spill threshold and dispatch
     # stalls. Each worker fetches the header from the CSV blob at startup
-    # (first 32 KB read, ~milliseconds) — see provider_worker._pipeline_open.
+    # (first 32 KB read, ~milliseconds).
     logging.info("Computed %d partitions from %d bytes of data", len(partitions), data_size)
     return partitions
 
@@ -740,9 +646,20 @@ def ensure_postload_indexes_fn(config: dict) -> None:
     logging.info("Post-load indexes ensured on %s", provider_collection)
 
 
+_STATUS_LABELS = {
+    0:  "New",
+    10: "Load invoked",
+    11: "Load failed",
+    12: "Load succeeded",
+}
+
+
+def _status_fields(code: int) -> dict:
+    return {"status": code, "status_text": _STATUS_LABELS.get(code, str(code))}
+
+
 def write_metadata_fn(config: dict) -> list:
     """Write one metadata record per worker. Returns list of inserted _id strings."""
-    from provider_worker import status_fields
     partitions = config["partitions"]
     csv_path = config["csv_path"]
     version = config.get("version", "latest")
@@ -763,7 +680,7 @@ def write_metadata_fn(config: dict) -> list:
             "start_byte": p["start_byte"],
             "end_byte": p["end_byte"],
             "num_records": 0,
-            **status_fields(0),
+            **_status_fields(0),
             "error_detail": None,
         }
         for p in partitions
@@ -865,12 +782,6 @@ def report_fn(config: dict) -> dict:
 
 
 _PROVIDER_REPORT_COLLECTION = "admin.PipelineDiscrepancyReports"
-
-
-def provider_worker_fn(config: dict) -> dict:
-    from provider_worker import ProviderWorker
-    config = {**config, "report_collection": config.get("report_collection", _PROVIDER_REPORT_COLLECTION)}
-    return ProviderWorker(config).pipeline_execute()
 
 
 def embed_worker_fn(config: dict) -> dict:

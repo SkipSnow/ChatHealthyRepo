@@ -185,24 +185,22 @@ def _iter_csv_partition(blob_client, start_byte: int, end_byte: int, header: lis
         yield local_id, dict(zip(header, row))
 
 
-_PRACTICE_STATE_COL = "Provider Business Practice Location Address State Name"
 _MAILING_STATE_COL = "Provider Business Mailing Address State Name"
-_LICENSE_STATE_PREFIX = "Provider License Number State Code_"
-_OID_STATE_PREFIX = "Other Provider Identifier State_"
 
 
 def _raw_row_matches_state(raw_row: dict, states_set: set) -> bool:
-    for col in (_PRACTICE_STATE_COL, _MAILING_STATE_COL):
-        v = (raw_row.get(col) or "").strip().upper()
-        if v in states_set:
-            return True
-    for k, v in raw_row.items():
-        if not v:
-            continue
-        if k.startswith(_LICENSE_STATE_PREFIX) or k.startswith(_OID_STATE_PREFIX):
-            if v.strip().upper() in states_set:
-                return True
-    return False
+    """True iff the row's NPPES Mailing (business) address state is in
+    `states_set`, or `states_set` contains the ALL sentinel.
+
+    Symmetric with drain's mongo_state_filter — both key off the business
+    (NPPES Mailing) address state only, so ingest and purge agree on which
+    records belong to a given state and a re-run cannot insert a duplicate
+    of any record the drain would have removed.
+    """
+    if "ALL" in states_set:
+        return True
+    v = (raw_row.get(_MAILING_STATE_COL) or "").strip().upper()
+    return v in states_set
 
 
 # ── County-source failure vocabulary ──────────────────────────────────────────
