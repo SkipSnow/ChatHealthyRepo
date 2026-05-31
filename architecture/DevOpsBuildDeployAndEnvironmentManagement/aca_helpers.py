@@ -275,6 +275,93 @@ def aca_ensure_netherite_storage_container(
     _step(f"  storage container '{container_name}' created.")
 
 
+# Placeholder image used when first-creating the Container App. Public MCR
+# image, no auth required. The deploy script's aca_update_container_app
+# replaces it with the real pipeline image in the same deploy.
+_ACA_PLACEHOLDER_IMAGE = "mcr.microsoft.com/k8se/quickstart:latest"
+
+
+def aca_ensure_container_app_exists(
+    container_app: str,
+    resource_group: str,
+    environment: str,
+    registry: str,
+    min_replicas: int,
+    max_replicas: int,
+    cpu: float,
+    memory_gi: float,
+) -> None:
+    """Ensure the Container App exists. Create with a placeholder image
+    if missing; no-op if it already exists.
+
+    First-create wires the ACR registry credentials so the subsequent
+    aca_update_container_app can pull the real pipeline image. Scale and
+    resource shape come straight from the target's azure_container_app
+    block — no defaults, no fallbacks.
+    """
+    _step(
+        f"verifying container app '{container_app}' in resource group "
+        f"'{resource_group}'"
+    )
+    show = subprocess.run(
+        [
+            "az", "containerapp", "show",
+            "--name", container_app,
+            "--resource-group", resource_group,
+            "-o", "none",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if show.returncode == 0:
+        _step(f"  container app '{container_app}' exists — no-op")
+        return
+
+    user_env = f"ACR_{registry.upper().replace('-', '_')}_USERNAME"
+    pwd_env = f"ACR_{registry.upper().replace('-', '_')}_PASSWORD"
+    user = os.environ.get(user_env)
+    pwd = os.environ.get(pwd_env)
+    if not user or not pwd:
+        sys.exit(
+            f"ERROR: missing admin credentials for ACR '{registry}'.\n"
+            f"  Required env vars: {user_env} and {pwd_env}."
+        )
+
+    _step(
+        f"  container app '{container_app}' not present — creating with "
+        f"placeholder image (deploy will replace with build image)"
+    )
+    create = subprocess.run(
+        [
+            "az", "containerapp", "create",
+            "--name", container_app,
+            "--resource-group", resource_group,
+            "--environment", environment,
+            "--image", _ACA_PLACEHOLDER_IMAGE,
+            "--registry-server", f"{registry}.azurecr.io",
+            "--registry-username", user,
+            "--registry-password", pwd,
+            "--min-replicas", str(min_replicas),
+            "--max-replicas", str(max_replicas),
+            "--cpu", str(cpu),
+            "--memory", f"{memory_gi}Gi",
+            "--ingress", "external",
+            "--target-port", "80",
+            "-o", "none",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if create.returncode != 0:
+        sys.exit(
+            f"ERROR: az containerapp create failed (exit {create.returncode})\n"
+            f"  stderr: {(create.stderr or '').strip()[:1500]}"
+        )
+    _step(f"  container app '{container_app}' created.")
+
+
 def aca_parse_storage_connection_string(conn_str: str) -> tuple[str, str]:
     """Extract AccountName and AccountKey from an Azure storage connection
     string. Fails loud if either is missing."""
