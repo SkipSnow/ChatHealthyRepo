@@ -1,8 +1,11 @@
-"""POST the Function App's Router for ProviderPipeline state=MO and assert 202.
+"""POST the Function App's Router for ProviderPipeline across 8 states and assert 202.
+
+States: MA, MD, ME, MI, MN, MO, MS, MT.
 
 Repeatable invocation of the exact same HTTP request a hand-run of
 `pipeline_trigger.py ProviderPipeline --payload-json
-'{"states":["MO"],"pipeline_cluster":"ChatHealthyDataPipelines"}'` produces.
+'{"states":["MA","MD","ME","MI","MN","MO","MS","MT"],"pipeline_cluster":"ChatHealthyDataPipelines"}'`
+produces.
 
 The Durable instance id (Job ID) returned in the 202 response is printed to
 stdout so it shows in `pytest -s` output (or any -rA summary).
@@ -24,7 +27,7 @@ HTTP_FILE = REPO_ROOT / "pipeline.http"
 BODY = {
     "ChatHealthyTask": "ProviderPipeline",
     "payload": {
-        "states": ["MO"],
+        "states": ["MA", "MD", "ME", "MI", "MN", "MO", "MS", "MT"],
         "pipeline_cluster": "ChatHealthyDataPipelines",
     },
 }
@@ -37,7 +40,7 @@ def _bearer_token() -> str:
     return raw
 
 
-def test_provider_pipeline_mo_returns_202() -> None:
+def test_provider_pipeline_multistate_returns_202() -> None:
     token = _bearer_token()
     resp = requests.post(
         ROUTER_URL,

@@ -31,15 +31,17 @@ def source_gather_orchestrator_fn(context):
     from throttle_acquire import acquire
 
     cfg = context.get_input() or {}
+    load_id = cfg["load_id"]
+    gather_throttle = f"source_gather@{load_id}"
 
     # Phase 1: nppes_zip must land before anything else can read it.
-    yield from acquire(context, "source_gather", n=1)
+    yield from acquire(context, gather_throttle, n=1)
     yield context.call_activity(f"gather_{_NPPES_ZIP_SOURCE}_activity", cfg)
 
     # Phase 2: the remaining five sources are independent of each other.
     tasks = []
     for src in _PARALLEL_SOURCES:
-        yield from acquire(context, "source_gather", n=1)
+        yield from acquire(context, gather_throttle, n=1)
         tasks.append(context.call_activity(f"gather_{src}_activity", cfg))
     yield context.task_all(tasks)
     return {"sources_loaded": 1 + len(tasks)}
