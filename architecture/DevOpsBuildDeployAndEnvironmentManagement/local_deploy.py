@@ -712,6 +712,12 @@ def _deploy_azure_container_app(
     aca_helpers.aca_ensure_partitions_event_hub(
         event_hubs_namespace, rg, partition_count,
     )
+    aca_helpers.aca_ensure_loadmonitor_event_hub(
+        event_hubs_namespace, rg,
+    )
+    aca_helpers.aca_ensure_clients_event_hubs(
+        event_hubs_namespace, rg,
+    )
 
     # Ensure the Netherite Storage container for this TaskHub exists too.
     # Pairs with the Event Hub ensure: deploy owns the existence of both
