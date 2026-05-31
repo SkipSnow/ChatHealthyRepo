@@ -43,7 +43,7 @@ def _get_mongo_client() -> MongoClient:
     return _mongo
 
 
-# ── NPPES field-prefix constants (moved from provider_worker.py) ─────────────
+# ── NPPES field-prefix constants ─────────────────────────────────────────────
 
 TAX_CODE_PREFIX = "Healthcare Provider Taxonomy Code_"
 TAX_SWITCH_PREFIX = "Healthcare Provider Primary Taxonomy Switch_"
@@ -94,9 +94,8 @@ def normalize_raw_record(raw: dict) -> dict:
     provider document (without identifiers like npi/load_id/record_id/worker_id,
     which the caller preserves from the existing doc).
 
-    Mirror of the original provider_worker._normalize_row, refactored to take
-    a dict instead of (header_list, row_list) and to skip raw-column entries
-    whose value is empty (they were not stored in the raw subdoc).
+    Takes a dict instead of (header_list, row_list) and skips raw-column
+    entries whose value is empty (they were not stored in the raw subdoc).
     """
     doc: dict = {}
     consumed: set = set()
@@ -139,8 +138,7 @@ def normalize_raw_record(raw: dict) -> dict:
         doc["licenses"] = licenses
 
     # Other-identifier parallel arrays (one object per slot — identifier
-    # required, type/state/issuer optional). Misalignment-safe per the
-    # provider_worker rewrite that this code came from.
+    # required, type/state/issuer optional). Misalignment-safe.
     for prefix in (OID_PREFIX, OID_TYPE_PREFIX, OID_STATE_PREFIX, OID_ISSUER_PREFIX):
         consumed.update(h for h in raw if h.startswith(prefix))
     other_identifiers: list = []

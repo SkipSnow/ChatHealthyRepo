@@ -52,7 +52,7 @@ _REQUIRED_INDEXES = [
         "keys": [("npi", 1)],
         "name": "npi_1",
         "background": True,
-        "unique": False,
+        "unique": True,
     },
     {
         "keys": [("addresses.county.source", 1)],

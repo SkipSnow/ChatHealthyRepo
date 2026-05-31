@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import time
+import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -55,8 +56,6 @@ from provider_load_manager import (
     multi_practice_addresses_orchestrator_fn,
     partition_file_fn,
     prepare_data_orchestrator_fn,
-    provider_load_orchestrator_fn,
-    provider_worker_fn,
     reconcile_fn,
     report_fn,
     stamp_embedding_version_fn,
@@ -230,6 +229,16 @@ def provider_pipeline_orchestrator_fn(context):
         for name, params in throttle_params.items():
             context.signal_entity(df.EntityId("throttle", name), "configure", params)
 
+        # Drain the destination first. The state-scoped drain only needs
+        # `states` + `provider_collection`, so it can run at the front of the
+        # pipeline. Putting it after download/extract/partition leaves the
+        # destination dirty whenever any upstream step is terminated mid-run.
+        yield context.call_activity("drain_staging_activity", {
+            "states": config["states"],
+            "incremental": False,
+            "provider_collection": config.get("provider_collection"),
+        })
+
         yield context.call_sub_orchestrator("source_gather_orchestrator", config)
 
         prepare = yield context.call_sub_orchestrator(
@@ -245,15 +254,6 @@ def provider_pipeline_orchestrator_fn(context):
             },
         )
         csv_path = prepare["csv_path"]
-
-        # Drain destination collection (business-address state scoped) BEFORE
-        # workers start writing. After drain we know the target slice is empty,
-        # so the per-record write becomes a plain insert (no upsert handshake).
-        yield context.call_activity("drain_staging_activity", {
-            "states": config["states"],
-            "incremental": False,
-            "provider_collection": config.get("provider_collection"),
-        })
 
         meta = yield context.call_activity("get_csv_metadata_activity", {
             "csv_path": csv_path,
@@ -414,6 +414,30 @@ def _get_mongo_conn():
 
 def _get_frontend_conn():
     return os.environ.get("MONGO_FRONTEND_connectionString", "")
+
+
+_versions_coll = None
+
+def _versions_collection():
+    global _versions_coll
+    if _versions_coll is None:
+        from pymongo import MongoClient
+        conn = _get_frontend_conn()
+        if not conn:
+            raise RuntimeError("MONGO_FRONTEND_connectionString not set")
+        _versions_coll = MongoClient(conn)["admin"]["Versions"]
+    return _versions_coll
+
+
+def _current_build_id() -> int:
+    env = os.environ.get("ENV_PREFIX", "dev")
+    latest = _versions_collection().find_one(sort=[("from", -1)])
+    if latest is None:
+        raise RuntimeError("admin.Versions has no records")
+    for entry in latest.get("builds", []):
+        if entry.get("env") == env:
+            return int(entry["build"])
+    raise RuntimeError(f"admin.Versions latest record missing env={env}")
 
 def _get_ops_manager():
     from cluster_lifecycle_manager import ClusterLifecycleManager
@@ -671,7 +695,16 @@ async def dev_pipeline_management(
             for _lib in ("azure", "pymongo", "urllib3", "requests"):
                 logging.getLogger(_lib).setLevel(logging.WARNING)
 
-        logging.info("User '%s' requested task '%s'", user_id, task)
+        request_guid = str(uuid.uuid4())
+        build_id = _current_build_id()
+        logging.info(json.dumps({
+            "event": "router_request",
+            "build_id": build_id,
+            "request_guid": request_guid,
+            "user_id": user_id,
+            "ChatHealthyTask": task,
+            "payload": payload,
+        }))
 
         # Ops Manager path — infrastructure only
         if task in OPS_TASK_HANDLERS:
@@ -693,10 +726,12 @@ async def dev_pipeline_management(
                 return err_response
             orchestrator_name = ASYNC_TASK_ORCHESTRATORS[task]
             instance_id = await client.start_new(orchestrator_name, None, payload)
-            logging.info(
-                "Started orchestrator '%s' instance '%s' for user '%s'",
-                orchestrator_name, instance_id, user_id,
-            )
+            logging.info(json.dumps({
+                "event": "router_response",
+                "build_id": build_id,
+                "request_guid": request_guid,
+                "durable_instance_id": instance_id,
+            }))
             return client.create_check_status_response(req, instance_id)
 
         return json_response(
@@ -820,11 +855,6 @@ def get_csv_metadata_activity(config: dict) -> dict:
 @app.orchestration_trigger(context_name="context")
 def specialty_pipeline_orchestrator(context: df.DurableOrchestrationContext):
     return specialty_pipeline_orchestrator_fn(context)
-
-
-@app.orchestration_trigger(context_name="context")
-def provider_load_orchestrator(context: df.DurableOrchestrationContext):
-    return provider_load_orchestrator_fn(context)
 
 
 # ── Durable Activities ────────────────────────────────────────────────────────
@@ -953,11 +983,6 @@ def warm_instances_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def cool_instances_activity(config: dict) -> dict:
     return cool_instances_fn(config)
-
-
-@app.activity_trigger(input_name="config")
-def provider_worker_activity(config: dict) -> dict:
-    return provider_worker_fn(config)
 
 
 @app.activity_trigger(input_name="config")

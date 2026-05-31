@@ -133,13 +133,6 @@ class TestStateFilterEnforcement(unittest.TestCase):
         self.assertNotIn("_build_states_query", module_dict,
                          "_build_states_query must be removed — use _build_states_filter only")
 
-    def test_provider_worker_requires_states(self):
-        """ProviderWorker must raise ValueError when states is missing."""
-        from provider_worker import ProviderWorker
-        with self.assertRaises((ValueError, KeyError)):
-            ProviderWorker({"worker_id": 1, "load_id": "test",
-                           "start_byte": 0, "end_byte": 100, "csv_path": "test.csv"})
-
     def test_embedding_worker_uses_strict_filter(self):
         """EmbeddingWorker must import _build_states_filter, not _build_states_query."""
         import embedding_worker
@@ -225,13 +218,6 @@ class TestZipStateMismatchRepair(unittest.TestCase):
 
 class TestIncrementalMode(unittest.TestCase):
     """ENH-PIPE-001 and ENH-PIPE-002 requirements."""
-
-    def test_incremental_flag_in_provider_worker(self):
-        """ProviderWorker must check for incremental flag in config."""
-        source_path = os.path.join(os.path.dirname(__file__), "..", "provider_worker.py")
-        with open(source_path) as f:
-            source = f.read()
-        self.assertIn("incremental", source, "ProviderWorker must handle incremental mode")
 
     def test_drain_respects_incremental(self):
         """drain_staging_fn or orchestrator must skip drop when incremental=true."""
