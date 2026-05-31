@@ -91,6 +91,7 @@ from recover_county_activity import (
     build_recovery_assignments_fn,
     process_recovery_assignment_fn,
 )
+from batched_pass2_census_activity import batched_pass2_census_fn
 from ensure_provider_indexes_activity import ensure_provider_indexes_fn
 from source_gather_orchestrator import source_gather_orchestrator_fn
 from process_assignment_activity import process_assignment_activity_fn
@@ -308,6 +309,24 @@ def provider_pipeline_orchestrator_fn(context):
         ]
         worker_results = yield context.task_all(pool)
 
+        # ── Batched Census pass2 ──────────────────────────────────────────
+        # Per-record ingest does pass1 only. This single activity sweeps
+        # the cohort of practice addresses pass1 could not resolve,
+        # de-duplicates across providers, and uses the Census addressbatch
+        # endpoint the way it is designed — one HTTP per chunk of N unique
+        # addresses, not one HTTP per record.
+        pass2_summary = yield context.call_activity(
+            "batched_pass2_census_activity",
+            {
+                "load_id": load_id,
+                "provider_collection": config.get("provider_collection"),
+                "blob_container": config["blob_container"],
+                "env_prefix": config.get("env_prefix", "dev"),
+                "census_batch_size": int(config.get("census_batch_size", 1000)),
+                "census_max_concurrent": int(config.get("census_max_concurrent", 4)),
+            },
+        )
+
         # ── County recovery phase ─────────────────────────────────────────
         # Per Skip 2026-05-28: ~9% of practice addresses end the load with
         # county.source=geocoder_failed because the in-loop Census batch
@@ -367,6 +386,7 @@ def provider_pipeline_orchestrator_fn(context):
             "pool_size": pool_size,
             "workers_completed": len(worker_results),
             "csv_file_size": meta["file_size"],
+            "batched_pass2": pass2_summary or {},
             "recovery_chunks": len(recovery_chunks),
             "recovery_total_npis": (recovery_seed or {}).get("total_npis", 0),
             "recovery_workers_completed": len(recovery_results),
@@ -790,6 +810,11 @@ def build_recovery_assignments_activity(config: dict) -> dict:
 @app.activity_trigger(input_name="config")
 def process_recovery_assignment_activity(config: dict) -> dict:
     return process_recovery_assignment_fn(config)
+
+
+@app.activity_trigger(input_name="config")
+def batched_pass2_census_activity(config: dict) -> dict:
+    return batched_pass2_census_fn(config)
 
 
 @app.activity_trigger(input_name="config")

@@ -908,11 +908,6 @@ def process_assignment_activity_fn(config: dict) -> dict:
         doc["loaded_at"] = _iso_now()
         try:
             _pass1_zip(doc, crosswalk)
-            _pass2_census(doc)
-            _pass3_billing(doc)
-            if google_maps_enabled:
-                _pass4_maps(doc)
-            _pass6_nppes(doc)
             _stamp_urban(doc, rucc)
             _stamp_flags(doc, catalog)
             _mark_quality(doc)
@@ -927,7 +922,6 @@ def process_assignment_activity_fn(config: dict) -> dict:
     # most window_size enriched docs (~30 KB each) before flushing.
     window_size = int(config.get("window_size", inner_workers))
     embedding_enabled = bool(config.get("embedding_enabled", False))
-    google_maps_enabled = bool(config.get("google_maps_enabled", True))
     batch_seq = 0
 
     def _flush_window(window_raw: list) -> None:
