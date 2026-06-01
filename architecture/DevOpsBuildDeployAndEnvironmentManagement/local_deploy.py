@@ -520,11 +520,48 @@ def _functionapp_set_appsettings(rg: str, app: str, settings: dict[str, str]) ->
         )
 
 
+_GATEWAY_UPSTREAM_TARGET_ID = "target_azure_container_app_pipeline"
+
+
+def _resolve_durable_router_url(coll: "DeploymentCollection", env: str) -> str:
+    """Look up the durable Container App's current FQDN from Azure and
+    build the upstream Router URL the gateway forwards to. Fails hard if
+    the target is missing, the container app does not exist, or it has
+    no FQDN — no fallback, no guessing."""
+    upstream = coll.by_target_id(_GATEWAY_UPSTREAM_TARGET_ID)
+    env_binding = next(
+        (e for e in upstream.environments if e.env_binding == env), None,
+    )
+    if env_binding is None or env_binding.azure_container_app is None:
+        sys.exit(
+            f"ERROR: gateway needs upstream target "
+            f"{_GATEWAY_UPSTREAM_TARGET_ID!r} env={env!r} azure_container_app "
+            f"to resolve DURABLE_ROUTER_URL — not found in manifest."
+        )
+    aca = env_binding.azure_container_app
+    rg = aca["resource_group"]
+    container_app = aca["container_app"]
+    r = subprocess.run(
+        ["az", "containerapp", "show",
+         "--name", container_app, "--resource-group", rg,
+         "--query", "properties.configuration.ingress.fqdn", "-o", "tsv"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0 or not r.stdout.strip():
+        sys.exit(
+            f"ERROR: cannot read FQDN for upstream container app "
+            f"{container_app!r} in {rg!r}: {(r.stderr or '').strip()[:500]}"
+        )
+    return f"https://{r.stdout.strip()}/api/Router"
+
+
 def _deploy_azure_function_app(
     build_dir: Path,
     target: TargetRecord,
     env: str,
     resolver: SecretsResolver | None = None,
+    coll: "DeploymentCollection | None" = None,
 ) -> str:
     env_binding = next(
         (e for e in target.environments if e.env_binding == env), None,
@@ -563,6 +600,11 @@ def _deploy_azure_function_app(
         "AzureWebJobsFeatureFlags":   "EnableWorkerIndexing",
         "PythonScriptFileName":       "ChatHealthyDataPipelinesGatewayFunctionApp.py",
     }
+    # Resolve the upstream durable container app's FQDN from Azure and push
+    # it as DURABLE_ROUTER_URL so the gateway code does not have to carry a
+    # hardcoded URL fallback. No coll = test-only invocation; otherwise hard.
+    if coll is not None:
+        app_settings["DURABLE_ROUTER_URL"] = _resolve_durable_router_url(coll, env)
     if resolver is not None:
         for name in (target.secrets or {}).keys():
             try:
@@ -967,7 +1009,7 @@ def _deploy_one(
         return _deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver)
     if target_kind == "azure_function_app":
         target = coll.by_target_id(target_id)
-        return _deploy_azure_function_app(build_dir, target, env, resolver)
+        return _deploy_azure_function_app(build_dir, target, env, resolver, coll)
     if target_kind == "azure_container_app":
         target = coll.by_target_id(target_id)
         return _deploy_azure_container_app(build_dir, target, env, resolver, build_n)
