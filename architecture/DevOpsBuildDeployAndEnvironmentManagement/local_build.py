@@ -272,17 +272,6 @@ _GATEWAY_HOST_JSON = """{
       }
     }
   },
-  "extensions": {
-    "durableTask": {
-      "hubName": "%TaskHubName%",
-      "storageProvider": {
-        "type": "Netherite",
-        "partitionCount": 4,
-        "StorageConnectionName": "AzureWebJobsStorage",
-        "EventHubsConnectionName": "EventHubsConnection"
-      }
-    }
-  },
   "extensionBundle": {
     "id": "Microsoft.Azure.Functions.ExtensionBundle",
     "version": "[4.*, 5.0.0)"
@@ -290,7 +279,6 @@ _GATEWAY_HOST_JSON = """{
 }
 """
 _GATEWAY_REQUIREMENTS_TXT = """azure-functions
-azure-functions-durable
 pymongo
 """
 
