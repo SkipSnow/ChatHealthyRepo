@@ -894,7 +894,7 @@ def process_assignment_activity_fn(config: dict) -> dict:
 
     _counters_lock = _threading.Lock()
 
-    def _process_one(raw):
+    def _process_one(local_id: int, raw):
         if states and not _raw_row_matches_state(raw, states):
             return None
         npi = (raw.get("NPI") or "").strip()
@@ -906,6 +906,12 @@ def process_assignment_activity_fn(config: dict) -> dict:
         _layer_passthrough_fields(raw, doc)
         doc["load_id"] = load_id
         doc["loaded_at"] = _iso_now()
+        # Per Skip 2026-06-01: stamp chunk_id + row_index_in_chunk on every
+        # doc so the work_manager (via this activity's resume-from-offset
+        # query at startup) can determine the safe re-claim point for a
+        # partially-committed chunk that got released back to pending.
+        doc["chunk_id"] = aid
+        doc["row_index_in_chunk"] = local_id
         try:
             _pass1_zip(doc, crosswalk)
             _stamp_urban(doc, rucc)
@@ -928,7 +934,7 @@ def process_assignment_activity_fn(config: dict) -> dict:
         nonlocal batch_seq
         if not window_raw:
             return
-        futures = [pool.submit(_process_one, raw) for _, raw in window_raw]
+        futures = [pool.submit(_process_one, local_id, raw) for local_id, raw in window_raw]
         docs: list[dict] = []
         for f in as_completed(futures):
             d = f.result()
@@ -942,9 +948,30 @@ def process_assignment_activity_fn(config: dict) -> dict:
         _commit_window(docs, batch_seq)
         batch_seq += 1
 
+    # Resume-from-offset: if this chunk was previously claimed, partially
+    # committed, then released (worker died mid-chunk), the prior worker's
+    # records are already in Mongo. Query the highest row_index_in_chunk we
+    # committed for this chunk_id+load_id and skip every row at or before
+    # that index in the CSV iteration. Fresh chunks see resume_after=0
+    # (no docs yet) and process every row.
+    prior = coll_p.find_one(
+        {"load_id": load_id, "chunk_id": aid},
+        sort=[("row_index_in_chunk", -1)],
+        projection={"row_index_in_chunk": 1, "_id": 0},
+    )
+    resume_after = int(prior["row_index_in_chunk"]) if prior and prior.get("row_index_in_chunk") is not None else 0
+    if resume_after > 0:
+        logging.info(
+            "process_assignment_activity: chunk_id=%s resuming after row_index_in_chunk=%d",
+            aid, resume_after,
+        )
+
     with ThreadPoolExecutor(max_workers=inner_workers) as pool:
         window: list = []
         for entry in _iter_csv_partition(blob_src, a["start_byte"], a["end_byte"], header):
+            local_id, _raw = entry
+            if local_id <= resume_after:
+                continue  # already committed in a prior attempt; skip
             window.append(entry)
             if len(window) >= window_size:
                 _flush_window(window)
