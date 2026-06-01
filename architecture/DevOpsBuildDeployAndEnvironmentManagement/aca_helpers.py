@@ -275,6 +275,196 @@ def aca_ensure_netherite_storage_container(
     _step(f"  storage container '{container_name}' created.")
 
 
+_ACA_DEFAULT_LOCATION = "eastus2"
+
+
+def aca_ensure_log_analytics_workspace(
+    workspace: str,
+    resource_group: str,
+    location: str = _ACA_DEFAULT_LOCATION,
+) -> str:
+    """Ensure a Log Analytics workspace exists. Returns its resource ID.
+
+    Workspace-based App Insights and the ACA env's system-log sink both
+    need a workspace; this helper is the one owning create-if-absent so
+    every dependent helper can demand a resource ID and rely on it.
+    """
+    _step(
+        f"verifying log analytics workspace '{workspace}' in resource "
+        f"group '{resource_group}'"
+    )
+    show = subprocess.run(
+        [
+            "az", "monitor", "log-analytics", "workspace", "show",
+            "--workspace-name", workspace,
+            "--resource-group", resource_group,
+            "--query", "id", "-o", "tsv",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if show.returncode == 0 and show.stdout.strip():
+        _step(f"  workspace '{workspace}' exists — no-op")
+        return show.stdout.strip()
+    _step(f"  workspace '{workspace}' missing — creating")
+    create = subprocess.run(
+        [
+            "az", "monitor", "log-analytics", "workspace", "create",
+            "--workspace-name", workspace,
+            "--resource-group", resource_group,
+            "--location", location,
+            "--query", "id", "-o", "tsv",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if create.returncode != 0 or not create.stdout.strip():
+        sys.exit(
+            f"ERROR: az monitor log-analytics workspace create failed "
+            f"(exit {create.returncode})\n"
+            f"  stderr: {(create.stderr or '').strip()[:1500]}"
+        )
+    _step(f"  workspace '{workspace}' created.")
+    return create.stdout.strip()
+
+
+def aca_ensure_app_insights_component(
+    component: str,
+    resource_group: str,
+    workspace_id: str,
+    location: str = _ACA_DEFAULT_LOCATION,
+) -> str:
+    """Ensure a workspace-based App Insights component exists. Returns its
+    connection string for env-var injection into the Container App.
+
+    Workspace-based AI (the modern shape) writes its tables into the
+    supplied workspace; classic AI is intentionally not used here.
+    """
+    _step(
+        f"verifying app insights component '{component}' in resource "
+        f"group '{resource_group}'"
+    )
+    show = subprocess.run(
+        [
+            "az", "monitor", "app-insights", "component", "show",
+            "--app", component,
+            "--resource-group", resource_group,
+            "--query", "connectionString", "-o", "tsv",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if show.returncode == 0 and show.stdout.strip():
+        _step(f"  app insights '{component}' exists — no-op")
+        return show.stdout.strip()
+    _step(f"  app insights '{component}' missing — creating (workspace-based)")
+    create = subprocess.run(
+        [
+            "az", "monitor", "app-insights", "component", "create",
+            "--app", component,
+            "--resource-group", resource_group,
+            "--location", location,
+            "--workspace", workspace_id,
+            "--kind", "web",
+            "--query", "connectionString", "-o", "tsv",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if create.returncode != 0 or not create.stdout.strip():
+        sys.exit(
+            f"ERROR: az monitor app-insights component create failed "
+            f"(exit {create.returncode})\n"
+            f"  stderr: {(create.stderr or '').strip()[:1500]}"
+        )
+    _step(f"  app insights '{component}' created.")
+    return create.stdout.strip()
+
+
+def aca_ensure_container_apps_environment(
+    environment: str,
+    resource_group: str,
+    workspace: str,
+    location: str = _ACA_DEFAULT_LOCATION,
+) -> None:
+    """Ensure the Container Apps Environment exists. System logs are routed
+    into the supplied Log Analytics workspace."""
+    _step(
+        f"verifying container apps environment '{environment}' in resource "
+        f"group '{resource_group}'"
+    )
+    show = subprocess.run(
+        [
+            "az", "containerapp", "env", "show",
+            "--name", environment,
+            "--resource-group", resource_group,
+            "-o", "none",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if show.returncode == 0:
+        _step(f"  container apps environment '{environment}' exists — no-op")
+        return
+    # The ACA env create command needs the workspace customer ID + shared
+    # key, not the workspace resource ID. Fetch them from the workspace.
+    cid = subprocess.run(
+        [
+            "az", "monitor", "log-analytics", "workspace", "show",
+            "--workspace-name", workspace,
+            "--resource-group", resource_group,
+            "--query", "customerId", "-o", "tsv",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    keys = subprocess.run(
+        [
+            "az", "monitor", "log-analytics", "workspace", "get-shared-keys",
+            "--workspace-name", workspace,
+            "--resource-group", resource_group,
+            "--query", "primarySharedKey", "-o", "tsv",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    customer_id = (cid.stdout or "").strip()
+    shared_key = (keys.stdout or "").strip()
+    if not customer_id or not shared_key:
+        sys.exit(
+            f"ERROR: could not read customerId / sharedKey for workspace "
+            f"'{workspace}' (needed by az containerapp env create)."
+        )
+    _step(f"  container apps environment '{environment}' missing — creating")
+    create = subprocess.run(
+        [
+            "az", "containerapp", "env", "create",
+            "--name", environment,
+            "--resource-group", resource_group,
+            "--location", location,
+            "--logs-workspace-id", customer_id,
+            "--logs-workspace-key", shared_key,
+            "-o", "none",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if create.returncode != 0:
+        sys.exit(
+            f"ERROR: az containerapp env create failed (exit {create.returncode})\n"
+            f"  stderr: {(create.stderr or '').strip()[:1500]}"
+        )
+    _step(f"  container apps environment '{environment}' created.")
+
+
 # Placeholder image used when first-creating the Container App. Public MCR
 # image, no auth required. The deploy script's aca_update_container_app
 # replaces it with the real pipeline image in the same deploy.

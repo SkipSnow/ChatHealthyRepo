@@ -156,6 +156,11 @@ def provider_pipeline_orchestrator_fn(context):
     config.setdefault("metadata_collection", "admin.DataLoadMetadata")
     config.setdefault("staging_container", "pipeline-staging")
     config.setdefault("env_prefix", os.environ.get("ENV_PREFIX", "dev"))
+    # This durable function app's one and only job is the provider pipeline,
+    # and the provider pipeline only ever targets ChatHealthyDataPipelines.
+    # Hardcoded here so it never has to traverse the gateway's per-route
+    # contract or the inbound payload.
+    config["pipeline_cluster"] = "ChatHealthyDataPipelines"
 
     # Per F-102-S-003-REQ-B-002 "Manage data source freshness": each source
     # has its own staleness TTL declared as an array of {source_name, number_of_days}.
