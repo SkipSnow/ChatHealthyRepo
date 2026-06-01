@@ -786,8 +786,12 @@ def _signal_discrepancy(load_id: str, record_key, reason: str, ctx: dict | None 
     import urllib.request
     host = os.environ.get("WEBSITE_HOSTNAME")
     code = os.environ.get("DURABLE_MGMT_CODE")
-    task_hub = os.environ.get("DURABLE_TASK_HUB") or "DevPipelineNetherite3"
-    connection = os.environ.get("DURABLE_TASK_CONNECTION") or "Storage"
+    # The deploy script pushes both DURABLE_TASK_HUB and DURABLE_TASK_CONNECTION
+    # as app settings — no hardcoded fallback. If they're missing, that's a
+    # deploy bug and the discrepancy signal must fail loud, not silently
+    # build a URL against a stale task hub name.
+    task_hub = os.environ["DURABLE_TASK_HUB"]
+    connection = os.environ["DURABLE_TASK_CONNECTION"]
     if not host or not code:
         logging.warning("discrepancy signal skipped (no mgmt creds)")
         return
