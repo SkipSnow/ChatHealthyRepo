@@ -571,6 +571,15 @@ def _deploy_azure_function_app(
                 sys.exit(
                     f"ERROR: failed to resolve secret {name!r} for env={env!r}: {exc}"
                 )
+    # Rename the gateway-specific AI binding to the canonical Azure
+    # Functions app setting name. The deployment manifest holds a
+    # GATEWAY_-prefixed key so the gateway and the worker can bind
+    # separate connection strings from .env without colliding; the FA
+    # itself only reads APPLICATIONINSIGHTS_CONNECTION_STRING.
+    if "GATEWAY_APPINSIGHTS_CONNECTION_STRING" in app_settings:
+        app_settings["APPLICATIONINSIGHTS_CONNECTION_STRING"] = (
+            app_settings.pop("GATEWAY_APPINSIGHTS_CONNECTION_STRING")
+        )
     _functionapp_set_appsettings(rg, app, app_settings)
 
     # The gateway FA is a pure HTTP facade — no Durable orchestrations live
