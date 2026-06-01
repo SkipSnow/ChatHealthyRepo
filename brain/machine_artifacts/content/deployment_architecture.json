@@ -2383,7 +2383,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2c7b35a933634d21aa19e272080a84bd39ceafc2ab24ca16c2bd6a02ba2ffa76"
+          "content_hash": "3a81ee29a2261ca132e9f5099edb7ecf8a6132865d64a818bc22bc587db8db32"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2808,11 +2808,13 @@
       "environments": [
         {
           "env_binding": "dev",
-          "node_address": "https://dev-pipeline-records-as-messages.yellowbay-d50afa88.eastus2.azurecontainerapps.io",
+          "node_address": "https://prod-providerpipeline-durable-app.azurecontainerapps.io",
           "azure_container_app": {
             "resource_group": "FindCareDataPipelines-Dev",
-            "container_app": "dev-pipeline-records-as-messages",
-            "container_app_environment": "dev-pipeline-aca-env",
+            "container_app": "prod-providerpipeline-durable-app",
+            "container_app_environment": "prod-providerpipeline-env",
+            "log_analytics_workspace": "prod_ProviderPipelineLogWorkspace",
+            "application_insights": "prod_ProviderPipelineDurableLog",
             "registry": "chathealthypipelinedev",
             "task_hub": "DevPipelineNetherite3",
             "event_hubs_namespace": "ChatHealthyDataPipelines",
@@ -2941,7 +2943,7 @@
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9ffb3ea9882136587d7181322c8cbd07991c3f7b11039162c9e040cf2fa06e94"
+          "content_hash": "c180cecdaf0a5666b8402cd37649026914aa73323e6a2ea4f62d36a2548e0fb6"
         },
         {
           "feature_id": "EPIC-010-F-102",
@@ -3350,8 +3352,7 @@
         "DURABLE_MGMT_CODE": "local_env",
         "DURABLE_TASK_CONNECTION": "local_env",
         "PYTHON_THREADPOOL_THREAD_COUNT": "local_env",
-        "FUNCTIONS_WORKER_PROCESS_COUNT": "local_env",
-        "APPLICATIONINSIGHTS_CONNECTION_STRING": "local_env"
+        "FUNCTIONS_WORKER_PROCESS_COUNT": "local_env"
       }
     },
     {

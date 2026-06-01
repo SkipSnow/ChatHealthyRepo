@@ -865,6 +865,30 @@ def _deploy_azure_container_app(
         storage_account, storage_account_key, task_hub,
     )
 
+    # Ensure the supporting Azure resources exist before we provision the
+    # Container App. Each pipeline owns its own workspace, env, and App
+    # Insights component; no shared "pipeline" infrastructure.
+    workspace_name = aca.get("log_analytics_workspace")
+    app_insights_name = aca.get("application_insights")
+    if not workspace_name or not app_insights_name:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} env={env!r} azure_container_app "
+            f"block missing 'log_analytics_workspace' and/or "
+            f"'application_insights' — required so deploy can create the "
+            f"per-pipeline log destinations."
+        )
+    workspace_id = aca_helpers.aca_ensure_log_analytics_workspace(
+        workspace=workspace_name, resource_group=rg,
+    )
+    ai_conn = aca_helpers.aca_ensure_app_insights_component(
+        component=app_insights_name, resource_group=rg, workspace_id=workspace_id,
+    )
+    aca_helpers.aca_ensure_container_apps_environment(
+        environment=aca["container_app_environment"],
+        resource_group=rg,
+        workspace=workspace_name,
+    )
+
     # Ensure the Container App itself exists before we try to push secrets
     # or update its template. Created with a placeholder image on first
     # deploy; aca_update_container_app below replaces with the real image.
@@ -895,6 +919,11 @@ def _deploy_azure_container_app(
     # so the Functions worker's Netherite binding lands on the right hub.
     env_var_values["TaskHubName"] = aca["task_hub"]
     env_var_values["ENV_PREFIX"] = env
+    # Inject the deploy-derived App Insights connection string. The AI
+    # component is owned by this deploy (created above if absent), so the
+    # connection string is the deploy's source of truth — never read from
+    # .env. Overwrites any prior value to keep the binding authoritative.
+    env_var_values["APPLICATIONINSIGHTS_CONNECTION_STRING"] = ai_conn
 
     aca_helpers.aca_set_secrets(container_app, rg, env_var_values)
     secret_names = list(env_var_values.keys())
