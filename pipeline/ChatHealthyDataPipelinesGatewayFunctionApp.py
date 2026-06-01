@@ -27,7 +27,7 @@ import azure.functions as func
 
 DURABLE_ROUTER_URL = os.environ.get(
     "DURABLE_ROUTER_URL",
-    "https://dev-pipeline-records-as-messages.yellowbay-d50afa88.eastus2.azurecontainerapps.io/api/Router",
+    "https://prod-providerpipeline-app.victoriousisland-72795dbc.eastus2.azurecontainerapps.io/api/Router",
 )
 _FORWARD_TIMEOUT_S = 60.0
 
