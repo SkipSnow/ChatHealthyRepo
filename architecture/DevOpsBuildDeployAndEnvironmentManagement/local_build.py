@@ -304,6 +304,20 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
     zip_path = build_dir / "deploy.zip"
     _step(f"  building deploy.zip from {len(target.files)} JSON-declared files")
     arcnames_written: set[str] = set()
+
+    # Linux Consumption mounts the deploy package as wwwroot. zipfile on
+    # Windows writes external_attr=0, which extracts as Unix mode 0000 on
+    # the Linux host — the runtime then 503s with "Permission denied" on
+    # host.json. Force every entry to mode 0644 (regular file flag 0x8000
+    # | rw-r--r--) so the Functions host can read everything it deploys.
+    _UNIX_FILE_0644 = (0o100644 << 16)
+
+    def _add_file(zf, arcname: str, content: bytes) -> None:
+        info = zipfile.ZipInfo(arcname)
+        info.compress_type = zipfile.ZIP_DEFLATED
+        info.external_attr = _UNIX_FILE_0644
+        zf.writestr(info, content)
+
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for f in target.files:
             src_path = repo_root / f.source_location
@@ -324,15 +338,15 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
                     f"not start with {_PIPELINE_SOURCE_PREFIX!r} or "
                     f"{_GATEWAY_SOURCE_PREFIX!r}; cannot map to a zip arcname."
                 )
-            zf.write(src_path, arcname=arcname)
+            _add_file(zf, arcname, src_path.read_bytes())
             arcnames_written.add(arcname)
         # Gateway shape: single .py + no host.json/requirements.txt in the
         # source manifest. Synthesize them so the deployable zip has the
         # minimum scaffolding Azure Functions Python needs.
         if "host.json" not in arcnames_written:
-            zf.writestr("host.json", _GATEWAY_HOST_JSON)
+            _add_file(zf, "host.json", _GATEWAY_HOST_JSON.encode("utf-8"))
         if "requirements.txt" not in arcnames_written:
-            zf.writestr("requirements.txt", _GATEWAY_REQUIREMENTS_TXT)
+            _add_file(zf, "requirements.txt", _GATEWAY_REQUIREMENTS_TXT.encode("utf-8"))
     size_mb = zip_path.stat().st_size / (1024 * 1024)
     _step(f"  zip built: {zip_path.name} ({size_mb:.1f} MB, {len(target.files)} entries)")
 
