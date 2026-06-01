@@ -2383,7 +2383,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3a81ee29a2261ca132e9f5099edb7ecf8a6132865d64a818bc22bc587db8db32"
+          "content_hash": "43e39524c9b47eb4cac733f68aa66be48b57280d846bfebaa280ca4a224cab03"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3375,7 +3375,7 @@
           "source_location": "pipeline/ChatHealthyDataPipelinesGatewayFunctionApp.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f6e71cca94b7d10dab09ae5ef69ba888c33c9b3d4012560b36e5b9acc6bf955c"
+          "content_hash": "1a88d35de6b13627865aeca722bb6a2e5ef4f4bbb814a7af9de97bcd99e0a47a"
         }
       ],
       "secrets": {

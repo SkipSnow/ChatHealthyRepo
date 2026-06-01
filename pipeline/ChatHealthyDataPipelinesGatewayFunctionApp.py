@@ -25,10 +25,11 @@ import uuid
 import azure.functions as func
 
 
-DURABLE_ROUTER_URL = os.environ.get(
-    "DURABLE_ROUTER_URL",
-    "https://prod-providerpipeline-app.victoriousisland-72795dbc.eastus2.azurecontainerapps.io/api/Router",
-)
+# The deploy script (target_azure_function_app_pipeline path) is responsible
+# for resolving the upstream durable container app's current FQDN and pushing
+# it here as an app setting. Missing setting = deploy bug → fail hard at the
+# first request, not silently route to a stale or wrong upstream.
+DURABLE_ROUTER_URL = os.environ["DURABLE_ROUTER_URL"]
 _FORWARD_TIMEOUT_S = 60.0
 
 
@@ -133,26 +134,51 @@ def _versions_collection():
     return _versions_coll
 
 
-def _current_build_id() -> int | None:
-    try:
-        env = os.environ.get("ENV_PREFIX", "dev")
-        latest = _versions_collection().find_one(sort=[("from", -1)])
-        if latest is None:
-            return None
-        for entry in latest.get("builds", []):
-            if entry.get("env") == env:
-                return int(entry["build"])
-        return None
-    except Exception as exc:
-        logging.warning("build_id lookup failed: %s", exc)
-        return None
+def _current_build_id() -> int:
+    """Read the canonical build number for ENV_PREFIX from admin.Versions.
+    Raises on any failure — the build_id is part of every log correlation
+    and request envelope; we never want to ship a null build_id."""
+    env = os.environ["ENV_PREFIX"]
+    latest = _versions_collection().find_one(sort=[("from", -1)])
+    if latest is None:
+        raise RuntimeError("admin.Versions has no records")
+    for entry in latest.get("builds", []):
+        if entry.get("env") == env:
+            return int(entry["build"])
+    raise RuntimeError(f"admin.Versions latest record missing env={env!r}")
 
 
-def _json(payload: dict, status_code: int) -> func.HttpResponse:
+def _respond(
+    status_code: int,
+    *,
+    body: dict | bytes,
+    content_type: str = "application/json",
+    request_guid: str | None = None,
+    user_id: str | None = None,
+    task: str | None = None,
+    build_id: int | None = None,
+    durable_instance_id: str | None = None,
+    upstream_status: int | None = None,
+    error: str | None = None,
+) -> func.HttpResponse:
+    """Single response sink: builds the HttpResponse AND writes one
+    gateway_response log line. The log line always starts with
+    `gateway_status` (the code we're about to return) and ends with
+    `error` when the response is a failure — that ordering lets the
+    operator see the outcome at a glance and the human-readable reason
+    at the end of the same row."""
+    log: dict = {"gateway_status": status_code, "event": "gateway_response"}
+    if request_guid is not None:        log["request_guid"]        = request_guid
+    if build_id is not None:            log["build_id"]            = build_id
+    if user_id is not None:             log["user_id"]             = user_id
+    if task is not None:                log["task"]                = task
+    if upstream_status is not None:     log["upstream_status"]     = upstream_status
+    if durable_instance_id is not None: log["durable_instance_id"] = durable_instance_id
+    if error is not None:               log["error"]               = error
+    logging.info(json.dumps(log))
+    body_bytes = json.dumps(body).encode("utf-8") if isinstance(body, dict) else body
     return func.HttpResponse(
-        body=json.dumps(payload),
-        status_code=status_code,
-        mimetype="application/json",
+        body=body_bytes, status_code=status_code, mimetype=content_type,
     )
 
 
@@ -183,32 +209,42 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 def gateway_router(req: func.HttpRequest) -> func.HttpResponse:
     try:
         if req.method != "POST":
-            return func.HttpResponse(body="POST only", status_code=405, mimetype="text/plain")
+            return _respond(405, body={"success": False, "error": "POST only"},
+                            error="method not allowed")
 
         user_id, err = require_auth(req)
         if err:
             status, message = err
-            return func.HttpResponse(body=message, status_code=status, mimetype="text/plain")
+            return _respond(status, body={"success": False, "error": message},
+                            error=message)
 
         try:
             body = req.get_json()
         except ValueError:
-            return _json({"success": False, "error": "Request body must be valid JSON"}, 400)
+            msg = "Request body must be valid JSON"
+            return _respond(400, body={"success": False, "error": msg}, error=msg)
         if not isinstance(body, dict):
-            return _json({"success": False, "error": "Request body must be a JSON object"}, 400)
+            msg = "Request body must be a JSON object"
+            return _respond(400, body={"success": False, "error": msg},
+                            user_id=user_id, error=msg)
 
         task = body.get("ChatHealthyTask")
         if not isinstance(task, str) or not task.strip():
-            return _json({"success": False, "error": "ChatHealthyTask is required"}, 400)
+            msg = "ChatHealthyTask is required"
+            return _respond(400, body={"success": False, "error": msg},
+                            user_id=user_id, error=msg)
         task = task.strip()
 
         route = ROUTES.get(task)
         if route is None:
-            return _json({"success": False, "error": f"Unknown route: {task!r}", "task": task}, 404)
+            msg = f"Unknown route: {task!r}"
+            return _respond(404, body={"success": False, "error": msg, "task": task},
+                            user_id=user_id, task=task, error=msg)
 
         ok, err_msg = _validate(body, route)
         if not ok:
-            return _json({"success": False, "error": err_msg, "task": task}, 400)
+            return _respond(400, body={"success": False, "error": err_msg, "task": task},
+                            user_id=user_id, task=task, error=err_msg)
 
         args = _apply_defaults(body, route)
         request_guid = str(uuid.uuid4())
@@ -239,47 +275,38 @@ def gateway_router(req: func.HttpRequest) -> func.HttpResponse:
                 request_guid=request_guid,
             )
         except (socket.timeout, urllib.error.URLError) as exc:
-            logging.warning(
-                "durable function app no-response  request_guid=%s err=%s",
-                request_guid, exc,
-            )
-            return _json({
-                "success":      False,
-                "error":        "Resource not found (durable function app did not respond)",
-                "request_guid": request_guid,
-                "task":         task,
-            }, 404)
+            msg = f"Durable function app did not respond: {exc!s}"
+            return _respond(504, body={
+                "success": False, "error": msg, "request_guid": request_guid, "task": task,
+            }, request_guid=request_guid, build_id=build_id, user_id=user_id, task=task,
+                error=msg)
         except Exception as exc:
-            logging.exception("durable function app forward failed  request_guid=%s", request_guid)
-            return _json({
-                "success":      False,
-                "error":        f"Forward failed: {exc!s}",
-                "request_guid": request_guid,
-                "task":         task,
-            }, 502)
+            msg = f"Forward failed: {exc!s}"
+            return _respond(502, body={
+                "success": False, "error": msg, "request_guid": request_guid, "task": task,
+            }, request_guid=request_guid, build_id=build_id, user_id=user_id, task=task,
+                error=msg)
 
         durable_instance_id = None
+        upstream_error: str | None = None
         try:
             up_json = json.loads(body_bytes)
             if isinstance(up_json, dict):
                 durable_instance_id = up_json.get("id")
+                if status_code >= 400:
+                    upstream_error = up_json.get("error") or up_json.get("message")
         except Exception:
-            pass
+            if status_code >= 400:
+                upstream_error = body_bytes.decode("utf-8", errors="replace")[:500]
 
-        logging.info(json.dumps({
-            "event":               "gateway_response",
-            "build_id":            build_id,
-            "request_guid":        request_guid,
-            "upstream_status":     status_code,
-            "durable_instance_id": durable_instance_id,
-        }))
-
-        return func.HttpResponse(
-            body=body_bytes,
-            status_code=status_code,
-            mimetype=content_type,
+        return _respond(
+            status_code, body=body_bytes, content_type=content_type,
+            request_guid=request_guid, build_id=build_id, user_id=user_id, task=task,
+            upstream_status=status_code, durable_instance_id=durable_instance_id,
+            error=upstream_error,
         )
 
-    except Exception:
+    except Exception as exc:
         logging.exception("Unhandled error in ChatHealthyDataPipelinesGateway")
-        return func.HttpResponse(body="Internal server error", status_code=500, mimetype="text/plain")
+        return _respond(500, body={"success": False, "error": "Internal server error"},
+                        error=f"{type(exc).__name__}: {exc!s}")
