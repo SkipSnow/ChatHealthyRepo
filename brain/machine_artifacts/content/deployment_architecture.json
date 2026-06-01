@@ -2376,14 +2376,14 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1b25f14faf416bb539b61fcf9622900d60077d9608169535b86d5c47ff24092e"
+          "content_hash": "76124e03d2ddbcc048df67006ba8d6f65afb3126808c7fd284f212d506b27030"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4deeab462d08642546b2893af89e9979fc885f78366a9b69a30f756f4ecc8fc6"
+          "content_hash": "580ad09112180c3f228812fdf264caae0e2e0898f0ce224f9a1c4e4a7accb11d"
         },
         {
           "feature_id": "EPIC-008-F-012",
