@@ -1,56 +1,92 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""ChatHealthyDataPipelinesGatewayFunctionApp — single HTTP gateway for all
-data-pipeline tasks.
+"""ChatHealthyDataPipelinesGatewayFunctionApp — pure HTTP facade.
 
-Per EPIC-010-F-102-S-007-REQ-B-001: every pipeline enters through a single
-authenticated URL. ChatHealthyTask names the orchestrator the Router
-dispatches to. The Gateway never waits for the orchestration to complete —
-it enqueues a NewExecutionStarted message into the shared Netherite task
-hub and returns 202 with the standard Durable check-status payload (or an
-error).
-
-Owns:
-  - HTTP Router (POST /api/Router) protected by Bearer-token auth
-  - Payload allowlist validation (the 14 True-row keys from the spreadsheet)
-  - request_guid generation + paired router_request / router_response logs
-  - Durable client.start_new against the shared Netherite hub
-
-Does NOT own:
-  - Orchestrators / activities / entities (worker / ACA Container App)
-  - Monitoring, warming, status — caller polls the returned status URL
-
-Limits:
-  - 3-minute HTTP timeout (host.json functionTimeout = 00:03:00)
-  - client.start_new wrapped in asyncio.wait_for with a 60s ceiling so a
-    Netherite cold-start cannot pin the Gateway up to the function timeout
+Routes by `ChatHealthyTask` to the data-pipeline implementation. Holds no
+knowledge of pipeline internals. Each route is a self-contained contract:
+required args, allowed args, static defaults, env-derived defaults. The
+function app authenticates, validates per-route, applies defaults, mints a
+request_guid, reads the build_id from MongoDB admin.Versions, logs init,
+forwards via HTTPS to the durable function app, and returns the upstream
+response verbatim. Adding/changing a pipeline arg = editing one ROUTES
+entry; the durable function app is never touched.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
+import socket
+import urllib.error
+import urllib.request
 import uuid
 
 import azure.functions as func
-import azure.durable_functions as df
+
+
+DURABLE_ROUTER_URL = os.environ.get(
+    "DURABLE_ROUTER_URL",
+    "https://dev-pipeline-records-as-messages.yellowbay-d50afa88.eastus2.azurecontainerapps.io/api/Router",
+)
+_FORWARD_TIMEOUT_S = 60.0
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Per-route contract table. ChatHealthyTask is the only globally-required key;
+# everything else is per-route. Each route declares:
+#   - required:  arg names that MUST be present
+#   - allowed:   arg name → static default (None = no static default)
+#   - computed:  arg name → f-string template applied with env_prefix when the
+#                arg is missing and has no static default
+# ──────────────────────────────────────────────────────────────────────────────
+ROUTES: dict = {
+    "ProviderPipeline": {
+        "required": ["states", "expected_duration_minutes", "provider_collection"],
+        "allowed": {
+            "states":                    None,
+            "batch_size":                1000,
+            "crosswalk_collection":      None,
+            "embed_model":               "text-embedding-3-large",
+            "embedding_enabled":         False,
+            "env_prefix":                "dev",
+            "expected_duration_minutes": None,
+            "google_maps_enabled":       False,
+            "incremental":               False,
+            "provider_collection":       None,
+            "report_collection":         "admin.PipelineDiscrepancyReports",
+            "start_step":                None,
+        },
+        "computed": {
+            "crosswalk_collection": "{env}_PublicHealthData.ZipCountyCrosswalk",
+        },
+    },
+    "SpecialtyPipeline": {
+        "required": ["expected_duration_minutes"],
+        "allowed": {
+            "embed_model":               "text-embedding-3-large",
+            "embedding_enabled":         False,
+            "env_prefix":                "dev",
+            "expected_duration_minutes": None,
+            "report_collection":         "admin.PipelineDiscrepancyReports",
+            "start_step":                None,
+        },
+        "computed": {},
+    },
+}
 
 
 def require_auth(req) -> tuple[str | None, tuple[int, str] | None]:
-    """Bearer-token auth. Tokens are configured in the API_TOKEN_MAP env var
-    as a JSON object mapping {token: user_id}. Returns (user_id, None) on
-    success or (None, (status_code, message)) on failure."""
+    """Bearer-token auth. Tokens configured in API_TOKEN_MAP env var as
+    a JSON object mapping {token: user_id}."""
     auth_header = req.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
         return None, (401, "Missing or invalid token. Use: Authorization: Bearer <token>")
     token = auth_header[7:].strip()
     if not token:
         return None, (401, "Missing or invalid token. Use: Authorization: Bearer <token>")
-    token_map_json = os.environ.get("API_TOKEN_MAP", "{}")
     try:
-        token_map = json.loads(token_map_json)
+        token_map = json.loads(os.environ.get("API_TOKEN_MAP", "{}"))
     except json.JSONDecodeError:
         return None, (401, "Server token map is malformed")
     user_id = token_map.get(token)
@@ -59,71 +95,27 @@ def require_auth(req) -> tuple[str | None, tuple[int, str] | None]:
     return user_id, None
 
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
-
-PIPELINE_ROUTE = "Router"
-_START_NEW_TIMEOUT_S = 60.0
-
-
-TASK_ORCHESTRATORS: dict[str, str] = {
-    "ProviderPipeline":               "provider_pipeline_orchestrator",
-    "SpecialtyPipeline":              "specialty_pipeline_orchestrator",
-    "SnapshotCollection":             "snapshot_collection_orchestrator",
-    "PrescriberEvaluateCarePipeline": "prescriber_pipeline_orchestrator",
-    "LoadSpecialtyData":              "load_specialty_data_orchestrator",
-    "LoadICD10":                      "load_icd10_orchestrator",
-    "CheckMongoHealth":               "check_mongo_health_orchestrator",
-    "StampEmbeddingVersion":          "stamp_embedding_version_orchestrator",
-    "CountProvidersByState":          "count_providers_by_state_orchestrator",
-    "WakeCluster":                    "wake_cluster_orchestrator",
-    "ClusterStatus":                  "cluster_status_orchestrator",
-    "Release":                        "release_orchestrator",
-    "ForceRelease":                   "force_release_orchestrator",
-}
-
-
-PAYLOAD_ALLOWLIST: dict = {
-    "states":                    None,
-    "expected_duration_minutes": 120,
-    "incremental":               False,
-    "batch_size":                1000,
-    "embedding_enabled":         False,
-    "google_maps_enabled":       False,
-    "embed_model":               "text-embedding-3-large",
-    "env_prefix":                None,
-    "start_step":                None,
-    "source_staleness":          None,
-    "provider_collection":       None,
-    "report_collection":         None,
-    "crosswalk_collection":      None,
-}
-
-
-def _default_env_prefix() -> str:
-    return os.environ.get("ENV_PREFIX", "dev")
-
-
-def _validate_payload(payload: dict) -> tuple[bool, str | None, list]:
-    unknown = sorted(k for k in payload.keys() if k not in PAYLOAD_ALLOWLIST)
+def _validate(body: dict, route: dict) -> tuple[bool, str | None]:
+    args = {k: v for k, v in body.items() if k != "ChatHealthyTask"}
+    unknown = sorted(k for k in args if k not in route["allowed"])
     if unknown:
-        return False, f"Unknown payload keys (allowlist violation): {unknown}", unknown
-    return True, None, []
+        return False, f"Unknown args for this route: {unknown}"
+    missing = [k for k in route["required"] if not args.get(k)]
+    if missing:
+        return False, f"Missing required args: {missing}"
+    return True, None
 
 
-def _apply_defaults(payload: dict) -> dict:
-    out = dict(payload)
-    env_prefix = out.get("env_prefix") or _default_env_prefix()
+def _apply_defaults(body: dict, route: dict) -> dict:
+    out = {k: v for k, v in body.items() if k != "ChatHealthyTask"}
+    for k, default in route["allowed"].items():
+        if k not in out and default is not None:
+            out[k] = default
+    env_prefix = out.get("env_prefix") or route["allowed"].get("env_prefix") or "dev"
     out["env_prefix"] = env_prefix
-    for key, default in PAYLOAD_ALLOWLIST.items():
-        if key == "env_prefix":
-            continue
-        if key in out:
-            continue
-        if default is not None:
-            out[key] = default
-    out.setdefault("provider_collection",  f"{env_prefix}_PublicHealthData.providers")
-    out.setdefault("report_collection",    f"{env_prefix}_PublicHealthData.PipelineDiscrepencyReports")
-    out.setdefault("crosswalk_collection", f"{env_prefix}_PublicHealthData.ZipCountyCrosswalk")
+    for k, template in route["computed"].items():
+        if k not in out or out[k] is None:
+            out[k] = template.format(env=env_prefix)
     return out
 
 
@@ -143,7 +135,7 @@ def _versions_collection():
 
 def _current_build_id() -> int | None:
     try:
-        env = _default_env_prefix()
+        env = os.environ.get("ENV_PREFIX", "dev")
         latest = _versions_collection().find_one(sort=[("from", -1)])
         if latest is None:
             return None
@@ -164,13 +156,31 @@ def _json(payload: dict, status_code: int) -> func.HttpResponse:
     )
 
 
+def _forward(bearer: str, upstream_body: dict, request_guid: str) -> tuple[int, bytes, str]:
+    headers = {
+        "Authorization":  bearer,
+        "Content-Type":   "application/json",
+        "X-Request-Guid": request_guid,
+    }
+    req = urllib.request.Request(
+        DURABLE_ROUTER_URL,
+        data=json.dumps(upstream_body).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=_FORWARD_TIMEOUT_S) as resp:
+            return resp.status, resp.read(), resp.headers.get("Content-Type", "application/json")
+    except urllib.error.HTTPError as e:
+        return e.code, e.read(), e.headers.get("Content-Type", "application/json")
+
+
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+
+
 @app.function_name(name="ChatHealthyDataPipelinesGateway")
-@app.route(route=PIPELINE_ROUTE)
-@app.durable_client_input(client_name="client")
-async def gateway_router(
-    req: func.HttpRequest,
-    client: df.DurableOrchestrationClient,
-) -> func.HttpResponse:
+@app.route(route="Router")
+def gateway_router(req: func.HttpRequest) -> func.HttpResponse:
     try:
         if req.method != "POST":
             return func.HttpResponse(body="POST only", status_code=405, mimetype="text/plain")
@@ -184,87 +194,91 @@ async def gateway_router(
             body = req.get_json()
         except ValueError:
             return _json({"success": False, "error": "Request body must be valid JSON"}, 400)
+        if not isinstance(body, dict):
+            return _json({"success": False, "error": "Request body must be a JSON object"}, 400)
 
         task = body.get("ChatHealthyTask")
         if not isinstance(task, str) or not task.strip():
-            return _json(
-                {"success": False, "error": "ChatHealthyTask is required and must be a non-empty string"},
-                400,
-            )
+            return _json({"success": False, "error": "ChatHealthyTask is required"}, 400)
         task = task.strip()
-        if task not in TASK_ORCHESTRATORS:
-            return _json(
-                {"success": False, "error": f"Unknown ChatHealthyTask: {task!r}", "task": task},
-                400,
-            )
 
-        payload = body.get("payload") or {}
-        if not isinstance(payload, dict):
-            return _json({"success": False, "error": "payload must be a JSON object", "task": task}, 400)
+        route = ROUTES.get(task)
+        if route is None:
+            return _json({"success": False, "error": f"Unknown route: {task!r}", "task": task}, 404)
 
-        ok, err_msg, unknown = _validate_payload(payload)
+        ok, err_msg = _validate(body, route)
         if not ok:
-            return _json(
-                {"success": False, "error": err_msg, "unknown_keys": unknown, "task": task},
-                400,
-            )
-        payload = _apply_defaults(payload)
+            return _json({"success": False, "error": err_msg, "task": task}, 400)
 
+        args = _apply_defaults(body, route)
         request_guid = str(uuid.uuid4())
         build_id = _current_build_id()
 
         logging.info(json.dumps({
-            "event":           "router_request",
+            "event":           "gateway_request",
             "build_id":        build_id,
             "request_guid":    request_guid,
             "user_id":         user_id,
             "ChatHealthyTask": task,
-            "payload":         payload,
+            "args":            args,
         }))
 
-        orchestrator_input = {
-            **payload,
-            "request_guid":    request_guid,
-            "router_build_id": build_id,
+        upstream_body = {
+            "ChatHealthyTask": task,
+            "payload": {
+                **args,
+                "request_guid":    request_guid,
+                "router_build_id": build_id,
+            },
         }
-        orchestrator_name = TASK_ORCHESTRATORS[task]
 
         try:
-            instance_id = await asyncio.wait_for(
-                client.start_new(orchestrator_name, None, orchestrator_input),
-                timeout=_START_NEW_TIMEOUT_S,
+            status_code, body_bytes, content_type = _forward(
+                bearer=req.headers.get("Authorization", ""),
+                upstream_body=upstream_body,
+                request_guid=request_guid,
             )
-        except asyncio.TimeoutError:
+        except (socket.timeout, urllib.error.URLError) as exc:
             logging.warning(
-                "client.start_new timed out after %ds for orchestrator=%s request_guid=%s",
-                int(_START_NEW_TIMEOUT_S), orchestrator_name, request_guid,
+                "durable function app no-response  request_guid=%s err=%s",
+                request_guid, exc,
             )
             return _json({
                 "success":      False,
-                "error":        f"start_new timed out after {int(_START_NEW_TIMEOUT_S)}s (Netherite likely cold-starting)",
+                "error":        "Resource not found (durable function app did not respond)",
                 "request_guid": request_guid,
                 "task":         task,
-            }, 503)
+            }, 404)
         except Exception as exc:
-            logging.exception(
-                "client.start_new failed for orchestrator=%s request_guid=%s",
-                orchestrator_name, request_guid,
-            )
+            logging.exception("durable function app forward failed  request_guid=%s", request_guid)
             return _json({
                 "success":      False,
-                "error":        f"start_new failed: {exc!s}",
+                "error":        f"Forward failed: {exc!s}",
                 "request_guid": request_guid,
                 "task":         task,
-            }, 503)
+            }, 502)
+
+        durable_instance_id = None
+        try:
+            up_json = json.loads(body_bytes)
+            if isinstance(up_json, dict):
+                durable_instance_id = up_json.get("id")
+        except Exception:
+            pass
 
         logging.info(json.dumps({
-            "event":               "router_response",
+            "event":               "gateway_response",
             "build_id":            build_id,
             "request_guid":        request_guid,
-            "durable_instance_id": instance_id,
+            "upstream_status":     status_code,
+            "durable_instance_id": durable_instance_id,
         }))
 
-        return client.create_check_status_response(req, instance_id)
+        return func.HttpResponse(
+            body=body_bytes,
+            status_code=status_code,
+            mimetype=content_type,
+        )
 
     except Exception:
         logging.exception("Unhandled error in ChatHealthyDataPipelinesGateway")
