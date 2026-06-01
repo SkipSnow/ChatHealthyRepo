@@ -443,11 +443,26 @@ def _functionapp_exists(rg: str, app: str) -> bool:
 
 def _functionapp_create(rg: str, app: str) -> None:
     _step(f"  creating Function App {app} (rg={rg}) on Consumption Linux Python {_GATEWAY_PYTHON_VERSION}")
+    # Storage account lives in a different RG (FindCareAzureInfrastructure),
+    # so pass its full resource ID — az functionapp create only accepts a
+    # bare name when the storage account is in the same RG as the FA.
+    sid = subprocess.run(
+        ["az", "storage", "account", "show",
+         "--name", _GATEWAY_STORAGE_ACCOUNT, "--query", "id", "-o", "tsv"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if sid.returncode != 0 or not sid.stdout.strip():
+        sys.exit(
+            f"ERROR: storage account {_GATEWAY_STORAGE_ACCOUNT} not found\n"
+            f"  stderr: {(sid.stderr or '').strip()[:500]}"
+        )
+    storage_id = sid.stdout.strip()
     r = subprocess.run(
         ["az", "functionapp", "create",
          "--name", app,
          "--resource-group", rg,
-         "--storage-account", _GATEWAY_STORAGE_ACCOUNT,
+         "--storage-account", storage_id,
          "--consumption-plan-location", _GATEWAY_PLAN_LOCATION,
          "--runtime", "python",
          "--runtime-version", _GATEWAY_PYTHON_VERSION,
@@ -519,15 +534,12 @@ def _deploy_azure_function_app(
 
     # Resolve secrets and set as Function App app settings. The Gateway
     # reads MONGO_FRONTEND_connectionString (build_id lookup), API_TOKEN_MAP
-    # (bearer auth), AzureWebJobsStorage + EventHubsConnection (Netherite
-    # client), TaskHubName (shared hub name), ENV_PREFIX, and the script
-    # filename override (pythonScriptFile) so Functions picks up the
-    # single descriptive source file.
+    # (bearer auth), AzureWebJobsStorage, ENV_PREFIX. The script-filename
+    # override (PythonScriptFileName) tells the v2 worker which file holds
+    # the FunctionApp object; EnableWorkerIndexing turns the v2 model on.
     app_settings: dict[str, str] = {
-        # Tell Functions runtime to load this file as the entrypoint.
-        "AzureFunctionsJobHost__pythonScriptFile": "ChatHealthyDataPipelinesGatewayFunctionApp.py",
-        # Netherite hub name (consumed by host.json's %TaskHubName%).
-        "TaskHubName": task_hub,
+        "AzureWebJobsFeatureFlags":   "EnableWorkerIndexing",
+        "PythonScriptFileName":       "ChatHealthyDataPipelinesGatewayFunctionApp.py",
     }
     if resolver is not None:
         for name in (target.secrets or {}).keys():
@@ -539,9 +551,9 @@ def _deploy_azure_function_app(
                 )
     _functionapp_set_appsettings(rg, app, app_settings)
 
-    # Block if any non-entity orchestration is Running/Pending — same gate
-    # as the worker app, keyed by FA host now that the FA is a client.
-    _block_if_active_orchestrations(rg, app, task_hub)
+    # The gateway FA is a pure HTTP facade — no Durable orchestrations live
+    # on it, so there is no orchestration-quiescence gate to wait on. The
+    # durable function app (the ACA worker) owns that gate.
     _az_push_zip(rg, app, zip_path)
     return f"{app}"
 
