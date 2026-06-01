@@ -282,6 +282,14 @@ _GATEWAY_REQUIREMENTS_TXT = """azure-functions
 pymongo
 """
 
+# Python v2 worker hard-codes `function_app.py` as the entry-point filename
+# and no Azure-side setting overrides this. The source file in the repo
+# keeps its descriptive name (ChatHealthyDataPipelinesGatewayFunctionApp.py);
+# this stub is generated INTO THE ZIP at build time only and re-exports
+# the `app` symbol the v2 worker expects to find.
+_GATEWAY_FUNCTION_APP_STUB = """from ChatHealthyDataPipelinesGatewayFunctionApp import app  # noqa: F401
+"""
+
 
 def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
     """Materialize the Azure FA deploy.zip from target.files[].
@@ -347,6 +355,9 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
             _add_file(zf, "host.json", _GATEWAY_HOST_JSON.encode("utf-8"))
         if "requirements.txt" not in arcnames_written:
             _add_file(zf, "requirements.txt", _GATEWAY_REQUIREMENTS_TXT.encode("utf-8"))
+        # v2 worker entry-point stub — see _GATEWAY_FUNCTION_APP_STUB doc.
+        if "function_app.py" not in arcnames_written:
+            _add_file(zf, "function_app.py", _GATEWAY_FUNCTION_APP_STUB.encode("utf-8"))
     size_mb = zip_path.stat().st_size / (1024 * 1024)
     _step(f"  zip built: {zip_path.name} ({size_mb:.1f} MB, {len(target.files)} entries)")
 
