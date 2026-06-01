@@ -425,10 +425,69 @@ def _az_push_zip(rg: str, app: str, zip_path: Path) -> None:
     _step(f"  config-zip pushed to {app}")
 
 
+_GATEWAY_STORAGE_ACCOUNT = "findcarestorage"
+_GATEWAY_PLAN_LOCATION = "eastus2"
+_GATEWAY_PYTHON_VERSION = "3.11"
+_GATEWAY_FUNCTIONS_VERSION = "4"
+
+
+def _functionapp_exists(rg: str, app: str) -> bool:
+    r = subprocess.run(
+        ["az", "functionapp", "show",
+         "--name", app, "--resource-group", rg, "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    return r.returncode == 0
+
+
+def _functionapp_create(rg: str, app: str) -> None:
+    _step(f"  creating Function App {app} (rg={rg}) on Consumption Linux Python {_GATEWAY_PYTHON_VERSION}")
+    r = subprocess.run(
+        ["az", "functionapp", "create",
+         "--name", app,
+         "--resource-group", rg,
+         "--storage-account", _GATEWAY_STORAGE_ACCOUNT,
+         "--consumption-plan-location", _GATEWAY_PLAN_LOCATION,
+         "--runtime", "python",
+         "--runtime-version", _GATEWAY_PYTHON_VERSION,
+         "--functions-version", _GATEWAY_FUNCTIONS_VERSION,
+         "--os-type", "Linux",
+         "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: az functionapp create failed for {app} (exit {r.returncode})\n"
+            f"  stderr: {(r.stderr or '').strip()[:1500]}"
+        )
+
+
+def _functionapp_set_appsettings(rg: str, app: str, settings: dict[str, str]) -> None:
+    if not settings:
+        return
+    pairs = [f"{k}={v}" for k, v in settings.items()]
+    _step(f"  setting {len(pairs)} app settings on {app}")
+    r = subprocess.run(
+        ["az", "functionapp", "config", "appsettings", "set",
+         "--name", app, "--resource-group", rg,
+         "--settings", *pairs, "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: az functionapp config appsettings set failed (exit {r.returncode})\n"
+            f"  stderr: {(r.stderr or '').strip()[:1500]}"
+        )
+
+
 def _deploy_azure_function_app(
     build_dir: Path,
     target: TargetRecord,
     env: str,
+    resolver: SecretsResolver | None = None,
 ) -> str:
     env_binding = next(
         (e for e in target.environments if e.env_binding == env), None,
@@ -451,6 +510,37 @@ def _deploy_azure_function_app(
     zip_path = build_dir / "deploy.zip"
     if not zip_path.is_file():
         sys.exit(f"ERROR: deploy.zip missing at {zip_path}")
+
+    # Provision the FA resource if it doesn't exist (idempotent).
+    if not _functionapp_exists(rg, app):
+        _functionapp_create(rg, app)
+    else:
+        _step(f"  Function App {app} already exists — no-op create")
+
+    # Resolve secrets and set as Function App app settings. The Gateway
+    # reads MONGO_FRONTEND_connectionString (build_id lookup), API_TOKEN_MAP
+    # (bearer auth), AzureWebJobsStorage + EventHubsConnection (Netherite
+    # client), TaskHubName (shared hub name), ENV_PREFIX, and the script
+    # filename override (pythonScriptFile) so Functions picks up the
+    # single descriptive source file.
+    app_settings: dict[str, str] = {
+        # Tell Functions runtime to load this file as the entrypoint.
+        "AzureFunctionsJobHost__pythonScriptFile": "ChatHealthyDataPipelinesGatewayFunctionApp.py",
+        # Netherite hub name (consumed by host.json's %TaskHubName%).
+        "TaskHubName": task_hub,
+    }
+    if resolver is not None:
+        for name in (target.secrets or {}).keys():
+            try:
+                app_settings[name] = resolver.resolve(name, env)
+            except Exception as exc:
+                sys.exit(
+                    f"ERROR: failed to resolve secret {name!r} for env={env!r}: {exc}"
+                )
+    _functionapp_set_appsettings(rg, app, app_settings)
+
+    # Block if any non-entity orchestration is Running/Pending — same gate
+    # as the worker app, keyed by FA host now that the FA is a client.
     _block_if_active_orchestrations(rg, app, task_hub)
     _az_push_zip(rg, app, zip_path)
     return f"{app}"
@@ -805,7 +895,7 @@ def _deploy_one(
         return _deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver)
     if target_kind == "azure_function_app":
         target = coll.by_target_id(target_id)
-        return _deploy_azure_function_app(build_dir, target, env)
+        return _deploy_azure_function_app(build_dir, target, env, resolver)
     if target_kind == "azure_container_app":
         target = coll.by_target_id(target_id)
         return _deploy_azure_container_app(build_dir, target, env, resolver, build_n)
