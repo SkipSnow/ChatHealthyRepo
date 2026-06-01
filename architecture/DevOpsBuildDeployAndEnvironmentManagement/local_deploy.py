@@ -959,7 +959,11 @@ def _deploy_azure_container_app(
         env_var_values[name] = resolver.resolve(name, env)
     # Ensure the task_hub from the coord block is shipped as an env var
     # so the Functions worker's Netherite binding lands on the right hub.
-    env_var_values["TaskHubName"] = aca["task_hub"]
+    # Two names cover both consumers — TaskHubName for host.json's
+    # %TaskHubName% substitution, DURABLE_TASK_HUB for the Python code
+    # that builds the durable management URL for entity signalling.
+    env_var_values["TaskHubName"]     = aca["task_hub"]
+    env_var_values["DURABLE_TASK_HUB"] = aca["task_hub"]
     env_var_values["ENV_PREFIX"] = env
     # Inject the deploy-derived App Insights connection string. The AI
     # component is owned by this deploy (created above if absent), so the

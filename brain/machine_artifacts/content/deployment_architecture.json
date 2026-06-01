@@ -2383,7 +2383,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "43e39524c9b47eb4cac733f68aa66be48b57280d846bfebaa280ca4a224cab03"
+          "content_hash": "a2d23037533a19df5daba14b268b190eee18504a2ecc1cf8b7e24bafbb0d9e3c"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2816,7 +2816,7 @@
             "log_analytics_workspace": "prod-providerpipeline-workspace",
             "application_insights": "prod-providerpipeline-insights",
             "registry": "chathealthypipelinedev",
-            "task_hub": "DevPipelineNetherite3",
+            "task_hub": "ProdProviderPipelineNetherite3",
             "event_hubs_namespace": "ChatHealthyDataPipelines",
             "min_replicas": 0,
             "max_replicas": 4,
@@ -3055,7 +3055,7 @@
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ae0bd27cd2bd4a46d088971a56c322ed543437684a4208bc297521e6cc4a4ea6"
+          "content_hash": "154c2ea69409ea43da5c86a80d76aa1fd55e6aadc1de438a3a8e6a384394e9e2"
         },
         {
           "feature_id": "EPIC-010-F-103",
