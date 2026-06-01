@@ -252,19 +252,70 @@ _AZURE_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
 _AZURE_REQUIREMENTS_ZIP_PATH = "requirements.txt"
 
 
+_GATEWAY_SOURCE_PREFIX = "pipeline/"
+_GATEWAY_HOST_JSON = """{
+  "version": "2.0",
+  "functionTimeout": "00:03:00",
+  "logging": {
+    "logLevel": {
+      "default": "Information",
+      "Host.Results": "Error",
+      "Function": "Information",
+      "Azure.Core": "Warning",
+      "Azure.Storage": "Warning"
+    },
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "maxTelemetryItemsPerSecond": 20,
+        "excludedTypes": "Request;Exception"
+      }
+    }
+  },
+  "extensions": {
+    "durableTask": {
+      "hubName": "%TaskHubName%",
+      "storageProvider": {
+        "type": "Netherite",
+        "partitionCount": 4,
+        "StorageConnectionName": "AzureWebJobsStorage",
+        "EventHubsConnectionName": "EventHubsConnection"
+      }
+    }
+  },
+  "extensionBundle": {
+    "id": "Microsoft.Azure.Functions.ExtensionBundle",
+    "version": "[4.*, 5.0.0)"
+  }
+}
+"""
+_GATEWAY_REQUIREMENTS_TXT = """azure-functions
+azure-functions-durable
+pymongo
+"""
+
+
 def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
     """Materialize the Azure FA deploy.zip from target.files[].
 
-    Each entry in target.files[] is added to the zip; arcname strips the
-    `pipeline/Code/` prefix so Azure Functions sees function_app.py +
-    host.json at the zip root. `requirements-pipeline.txt` is renamed to
-    `requirements.txt` (Azure's lookup name).
+    Two file-path conventions are supported:
+      - pipeline/Code/<file>       worker-tree files (legacy ACA mirror).
+      - pipeline/<file>            top-level pipeline files (the gateway).
+                                   Arcname strips the `pipeline/` prefix only.
+
+    `requirements-pipeline.txt` (if listed) is renamed to `requirements.txt`.
+
+    Gateway target (single .py source under pipeline/, no host.json, no
+    requirements.txt in the manifest) has its host.json + requirements.txt
+    generated into the zip at build time so the source manifest stays a
+    single file per the Gateway directive.
     """
     if build_dir.exists():
         shutil.rmtree(build_dir, ignore_errors=True)
     build_dir.mkdir(parents=True)
     zip_path = build_dir / "deploy.zip"
     _step(f"  building deploy.zip from {len(target.files)} JSON-declared files")
+    arcnames_written: set[str] = set()
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for f in target.files:
             src_path = repo_root / f.source_location
@@ -277,13 +328,23 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
                 arcname = _AZURE_REQUIREMENTS_ZIP_PATH
             elif f.source_location.startswith(_PIPELINE_SOURCE_PREFIX):
                 arcname = f.source_location[len(_PIPELINE_SOURCE_PREFIX):]
+            elif f.source_location.startswith(_GATEWAY_SOURCE_PREFIX):
+                arcname = f.source_location[len(_GATEWAY_SOURCE_PREFIX):]
             else:
                 sys.exit(
                     f"ERROR: azure target file {f.source_location!r} does "
-                    f"not start with {_PIPELINE_SOURCE_PREFIX!r}; cannot "
-                    f"map to a zip arcname."
+                    f"not start with {_PIPELINE_SOURCE_PREFIX!r} or "
+                    f"{_GATEWAY_SOURCE_PREFIX!r}; cannot map to a zip arcname."
                 )
             zf.write(src_path, arcname=arcname)
+            arcnames_written.add(arcname)
+        # Gateway shape: single .py + no host.json/requirements.txt in the
+        # source manifest. Synthesize them so the deployable zip has the
+        # minimum scaffolding Azure Functions Python needs.
+        if "host.json" not in arcnames_written:
+            zf.writestr("host.json", _GATEWAY_HOST_JSON)
+        if "requirements.txt" not in arcnames_written:
+            zf.writestr("requirements.txt", _GATEWAY_REQUIREMENTS_TXT)
     size_mb = zip_path.stat().st_size / (1024 * 1024)
     _step(f"  zip built: {zip_path.name} ({size_mb:.1f} MB, {len(target.files)} entries)")
 
