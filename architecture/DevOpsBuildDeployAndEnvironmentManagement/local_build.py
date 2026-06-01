@@ -313,6 +313,35 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
     _step(f"  building deploy.zip from {len(target.files)} JSON-declared files")
     arcnames_written: set[str] = set()
 
+    # The gateway runs on Azure Functions Linux Consumption with
+    # WEBSITE_RUN_FROM_PACKAGE; the runtime does NOT pip install at
+    # cold-start, so dependencies have to be baked into the zip under
+    # .python_packages/lib/site-packages/ (the layout the Python worker
+    # auto-discovers). Pre-install them here, cross-platform, targeting
+    # Linux manylinux2014 + python 3.11 so wheels resolve correctly even
+    # from a Windows operator host. Skipped for ACA targets (those build
+    # a Docker image; pip runs inside the image build).
+    site_packages = build_dir / ".python_packages" / "lib" / "site-packages"
+    site_packages.mkdir(parents=True, exist_ok=True)
+    pip_cmd = [
+        sys.executable, "-m", "pip", "install",
+        "--target", str(site_packages),
+        "--platform", "manylinux2014_x86_64",
+        "--python-version", "311",
+        "--only-binary=:all:",
+        "--implementation", "cp",
+        "--abi", "cp311",
+        "--no-deps",
+        "pymongo",
+        "dnspython",
+    ]
+    r = subprocess.run(pip_cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: pip install for gateway zip failed (exit {r.returncode})\n"
+            f"  stderr: {(r.stderr or '').strip()[:1500]}"
+        )
+
     # Linux Consumption mounts the deploy package as wwwroot. zipfile on
     # Windows writes external_attr=0, which extracts as Unix mode 0000 on
     # the Linux host — the runtime then 503s with "Permission denied" on
@@ -358,6 +387,11 @@ def _build_azure_function_app(repo_root: Path, target: TargetRecord, build_dir: 
         # v2 worker entry-point stub — see _GATEWAY_FUNCTION_APP_STUB doc.
         if "function_app.py" not in arcnames_written:
             _add_file(zf, "function_app.py", _GATEWAY_FUNCTION_APP_STUB.encode("utf-8"))
+        # Bundle the pip-installed dependencies. Linux Functions Python
+        # auto-discovers .python_packages/lib/site-packages/.
+        for fs_path in sorted(p for p in site_packages.rglob("*") if p.is_file()):
+            arc = fs_path.relative_to(build_dir).as_posix()
+            _add_file(zf, arc, fs_path.read_bytes())
     size_mb = zip_path.stat().st_size / (1024 * 1024)
     _step(f"  zip built: {zip_path.name} ({size_mb:.1f} MB, {len(target.files)} entries)")
 
