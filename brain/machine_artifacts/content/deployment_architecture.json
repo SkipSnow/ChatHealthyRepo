@@ -2383,7 +2383,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2b6db41e69119fb47f152dbc6be8eff5ed400b8a79d4a15c6dfc584343bff864"
+          "content_hash": "2c7b35a933634d21aa19e272080a84bd39ceafc2ab24ca16c2bd6a02ba2ffa76"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3383,7 +3383,7 @@
         "AzureWebJobsStorage": "local_env",
         "EventHubsConnection": "local_env",
         "ENV_PREFIX": "local_env",
-        "APPLICATIONINSIGHTS_CONNECTION_STRING": "local_env"
+        "GATEWAY_APPINSIGHTS_CONNECTION_STRING": "local_env"
       }
     },
     {
