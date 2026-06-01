@@ -501,12 +501,22 @@ def aca_update_container_app(
     image_ref: str,
     env_vars: dict[str, str],
     secret_names: list[str],
+    min_replicas: int,
+    max_replicas: int,
+    cpu: float,
+    memory_gi: float,
 ) -> None:
-    """Update the Container App image + env vars in one revision.
+    """Update the Container App image + env vars + replica/resource spec.
 
     Env vars sourced from secrets are passed as `<NAME>=secretref:<secret-name>`
     per ACA's secret-binding syntax. Plain env vars are passed as
     `<NAME>=<value>`.
+
+    Replica and resource args MUST be passed on every update — without them
+    the live Container App keeps whatever values it was first created with,
+    which silently drifts from deployment_architecture.json. The
+    min_replicas=0 vs 1 drift in particular causes Functions to fall back
+    to its 5-minute scale-to-zero default, killing long-running activities.
     """
     secret_set = set(secret_names)
     env_pairs: list[str] = []
@@ -518,7 +528,9 @@ def aca_update_container_app(
     _step(
         f"az containerapp update --name {container_app} "
         f"--resource-group {resource_group} --image {image_ref} "
-        f"--set-env-vars <{len(env_pairs)} vars>"
+        f"--set-env-vars <{len(env_pairs)} vars> "
+        f"--min-replicas {min_replicas} --max-replicas {max_replicas} "
+        f"--cpu {cpu} --memory {memory_gi}Gi"
     )
     args = [
         "az", "containerapp", "update",
@@ -526,6 +538,10 @@ def aca_update_container_app(
         "--resource-group", resource_group,
         "--image", image_ref,
         "--set-env-vars", *env_pairs,
+        "--min-replicas", str(min_replicas),
+        "--max-replicas", str(max_replicas),
+        "--cpu", str(cpu),
+        "--memory", f"{memory_gi}Gi",
         "-o", "none",
     ]
     r = subprocess.run(

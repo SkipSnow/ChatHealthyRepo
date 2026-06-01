@@ -770,6 +770,10 @@ def _deploy_azure_container_app(
     aca_helpers.aca_update_container_app(
         container_app, rg, image_ref,
         env_vars=env_var_values, secret_names=secret_names,
+        min_replicas=int(aca["min_replicas"]),
+        max_replicas=int(aca["max_replicas"]),
+        cpu=float(aca["cpu"]),
+        memory_gi=float(aca["memory_gi"]),
     )
     aca_helpers.aca_wait_for_revision(container_app, rg)
     fqdn = aca_helpers.aca_query_fqdn(container_app, rg)
