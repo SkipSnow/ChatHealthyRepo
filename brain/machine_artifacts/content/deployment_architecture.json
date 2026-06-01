@@ -2808,13 +2808,13 @@
       "environments": [
         {
           "env_binding": "dev",
-          "node_address": "https://prod-providerpipeline-durable-app.azurecontainerapps.io",
+          "node_address": "https://prod-providerpipeline-app.azurecontainerapps.io",
           "azure_container_app": {
             "resource_group": "FindCareDataPipelines-Dev",
-            "container_app": "prod-providerpipeline-durable-app",
+            "container_app": "prod-providerpipeline-app",
             "container_app_environment": "prod-providerpipeline-env",
-            "log_analytics_workspace": "prod_ProviderPipelineLogWorkspace",
-            "application_insights": "prod_ProviderPipelineDurableLog",
+            "log_analytics_workspace": "prod-providerpipeline-workspace",
+            "application_insights": "prod-providerpipeline-insights",
             "registry": "chathealthypipelinedev",
             "task_hub": "DevPipelineNetherite3",
             "event_hubs_namespace": "ChatHealthyDataPipelines",
