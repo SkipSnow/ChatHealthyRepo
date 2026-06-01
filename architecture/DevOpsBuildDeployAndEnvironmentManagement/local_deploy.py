@@ -416,13 +416,35 @@ def _az_push_zip(rg: str, app: str, zip_path: Path) -> None:
         capture_output=True, text=True,
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
+    # az config-zip emits Bad Request when the host is currently in an
+    # error state — but the zip upload + WEBSITE_RUN_FROM_PACKAGE update
+    # have already happened by then. Treat as a warning and force the
+    # follow-up restart; that's what lets the host re-mount the new
+    # package and clear any prior error.
     if r.returncode != 0:
+        stderr_text = (r.stderr or "").strip()
+        if "Bad Request" not in stderr_text:
+            sys.exit(
+                f"ERROR: az config-zip failed (exit {r.returncode})\n"
+                f"  stderr: {stderr_text[:1500]}\n"
+                f"  stdout: {(r.stdout or '').strip()[:500]}"
+            )
+        _step(f"  config-zip Bad Request (package uploaded; will force restart)")
+    else:
+        _step(f"  config-zip pushed to {app}")
+    _step(f"  restarting {app} so the host re-mounts the new package")
+    r2 = subprocess.run(
+        ["az", "functionapp", "restart",
+         "--resource-group", rg, "--name", app],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r2.returncode != 0:
         sys.exit(
-            f"ERROR: az config-zip failed (exit {r.returncode})\n"
-            f"  stderr: {(r.stderr or '').strip()[:1500]}\n"
-            f"  stdout: {(r.stdout or '').strip()[:500]}"
+            f"ERROR: az functionapp restart failed (exit {r2.returncode})\n"
+            f"  stderr: {(r2.stderr or '').strip()[:500]}"
         )
-    _step(f"  config-zip pushed to {app}")
+    _step(f"  restart issued to {app}")
 
 
 _GATEWAY_STORAGE_ACCOUNT = "findcarestorage"
