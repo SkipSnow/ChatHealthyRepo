@@ -163,6 +163,18 @@
                       "minLength": 1,
                       "maxLength": 256
                     },
+                    "log_analytics_workspace": {
+                      "type": "string",
+                      "description": "Log Analytics workspace name dedicated to this pipeline. Deploy creates it if missing (per the deploy-owns-permanent-infrastructure split) and routes the Container Apps Environment's system logs into it. Workspace-based App Insights for this pipeline writes its tables here too.",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "application_insights": {
+                      "type": "string",
+                      "description": "App Insights component name dedicated to this pipeline. Deploy creates it as workspace-based against `log_analytics_workspace` if missing, then injects its connection string into the Container App as APPLICATIONINSIGHTS_CONNECTION_STRING. Sourced by the deploy, never read from .env.",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
                     "min_replicas": {
                       "type": "integer",
                       "minimum": 0,
