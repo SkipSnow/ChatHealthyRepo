@@ -703,6 +703,53 @@ def _az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None
         )
 
 
+def _az_automation_runbook_ensure_exists(rg: str, aa: str, runbook: str) -> None:
+    """Idempotent runbook ensure. `az automation runbook show` returns
+    non-zero if the runbook doesn't exist; we then `az automation runbook
+    create` it as a Python 3 runbook so the subsequent replace-content
+    call has something to write into. Location is inherited from the AA."""
+    show = subprocess.run(
+        ["az", "automation", "runbook", "show",
+         "--resource-group", rg, "--automation-account-name", aa,
+         "--name", runbook, "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if show.returncode == 0:
+        _step(f"  runbook {runbook} exists on {aa} — no-op")
+        return
+    _step(f"  runbook {runbook} missing on {aa} — creating (Python3)")
+    loc_show = subprocess.run(
+        ["az", "automation", "account", "show",
+         "--name", aa, "--resource-group", rg,
+         "--query", "location", "-o", "tsv"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if loc_show.returncode != 0 or not loc_show.stdout.strip():
+        sys.exit(
+            f"ERROR: az automation account show for {aa!r} failed; cannot "
+            f"determine location for the new runbook."
+        )
+    location = loc_show.stdout.strip()
+    create = subprocess.run(
+        ["az", "automation", "runbook", "create",
+         "--resource-group", rg, "--automation-account-name", aa,
+         "--name", runbook,
+         "--type", "Python3",
+         "--location", location,
+         "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if create.returncode != 0:
+        sys.exit(
+            f"ERROR: az automation runbook create failed for {runbook!r} "
+            f"(exit {create.returncode})\n  stderr: {(create.stderr or '').strip()[:1500]}"
+        )
+    _step(f"  runbook {runbook} created.")
+
+
 def _az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, content_path: Path) -> None:
     _step(f"az automation runbook replace-content --name {runbook}")
     args = [
@@ -873,6 +920,10 @@ def _deploy_azure_automation_runbook(
         _az_automation_variable_set(rg, aa, "AZ_VM_SUBNET_ID", chdm_subnet_id)
         _step("  pushed deploy-computed AZ_VM_SUBNET_ID Automation Variable")
 
+    # Ensure the runbook resource exists on the AA before pushing content.
+    # First-time deploys need a Python3 runbook resource created; subsequent
+    # deploys see it and no-op.
+    _az_automation_runbook_ensure_exists(rg, aa, runbook)
     # Replace runbook bytes + publish (so next scheduled tick uses the new code).
     _az_automation_runbook_replace_content(rg, aa, runbook, content_path)
     _az_automation_runbook_publish(rg, aa, runbook)
