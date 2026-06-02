@@ -1,4 +1,4 @@
-"""migrator.py — ChatHealthyDataMigrator migrator runbook.
+"""migrator.py - ChatHealthyDataMigrator migrator runbook.
 
 Runs on the Hybrid Worker VM the provisioner created. Performs the
 threaded cross-cluster MongoDB collection copy.
@@ -38,13 +38,13 @@ Input payload (one JSON-encoded `payload` parameter, read via sys.argv[1]):
     preserve_indices (bool), reservation_duration_minutes (int).
 
 Environment (Automation Variables):
-    MONGO_CLUSTER_<name>_connectionString — one per managed Atlas cluster.
-    MONGO_connectionString                — pipeline cluster (status doc).
-    MONGO_FRONTEND_connectionString       — front-end cluster (admin.cluster_lifecycle).
-    ATLAS_PUBLIC_KEY / ATLAS_PRIVATE_KEY / ATLAS_PROJECT_ID — for source wake polling.
-    AZ_SUBSCRIPTION_ID                    — for deprovisioner job_start.
-    AZ_AUTOMATION_RESOURCE_GROUP          — Automation Account RG.
-    AZ_AUTOMATION_ACCOUNT                 — ChatHealthyJobManager.
+    MONGO_CLUSTER_<name>_connectionString - one per managed Atlas cluster.
+    MONGO_connectionString                - pipeline cluster (status doc).
+    MONGO_FRONTEND_connectionString       - front-end cluster (admin.cluster_lifecycle).
+    ATLAS_PUBLIC_KEY / ATLAS_PRIVATE_KEY / ATLAS_PROJECT_ID - for source wake polling.
+    AZ_SUBSCRIPTION_ID                    - for deprovisioner job_start.
+    AZ_AUTOMATION_RESOURCE_GROUP          - Automation Account RG.
+    AZ_AUTOMATION_ACCOUNT                 - ChatHealthyJobManager.
 """
 import itertools
 import json
@@ -410,7 +410,7 @@ def _main():
     _wait_source_idle(src_cluster)
 
     if dst_coll_name in dst_client[dst_db_name].list_collection_names():
-        log.info("Destination collection %s.%s exists — dropping",
+        log.info("Destination collection %s.%s exists - dropping",
                  dst_db_name, dst_coll_name)
         dst_client[dst_db_name].drop_collection(dst_coll_name)
     dst_client[dst_db_name].create_collection(dst_coll_name)

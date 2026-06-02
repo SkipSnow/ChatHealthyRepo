@@ -1,4 +1,4 @@
-"""provisioner.py — ChatHealthyDataMigrator provisioner runbook.
+"""provisioner.py - ChatHealthyDataMigrator provisioner runbook.
 
 Runs on the standard Azure sandbox of ChatHealthyJobManager. Stands up
 the ephemeral Hybrid Worker VM, then fires the migrator runbook on the
@@ -17,7 +17,7 @@ Sequence:
   4. GET the Automation Account and extract its
      properties.automationHybridServiceUrl.
   5. PUT the HybridWorkerForLinux extension on the VM with that URL in
-     settings.AutomationAccountURL. No wait — the AA will queue the
+     settings.AutomationAccountURL. No wait - the AA will queue the
      migrator job until the worker finishes registering.
   6. Fire the migrator runbook (run_on=ChatHealthyDataMigratorWorkGroup)
      fire-and-forget. Log the migrator AA job_id and exit.
@@ -253,7 +253,7 @@ def _install_hybrid_worker_extension(sub: str, vm_rg: str, vm_name: str,
                                      automation_hybrid_service_url: str,
                                      location: str) -> None:
     """PUT the HybridWorkerForLinux extension. Do NOT wait for
-    provisioningState — the migrator job will sit Queued on the
+    provisioningState - the migrator job will sit Queued on the
     Automation Account until the worker registers, which is the AA's
     natural flow-control."""
     url = (
