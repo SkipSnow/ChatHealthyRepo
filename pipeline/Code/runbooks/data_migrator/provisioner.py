@@ -1,47 +1,40 @@
 """provisioner.py — ChatHealthyDataMigrator provisioner runbook.
 
 Runs on the standard Azure sandbox of ChatHealthyJobManager. Stands up
-the ephemeral Hybrid Worker VM that the migrator runbook will execute
-on. The orchestrator runbook calls this synchronously (waits for the
-Automation job to reach Completed/Failed before continuing).
+the ephemeral Hybrid Worker VM, then fires the migrator runbook on the
+Hybrid Worker group as the last step and exits. Chain-fire pattern; no
+wait on the migrator job's completion.
 
 Sequence:
-  1. Create a NIC in ChatHealthy-VNet's undelegated subnet
-     (hybrid-worker-subnet, 10.0.2.0/24). NIC deleteOption=Delete so
-     it cascades on VM delete.
-  2. Create the VM:
-       - Name      : <vm_name> (computed by orchestrator from job_id).
-       - SKU       : Standard_D16s_v5 (16 vCPU / 64 GB / accelerated net).
-       - Image     : Ubuntu 22.04 LTS (Canonical:0001-com-ubuntu-server-jammy).
-       - VNet      : ChatHealthy-VNet (eastus2).
-       - Auth      : system-assigned managed identity.
-       - OS disk   : deleteOption=Delete (cascades on VM delete).
-       - cloud-init: installs python3-pip, pymongo, dnspython, requests.
-  3. Wait for VM provisioning to reach Succeeded.
-  4. Install the Hybrid Worker extension (HybridWorkerForLinux). The
-     extension settings carry the Automation Account JRDS URL and the
-     Hybrid Worker Group name; once installed the worker registers
-     automatically with that group.
-  5. Wait for extension provisioning to reach Succeeded.
+  1. Create a NIC in ChatHealthy-VNet's undelegated subnet. Wait for
+     provisioningState=Succeeded (approved poll #2).
+  2. Create the VM (Standard_D16s_v5 / Ubuntu 22.04 LTS / Standard_LRS
+     OS disk / system-assigned managed identity / SSH-key admin).
+     Wait for provisioningState=Succeeded (approved poll #1).
+  3. PUT a hybridRunbookWorker resource on the Automation Account
+     (worker name is a freshly-minted GUID; vmResourceId references the
+     VM's ARM id).
+  4. GET the Automation Account and extract its
+     properties.automationHybridServiceUrl.
+  5. PUT the HybridWorkerForLinux extension on the VM with that URL in
+     settings.AutomationAccountURL. No wait — the AA will queue the
+     migrator job until the worker finishes registering.
+  6. Fire the migrator runbook (run_on=ChatHealthyDataMigratorWorkGroup)
+     fire-and-forget. Log the migrator AA job_id and exit.
 
-Input parameters:
-    job_id  — gateway-minted external job id (used only for logging).
-    vm_name — deterministic VM name minted by the orchestrator.
+Input payload (one JSON-encoded `payload` parameter, read via sys.argv[1]):
+    job_id, vm_name, plus every migration arg the orchestrator forwarded.
 
 Environment (Automation Variables):
-    AZ_SUBSCRIPTION_ID       — Azure subscription hosting the VM.
-    AZ_VM_RESOURCE_GROUP     — RG to create the VM in (FindCareDataPipelines-Dev).
-    AZ_VM_LOCATION           — Azure region (eastus2).
-    AZ_VM_SIZE               — VM SKU (Standard_D16s_v5).
-    AZ_VM_SUBNET_ID          — ARM resource id of the undelegated subnet
-                               (.../ChatHealthy-VNet/subnets/hybrid-worker-subnet).
-    AZ_VM_ADMIN_USERNAME     — Linux admin username for the VM.
-    AZ_VM_ADMIN_SSH_PUBKEY   — Public SSH key for the admin user.
-    AZ_AUTOMATION_RESOURCE_GROUP — RG of the Automation Account.
-    AZ_AUTOMATION_ACCOUNT        — ChatHealthyJobManager.
-    AZ_AUTOMATION_JRDS_URL       — Job Runtime Data Service URL for the AA
-                                   (region-specific; e.g.
-                                   https://eus2-jobruntimedata-prod-su1.azure-automation.net).
+    AZ_SUBSCRIPTION_ID
+    AZ_VM_RESOURCE_GROUP
+    AZ_VM_LOCATION
+    AZ_VM_SIZE
+    AZ_VM_SUBNET_ID
+    AZ_VM_ADMIN_USERNAME
+    AZ_VM_ADMIN_SSH_PUBKEY
+    AZ_AUTOMATION_RESOURCE_GROUP
+    AZ_AUTOMATION_ACCOUNT
 """
 import base64
 import json
@@ -50,6 +43,7 @@ import os
 import sys
 import time
 import traceback
+import uuid
 
 import requests
 
@@ -58,8 +52,7 @@ try:
     for k in ("AZ_SUBSCRIPTION_ID", "AZ_VM_RESOURCE_GROUP", "AZ_VM_LOCATION",
               "AZ_VM_SIZE", "AZ_VM_SUBNET_ID", "AZ_VM_ADMIN_USERNAME",
               "AZ_VM_ADMIN_SSH_PUBKEY",
-              "AZ_AUTOMATION_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
-              "AZ_AUTOMATION_JRDS_URL"):
+              "AZ_AUTOMATION_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT"):
         try:
             os.environ[k] = str(automationassets.get_automation_variable(k))
         except Exception:
@@ -72,12 +65,13 @@ log = logging.getLogger("provisioner")
 
 _COMPUTE_API = "2024-07-01"
 _NETWORK_API = "2024-01-01"
+_AUTOMATION_API = "2023-11-01"
+_HYBRID_WORKER_API = "2024-10-23"
 _HYBRID_WORKER_GROUP = "ChatHealthyDataMigratorWorkGroup"
+_MIGRATOR_RUNBOOK = "ChatHealthyDataMigrator"
 _WAIT_POLL_SEC = 10
 _VM_WAIT_TIMEOUT_SEC = 15 * 60
-_EXT_WAIT_TIMEOUT_SEC = 10 * 60
 
-# Ubuntu 22.04 LTS (Jammy). Canonical's stable LTS image for Azure.
 _IMAGE_REFERENCE = {
     "publisher": "Canonical",
     "offer":     "0001-com-ubuntu-server-jammy",
@@ -85,9 +79,6 @@ _IMAGE_REFERENCE = {
     "version":   "latest",
 }
 
-# cloud-init userdata: install Python deps the migrator runbook needs once
-# the Hybrid Worker extension begins dispatching jobs to it. Runs on first
-# boot before the Hybrid Worker extension's runtime starts the runbook.
 _CLOUD_INIT = """#cloud-config
 package_update: true
 packages:
@@ -97,18 +88,10 @@ runcmd:
 """
 
 
-def _get_param(name: str, webhook_data, job_params) -> str | None:
-    if webhook_data:
-        try:
-            body = json.loads(webhook_data.get("RequestBody", "{}"))
-            v = body.get(name)
-            if v is not None:
-                return str(v)
-        except Exception:
-            pass
-    if job_params and name in job_params:
-        return str(job_params[name])
-    return None
+def _read_payload() -> dict:
+    if len(sys.argv) < 2:
+        raise RuntimeError("no payload: sys.argv[1] missing")
+    return json.loads(sys.argv[1])
 
 
 def _mi_token() -> str:
@@ -201,7 +184,7 @@ def _create_vm(sub: str, rg: str, location: str, vm_name: str, vm_size: str,
                 "imageReference": _IMAGE_REFERENCE,
                 "osDisk": {
                     "createOption": "FromImage",
-                    "managedDisk": {"storageAccountType": "Premium_LRS"},
+                    "managedDisk": {"storageAccountType": "Standard_LRS"},
                     "deleteOption": "Delete",
                 },
             },
@@ -232,66 +215,96 @@ def _create_vm(sub: str, rg: str, location: str, vm_name: str, vm_size: str,
     _wait_provisioning(url, _VM_WAIT_TIMEOUT_SEC, what=f"VM {vm_name}")
 
 
-def _install_hybrid_worker_extension(sub: str, rg: str, vm_name: str,
-                                     jrds_url: str, aa_rg: str, aa: str) -> None:
-    """Install the Linux Hybrid Worker extension. Once running, the extension
-    registers a worker into the named Hybrid Worker group automatically.
-
-    Settings shape per Microsoft docs for the extension-based Hybrid Worker
-    onboarding flow: the extension reads AutomationAccountURL (the JRDS URL
-    for the AA's region) and the target Hybrid Worker Group name from the
-    extension settings; it self-registers using the VM's managed identity.
-    """
+def _register_hybrid_worker(sub: str, aa_rg: str, aa: str, vm_id: str) -> str:
+    """Create the hybrid worker resource on the AA, then return its name
+    (a freshly-minted GUID). The GUID is opaque to operators; the binding
+    to the VM is via vmResourceId in the body, per Microsoft Learn."""
+    worker_guid = str(uuid.uuid4())
     url = (
-        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/hybridRunbookWorkerGroups/{_HYBRID_WORKER_GROUP}"
+        f"/hybridRunbookWorkers/{worker_guid}?api-version={_HYBRID_WORKER_API}"
+    )
+    body = {"properties": {"vmResourceId": vm_id}}
+    log.info("Registering Hybrid Worker %s -> %s in group %s",
+             worker_guid, vm_id, _HYBRID_WORKER_GROUP)
+    _arm_put(url, body)
+    return worker_guid
+
+
+def _get_automation_hybrid_service_url(sub: str, aa_rg: str, aa: str) -> str:
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"?api-version={_AUTOMATION_API}"
+    )
+    body = _arm_get(url)
+    svc_url = body.get("properties", {}).get("automationHybridServiceUrl")
+    if not svc_url:
+        raise RuntimeError(
+            f"AA {aa!r} has no properties.automationHybridServiceUrl in its GET response; "
+            f"cannot wire the Hybrid Worker extension."
+        )
+    return svc_url
+
+
+def _install_hybrid_worker_extension(sub: str, vm_rg: str, vm_name: str,
+                                     automation_hybrid_service_url: str,
+                                     location: str) -> None:
+    """PUT the HybridWorkerForLinux extension. Do NOT wait for
+    provisioningState — the migrator job will sit Queued on the
+    Automation Account until the worker registers, which is the AA's
+    natural flow-control."""
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{vm_rg}"
         f"/providers/Microsoft.Compute/virtualMachines/{vm_name}"
         f"/extensions/HybridWorkerExtension?api-version={_COMPUTE_API}"
     )
-    automation_account_url = (
-        f"{jrds_url.rstrip('/')}/subscriptions/{sub}/resourceGroups/{aa_rg}"
-        f"/automationAccounts/{aa}"
-    )
     body = {
-        "location": os.environ["AZ_VM_LOCATION"],
+        "location": location,
         "properties": {
             "publisher": "Microsoft.Azure.Automation.HybridWorker",
             "type": "HybridWorkerForLinux",
             "typeHandlerVersion": "1.1",
             "autoUpgradeMinorVersion": True,
+            "enableAutomaticUpgrade": True,
             "settings": {
-                "AutomationAccountURL": automation_account_url,
+                "AutomationAccountURL": automation_hybrid_service_url,
             },
         },
     }
-    log.info("Installing Hybrid Worker extension on %s; AA URL=%s",
-             vm_name, automation_account_url)
+    log.info("Installing Hybrid Worker extension on %s (no wait)", vm_name)
     _arm_put(url, body)
-    _wait_provisioning(url, _EXT_WAIT_TIMEOUT_SEC,
-                       what=f"HybridWorkerExtension on {vm_name}")
 
 
-def _register_hybrid_worker(sub: str, aa_rg: str, aa: str, vm_id: str,
-                            worker_name: str) -> None:
-    """Register the VM as a Hybrid Worker in ChatHealthyDataMigratorWorkGroup.
-
-    The extension-based onboarding flow expects a worker resource to exist
-    on the Automation Account side before the extension can attach. This
-    PUT creates the worker resource pointing back at the VM's ARM id.
-    """
+def _fire_migrator(sub: str, aa_rg: str, aa: str, payload: dict) -> str:
+    """Start the migrator runbook on ChatHealthyDataMigratorWorkGroup,
+    fire-and-forget. Returns the AA job_id."""
+    aa_job_id = str(uuid.uuid4())
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
-        f"/hybridRunbookWorkerGroups/{_HYBRID_WORKER_GROUP}"
-        f"/hybridRunbookWorkers/{worker_name}?api-version=2023-11-01"
+        f"/jobs/{aa_job_id}?api-version={_AUTOMATION_API}"
     )
     body = {
         "properties": {
-            "vmResourceId": vm_id,
-        },
+            "runbook": {"name": _MIGRATOR_RUNBOOK},
+            "parameters": {"payload": json.dumps(payload)},
+            "runOn": _HYBRID_WORKER_GROUP,
+        }
     }
-    log.info("Registering Hybrid Worker %s -> %s in group %s",
-             worker_name, vm_id, _HYBRID_WORKER_GROUP)
-    _arm_put(url, body)
+    token = _mi_token()
+    r = requests.put(
+        url,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        json=body, timeout=60,
+    )
+    if r.status_code not in (200, 201):
+        raise RuntimeError(
+            f"Start migrator failed: HTTP {r.status_code} {r.text[:500]}"
+        )
+    return aa_job_id
 
 
 def _vm_resource_id(sub: str, rg: str, vm_name: str) -> str:
@@ -301,11 +314,12 @@ def _vm_resource_id(sub: str, rg: str, vm_name: str) -> str:
     )
 
 
-def _main(webhook_data, job_params):
-    job_id = _get_param("job_id", webhook_data, job_params)
-    vm_name = _get_param("vm_name", webhook_data, job_params)
+def _main():
+    payload = _read_payload()
+    job_id = payload.get("job_id")
+    vm_name = payload.get("vm_name")
     if not job_id or not vm_name:
-        raise RuntimeError("provisioner: job_id and vm_name parameters are required")
+        raise RuntimeError("provisioner: job_id and vm_name are required in the payload")
 
     sub = os.environ["AZ_SUBSCRIPTION_ID"]
     vm_rg = os.environ["AZ_VM_RESOURCE_GROUP"]
@@ -316,7 +330,6 @@ def _main(webhook_data, job_params):
     ssh_pubkey = os.environ["AZ_VM_ADMIN_SSH_PUBKEY"]
     aa_rg = os.environ["AZ_AUTOMATION_RESOURCE_GROUP"]
     aa = os.environ["AZ_AUTOMATION_ACCOUNT"]
-    jrds_url = os.environ["AZ_AUTOMATION_JRDS_URL"]
 
     log.info("Provision begin: job_id=%s vm_name=%s size=%s", job_id, vm_name, vm_size)
 
@@ -324,27 +337,29 @@ def _main(webhook_data, job_params):
     _create_vm(sub, vm_rg, location, vm_name, vm_size, nic_id, admin_user, ssh_pubkey)
 
     vm_id = _vm_resource_id(sub, vm_rg, vm_name)
-    _register_hybrid_worker(sub, aa_rg, aa, vm_id, worker_name=vm_name)
-    _install_hybrid_worker_extension(sub, vm_rg, vm_name, jrds_url, aa_rg, aa)
+    worker_guid = _register_hybrid_worker(sub, aa_rg, aa, vm_id)
+    automation_hybrid_service_url = _get_automation_hybrid_service_url(sub, aa_rg, aa)
+    _install_hybrid_worker_extension(sub, vm_rg, vm_name,
+                                     automation_hybrid_service_url, location)
 
-    log.info("Provision complete: vm_name=%s registered in %s",
-             vm_name, _HYBRID_WORKER_GROUP)
+    log.info("Provision complete: vm_name=%s worker_guid=%s; firing migrator on %s",
+             vm_name, worker_guid, _HYBRID_WORKER_GROUP)
+    migrator_aa_job_id = _fire_migrator(sub, aa_rg, aa, payload)
+    log.info("Provisioner fired migrator: job_id=%s migrator_aa_job_id=%s",
+             job_id, migrator_aa_job_id)
     print(json.dumps({
         "provisioner_status": "ok",
         "job_id": job_id,
         "vm_name": vm_name,
         "vm_id": vm_id,
+        "worker_guid": worker_guid,
         "hybrid_worker_group": _HYBRID_WORKER_GROUP,
+        "migrator_aa_job_id": migrator_aa_job_id,
     }), flush=True)
 
 
 try:
-    _wd = None
-    try:
-        _wd = WebhookData  # noqa: F821
-    except NameError:
-        pass
-    _main(_wd, None)
+    _main()
     sys.exit(0)
 except Exception:
     tb = traceback.format_exc()

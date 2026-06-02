@@ -2,17 +2,14 @@
 
 Runs on the standard Azure sandbox of ChatHealthyJobManager. Tears down the
 ephemeral Hybrid Worker VM that the provisioner created for one migration
-job, then exits with status. The migrator runbook on the Hybrid Worker
-calls this runbook via the Automation Account REST API and waits for the
-job's terminal state — that's how the migrator receives a "VM teardown
-initiated" confirmation before its own host disappears.
+job, then exits.
 
 The actual VM destruction inside Azure is asynchronous: az REST returns
 the moment the delete request is accepted. The OS disk and NIC the
 provisioner created with deleteOption='Delete' get cleaned up by Azure
 as part of the cascading VM delete.
 
-Input parameters (webhook payload or job parameters):
+Input payload (one JSON-encoded `payload` parameter, read via sys.argv[1]):
     job_id   — gateway-minted external job id (used for logging only here).
     vm_name  — VM resource name the provisioner created.
 
@@ -44,18 +41,10 @@ log = logging.getLogger("deprovisioner")
 _COMPUTE_API = "2024-07-01"
 
 
-def _get_param(name: str, webhook_data, job_params) -> str | None:
-    if webhook_data:
-        try:
-            body = json.loads(webhook_data.get("RequestBody", "{}"))
-            v = body.get(name)
-            if v is not None:
-                return str(v)
-        except Exception:
-            pass
-    if job_params and name in job_params:
-        return str(job_params[name])
-    return os.environ.get(name)
+def _read_payload() -> dict:
+    if len(sys.argv) < 2:
+        raise RuntimeError("no payload: sys.argv[1] missing")
+    return json.loads(sys.argv[1])
 
 
 def _mi_token() -> str:
@@ -72,10 +61,6 @@ def _mi_token() -> str:
 
 
 def _delete_vm(sub: str, rg: str, vm_name: str) -> None:
-    """Begin VM delete via ARM. Returns when the request is accepted; the
-    actual destruction continues asynchronously in Azure. OS disk + NIC
-    are deleted in cascade because the provisioner set deleteOption='Delete'
-    on both when it created the VM."""
     token = _mi_token()
     url = (
         f"https://management.azure.com/subscriptions/{sub}"
@@ -98,11 +83,12 @@ def _delete_vm(sub: str, rg: str, vm_name: str) -> None:
     )
 
 
-def _main(webhook_data, job_params):
-    job_id = _get_param("job_id", webhook_data, job_params) or "?"
-    vm_name = _get_param("vm_name", webhook_data, job_params)
+def _main():
+    payload = _read_payload()
+    job_id = payload.get("job_id", "?")
+    vm_name = payload.get("vm_name")
     if not vm_name:
-        raise RuntimeError("deprovisioner: vm_name parameter is required")
+        raise RuntimeError("deprovisioner: vm_name missing from payload")
 
     sub = os.environ["AZ_SUBSCRIPTION_ID"]
     rg = os.environ["AZ_VM_RESOURCE_GROUP"]
@@ -116,13 +102,7 @@ def _main(webhook_data, job_params):
 
 
 try:
-    _wd = None
-    _jp = None
-    try:
-        _wd = WebhookData  # noqa: F821 — provided by AA when invoked via webhook
-    except NameError:
-        pass
-    _main(_wd, _jp)
+    _main()
     sys.exit(0)
 except Exception:
     tb = traceback.format_exc()

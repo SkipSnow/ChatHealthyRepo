@@ -11,8 +11,8 @@ migrator chain depends on:
     an Automation Variable so subsequent deploys reuse it; written into the
     gateway Function App settings so the gateway forwards to it).
 
-Each function fails loud — same convention as `aca_helpers.py`. No soft
-fallbacks; the operator sees the real az error when something is wrong.
+Each function fails loud. No soft fallbacks; the operator sees the real
+az error when something is wrong.
 """
 from __future__ import annotations
 
@@ -239,10 +239,13 @@ def chdm_ensure_chdm_persistent_infrastructure(
         f"/subscriptions/{sub}/resourceGroups/{aa_rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
     )
-    # The AA's own MI needs to start jobs on itself (orchestrator -> provisioner,
-    # deprovisioner; migrator on Hybrid Worker -> deprovisioner). Automation
-    # Operator suffices to start/read jobs.
-    chdm_ensure_role_assignment(aa_mi_pid, aa_scope, "Automation Operator")
+    # The AA's own MI needs to PUT hybridRunbookWorkers on the AA (the
+    # provisioner does this during the extension-based onboarding) and GET
+    # the AA's own properties.automationHybridServiceUrl. Automation
+    # Operator grants only job start/read; Contributor on the AA grants
+    # write on child resources (per Microsoft Learn extension-based
+    # Hybrid Worker install walkthrough).
+    chdm_ensure_role_assignment(aa_mi_pid, aa_scope, "Contributor")
     return subnet_id
 
 
