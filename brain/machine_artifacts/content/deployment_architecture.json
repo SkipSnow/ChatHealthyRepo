@@ -2434,7 +2434,10 @@
           "disposition": "referenced",
           "content_hash": "8b185e1f3e629e4e831ed5c1ddcd2b509029f4b37bb24aef0c4925670ec27731"
         }
-      ]
+      ],
+      "secrets": {
+        "AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64": "local_env"
+      }
     },
     {
       "target_id": "target_workflow_runner_github_actions",
