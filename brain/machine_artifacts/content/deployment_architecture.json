@@ -2383,7 +2383,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a2d23037533a19df5daba14b268b190eee18504a2ecc1cf8b7e24bafbb0d9e3c"
+          "content_hash": "b804cd0e7df03c1a578bfcebef73722226848118bf44d44bfdc2c0bfd32cef0a"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2426,6 +2426,20 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "6b553dfc9291c8a9dfd7d17b617dc8c52549620bd92764fe938c4b4ea093e6d9"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/chdm_helpers.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "83e863716de5aea5f92c12499ffc42a74441e7cbddc7c5a5b4fde1e19a042670"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/aca_helpers.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "63ddf6ef5559b77ba2763d109ba74e47b504bf5973c0186dabce20d995b2193a"
         }
       ]
     },
