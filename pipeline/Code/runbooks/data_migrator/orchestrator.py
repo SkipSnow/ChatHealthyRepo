@@ -1,4 +1,4 @@
-"""orchestrator.py — ChatHealthyDataMigrator orchestrator runbook.
+"""orchestrator.py - ChatHealthyDataMigrator orchestrator runbook.
 
 Runs on the standard Azure sandbox of ChatHealthyJobManager. The gateway
 function app posts a webhook to this runbook to start a migration job.
@@ -8,11 +8,11 @@ Hybrid Worker group; the migrator ends by firing the deprovisioner.
 Chain-fire pattern.
 
 Input payload (one JSON-encoded `payload` parameter, read via sys.argv[1]
-— for webhook-started Python runbooks the webhook body lands at
+- for webhook-started Python runbooks the webhook body lands at
 sys.argv[1] as a string):
-    job_id           — gateway-minted external job id.
-    request_guid     — gateway request guid.
-    router_build_id  — gateway-read build id.
+    job_id           - gateway-minted external job id.
+    request_guid     - gateway request guid.
+    router_build_id  - gateway-read build id.
     Plus every migration arg the gateway forwarded:
       source_cluster, source_database, source_collection,
       destination_cluster, destination_database, destination_collection,
@@ -20,9 +20,9 @@ sys.argv[1] as a string):
       reservation_duration_minutes.
 
 Environment (Automation Variables):
-    AZ_SUBSCRIPTION_ID    — hosts ChatHealthyJobManager.
-    AZ_RESOURCE_GROUP     — Automation Account resource group.
-    AZ_AUTOMATION_ACCOUNT — ChatHealthyJobManager.
+    AZ_SUBSCRIPTION_ID    - hosts ChatHealthyJobManager.
+    AZ_RESOURCE_GROUP     - Automation Account resource group.
+    AZ_AUTOMATION_ACCOUNT - ChatHealthyJobManager.
 """
 import json
 import logging
@@ -80,7 +80,7 @@ def _start_runbook_fire_and_forget(sub: str, rg: str, aa: str, runbook: str,
                                    run_on: str | None = None) -> str:
     """Start a runbook job via REST API. Returns the AA job_id immediately.
     Does NOT poll for completion. `downstream_payload` is JSON-encoded into
-    a single `payload` parameter — the receiving runbook reads it via
+    a single `payload` parameter - the receiving runbook reads it via
     json.loads(sys.argv[1])."""
     aa_job_id = str(uuid.uuid4())
     url = (

@@ -1,4 +1,4 @@
-"""deprovisioner.py — ChatHealthyDataMigrator deprovisioner runbook.
+"""deprovisioner.py - ChatHealthyDataMigrator deprovisioner runbook.
 
 Runs on the standard Azure sandbox of ChatHealthyJobManager. Tears down the
 ephemeral Hybrid Worker VM that the provisioner created for one migration
@@ -10,12 +10,12 @@ provisioner created with deleteOption='Delete' get cleaned up by Azure
 as part of the cascading VM delete.
 
 Input payload (one JSON-encoded `payload` parameter, read via sys.argv[1]):
-    job_id   — gateway-minted external job id (used for logging only here).
-    vm_name  — VM resource name the provisioner created.
+    job_id   - gateway-minted external job id (used for logging only here).
+    vm_name  - VM resource name the provisioner created.
 
 Environment (Automation Variables):
-    AZ_SUBSCRIPTION_ID  — Azure subscription hosting the VM.
-    AZ_VM_RESOURCE_GROUP — RG containing the VM (FindCareDataPipelines-Dev).
+    AZ_SUBSCRIPTION_ID  - Azure subscription hosting the VM.
+    AZ_VM_RESOURCE_GROUP - RG containing the VM (FindCareDataPipelines-Dev).
 """
 import json
 import logging

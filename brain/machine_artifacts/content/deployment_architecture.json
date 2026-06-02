@@ -2286,14 +2286,6 @@
           "node_address": "localhost/deploy_substrate"
         },
         {
-          "env_binding": "dev",
-          "node_address": "localhost/deploy_substrate#dev"
-        },
-        {
-          "env_binding": "qa",
-          "node_address": "localhost/deploy_substrate#qa"
-        },
-        {
           "env_binding": "prod",
           "node_address": "localhost/deploy_substrate#prod"
         }
@@ -2829,7 +2821,7 @@
       "target_kind": "azure_container_app",
       "environments": [
         {
-          "env_binding": "dev",
+          "env_binding": "prod",
           "node_address": "https://prod-providerpipeline-app.azurecontainerapps.io",
           "azure_container_app": {
             "resource_group": "FindCareDataPipelines-Dev",
@@ -3382,7 +3374,7 @@
       "target_kind": "azure_function_app",
       "environments": [
         {
-          "env_binding": "dev",
+          "env_binding": "prod",
           "node_address": "https://chathealthydatapipelinesgatewayfunctionapp.azurewebsites.net",
           "azure": {
             "resource_group": "FindCareDataPipelines-Dev",
@@ -3415,7 +3407,7 @@
       "target_kind": "azure_automation_runbook",
       "environments": [
         {
-          "env_binding": "dev",
+          "env_binding": "prod",
           "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/ReservationReaper",
           "azure_automation": {
             "resource_group": "ChatHhealthyResorceManager",
@@ -3460,7 +3452,7 @@
       "target_kind": "azure_automation_runbook",
       "environments": [
         {
-          "env_binding": "dev",
+          "env_binding": "prod",
           "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorOrchestrator",
           "azure_automation": {
             "resource_group": "ChatHhealthyResorceManager",
@@ -3475,7 +3467,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "817392136e51a74caa2738232155a3546080a85980c636d313b0e7588fa2a426"
+          "content_hash": "a11cfee917ef14b8ec2c1290b58e42464b5dbd784e4d61b8e8ac208a44c06592"
         }
       ],
       "secrets": {
@@ -3489,7 +3481,7 @@
       "target_kind": "azure_automation_runbook",
       "environments": [
         {
-          "env_binding": "dev",
+          "env_binding": "prod",
           "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorProvisioner",
           "azure_automation": {
             "resource_group": "ChatHhealthyResorceManager",
@@ -3504,7 +3496,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/provisioner.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "892561108d63c8eb95adb9dc5442cb4afa58d58931ae528a18df72dbb97f223e"
+          "content_hash": "a1316c322c1811ec491c918c26ac7a43db54f4c176e85f4f66223918449385fc"
         }
       ],
       "secrets": {
@@ -3523,7 +3515,7 @@
       "target_kind": "azure_automation_runbook",
       "environments": [
         {
-          "env_binding": "dev",
+          "env_binding": "prod",
           "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigrator",
           "azure_automation": {
             "resource_group": "ChatHhealthyResorceManager",
@@ -3538,7 +3530,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1f53b97a17820058f2e99da6f43274e508ab4f6c94a1ea180d624d3dfb18ecad"
+          "content_hash": "7680ad592ab3b15e7581ba1d8ba1501a7a14935b73b6ed41d1e79e8155a47df6"
         }
       ],
       "secrets": {
@@ -3557,7 +3549,7 @@
       "target_kind": "azure_automation_runbook",
       "environments": [
         {
-          "env_binding": "dev",
+          "env_binding": "prod",
           "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorDeprovisioner",
           "azure_automation": {
             "resource_group": "ChatHhealthyResorceManager",
@@ -3572,7 +3564,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/deprovisioner.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "33dc8cc9b0d229f55d9c227f96132b2cce3a3e205d9b836f4fdc297b87768439"
+          "content_hash": "043adcb301edfc336daa8f13efcd81a6e4fd08260f5ec2448261d8ddab04e19e"
         }
       ],
       "secrets": {
