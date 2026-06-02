@@ -3385,8 +3385,7 @@
         "EventHubsConnection": "local_env",
         "ENV_PREFIX": "local_env",
         "GATEWAY_APPINSIGHTS_CONNECTION_STRING": "local_env",
-        "MONGO_connectionString": "local_env",
-        "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env"
+        "MONGO_connectionString": "local_env"
       }
     },
     {
@@ -3491,7 +3490,6 @@
         "AZ_VM_RESOURCE_GROUP": "local_env",
         "AZ_VM_LOCATION": "local_env",
         "AZ_VM_SIZE": "local_env",
-        "AZ_VM_SUBNET_ID": "local_env",
         "AZ_VM_ADMIN_USERNAME": "local_env",
         "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
         "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",

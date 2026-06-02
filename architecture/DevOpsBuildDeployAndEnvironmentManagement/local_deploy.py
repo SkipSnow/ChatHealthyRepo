@@ -54,6 +54,7 @@ if str(HERE) not in sys.path:
 
 import aca_helpers
 import ch_fonts_inliner
+import chdm_helpers
 import hf_helpers as rd
 from agile_backlog import AgileBacklogLoader
 from crosswalk import Crosswalk
@@ -741,11 +742,54 @@ def _az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
         )
 
 
+_chdm_persistent_infra_ensured_for: set[str] = set()
+_CHDM_TARGET_PREFIX = "target_azure_automation_runbook_chdm_"
+_CHDM_PROVISIONER_TARGET = "target_azure_automation_runbook_chdm_provisioner"
+_CHDM_ORCHESTRATOR_RUNBOOK = "ChatHealthyDataMigratorOrchestrator"
+_GATEWAY_TARGET_ID = "target_azure_function_app_pipeline"
+_GATEWAY_WEBHOOK_SETTING_KEY = "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL"
+
+
+def _ensure_chdm_persistent_infrastructure_once(
+    aa_rg: str, aa: str, vm_rg: str, env_key: str,
+) -> str:
+    """Run the CHDM persistent-infrastructure ensure block exactly once per
+    `local_deploy` process for the given env. Returns the VM subnet ARM
+    resource id (cached after the first call for downstream callers in the
+    same session)."""
+    cache_key = f"{env_key}|{aa_rg}|{aa}|{vm_rg}"
+    if cache_key in _chdm_persistent_infra_ensured_for:
+        # Re-read the subnet id (cheap) so callers always get a current value.
+        return chdm_helpers.chdm_ensure_vm_subnet(vm_rg)
+    subnet_id = chdm_helpers.chdm_ensure_chdm_persistent_infrastructure(
+        vm_rg=vm_rg, aa_rg=aa_rg, aa=aa,
+    )
+    _chdm_persistent_infra_ensured_for.add(cache_key)
+    return subnet_id
+
+
+def _gateway_coords(coll: DeploymentCollection, env: str) -> tuple[str, str]:
+    """Resolve (resource_group, function_app_name) for the gateway target's
+    binding in the given env."""
+    gw = coll.by_target_id(_GATEWAY_TARGET_ID)
+    binding = next(
+        (e for e in gw.environments if e.env_binding == env), None,
+    )
+    if binding is None or not binding.azure:
+        sys.exit(
+            f"ERROR: gateway target {_GATEWAY_TARGET_ID!r} has no azure "
+            f"coordinates for env={env!r}; cannot wire the orchestrator "
+            f"webhook into its app settings."
+        )
+    return binding.azure["resource_group"], binding.azure["function_app"]
+
+
 def _deploy_azure_automation_runbook(
     build_dir: Path,
     target: TargetRecord,
     env: str,
     resolver: SecretsResolver,
+    coll: DeploymentCollection,
 ) -> str:
     env_binding = next(
         (e for e in target.environments if e.env_binding == env), None,
@@ -774,6 +818,23 @@ def _deploy_azure_automation_runbook(
     if not content_path.is_file():
         sys.exit(f"ERROR: runbook.py missing at {content_path}")
 
+    # For any ChatHealthyDataMigrator runbook, the deploy script owns the
+    # persistent infrastructure that the chain depends on: undelegated VM
+    # subnet, Hybrid Worker Group, AA managed-identity role assignments.
+    # Idempotent; runs once per local_deploy process.
+    chdm_subnet_id: str | None = None
+    if target.target_id.startswith(_CHDM_TARGET_PREFIX):
+        vm_rg = resolver.resolve("AZ_VM_RESOURCE_GROUP", env)
+        if not vm_rg:
+            sys.exit(
+                "ERROR: AZ_VM_RESOURCE_GROUP must be set in the operator "
+                "secret store (Code/.env) — the CHDM persistent-infra ensure "
+                "needs to know which resource group hosts the Hybrid Worker VM."
+            )
+        chdm_subnet_id = _ensure_chdm_persistent_infrastructure_once(
+            aa_rg=rg, aa=aa, vm_rg=vm_rg, env_key=env,
+        )
+
     # Push every secret binding into the Automation Account as an Automation
     # Variable. Resolver fetches the value from the operator's bound store
     # (Code/.env for local). Values never land on disk; only the az process
@@ -800,10 +861,33 @@ def _deploy_azure_automation_runbook(
         )
     _step(f"  pushed {pushed} Automation Variable(s)")
 
+    # Inject the deploy-computed AZ_VM_SUBNET_ID for the provisioner runbook.
+    # The subnet ARM resource id only exists after the ensure step ran and
+    # is therefore not in the operator's secret store.
+    if target.target_id == _CHDM_PROVISIONER_TARGET and chdm_subnet_id:
+        _az_automation_variable_set(rg, aa, "AZ_VM_SUBNET_ID", chdm_subnet_id)
+        _step("  pushed deploy-computed AZ_VM_SUBNET_ID Automation Variable")
+
     # Replace runbook bytes + publish (so next scheduled tick uses the new code).
     _az_automation_runbook_replace_content(rg, aa, runbook, content_path)
     _az_automation_runbook_publish(rg, aa, runbook)
     _step(f"  runbook {runbook} published")
+
+    # After the orchestrator runbook is published, mint/reuse its webhook
+    # and write the URL into the gateway Function App's app settings. The
+    # gateway forwards MongoClusterMigrator requests to that URL.
+    if runbook == _CHDM_ORCHESTRATOR_RUNBOOK:
+        webhook_url = chdm_helpers.chdm_ensure_orchestrator_webhook(
+            aa_rg=rg, aa=aa, runbook_name=runbook,
+        )
+        fa_rg, fa_name = _gateway_coords(coll, env)
+        chdm_helpers.chdm_set_functionapp_setting(
+            fa_rg, fa_name, _GATEWAY_WEBHOOK_SETTING_KEY, webhook_url,
+        )
+        _step(
+            f"  gateway Function App setting {_GATEWAY_WEBHOOK_SETTING_KEY} "
+            f"updated on {fa_name}"
+        )
     return f"{aa}/{runbook}"
 
 
@@ -1019,7 +1103,7 @@ def _deploy_one(
         return _deploy_azure_container_app(build_dir, target, env, resolver, build_n)
     if target_kind == "azure_automation_runbook":
         target = coll.by_target_id(target_id)
-        return _deploy_azure_automation_runbook(build_dir, target, env, resolver)
+        return _deploy_azure_automation_runbook(build_dir, target, env, resolver, coll)
     raise RuntimeError(
         f"target_kind {target_kind!r} not supported in local_deploy."
     )
