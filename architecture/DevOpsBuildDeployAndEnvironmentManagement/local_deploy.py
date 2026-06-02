@@ -1161,71 +1161,14 @@ def _select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tupl
     return []
 
 
-# Deploy-internal secret requirements that are NOT declared in any target's
-# `secrets` block because they're consumed by the deploy script (chdm_helpers)
-# rather than written to the runtime environment as Automation Variables.
-# Validated up front so a partial-deploy is impossible.
-_DEPLOY_INTERNAL_REQUIREMENTS = {
-    # target_id_prefix -> [required secret names in .env]
-    "target_azure_automation_runbook_chdm_": ["AZ_VM_RESOURCE_GROUP"],
-}
-
-
-def _preflight_validate_secrets(
-    selected: list[tuple[str, str]],
-    by_id: dict,
-    env: str,
-    resolver: SecretsResolver,
-) -> None:
-    """Resolve every required secret across every in-scope target BEFORE any
-    deploy action fires. The previous behavior pushed the first target's
-    bytes then halted on the second target's missing secret, leaving the
-    deploy in a partial state. Fail loud up front instead so the operator
-    sees the whole gap in one pass and the live system never enters a
-    mixed-build state from a half-completed run.
-    """
-    missing: list[tuple[str, str]] = []  # (target_id, secret_name)
-    for target_id, _kind in selected:
-        target = by_id[target_id]
-        if env not in target.env_binding_set():
-            continue
-        # Declared secrets on the target (pushed to the runtime as
-        # FA app settings, AA Automation Variables, etc.).
-        for secret_name in (target.secrets or {}):
-            try:
-                resolver.resolve(secret_name, env)
-            except KeyError:
-                missing.append((target_id, secret_name))
-        # Deploy-internal requirements (consumed by the deploy script,
-        # not by the runtime, so absent from the secrets block).
-        for prefix, requirements in _DEPLOY_INTERNAL_REQUIREMENTS.items():
-            if not target_id.startswith(prefix):
-                continue
-            for secret_name in requirements:
-                try:
-                    resolver.resolve(secret_name, env)
-                except KeyError:
-                    if (target_id, secret_name) not in missing:
-                        missing.append((target_id, secret_name))
-    if not missing:
-        _step("preflight: all required secrets resolved")
-        return
-    lines = [
-        "ERROR: refused to deploy — required secrets missing from operator's store",
-        "       (Code/.env). Populate them, then re-run. No bytes were shipped.",
-        "",
-    ]
-    by_target: dict[str, list[str]] = {}
-    for tid, name in missing:
-        by_target.setdefault(tid, []).append(name)
-    for tid in sorted(by_target):
-        lines.append(f"  {tid}:")
-        for name in sorted(by_target[tid]):
-            lines.append(f"    - {name}")
-    sys.exit("\n".join(lines))
-
-
 def _run_cloud_deploy(env: str, target_arg: str) -> int:
+    """Deploy every in-scope target independently. A target either deploys
+    completely (its handler succeeds) or is skipped entirely with an error
+    captured for the final report — a failure in one target never halts
+    another target's deploy. Each handler is responsible for its own
+    fast-fail before any state-changing action so a per-target failure
+    leaves the live system unchanged for that target.
+    """
     repo_root = _find_repo_root(Path(__file__))
     _step(f"repo_root={repo_root} env={env} target={target_arg}")
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
@@ -1236,24 +1179,39 @@ def _run_cloud_deploy(env: str, target_arg: str) -> int:
     if not selected:
         sys.exit(f"ERROR: no targets matched --target={target_arg!r}")
     by_id = {t.target_id: t for t in coll}
-    _preflight_validate_secrets(selected, by_id, env, resolver)
-    deployed: list[str] = []
+    succeeded: list[str] = []
+    failed: list[tuple[str, str]] = []  # (target_id, error_message)
     for target_id, target_kind in selected:
         target = by_id[target_id]
         if env not in target.env_binding_set():
             _step(f"  skip {target_id}: no env_binding for {env!r}")
             continue
-        deployed.append(_deploy_one(
-            repo_root, target_id, target_kind, env, resolver, coll,
-        ))
-    if not deployed:
+        try:
+            succeeded.append(_deploy_one(
+                repo_root, target_id, target_kind, env, resolver, coll,
+            ))
+        except SystemExit as exc:
+            msg = str(exc.code) if exc.code else "sys.exit() with no message"
+            _step(f"  FAILED {target_id}: {msg[:500]}")
+            failed.append((target_id, msg))
+        except Exception as exc:
+            msg = f"{type(exc).__name__}: {exc!s}"
+            _step(f"  FAILED {target_id}: {msg[:500]}")
+            failed.append((target_id, msg))
+    if succeeded:
+        _step(f"deployed {len(succeeded)} target(s):")
+        for d in succeeded:
+            _step(f"  {d}")
+    if failed:
+        _step(f"FAILED {len(failed)} target(s):")
+        for tid, msg in failed:
+            _step(f"  {tid}: {msg[:300]}")
+        return 1
+    if not succeeded:
         sys.exit(
             f"ERROR: nothing deployed for env={env!r} target={target_arg!r}. "
             f"Check env_binding in deployment_architecture.json."
         )
-    _step(f"deployed {len(deployed)} target(s):")
-    for d in deployed:
-        _step(f"  {d}")
     return 0
 
 
