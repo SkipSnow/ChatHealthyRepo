@@ -141,26 +141,45 @@ def chdm_ensure_hybrid_worker_group(aa_rg: str, aa: str) -> None:
     _step(f"  hybrid worker group '{_HYBRID_WORKER_GROUP}' created.")
 
 
-def chdm_get_aa_mi_principal_id(aa_rg: str, aa: str) -> str:
-    """Return the AA's system-assigned managed-identity principal id.
+def chdm_ensure_aa_managed_identity(aa_rg: str, aa: str) -> str:
+    """Ensure the Automation Account has a system-assigned managed identity.
 
-    Assumes the AA was created with a system-assigned identity. If the
-    AA has no identity, this fails loud — the operator should enable
-    system-assigned identity on the AA once.
+    Returns the MI's principal id. If the AA doesn't have system-assigned
+    identity enabled, this enables it. The MI is what the AA uses to start
+    runbook jobs as itself, to read its own Automation Variables across
+    jobs, and to perform the Azure operations the role-assignments below
+    grant it.
     """
-    out = _az([
+    _step(f"verifying system-assigned managed identity on '{aa}' (rg={aa_rg})")
+    show = _az([
         "az", "automation", "account", "show",
         "--name", aa, "--resource-group", aa_rg,
         "--query", "identity.principalId", "-o", "tsv",
     ])
-    pid = str(out)
+    pid = str(show)
+    if pid and pid != "None":
+        _step(f"  managed identity present — principalId={pid[:8]}...")
+        return pid
+    _step("  managed identity missing — enabling system-assigned identity")
+    _az([
+        "az", "automation", "account", "update",
+        "--name", aa, "--resource-group", aa_rg,
+        "--assign-identity", "[system]",
+        "-o", "none",
+    ])
+    show = _az([
+        "az", "automation", "account", "show",
+        "--name", aa, "--resource-group", aa_rg,
+        "--query", "identity.principalId", "-o", "tsv",
+    ])
+    pid = str(show)
     if not pid or pid == "None":
         sys.exit(
-            f"ERROR: Automation Account {aa!r} has no system-assigned "
-            f"managed identity. Enable it once via the portal or "
-            f"`az automation account update --name {aa} --resource-group "
-            f"{aa_rg} --assign-identity '[system]'`."
+            f"ERROR: enabled system-assigned identity on {aa!r} but "
+            f"identity.principalId is still empty in the follow-up read. "
+            f"Inspect the AA in the portal."
         )
+    _step(f"  managed identity enabled — principalId={pid[:8]}...")
     return pid
 
 
@@ -211,7 +230,7 @@ def chdm_ensure_chdm_persistent_infrastructure(
     chdm_ensure_hybrid_worker_group(aa_rg, aa)
 
     sub = _subscription_id()
-    aa_mi_pid = chdm_get_aa_mi_principal_id(aa_rg, aa)
+    aa_mi_pid = chdm_ensure_aa_managed_identity(aa_rg, aa)
     vm_rg_scope = f"/subscriptions/{sub}/resourceGroups/{vm_rg}"
     for role in ("Virtual Machine Contributor", "Network Contributor"):
         chdm_ensure_role_assignment(aa_mi_pid, vm_rg_scope, role)
