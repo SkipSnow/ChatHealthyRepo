@@ -3375,7 +3375,7 @@
           "source_location": "pipeline/ChatHealthyDataPipelinesGatewayFunctionApp.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1a88d35de6b13627865aeca722bb6a2e5ef4f4bbb814a7af9de97bcd99e0a47a"
+          "content_hash": "77d710d293e4f4b22e81faab0d22ccaa56ba44bdbd34baa67cb3786d5ec7ea16"
         }
       ],
       "secrets": {
