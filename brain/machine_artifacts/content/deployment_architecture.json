@@ -2284,6 +2284,18 @@
         {
           "env_binding": "local",
           "node_address": "localhost/deploy_substrate"
+        },
+        {
+          "env_binding": "dev",
+          "node_address": "localhost/deploy_substrate#dev"
+        },
+        {
+          "env_binding": "qa",
+          "node_address": "localhost/deploy_substrate#qa"
+        },
+        {
+          "env_binding": "prod",
+          "node_address": "localhost/deploy_substrate#prod"
         }
       ],
       "files": [
