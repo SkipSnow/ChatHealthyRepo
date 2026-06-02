@@ -2432,14 +2432,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/chdm_helpers.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7b38ca31434c6def54c78e9ed09edb82a2bc7229b64267770d05c7ad38c3688d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/aca_helpers.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "63ddf6ef5559b77ba2763d109ba74e47b504bf5973c0186dabce20d995b2193a"
+          "content_hash": "bea9be900e34c9307dcf9760557d7761829e115e2409339e80a39d9393dbcf58"
         }
       ]
     },
@@ -3389,7 +3382,7 @@
           "source_location": "pipeline/ChatHealthyDataPipelinesGatewayFunctionApp.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "77d710d293e4f4b22e81faab0d22ccaa56ba44bdbd34baa67cb3786d5ec7ea16"
+          "content_hash": "9cd2cff173674f55cb871ced47ce79cb6df9142961d737d1e3f113f03f99c15e"
         }
       ],
       "secrets": {
@@ -3467,7 +3460,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a3d67a29b27a0736e88b66b6570c76c34b74f237d9798bf971d16708b407c436"
+          "content_hash": "817392136e51a74caa2738232155a3546080a85980c636d313b0e7588fa2a426"
         }
       ],
       "secrets": {
@@ -3496,7 +3489,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/provisioner.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "285cb971ff3cccccd7edf11db1347d095530977508c737bb9b4679e72c60fcd0"
+          "content_hash": "892561108d63c8eb95adb9dc5442cb4afa58d58931ae528a18df72dbb97f223e"
         }
       ],
       "secrets": {
@@ -3507,8 +3500,7 @@
         "AZ_VM_ADMIN_USERNAME": "local_env",
         "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
         "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
-        "AZ_AUTOMATION_ACCOUNT": "local_env",
-        "AZ_AUTOMATION_JRDS_URL": "local_env"
+        "AZ_AUTOMATION_ACCOUNT": "local_env"
       }
     },
     {
@@ -3531,7 +3523,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "6c62db06a54a852f017f452541e3e5390acc96cc549c85a5170aedd0df6122a3"
+          "content_hash": "1f53b97a17820058f2e99da6f43274e508ab4f6c94a1ea180d624d3dfb18ecad"
         }
       ],
       "secrets": {
@@ -3565,7 +3557,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/deprovisioner.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "5a8f1704c1f2db144c5c23bf7cc567bf0c7f2dcbef7cb0b4f63255feb6e9d7aa"
+          "content_hash": "33dc8cc9b0d229f55d9c227f96132b2cce3a3e205d9b836f4fdc297b87768439"
         }
       ],
       "secrets": {

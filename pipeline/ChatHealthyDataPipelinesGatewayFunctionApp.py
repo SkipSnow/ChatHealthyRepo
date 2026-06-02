@@ -106,7 +106,6 @@ ROUTES: dict = {
             "thread_criteria":             None,
             "preserve_indices":            True,
             "reservation_duration_minutes": None,
-            "env_prefix":                  "dev",
         },
         "computed": {},
     },
@@ -213,6 +212,7 @@ def _respond(
     build_id: int | None = None,
     durable_instance_id: str | None = None,
     job_id: str | None = None,
+    orchestrator_aa_job_id: str | None = None,
     upstream_status: int | None = None,
     error: str | None = None,
 ) -> func.HttpResponse:
@@ -223,14 +223,15 @@ def _respond(
     operator see the outcome at a glance and the human-readable reason
     at the end of the same row."""
     log: dict = {"gateway_status": status_code, "event": "gateway_response"}
-    if request_guid is not None:        log["request_guid"]        = request_guid
-    if build_id is not None:            log["build_id"]            = build_id
-    if user_id is not None:             log["user_id"]             = user_id
-    if task is not None:                log["task"]                = task
-    if upstream_status is not None:     log["upstream_status"]     = upstream_status
-    if durable_instance_id is not None: log["durable_instance_id"] = durable_instance_id
-    if job_id is not None:              log["job_id"]              = job_id
-    if error is not None:               log["error"]               = error
+    if request_guid is not None:           log["request_guid"]           = request_guid
+    if build_id is not None:               log["build_id"]               = build_id
+    if user_id is not None:                log["user_id"]                = user_id
+    if task is not None:                   log["task"]                   = task
+    if upstream_status is not None:        log["upstream_status"]        = upstream_status
+    if durable_instance_id is not None:    log["durable_instance_id"]    = durable_instance_id
+    if job_id is not None:                 log["job_id"]                 = job_id
+    if orchestrator_aa_job_id is not None: log["orchestrator_aa_job_id"] = orchestrator_aa_job_id
+    if error is not None:                  log["error"]                  = error
     logging.info(json.dumps(log))
     body_bytes = json.dumps(body).encode("utf-8") if isinstance(body, dict) else body
     return func.HttpResponse(
@@ -388,17 +389,31 @@ def gateway_router(req: func.HttpRequest) -> func.HttpResponse:
         # For Automation-routed tasks, the upstream webhook returns its own
         # body that doesn't carry our gateway-minted job_id. Re-wrap the
         # response so the caller always gets the job_id they need for the
-        # follow-up /Status query.
+        # follow-up /Status query. Also extract the orchestrator's AA job_id
+        # from the webhook response (`{"JobIds": ["..."]}`) and log it so
+        # the operator can correlate the gateway-minted external job_id with
+        # the AA-side runbook job for that run.
         if task in _AUTOMATION_ROUTES and 200 <= status_code < 300:
+            orchestrator_aa_job_id = None
+            try:
+                up_json = json.loads(body_bytes)
+                if isinstance(up_json, dict):
+                    job_ids = up_json.get("JobIds") or up_json.get("jobIds")
+                    if isinstance(job_ids, list) and job_ids:
+                        orchestrator_aa_job_id = str(job_ids[0])
+            except Exception:
+                pass
             wrapped = {
-                "success":      True,
-                "job_id":       job_id,
-                "request_guid": request_guid,
-                "task":         task,
+                "success":                True,
+                "job_id":                 job_id,
+                "request_guid":           request_guid,
+                "task":                   task,
+                "orchestrator_aa_job_id": orchestrator_aa_job_id,
             }
             return _respond(
                 202, body=wrapped,
                 request_guid=request_guid, build_id=build_id, job_id=job_id,
+                orchestrator_aa_job_id=orchestrator_aa_job_id,
                 user_id=user_id, task=task, upstream_status=status_code,
             )
 

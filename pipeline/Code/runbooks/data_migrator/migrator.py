@@ -5,50 +5,44 @@ threaded cross-cluster MongoDB collection copy.
 
 Flow:
 
-  1. Parse parameters (job_id, vm_name, source cluster/db/collection,
-     destination cluster/db/collection, filter, thread_criteria,
-     preserve_indices, reservation_duration_minutes, env_prefix).
-  2. Initialize the job-status doc in admin.ChatHealthyDataMigrator_jobs
-     on the pipeline cluster.
-  3. Wake the source cluster and create a reservation via
-     ClusterLifecycleManager. Poll until the source cluster reaches
-     IDLE state before opening the read cursor.
+  1. Read the migration payload (one JSON-encoded `payload` parameter
+     in sys.argv[1]). Extract every arg.
+  2. Initialize the job-status doc on the pipeline cluster
+     (admin.ChatHealthyDataMigrator_jobs).
+  3. Wake the source cluster and create a reservation via the existing
+     ClusterLifecycleManager pattern. Poll Atlas until the source
+     cluster reaches IDLE.
   4. If the destination collection exists, drop and recreate.
-  5. Enumerate partitions from thread_criteria (one partition per
-     unique value combination across the wildcarded fields; null /
-     missing counts as one value per Skip's rule).
+  5. Enumerate partitions from thread_criteria. Wildcarded fields are
+     enumerated against the source via distinct(field, JobFilter) and
+     each distinct value (null/missing counts as one) becomes a thread.
   6. ThreadPoolExecutor: one thread per partition. Each thread reads
-     its partition's slice from source via a batched cursor and writes
-     to destination via bulk_write(ordered=True). Per-thread progress
-     is written into the threads[] array of the job-status doc.
+     its slice from source and writes to destination via
+     bulk_write(ordered=True). Per-thread progress is written into the
+     threads[] array of the job-status doc.
   7. Reconcile: sum of per-thread migrated counts MUST equal
      source.count_documents(filter); mismatch = abend.
   8. If preserve_indices=True, mirror every user-defined source index
-     on the destination (skipping the _id index — system index).
+     on the destination.
   9. finally:
-       - Set has_exception on the job-status doc and write ended_at.
+       - Set has_exception on the job doc and write ended_at.
        - On failure: drop destination collection.
        - Always: release source cluster reservation.
-       - Fire-and-wait the deprovisioner runbook via the Automation
-         Account REST API; receive its terminal status; exit.
+       - Fire-and-forget the deprovisioner runbook (do not wait).
+       - Log the deprovisioner AA job_id.
 
-Exceptions kill the process; no try/except as control flow. The
-finally block is the comprehensive automated-deprovisioning path
-(per slide 4 of the design deck).
-
-Input parameters (passed by the orchestrator via runbook start_job):
+Input payload (one JSON-encoded `payload` parameter, read via sys.argv[1]):
     job_id, vm_name, source_cluster, source_database, source_collection,
     destination_cluster, destination_database, destination_collection,
-    filter (json string), thread_criteria (json string),
-    preserve_indices (bool string), reservation_duration_minutes (int string),
-    env_prefix, build_id, request_guid.
+    filter (Mongo-legal dict), thread_criteria (dict),
+    preserve_indices (bool), reservation_duration_minutes (int).
 
 Environment (Automation Variables):
     MONGO_CLUSTER_<name>_connectionString — one per managed Atlas cluster.
-    MONGO_connectionString                — pipeline cluster (status doc lives here).
+    MONGO_connectionString                — pipeline cluster (status doc).
     MONGO_FRONTEND_connectionString       — front-end cluster (admin.cluster_lifecycle).
     ATLAS_PUBLIC_KEY / ATLAS_PRIVATE_KEY / ATLAS_PROJECT_ID — for source wake polling.
-    AZ_SUBSCRIPTION_ID                    — Automation Account subscription.
+    AZ_SUBSCRIPTION_ID                    — for deprovisioner job_start.
     AZ_AUTOMATION_RESOURCE_GROUP          — Automation Account RG.
     AZ_AUTOMATION_ACCOUNT                 — ChatHealthyJobManager.
 """
@@ -66,14 +60,10 @@ from datetime import datetime, timezone
 
 import requests
 from pymongo import MongoClient, InsertOne
-from pymongo.errors import BulkWriteError
 from requests.auth import HTTPDigestAuth
 
 try:
     import automationassets
-    # Cluster connection strings are dynamic (one per managed cluster) so
-    # we lazy-pull them from automation variables as needed in
-    # _connection_string_for_cluster. Eager-pull only the static keys.
     for k in ("MONGO_connectionString", "MONGO_FRONTEND_connectionString",
               "ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY", "ATLAS_PROJECT_ID",
               "AZ_SUBSCRIPTION_ID", "AZ_AUTOMATION_RESOURCE_GROUP",
@@ -90,39 +80,18 @@ log = logging.getLogger("migrator")
 
 _STATUS_DB = "admin"
 _STATUS_COLLECTION = "ChatHealthyDataMigrator_jobs"
-_BATCH_SIZE = 5000  # cursor pre-fetch AND bulk_write accumulator
+_BATCH_SIZE = 5000
 _DEPROVISIONER_RUNBOOK = "ChatHealthyDataMigratorDeprovisioner"
 _AUTOMATION_API = "2023-11-01"
 _SOURCE_WAKE_POLL_SEC = 15
 _SOURCE_WAKE_TIMEOUT_SEC = 15 * 60
-_DEPROV_POLL_SEC = 10
-_DEPROV_TIMEOUT_SEC = 10 * 60
 
 
-# ─── parameter parsing ──────────────────────────────────────────────────
+def _read_payload() -> dict:
+    if len(sys.argv) < 2:
+        raise RuntimeError("no payload: sys.argv[1] missing")
+    return json.loads(sys.argv[1])
 
-def _get_param(name: str, job_params) -> str | None:
-    if job_params and name in job_params:
-        return str(job_params[name])
-    return os.environ.get(name)
-
-
-def _parse_bool(s: str | None, default: bool) -> bool:
-    if s is None:
-        return default
-    return s.strip().lower() in ("true", "1", "yes", "t", "y")
-
-
-def _parse_json_dict(s: str | None) -> dict:
-    if not s or s.strip() in ("", "null", "None"):
-        return {}
-    obj = json.loads(s)
-    if not isinstance(obj, dict):
-        raise RuntimeError(f"expected JSON object, got {type(obj).__name__}: {s[:200]}")
-    return obj
-
-
-# ─── cluster connection-string resolution ──────────────────────────────
 
 def _connection_string_for_cluster(cluster_name: str) -> str:
     env_var = f"MONGO_CLUSTER_{cluster_name}_connectionString"
@@ -138,21 +107,11 @@ def _connection_string_for_cluster(cluster_name: str) -> str:
             pass
     raise RuntimeError(
         f"No connection string for cluster {cluster_name!r}: env var "
-        f"{env_var!r} is not set. Add the Automation Variable on the "
-        f"Automation Account (deploy script populates these per managed cluster)."
+        f"{env_var!r} is not set."
     )
 
 
-# ─── status doc ─────────────────────────────────────────────────────────
-
 class StatusDoc:
-    """Wraps writes to the job-status doc on the pipeline cluster.
-
-    One doc per job_id; threads[] array carries one row per partition.
-    All updates are positional-array updates so concurrent threads can
-    write their own rows without stepping on each other.
-    """
-
     def __init__(self, pipeline_client: MongoClient, job_id: str):
         self._coll = pipeline_client[_STATUS_DB][_STATUS_COLLECTION]
         self._job_id = job_id
@@ -215,8 +174,6 @@ class StatusDoc:
         )
 
 
-# ─── source cluster wake + reservation ─────────────────────────────────
-
 def _atlas_cluster_state(cluster_name: str) -> str:
     auth = HTTPDigestAuth(os.environ["ATLAS_PUBLIC_KEY"], os.environ["ATLAS_PRIVATE_KEY"])
     url = (
@@ -266,9 +223,6 @@ def _wait_source_idle(cluster_name: str) -> None:
 
 
 def _frontend_admin_coll():
-    """admin.cluster_lifecycle lives on the front-end cluster (where every
-    pipeline writes its reservation row). We open it via the front-end
-    MongoClient and reuse the existing reservation pattern."""
     fe = MongoClient(os.environ["MONGO_FRONTEND_connectionString"])
     return fe["admin"]["cluster_lifecycle"]
 
@@ -301,18 +255,10 @@ def _release_source(job_id: str) -> None:
     coll.delete_one({"_id": job_id})
 
 
-# ─── partition enumeration ─────────────────────────────────────────────
-
 def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) -> list[dict]:
-    """Return a list of per-thread filter dicts.
-
-    thread_criteria maps attribute path -> "*" (wildcard) or a fixed value
-    (string / number / etc.). Wildcard fields expand to one partition per
-    distinct value (null/missing = one value, per spec).
-    """
     if not thread_criteria:
         raise RuntimeError(
-            "thread_criteria is required (per spec — missing thread_criteria = abend at entry)"
+            "thread_criteria is required (missing thread_criteria = abend at entry)"
         )
 
     wildcards: list[str] = []
@@ -328,7 +274,7 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
         full_filter = {**base_filter, **fixed}
         values = src_coll.distinct(field, full_filter)
         if not values:
-            values = [None]  # only null/missing in scope
+            values = [None]
         distinct_values_per_field.append(values)
 
     if not wildcards:
@@ -343,12 +289,8 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
     return partitions
 
 
-# ─── per-thread migration ──────────────────────────────────────────────
-
 def _migrate_slice(src_coll, dst_coll, base_filter: dict, partition_filter: dict,
                    thread_id: str, status_doc: StatusDoc) -> tuple[int, int]:
-    """Read every doc matching base_filter ∪ partition_filter from src and
-    insert into dst in batches of _BATCH_SIZE. Returns (source_read, dest_write)."""
     combined = {**base_filter, **partition_filter}
     cursor = src_coll.find(combined, no_cursor_timeout=False).batch_size(_BATCH_SIZE)
     batch: list[InsertOne] = []
@@ -371,18 +313,13 @@ def _migrate_slice(src_coll, dst_coll, base_filter: dict, partition_filter: dict
     return read_count, write_count
 
 
-# ─── index handling ────────────────────────────────────────────────────
-
 def _mirror_indexes(src_coll, dst_coll) -> int:
-    """Mirror every user-defined index from src to dst. Returns count of
-    indexes created. The _id index is system-created and excluded."""
     created = 0
     for idx in src_coll.list_indexes():
         name = idx.get("name", "")
         if name == "_id_":
             continue
         key = list(idx["key"].items())
-        # Strip server-side and version metadata so create_index accepts.
         opts = {
             k: v for k, v in idx.items()
             if k not in ("v", "key", "ns", "background", "name", "textIndexVersion",
@@ -393,8 +330,6 @@ def _mirror_indexes(src_coll, dst_coll) -> int:
         created += 1
     return created
 
-
-# ─── deprovisioner fire-and-wait ───────────────────────────────────────
 
 def _mi_token() -> str:
     endpoint = os.environ["IDENTITY_ENDPOINT"]
@@ -409,24 +344,24 @@ def _mi_token() -> str:
     return r.json()["access_token"]
 
 
-def _fire_and_wait_deprovisioner(job_id: str, vm_name: str) -> str:
+def _fire_deprovisioner(job_id: str, vm_name: str) -> str:
+    """Fire-and-forget the deprovisioner runbook. Returns the AA job_id."""
     sub = os.environ["AZ_SUBSCRIPTION_ID"]
     aa_rg = os.environ["AZ_AUTOMATION_RESOURCE_GROUP"]
     aa = os.environ["AZ_AUTOMATION_ACCOUNT"]
-    automation_job_id = str(uuid.uuid4())
-    base = (
+    aa_job_id = str(uuid.uuid4())
+    url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/jobs/{aa_job_id}?api-version={_AUTOMATION_API}"
     )
-    url = f"{base}/jobs/{automation_job_id}?api-version={_AUTOMATION_API}"
     body = {
         "properties": {
             "runbook": {"name": _DEPROVISIONER_RUNBOOK},
-            "parameters": {"job_id": job_id, "vm_name": vm_name},
+            "parameters": {"payload": json.dumps({"job_id": job_id, "vm_name": vm_name})},
         }
     }
     token = _mi_token()
-    log.info("Fire deprovisioner runbook for vm=%s (AA job %s)", vm_name, automation_job_id)
     r = requests.put(
         url,
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
@@ -436,58 +371,28 @@ def _fire_and_wait_deprovisioner(job_id: str, vm_name: str) -> str:
         raise RuntimeError(
             f"Start deprovisioner failed: HTTP {r.status_code} {r.text[:500]}"
         )
-
-    deadline = time.time() + _DEPROV_TIMEOUT_SEC
-    terminal = {"Completed", "Failed", "Stopped", "Suspended"}
-    job_url = f"{base}/jobs/{automation_job_id}?api-version={_AUTOMATION_API}"
-    while time.time() < deadline:
-        token = _mi_token()
-        r = requests.get(job_url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
-        r.raise_for_status()
-        status = r.json().get("properties", {}).get("status", "Unknown")
-        log.info("Deprovisioner job %s status=%s", automation_job_id, status)
-        if status in terminal:
-            return status
-        time.sleep(_DEPROV_POLL_SEC)
-    raise RuntimeError(
-        f"Deprovisioner job {automation_job_id} did not reach terminal state "
-        f"within {_DEPROV_TIMEOUT_SEC}s"
-    )
+    return aa_job_id
 
 
-# ─── main ──────────────────────────────────────────────────────────────
-
-def _main(job_params):
-    job_id = _get_param("job_id", job_params)
-    vm_name = _get_param("vm_name", job_params)
-    src_cluster = _get_param("source_cluster", job_params)
-    src_db_name = _get_param("source_database", job_params)
-    src_coll_name = _get_param("source_collection", job_params)
-    dst_cluster = _get_param("destination_cluster", job_params)
-    dst_db_name = _get_param("destination_database", job_params)
-    dst_coll_name = _get_param("destination_collection", job_params)
-    filter_str = _get_param("filter", job_params)
-    thread_criteria_str = _get_param("thread_criteria", job_params)
-    preserve_indexes = _parse_bool(_get_param("preserve_indices", job_params), True)
-    duration_min = int(_get_param("reservation_duration_minutes", job_params) or "60")
-
-    for k, v in [("job_id", job_id), ("vm_name", vm_name),
-                 ("source_cluster", src_cluster), ("source_database", src_db_name),
-                 ("source_collection", src_coll_name),
-                 ("destination_cluster", dst_cluster),
-                 ("destination_database", dst_db_name),
-                 ("destination_collection", dst_coll_name)]:
-        if not v:
-            raise RuntimeError(f"migrator: required parameter {k!r} missing")
-
-    base_filter = _parse_json_dict(filter_str)
-    thread_criteria = _parse_json_dict(thread_criteria_str)
+def _main():
+    payload = _read_payload()
+    job_id = payload["job_id"]
+    vm_name = payload["vm_name"]
+    src_cluster = payload["source_cluster"]
+    src_db_name = payload["source_database"]
+    src_coll_name = payload["source_collection"]
+    dst_cluster = payload["destination_cluster"]
+    dst_db_name = payload["destination_database"]
+    dst_coll_name = payload["destination_collection"]
+    base_filter = payload.get("filter") or {}
+    thread_criteria = payload.get("thread_criteria") or {}
+    preserve_indexes = bool(payload.get("preserve_indices", True))
+    duration_min = int(payload.get("reservation_duration_minutes") or 60)
 
     log.info("Migrator begin: job_id=%s src=%s/%s.%s dst=%s/%s.%s",
              job_id, src_cluster, src_db_name, src_coll_name,
              dst_cluster, dst_db_name, dst_coll_name)
 
-    # Connect to clusters.
     src_uri = _connection_string_for_cluster(src_cluster)
     dst_uri = _connection_string_for_cluster(dst_cluster)
     src_client = MongoClient(src_uri, appname="ChatHealthyDataMigrator")
@@ -499,25 +404,21 @@ def _main(job_params):
 
     status_doc = StatusDoc(pipeline_client, job_id)
 
-    # 1. Wake + reserve source.
     log.info("Waking source cluster %s and reserving for %d min", src_cluster, duration_min)
     _atlas_resume_cluster(src_cluster)
     _reserve_source(src_cluster, job_id, duration_min)
     _wait_source_idle(src_cluster)
 
-    # 2. Destination collection: drop and recreate (full migration semantics).
     if dst_coll_name in dst_client[dst_db_name].list_collection_names():
         log.info("Destination collection %s.%s exists — dropping",
                  dst_db_name, dst_coll_name)
         dst_client[dst_db_name].drop_collection(dst_coll_name)
     dst_client[dst_db_name].create_collection(dst_coll_name)
 
-    # 3. Enumerate partitions.
     partitions = _enumerate_partitions(src_coll, base_filter, thread_criteria)
     log.info("Enumerated %d partitions", len(partitions))
     status_doc.init(partitions)
 
-    # 4. Fan out.
     has_exception = False
     success_writes = 0
     try:
@@ -532,17 +433,14 @@ def _main(job_params):
             for fut in as_completed(futures):
                 thread_id = futures[fut]
                 try:
-                    read_n, write_n = fut.result()
+                    _, write_n = fut.result()
                     success_writes += write_n
-                    log.info("Thread %s done: read=%d write=%d",
-                             thread_id, read_n, write_n)
                 except Exception as e:
                     status_doc.thread_status(thread_id, "error")
                     has_exception = True
                     log.error("Thread %s failed: %r", thread_id, e)
-                    raise  # propagate to outer finally
+                    raise
 
-        # 5. Reconcile.
         source_total = src_coll.count_documents(base_filter)
         if success_writes != source_total:
             has_exception = True
@@ -550,14 +448,11 @@ def _main(job_params):
                 f"Reconciliation mismatch: migrated={success_writes} source={source_total}"
             )
 
-        # 6. Mirror indexes if requested.
         if preserve_indexes:
             created = _mirror_indexes(src_coll, dst_coll)
             log.info("Mirrored %d user-defined indexes", created)
 
     finally:
-        # Per spec: finally is the automated cleanup path. Even on success it
-        # releases the source reservation and fires the deprovisioner.
         status_doc.finalize(has_exception)
 
         if has_exception:
@@ -571,19 +466,20 @@ def _main(job_params):
         log.info("Releasing source reservation %s", job_id)
         _release_source(job_id)
 
-        log.info("Fire-and-wait deprovisioner for vm=%s", vm_name)
-        deprov_status = _fire_and_wait_deprovisioner(job_id, vm_name)
-        log.info("Deprovisioner terminal status: %s", deprov_status)
+        log.info("Firing deprovisioner for vm=%s (fire-and-forget)", vm_name)
+        deprov_aa_job_id = _fire_deprovisioner(job_id, vm_name)
+        log.info("Migrator fired deprovisioner: job_id=%s deprovisioner_aa_job_id=%s",
+                 job_id, deprov_aa_job_id)
 
         print(json.dumps({
             "migrator_status": "error" if has_exception else "ok",
             "job_id": job_id,
-            "deprovisioner_status": deprov_status,
+            "deprovisioner_aa_job_id": deprov_aa_job_id,
         }), flush=True)
 
 
 try:
-    _main(None)
+    _main()
     sys.exit(0)
 except Exception:
     tb = traceback.format_exc()
