@@ -16,8 +16,10 @@ az error when something is wrong.
 """
 from __future__ import annotations
 
+import base64
 import datetime
 import json
+import pathlib
 import subprocess
 import sys
 
@@ -374,6 +376,26 @@ def chdm_ensure_orchestrator_webhook(
     _write_aa_variable(aa_rg, aa, _ORCHESTRATOR_WEBHOOK_VAR, url_value)
     _step(f"  orchestrator webhook minted; URL persisted as variable '{_ORCHESTRATOR_WEBHOOK_VAR}'.")
     return url_value
+
+
+_CHDM_ADMIN_PRIVATE_KEY_FILENAME = "chdm_admin_id_ed25519"
+
+
+def chdm_ensure_admin_private_key_file(
+    repo_root: pathlib.Path, private_key_b64: str,
+) -> pathlib.Path:
+    """Decode AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64 and land the OpenSSH private key
+    file at Code/Shared/ops/certs/<filename> with mode 600. Operator runs
+    `ssh -i <that path> chdm-admin@<vm-ip>` to admin the Hybrid Worker VM.
+    Idempotent — overwrites on every call so a key rotation in .env
+    propagates immediately to the operator's workstation."""
+    certs_dir = repo_root / "Code" / "Shared" / "ops" / "certs"
+    certs_dir.mkdir(parents=True, exist_ok=True)
+    key_path = certs_dir / _CHDM_ADMIN_PRIVATE_KEY_FILENAME
+    key_path.write_bytes(base64.b64decode(private_key_b64))
+    key_path.chmod(0o600)
+    _step(f"wrote admin SSH private key to {key_path} (mode 600)")
+    return key_path
 
 
 def chdm_set_functionapp_setting(fa_rg: str, fa_name: str, key: str, value: str) -> None:

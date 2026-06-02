@@ -752,18 +752,21 @@ _GATEWAY_WEBHOOK_SETTING_KEY = "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL"
 
 def _ensure_chdm_persistent_infrastructure_once(
     aa_rg: str, aa: str, vm_rg: str, env_key: str,
+    *, repo_root: Path, resolver: SecretsResolver, env: str,
 ) -> str:
     """Run the CHDM persistent-infrastructure ensure block exactly once per
     `local_deploy` process for the given env. Returns the VM subnet ARM
     resource id (cached after the first call for downstream callers in the
-    same session)."""
+    same session). Lands the admin SSH private key on the operator's
+    workstation as part of the same once-per-session block."""
     cache_key = f"{env_key}|{aa_rg}|{aa}|{vm_rg}"
     if cache_key in _chdm_persistent_infra_ensured_for:
-        # Re-read the subnet id (cheap) so callers always get a current value.
         return chdm_helpers.chdm_ensure_vm_subnet(vm_rg)
     subnet_id = chdm_helpers.chdm_ensure_chdm_persistent_infrastructure(
         vm_rg=vm_rg, aa_rg=aa_rg, aa=aa,
     )
+    private_key_b64 = resolver.resolve("AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64", env)
+    chdm_helpers.chdm_ensure_admin_private_key_file(repo_root, private_key_b64)
     _chdm_persistent_infra_ensured_for.add(cache_key)
     return subnet_id
 
@@ -790,6 +793,7 @@ def _deploy_azure_automation_runbook(
     env: str,
     resolver: SecretsResolver,
     coll: DeploymentCollection,
+    repo_root: Path,
 ) -> str:
     env_binding = next(
         (e for e in target.environments if e.env_binding == env), None,
@@ -833,6 +837,7 @@ def _deploy_azure_automation_runbook(
             )
         chdm_subnet_id = _ensure_chdm_persistent_infrastructure_once(
             aa_rg=rg, aa=aa, vm_rg=vm_rg, env_key=env,
+            repo_root=repo_root, resolver=resolver, env=env,
         )
 
     # Push every secret binding into the Automation Account as an Automation
@@ -1103,7 +1108,7 @@ def _deploy_one(
         return _deploy_azure_container_app(build_dir, target, env, resolver, build_n)
     if target_kind == "azure_automation_runbook":
         target = coll.by_target_id(target_id)
-        return _deploy_azure_automation_runbook(build_dir, target, env, resolver, coll)
+        return _deploy_azure_automation_runbook(build_dir, target, env, resolver, coll, repo_root)
     raise RuntimeError(
         f"target_kind {target_kind!r} not supported in local_deploy."
     )
