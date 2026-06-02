@@ -306,33 +306,32 @@ def chdm_ensure_orchestrator_webhook(
 ) -> str:
     """Return a usable orchestrator webhook URL.
 
-    Webhook URLs are only returned by Azure at create time, so we persist
-    the URL as an Automation Variable on the AA and reuse it on subsequent
-    deploys. If the persisted URL points at a still-valid webhook we keep
-    it; otherwise we mint a fresh webhook (with a long expiry) and store
-    its URL.
+    Webhook URIs are only returned by Azure at create time, so we
+    persist the URL as an Automation Variable on the AA and reuse it
+    on subsequent deploys. If the persisted URL is missing OR the
+    webhook resource on the AA is gone / expired, we delete-then-
+    recreate via `az automation webhook create`, which mints the URI
+    cryptographically and returns it. Long-lived expiry (default 10
+    years) so re-minting almost never fires.
     """
-    sub = _subscription_id()
     persisted = _read_aa_variable(aa_rg, aa, _ORCHESTRATOR_WEBHOOK_VAR)
 
-    # Check the webhook resource still exists on the AA and is enabled.
-    wh_url = (
-        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
-        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
-        f"/webhooks/{_ORCHESTRATOR_WEBHOOK_NAME}?api-version={_AUTOMATION_API}"
-    )
-    rc, out, _ = _az_try([
-        "az", "rest", "--method", "get", "--url", wh_url, "-o", "json",
+    show_rc, show_out, _ = _az_try([
+        "az", "automation", "webhook", "show",
+        "--resource-group", aa_rg,
+        "--automation-account-name", aa,
+        "--name", _ORCHESTRATOR_WEBHOOK_NAME,
+        "-o", "json",
     ])
     is_healthy = False
-    if rc == 0 and out and persisted:
+    if show_rc == 0 and show_out and persisted:
         try:
-            body = json.loads(out)
-            props = body.get("properties", {})
-            expiry = props.get("expiryTime", "")
-            enabled = bool(props.get("isEnabled", False))
+            body = json.loads(show_out)
+            # CLI sometimes flattens fields to top level, sometimes nests
+            # under properties — accept either.
+            expiry = body.get("expiryTime") or body.get("properties", {}).get("expiryTime", "")
+            enabled = bool(body.get("isEnabled") or body.get("properties", {}).get("isEnabled"))
             if enabled and expiry:
-                # Treat anything more than 30 days from now as healthy.
                 exp_dt = datetime.datetime.fromisoformat(expiry.replace("Z", "+00:00"))
                 horizon = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
                 is_healthy = exp_dt > horizon
@@ -340,38 +339,39 @@ def chdm_ensure_orchestrator_webhook(
             is_healthy = False
 
     if is_healthy and persisted:
-        _step(f"  orchestrator webhook '{_ORCHESTRATOR_WEBHOOK_NAME}' healthy — reusing persisted URL")
+        _step(f"  orchestrator webhook '{_ORCHESTRATOR_WEBHOOK_NAME}' healthy - reusing persisted URL")
         return persisted
 
-    _step(f"  orchestrator webhook '{_ORCHESTRATOR_WEBHOOK_NAME}' missing/expired — minting")
-    if rc == 0:
+    _step(f"  orchestrator webhook '{_ORCHESTRATOR_WEBHOOK_NAME}' missing/expired/lost-uri - minting")
+    if show_rc == 0:
         _az([
-            "az", "rest", "--method", "delete", "--url", wh_url, "-o", "none",
+            "az", "automation", "webhook", "delete",
+            "--resource-group", aa_rg,
+            "--automation-account-name", aa,
+            "--name", _ORCHESTRATOR_WEBHOOK_NAME,
+            "-y", "-o", "none",
         ])
     expiry_dt = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365 * expiry_years)
-    body = json.dumps({
-        "name": _ORCHESTRATOR_WEBHOOK_NAME,
-        "properties": {
-            "isEnabled": True,
-            "expiryTime": expiry_dt.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-            "runbook": {"name": runbook_name},
-        },
-    })
-    out = _az([
-        "az", "rest", "--method", "put", "--url", wh_url,
-        "--headers", "Content-Type=application/json",
-        "--body", body, "-o", "json",
+    expiry_iso = expiry_dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    raw = _az([
+        "az", "automation", "webhook", "create",
+        "--resource-group", aa_rg,
+        "--automation-account-name", aa,
+        "--name", _ORCHESTRATOR_WEBHOOK_NAME,
+        "--runbook-name", runbook_name,
+        "--is-enabled", "true",
+        "--expiry-time", expiry_iso,
+        "-o", "json",
     ])
     try:
-        resp = json.loads(out or "{}")
-        url_value = resp.get("properties", {}).get("uri", "")
+        resp = json.loads(raw or "{}")
+        url_value = resp.get("uri") or resp.get("properties", {}).get("uri", "")
     except Exception:
         url_value = ""
     if not url_value:
         sys.exit(
-            "ERROR: webhook PUT did not return a 'properties.uri' — Azure "
-            "only returns the URI on create. Without it we cannot wire "
-            "the gateway. Inspect the AA in the portal."
+            "ERROR: az automation webhook create did not return a 'uri' field. "
+            "Without it we cannot wire the gateway. Inspect the AA in the portal."
         )
     _write_aa_variable(aa_rg, aa, _ORCHESTRATOR_WEBHOOK_VAR, url_value)
     _step(f"  orchestrator webhook minted; URL persisted as variable '{_ORCHESTRATOR_WEBHOOK_VAR}'.")
