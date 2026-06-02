@@ -2816,7 +2816,7 @@
             "log_analytics_workspace": "prod-providerpipeline-workspace",
             "application_insights": "prod-providerpipeline-insights",
             "registry": "chathealthypipelinedev",
-            "task_hub": "ProdProviderPipelineNetherite3",
+            "task_hub": "ProdProviderPipelineNetherite4",
             "event_hubs_namespace": "ChatHealthyDataPipelines",
             "min_replicas": 0,
             "max_replicas": 4,
