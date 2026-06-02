@@ -3384,7 +3384,9 @@
         "AzureWebJobsStorage": "local_env",
         "EventHubsConnection": "local_env",
         "ENV_PREFIX": "local_env",
-        "GATEWAY_APPINSIGHTS_CONNECTION_STRING": "local_env"
+        "GATEWAY_APPINSIGHTS_CONNECTION_STRING": "local_env",
+        "MONGO_connectionString": "local_env",
+        "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env"
       }
     },
     {
@@ -3430,6 +3432,133 @@
         "SPARKMAIL_API_KEY": "local_env",
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_automation_runbook_chdm_orchestrator",
+      "target_kind": "azure_automation_runbook",
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorOrchestrator",
+          "azure_automation": {
+            "resource_group": "ChatHhealthyResorceManager",
+            "automation_account": "ChatHealthyJobManager",
+            "runbook_name": "ChatHealthyDataMigratorOrchestrator"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-010-F-102",
+          "source_location": "pipeline/Code/runbooks/data_migrator/orchestrator.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a3d67a29b27a0736e88b66b6570c76c34b74f237d9798bf971d16708b407c436"
+        }
+      ],
+      "secrets": {
+        "AZ_SUBSCRIPTION_ID": "local_env",
+        "AZ_RESOURCE_GROUP": "local_env",
+        "AZ_AUTOMATION_ACCOUNT": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_automation_runbook_chdm_provisioner",
+      "target_kind": "azure_automation_runbook",
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorProvisioner",
+          "azure_automation": {
+            "resource_group": "ChatHhealthyResorceManager",
+            "automation_account": "ChatHealthyJobManager",
+            "runbook_name": "ChatHealthyDataMigratorProvisioner"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-010-F-102",
+          "source_location": "pipeline/Code/runbooks/data_migrator/provisioner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "285cb971ff3cccccd7edf11db1347d095530977508c737bb9b4679e72c60fcd0"
+        }
+      ],
+      "secrets": {
+        "AZ_SUBSCRIPTION_ID": "local_env",
+        "AZ_VM_RESOURCE_GROUP": "local_env",
+        "AZ_VM_LOCATION": "local_env",
+        "AZ_VM_SIZE": "local_env",
+        "AZ_VM_SUBNET_ID": "local_env",
+        "AZ_VM_ADMIN_USERNAME": "local_env",
+        "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
+        "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
+        "AZ_AUTOMATION_ACCOUNT": "local_env",
+        "AZ_AUTOMATION_JRDS_URL": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_automation_runbook_chdm_migrator",
+      "target_kind": "azure_automation_runbook",
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigrator",
+          "azure_automation": {
+            "resource_group": "ChatHhealthyResorceManager",
+            "automation_account": "ChatHealthyJobManager",
+            "runbook_name": "ChatHealthyDataMigrator"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-010-F-102",
+          "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "6c62db06a54a852f017f452541e3e5390acc96cc549c85a5170aedd0df6122a3"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZ_SUBSCRIPTION_ID": "local_env",
+        "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
+        "AZ_AUTOMATION_ACCOUNT": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_automation_runbook_chdm_deprovisioner",
+      "target_kind": "azure_automation_runbook",
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorDeprovisioner",
+          "azure_automation": {
+            "resource_group": "ChatHhealthyResorceManager",
+            "automation_account": "ChatHealthyJobManager",
+            "runbook_name": "ChatHealthyDataMigratorDeprovisioner"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-010-F-102",
+          "source_location": "pipeline/Code/runbooks/data_migrator/deprovisioner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "5a8f1704c1f2db144c5c23bf7cc567bf0c7f2dcbef7cb0b4f63255feb6e9d7aa"
+        }
+      ],
+      "secrets": {
+        "AZ_SUBSCRIPTION_ID": "local_env",
+        "AZ_VM_RESOURCE_GROUP": "local_env"
       }
     }
   ]
