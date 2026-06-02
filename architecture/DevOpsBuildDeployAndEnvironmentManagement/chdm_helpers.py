@@ -7,9 +7,14 @@ migrator chain depends on:
   - Hybrid Worker Group on the ChatHealthyJobManager Automation Account.
   - Role assignments on the AA's system-assigned managed identity
     (Virtual Machine Contributor + Automation Operator on the VM RG).
-  - Orchestrator runbook webhook (URL captured at create time, persisted as
-    an Automation Variable so subsequent deploys reuse it; written into the
-    gateway Function App settings so the gateway forwards to it).
+  - Operator-landed SSH private key file for admin access to the
+    ephemeral Hybrid Worker VM.
+
+The orchestrator webhook URL is operator-minted once (long expiry) and
+lives in Code/.env as MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL;
+the gateway target's secrets block pushes it to the Function App app
+settings at gateway deploy time via the standard SecretsResolver flow.
+No webhook code in this module.
 
 Each function fails loud. No soft fallbacks; the operator sees the real
 az error when something is wrong.
@@ -17,7 +22,6 @@ az error when something is wrong.
 from __future__ import annotations
 
 import base64
-import datetime
 import json
 import pathlib
 import subprocess
@@ -30,8 +34,6 @@ _VM_SUBNET_NAME = "hybrid-worker-subnet"
 _VM_SUBNET_PREFIX = "10.0.2.0/24"
 _VNET_NAME = "ChatHealthy-VNet"
 _HYBRID_WORKER_GROUP = "ChatHealthyDataMigratorWorkGroup"
-_ORCHESTRATOR_WEBHOOK_NAME = "ChatHealthyDataMigratorOrchestratorWebhook"
-_ORCHESTRATOR_WEBHOOK_VAR = "ORCHESTRATOR_WEBHOOK_URL_persisted"
 
 
 def _cflags() -> int:
@@ -251,133 +253,6 @@ def chdm_ensure_chdm_persistent_infrastructure(
     return subnet_id
 
 
-def _read_aa_variable(aa_rg: str, aa: str, name: str) -> str | None:
-    """Return the decoded value of an Automation Variable, or None if absent.
-
-    Values are stored JSON-encoded on the wire (the deploy handler that
-    writes them does `json.dumps(value)`); we round-trip that.
-    """
-    sub = _subscription_id()
-    url = (
-        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
-        f"/providers/Microsoft.Automation/automationAccounts/{aa}/variables/{name}"
-        f"?api-version={_AUTOMATION_API}"
-    )
-    rc, out, _ = _az_try([
-        "az", "rest", "--method", "get", "--url", url, "-o", "json",
-    ])
-    if rc != 0 or not out:
-        return None
-    try:
-        body = json.loads(out)
-        raw = body.get("properties", {}).get("value")
-        if raw is None:
-            return None
-        # Variable values are stored as JSON-encoded strings; decode once.
-        return json.loads(raw) if isinstance(raw, str) and raw.startswith('"') else str(raw)
-    except Exception:
-        return None
-
-
-def _write_aa_variable(aa_rg: str, aa: str, name: str, value: str) -> None:
-    sub = _subscription_id()
-    url = (
-        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
-        f"/providers/Microsoft.Automation/automationAccounts/{aa}/variables/{name}"
-        f"?api-version={_AUTOMATION_API}"
-    )
-    body = json.dumps({
-        "name": name,
-        "properties": {"value": json.dumps(value), "isEncrypted": True},
-    })
-    _az([
-        "az", "rest", "--method", "put", "--url", url,
-        "--headers", "Content-Type=application/json",
-        "--body", body, "-o", "none",
-    ])
-
-
-def chdm_ensure_orchestrator_webhook(
-    *,
-    aa_rg: str,
-    aa: str,
-    runbook_name: str,
-    expiry_years: int = 10,
-) -> str:
-    """Return a usable orchestrator webhook URL.
-
-    Webhook URIs are only returned by Azure at create time, so we
-    persist the URL as an Automation Variable on the AA and reuse it
-    on subsequent deploys. If the persisted URL is missing OR the
-    webhook resource on the AA is gone / expired, we delete-then-
-    recreate via `az automation webhook create`, which mints the URI
-    cryptographically and returns it. Long-lived expiry (default 10
-    years) so re-minting almost never fires.
-    """
-    persisted = _read_aa_variable(aa_rg, aa, _ORCHESTRATOR_WEBHOOK_VAR)
-
-    show_rc, show_out, _ = _az_try([
-        "az", "automation", "webhook", "show",
-        "--resource-group", aa_rg,
-        "--automation-account-name", aa,
-        "--name", _ORCHESTRATOR_WEBHOOK_NAME,
-        "-o", "json",
-    ])
-    is_healthy = False
-    if show_rc == 0 and show_out and persisted:
-        try:
-            body = json.loads(show_out)
-            # CLI sometimes flattens fields to top level, sometimes nests
-            # under properties — accept either.
-            expiry = body.get("expiryTime") or body.get("properties", {}).get("expiryTime", "")
-            enabled = bool(body.get("isEnabled") or body.get("properties", {}).get("isEnabled"))
-            if enabled and expiry:
-                exp_dt = datetime.datetime.fromisoformat(expiry.replace("Z", "+00:00"))
-                horizon = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
-                is_healthy = exp_dt > horizon
-        except Exception:
-            is_healthy = False
-
-    if is_healthy and persisted:
-        _step(f"  orchestrator webhook '{_ORCHESTRATOR_WEBHOOK_NAME}' healthy - reusing persisted URL")
-        return persisted
-
-    _step(f"  orchestrator webhook '{_ORCHESTRATOR_WEBHOOK_NAME}' missing/expired/lost-uri - minting")
-    if show_rc == 0:
-        _az([
-            "az", "automation", "webhook", "delete",
-            "--resource-group", aa_rg,
-            "--automation-account-name", aa,
-            "--name", _ORCHESTRATOR_WEBHOOK_NAME,
-            "-y", "-o", "none",
-        ])
-    expiry_dt = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=365 * expiry_years)
-    expiry_iso = expiry_dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-    raw = _az([
-        "az", "automation", "webhook", "create",
-        "--resource-group", aa_rg,
-        "--automation-account-name", aa,
-        "--name", _ORCHESTRATOR_WEBHOOK_NAME,
-        "--runbook-name", runbook_name,
-        "--is-enabled", "true",
-        "--expiry-time", expiry_iso,
-        "-o", "json",
-    ])
-    try:
-        resp = json.loads(raw or "{}")
-        url_value = resp.get("uri") or resp.get("properties", {}).get("uri", "")
-    except Exception:
-        url_value = ""
-    if not url_value:
-        sys.exit(
-            "ERROR: az automation webhook create did not return a 'uri' field. "
-            "Without it we cannot wire the gateway. Inspect the AA in the portal."
-        )
-    _write_aa_variable(aa_rg, aa, _ORCHESTRATOR_WEBHOOK_VAR, url_value)
-    _step(f"  orchestrator webhook minted; URL persisted as variable '{_ORCHESTRATOR_WEBHOOK_VAR}'.")
-    return url_value
-
-
 _CHDM_ADMIN_PRIVATE_KEY_FILENAME = "chdm_admin_id_ed25519"
 
 
@@ -398,13 +273,3 @@ def chdm_ensure_admin_private_key_file(
     return key_path
 
 
-def chdm_set_functionapp_setting(fa_rg: str, fa_name: str, key: str, value: str) -> None:
-    """Set a single app setting on a Function App (idempotent). Triggers
-    a Function App restart automatically."""
-    _step(f"setting Function App app setting on {fa_name}: {key}")
-    _az([
-        "az", "functionapp", "config", "appsettings", "set",
-        "--resource-group", fa_rg, "--name", fa_name,
-        "--settings", f"{key}={value}",
-        "-o", "none",
-    ])

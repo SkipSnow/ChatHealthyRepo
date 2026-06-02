@@ -2387,7 +2387,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "44bb3084c9fb11af23dcd7e412989b4ed5a5de3d3663e9f8f2be4e0b86a29d06"
+          "content_hash": "36facb63a57a7309aa28ed133f72a9e7bd28b6576d6a705144b193ca342f49da"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2436,7 +2436,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/chdm_helpers.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4ce056d3df2b23e7ce78bcfe1ad2b48dad1b9a0a0ef0cadd7fe8ddd5efa9359c"
+          "content_hash": "fb3924279ceef6ccef098f33ae05a8311ee50385067a8da4a65d471780044528"
         }
       ],
       "secrets": {
@@ -3399,7 +3399,8 @@
         "EventHubsConnection": "local_env",
         "ENV_PREFIX": "local_env",
         "GATEWAY_APPINSIGHTS_CONNECTION_STRING": "local_env",
-        "MONGO_connectionString": "local_env"
+        "MONGO_connectionString": "local_env",
+        "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env"
       }
     },
     {
