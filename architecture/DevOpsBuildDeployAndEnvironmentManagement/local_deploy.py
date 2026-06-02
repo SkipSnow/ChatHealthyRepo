@@ -792,9 +792,6 @@ def _az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
 _chdm_persistent_infra_ensured_for: set[str] = set()
 _CHDM_TARGET_PREFIX = "target_azure_automation_runbook_chdm_"
 _CHDM_PROVISIONER_TARGET = "target_azure_automation_runbook_chdm_provisioner"
-_CHDM_ORCHESTRATOR_RUNBOOK = "ChatHealthyDataMigratorOrchestrator"
-_GATEWAY_TARGET_ID = "target_azure_function_app_pipeline"
-_GATEWAY_WEBHOOK_SETTING_KEY = "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL"
 
 
 def _ensure_chdm_persistent_infrastructure_once(
@@ -818,28 +815,11 @@ def _ensure_chdm_persistent_infrastructure_once(
     return subnet_id
 
 
-def _gateway_coords(coll: DeploymentCollection, env: str) -> tuple[str, str]:
-    """Resolve (resource_group, function_app_name) for the gateway target's
-    binding in the given env."""
-    gw = coll.by_target_id(_GATEWAY_TARGET_ID)
-    binding = next(
-        (e for e in gw.environments if e.env_binding == env), None,
-    )
-    if binding is None or not binding.azure:
-        sys.exit(
-            f"ERROR: gateway target {_GATEWAY_TARGET_ID!r} has no azure "
-            f"coordinates for env={env!r}; cannot wire the orchestrator "
-            f"webhook into its app settings."
-        )
-    return binding.azure["resource_group"], binding.azure["function_app"]
-
-
 def _deploy_azure_automation_runbook(
     build_dir: Path,
     target: TargetRecord,
     env: str,
     resolver: SecretsResolver,
-    coll: DeploymentCollection,
     repo_root: Path,
 ) -> str:
     env_binding = next(
@@ -928,22 +908,6 @@ def _deploy_azure_automation_runbook(
     _az_automation_runbook_replace_content(rg, aa, runbook, content_path)
     _az_automation_runbook_publish(rg, aa, runbook)
     _step(f"  runbook {runbook} published")
-
-    # After the orchestrator runbook is published, mint/reuse its webhook
-    # and write the URL into the gateway Function App's app settings. The
-    # gateway forwards MongoClusterMigrator requests to that URL.
-    if runbook == _CHDM_ORCHESTRATOR_RUNBOOK:
-        webhook_url = chdm_helpers.chdm_ensure_orchestrator_webhook(
-            aa_rg=rg, aa=aa, runbook_name=runbook,
-        )
-        fa_rg, fa_name = _gateway_coords(coll, env)
-        chdm_helpers.chdm_set_functionapp_setting(
-            fa_rg, fa_name, _GATEWAY_WEBHOOK_SETTING_KEY, webhook_url,
-        )
-        _step(
-            f"  gateway Function App setting {_GATEWAY_WEBHOOK_SETTING_KEY} "
-            f"updated on {fa_name}"
-        )
     return f"{aa}/{runbook}"
 
 
@@ -1159,7 +1123,7 @@ def _deploy_one(
         return _deploy_azure_container_app(build_dir, target, env, resolver, build_n)
     if target_kind == "azure_automation_runbook":
         target = coll.by_target_id(target_id)
-        return _deploy_azure_automation_runbook(build_dir, target, env, resolver, coll, repo_root)
+        return _deploy_azure_automation_runbook(build_dir, target, env, resolver, repo_root)
     raise RuntimeError(
         f"target_kind {target_kind!r} not supported in local_deploy."
     )
