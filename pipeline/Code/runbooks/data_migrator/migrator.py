@@ -198,11 +198,27 @@ class StatusDoc:
         )
 
 
+def _atlas_cluster_name_for(friendly_name: str) -> str:
+    """Atlas Management API addresses clusters by their real Atlas cluster
+    name (e.g. 'ChatHealthyDataPipelines'), not the operator's friendly
+    alias (e.g. 'pipeline'). Deploy populates one MONGO_CLUSTER_<alias>_
+    atlasClusterName Automation Variable per managed cluster."""
+    env_var = f"MONGO_CLUSTER_{friendly_name}_atlasClusterName"
+    try:
+        return os.environ[env_var]
+    except KeyError:
+        raise RuntimeError(
+            f"No Atlas cluster name for cluster alias {friendly_name!r}: "
+            f"env var {env_var} not set"
+        )
+
+
 def _atlas_cluster_state(cluster_name: str) -> str:
+    atlas_name = _atlas_cluster_name_for(cluster_name)
     auth = HTTPDigestAuth(os.environ["ATLAS_PUBLIC_KEY"], os.environ["ATLAS_PRIVATE_KEY"])
     url = (
         f"https://cloud.mongodb.com/api/atlas/v2/groups/{os.environ['ATLAS_PROJECT_ID']}"
-        f"/clusters/{cluster_name}"
+        f"/clusters/{atlas_name}"
     )
     r = requests.get(
         url, auth=auth,
@@ -217,10 +233,11 @@ def _atlas_cluster_state(cluster_name: str) -> str:
 
 
 def _atlas_resume_cluster(cluster_name: str) -> None:
+    atlas_name = _atlas_cluster_name_for(cluster_name)
     auth = HTTPDigestAuth(os.environ["ATLAS_PUBLIC_KEY"], os.environ["ATLAS_PRIVATE_KEY"])
     url = (
         f"https://cloud.mongodb.com/api/atlas/v2/groups/{os.environ['ATLAS_PROJECT_ID']}"
-        f"/clusters/{cluster_name}"
+        f"/clusters/{atlas_name}"
     )
     requests.patch(
         url, json={"paused": False}, auth=auth,
@@ -556,25 +573,28 @@ def _main():
     dst_coll = dst_client[dst_db_name][dst_coll_name]
 
     status_doc = StatusDoc(pipeline_client, job_id)
-
-    log.info("Waking source cluster %s and reserving for %d min", src_cluster, duration_min)
-    _atlas_resume_cluster(src_cluster)
-    _reserve_source(src_cluster, job_id, duration_min)
-    _wait_source_idle(src_cluster)
-
-    if dst_coll_name in dst_client[dst_db_name].list_collection_names():
-        log.info("Destination collection %s.%s exists - dropping",
-                 dst_db_name, dst_coll_name)
-        dst_client[dst_db_name].drop_collection(dst_coll_name)
-    dst_client[dst_db_name].create_collection(dst_coll_name)
-
-    partitions = _enumerate_partitions(src_coll, base_filter, thread_criteria)
-    log.info("Enumerated %d partitions", len(partitions))
-    status_doc.init(base_filter, partitions)
-
     has_exception = False
     success_writes = 0
     try:
+        # All work from Atlas wake onwards lives inside the try/finally so
+        # the deprovisioner fires on AB end regardless of where we die.
+        # Slide 4: "Automated deprovisioning must work on an AB end."
+        log.info("Waking source cluster %s and reserving for %d min",
+                 src_cluster, duration_min)
+        _atlas_resume_cluster(src_cluster)
+        _reserve_source(src_cluster, job_id, duration_min)
+        _wait_source_idle(src_cluster)
+
+        if dst_coll_name in dst_client[dst_db_name].list_collection_names():
+            log.info("Destination collection %s.%s exists - dropping",
+                     dst_db_name, dst_coll_name)
+            dst_client[dst_db_name].drop_collection(dst_coll_name)
+        dst_client[dst_db_name].create_collection(dst_coll_name)
+
+        partitions = _enumerate_partitions(src_coll, base_filter, thread_criteria)
+        log.info("Enumerated %d partitions", len(partitions))
+        status_doc.init(base_filter, partitions)
+
         with ThreadPoolExecutor(max_workers=len(partitions)) as pool:
             futures = {
                 pool.submit(
@@ -605,6 +625,12 @@ def _main():
             created = _mirror_indexes(src_coll, dst_coll)
             log.info("Mirrored %d user-defined indexes", created)
 
+    except Exception:
+        # Pre-threadpool failures (Atlas wake, reservation, partition
+        # enumeration) don't otherwise set has_exception. Threadpool
+        # failures already set this themselves and re-raise.
+        has_exception = True
+        raise
     finally:
         # Each finally step is isolated so a failure in one (e.g. transient
         # pipeline-cluster blip during finalize) does NOT skip the load-bearing

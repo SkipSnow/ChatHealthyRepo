@@ -3532,7 +3532,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "cb4dbea4d08d9c611682c4fde089388463e1174f0ef77fedb6adcdbad0f246a7"
+          "content_hash": "3ee18a5d5262411a92c24b9e863f847e9c4546aad755b7541563ece322304452"
         }
       ],
       "secrets": {
@@ -3540,6 +3540,8 @@
         "MONGO_FRONTEND_connectionString": "local_env",
         "MONGO_CLUSTER_pipeline_connectionString": "local_env",
         "MONGO_CLUSTER_frontend_connectionString": "local_env",
+        "MONGO_CLUSTER_pipeline_atlasClusterName": "local_env",
+        "MONGO_CLUSTER_frontend_atlasClusterName": "local_env",
         "ATLAS_PUBLIC_KEY": "local_env",
         "ATLAS_PRIVATE_KEY": "local_env",
         "ATLAS_PROJECT_ID": "local_env",
