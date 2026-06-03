@@ -7,9 +7,11 @@ exits. No wait. The provisioner ends by firing the migrator on the
 Hybrid Worker group; the migrator ends by firing the deprovisioner.
 Chain-fire pattern.
 
-Input payload (one JSON-encoded `payload` parameter, read via sys.argv[1]
-- for webhook-started Python runbooks the webhook body lands at
-sys.argv[1] as a string):
+Input payload: Azure Automation webhook-triggered Python runbooks receive
+a WebhookData wrapper at sys.argv[1] (a JSON string with WebhookName,
+RequestBody, RequestHeader). The gateway POSTs the migration payload as
+the request body; we unwrap WebhookData.RequestBody and json.loads it.
+Fields inside RequestBody:
     job_id           - gateway-minted external job id.
     request_guid     - gateway request guid.
     router_build_id  - gateway-read build id.
@@ -51,9 +53,24 @@ _PROVISIONER_RUNBOOK = "ChatHealthyDataMigratorProvisioner"
 
 
 def _read_payload() -> dict:
+    """Unwrap AA WebhookData: sys.argv[1] is a JSON string with shape
+    {WebhookName, RequestBody, RequestHeader}; the gateway's POST body is
+    inside RequestBody as a JSON string. Per Microsoft Learn
+    "Use webhooks in Azure Automation"."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
-    return json.loads(sys.argv[1])
+    webhook_data = json.loads(sys.argv[1])
+    if not isinstance(webhook_data, dict):
+        raise RuntimeError(
+            f"orchestrator: WebhookData is not a JSON object; got {type(webhook_data).__name__}"
+        )
+    request_body = webhook_data.get("RequestBody")
+    if not isinstance(request_body, str):
+        raise RuntimeError(
+            "orchestrator: WebhookData missing RequestBody string; "
+            f"keys={sorted(webhook_data)}"
+        )
+    return json.loads(request_body)
 
 
 def _mi_token() -> str:

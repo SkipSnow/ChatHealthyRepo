@@ -3400,7 +3400,8 @@
         "ENV_PREFIX": "local_env",
         "GATEWAY_APPINSIGHTS_CONNECTION_STRING": "local_env",
         "MONGO_connectionString": "local_env",
-        "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env"
+        "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env",
+        "DURABLE_ROUTER_URL": "local_env"
       }
     },
     {
@@ -3468,7 +3469,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a11cfee917ef14b8ec2c1290b58e42464b5dbd784e4d61b8e8ac208a44c06592"
+          "content_hash": "38ece5934923d8f955cc12f2bff9ff905eb2b9057e8c7a3d4403c9c3a71001f2"
         }
       ],
       "secrets": {
@@ -3497,7 +3498,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/provisioner.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a1316c322c1811ec491c918c26ac7a43db54f4c176e85f4f66223918449385fc"
+          "content_hash": "a947ab16385c9ddcada9aa289732b93b540002d2637caad1b6d6f3cc7b47e7c3"
         }
       ],
       "secrets": {
@@ -3531,12 +3532,14 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7680ad592ab3b15e7581ba1d8ba1501a7a14935b73b6ed41d1e79e8155a47df6"
+          "content_hash": "2707fad37cb99e1bc1ef9b86622139d3c51c0a013789942a3c98071fd8752bbf"
         }
       ],
       "secrets": {
         "MONGO_connectionString": "local_env",
         "MONGO_FRONTEND_connectionString": "local_env",
+        "MONGO_CLUSTER_pipeline_connectionString": "local_env",
+        "MONGO_CLUSTER_frontend_connectionString": "local_env",
         "ATLAS_PUBLIC_KEY": "local_env",
         "ATLAS_PRIVATE_KEY": "local_env",
         "ATLAS_PROJECT_ID": "local_env",
@@ -3565,12 +3568,14 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/deprovisioner.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "043adcb301edfc336daa8f13efcd81a6e4fd08260f5ec2448261d8ddab04e19e"
+          "content_hash": "b2dfc9496c121c7f2a814c2e3ada5c7829ab9d379f9ea6390cbfabe790577fe2"
         }
       ],
       "secrets": {
         "AZ_SUBSCRIPTION_ID": "local_env",
-        "AZ_VM_RESOURCE_GROUP": "local_env"
+        "AZ_VM_RESOURCE_GROUP": "local_env",
+        "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
+        "AZ_AUTOMATION_ACCOUNT": "local_env"
       }
     }
   ]
