@@ -273,17 +273,61 @@ def _release_source(job_id: str) -> None:
     coll.delete_one({"_id": job_id})
 
 
-def _elemmatch_paths(base_filter: dict) -> dict[str, dict]:
-    """Return {array_path: <elemMatch dict>} for every top-level key in
-    base_filter whose value is {"$elemMatch": {...}}. Used to honor the
-    contract's 'Subordinate to Job filter' clause when a thread attribute
-    is nested under an $elemMatch'd array - wildcard enumeration and per-
-    slice scoping must stay element-wise, not aggregate-wise."""
-    out: dict[str, dict] = {}
-    for k, v in (base_filter or {}).items():
-        if isinstance(v, dict) and "$elemMatch" in v and isinstance(v["$elemMatch"], dict):
-            out[k] = v["$elemMatch"]
+def _split_prefix(key: str) -> tuple[str, str]:
+    """For a thread_criteria/JobFilter key like 'addresses.state' return
+    ('addresses', 'state'); for 'state' return ('', 'state'); for a Mongo
+    operator key like '$or' return ('', '$or'). Operator-facing keys never
+    carry $elemMatch."""
+    if "." in key and not key.startswith("$"):
+        prefix, leaf = key.rsplit(".", 1)
+        return prefix, leaf
+    return "", key
+
+
+def _group_by_prefix(spec: dict) -> tuple[dict, dict]:
+    """Partition spec entries into (flat, grouped):
+       flat: {key: value} for entries with no dot prefix (top-level fields
+             and Mongo operators).
+       grouped: {prefix: {leaf: value}} for dotted entries grouped by
+             their shared prefix (the array path)."""
+    flat: dict = {}
+    grouped: dict = {}
+    for k, v in (spec or {}).items():
+        prefix, leaf = _split_prefix(k)
+        if prefix:
+            grouped.setdefault(prefix, {})[leaf] = v
+        else:
+            flat[k] = v
+    return flat, grouped
+
+
+def _materialize_query(flat: dict, grouped: dict) -> dict:
+    """Render the operator's dotted-path spec as a real Mongo query:
+       a prefix with 2+ leafs becomes a single $elemMatch on that prefix
+       (per-element scoping the operator never has to spell out);
+       a prefix with exactly 1 leaf stays as a dotted-path predicate."""
+    out = dict(flat)
+    for prefix, leafs in grouped.items():
+        if len(leafs) >= 2:
+            out[prefix] = {"$elemMatch": dict(leafs)}
+        else:
+            leaf, val = next(iter(leafs.items()))
+            out[f"{prefix}.{leaf}"] = val
     return out
+
+
+def _group_thread_criteria(thread_criteria: dict) -> dict:
+    """Partition thread_criteria into {prefix: {'fixed': {leaf: val},
+       'wildcards': [leaf, ...]}} where prefix='' for top-level entries."""
+    groups: dict = {}
+    for k, v in thread_criteria.items():
+        prefix, leaf = _split_prefix(k)
+        g = groups.setdefault(prefix, {"fixed": {}, "wildcards": []})
+        if v == "*":
+            g["wildcards"].append(leaf)
+        else:
+            g["fixed"][leaf] = v
+    return groups
 
 
 def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) -> list[dict]:
@@ -292,101 +336,93 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
             "thread_criteria is required (missing thread_criteria = abend at entry)"
         )
 
-    wildcards: list[str] = []
-    fixed: dict = {}
-    for k, v in thread_criteria.items():
-        if v == "*":
-            wildcards.append(k)
-        else:
-            fixed[k] = v
+    jf_flat, jf_grouped = _group_by_prefix(base_filter or {})
+    jf_query = _materialize_query(jf_flat, jf_grouped)
+    tc_groups = _group_thread_criteria(thread_criteria)
 
-    if not wildcards:
-        return [{"_fixed": dict(fixed), "_wildcards": {}}]
+    # Enumerate distinct values for each wildcard, in declaration order
+    # across thread_criteria. Grouped wildcards use aggregate $unwind +
+    # element-level $match (per-element scoping); ungrouped wildcards use
+    # distinct(field, JobFilter).
+    wildcard_enums: list[tuple[str, str, list]] = []
+    for prefix, g in tc_groups.items():
+        for leaf in g["wildcards"]:
+            if prefix:
+                element_match: dict = {}
+                for ek, ev in jf_grouped.get(prefix, {}).items():
+                    element_match[f"{prefix}.{ek}"] = ev
+                for fk, fv in g["fixed"].items():
+                    element_match[f"{prefix}.{fk}"] = fv
+                pipeline = [
+                    {"$match": jf_query},
+                    {"$unwind": f"${prefix}"},
+                ]
+                if element_match:
+                    pipeline.append({"$match": element_match})
+                pipeline += [
+                    {"$group": {"_id": f"${prefix}.{leaf}"}},
+                    {"$sort": {"_id": 1}},
+                ]
+                values = [d["_id"] for d in src_coll.aggregate(pipeline, allowDiskUse=True)]
+            else:
+                values = src_coll.distinct(leaf, jf_query)
+            if not values:
+                values = [None]
+            wildcard_enums.append((prefix, leaf, values))
 
-    em_paths = _elemmatch_paths(base_filter)
+    def _base_partition() -> dict:
+        p: dict = {"_groups": {}, "_top_fixed": {}}
+        for prefix, g in tc_groups.items():
+            if prefix and (g["fixed"] or g["wildcards"]):
+                p["_groups"][prefix] = {"fixed": dict(g["fixed"]), "wildcards": {}}
+            elif not prefix:
+                for fk, fv in g["fixed"].items():
+                    p["_top_fixed"][fk] = fv
+        return p
 
-    # Validate: a wildcard attribute may nest under AT MOST ONE $elemMatch'd
-    # array path in the Job filter. Ambiguous nesting = abend at entry rather
-    # than silently picking one.
-    for w in wildcards:
-        nesting = [p for p in em_paths if w.startswith(p + ".")]
-        if len(nesting) > 1:
-            raise RuntimeError(
-                f"thread_criteria wildcard {w!r} nests under multiple $elemMatch "
-                f"array paths in Job filter: {nesting}. Per-element scope is ambiguous."
-            )
-
-    distinct_values_per_field: list[list] = []
-    for w in wildcards:
-        nesting = [p for p in em_paths if w.startswith(p + ".")]
-        if nesting:
-            # Nested-under-$elemMatch wildcard: enumerate distinct values of
-            # the leaf field, scoped to elements that actually satisfy the
-            # $elemMatch constraints. distinct() on a dotted path would
-            # return values across ALL elements (including ones the
-            # $elemMatch did not select), violating "Subordinate to Job
-            # filter". Aggregate $unwind + element-level $match gives the
-            # right scope. Filter is Job filter only per contract slide 2:
-            # "the migrator interrogates the source via
-            # distinct(attribute, JobFilter)".
-            array_path = nesting[0]
-            leaf = w[len(array_path) + 1:]
-            element_match = {
-                f"{array_path}.{ek}": ev for ek, ev in em_paths[array_path].items()
-            }
-            pipeline = [
-                {"$match": base_filter},
-                {"$unwind": f"${array_path}"},
-                {"$match": element_match},
-                {"$group": {"_id": f"${array_path}.{leaf}"}},
-                {"$sort": {"_id": 1}},
-            ]
-            values = [d["_id"] for d in src_coll.aggregate(pipeline, allowDiskUse=True)]
-        else:
-            # Plain wildcard: distinct() on a top-level field, JobFilter only.
-            values = src_coll.distinct(w, base_filter)
-        if not values:
-            values = [None]
-        distinct_values_per_field.append(values)
+    if not wildcard_enums:
+        return [_base_partition()]
 
     partitions: list[dict] = []
-    for combo in itertools.product(*distinct_values_per_field):
-        partitions.append({
-            "_fixed": dict(fixed),
-            "_wildcards": dict(zip(wildcards, combo)),
-        })
+    for combo in itertools.product(*[e[2] for e in wildcard_enums]):
+        partition = _base_partition()
+        for (prefix, leaf, _), val in zip(wildcard_enums, combo):
+            if prefix:
+                partition["_groups"][prefix]["wildcards"][leaf] = val
+            else:
+                partition["_top_fixed"][leaf] = val
+        partitions.append(partition)
     return partitions
 
 
 def _compose_slice_filter(base_filter: dict, partition: dict) -> dict:
-    """Compose the per-slice query for a thread. Wildcard assignments whose
-    attribute path nests under an $elemMatch'd array in base_filter are
-    folded into that element (augmenting the $elemMatch dict); non-nested
-    wildcards and the fixed thread_criteria entries are merged as siblings.
-    Honors the contract: every thread's per-slice query is the Job filter
-    merged with one partition assignment, and no thread can read docs
-    outside Job filter scope. Multiple wildcards into the SAME $elemMatch
-    array path all augment the same element (not sibling-overwriting)."""
-    em_paths = _elemmatch_paths(base_filter)
-    combined: dict = {}
-    for k, v in (base_filter or {}).items():
+    """Render the per-thread Mongo query. Combines JobFilter + this
+    partition's thread_criteria assignments. For any prefix that ends up
+    with 2+ constraints (whether from JobFilter, thread_criteria fixed
+    entries, or wildcard assignments), the composed query uses a single
+    $elemMatch on that prefix - per-element scoping is preserved
+    regardless of which side supplied which constraint."""
+    jf_flat, jf_grouped = _group_by_prefix(base_filter or {})
+    combined: dict = dict(jf_flat)
+
+    for k, v in partition.get("_top_fixed", {}).items():
         combined[k] = v
-    for k, v in partition.get("_fixed", {}).items():
-        combined[k] = v
-    # Group wildcard assignments by their target array path. Multiple
-    # wildcards into the same array all land in one augmented elemMatch
-    # element; wildcards not under any array path apply at top level.
-    augmented_by_array: dict[str, dict] = {}
-    for w, val in partition.get("_wildcards", {}).items():
-        nesting = [p for p in em_paths if w.startswith(p + ".")]
-        if nesting:
-            array_path = nesting[0]
-            leaf = w[len(array_path) + 1:]
-            augmented_by_array.setdefault(array_path, dict(em_paths[array_path]))[leaf] = val
-        else:
-            combined[w] = val
-    for array_path, augmented in augmented_by_array.items():
-        combined[array_path] = {"$elemMatch": augmented}
+
+    all_prefixes = set(jf_grouped.keys()) | set(partition.get("_groups", {}).keys())
+    for prefix in all_prefixes:
+        em: dict = {}
+        for ek, ev in jf_grouped.get(prefix, {}).items():
+            em[ek] = ev
+        tc_group = partition.get("_groups", {}).get(prefix, {})
+        for fk, fv in tc_group.get("fixed", {}).items():
+            em[fk] = fv
+        for wk, wv in tc_group.get("wildcards", {}).items():
+            em[wk] = wv
+        if len(em) >= 2:
+            combined[prefix] = {"$elemMatch": em}
+        elif len(em) == 1:
+            leaf, val = next(iter(em.items()))
+            combined[f"{prefix}.{leaf}"] = val
     return combined
 
 
