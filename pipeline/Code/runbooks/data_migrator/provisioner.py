@@ -85,7 +85,7 @@ _IMAGE_REFERENCE = {
     "version":   "latest",
 }
 
-# CustomScript extension command — runs synchronously as root. Provisioner
+# CustomScript extension command - runs synchronously as root. Provisioner
 # waits for its provisioningState before installing the HW extension, so
 # pymongo/dnspython are present before the worker dequeues the migrator job.
 _PYTHON_DEPS_INSTALL = (
@@ -177,7 +177,7 @@ def _create_nic(sub: str, rg: str, location: str, vm_name: str, subnet_id: str) 
 def _create_vm(sub: str, rg: str, location: str, vm_name: str, vm_size: str,
                nic_id: str, admin_username: str, ssh_pubkey: str) -> str:
     """Create the VM. Returns its system-assigned MI principalId. Does NOT
-    use cloud-init for python deps — python deps are installed
+    use cloud-init for python deps - python deps are installed
     synchronously via the separate CustomScript extension (see
     _install_python_deps_extension) so the HW extension cannot race them."""
     url = (
