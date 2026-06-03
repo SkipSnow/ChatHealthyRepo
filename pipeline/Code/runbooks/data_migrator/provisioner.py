@@ -112,12 +112,20 @@ import ast
 
 
 def _parse_aa_arg(s: str) -> object:
-    """AA Python runbooks receive sys.argv[1] as either JSON (webhook
-    delivery) or Python dict repr (PUT /jobs delivery). Detect by the
-    second character: JSON starts {", Python repr starts {'."""
-    if len(s) >= 2 and s[1] == "'":
-        return ast.literal_eval(s)
-    return json.loads(s)
+    """AA Python runbooks receive sys.argv[1] as either JSON or Python dict
+    repr depending on delivery path. Try JSON first; on failure try
+    Python literal eval. On total failure include sys.argv[1] preview
+    in the error so the actual delivered format is diagnosable."""
+    try:
+        return json.loads(s)
+    except (json.JSONDecodeError, TypeError):
+        try:
+            return ast.literal_eval(s)
+        except (ValueError, SyntaxError) as e:
+            raise RuntimeError(
+                f"sys.argv[1] is neither JSON nor a Python literal: "
+                f"first 200 chars={s[:200]!r}; ast error={e}"
+            )
 
 
 def _read_payload() -> dict:
