@@ -23,6 +23,8 @@ Environment (Automation Variables):
     AZ_AUTOMATION_RESOURCE_GROUP  - RG containing the AA (ChatHhealthyResorceManager).
     AZ_AUTOMATION_ACCOUNT         - ChatHealthyJobManager.
 """
+from __future__ import annotations
+
 import base64
 import json
 import logging

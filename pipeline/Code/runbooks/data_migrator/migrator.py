@@ -46,6 +46,8 @@ Environment (Automation Variables):
     AZ_AUTOMATION_RESOURCE_GROUP          - Automation Account RG.
     AZ_AUTOMATION_ACCOUNT                 - ChatHealthyJobManager.
 """
+from __future__ import annotations
+
 import base64
 import itertools
 import json
