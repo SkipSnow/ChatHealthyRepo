@@ -59,8 +59,21 @@ try:
 except ImportError:
     pass
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+_request_guid = "?"
+
+
+class _RGFilter(logging.Filter):
+    def filter(self, record):
+        record.request_guid = _request_guid
+        return True
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [rg=%(request_guid)s] %(message)s",
+)
 log = logging.getLogger("provisioner")
+log.addFilter(_RGFilter())
 
 _COMPUTE_API = "2024-07-01"
 _NETWORK_API = "2024-01-01"
@@ -392,7 +405,9 @@ def _vm_resource_id(sub: str, rg: str, vm_name: str) -> str:
 
 
 def _main():
+    global _request_guid
     payload = _read_payload()
+    _request_guid = payload.get("request_guid", "?")
     job_id = payload.get("job_id")
     vm_name = payload.get("vm_name")
     if not job_id or not vm_name:

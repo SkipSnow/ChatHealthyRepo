@@ -45,8 +45,21 @@ try:
 except ImportError:
     pass
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+_request_guid = "?"
+
+
+class _RGFilter(logging.Filter):
+    def filter(self, record):
+        record.request_guid = _request_guid
+        return True
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [rg=%(request_guid)s] %(message)s",
+)
 log = logging.getLogger("orchestrator")
+log.addFilter(_RGFilter())
 
 _AUTOMATION_API = "2023-11-01"
 _PROVISIONER_RUNBOOK = "ChatHealthyDataMigratorProvisioner"
@@ -127,7 +140,9 @@ def _start_runbook_fire_and_forget(sub: str, rg: str, aa: str, runbook: str,
 
 
 def _main():
+    global _request_guid
     payload = _read_payload()
+    _request_guid = payload.get("request_guid", "?")
     job_id = payload.get("job_id")
     if not job_id:
         raise RuntimeError("orchestrator: job_id missing from payload")
