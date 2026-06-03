@@ -392,6 +392,12 @@ def chdm_ensure_chdm_persistent_infrastructure(
     # write on child resources (per Microsoft Learn extension-based
     # Hybrid Worker install walkthrough).
     chdm_ensure_role_assignment(aa_mi_pid, aa_scope, "Contributor")
+    # Contributor explicitly excludes Microsoft.Authorization/*/write,
+    # so it cannot satisfy the provisioner's runtime role-grant of
+    # Automation Operator on the AA to the per-VM MI (nor the matching
+    # deprovisioner delete). User Access Administrator at the AA scope
+    # is the carve-out that permits both. See PipelinesPlan.pptx slide 8.
+    chdm_ensure_role_assignment(aa_mi_pid, aa_scope, "User Access Administrator")
 
     # AA Python3 package set: reconcile to the chdm-declared list. After
     # this returns, every runbook (orch/prov/depro) running on the AA
