@@ -26,6 +26,7 @@ Environment (Automation Variables):
     AZ_RESOURCE_GROUP     - Automation Account resource group.
     AZ_AUTOMATION_ACCOUNT - ChatHealthyJobManager.
 """
+import base64
 import json
 import logging
 import os
@@ -65,44 +66,17 @@ _AUTOMATION_API = "2023-11-01"
 _PROVISIONER_RUNBOOK = "ChatHealthyDataMigratorProvisioner"
 
 
-import ast
-
-
-def _parse_aa_arg(s: str) -> object:
-    """Azure Automation Python runbooks receive sys.argv[1] in one of two
-    serializations depending on how the job was started: webhook delivery
-    sends a JSON string; PUT-/jobs delivery sends a Python dict repr
-    (single-quoted keys, True/False/None literals). Try JSON first; on
-    failure fall through to ast.literal_eval. On total failure include
-    the first 200 chars of the input in the RuntimeError so the operator
-    sees what AA actually delivered."""
-    try:
-        return json.loads(s)
-    except (json.JSONDecodeError, TypeError):
-        try:
-            return ast.literal_eval(s)
-        except (ValueError, SyntaxError) as e:
-            raise RuntimeError(
-                f"sys.argv[1] is neither JSON nor a Python literal: "
-                f"first 200 chars={s[:200]!r}; ast error={e}"
-            )
-
-
 def _read_payload() -> dict:
-    """Unwrap AA WebhookData. Two delivery paths:
-      - Webhook-triggered (gateway POST): sys.argv[1] is a JSON string of
-        the WebhookData wrapper itself.
-      - PUT /jobs with parameters={"WebhookData": "..."} (deploy dry-fire):
-        sys.argv[1] is the Python repr of {"WebhookData": "<json-string>"}.
-    Both yield the same WebhookData dict; we extract RequestBody (a JSON
-    string) and json.loads it to get the actual payload."""
+    """The orchestrator is webhook-only. The gateway (production) and the
+    deploy health-check both POST to the same operator-minted webhook URL
+    (MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL). Azure Automation
+    wraps the POST body in WebhookData and delivers sys.argv[1] as a JSON
+    string with that shape (legacy AA strips quotes from PUT-/jobs
+    parameter values, but webhook deliveries arrive intact). We unwrap
+    WebhookData and json.loads the inner RequestBody string."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
-    raw = _parse_aa_arg(sys.argv[1])
-    if isinstance(raw, dict) and "WebhookData" in raw and isinstance(raw["WebhookData"], str):
-        webhook_data = json.loads(raw["WebhookData"])
-    else:
-        webhook_data = raw
+    webhook_data = json.loads(sys.argv[1])
     if not isinstance(webhook_data, dict):
         raise RuntimeError(
             f"orchestrator: WebhookData is not a JSON object; got {type(webhook_data).__name__}"
@@ -148,10 +122,16 @@ def _start_runbook_fire_and_forget(sub: str, rg: str, aa: str, runbook: str,
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
         f"/jobs/{aa_job_id}?api-version={_AUTOMATION_API}"
     )
+    # Base64-encode the payload JSON. Legacy Azure Automation Python
+    # runbook invocation strips quotes from PUT-/jobs parameter values
+    # (sys.argv[1] arrives as `{key: value}` with quotes mangled). Base64
+    # uses only alphanumerics + `+/=`, none of which AA mangles. The
+    # downstream runbook decodes via base64.b64decode + json.loads.
+    encoded = base64.b64encode(json.dumps(downstream_payload).encode("utf-8")).decode("ascii")
     body = {
         "properties": {
             "runbook": {"name": runbook},
-            "parameters": {"payload": json.dumps(downstream_payload)},
+            "parameters": {"payload": encoded},
         }
     }
     if run_on:
