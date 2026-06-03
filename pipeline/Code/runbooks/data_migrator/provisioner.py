@@ -36,6 +36,8 @@ Environment (Automation Variables):
     AZ_AUTOMATION_RESOURCE_GROUP
     AZ_AUTOMATION_ACCOUNT
 """
+from __future__ import annotations
+
 import base64
 import json
 import logging
