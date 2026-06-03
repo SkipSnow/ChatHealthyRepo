@@ -36,6 +36,7 @@ Environment (Automation Variables):
     AZ_AUTOMATION_RESOURCE_GROUP
     AZ_AUTOMATION_ACCOUNT
 """
+import base64
 import json
 import logging
 import os
@@ -108,42 +109,14 @@ _PYTHON_DEPS_INSTALL = (
 )
 
 
-import ast
-
-
-def _parse_aa_arg(s: str) -> object:
-    """AA Python runbooks receive sys.argv[1] as either JSON or Python dict
-    repr depending on delivery path. Try JSON first; on failure try
-    Python literal eval. On total failure include sys.argv[1] preview
-    in the error so the actual delivered format is diagnosable."""
-    try:
-        return json.loads(s)
-    except (json.JSONDecodeError, TypeError):
-        try:
-            return ast.literal_eval(s)
-        except (ValueError, SyntaxError) as e:
-            raise RuntimeError(
-                f"sys.argv[1] is neither JSON nor a Python literal: "
-                f"first 200 chars={s[:200]!r}; ast error={e}"
-            )
-
-
 def _read_payload() -> dict:
-    """Two delivery paths into this runbook (both result in the same payload
-    dict after unwrapping):
-      - PUT /jobs with parameters={"payload": "<json>"} (orchestrator fires
-        provisioner this way): sys.argv[1] is the Python repr of the
-        parameters dict {'payload': '{"job_id":...}'}.
-      - Direct JSON payload at sys.argv[1]: legacy/test paths.
-    Both yield the same payload dict."""
+    """Provisioner is fired via PUT /jobs (orchestrator does this, deploy
+    health-check does this). The sender base64-encodes the payload JSON
+    so it survives legacy AA's quote-stripping parameter handling.
+    sys.argv[1] is a base64 string; decode + json.loads."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
-    raw = _parse_aa_arg(sys.argv[1])
-    if isinstance(raw, dict) and "payload" in raw and isinstance(raw["payload"], str):
-        return json.loads(raw["payload"])
-    if isinstance(raw, dict):
-        return raw
-    raise RuntimeError(f"provisioner: payload is not a dict; got {type(raw).__name__}")
+    return json.loads(base64.b64decode(sys.argv[1]).decode("utf-8"))
 
 
 def _mi_token() -> str:
@@ -409,10 +382,13 @@ def _fire_migrator(sub: str, aa_rg: str, aa: str, payload: dict) -> str:
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
         f"/jobs/{aa_job_id}?api-version={_AUTOMATION_API}"
     )
+    # Base64-encode the payload JSON so it survives legacy AA's
+    # parameter quote-stripping (see _read_payload note in receiving runbook).
+    encoded = base64.b64encode(json.dumps(payload).encode("utf-8")).decode("ascii")
     body = {
         "properties": {
             "runbook": {"name": _MIGRATOR_RUNBOOK},
-            "parameters": {"payload": json.dumps(payload)},
+            "parameters": {"payload": encoded},
             "runOn": _HYBRID_WORKER_GROUP,
         }
     }

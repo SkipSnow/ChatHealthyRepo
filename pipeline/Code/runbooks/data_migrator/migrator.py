@@ -46,6 +46,7 @@ Environment (Automation Variables):
     AZ_AUTOMATION_RESOURCE_GROUP          - Automation Account RG.
     AZ_AUTOMATION_ACCOUNT                 - ChatHealthyJobManager.
 """
+import base64
 import itertools
 import json
 import logging
@@ -100,38 +101,13 @@ _SOURCE_WAKE_POLL_SEC = 15
 _SOURCE_WAKE_TIMEOUT_SEC = 15 * 60
 
 
-import ast
-
-
-def _parse_aa_arg(s: str) -> object:
-    """AA Python runbooks receive sys.argv[1] as either JSON or Python dict
-    repr depending on delivery path. Try JSON first; on failure try
-    Python literal eval. On total failure include sys.argv[1] preview
-    in the error so the actual delivered format is diagnosable."""
-    try:
-        return json.loads(s)
-    except (json.JSONDecodeError, TypeError):
-        try:
-            return ast.literal_eval(s)
-        except (ValueError, SyntaxError) as e:
-            raise RuntimeError(
-                f"sys.argv[1] is neither JSON nor a Python literal: "
-                f"first 200 chars={s[:200]!r}; ast error={e}"
-            )
-
-
 def _read_payload() -> dict:
-    """Provisioner fires the migrator via PUT /jobs with
-    parameters={"payload": "<json>"}, so sys.argv[1] arrives as the Python
-    repr of that parameters dict. Unwrap to the inner payload dict."""
+    """Migrator is fired by provisioner via PUT /jobs (runOn=HWG). The
+    sender base64-encodes the payload JSON so it survives legacy AA's
+    parameter quote-stripping. sys.argv[1] is a base64 string."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
-    raw = _parse_aa_arg(sys.argv[1])
-    if isinstance(raw, dict) and "payload" in raw and isinstance(raw["payload"], str):
-        return json.loads(raw["payload"])
-    if isinstance(raw, dict):
-        return raw
-    raise RuntimeError(f"migrator: payload is not a dict; got {type(raw).__name__}")
+    return json.loads(base64.b64decode(sys.argv[1]).decode("utf-8"))
 
 
 def _connection_string_for_cluster(cluster_name: str) -> str:
@@ -522,12 +498,13 @@ def _fire_deprovisioner(job_id: str, vm_name: str, request_guid: str) -> str:
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
         f"/jobs/{aa_job_id}?api-version={_AUTOMATION_API}"
     )
+    encoded = base64.b64encode(json.dumps({
+        "job_id": job_id, "vm_name": vm_name, "request_guid": request_guid,
+    }).encode("utf-8")).decode("ascii")
     body = {
         "properties": {
             "runbook": {"name": _DEPROVISIONER_RUNBOOK},
-            "parameters": {"payload": json.dumps({
-                "job_id": job_id, "vm_name": vm_name, "request_guid": request_guid,
-            })},
+            "parameters": {"payload": encoded},
         }
     }
     token = _mi_token()

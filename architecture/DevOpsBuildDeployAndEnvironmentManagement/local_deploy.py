@@ -819,27 +819,12 @@ _AA_PACKAGE_INSTALL_FAILURE_MARKERS = (
 _ORCHESTRATOR_RUNBOOK_NAME = "ChatHealthyDataMigratorOrchestrator"
 
 
-def _health_check_parameters(runbook: str) -> dict:
-    """Build the AA-job `parameters` map for a health-check dry-fire of
-    the named runbook. Returns the dict that goes into the PUT /jobs body
-    under properties.parameters.
-
-    The orchestrator is webhook-triggered: AA delivers a WebhookData
-    wrapper at sys.argv[1] and orchestrator._read_payload unwraps it.
-    For a non-webhook PUT /jobs invocation the orchestrator still calls
-    json.loads(sys.argv[1]) then expects RequestBody to be a string, so
-    we build the same wrapper shape with our health_check payload inside.
-    The other three runbooks read sys.argv[1] as the payload directly
-    (no wrapper), via a `payload` parameter."""
-    inner = json.dumps({"health_check": True})
-    if runbook == _ORCHESTRATOR_RUNBOOK_NAME:
-        wrapper = json.dumps({
-            "WebhookName": "deploy-health-check",
-            "RequestBody": inner,
-            "RequestHeader": {},
-        })
-        return {"WebhookData": wrapper}
-    return {"payload": inner}
+def _health_check_parameters_b64() -> dict:
+    """Sub-runbook PUT /jobs parameters for the health-check dry-fire.
+    Legacy AA strips quotes from raw parameter values; base64 sidesteps
+    that. The receiving runbook decodes via base64.b64decode + json.loads."""
+    inner = json.dumps({"health_check": True}).encode("utf-8")
+    return {"payload": base64.b64encode(inner).decode("ascii")}
 
 
 def _az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
@@ -858,7 +843,7 @@ def _az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
     body = json.dumps({
         "properties": {
             "runbook": {"name": runbook},
-            "parameters": _health_check_parameters(runbook),
+            "parameters": _health_check_parameters_b64(),
         }
     })
     _step(f"  health-check dry-fire {runbook} (aa_job_id={aa_job_id})")
@@ -912,19 +897,115 @@ def _az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
     }
 
 
-# Runbooks that have a payload.health_check short-circuit AND actually
-# run on the AA sandbox (where dry-fire fires them). The migrator's
-# normal runtime is the Hybrid Worker VM, not the AA sandbox, and its
-# AA-side module-load requires pymongo (only present on the HW VM via
-# CustomScript) - dry-firing migrator on AA would test an environment
-# that's not the migrator's real environment. Skip it; the migrator's
-# real verification is the actual migration test that real operators
-# fire after deploy.
+# Sub-runbooks (provisioner/deprovisioner) are dry-fired via PUT /jobs
+# with a base64-encoded health_check payload. The orchestrator is
+# webhook-only (production gateway and dry-fire both POST to the
+# operator-minted webhook URL); the orchestrator dry-fire path is
+# separate (see _az_automation_orchestrator_verify_via_webhook). The
+# migrator runs on the Hybrid Worker VM, not the AA sandbox, so
+# AA-side dry-fire is meaningless for it - verification is via the
+# real migration test the operator fires post-deploy.
 _HEALTH_CHECK_SUPPORTED_RUNBOOKS = (
-    "ChatHealthyDataMigratorOrchestrator",
     "ChatHealthyDataMigratorProvisioner",
     "ChatHealthyDataMigratorDeprovisioner",
 )
+_ORCHESTRATOR_WEBHOOK_ENV_KEY = "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL"
+
+
+def _az_automation_poll_job_to_terminal(
+    rg: str, aa: str, aa_job_id: str, timeout_sec: int = 240,
+) -> dict:
+    """Poll an AA job until terminal status. Returns {status, exception}."""
+    sub = _az_subscription_id()
+    poll_url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/jobs/{aa_job_id}?api-version=2023-11-01"
+    )
+    deadline = time.time() + timeout_sec
+    last_status = "?"
+    while time.time() < deadline:
+        r = subprocess.run(
+            ["az", "rest", "--method", "get", "--url", poll_url, "-o", "json"],
+            capture_output=True, text=True,
+            creationflags=_cflags(), shell=(sys.platform == "win32"),
+        )
+        if r.returncode != 0:
+            time.sleep(5)
+            continue
+        try:
+            body_doc = json.loads(r.stdout or "{}")
+        except json.JSONDecodeError:
+            time.sleep(5)
+            continue
+        props = body_doc.get("properties", {}) or {}
+        status = props.get("status") or "?"
+        last_status = status
+        if status in ("Completed", "Failed", "Stopped", "Suspended"):
+            return {"status": status, "exception": props.get("exception") or ""}
+        time.sleep(5)
+    return {"status": f"Timeout(last={last_status})", "exception": ""}
+
+
+def _az_automation_orchestrator_verify_via_webhook(
+    rg: str, aa: str, webhook_url: str, runbook: str,
+) -> None:
+    """Fire the orchestrator's health-check path via its operator-minted
+    webhook URL (same delivery the production gateway uses). The webhook
+    body is a JSON object with health_check=true; AA wraps it in
+    WebhookData and delivers via sys.argv[1]; the orchestrator unwraps
+    and short-circuits. Webhook response carries the AA job_id to poll."""
+    body = json.dumps({"health_check": True}).encode("utf-8")
+    req = urllib.request.Request(
+        webhook_url,
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            status_code = resp.status
+            resp_text = resp.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        sys.exit(
+            f"ERROR: orchestrator webhook returned HTTP {e.code}: "
+            f"{e.read().decode('utf-8', errors='replace')[:500]}"
+        )
+    if status_code != 202:
+        sys.exit(
+            f"ERROR: orchestrator webhook returned {status_code} "
+            f"(expected 202): {resp_text[:500]}"
+        )
+    try:
+        webhook_resp = json.loads(resp_text)
+    except json.JSONDecodeError:
+        sys.exit(f"ERROR: orchestrator webhook response not JSON: {resp_text[:500]}")
+    job_ids = webhook_resp.get("JobIds") or webhook_resp.get("jobIds") or []
+    if not job_ids:
+        sys.exit(
+            f"ERROR: orchestrator webhook response has no JobIds: {resp_text[:500]}"
+        )
+    aa_job_id = str(job_ids[0])
+    _step(f"  health-check dry-fire {runbook} via webhook (aa_job_id={aa_job_id})")
+    result = _az_automation_poll_job_to_terminal(rg, aa, aa_job_id, timeout_sec=240)
+    status = result["status"]
+    if status == "Completed":
+        _step(
+            f"  health-check verified: {runbook} via webhook status=Completed "
+            f"(dry-fire job {aa_job_id})"
+        )
+        return
+    if status.startswith("Timeout"):
+        sys.exit(
+            f"ERROR: deploy FAILED for {aa}/{runbook} - orchestrator "
+            f"health-check via webhook did not reach terminal status in 240s "
+            f"(last={status}, job={aa_job_id})."
+        )
+    sys.exit(
+        f"ERROR: deploy FAILED for {aa}/{runbook} - orchestrator "
+        f"health-check via webhook ended status={status} (job={aa_job_id}). "
+        f"Exception (truncated):\n  {result['exception'][:1500]}"
+    )
 
 
 def _az_automation_runbook_verify_runnable(rg: str, aa: str, runbook: str) -> None:
@@ -1104,8 +1185,22 @@ def _deploy_azure_automation_runbook(
     # sufficient: if the AA's Python3 package state is broken (wrong-
     # platform wheel, install failure), every Python3 job startup aborts
     # before the runbook script executes. A deploy that produces a non-
-    # runnable runbook is a FAILED deploy.
-    _az_automation_runbook_verify_runnable(rg, aa, runbook)
+    # runnable runbook is a FAILED deploy. The orchestrator is verified
+    # via its webhook URL (same path as the production gateway uses);
+    # other chdm runbooks are verified via PUT /jobs with base64-encoded
+    # health_check payload.
+    if runbook == _ORCHESTRATOR_RUNBOOK_NAME:
+        try:
+            webhook_url = resolver.resolve(_ORCHESTRATOR_WEBHOOK_ENV_KEY, env)
+        except KeyError:
+            sys.exit(
+                f"ERROR: deploy cannot verify {runbook} - "
+                f"{_ORCHESTRATOR_WEBHOOK_ENV_KEY} is not in the operator's "
+                f"secret store. Set it in Code/.env."
+            )
+        _az_automation_orchestrator_verify_via_webhook(rg, aa, webhook_url, runbook)
+    else:
+        _az_automation_runbook_verify_runnable(rg, aa, runbook)
     return f"{aa}/{runbook}"
 
 
