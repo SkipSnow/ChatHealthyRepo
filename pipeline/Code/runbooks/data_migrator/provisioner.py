@@ -414,6 +414,44 @@ def _vm_resource_id(sub: str, rg: str, vm_name: str) -> str:
     )
 
 
+_DEPROVISIONER_RUNBOOK = "ChatHealthyDataMigratorDeprovisioner"
+
+
+def _fire_deprovisioner_on_failure(sub: str, aa_rg: str, aa: str,
+                                    job_id: str, vm_name: str) -> str:
+    """AB-end safety: if the provisioner fails after creating any Azure
+    resource (NIC, VM, MI grant, HW worker, extensions), fire the
+    deprovisioner to clean up the partial state so we don't leak. The
+    deprovisioner is idempotent on missing resources (DELETE returns 404
+    -> treated as already-gone). Returns the deprovisioner's AA job_id."""
+    aa_job_id = str(uuid.uuid4())
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/jobs/{aa_job_id}?api-version={_AUTOMATION_API}"
+    )
+    encoded = base64.b64encode(json.dumps({
+        "job_id": job_id, "vm_name": vm_name, "request_guid": _request_guid,
+    }).encode("utf-8")).decode("ascii")
+    body = {
+        "properties": {
+            "runbook": {"name": _DEPROVISIONER_RUNBOOK},
+            "parameters": {"payload": encoded},
+        }
+    }
+    token = _mi_token()
+    r = requests.put(
+        url,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        json=body, timeout=60,
+    )
+    if r.status_code not in (200, 201):
+        raise RuntimeError(
+            f"Start deprovisioner-on-failure failed: HTTP {r.status_code} {r.text[:500]}"
+        )
+    return aa_job_id
+
+
 def _main():
     global _request_guid
     payload = _read_payload()
@@ -438,27 +476,45 @@ def _main():
 
     log.info("Provision begin: job_id=%s vm_name=%s size=%s", job_id, vm_name, vm_size)
 
-    nic_id = _create_nic(sub, vm_rg, location, vm_name, subnet_id)
-    vm_principal_id = _create_vm(sub, vm_rg, location, vm_name, vm_size,
-                                 nic_id, admin_user, ssh_pubkey)
-    # Install python deps synchronously BEFORE the HW extension so the worker
-    # cannot dequeue the migrator job until pymongo/dnspython exist.
-    _install_python_deps_extension(sub, vm_rg, vm_name, location)
-    # Grant the VM's MI start-runbook rights on the AA so the migrator can
-    # fire the deprovisioner back on the AA without 403.
-    role_assignment_guid = _grant_vm_mi_automation_operator(
-        sub, aa_rg, aa, vm_principal_id, vm_name,
-    )
+    # AB-end safety per slide 4: from the first resource creation onward,
+    # any exception triggers the deprovisioner to clean up partial state.
+    # Without this, a mid-flow failure (e.g. VM-create rejected because the
+    # subscription's Microsoft.Compute provider isn't registered) leaks
+    # the NIC the provisioner just created. The deprovisioner is
+    # idempotent on missing resources (DELETE 404 -> already-gone).
+    try:
+        nic_id = _create_nic(sub, vm_rg, location, vm_name, subnet_id)
+        vm_principal_id = _create_vm(sub, vm_rg, location, vm_name, vm_size,
+                                     nic_id, admin_user, ssh_pubkey)
+        # Install python deps synchronously BEFORE the HW extension so the worker
+        # cannot dequeue the migrator job until pymongo/dnspython exist.
+        _install_python_deps_extension(sub, vm_rg, vm_name, location)
+        # Grant the VM's MI start-runbook rights on the AA so the migrator can
+        # fire the deprovisioner back on the AA without 403.
+        role_assignment_guid = _grant_vm_mi_automation_operator(
+            sub, aa_rg, aa, vm_principal_id, vm_name,
+        )
 
-    vm_id = _vm_resource_id(sub, vm_rg, vm_name)
-    worker_guid = _register_hybrid_worker(sub, aa_rg, aa, vm_id)
-    automation_hybrid_service_url = _get_automation_hybrid_service_url(sub, aa_rg, aa)
-    _install_hybrid_worker_extension(sub, vm_rg, vm_name,
-                                     automation_hybrid_service_url, location)
+        vm_id = _vm_resource_id(sub, vm_rg, vm_name)
+        worker_guid = _register_hybrid_worker(sub, aa_rg, aa, vm_id)
+        automation_hybrid_service_url = _get_automation_hybrid_service_url(sub, aa_rg, aa)
+        _install_hybrid_worker_extension(sub, vm_rg, vm_name,
+                                         automation_hybrid_service_url, location)
 
-    log.info("Provision complete: vm_name=%s worker_guid=%s; firing migrator on %s",
-             vm_name, worker_guid, _HYBRID_WORKER_GROUP)
-    migrator_aa_job_id = _fire_migrator(sub, aa_rg, aa, payload)
+        log.info("Provision complete: vm_name=%s worker_guid=%s; firing migrator on %s",
+                 vm_name, worker_guid, _HYBRID_WORKER_GROUP)
+        migrator_aa_job_id = _fire_migrator(sub, aa_rg, aa, payload)
+    except Exception as exc:
+        log.error("Provisioner FAILED mid-flow; firing deprovisioner to clean partial state: %r", exc)
+        try:
+            cleanup_aa_job_id = _fire_deprovisioner_on_failure(
+                sub, aa_rg, aa, job_id, vm_name,
+            )
+            log.info("Provisioner fired cleanup deprovisioner: job_id=%s deprovisioner_aa_job_id=%s",
+                     job_id, cleanup_aa_job_id)
+        except Exception as cleanup_exc:
+            log.error("CLEANUP DEPROVISIONER FIRE FAILED; partial state will leak: %r", cleanup_exc)
+        raise
     log.info("Provisioner fired migrator: job_id=%s migrator_aa_job_id=%s",
              job_id, migrator_aa_job_id)
     print(json.dumps({
