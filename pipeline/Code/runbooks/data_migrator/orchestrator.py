@@ -68,26 +68,40 @@ _AUTOMATION_API = "2023-11-01"
 _PROVISIONER_RUNBOOK = "ChatHealthyDataMigratorProvisioner"
 
 
+import ast
+
+
 def _read_payload() -> dict:
-    """The orchestrator is webhook-only. The gateway (production) and the
-    deploy health-check both POST to the same operator-minted webhook URL
-    (MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL). Azure Automation
-    wraps the POST body in WebhookData and delivers sys.argv[1] as a JSON
-    string with that shape (legacy AA strips quotes from PUT-/jobs
-    parameter values, but webhook deliveries arrive intact). We unwrap
-    WebhookData and json.loads the inner RequestBody string."""
+    """The orchestrator is webhook-only. Empirically, legacy AA's webhook
+    delivery mangles the WebhookData wrapper at sys.argv[1]: keys lose
+    quotes, bools become lowercase, etc. Try JSON first (in case AA ever
+    delivers properly), then Python literal-eval. On total failure include
+    sys.argv[1] preview in the error so the next failure exposes the
+    actual delivered format and we can write a precise parser."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
-    webhook_data = json.loads(sys.argv[1])
+    s = sys.argv[1]
+    webhook_data = None
+    try:
+        webhook_data = json.loads(s)
+    except (json.JSONDecodeError, TypeError):
+        try:
+            webhook_data = ast.literal_eval(s)
+        except (ValueError, SyntaxError) as e:
+            raise RuntimeError(
+                f"orchestrator: sys.argv[1] is neither JSON nor a Python "
+                f"literal: first 500 chars={s[:500]!r}; ast error={e}"
+            )
     if not isinstance(webhook_data, dict):
         raise RuntimeError(
-            f"orchestrator: WebhookData is not a JSON object; got {type(webhook_data).__name__}"
+            f"orchestrator: WebhookData is not a dict; got "
+            f"{type(webhook_data).__name__}; first 500 chars={s[:500]!r}"
         )
     request_body = webhook_data.get("RequestBody")
     if not isinstance(request_body, str):
         raise RuntimeError(
-            "orchestrator: WebhookData missing RequestBody string; "
-            f"keys={sorted(webhook_data)}"
+            f"orchestrator: WebhookData missing RequestBody string; "
+            f"keys={sorted(webhook_data)}; first 500 chars={s[:500]!r}"
         )
     return json.loads(request_body)
 
