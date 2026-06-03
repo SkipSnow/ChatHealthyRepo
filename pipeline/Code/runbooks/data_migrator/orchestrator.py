@@ -79,13 +79,14 @@ def _read_payload() -> dict:
     back to the runbook split into 4+ argv entries because the mangled
     wrapper has commas between fields.
 
-    Reconstruct: re-join sys.argv[1:] with ',' (the split separator),
+    Reconstruct: re-join sys.argv[1:] with ' ' (a single space - AA's
+    shell encoding splits the mangled wrapper on whitespace, so the
+    original spaces inside the embedded JSON body become argv separators),
     locate "RequestBody:", and use json.JSONDecoder.raw_decode to consume
-    the embedded JSON object (which preserved its quotes through the
-    mangling because string-value internals appear to survive intact)."""
+    the embedded JSON object."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
-    s = ",".join(sys.argv[1:])
+    s = " ".join(sys.argv[1:])
     marker = "RequestBody:"
     idx = s.find(marker)
     if idx == -1:
