@@ -453,7 +453,15 @@ def _main():
             log.info("Mirrored %d user-defined indexes", created)
 
     finally:
-        status_doc.finalize(has_exception)
+        # Each finally step is isolated so a failure in one (e.g. transient
+        # pipeline-cluster blip during finalize) does NOT skip the load-bearing
+        # downstream steps — releasing the reservation and firing the
+        # deprovisioner. Per slide 4: automated deprovisioning must work on
+        # an ab-end.
+        try:
+            status_doc.finalize(has_exception)
+        except Exception as e:
+            log.warning("status_doc.finalize failed (continuing): %r", e)
 
         if has_exception:
             log.info("Failure path: dropping destination collection %s.%s",
@@ -463,13 +471,20 @@ def _main():
             except Exception as e:
                 log.warning("Drop destination failed (continuing): %r", e)
 
-        log.info("Releasing source reservation %s", job_id)
-        _release_source(job_id)
+        try:
+            log.info("Releasing source reservation %s", job_id)
+            _release_source(job_id)
+        except Exception as e:
+            log.warning("Release source reservation failed (continuing): %r", e)
 
-        log.info("Firing deprovisioner for vm=%s (fire-and-forget)", vm_name)
-        deprov_aa_job_id = _fire_deprovisioner(job_id, vm_name)
-        log.info("Migrator fired deprovisioner: job_id=%s deprovisioner_aa_job_id=%s",
-                 job_id, deprov_aa_job_id)
+        deprov_aa_job_id = None
+        try:
+            log.info("Firing deprovisioner for vm=%s (fire-and-forget)", vm_name)
+            deprov_aa_job_id = _fire_deprovisioner(job_id, vm_name)
+            log.info("Migrator fired deprovisioner: job_id=%s deprovisioner_aa_job_id=%s",
+                     job_id, deprov_aa_job_id)
+        except Exception as e:
+            log.error("Fire deprovisioner FAILED — VM %s will leak: %r", vm_name, e)
 
         print(json.dumps({
             "migrator_status": "error" if has_exception else "ok",

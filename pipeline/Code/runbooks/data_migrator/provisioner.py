@@ -36,7 +36,6 @@ Environment (Automation Variables):
     AZ_AUTOMATION_RESOURCE_GROUP
     AZ_AUTOMATION_ACCOUNT
 """
-import base64
 import json
 import logging
 import os
@@ -66,11 +65,18 @@ log = logging.getLogger("provisioner")
 _COMPUTE_API = "2024-07-01"
 _NETWORK_API = "2024-01-01"
 _AUTOMATION_API = "2023-11-01"
+_AUTHORIZATION_API = "2022-04-01"
 _HYBRID_WORKER_API = "2024-10-23"
 _HYBRID_WORKER_GROUP = "ChatHealthyDataMigratorWorkGroup"
 _MIGRATOR_RUNBOOK = "ChatHealthyDataMigrator"
 _WAIT_POLL_SEC = 10
 _VM_WAIT_TIMEOUT_SEC = 15 * 60
+
+# Automation Operator built-in role definition GUID. Lets the principal start
+# runbook jobs on the Automation Account. The migrator runs on the HW VM with
+# the VM's system MI; without this role it gets 403 when firing the
+# deprovisioner.
+_AUTOMATION_OPERATOR_ROLE_DEF_GUID = "d3881f73-407a-4167-8283-e981cbba0404"
 
 _IMAGE_REFERENCE = {
     "publisher": "Canonical",
@@ -79,13 +85,14 @@ _IMAGE_REFERENCE = {
     "version":   "latest",
 }
 
-_CLOUD_INIT = """#cloud-config
-package_update: true
-packages:
-  - python3-pip
-runcmd:
-  - [ pip3, install, --no-cache-dir, pymongo, dnspython, requests ]
-"""
+# CustomScript extension command — runs synchronously as root. Provisioner
+# waits for its provisioningState before installing the HW extension, so
+# pymongo/dnspython are present before the worker dequeues the migrator job.
+_PYTHON_DEPS_INSTALL = (
+    "apt-get update -y && "
+    "apt-get install -y python3-pip && "
+    "pip3 install --no-cache-dir pymongo dnspython requests"
+)
 
 
 def _read_payload() -> dict:
@@ -168,13 +175,16 @@ def _create_nic(sub: str, rg: str, location: str, vm_name: str, subnet_id: str) 
 
 
 def _create_vm(sub: str, rg: str, location: str, vm_name: str, vm_size: str,
-               nic_id: str, admin_username: str, ssh_pubkey: str) -> None:
+               nic_id: str, admin_username: str, ssh_pubkey: str) -> str:
+    """Create the VM. Returns its system-assigned MI principalId. Does NOT
+    use cloud-init for python deps — python deps are installed
+    synchronously via the separate CustomScript extension (see
+    _install_python_deps_extension) so the HW extension cannot race them."""
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
         f"/providers/Microsoft.Compute/virtualMachines/{vm_name}"
         f"?api-version={_COMPUTE_API}"
     )
-    custom_data = base64.b64encode(_CLOUD_INIT.encode("utf-8")).decode("ascii")
     body = {
         "location": location,
         "identity": {"type": "SystemAssigned"},
@@ -191,7 +201,6 @@ def _create_vm(sub: str, rg: str, location: str, vm_name: str, vm_size: str,
             "osProfile": {
                 "computerName": vm_name,
                 "adminUsername": admin_username,
-                "customData": custom_data,
                 "linuxConfiguration": {
                     "disablePasswordAuthentication": True,
                     "ssh": {
@@ -213,6 +222,74 @@ def _create_vm(sub: str, rg: str, location: str, vm_name: str, vm_size: str,
     log.info("Creating VM %s size=%s", vm_name, vm_size)
     _arm_put(url, body)
     _wait_provisioning(url, _VM_WAIT_TIMEOUT_SEC, what=f"VM {vm_name}")
+    vm_body = _arm_get(url)
+    principal_id = vm_body.get("identity", {}).get("principalId")
+    if not principal_id:
+        raise RuntimeError(
+            f"VM {vm_name!r} has no identity.principalId after provisioning; "
+            f"the system-assigned MI did not materialize."
+        )
+    return principal_id
+
+
+def _install_python_deps_extension(sub: str, vm_rg: str, vm_name: str,
+                                   location: str) -> None:
+    """Install pymongo/dnspython/requests via CustomScript extension and
+    wait for provisioningState=Succeeded. Synchronous on purpose: the HW
+    extension cannot start the migrator until python deps are present."""
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{vm_rg}"
+        f"/providers/Microsoft.Compute/virtualMachines/{vm_name}"
+        f"/extensions/InstallPythonDeps?api-version={_COMPUTE_API}"
+    )
+    body = {
+        "location": location,
+        "properties": {
+            "publisher": "Microsoft.Azure.Extensions",
+            "type": "CustomScript",
+            "typeHandlerVersion": "2.1",
+            "autoUpgradeMinorVersion": True,
+            "settings": {},
+            "protectedSettings": {
+                "commandToExecute": f"bash -c \"{_PYTHON_DEPS_INSTALL}\"",
+            },
+        },
+    }
+    log.info("Installing python deps via CustomScript extension on %s (wait)", vm_name)
+    _arm_put(url, body)
+    _wait_provisioning(url, _VM_WAIT_TIMEOUT_SEC, what=f"CustomScript {vm_name}")
+
+
+def _grant_vm_mi_automation_operator(sub: str, aa_rg: str, aa: str,
+                                     vm_principal_id: str, vm_name: str) -> str:
+    """PUT a role assignment so the VM's MI can start runbooks on the AA.
+    Without this the migrator (running on the VM) gets 403 when it fires
+    the deprovisioner. Role-assignment GUID is deterministic from vm_name so
+    the deprovisioner can DELETE the same one without coordination."""
+    role_def_id = (
+        f"/subscriptions/{sub}/providers/Microsoft.Authorization/roleDefinitions"
+        f"/{_AUTOMATION_OPERATOR_ROLE_DEF_GUID}"
+    )
+    aa_scope = (
+        f"/subscriptions/{sub}/resourceGroups/{aa_rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+    )
+    assignment_guid = str(uuid.uuid5(uuid.NAMESPACE_OID, f"chdm-vm-mi-auto-op|{vm_name}"))
+    url = (
+        f"https://management.azure.com{aa_scope}"
+        f"/providers/Microsoft.Authorization/roleAssignments/{assignment_guid}"
+        f"?api-version={_AUTHORIZATION_API}"
+    )
+    body = {
+        "properties": {
+            "roleDefinitionId": role_def_id,
+            "principalId": vm_principal_id,
+            "principalType": "ServicePrincipal",
+        }
+    }
+    log.info("Granting VM MI Automation Operator on AA (assignment=%s)", assignment_guid)
+    _arm_put(url, body)
+    return assignment_guid
 
 
 def _register_hybrid_worker(sub: str, aa_rg: str, aa: str, vm_id: str) -> str:
@@ -334,7 +411,16 @@ def _main():
     log.info("Provision begin: job_id=%s vm_name=%s size=%s", job_id, vm_name, vm_size)
 
     nic_id = _create_nic(sub, vm_rg, location, vm_name, subnet_id)
-    _create_vm(sub, vm_rg, location, vm_name, vm_size, nic_id, admin_user, ssh_pubkey)
+    vm_principal_id = _create_vm(sub, vm_rg, location, vm_name, vm_size,
+                                 nic_id, admin_user, ssh_pubkey)
+    # Install python deps synchronously BEFORE the HW extension so the worker
+    # cannot dequeue the migrator job until pymongo/dnspython exist.
+    _install_python_deps_extension(sub, vm_rg, vm_name, location)
+    # Grant the VM's MI start-runbook rights on the AA so the migrator can
+    # fire the deprovisioner back on the AA without 403.
+    role_assignment_guid = _grant_vm_mi_automation_operator(
+        sub, aa_rg, aa, vm_principal_id, vm_name,
+    )
 
     vm_id = _vm_resource_id(sub, vm_rg, vm_name)
     worker_guid = _register_hybrid_worker(sub, aa_rg, aa, vm_id)
@@ -353,6 +439,8 @@ def _main():
         "vm_name": vm_name,
         "vm_id": vm_id,
         "worker_guid": worker_guid,
+        "vm_mi_principal_id": vm_principal_id,
+        "role_assignment_guid": role_assignment_guid,
         "hybrid_worker_group": _HYBRID_WORKER_GROUP,
         "migrator_aa_job_id": migrator_aa_job_id,
     }), flush=True)
