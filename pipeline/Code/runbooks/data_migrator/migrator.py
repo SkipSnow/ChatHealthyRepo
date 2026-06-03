@@ -75,8 +75,21 @@ try:
 except ImportError:
     automationassets = None  # type: ignore
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+_request_guid = "?"
+
+
+class _RGFilter(logging.Filter):
+    def filter(self, record):
+        record.request_guid = _request_guid
+        return True
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s [rg=%(request_guid)s] %(message)s",
+)
 log = logging.getLogger("migrator")
+log.addFilter(_RGFilter())
 
 _STATUS_DB = "admin"
 _STATUS_COLLECTION = "ChatHealthyDataMigrator_jobs"
@@ -117,15 +130,20 @@ class StatusDoc:
         self._job_id = job_id
         self._lock = threading.Lock()
 
-    def init(self, partitions: list[dict]) -> None:
+    def init(self, base_filter: dict, partitions: list[dict]) -> None:
+        """Initialize the job doc and one row per thread. partition_filter
+        per-thread is the COMPOSED Mongo query the thread will run (the
+        contract's per-thread row carries the actual partition filter, not
+        an internal structured representation). status is intentionally
+        absent at init - the contract enum is {ok, error}, set on thread
+        completion only."""
         now = datetime.now(timezone.utc).isoformat()
         threads = [
             {
                 "thread_id": str(i),
-                "partition_filter": p,
+                "partition_filter": _compose_slice_filter(base_filter, p),
                 "source_read_count": 0,
                 "dest_write_count": 0,
-                "status": "running",
                 "last_update_ts": now,
             }
             for i, p in enumerate(partitions)
@@ -255,6 +273,19 @@ def _release_source(job_id: str) -> None:
     coll.delete_one({"_id": job_id})
 
 
+def _elemmatch_paths(base_filter: dict) -> dict[str, dict]:
+    """Return {array_path: <elemMatch dict>} for every top-level key in
+    base_filter whose value is {"$elemMatch": {...}}. Used to honor the
+    contract's 'Subordinate to Job filter' clause when a thread attribute
+    is nested under an $elemMatch'd array - wildcard enumeration and per-
+    slice scoping must stay element-wise, not aggregate-wise."""
+    out: dict[str, dict] = {}
+    for k, v in (base_filter or {}).items():
+        if isinstance(v, dict) and "$elemMatch" in v and isinstance(v["$elemMatch"], dict):
+            out[k] = v["$elemMatch"]
+    return out
+
+
 def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) -> list[dict]:
     if not thread_criteria:
         raise RuntimeError(
@@ -269,29 +300,99 @@ def _enumerate_partitions(src_coll, base_filter: dict, thread_criteria: dict) ->
         else:
             fixed[k] = v
 
+    if not wildcards:
+        return [{"_fixed": dict(fixed), "_wildcards": {}}]
+
+    em_paths = _elemmatch_paths(base_filter)
+
+    # Validate: a wildcard attribute may nest under AT MOST ONE $elemMatch'd
+    # array path in the Job filter. Ambiguous nesting = abend at entry rather
+    # than silently picking one.
+    for w in wildcards:
+        nesting = [p for p in em_paths if w.startswith(p + ".")]
+        if len(nesting) > 1:
+            raise RuntimeError(
+                f"thread_criteria wildcard {w!r} nests under multiple $elemMatch "
+                f"array paths in Job filter: {nesting}. Per-element scope is ambiguous."
+            )
+
     distinct_values_per_field: list[list] = []
-    for field in wildcards:
-        full_filter = {**base_filter, **fixed}
-        values = src_coll.distinct(field, full_filter)
+    for w in wildcards:
+        nesting = [p for p in em_paths if w.startswith(p + ".")]
+        if nesting:
+            # Nested-under-$elemMatch wildcard: enumerate distinct values of
+            # the leaf field, scoped to elements that actually satisfy the
+            # $elemMatch constraints. distinct() on a dotted path would
+            # return values across ALL elements (including ones the
+            # $elemMatch did not select), violating "Subordinate to Job
+            # filter". Aggregate $unwind + element-level $match gives the
+            # right scope. Filter is Job filter only per contract slide 2:
+            # "the migrator interrogates the source via
+            # distinct(attribute, JobFilter)".
+            array_path = nesting[0]
+            leaf = w[len(array_path) + 1:]
+            element_match = {
+                f"{array_path}.{ek}": ev for ek, ev in em_paths[array_path].items()
+            }
+            pipeline = [
+                {"$match": base_filter},
+                {"$unwind": f"${array_path}"},
+                {"$match": element_match},
+                {"$group": {"_id": f"${array_path}.{leaf}"}},
+                {"$sort": {"_id": 1}},
+            ]
+            values = [d["_id"] for d in src_coll.aggregate(pipeline, allowDiskUse=True)]
+        else:
+            # Plain wildcard: distinct() on a top-level field, JobFilter only.
+            values = src_coll.distinct(w, base_filter)
         if not values:
             values = [None]
         distinct_values_per_field.append(values)
 
-    if not wildcards:
-        return [{**fixed}]
-
     partitions: list[dict] = []
     for combo in itertools.product(*distinct_values_per_field):
-        partition_filter = {**fixed}
-        for field, val in zip(wildcards, combo):
-            partition_filter[field] = val
-        partitions.append(partition_filter)
+        partitions.append({
+            "_fixed": dict(fixed),
+            "_wildcards": dict(zip(wildcards, combo)),
+        })
     return partitions
 
 
-def _migrate_slice(src_coll, dst_coll, base_filter: dict, partition_filter: dict,
+def _compose_slice_filter(base_filter: dict, partition: dict) -> dict:
+    """Compose the per-slice query for a thread. Wildcard assignments whose
+    attribute path nests under an $elemMatch'd array in base_filter are
+    folded into that element (augmenting the $elemMatch dict); non-nested
+    wildcards and the fixed thread_criteria entries are merged as siblings.
+    Honors the contract: every thread's per-slice query is the Job filter
+    merged with one partition assignment, and no thread can read docs
+    outside Job filter scope. Multiple wildcards into the SAME $elemMatch
+    array path all augment the same element (not sibling-overwriting)."""
+    em_paths = _elemmatch_paths(base_filter)
+    combined: dict = {}
+    for k, v in (base_filter or {}).items():
+        combined[k] = v
+    for k, v in partition.get("_fixed", {}).items():
+        combined[k] = v
+    # Group wildcard assignments by their target array path. Multiple
+    # wildcards into the same array all land in one augmented elemMatch
+    # element; wildcards not under any array path apply at top level.
+    augmented_by_array: dict[str, dict] = {}
+    for w, val in partition.get("_wildcards", {}).items():
+        nesting = [p for p in em_paths if w.startswith(p + ".")]
+        if nesting:
+            array_path = nesting[0]
+            leaf = w[len(array_path) + 1:]
+            augmented_by_array.setdefault(array_path, dict(em_paths[array_path]))[leaf] = val
+        else:
+            combined[w] = val
+    for array_path, augmented in augmented_by_array.items():
+        combined[array_path] = {"$elemMatch": augmented}
+    return combined
+
+
+def _migrate_slice(src_coll, dst_coll, base_filter: dict, partition: dict,
                    thread_id: str, status_doc: StatusDoc) -> tuple[int, int]:
-    combined = {**base_filter, **partition_filter}
+    combined = _compose_slice_filter(base_filter, partition)
     cursor = src_coll.find(combined, no_cursor_timeout=False).batch_size(_BATCH_SIZE)
     batch: list[InsertOne] = []
     read_count = 0
@@ -344,8 +445,10 @@ def _mi_token() -> str:
     return r.json()["access_token"]
 
 
-def _fire_deprovisioner(job_id: str, vm_name: str) -> str:
-    """Fire-and-forget the deprovisioner runbook. Returns the AA job_id."""
+def _fire_deprovisioner(job_id: str, vm_name: str, request_guid: str) -> str:
+    """Fire-and-forget the deprovisioner runbook. Returns the AA job_id.
+    Forwards request_guid so the deprovisioner can log it (contract slide 4:
+    every component forwards and logs the request_guid)."""
     sub = os.environ["AZ_SUBSCRIPTION_ID"]
     aa_rg = os.environ["AZ_AUTOMATION_RESOURCE_GROUP"]
     aa = os.environ["AZ_AUTOMATION_ACCOUNT"]
@@ -358,7 +461,9 @@ def _fire_deprovisioner(job_id: str, vm_name: str) -> str:
     body = {
         "properties": {
             "runbook": {"name": _DEPROVISIONER_RUNBOOK},
-            "parameters": {"payload": json.dumps({"job_id": job_id, "vm_name": vm_name})},
+            "parameters": {"payload": json.dumps({
+                "job_id": job_id, "vm_name": vm_name, "request_guid": request_guid,
+            })},
         }
     }
     token = _mi_token()
@@ -375,7 +480,9 @@ def _fire_deprovisioner(job_id: str, vm_name: str) -> str:
 
 
 def _main():
+    global _request_guid
     payload = _read_payload()
+    _request_guid = payload.get("request_guid", "?")
     job_id = payload["job_id"]
     vm_name = payload["vm_name"]
     src_cluster = payload["source_cluster"]
@@ -417,7 +524,7 @@ def _main():
 
     partitions = _enumerate_partitions(src_coll, base_filter, thread_criteria)
     log.info("Enumerated %d partitions", len(partitions))
-    status_doc.init(partitions)
+    status_doc.init(base_filter, partitions)
 
     has_exception = False
     success_writes = 0
@@ -480,7 +587,7 @@ def _main():
         deprov_aa_job_id = None
         try:
             log.info("Firing deprovisioner for vm=%s (fire-and-forget)", vm_name)
-            deprov_aa_job_id = _fire_deprovisioner(job_id, vm_name)
+            deprov_aa_job_id = _fire_deprovisioner(job_id, vm_name, _request_guid)
             log.info("Migrator fired deprovisioner: job_id=%s deprovisioner_aa_job_id=%s",
                      job_id, deprov_aa_job_id)
         except Exception as e:
