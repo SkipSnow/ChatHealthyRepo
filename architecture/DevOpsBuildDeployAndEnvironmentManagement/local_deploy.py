@@ -912,10 +912,17 @@ def _az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
     }
 
 
+# Runbooks that have a payload.health_check short-circuit AND actually
+# run on the AA sandbox (where dry-fire fires them). The migrator's
+# normal runtime is the Hybrid Worker VM, not the AA sandbox, and its
+# AA-side module-load requires pymongo (only present on the HW VM via
+# CustomScript) - dry-firing migrator on AA would test an environment
+# that's not the migrator's real environment. Skip it; the migrator's
+# real verification is the actual migration test that real operators
+# fire after deploy.
 _HEALTH_CHECK_SUPPORTED_RUNBOOKS = (
     "ChatHealthyDataMigratorOrchestrator",
     "ChatHealthyDataMigratorProvisioner",
-    "ChatHealthyDataMigrator",
     "ChatHealthyDataMigratorDeprovisioner",
 )
 

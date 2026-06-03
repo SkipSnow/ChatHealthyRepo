@@ -7,6 +7,8 @@ migrator chain depends on:
   - Hybrid Worker Group on the ChatHealthyJobManager Automation Account.
   - Role assignments on the AA's system-assigned managed identity
     (Virtual Machine Contributor + Automation Operator on the VM RG).
+  - AA Python3 package list reconciled to the chdm-declared set (no
+    hand actions; deploy owns the AA's Python environment).
   - Operator-landed SSH private key file for admin access to the
     ephemeral Hybrid Worker VM.
 
@@ -26,6 +28,8 @@ import json
 import pathlib
 import subprocess
 import sys
+import time
+import urllib.request
 
 
 _AUTOMATION_API = "2023-11-01"
@@ -34,6 +38,17 @@ _VM_SUBNET_NAME = "hybrid-worker-subnet"
 _VM_SUBNET_PREFIX = "10.0.2.0/24"
 _VNET_NAME = "ChatHealthy-VNet"
 _HYBRID_WORKER_GROUP = "ChatHealthyDataMigratorWorkGroup"
+
+# The complete, declared AA Python3 package set required by the chdm
+# runbooks running on the AA sandbox (orchestrator + provisioner +
+# deprovisioner). All three import `requests` only. The migrator runs on
+# the Hybrid Worker VM, NOT the AA sandbox, and gets its pymongo+dnspython
+# from the VM's CustomScript extension - it does not contribute to this
+# set. Versions are pinned to the latest pure-Python wheel compatible
+# with the AA's Python 3.8 runtime.
+_AA_PYTHON3_PACKAGES: dict[str, str] = {
+    "requests": "2.32.3",
+}
 
 
 def _cflags() -> int:
@@ -220,6 +235,133 @@ def chdm_ensure_role_assignment(principal_id: str, scope: str, role_name: str) -
     _step(f"  role '{role_name}' assigned.")
 
 
+def _pypi_universal_wheel_url(package: str, version: str) -> str:
+    """Look up the pure-Python wheel URL (py3-none-any) for package==version
+    on PyPI. Pure-Python wheels load on any CPython version, so they sidestep
+    the cp310-vs-cp38 wheel-platform problem that broke the prior AA state."""
+    url = f"https://pypi.org/pypi/{package}/{version}/json"
+    with urllib.request.urlopen(url, timeout=30) as resp:
+        body = json.load(resp)
+    for entry in body.get("urls", []):
+        fn = entry.get("filename", "")
+        if entry.get("packagetype") == "bdist_wheel" and fn.endswith("-py3-none-any.whl"):
+            return entry["url"]
+    raise RuntimeError(
+        f"PyPI has no py3-none-any wheel for {package}=={version}. "
+        f"Either pin a pure-Python version, or extend the deploy to pick "
+        f"a runtime-compatible cp<N>-cp<N>-manylinux*.whl."
+    )
+
+
+def _aa_python3_packages_list(aa_rg: str, aa: str) -> dict[str, dict]:
+    """Return current AA Python3 packages keyed by name. Values are
+    {version, provisioningState, error}."""
+    sub = _subscription_id()
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/python3Packages?api-version={_AUTOMATION_API}"
+    )
+    rc, out, _ = _az_try([
+        "az", "rest", "--method", "get", "--url", url, "-o", "json",
+    ])
+    if rc != 0:
+        return {}
+    body = json.loads(out or "{}")
+    out_map: dict[str, dict] = {}
+    for p in body.get("value", []):
+        props = p.get("properties", {}) or {}
+        out_map[p.get("name")] = {
+            "version": props.get("version"),
+            "provisioningState": props.get("provisioningState"),
+            "error": (props.get("error") or {}).get("message"),
+        }
+    return out_map
+
+
+def _aa_python3_package_delete(aa_rg: str, aa: str, name: str) -> None:
+    sub = _subscription_id()
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/python3Packages/{name}?api-version={_AUTOMATION_API}"
+    )
+    _step(f"  deleting AA Python3 package {name}")
+    _az([
+        "az", "rest", "--method", "delete", "--url", url, "-o", "none",
+    ])
+
+
+def _aa_python3_package_install(aa_rg: str, aa: str, name: str, version: str, wheel_url: str) -> None:
+    sub = _subscription_id()
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/python3Packages/{name}?api-version={_AUTOMATION_API}"
+    )
+    body = json.dumps({"properties": {"contentLink": {"uri": wheel_url}}})
+    _step(f"  installing AA Python3 package {name}=={version} (wheel={wheel_url.split('/')[-1]})")
+    _az([
+        "az", "rest", "--method", "put", "--url", url,
+        "--headers", "Content-Type=application/json",
+        "--body", body, "-o", "none",
+    ])
+    # Poll until package install reaches a terminal state. The AA install is
+    # asynchronous; provisioningState progresses Creating -> ContentDownloading
+    # -> ContentValidating -> ContentStoring -> ContentDownloaded (terminal)
+    # OR Failed (terminal). Anything else after 5 min is considered stuck.
+    deadline = time.time() + 5 * 60
+    while time.time() < deadline:
+        cur = _aa_python3_packages_list(aa_rg, aa).get(name)
+        state = (cur or {}).get("provisioningState")
+        if state in ("Succeeded", "ContentDownloaded"):
+            _step(f"  AA Python3 package {name}=={version} installed (state={state})")
+            return
+        if state == "Failed":
+            err = (cur or {}).get("error") or "(no error message)"
+            raise RuntimeError(
+                f"AA Python3 package install FAILED for {name}=={version}: {err}"
+            )
+        time.sleep(10)
+    raise RuntimeError(
+        f"AA Python3 package install for {name}=={version} did not "
+        f"reach a terminal state within 5min (last={state})"
+    )
+
+
+def chdm_ensure_aa_python3_packages(aa_rg: str, aa: str) -> None:
+    """Reconcile the AA's Python3 package list to the chdm-declared set
+    (_AA_PYTHON3_PACKAGES). Removes anything not declared; installs or
+    replaces anything that is declared but missing or at the wrong version.
+    All idempotent. After this returns, the AA's Python3 environment matches
+    the declared state exactly. No hand actions required from the operator."""
+    _step(f"verifying AA Python3 package set on '{aa}' matches chdm declaration")
+    current = _aa_python3_packages_list(aa_rg, aa)
+    declared = _AA_PYTHON3_PACKAGES
+
+    # Remove extras (packages installed on AA that we no longer declare).
+    for name in sorted(current.keys()):
+        if name not in declared:
+            _aa_python3_package_delete(aa_rg, aa, name)
+
+    # Install missing or wrong-version declared packages.
+    for name, want_version in declared.items():
+        cur = current.get(name)
+        if cur is None:
+            wheel_url = _pypi_universal_wheel_url(name, want_version)
+            _aa_python3_package_install(aa_rg, aa, name, want_version, wheel_url)
+            continue
+        if cur.get("version") != want_version or cur.get("provisioningState") not in ("Succeeded",):
+            _aa_python3_package_delete(aa_rg, aa, name)
+            wheel_url = _pypi_universal_wheel_url(name, want_version)
+            _aa_python3_package_install(aa_rg, aa, name, want_version, wheel_url)
+        else:
+            _step(
+                f"  AA Python3 package {name}=={want_version} already "
+                f"installed (state={cur.get('provisioningState')})"
+            )
+
+
 def chdm_ensure_chdm_persistent_infrastructure(
     *,
     vm_rg: str,
@@ -250,6 +392,12 @@ def chdm_ensure_chdm_persistent_infrastructure(
     # write on child resources (per Microsoft Learn extension-based
     # Hybrid Worker install walkthrough).
     chdm_ensure_role_assignment(aa_mi_pid, aa_scope, "Contributor")
+
+    # AA Python3 package set: reconcile to the chdm-declared list. After
+    # this returns, every runbook (orch/prov/depro) running on the AA
+    # sandbox has its imports available. Deploy owns this end-to-end.
+    chdm_ensure_aa_python3_packages(aa_rg, aa)
+
     return subnet_id
 
 
