@@ -63,6 +63,7 @@ log = logging.getLogger("deprovisioner")
 log.addFilter(_RGFilter())
 
 _COMPUTE_API = "2024-07-01"
+_NETWORK_API = "2024-01-01"
 _AUTHORIZATION_API = "2022-04-01"
 
 
@@ -109,6 +110,36 @@ def _delete_vm(sub: str, rg: str, vm_name: str) -> None:
         return
     raise RuntimeError(
         f"VM delete REST call failed for {vm_name}: HTTP {r.status_code} {r.text[:500]}"
+    )
+
+
+def _delete_nic(sub: str, vm_rg: str, vm_name: str) -> None:
+    """Delete the NIC the provisioner created (deterministic name
+    `{vm_name}-nic`). VM-cascade delete already removes the NIC when the
+    VM exists with deleteOption='Delete' on its network attachment, but
+    we delete unconditionally here for the AB-end-cleanup path where the
+    provisioner created the NIC and then crashed before creating the VM
+    (orphaned NIC). Idempotent on 404 (already gone)."""
+    nic_name = f"{vm_name}-nic"
+    token = _mi_token()
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}"
+        f"/resourceGroups/{vm_rg}/providers/Microsoft.Network"
+        f"/networkInterfaces/{nic_name}?api-version={_NETWORK_API}"
+    )
+    r = requests.delete(
+        url,
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=60,
+    )
+    if r.status_code in (200, 202, 204):
+        log.info("NIC delete accepted: %s (status=%d)", nic_name, r.status_code)
+        return
+    if r.status_code == 404:
+        log.info("NIC not found (already gone): %s", nic_name)
+        return
+    raise RuntimeError(
+        f"NIC delete REST call failed for {nic_name}: HTTP {r.status_code} {r.text[:500]}"
     )
 
 
@@ -163,8 +194,18 @@ def _main():
 
     log.info("Deprovision begin: job_id=%s vm_name=%s vm_rg=%s aa=%s",
              job_id, vm_name, vm_rg, aa)
-    _delete_vm_mi_role_assignment(sub, aa_rg, aa, vm_name)
-    _delete_vm(sub, vm_rg, vm_name)
+    # Each cleanup step is wrapped so one failure does not block the rest
+    # (AB-end safety: deprovisioning must be best-effort across all the
+    # partial-state resources the provisioner may have created).
+    for step_name, step_fn in (
+        ("role_assignment", lambda: _delete_vm_mi_role_assignment(sub, aa_rg, aa, vm_name)),
+        ("vm", lambda: _delete_vm(sub, vm_rg, vm_name)),
+        ("nic", lambda: _delete_nic(sub, vm_rg, vm_name)),
+    ):
+        try:
+            step_fn()
+        except Exception as exc:
+            log.warning("Deprovision %s step failed (continuing): %r", step_name, exc)
     log.info("Deprovision complete: job_id=%s vm_name=%s (vm delete is async in Azure)",
              job_id, vm_name)
     print(json.dumps({"deprovisioner_status": "ok", "job_id": job_id, "vm_name": vm_name}),
