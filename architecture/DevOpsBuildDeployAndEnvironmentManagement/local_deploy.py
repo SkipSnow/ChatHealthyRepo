@@ -789,6 +789,190 @@ def _az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
         )
 
 
+def _az_subscription_id() -> str:
+    args = ["az", "account", "show", "--query", "id", "-o", "tsv"]
+    r = subprocess.run(
+        args, capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(f"ERROR: az account show failed: {(r.stderr or '').strip()[:500]}")
+    return (r.stdout or "").strip()
+
+
+# Substrings that, when found in an AA job's `properties.exception` text,
+# indicate the runbook NEVER STARTED EXECUTING because the AA's Python3
+# package-install step failed. This is what we are catching with the dry-
+# fire: the AA's environment cannot host the runbook. Any other exception
+# (including the runbook raising on its own when fed an empty payload)
+# means the environment is fine and the runbook code ran.
+_AA_PACKAGE_INSTALL_FAILURE_MARKERS = (
+    "could not install",
+    "not a supported wheel",
+    "Package '",                          # pip "ERROR: Package 'x' requires ..."
+    "No matching distribution",
+    "ERROR: pip",
+)
+
+
+_ORCHESTRATOR_RUNBOOK_NAME = "ChatHealthyDataMigratorOrchestrator"
+
+
+def _health_check_parameters(runbook: str) -> dict:
+    """Build the AA-job `parameters` map for a health-check dry-fire of
+    the named runbook. Returns the dict that goes into the PUT /jobs body
+    under properties.parameters.
+
+    The orchestrator is webhook-triggered: AA delivers a WebhookData
+    wrapper at sys.argv[1] and orchestrator._read_payload unwraps it.
+    For a non-webhook PUT /jobs invocation the orchestrator still calls
+    json.loads(sys.argv[1]) then expects RequestBody to be a string, so
+    we build the same wrapper shape with our health_check payload inside.
+    The other three runbooks read sys.argv[1] as the payload directly
+    (no wrapper), via a `payload` parameter."""
+    inner = json.dumps({"health_check": True})
+    if runbook == _ORCHESTRATOR_RUNBOOK_NAME:
+        wrapper = json.dumps({
+            "WebhookName": "deploy-health-check",
+            "RequestBody": inner,
+            "RequestHeader": {},
+        })
+        return {"WebhookData": wrapper}
+    return {"payload": inner}
+
+
+def _az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
+    """Start the runbook as an AA job WITHOUT runOn (so it runs on the AA
+    sandbox, never on the Hybrid Worker - dry-fire must not provision
+    anything), with a `health_check: true` payload that each runbook's
+    _main short-circuits on (log the health check, return cleanly).
+    Polls until terminal status. Returns {status, exception, job_id}."""
+    sub = _az_subscription_id()
+    aa_job_id = str(uuid.uuid4())
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/jobs/{aa_job_id}?api-version=2023-11-01"
+    )
+    body = json.dumps({
+        "properties": {
+            "runbook": {"name": runbook},
+            "parameters": _health_check_parameters(runbook),
+        }
+    })
+    _step(f"  health-check dry-fire {runbook} (aa_job_id={aa_job_id})")
+    r = subprocess.run(
+        ["az", "rest", "--method", "put", "--url", url,
+         "--headers", "Content-Type=application/json", "--body", body, "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: dry-fire PUT /jobs failed for {runbook!r}: "
+            f"{(r.stderr or '').strip()[:1000]}"
+        )
+
+    poll_url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/jobs/{aa_job_id}?api-version=2023-11-01"
+    )
+    deadline = time.time() + 240
+    last_status = "?"
+    while time.time() < deadline:
+        r = subprocess.run(
+            ["az", "rest", "--method", "get", "--url", poll_url, "-o", "json"],
+            capture_output=True, text=True,
+            creationflags=_cflags(), shell=(sys.platform == "win32"),
+        )
+        if r.returncode != 0:
+            time.sleep(5)
+            continue
+        try:
+            body_doc = json.loads(r.stdout or "{}")
+        except json.JSONDecodeError:
+            time.sleep(5)
+            continue
+        props = body_doc.get("properties", {}) or {}
+        status = props.get("status") or "?"
+        last_status = status
+        if status in ("Completed", "Failed", "Stopped", "Suspended"):
+            return {
+                "status": status,
+                "exception": props.get("exception") or "",
+                "job_id": aa_job_id,
+            }
+        time.sleep(5)
+    return {
+        "status": f"Timeout(last={last_status})",
+        "exception": "",
+        "job_id": aa_job_id,
+    }
+
+
+_HEALTH_CHECK_SUPPORTED_RUNBOOKS = (
+    "ChatHealthyDataMigratorOrchestrator",
+    "ChatHealthyDataMigratorProvisioner",
+    "ChatHealthyDataMigrator",
+    "ChatHealthyDataMigratorDeprovisioner",
+)
+
+
+def _az_automation_runbook_verify_runnable(rg: str, aa: str, runbook: str) -> None:
+    """Post-deploy verification by health-check dry-fire.
+
+    Shipping the source bytes is necessary but not sufficient: the AA's
+    Python3 environment may be broken in ways the management-plane API
+    does not surface (e.g. a package wheel built for the wrong Python
+    version - provisioningState=Succeeded but the job-time install
+    fails). The only way to know the runbook is actually runnable is to
+    run it. Each chdm runbook's _main short-circuits on
+    `payload.health_check is True` by writing one log line and exiting
+    cleanly; the deploy fires that path and requires status=Completed.
+
+    Any non-Completed status is a DEPLOY FAILURE - the runbook the deploy
+    just published cannot actually execute on this AA, and shipping the
+    next migration request would silently fail in the same way.
+
+    Skipped for runbooks that do not have a health_check path (e.g. the
+    ReservationReaper, which existed before this verification was
+    introduced and whose health is observable via its own 5-min schedule)."""
+    if runbook not in _HEALTH_CHECK_SUPPORTED_RUNBOOKS:
+        _step(
+            f"  skipping health-check dry-fire for {runbook} "
+            f"(no health_check path; verify via scheduled execution)"
+        )
+        return
+
+    result = _az_automation_runbook_dry_fire(rg, aa, runbook)
+    status = result["status"]
+    exception_text = result["exception"]
+    job_id = result["job_id"]
+
+    if status == "Completed":
+        _step(
+            f"  health-check verified: {runbook} status=Completed "
+            f"(dry-fire job {job_id})"
+        )
+        return
+
+    if status.startswith("Timeout"):
+        sys.exit(
+            f"ERROR: deploy FAILED for {aa}/{runbook} - health-check "
+            f"dry-fire did not reach terminal status in 240s "
+            f"(last={status}, job={job_id})."
+        )
+
+    sys.exit(
+        f"ERROR: deploy FAILED for {aa}/{runbook} - health-check "
+        f"dry-fire ended status={status} (job={job_id}). The runbook "
+        f"the deploy just published cannot execute on this AA. "
+        f"Exception (truncated):\n"
+        f"  {exception_text[:1500]}"
+    )
+
+
 _chdm_persistent_infra_ensured_for: set[str] = set()
 _CHDM_TARGET_PREFIX = "target_azure_automation_runbook_chdm_"
 _CHDM_PROVISIONER_TARGET = "target_azure_automation_runbook_chdm_provisioner"
@@ -908,6 +1092,12 @@ def _deploy_azure_automation_runbook(
     _az_automation_runbook_replace_content(rg, aa, runbook, content_path)
     _az_automation_runbook_publish(rg, aa, runbook)
     _step(f"  runbook {runbook} published")
+    # Post-deploy verification. Shipping source bytes is necessary but not
+    # sufficient: if the AA's Python3 package state is broken (wrong-
+    # platform wheel, install failure), every Python3 job startup aborts
+    # before the runbook script executes. A deploy that produces a non-
+    # runnable runbook is a FAILED deploy.
+    _az_automation_runbook_verify_runnable(rg, aa, runbook)
     return f"{aa}/{runbook}"
 
 

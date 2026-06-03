@@ -143,6 +143,9 @@ def _main():
     global _request_guid
     payload = _read_payload()
     _request_guid = payload.get("request_guid", "?")
+    if payload.get("health_check") is True:
+        log.info("health_check fired on orchestrator runbook")
+        return
     job_id = payload.get("job_id")
     if not job_id:
         raise RuntimeError("orchestrator: job_id missing from payload")
