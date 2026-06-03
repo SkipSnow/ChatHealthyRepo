@@ -70,33 +70,37 @@ _PROVISIONER_RUNBOOK = "ChatHealthyDataMigratorProvisioner"
 
 def _read_payload() -> dict:
     """Orchestrator is webhook-only. Legacy Azure Automation's webhook
-    delivery to a Python runbook mangles the WebhookData wrapper at
-    sys.argv[1]: keys lose quotes, string values lose quotes, bools
-    become lowercase - the wrapper is NOT valid JSON. But the
-    WebhookData.RequestBody value (the original HTTP POST body the
-    gateway sent) is embedded verbatim with its JSON quotes intact.
+    delivery to a Python runbook does two things simultaneously:
+      (1) Mangles the WebhookData wrapper into a non-JSON format with
+          unquoted keys and string values.
+      (2) Shell-splits that mangled wrapper on commas, distributing
+          chunks across sys.argv[1], sys.argv[2], ...
+    Empirically: a single 24-byte HTTP body {"health_check": true} comes
+    back to the runbook split into 4+ argv entries because the mangled
+    wrapper has commas between fields.
 
-    Strategy: find the literal "RequestBody:" marker in sys.argv[1],
-    then use json.JSONDecoder.raw_decode to consume exactly the embedded
-    JSON object that follows. The decoder stops at the JSON's matching
-    close brace, ignoring the rest of the mangled AA wrapper."""
+    Reconstruct: re-join sys.argv[1:] with ',' (the split separator),
+    locate "RequestBody:", and use json.JSONDecoder.raw_decode to consume
+    the embedded JSON object (which preserved its quotes through the
+    mangling because string-value internals appear to survive intact)."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
-    s = sys.argv[1]
+    s = ",".join(sys.argv[1:])
     marker = "RequestBody:"
     idx = s.find(marker)
     if idx == -1:
         raise RuntimeError(
-            f"orchestrator: sys.argv[1] missing 'RequestBody:' marker; "
-            f"first 500 chars={s[:500]!r}"
+            f"orchestrator: sys.argv missing 'RequestBody:' marker; "
+            f"argv_count={len(sys.argv)}; joined first 500 chars={s[:500]!r}"
         )
     rest = s[idx + len(marker):].lstrip()
     try:
         body, _consumed = json.JSONDecoder().raw_decode(rest)
     except json.JSONDecodeError as e:
         raise RuntimeError(
-            f"orchestrator: RequestBody is not parseable JSON; first 500 "
-            f"chars after marker={rest[:500]!r}; error={e}"
+            f"orchestrator: RequestBody not parseable JSON; "
+            f"argv_count={len(sys.argv)}; rest first 500 chars={rest[:500]!r}; "
+            f"error={e}"
         )
     if not isinstance(body, dict):
         raise RuntimeError(
