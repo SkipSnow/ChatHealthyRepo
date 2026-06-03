@@ -70,13 +70,22 @@ import ast
 
 def _parse_aa_arg(s: str) -> object:
     """Azure Automation Python runbooks receive sys.argv[1] in one of two
-    serializations: webhook-triggered jobs deliver a JSON string; PUT-/jobs
-    triggered jobs deliver a Python dict repr (single-quoted keys, True/
-    False, etc.) of the parameters dict. We detect which by the second
-    character: a JSON object starts `{"`, a Python repr starts `{'`."""
-    if len(s) >= 2 and s[1] == "'":
-        return ast.literal_eval(s)
-    return json.loads(s)
+    serializations depending on how the job was started: webhook delivery
+    sends a JSON string; PUT-/jobs delivery sends a Python dict repr
+    (single-quoted keys, True/False/None literals). Try JSON first; on
+    failure fall through to ast.literal_eval. On total failure include
+    the first 200 chars of the input in the RuntimeError so the operator
+    sees what AA actually delivered."""
+    try:
+        return json.loads(s)
+    except (json.JSONDecodeError, TypeError):
+        try:
+            return ast.literal_eval(s)
+        except (ValueError, SyntaxError) as e:
+            raise RuntimeError(
+                f"sys.argv[1] is neither JSON nor a Python literal: "
+                f"first 200 chars={s[:200]!r}; ast error={e}"
+            )
 
 
 def _read_payload() -> dict:
