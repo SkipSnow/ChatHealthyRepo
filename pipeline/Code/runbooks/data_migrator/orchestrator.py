@@ -65,14 +65,35 @@ _AUTOMATION_API = "2023-11-01"
 _PROVISIONER_RUNBOOK = "ChatHealthyDataMigratorProvisioner"
 
 
+import ast
+
+
+def _parse_aa_arg(s: str) -> object:
+    """Azure Automation Python runbooks receive sys.argv[1] in one of two
+    serializations: webhook-triggered jobs deliver a JSON string; PUT-/jobs
+    triggered jobs deliver a Python dict repr (single-quoted keys, True/
+    False, etc.) of the parameters dict. We detect which by the second
+    character: a JSON object starts `{"`, a Python repr starts `{'`."""
+    if len(s) >= 2 and s[1] == "'":
+        return ast.literal_eval(s)
+    return json.loads(s)
+
+
 def _read_payload() -> dict:
-    """Unwrap AA WebhookData: sys.argv[1] is a JSON string with shape
-    {WebhookName, RequestBody, RequestHeader}; the gateway's POST body is
-    inside RequestBody as a JSON string. Per Microsoft Learn
-    "Use webhooks in Azure Automation"."""
+    """Unwrap AA WebhookData. Two delivery paths:
+      - Webhook-triggered (gateway POST): sys.argv[1] is a JSON string of
+        the WebhookData wrapper itself.
+      - PUT /jobs with parameters={"WebhookData": "..."} (deploy dry-fire):
+        sys.argv[1] is the Python repr of {"WebhookData": "<json-string>"}.
+    Both yield the same WebhookData dict; we extract RequestBody (a JSON
+    string) and json.loads it to get the actual payload."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
-    webhook_data = json.loads(sys.argv[1])
+    raw = _parse_aa_arg(sys.argv[1])
+    if isinstance(raw, dict) and "WebhookData" in raw and isinstance(raw["WebhookData"], str):
+        webhook_data = json.loads(raw["WebhookData"])
+    else:
+        webhook_data = raw
     if not isinstance(webhook_data, dict):
         raise RuntimeError(
             f"orchestrator: WebhookData is not a JSON object; got {type(webhook_data).__name__}"

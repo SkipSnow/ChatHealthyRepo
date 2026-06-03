@@ -100,10 +100,29 @@ _SOURCE_WAKE_POLL_SEC = 15
 _SOURCE_WAKE_TIMEOUT_SEC = 15 * 60
 
 
+import ast
+
+
+def _parse_aa_arg(s: str) -> object:
+    """AA Python runbooks receive sys.argv[1] as either JSON or Python dict
+    repr depending on delivery path. Detect by the second character."""
+    if len(s) >= 2 and s[1] == "'":
+        return ast.literal_eval(s)
+    return json.loads(s)
+
+
 def _read_payload() -> dict:
+    """Provisioner fires the migrator via PUT /jobs with
+    parameters={"payload": "<json>"}, so sys.argv[1] arrives as the Python
+    repr of that parameters dict. Unwrap to the inner payload dict."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
-    return json.loads(sys.argv[1])
+    raw = _parse_aa_arg(sys.argv[1])
+    if isinstance(raw, dict) and "payload" in raw and isinstance(raw["payload"], str):
+        return json.loads(raw["payload"])
+    if isinstance(raw, dict):
+        return raw
+    raise RuntimeError(f"migrator: payload is not a dict; got {type(raw).__name__}")
 
 
 def _connection_string_for_cluster(cluster_name: str) -> str:
