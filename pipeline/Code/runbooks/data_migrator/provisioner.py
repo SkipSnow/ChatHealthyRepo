@@ -408,6 +408,9 @@ def _main():
     global _request_guid
     payload = _read_payload()
     _request_guid = payload.get("request_guid", "?")
+    if payload.get("health_check") is True:
+        log.info("health_check fired on provisioner runbook")
+        return
     job_id = payload.get("job_id")
     vm_name = payload.get("vm_name")
     if not job_id or not vm_name:

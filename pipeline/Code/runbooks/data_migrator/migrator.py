@@ -519,6 +519,9 @@ def _main():
     global _request_guid
     payload = _read_payload()
     _request_guid = payload.get("request_guid", "?")
+    if payload.get("health_check") is True:
+        log.info("health_check fired on migrator runbook")
+        return
     job_id = payload["job_id"]
     vm_name = payload["vm_name"]
     src_cluster = payload["source_cluster"]
