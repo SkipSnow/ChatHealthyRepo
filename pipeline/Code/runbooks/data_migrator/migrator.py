@@ -455,7 +455,7 @@ def _main():
     finally:
         # Each finally step is isolated so a failure in one (e.g. transient
         # pipeline-cluster blip during finalize) does NOT skip the load-bearing
-        # downstream steps — releasing the reservation and firing the
+        # downstream steps - releasing the reservation and firing the
         # deprovisioner. Per slide 4: automated deprovisioning must work on
         # an ab-end.
         try:
@@ -484,7 +484,7 @@ def _main():
             log.info("Migrator fired deprovisioner: job_id=%s deprovisioner_aa_job_id=%s",
                      job_id, deprov_aa_job_id)
         except Exception as e:
-            log.error("Fire deprovisioner FAILED — VM %s will leak: %r", vm_name, e)
+            log.error("Fire deprovisioner FAILED - VM %s will leak: %r", vm_name, e)
 
         print(json.dumps({
             "migrator_status": "error" if has_exception else "ok",
