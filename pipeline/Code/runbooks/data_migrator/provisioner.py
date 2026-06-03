@@ -467,7 +467,14 @@ def _main():
     sub = os.environ["AZ_SUBSCRIPTION_ID"]
     vm_rg = os.environ["AZ_VM_RESOURCE_GROUP"]
     location = os.environ["AZ_VM_LOCATION"]
-    vm_size = os.environ["AZ_VM_SIZE"]
+    # TEMPORARY 2026-06-03: contract slide 6 calls for Standard_D16s_v5
+    # but the subscription's Standard DSv5 Family quota in eastus2 is 0
+    # AND its Total Regional vCPUs limit is 10. Force-override the VM size
+    # to Standard_D8s_v3 (8 cores, Dsv3 family - both that family and the
+    # regional total have a 10-core limit with current usage 0). REVERT
+    # to `vm_size = os.environ["AZ_VM_SIZE"]` once the DSv5 quota grant
+    # lands. Tracked in operator chat 2026-06-03.
+    vm_size = "Standard_D8s_v3"
     subnet_id = os.environ["AZ_VM_SUBNET_ID"]
     admin_user = os.environ["AZ_VM_ADMIN_USERNAME"]
     ssh_pubkey = os.environ["AZ_VM_ADMIN_SSH_PUBKEY"]
