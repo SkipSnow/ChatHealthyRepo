@@ -108,10 +108,34 @@ _PYTHON_DEPS_INSTALL = (
 )
 
 
+import ast
+
+
+def _parse_aa_arg(s: str) -> object:
+    """AA Python runbooks receive sys.argv[1] as either JSON (webhook
+    delivery) or Python dict repr (PUT /jobs delivery). Detect by the
+    second character: JSON starts {", Python repr starts {'."""
+    if len(s) >= 2 and s[1] == "'":
+        return ast.literal_eval(s)
+    return json.loads(s)
+
+
 def _read_payload() -> dict:
+    """Two delivery paths into this runbook (both result in the same payload
+    dict after unwrapping):
+      - PUT /jobs with parameters={"payload": "<json>"} (orchestrator fires
+        provisioner this way): sys.argv[1] is the Python repr of the
+        parameters dict {'payload': '{"job_id":...}'}.
+      - Direct JSON payload at sys.argv[1]: legacy/test paths.
+    Both yield the same payload dict."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
-    return json.loads(sys.argv[1])
+    raw = _parse_aa_arg(sys.argv[1])
+    if isinstance(raw, dict) and "payload" in raw and isinstance(raw["payload"], str):
+        return json.loads(raw["payload"])
+    if isinstance(raw, dict):
+        return raw
+    raise RuntimeError(f"provisioner: payload is not a dict; got {type(raw).__name__}")
 
 
 def _mi_token() -> str:
