@@ -68,42 +68,41 @@ _AUTOMATION_API = "2023-11-01"
 _PROVISIONER_RUNBOOK = "ChatHealthyDataMigratorProvisioner"
 
 
-import ast
-
-
 def _read_payload() -> dict:
-    """The orchestrator is webhook-only. Empirically, legacy AA's webhook
-    delivery mangles the WebhookData wrapper at sys.argv[1]: keys lose
-    quotes, bools become lowercase, etc. Try JSON first (in case AA ever
-    delivers properly), then Python literal-eval. On total failure include
-    sys.argv[1] preview in the error so the next failure exposes the
-    actual delivered format and we can write a precise parser."""
+    """Orchestrator is webhook-only. Legacy Azure Automation's webhook
+    delivery to a Python runbook mangles the WebhookData wrapper at
+    sys.argv[1]: keys lose quotes, string values lose quotes, bools
+    become lowercase - the wrapper is NOT valid JSON. But the
+    WebhookData.RequestBody value (the original HTTP POST body the
+    gateway sent) is embedded verbatim with its JSON quotes intact.
+
+    Strategy: find the literal "RequestBody:" marker in sys.argv[1],
+    then use json.JSONDecoder.raw_decode to consume exactly the embedded
+    JSON object that follows. The decoder stops at the JSON's matching
+    close brace, ignoring the rest of the mangled AA wrapper."""
     if len(sys.argv) < 2:
         raise RuntimeError("no payload: sys.argv[1] missing")
     s = sys.argv[1]
-    webhook_data = None
+    marker = "RequestBody:"
+    idx = s.find(marker)
+    if idx == -1:
+        raise RuntimeError(
+            f"orchestrator: sys.argv[1] missing 'RequestBody:' marker; "
+            f"first 500 chars={s[:500]!r}"
+        )
+    rest = s[idx + len(marker):].lstrip()
     try:
-        webhook_data = json.loads(s)
-    except (json.JSONDecodeError, TypeError):
-        try:
-            webhook_data = ast.literal_eval(s)
-        except (ValueError, SyntaxError) as e:
-            raise RuntimeError(
-                f"orchestrator: sys.argv[1] is neither JSON nor a Python "
-                f"literal: first 500 chars={s[:500]!r}; ast error={e}"
-            )
-    if not isinstance(webhook_data, dict):
+        body, _consumed = json.JSONDecoder().raw_decode(rest)
+    except json.JSONDecodeError as e:
         raise RuntimeError(
-            f"orchestrator: WebhookData is not a dict; got "
-            f"{type(webhook_data).__name__}; first 500 chars={s[:500]!r}"
+            f"orchestrator: RequestBody is not parseable JSON; first 500 "
+            f"chars after marker={rest[:500]!r}; error={e}"
         )
-    request_body = webhook_data.get("RequestBody")
-    if not isinstance(request_body, str):
+    if not isinstance(body, dict):
         raise RuntimeError(
-            f"orchestrator: WebhookData missing RequestBody string; "
-            f"keys={sorted(webhook_data)}; first 500 chars={s[:500]!r}"
+            f"orchestrator: RequestBody is not a dict; got {type(body).__name__}"
         )
-    return json.loads(request_body)
+    return body
 
 
 def _mi_token() -> str:
