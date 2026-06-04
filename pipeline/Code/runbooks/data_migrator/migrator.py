@@ -622,6 +622,15 @@ def _main():
             dst_client[dst_db_name].drop_collection(dst_coll_name)
         dst_client[dst_db_name].create_collection(dst_coll_name)
 
+        # Mirror indexes BEFORE the threadpool runs so that any unique
+        # constraints (e.g. the NPI unique index on providers) enforce
+        # duplicate-write detection during the load, not after — and so
+        # that the destination collection always has its source-mirror
+        # invariant even on partial-write paths.
+        if preserve_indexes:
+            created = _mirror_indexes(src_coll, dst_coll)
+            log.info("Mirrored %d user-defined indexes (pre-load)", created)
+
         partitions = _enumerate_partitions(src_coll, base_filter, thread_criteria)
         log.info("Enumerated %d partitions", len(partitions))
         status_doc.init(base_filter, partitions)
@@ -651,10 +660,6 @@ def _main():
             raise RuntimeError(
                 f"Reconciliation mismatch: migrated={success_writes} source={source_total}"
             )
-
-        if preserve_indexes:
-            created = _mirror_indexes(src_coll, dst_coll)
-            log.info("Mirrored %d user-defined indexes", created)
 
     except Exception:
         # Pre-threadpool failures (Atlas wake, reservation, partition
