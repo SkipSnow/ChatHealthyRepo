@@ -37,10 +37,14 @@ import traceback
 import uuid
 
 import requests
+from requests.auth import HTTPDigestAuth
 
 try:
     import automationassets
-    for k in ("AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT"):
+    for k in ("AZ_SUBSCRIPTION_ID", "AZ_RESOURCE_GROUP", "AZ_AUTOMATION_ACCOUNT",
+              "ATLAS_PUBLIC_KEY", "ATLAS_PRIVATE_KEY", "ATLAS_PROJECT_ID",
+              "MONGO_CLUSTER_pipeline_connectionString",
+              "MONGO_CLUSTER_frontend_connectionString"):
         try:
             os.environ[k] = str(automationassets.get_automation_variable(k))
         except Exception:
@@ -169,6 +173,54 @@ def _start_runbook_fire_and_forget(sub: str, rg: str, aa: str, runbook: str,
     return aa_job_id
 
 
+def _wake_source_cluster_early(friendly_name: str) -> None:
+    """Fire-and-forget Atlas wake on the source cluster. Runs in the
+    orchestrator — the first runbook in the chain — so Atlas resume
+    runs in parallel with VM provisioning. The migrator still issues
+    its own (idempotent) wake call and waits for IDLE. Best-effort:
+    an exception here is logged and swallowed; the migrator retries."""
+    conn_str = os.environ.get(f"MONGO_CLUSTER_{friendly_name}_connectionString")
+    if not conn_str:
+        log.warning("Early wake skipped: no connection string for cluster %r",
+                    friendly_name)
+        return
+    if "@" not in conn_str:
+        log.warning("Early wake skipped: connection string for %r has no '@'",
+                    friendly_name)
+        return
+    after_at = conn_str.split("@", 1)[1]
+    hostname = after_at.split("/", 1)[0].split("?", 1)[0]
+    try:
+        auth = HTTPDigestAuth(os.environ["ATLAS_PUBLIC_KEY"],
+                              os.environ["ATLAS_PRIVATE_KEY"])
+        base = (f"https://cloud.mongodb.com/api/atlas/v2/groups/"
+                f"{os.environ['ATLAS_PROJECT_ID']}/clusters")
+        accept = {"Accept": "application/vnd.atlas.2023-02-01+json"}
+        r = requests.get(base, auth=auth, headers=accept, timeout=15)
+        r.raise_for_status()
+        atlas_name = None
+        for c in r.json().get("results", []):
+            srv = (c.get("connectionStrings", {}) or {}).get("standardSrv", "") or ""
+            if hostname in srv:
+                atlas_name = c["name"]
+                break
+        if not atlas_name:
+            log.warning("Early wake skipped: no Atlas cluster matches hostname %r",
+                        hostname)
+            return
+        requests.patch(
+            f"{base}/{atlas_name}",
+            json={"paused": False}, auth=auth,
+            headers={**accept, "Content-Type": "application/json"},
+            timeout=30,
+        )
+        log.info("Early Atlas wake fired on source cluster %s (atlas_name=%s)",
+                 friendly_name, atlas_name)
+    except Exception as e:
+        log.warning("Early Atlas wake failed for %r: %r (migrator will retry)",
+                    friendly_name, e)
+
+
 def _main():
     global _request_guid
     payload = _read_payload()
@@ -187,6 +239,10 @@ def _main():
     aa = os.environ["AZ_AUTOMATION_ACCOUNT"]
 
     log.info("Orchestrator begin: job_id=%s vm_name=%s", job_id, vm_name)
+
+    src_cluster = payload.get("source_cluster")
+    if src_cluster:
+        _wake_source_cluster_early(src_cluster)
 
     provisioner_aa_job_id = _start_runbook_fire_and_forget(
         sub, rg, aa, _PROVISIONER_RUNBOOK, payload, run_on=None,

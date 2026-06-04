@@ -3469,13 +3469,18 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3fd6ca6b48af225d0d12937c40d89d2863fc3dd03fbc802f6cd5462ac5b73dd6"
+          "content_hash": "76dd8dad07b454cec7c9673942ea6ec4b5cf00e083c00098c179a8681cb54d48"
         }
       ],
       "secrets": {
         "AZ_SUBSCRIPTION_ID": "local_env",
         "AZ_RESOURCE_GROUP": "local_env",
-        "AZ_AUTOMATION_ACCOUNT": "local_env"
+        "AZ_AUTOMATION_ACCOUNT": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "MONGO_CLUSTER_pipeline_connectionString": "local_env",
+        "MONGO_CLUSTER_frontend_connectionString": "local_env"
       }
     },
     {
@@ -3532,7 +3537,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "93be8c8286191f1f0083c795605451011d2ec74b5e91386a9c9220ff4334241b"
+          "content_hash": "a4d50c4b1d848167c52acd2fa29fd4d27111fd9fd132b856ddab713e43f2426e"
         }
       ],
       "secrets": {
