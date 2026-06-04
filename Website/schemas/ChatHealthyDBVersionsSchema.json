@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyDBVersionsSchema.json",
+  "title": "ChatHealthy DBVersions",
+  "description": "Source of truth for the active runtime data-collection paths per env per deployment target. One document per managed env. The ChangeDBVersion runbook reads this collection and pushes each target's collection map to the matching runtime so the in-memory state reconciles to the doc. The targets[] list also serves as the runtime deploy registry for this env. Per EPIC-010-F-101-S-005 (Data version management).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["env", "targets"],
+  "properties": {
+    "env": {
+      "type": "string",
+      "description": "Environment this document configures. Unique across documents in the collection - enforced by a Mongo unique index.",
+      "enum": ["local", "dev", "qa", "prod"]
+    },
+    "targets": {
+      "type": "array",
+      "description": "One entry per runtime that consumes versioned data from the front-end cluster. This list is the env's runtime deploy registry.",
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["deployment_target", "collections"],
+        "properties": {
+          "deployment_target": {
+            "type": "string",
+            "description": "Foreign key into deployment_architecture.json: MUST exactly match an existing target_id value defined in the ChatHealthy Deployment Architecture (source of truth: https://dev.chathealthy.ai/schemas/ChatHealthyDeploymentArchitectureSchema.json, field target_id). This binds each DBVersions entry to the canonical deploy target so the ChangeDBVersion runbook can resolve the runtime's network address, env binding, and auth surface from the deploy registry rather than restating them here. Example: target_hf_space_findcare_backend.",
+            "pattern": "^target_[a-z0-9_]{1,64}$"
+          },
+          "collections": {
+            "type": "array",
+            "description": "One entry per logical collection slot the runtime consumes.",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["collection_environment_name", "runtime_collection_name"],
+              "properties": {
+                "collection_environment_name": {
+                  "type": "string",
+                  "description": "Identifier the runtime uses for this collection slot. Example: PROVIDER_COLLECTION.",
+                  "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+                },
+                "runtime_collection_name": {
+                  "type": "string",
+                  "description": "Fully-qualified DB.collection path. Example: PublicHealthData.provider_v03.",
+                  "pattern": "^[A-Za-z0-9_]+\\.[A-Za-z0-9_]+$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
