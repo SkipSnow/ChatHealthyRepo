@@ -100,7 +100,7 @@ _BATCH_SIZE = 5000
 _DEPROVISIONER_RUNBOOK = "ChatHealthyDataMigratorDeprovisioner"
 _AUTOMATION_API = "2023-11-01"
 _SOURCE_WAKE_POLL_SEC = 15
-_SOURCE_WAKE_TIMEOUT_SEC = 15 * 60
+_SOURCE_WAKE_TIMEOUT_SEC = 60 * 60
 
 
 def _read_payload() -> dict:

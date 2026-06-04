@@ -40,7 +40,7 @@ _PAYLOAD = {
         "addresses.state": "*",
     },
     "preserve_indices": True,
-    "reservation_duration_minutes": 240,
+    "reservation_duration_minutes": 300,
 }
 
 
