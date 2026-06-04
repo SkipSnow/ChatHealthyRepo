@@ -11384,7 +11384,7 @@
                     "name": "Universal deploy contract",
                     "description": "The 'deployment_architecture.json' currently hosted by 'the brain and residing in firm's cursor project's 'file system' as well as in GITHUB is the single source of truth for all deployment facts for ChatHealthy.ai's components. This file must be the source of One local and one remote deploys script. It must, regardless of environment, contain all necessary information to do full deployments to each required component. This includes fulsome facts about code branches, or the local file directories for the local build. These facts include but are not limited to port assignments, atomicity, source code file facts, secrets and environment keys must be included, but the secrets may never be in any file that is part of a build package. Each deployment must have an enforced human-authorization gate. A build script for each remote component must build a release package stored in GIT Hub with appropriate Version information. And All builds must be done on a local workstation, and then shipped via a deploy script, which will also be accountable to build and configure the components as necessary.",
                     "size": "L",
-                    "status": "done",
+                    "status": "in_progress",
                     "orphan": false,
                     "approval": "proposed",
                     "requirements": {
@@ -12574,6 +12574,63 @@
                           "requirement": "`Code/.env` MUST be organized into two top-level sections, `# Secrets` and `# SecretSafe`, and every `KEY=VALUE` line MUST live under exactly one of them. The leak-check needle set used by REQ-T-053 MUST be exactly the values whose key falls under `# Secrets`. The pre-commit gate MUST diff the staged `Code/.env` against the prior version on disk and REFUSE the commit unless the operator echoes a case-sensitive confirmation token at the prompt when the diff (a) adds a new key under `# SecretSafe`, or (b) moves an existing key from `# Secrets` into `# SecretSafe`. Additions under `# Secrets` and changes inside `# Secrets` pass without prompt. Default classification for any new key is `# Secrets`; demotion is the only path through the gate. Same echo mechanism as Rule-065 (`commit_authorization_worker`).",
                           "priority": "must-have",
                           "status": "deferred",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-008",
+                          "name": "Manifest is the exact-truth source for environment variables per target",
+                          "requirement": "Every environment variable read by deployed code on a target MUST be declared in `deployment_architecture.json` under that target. Every environment variable declared in `deployment_architecture.json` under a target MUST be read by deployed code on that target. The relationship is bidirectional and exact: no extras in the manifest, no extras in the code. A ground-up deploy from the manifest alone MUST produce a runtime that has every env var its code reads, and no env vars it does not.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-009",
+                          "name": "Manifest is the exact-truth source for roles, role assignments, credentials, and access grants per target",
+                          "requirement": "Every role, role assignment, credential, or access grant required by deployed code on a target — or by the deploy procedure itself when running a ground-up build that includes resource creation — MUST be declared in `deployment_architecture.json` under that target. Every role, role assignment, credential, or access grant declared in `deployment_architecture.json` under a target MUST be required by a ground-up build that includes resource creation. The relationship is bidirectional and exact: no extras in the manifest, no roles or credentials provisioned by hand outside it. A ground-up deploy from the manifest alone MUST produce a runtime with every role and credential its code needs, and nothing it does not.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-010",
+                          "name": "Manifest is the exact-truth source for files shipped to each target",
+                          "requirement": "Every file present in a target's build context MUST be declared in `deployment_architecture.json` under that target's `files[]` AND MUST be reached by a runtime code path on that target. Every file declared in `deployment_architecture.json` under a target's `files[]` MUST be present in that target's build context. The relationship is bidirectional and exact: no extras in the build context, no extras in the manifest, no file in either that the runtime does not actually use. A ground-up deploy from the manifest alone MUST stage exactly the files the runtime needs on that target, and no others.",
+                          "priority": "must-have",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
