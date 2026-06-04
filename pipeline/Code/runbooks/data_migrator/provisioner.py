@@ -86,7 +86,7 @@ _HYBRID_WORKER_API = "2024-10-23"
 _HYBRID_WORKER_GROUP = "ChatHealthyDataMigratorWorkGroup"
 _MIGRATOR_RUNBOOK = "ChatHealthyDataMigrator"
 _WAIT_POLL_SEC = 10
-_VM_WAIT_TIMEOUT_SEC = 20 * 60  # bumped from 15min: CustomScript now waits up to 300s for cloud-init + 2x 4-attempt retry phases (apt, pip) at ~220s each, total worst-case ~740s. Leave headroom for slow VM-create.
+_VM_WAIT_TIMEOUT_SEC = 20 * 60
 
 # Automation Operator built-in role definition GUID. Lets the principal start
 # runbook jobs on the Automation Account. The migrator runs on the HW VM with
@@ -101,23 +101,13 @@ _IMAGE_REFERENCE = {
     "version":   "latest",
 }
 
-# CustomScript extension command - runs synchronously as root. Provisioner
-# waits for its provisioningState before installing the HW extension, so
-# pymongo/dnspython are present before the worker dequeues the migrator job.
-#
-# This script is hardened against the transient failure modes that bit
-# the chain on 2026-06-04: cloud-init / unattended-upgrades racing apt,
-# apt-cache momentarily missing universe packages (E: Unable to locate
-# package python3-pip exit 100), PyPI flakiness. Per operator constraints:
-#  - Wait for cloud-init / dpkg lock to be free (bounded, 5 min max)
-#  - Bounded retry: max 4 attempts on each phase (apt, pip), backoff 10/20/30/40s
-#  - Capture every attempt's stdout+stderr to /var/log/chdm_python_deps_install.log
-#  - On terminal failure, emit the log to the CustomScript statusMessage
-#    (cat to stderr so Azure surfaces the real error, not just exit code)
-#  - Never spin forever: total worst-case ~500s
+# Installs pymongo/dnspython/requests on the fresh Hybrid Worker VM.
+# Runs synchronously as root; the provisioner waits for provisioningState
+# before installing the Hybrid Worker extension.
+# `set -o pipefail` is required so failures of cmd inside `cmd | tee` are
+# not masked by tee's exit code.
 _PYTHON_DEPS_INSTALL = (
-    "set -o pipefail; "  # critical: without this, `cmd | tee` always returns
-    # tee's exit code (0), hiding apt/pip failures behind a stale-cache success.
+    "set -o pipefail; "
     "LOG=/var/log/chdm_python_deps_install.log; "
     "echo === chdm python deps install start at $(date -u) === | tee -a \"$LOG\"; "
     "echo --- waiting for cloud-init --- | tee -a \"$LOG\"; "

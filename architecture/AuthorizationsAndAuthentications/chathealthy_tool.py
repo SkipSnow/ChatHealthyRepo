@@ -33,7 +33,7 @@ class ChatHealthyTool(ABC):
         """Compute the response from deps + request. Mutate
         `deps.user_object` in place when the tool's work produces session
         state changes; the gate persists the user_object back to
-        admin.sessions at the end of the run. Tools do NOT log their own
+        Users.sessions at the end of the run. Tools do NOT log their own
         invocation — the base class does that uniformly in run_and_log().
         """
         raise NotImplementedError

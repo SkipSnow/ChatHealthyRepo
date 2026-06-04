@@ -396,7 +396,7 @@ def chdm_ensure_chdm_persistent_infrastructure(
     # so it cannot satisfy the provisioner's runtime role-grant of
     # Automation Operator on the AA to the per-VM MI (nor the matching
     # deprovisioner delete). User Access Administrator at the AA scope
-    # is the carve-out that permits both. See PipelinesPlan.pptx slide 8.
+    # is the carve-out that permits both.
     chdm_ensure_role_assignment(aa_mi_pid, aa_scope, "User Access Administrator")
 
     # AA Python3 package set: reconcile to the chdm-declared list. After

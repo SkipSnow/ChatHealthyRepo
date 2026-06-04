@@ -218,7 +218,7 @@ def _set_session_cookie(response: Response, user_object) -> None:
 def _do_history_push(mongo_client, guid: str, directive) -> None:
     if directive is None:
         return
-    coll = mongo_client["admin"]["sessions"]
+    coll = mongo_client["Users"]["sessions"]
     coll.update_one(
         {"_id": guid},
         {"$push": {f"session_conversation_history.{directive.array}": directive.entry}},
@@ -396,7 +396,7 @@ async def gate(
             }
 
         # Single persist: write the (possibly-mutated) user_object back to
-        # admin.sessions. AuthN is the sole writer; tools never touch Mongo.
+        # Users.sessions. AuthN is the sole writer; tools never touch Mongo.
         try:
             await AUTHN_TOOL.persist(authn_deps, user_object, fresh_mint)
         except Exception as exc:

@@ -12,7 +12,7 @@ during their run() and the gate route forwards each event as a chunk on
 the streamed response so the browser sees progress immediately.
 
 `mongo_frontend` / `mongo_pipeline` are runtime resources. SharedServices
-holds connections to both clusters (front-end carries admin.sessions,
+holds connections to both clusters (front-end carries Users.sessions,
 pipeline carries SpecialtyMetaData + providers + everything else).
 Tools that need data read it off these, not off positional args.
 """

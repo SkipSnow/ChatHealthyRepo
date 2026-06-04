@@ -202,8 +202,7 @@ _atlas_cluster_name_cache: dict = {}
 
 
 def _hostname_from_conn_str(conn_str: str) -> str:
-    """Extract host.id.mongodb.net from a mongodb+srv URI without using
-    regex (Rule-008 forbids regex in pipeline executable code)."""
+    """Extract host.id.mongodb.net from a mongodb+srv URI without using regex."""
     if "@" not in conn_str:
         raise RuntimeError(f"connection string missing '@': {conn_str[:40]!r}")
     after_at = conn_str.split("@", 1)[1]
@@ -212,10 +211,10 @@ def _hostname_from_conn_str(conn_str: str) -> str:
 
 def _atlas_cluster_name_for(friendly_name: str) -> str:
     """Atlas Management API addresses clusters by their real Atlas cluster
-    name (e.g. 'ChatHealthyDataPipelines'), not the operator's friendly
-    alias (e.g. 'pipeline'). Resolve at runtime by listing all clusters
-    in the project and matching the one whose standardSrv URI contains
-    the same hostname as the connection string for this alias. Cached."""
+    name (e.g. 'ChatHealthyDataPipelines'), not the friendly alias
+    (e.g. 'pipeline'). Resolve at runtime by matching the connection
+    string's hostname against the standardSrv URI of each cluster in the
+    project. Cached per friendly_name."""
     cached = _atlas_cluster_name_cache.get(friendly_name)
     if cached is not None:
         return cached
@@ -507,11 +506,10 @@ def _migrate_slice(src_coll, dst_coll, base_filter: dict, partition: dict,
 def _mirror_indexes(src_coll, dst_coll) -> int:
     """Mirror every user-defined source index to the destination, then
     explicitly verify every name is present in dst_coll.list_indexes()
-    before returning. Per operator requirement: not one record may be
-    written until every source index is completely built on the
-    destination. PyMongo's create_index blocks until the server acks
-    (which on Atlas 4.2+ means the build is complete), but we verify
-    list_indexes() as an explicit belt-and-suspenders proof."""
+    before returning. PyMongo's create_index blocks until the server
+    acks (which on Atlas 4.2+ means the build is complete), but
+    list_indexes() verification provides an explicit guarantee
+    independent of that behavior."""
     expected_names = []
     for idx in src_coll.list_indexes():
         name = idx.get("name", "")
@@ -526,9 +524,8 @@ def _mirror_indexes(src_coll, dst_coll) -> int:
         opts["name"] = name
         log.info("Mirroring index %r unique=%r ...", name, opts.get("unique", False))
         dst_coll.create_index(key, **opts)
-        # Verify the index is present on the destination NOW, before we
-        # move to the next source index. If absent, the build did not
-        # land and we must NOT proceed to load data.
+        # If the index is not present immediately after create_index,
+        # the build did not land and we must not proceed to load data.
         dst_names_after = {ix["name"] for ix in dst_coll.list_indexes()}
         if name not in dst_names_after:
             raise RuntimeError(
@@ -539,7 +536,7 @@ def _mirror_indexes(src_coll, dst_coll) -> int:
         log.info("Mirrored index %r (verified present on destination)", name)
         expected_names.append(name)
 
-    # Final count check: every expected name must be present together.
+    # Final check: every expected name must be present together.
     final_names = {ix["name"] for ix in dst_coll.list_indexes()}
     missing = [n for n in expected_names if n not in final_names]
     if missing:
@@ -634,9 +631,8 @@ def _main():
     has_exception = False
     success_writes = 0
     try:
-        # All work from Atlas wake onwards lives inside the try/finally so
-        # the deprovisioner fires on AB end regardless of where we die.
-        # Slide 4: "Automated deprovisioning must work on an AB end."
+        # Everything from Atlas wake onwards lives inside this try/finally
+        # so the deprovisioner fires on AB end regardless of where we die.
         log.info("Waking source cluster %s and reserving for %d min",
                  src_cluster, duration_min)
         _atlas_resume_cluster(src_cluster)
@@ -649,11 +645,11 @@ def _main():
             dst_client[dst_db_name].drop_collection(dst_coll_name)
         dst_client[dst_db_name].create_collection(dst_coll_name)
 
-        # Mirror indexes BEFORE the threadpool runs so that any unique
-        # constraints (e.g. the NPI unique index on providers) enforce
-        # duplicate-write detection during the load, not after -- and so
-        # that the destination collection always has its source-mirror
-        # invariant even on partial-write paths.
+        # Mirror indexes BEFORE the threadpool so any unique constraints
+        # (e.g. the NPI unique index on providers) enforce duplicate-write
+        # detection during the load, not after — and so the destination
+        # collection holds its source-mirror invariant even on partial-write
+        # paths.
         if preserve_indexes:
             created = _mirror_indexes(src_coll, dst_coll)
             log.info("Mirrored %d user-defined indexes (pre-load)", created)
@@ -682,16 +678,14 @@ def _main():
                     raise
 
         # Reconciliation count must be the EFFECTIVE covered scope, not
-        # the operator's raw base_filter. The operator's base_filter may
-        # use dotted notation (e.g. addresses.address_type=business,
-        # addresses.state in (...)), which matches documents where
-        # DIFFERENT array elements satisfy different parts. The
-        # partitions use $elemMatch (per-element scoping) so they only
-        # claim docs that have a SINGLE element matching the per-element
-        # constraints. Counting the raw base_filter overcounts vs what
-        # any thread could possibly write -- that gap is permanently
-        # uncoverable and was the source of every 25573-vs-27748 mismatch.
-        # The correct reconciliation target is the union of partition
+        # the raw base_filter. A dotted base_filter (e.g.
+        # addresses.address_type=business, addresses.state in (...))
+        # matches docs where DIFFERENT array elements satisfy different
+        # parts. The partitions use $elemMatch (per-element scoping), so
+        # they only claim docs that have a SINGLE element matching the
+        # per-element constraints. Counting the raw base_filter overcounts
+        # vs what any thread could write — that gap is permanently
+        # uncoverable. The correct target is the union of partition
         # filters: count docs that match at least one partition.
         partition_filters = [
             _compose_slice_filter(base_filter, p) for p in partitions
@@ -708,28 +702,26 @@ def _main():
             )
 
     except Exception:
+        # Threadpool failures set has_exception themselves and re-raise.
         # Pre-threadpool failures (Atlas wake, reservation, partition
-        # enumeration) don't otherwise set has_exception. Threadpool
-        # failures already set this themselves and re-raise.
+        # enumeration) do not, so mark them here before letting the
+        # exception propagate to the finally block.
         has_exception = True
         raise
     finally:
-        # Each finally step is isolated so a failure in one (e.g. transient
-        # pipeline-cluster blip during finalize) does NOT skip the load-bearing
-        # downstream steps - releasing the reservation and firing the
-        # deprovisioner. Per slide 4: automated deprovisioning must work on
-        # an ab-end.
+        # Each finally step is isolated so a failure in one (e.g. a
+        # transient pipeline-cluster blip during finalize) does NOT skip
+        # the load-bearing downstream steps — releasing the reservation
+        # and firing the deprovisioner.
         try:
             status_doc.finalize(has_exception)
         except Exception as e:
             log.warning("status_doc.finalize failed (continuing): %r", e)
 
         if has_exception:
-            # Per slide-4 failure semantics (operator-updated 2026-06-04):
-            # destination is NOT dropped on failure. The operator wants the
-            # failed-run destination preserved so the failed state can be
-            # debugged in place. Log the most informative error context we
-            # have so the operator can diagnose without having to dig.
+            # On failure the destination is preserved so the failed state
+            # can be inspected in place. Log a rich context block to make
+            # the failure diagnosable without having to dig.
             try:
                 dst_existing = dst_coll_name in dst_client[dst_db_name].list_collection_names()
                 dst_count = (
