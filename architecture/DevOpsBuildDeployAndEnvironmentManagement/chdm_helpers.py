@@ -362,6 +362,26 @@ def chdm_ensure_aa_python3_packages(aa_rg: str, aa: str) -> None:
             )
 
 
+_AA_TARGET_ID = "target_azure_automation_account_chathealthyjobmanager"
+
+
+def _load_aa_target_entitlements() -> list[dict]:
+    """Read the AA shared-infra target's entitlements[] from the brain
+    artifact. Source-of-truth for what role assignments the deploy
+    provisions on ChatHealthyJobManager (REQ-B-009).
+    """
+    repo_root = pathlib.Path(__file__).resolve().parents[2]
+    manifest = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    for rec in data["DeploymentTargetRecord"]:
+        if rec.get("target_id") == _AA_TARGET_ID:
+            return list(rec.get("entitlements", []))
+    sys.exit(
+        f"ERROR: target {_AA_TARGET_ID!r} not present in "
+        f"deployment_architecture.json — cannot resolve AA role assignments."
+    )
+
+
 def chdm_ensure_chdm_persistent_infrastructure(
     *,
     vm_rg: str,
@@ -370,38 +390,45 @@ def chdm_ensure_chdm_persistent_infrastructure(
 ) -> str:
     """Whole-of-infrastructure ensure. Called once per deploy session at
     the start of the first azure_automation_runbook deploy for a CHDM
-    runbook. Returns the VM subnet ARM resource id."""
+    runbook. Returns the VM subnet ARM resource id.
+
+    Role assignments are sourced from
+    target_azure_automation_account_chathealthyjobmanager.entitlements[]
+    (REQ-B-009: manifest is exact-truth for entitlements). Scope strings
+    in the manifest carry templated tokens (`<subscription-id>`, `<vm_rg>`)
+    that get substituted from the live deploy context here.
+    """
     _step("=== verifying CHDM persistent infrastructure ===")
     subnet_id = chdm_ensure_vm_subnet(vm_rg)
     chdm_ensure_hybrid_worker_group(aa_rg, aa)
 
     sub = _subscription_id()
     aa_mi_pid = chdm_ensure_aa_managed_identity(aa_rg, aa)
-    vm_rg_scope = f"/subscriptions/{sub}/resourceGroups/{vm_rg}"
-    for role in ("Virtual Machine Contributor", "Network Contributor"):
-        chdm_ensure_role_assignment(aa_mi_pid, vm_rg_scope, role)
 
-    aa_scope = (
-        f"/subscriptions/{sub}/resourceGroups/{aa_rg}"
-        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
-    )
-    # The AA's own MI needs to PUT hybridRunbookWorkers on the AA (the
-    # provisioner does this during the extension-based onboarding) and GET
-    # the AA's own properties.automationHybridServiceUrl. Automation
-    # Operator grants only job start/read; Contributor on the AA grants
-    # write on child resources (per Microsoft Learn extension-based
-    # Hybrid Worker install walkthrough).
-    chdm_ensure_role_assignment(aa_mi_pid, aa_scope, "Contributor")
-    # Contributor explicitly excludes Microsoft.Authorization/*/write,
-    # so it cannot satisfy the provisioner's runtime role-grant of
-    # Automation Operator on the AA to the per-VM MI (nor the matching
-    # deprovisioner delete). User Access Administrator at the AA scope
-    # is the carve-out that permits both.
-    chdm_ensure_role_assignment(aa_mi_pid, aa_scope, "User Access Administrator")
+    token_subs = {
+        "<subscription-id>": sub,
+        "<vm_rg>": vm_rg,
+    }
+    for entitlement in _load_aa_target_entitlements():
+        if entitlement.get("kind") != "azure_rbac_role_assignment":
+            continue
+        if "system-assigned managed identity" not in entitlement.get("principal", ""):
+            sys.exit(
+                f"ERROR: entitlement principal {entitlement.get('principal')!r} "
+                f"is not the AA's system-assigned managed identity — this deploy "
+                f"path only handles the AA-MI. Update the manifest or extend "
+                f"chdm_ensure_chdm_persistent_infrastructure."
+            )
+        scope = entitlement["scope"]
+        for token, val in token_subs.items():
+            scope = scope.replace(token, val)
+        if "<" in scope:
+            sys.exit(
+                f"ERROR: unsubstituted token in scope {scope!r}; known tokens: "
+                f"{sorted(token_subs)}."
+            )
+        chdm_ensure_role_assignment(aa_mi_pid, scope, entitlement["role"])
 
-    # AA Python3 package set: reconcile to the chdm-declared list. After
-    # this returns, every runbook (orch/prov/depro) running on the AA
-    # sandbox has its imports available. Deploy owns this end-to-end.
     chdm_ensure_aa_python3_packages(aa_rg, aa)
 
     return subnet_id
