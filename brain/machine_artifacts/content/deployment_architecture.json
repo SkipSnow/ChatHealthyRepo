@@ -8,17 +8,26 @@
         {
           "env_binding": "dev",
           "node_address": "dev.chathealthy.ai",
-          "branch": "dev"
+          "branch": "dev",
+          "cloudflare_pages": {
+            "project_name": "chathealthy-website-dev"
+          }
         },
         {
           "env_binding": "qa",
           "node_address": "qa.chathealthy.ai",
-          "branch": "qa"
+          "branch": "qa",
+          "cloudflare_pages": {
+            "project_name": "chathealthy-website-qa"
+          }
         },
         {
           "env_binding": "prod",
           "node_address": "chathealthy.ai",
-          "branch": "main"
+          "branch": "main",
+          "cloudflare_pages": {
+            "project_name": "chathealthy-website"
+          }
         }
       ],
       "files": [
@@ -366,15 +375,24 @@
       "environments": [
         {
           "env_binding": "dev",
-          "node_address": "dev.chathealthy.ai/evaluatecare"
+          "node_address": "dev.chathealthy.ai/evaluatecare",
+          "huggingface_space": {
+            "space": "SkipSnow/dev_EvaluateCareSpace"
+          }
         },
         {
           "env_binding": "qa",
-          "node_address": "qa.chathealthy.ai/evaluatecare"
+          "node_address": "qa.chathealthy.ai/evaluatecare",
+          "huggingface_space": {
+            "space": "SkipSnow/qa_EvaluateCareSpace"
+          }
         },
         {
           "env_binding": "prod",
-          "node_address": "chathealthy.ai/evaluatecare"
+          "node_address": "chathealthy.ai/evaluatecare",
+          "huggingface_space": {
+            "space": "SkipSnow/EvaluateCareSpace"
+          }
         }
       ],
       "files": [
@@ -651,15 +669,24 @@
       "environments": [
         {
           "env_binding": "dev",
-          "node_address": "dev.chathealthy.ai/findcare"
+          "node_address": "dev.chathealthy.ai/findcare",
+          "huggingface_space": {
+            "space": "SkipSnow/dev_ChatHealthySpace"
+          }
         },
         {
           "env_binding": "qa",
-          "node_address": "qa.chathealthy.ai/findcare"
+          "node_address": "qa.chathealthy.ai/findcare",
+          "huggingface_space": {
+            "space": "SkipSnow/qa_ChatHealthySpace"
+          }
         },
         {
           "env_binding": "prod",
-          "node_address": "chathealthy.ai/findcare"
+          "node_address": "chathealthy.ai/findcare",
+          "huggingface_space": {
+            "space": "SkipSnow/ChatHealthySpace"
+          }
         }
       ],
       "files": [
@@ -1658,15 +1685,24 @@
       "environments": [
         {
           "env_binding": "dev",
-          "node_address": "dev.chathealthy.ai/sharedservices"
+          "node_address": "dev.chathealthy.ai/sharedservices",
+          "huggingface_space": {
+            "space": "SkipSnow/dev_SharedServicesSpace"
+          }
         },
         {
           "env_binding": "qa",
-          "node_address": "qa.chathealthy.ai/sharedservices"
+          "node_address": "qa.chathealthy.ai/sharedservices",
+          "huggingface_space": {
+            "space": "SkipSnow/qa_SharedServicesSpace"
+          }
         },
         {
           "env_binding": "prod",
-          "node_address": "chathealthy.ai/sharedservices"
+          "node_address": "chathealthy.ai/sharedservices",
+          "huggingface_space": {
+            "space": "SkipSnow/SharedServicesSpace"
+          }
         }
       ],
       "files": [
@@ -2649,7 +2685,22 @@
             "min_replicas": 0,
             "max_replicas": 4,
             "cpu": 2.0,
-            "memory_gi": 4.0
+            "memory_gi": 4.0,
+            "location": "eastus2",
+            "dockerfile_from": "mcr.microsoft.com/azure-functions/python:4-python3.11",
+            "placeholder_image": "mcr.microsoft.com/k8se/quickstart:latest",
+            "netherite": {
+              "partitions_eh_name": "partitions",
+              "loadmonitor_eh_name": "loadmonitor",
+              "loadmonitor_partition_count": 1,
+              "clients_eh_names": [
+                "clients0",
+                "clients1",
+                "clients2",
+                "clients3"
+              ],
+              "clients_partition_count": 32
+            }
           }
         }
       ],
@@ -3314,7 +3365,16 @@
       "environments": [
         {
           "env_binding": "prod",
-          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
+          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager",
+          "azure_automation_account": {
+            "vnet_name": "ChatHealthy-VNet",
+            "vm_subnet_name": "hybrid-worker-subnet",
+            "vm_subnet_address_prefix": "10.0.2.0/24",
+            "hybrid_worker_group_name": "ChatHealthyDataMigratorWorkGroup",
+            "admin_private_key_filename": "chdm_admin_id_ed25519",
+            "automation_api_version": "2023-11-01",
+            "network_api_version": "2024-01-01"
+          }
         }
       ],
       "files": [],
@@ -3615,5 +3675,11 @@
         "SPARKMAIL_API_KEY": "local_env"
       }
     }
-  ]
+  ],
+  "firm": {
+    "git_identity": {
+      "name": "SkipSnow",
+      "email": "skip.snow@gmail.com"
+    }
+  }
 }
