@@ -86,7 +86,7 @@ _HYBRID_WORKER_API = "2024-10-23"
 _HYBRID_WORKER_GROUP = "ChatHealthyDataMigratorWorkGroup"
 _MIGRATOR_RUNBOOK = "ChatHealthyDataMigrator"
 _WAIT_POLL_SEC = 10
-_VM_WAIT_TIMEOUT_SEC = 15 * 60
+_VM_WAIT_TIMEOUT_SEC = 20 * 60  # bumped from 15min: CustomScript now waits up to 300s for cloud-init + 2x 4-attempt retry phases (apt, pip) at ~220s each, total worst-case ~740s. Leave headroom for slow VM-create.
 
 # Automation Operator built-in role definition GUID. Lets the principal start
 # runbook jobs on the Automation Account. The migrator runs on the HW VM with
@@ -104,10 +104,42 @@ _IMAGE_REFERENCE = {
 # CustomScript extension command - runs synchronously as root. Provisioner
 # waits for its provisioningState before installing the HW extension, so
 # pymongo/dnspython are present before the worker dequeues the migrator job.
+#
+# This script is hardened against the transient failure modes that bit
+# the chain on 2026-06-04: cloud-init / unattended-upgrades racing apt,
+# apt-cache momentarily missing universe packages (E: Unable to locate
+# package python3-pip exit 100), PyPI flakiness. Per operator constraints:
+#  - Wait for cloud-init / dpkg lock to be free (bounded, 5 min max)
+#  - Bounded retry: max 4 attempts on each phase (apt, pip), backoff 10/20/30/40s
+#  - Capture every attempt's stdout+stderr to /var/log/chdm_python_deps_install.log
+#  - On terminal failure, emit the log to the CustomScript statusMessage
+#    (cat to stderr so Azure surfaces the real error, not just exit code)
+#  - Never spin forever: total worst-case ~500s
 _PYTHON_DEPS_INSTALL = (
-    "apt-get update -y && "
-    "apt-get install -y python3-pip && "
-    "pip3 install --no-cache-dir pymongo dnspython requests"
+    "set -o pipefail; "  # critical: without this, `cmd | tee` always returns
+    # tee's exit code (0), hiding apt/pip failures behind a stale-cache success.
+    "LOG=/var/log/chdm_python_deps_install.log; "
+    "echo === chdm python deps install start at $(date -u) === | tee -a \"$LOG\"; "
+    "echo --- waiting for cloud-init --- | tee -a \"$LOG\"; "
+    "timeout 300 cloud-init status --wait --long 2>&1 | tee -a \"$LOG\" || echo cloud-init wait non-zero, continuing | tee -a \"$LOG\"; "
+    "echo --- waiting for dpkg lock --- | tee -a \"$LOG\"; "
+    "for i in 1 2 3 4 5 6; do fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || break; echo dpkg lock held, sleep 20 | tee -a \"$LOG\"; sleep 20; done; "
+    "apt_ok=0; "
+    "for i in 1 2 3 4; do "
+    "  echo --- attempt $i apt --- | tee -a \"$LOG\"; "
+    "  if apt-get update -y 2>&1 | tee -a \"$LOG\" && apt-get install -y python3-pip 2>&1 | tee -a \"$LOG\"; then apt_ok=1; break; fi; "
+    "  echo attempt $i apt FAILED, sleep $((10*i))s | tee -a \"$LOG\"; sleep $((10*i)); "
+    "done; "
+    "if [ \"$apt_ok\" != \"1\" ]; then echo FATAL apt phase failed; tail -c 3500 \"$LOG\" >&2; exit 1; fi; "
+    "pip_ok=0; "
+    "for i in 1 2 3 4; do "
+    "  echo --- attempt $i pip --- | tee -a \"$LOG\"; "
+    "  if pip3 install --no-cache-dir --retries 3 --timeout 30 pymongo dnspython requests 2>&1 | tee -a \"$LOG\"; then pip_ok=1; break; fi; "
+    "  echo attempt $i pip FAILED, sleep $((10*i))s | tee -a \"$LOG\"; sleep $((10*i)); "
+    "done; "
+    "if [ \"$pip_ok\" != \"1\" ]; then echo FATAL pip phase failed; tail -c 3500 \"$LOG\" >&2; exit 1; fi; "
+    "echo === chdm python deps install success at $(date -u) === | tee -a \"$LOG\"; "
+    "exit 0"
 )
 
 
@@ -271,7 +303,11 @@ def _install_python_deps_extension(sub: str, vm_rg: str, vm_name: str,
             "autoUpgradeMinorVersion": True,
             "settings": {},
             "protectedSettings": {
-                "commandToExecute": f"bash -c \"{_PYTHON_DEPS_INSTALL}\"",
+                # bash -c '...' (single-quoted outside) so the script can
+                # use double quotes around shell variable expansions like
+                # "$LOG" without escaping. The script itself must not
+                # contain literal single quotes.
+                "commandToExecute": f"bash -c '{_PYTHON_DEPS_INSTALL}'",
             },
         },
     }
