@@ -725,12 +725,34 @@ def _main():
             log.warning("status_doc.finalize failed (continuing): %r", e)
 
         if has_exception:
-            log.info("Failure path: dropping destination collection %s.%s",
-                     dst_db_name, dst_coll_name)
+            # Per slide-4 failure semantics (operator-updated 2026-06-04):
+            # destination is NOT dropped on failure. The operator wants the
+            # failed-run destination preserved so the failed state can be
+            # debugged in place. Log the most informative error context we
+            # have so the operator can diagnose without having to dig.
             try:
-                dst_client[dst_db_name].drop_collection(dst_coll_name)
+                dst_existing = dst_coll_name in dst_client[dst_db_name].list_collection_names()
+                dst_count = (
+                    dst_client[dst_db_name][dst_coll_name].count_documents({})
+                    if dst_existing else None
+                )
+                dst_indexes = (
+                    [ix["name"] for ix in dst_client[dst_db_name][dst_coll_name].list_indexes()]
+                    if dst_existing else None
+                )
             except Exception as e:
-                log.warning("Drop destination failed (continuing): %r", e)
+                dst_existing, dst_count, dst_indexes = None, None, f"<count/list_indexes failed: {e!r}>"
+            log.error(
+                "Migrator FAILED — destination preserved for debugging. "
+                "job_id=%s vm_name=%s src=%s/%s.%s dst=%s/%s.%s "
+                "dst_collection_exists=%s dst_doc_count=%s dst_indexes=%s "
+                "thread_writes=%s preserve_indices=%s",
+                job_id, vm_name,
+                src_cluster, src_db_name, src_coll_name,
+                dst_cluster, dst_db_name, dst_coll_name,
+                dst_existing, dst_count, dst_indexes,
+                success_writes, preserve_indexes,
+            )
 
         try:
             log.info("Releasing source reservation %s", job_id)
