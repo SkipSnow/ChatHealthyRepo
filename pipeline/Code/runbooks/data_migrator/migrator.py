@@ -198,19 +198,50 @@ class StatusDoc:
         )
 
 
+_atlas_cluster_name_cache: dict = {}
+
+
+def _hostname_from_conn_str(conn_str: str) -> str:
+    """Extract host.id.mongodb.net from a mongodb+srv URI without using
+    regex (Rule-008 forbids regex in pipeline executable code)."""
+    if "@" not in conn_str:
+        raise RuntimeError(f"connection string missing '@': {conn_str[:40]!r}")
+    after_at = conn_str.split("@", 1)[1]
+    return after_at.split("/", 1)[0].split("?", 1)[0]
+
+
 def _atlas_cluster_name_for(friendly_name: str) -> str:
     """Atlas Management API addresses clusters by their real Atlas cluster
     name (e.g. 'ChatHealthyDataPipelines'), not the operator's friendly
-    alias (e.g. 'pipeline'). Deploy populates one MONGO_CLUSTER_<alias>_
-    atlasClusterName Automation Variable per managed cluster."""
-    env_var = f"MONGO_CLUSTER_{friendly_name}_atlasClusterName"
-    try:
-        return os.environ[env_var]
-    except KeyError:
-        raise RuntimeError(
-            f"No Atlas cluster name for cluster alias {friendly_name!r}: "
-            f"env var {env_var} not set"
-        )
+    alias (e.g. 'pipeline'). Resolve at runtime by listing all clusters
+    in the project and matching the one whose standardSrv URI contains
+    the same hostname as the connection string for this alias. Cached."""
+    cached = _atlas_cluster_name_cache.get(friendly_name)
+    if cached is not None:
+        return cached
+    conn_str = _connection_string_for_cluster(friendly_name)
+    hostname = _hostname_from_conn_str(conn_str)
+    auth = HTTPDigestAuth(os.environ["ATLAS_PUBLIC_KEY"], os.environ["ATLAS_PRIVATE_KEY"])
+    url = (
+        f"https://cloud.mongodb.com/api/atlas/v2/groups/{os.environ['ATLAS_PROJECT_ID']}"
+        f"/clusters"
+    )
+    r = requests.get(
+        url, auth=auth,
+        headers={"Accept": "application/vnd.atlas.2023-02-01+json"},
+        timeout=15,
+    )
+    r.raise_for_status()
+    for c in r.json().get("results", []):
+        srv = (c.get("connectionStrings", {}) or {}).get("standardSrv", "") or ""
+        if hostname in srv:
+            atlas_name = c["name"]
+            _atlas_cluster_name_cache[friendly_name] = atlas_name
+            return atlas_name
+    raise RuntimeError(
+        f"No Atlas cluster in project matches hostname {hostname!r} "
+        f"(connection string for alias {friendly_name!r})"
+    )
 
 
 def _atlas_cluster_state(cluster_name: str) -> str:
