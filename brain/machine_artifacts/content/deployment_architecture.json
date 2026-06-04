@@ -348,7 +348,17 @@
       "secrets": {
         "CLOUDFLARE_API_TOKEN": "local_env",
         "CLOUDFLARE_ACCOUNT_ID": "local_env"
-      }
+      },
+      "entitlements": [
+        {
+          "kind": "cloudflare_api_token_scope",
+          "account": "ChatHealthyLLC",
+          "scopes": [
+            "Account:Cloudflare Pages:Edit",
+            "Account:Account Settings:Read"
+          ]
+        }
+      ]
     },
     {
       "target_id": "target_hf_space_evaluatecare_backend",
@@ -607,7 +617,15 @@
       "secrets": {
         "EVALCARE_SIGNING_KEY_B64": "local_env",
         "HF_TOKEN": "local_env"
-      }
+      },
+      "entitlements": [
+        {
+          "kind": "hf_space_membership",
+          "space": "SkipSnow/EvaluateCareSpace (and dev_/qa_ variants)",
+          "user": "SkipSnow",
+          "access": "admin"
+        }
+      ]
     },
     {
       "target_id": "target_hf_space_findcare_backend",
@@ -1946,7 +1964,15 @@
         "FINDCARE_SIGNING_KEY_B64": "local_env",
         "GEMINI_API_KEY": "local_env",
         "HF_TOKEN": "local_env"
-      }
+      },
+      "entitlements": [
+        {
+          "kind": "hf_space_membership",
+          "space": "SkipSnow/ChatHealthySpace (and dev_/qa_ variants)",
+          "user": "SkipSnow",
+          "access": "admin"
+        }
+      ]
     },
     {
       "target_id": "target_hf_space_shared_services",
@@ -2261,7 +2287,15 @@
         "GOOGLE_OAUTH_CLIENT_ID": "local_env",
         "GOOGLE_OAUTH_CLIENT_SECRET": "local_env",
         "HF_TOKEN": "local_env"
-      }
+      },
+      "entitlements": [
+        {
+          "kind": "hf_space_membership",
+          "space": "SkipSnow/SharedServicesSpace (and dev_/qa_ variants)",
+          "user": "SkipSnow",
+          "access": "admin"
+        }
+      ]
     },
     {
       "target_id": "target_host_local_deploy_tool",
@@ -2798,6 +2832,24 @@
                 ]
               }
             }
+          }
+        }
+      ],
+      "entitlements": [
+        {
+          "kind": "github_workflow_permission",
+          "workflow": ".github/workflows/remote-deploy.yml",
+          "permissions": {
+            "contents": "read",
+            "packages": "write"
+          }
+        },
+        {
+          "kind": "github_workflow_permission",
+          "workflow": ".github/workflows/promote-build.yml",
+          "permissions": {
+            "contents": "write",
+            "actions": "write"
           }
         }
       ]
@@ -3389,6 +3441,44 @@
         "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env",
         "DURABLE_ROUTER_URL": "local_env"
       }
+    },
+    {
+      "target_id": "target_azure_automation_account_chathealthyjobmanager",
+      "target_kind": "azure_automation_account",
+      "environments": [
+        {
+          "env_binding": "prod",
+          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
+        }
+      ],
+      "files": [],
+      "secrets": {},
+      "entitlements": [
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "ChatHealthyJobManager system-assigned managed identity",
+          "role": "Virtual Machine Contributor",
+          "scope": "/subscriptions/<subscription-id>/resourceGroups/<vm_rg>"
+        },
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "ChatHealthyJobManager system-assigned managed identity",
+          "role": "Network Contributor",
+          "scope": "/subscriptions/<subscription-id>/resourceGroups/<vm_rg>"
+        },
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "ChatHealthyJobManager system-assigned managed identity",
+          "role": "Contributor",
+          "scope": "/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
+        },
+        {
+          "kind": "azure_rbac_role_assignment",
+          "principal": "ChatHealthyJobManager system-assigned managed identity",
+          "role": "User Access Administrator",
+          "scope": "/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
+        }
+      ]
     },
     {
       "target_id": "target_azure_automation_runbook_reservation_reaper",
