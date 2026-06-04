@@ -64,9 +64,11 @@ jobs:
         DST="${!TO_BRANCH}"
 
 
-        git config user.email "skip.snow@gmail.com"
+        MANIFEST=brain/machine_artifacts/content/deployment_architecture.json
 
-        git config user.name "SkipSnow"
+        git config user.email "$(jq -r .firm.git_identity.email $MANIFEST)"
+
+        git config user.name "$(jq -r .firm.git_identity.name $MANIFEST)"
 
 
         echo "Merging $SRC -> $DST"
