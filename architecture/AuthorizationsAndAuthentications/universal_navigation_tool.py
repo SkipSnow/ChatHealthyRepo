@@ -15,7 +15,7 @@ Runs after AuthorizationsAndAuthentications has established the user
 Every handler reads its input off deps.user_object (the working memory)
 and emits its result via deps.stream(...). The dispatcher returns a
 NavResult carrying the final event + any history_append directive so the
-gate route can $push into admin.sessions after the run.
+gate route can $push into Users.sessions after the run.
 
 Canonical *_tool.py exports: TOOL_NAME, Request, Response, run().
 """

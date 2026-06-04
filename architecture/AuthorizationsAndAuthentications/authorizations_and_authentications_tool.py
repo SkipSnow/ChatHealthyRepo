@@ -13,7 +13,7 @@ Runs first on every /gate hit. Two top-level routing paths:
 
 It exposes the canonical *_tool.py contract (TOOL_NAME, Request,
 Response, run()) plus a persist() method that is the sole writer to
-both admin.sessions (per-session) AND admin.users (long-lived mirror)
+both Users.sessions (per-session) AND Users.users (long-lived mirror)
 when a users record exists.
 
 After Google OAuth completes, the OAuth callback route calls
@@ -41,8 +41,9 @@ _log = logging.getLogger("shared_services.authn")
 
 _ORIGIN = "SharedServices"
 _SESSION_TTL_SECONDS = 300
-_SESSION_DB = "admin"
+_SESSION_DB = "Users"
 _SESSION_COLLECTION = "sessions"
+_USERS_DB = "Users"
 _USERS_COLLECTION = "users"
 
 # SharedServices Space URL per env — used to build the absolute
@@ -171,8 +172,8 @@ def _user_id_for_identity_provider_sub(
 
 
 def _persist(coll, users_coll, user_object: UserObject, fresh_mint: bool) -> None:
-    """Sole writer for admin.sessions (per-session, every persist) and
-    admin.users (mirror, only when user_object.is_registered == True)."""
+    """Sole writer for Users.sessions (per-session, every persist) and
+    Users.users (mirror, only when user_object.is_registered == True)."""
     _ensure_indexes(coll)
     guid = user_object.current_session_token.get_auth_token()
     body = user_object.model_dump(mode="python", exclude_none=True)
@@ -204,7 +205,7 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
 
       * `run()`                  - resolves or mints user_object; routes
                                    utterance vs control use case.
-      * `persist()`              - writes admin.sessions AND admin.users.
+      * `persist()`              - writes Users.sessions AND Users.users.
       * `handle_oauth_login()`   - called by the Google OAuth callback
                                    after the token exchange completes;
                                    returns the user_id that the callback
@@ -245,7 +246,7 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
 
     async def persist(self, deps: AuthnDeps, user_object, fresh_mint: bool) -> None:
         coll = deps.mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
-        users_coll = deps.mongo_frontend[_SESSION_DB][_USERS_COLLECTION]
+        users_coll = deps.mongo_frontend[_USERS_DB][_USERS_COLLECTION]
         _persist(coll, users_coll, user_object, fresh_mint)
 
     def handle_oauth_login(
@@ -273,7 +274,7 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
         UserObject with the guest session per the model's merge rules.
         """
         sessions_coll = mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
-        users_coll = mongo_frontend[_SESSION_DB][_USERS_COLLECTION]
+        users_coll = mongo_frontend[_USERS_DB][_USERS_COLLECTION]
 
         _log.info(
             "OAUTH-LOGIN entry identity_provider=%s session_guid=%s email=%s sub_prefix=%s",
@@ -340,8 +341,8 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
         # matching OAuthIdentities entry, load the DB record, call
         # db_record.merge(guest_record) to produce the merged
         # UserObject (per the model's documented merge rules), then
-        # write the merged record to BOTH admin.sessions and
-        # admin.users.
+        # write the merged record to BOTH Users.sessions and
+        # Users.users.
         users_coll.update_one(
             {
                 "user_id": existing_user_id,
@@ -390,7 +391,7 @@ _mongo_client = None
 
 
 def get_mongo_frontend():
-    """Lazy singleton for the front-end cluster client (admin.sessions + admin.users)."""
+    """Lazy singleton for the front-end cluster client (Users.sessions + Users.users)."""
     global _mongo_client
     if _mongo_client is None:
         from pymongo import MongoClient
