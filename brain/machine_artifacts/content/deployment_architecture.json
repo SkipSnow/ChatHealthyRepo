@@ -2241,7 +2241,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/hf_helpers.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "eb0b7acfc900ee3496d9b6c4afffcf08be0eb3456cc11e25a0398183628f03b9"
+          "content_hash": "25f79a93b3a657375d381fbe44ed6842aeb7ef80e3911ed5514b2d5ed2e644a3"
         },
         {
           "feature_id": "EPIC-008-F-012",
