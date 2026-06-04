@@ -109,12 +109,17 @@ ROUTES: dict = {
         },
         "computed": {},
     },
+    "ChangeDBVersion": {
+        "required": [],
+        "allowed": {},
+        "computed": {},
+    },
 }
 
 # Routes whose upstream is the Automation Account orchestrator webhook (and
 # therefore mint a job_id at gateway entry instead of forwarding to the
 # durable container app).
-_AUTOMATION_ROUTES = {"MongoClusterMigrator"}
+_AUTOMATION_ROUTES = {"MongoClusterMigrator", "ChangeDBVersion"}
 
 
 def require_auth(req) -> tuple[str | None, tuple[int, str] | None]:
