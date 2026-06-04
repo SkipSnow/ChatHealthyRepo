@@ -26,7 +26,7 @@
           "node_address": "chathealthy.ai",
           "branch": "main",
           "cloudflare_pages": {
-            "project_name": "chathealthy-website"
+            "project_name": "chathealthywebsite"
           }
         }
       ],

@@ -66,14 +66,23 @@ from target_record import DeploymentCollection, TargetRecord
 
 _BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild")
 
-# Per-env Cloudflare Pages project map. (The branch flag is read from the
-# manifest's environments[].branch field per REQ-T-050 — no hard-coded
-# branch map here.)
-_CLOUDFLARE_PROJECT: dict[str, str] = {
-    "dev":  "chathealthy-website-dev",
-    "qa":   "chathealthy-website-qa",
-    "prod": "chathealthywebsite",
-}
+
+def _firm_git_identity() -> dict:
+    """Read firm.git_identity{name, email} from
+    deployment_architecture.json. Replaces the previously hardcoded
+    `user.name=SkipSnow` / `user.email=skip.snow@gmail.com` in git
+    invocations on the HF Space push path."""
+    repo_root = Path(__file__).resolve().parents[2]
+    manifest_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    git_id = (data.get("firm") or {}).get("git_identity")
+    if not git_id or "name" not in git_id or "email" not in git_id:
+        sys.exit(
+            "ERROR: firm.git_identity{name, email} missing from "
+            "deployment_architecture.json — populate it before deploy."
+        )
+    return git_id
+
 
 _GHCR_OWNER: str = "skipsnow"
 _GHCR_IMAGE_NAME: dict[str, str] = {
@@ -143,7 +152,6 @@ def _deploy_cloudflare(
     resolver: SecretsResolver,
     target: TargetRecord,
 ) -> str:
-    project = _CLOUDFLARE_PROJECT[env]
     env_binding = next(
         (e for e in target.environments if e.env_binding == env), None,
     )
@@ -152,6 +160,17 @@ def _deploy_cloudflare(
             f"ERROR: target {target.target_id!r} env={env!r} has no `branch` "
             f"declared in deployment_architecture.json (REQ-T-050). The deploy "
             f"script reads the branch from the manifest; no hard-coded fallback."
+        )
+    cf_block = getattr(env_binding, "cloudflare_pages", None) or {}
+    if isinstance(cf_block, dict):
+        project = cf_block.get("project_name")
+    else:
+        project = getattr(cf_block, "project_name", None)
+    if not project:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} env={env!r} has no "
+            f"cloudflare_pages.project_name declared in "
+            f"deployment_architecture.json. Populate it before deploy."
         )
     branch = env_binding.branch
     _step(f"=== cloudflare_pages env={env} project={project} branch={branch} dir={build_dir} ===")
@@ -276,7 +295,7 @@ def _push_thin_dockerfile_to_hf_space(
     thin = f"FROM {image_ref}\nEXPOSE {port}\n"
     (hf_clone / "Dockerfile").write_text(thin, encoding="utf-8")
     subprocess.run(
-        ["git", "-c", "user.email=skip.snow@gmail.com", "-c", "user.name=SkipSnow",
+        ["git", "-c", f"user.email={_firm_git_identity()['email']}", "-c", f"user.name={_firm_git_identity()['name']}",
          "add", "."],
         cwd=str(hf_clone), check=True,
     )
@@ -287,7 +306,7 @@ def _push_thin_dockerfile_to_hf_space(
         _step("  no changes vs HF Space — skipping push")
     else:
         subprocess.run(
-            ["git", "-c", "user.email=skip.snow@gmail.com", "-c", "user.name=SkipSnow",
+            ["git", "-c", f"user.email={_firm_git_identity()['email']}", "-c", f"user.name={_firm_git_identity()['name']}",
              "commit", "-m", f"local_deploy {env} -> {image_ref}"],
             cwd=str(hf_clone), check=True,
         )

@@ -14,6 +14,7 @@ local_deploy.py for HF Space target_kind handling. Exposes:
 from __future__ import annotations
 
 import base64
+import functools
 import json
 import os
 import shutil
@@ -27,30 +28,80 @@ from target_record import TargetRecord
 import ch_fonts_inliner
 
 
-# ── HF Space name convention ───────────────────────────────────────────
-# prod                 -> <Base>
-# dev/qa/feature       -> <env>_<Base>
-_HF_SPACE_BASE: dict[str, str] = {
-    "target_hf_space_findcare_backend":      "ChatHealthySpace",
-    "target_hf_space_evaluatecare_backend":  "EvaluateCareSpace",
-    "target_hf_space_shared_services":       "SharedServicesSpace",
-}
-_HF_ORG: str = "SkipSnow"
+# ── HF Space identifiers from the manifest ─────────────────────────────
+# Each HF target's environments[<env>].huggingface_space.space carries the
+# fully-qualified 'org/name' Space identifier for that env_binding. The
+# manifest is the source of truth (EPIC-008-F-012-S-001-REQ-B-008/B-009);
+# no org/base/prefix rule lives in code anymore.
+
+@functools.lru_cache(maxsize=1)
+def _load_manifest() -> dict:
+    repo_root = Path(__file__).resolve().parents[2]
+    manifest = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+    return json.loads(manifest.read_text(encoding="utf-8"))
+
+
+def _hf_space_qualified(target_id: str, env: str) -> str:
+    """Return the fully-qualified 'org/name' HF Space identifier for the
+    given target_id + env_binding, read from the manifest. Fails loud if
+    the target / env_binding / huggingface_space block is missing.
+    """
+    data = _load_manifest()
+    for rec in data["DeploymentTargetRecord"]:
+        if rec.get("target_id") != target_id:
+            continue
+        for env_entry in rec.get("environments", []):
+            if env_entry.get("env_binding") != env:
+                continue
+            hs = env_entry.get("huggingface_space")
+            if not hs or "space" not in hs:
+                raise RuntimeError(
+                    f"manifest target {target_id!r} env_binding {env!r} "
+                    f"has no huggingface_space.space — populate it before deploy."
+                )
+            return hs["space"]
+    raise RuntimeError(
+        f"manifest has no target {target_id!r} with env_binding {env!r}."
+    )
+
+
+def _hf_org(target_id: str, env: str) -> str:
+    return _hf_space_qualified(target_id, env).split("/", 1)[0]
 
 
 def _hf_space_name(target_id: str, env: str) -> str:
-    base = _HF_SPACE_BASE[target_id]
-    return base if env == "prod" else f"{env}_{base}"
+    return _hf_space_qualified(target_id, env).split("/", 1)[1]
+
+
+@functools.lru_cache(maxsize=1)
+def _hf_default_org() -> str:
+    """The operator's HF org. Read from any HF target's huggingface_space
+    entry — all HF Spaces in this project sit under the same org. Used by
+    the HF API helpers below where the caller has the bare space name but
+    needs to assemble the API URL.
+    """
+    data = _load_manifest()
+    for rec in data["DeploymentTargetRecord"]:
+        if rec.get("target_kind") != "hf_space":
+            continue
+        for env_entry in rec.get("environments", []):
+            hs = env_entry.get("huggingface_space")
+            if hs and "space" in hs:
+                return hs["space"].split("/", 1)[0]
+    raise RuntimeError(
+        "no hf_space target with a populated huggingface_space.space "
+        "in the manifest — cannot infer operator HF org."
+    )
 
 
 def _hf_peer_url(target_id: str, env: str) -> str:
-    base = {
-        "target_hf_space_findcare_backend":     "chathealthyspace",
-        "target_hf_space_evaluatecare_backend": "evaluatecarespace",
-        "target_hf_space_shared_services":      "sharedservicesspace",
-    }[target_id]
-    prefix = "" if env == "prod" else f"{env}-"
-    return f"https://skipsnow-{prefix}{base}.hf.space"
+    """Derived from the manifest's qualified 'org/space' identifier. HF
+    publishes Space frontends at https://{org}-{space}.hf.space with
+    underscores in the Space name converted to hyphens and the whole
+    thing lowercased.
+    """
+    org, space = _hf_space_qualified(target_id, env).split("/", 1)
+    return f"https://{org.lower()}-{space.replace('_', '-').lower()}.hf.space"
 
 
 # ── Step notice helper ─────────────────────────────────────────────────
@@ -106,7 +157,7 @@ def _hf_curl_delete(token: str, space: str, kind: str, key: str) -> None:
     """Delete a variable or secret on an HF Space (idempotent — 404 fine)."""
     import urllib.error
     import urllib.request
-    url = f"https://huggingface.co/api/spaces/{_HF_ORG}/{space}/{kind}"
+    url = f"https://huggingface.co/api/spaces/{_hf_default_org()}/{space}/{kind}"
     body = b'{"key":"' + key.encode() + b'"}'
     req = urllib.request.Request(
         url, data=body, method="DELETE",
@@ -128,7 +179,7 @@ def _hf_set_variable(token: str, space: str, key: str, value: str) -> None:
     import urllib.request
     # Delete any same-named secret first to avoid HF's var/secret collision.
     _hf_curl_delete(token, space, "secrets", key)
-    url = f"https://huggingface.co/api/spaces/{_HF_ORG}/{space}/variables"
+    url = f"https://huggingface.co/api/spaces/{_hf_default_org()}/{space}/variables"
     payload = _json.dumps({
         "key": key, "value": value, "description": "Set by local_publish",
     }).encode()
@@ -147,7 +198,7 @@ def _hf_set_secret(token: str, space: str, key: str, value: str) -> None:
     import urllib.request
     _hf_curl_delete(token, space, "variables", key)
     _hf_curl_delete(token, space, "secrets", key)
-    url = f"https://huggingface.co/api/spaces/{_HF_ORG}/{space}/secrets"
+    url = f"https://huggingface.co/api/spaces/{_hf_default_org()}/{space}/secrets"
     payload = _json.dumps({
         "key": key, "value": value, "description": "Set by local_publish",
     }).encode()

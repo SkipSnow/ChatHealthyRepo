@@ -11,6 +11,7 @@ Azure Container Apps.
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import os
@@ -20,11 +21,44 @@ import time
 from pathlib import Path
 
 
-_DOCKERFILE_FROM = "mcr.microsoft.com/azure-functions/python:4-python3.11"
+# Shared-fact loaders. Every per-target ACA fact (location, Dockerfile
+# base image, placeholder image, Netherite EH topology) lives in the ACA
+# target's environments[<env>].azure_container_app block in
+# deployment_architecture.json (EPIC-008-F-012-S-001-REQ-B-008). No
+# module-level constants for any of these.
+
+_ACA_TARGET_ID = "target_azure_container_app_pipeline"
+
+# Dockerfile ENV line stays in code because it's not a deploy fact — it's
+# a runtime contract between the image and Azure Functions worker, and
+# changes only when the worker contract changes.
 _DOCKERFILE_ENV = (
     "AzureWebJobsScriptRoot=/home/site/wwwroot "
     "AzureFunctionsJobHost__Logging__Console__IsEnabled=true"
 )
+
+
+@functools.lru_cache(maxsize=1)
+def _load_aca_facts() -> dict:
+    """Return the ACA target's first env_binding's azure_container_app
+    block. Fails loud if missing."""
+    repo_root = Path(__file__).resolve().parents[2]
+    manifest = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    for rec in data["DeploymentTargetRecord"]:
+        if rec.get("target_id") != _ACA_TARGET_ID:
+            continue
+        envs = rec.get("environments", [])
+        if not envs:
+            sys.exit(f"ERROR: target {_ACA_TARGET_ID!r} has no environments[].")
+        block = envs[0].get("azure_container_app")
+        if not block:
+            sys.exit(
+                f"ERROR: target {_ACA_TARGET_ID!r} env_binding "
+                f"{envs[0].get('env_binding')!r} has no azure_container_app block."
+            )
+        return block
+    sys.exit(f"ERROR: target {_ACA_TARGET_ID!r} not present in manifest.")
 
 
 def _cflags() -> int:
@@ -44,7 +78,7 @@ def aca_render_dockerfile() -> str:
     on disk matches what gets baked into the image.
     """
     return (
-        f"FROM {_DOCKERFILE_FROM}\n"
+        f"FROM {_load_aca_facts()['dockerfile_from']}\n"
         f"ENV {_DOCKERFILE_ENV}\n"
         "COPY app/pipeline/Code/ /home/site/wwwroot/\n"
         "RUN pip install --no-cache-dir -r /home/site/wwwroot/requirements.txt\n"
@@ -66,13 +100,6 @@ def aca_content_hash_tree(tree_root: Path) -> str:
         h.update(path.read_bytes().replace(b"\r\n", b"\n"))
         h.update(b"\0")
     return h.hexdigest()
-
-
-_NETHERITE_PARTITIONS_EH_NAME = "partitions"
-_NETHERITE_LOADMONITOR_EH_NAME = "loadmonitor"
-_NETHERITE_LOADMONITOR_PARTITION_COUNT = 1
-_NETHERITE_CLIENTS_EH_NAMES = ("clients0", "clients1", "clients2", "clients3")
-_NETHERITE_CLIENTS_PARTITION_COUNT = 32
 
 
 def aca_read_partition_count_from_host_json(repo_root: Path) -> int:
@@ -181,9 +208,10 @@ def aca_ensure_partitions_event_hub(
     """Ensure the Netherite 'partitions' Event Hub exists with the expected
     partition count.
     """
+    n = _load_aca_facts()["netherite"]
     _ensure_event_hub(
         namespace, resource_group,
-        _NETHERITE_PARTITIONS_EH_NAME, partition_count,
+        n["partitions_eh_name"], partition_count,
     )
 
 
@@ -191,11 +219,12 @@ def aca_ensure_loadmonitor_event_hub(
     namespace: str,
     resource_group: str,
 ) -> None:
-    """Ensure the Netherite 'loadmonitor' Event Hub exists (1 partition,
+    """Ensure the Netherite loadmonitor Event Hub exists (1 partition,
     fixed by Netherite's transport layer)."""
+    n = _load_aca_facts()["netherite"]
     _ensure_event_hub(
         namespace, resource_group,
-        _NETHERITE_LOADMONITOR_EH_NAME, _NETHERITE_LOADMONITOR_PARTITION_COUNT,
+        n["loadmonitor_eh_name"], n["loadmonitor_partition_count"],
     )
 
 
@@ -203,13 +232,13 @@ def aca_ensure_clients_event_hubs(
     namespace: str,
     resource_group: str,
 ) -> None:
-    """Ensure the Netherite 'clients0'..'clients3' Event Hubs exist
-    (32 partitions each, names and count fixed by Netherite's transport
-    layer)."""
-    for name in _NETHERITE_CLIENTS_EH_NAMES:
+    """Ensure the Netherite clients Event Hubs exist (names and per-Hub
+    partition count fixed by Netherite's transport layer)."""
+    n = _load_aca_facts()["netherite"]
+    for name in n["clients_eh_names"]:
         _ensure_event_hub(
             namespace, resource_group,
-            name, _NETHERITE_CLIENTS_PARTITION_COUNT,
+            name, n["clients_partition_count"],
         )
 
 
@@ -275,13 +304,10 @@ def aca_ensure_netherite_storage_container(
     _step(f"  storage container '{container_name}' created.")
 
 
-_ACA_DEFAULT_LOCATION = "eastus2"
-
-
 def aca_ensure_log_analytics_workspace(
     workspace: str,
     resource_group: str,
-    location: str = _ACA_DEFAULT_LOCATION,
+    location: str | None = None,
 ) -> str:
     """Ensure a Log Analytics workspace exists. Returns its resource ID.
 
@@ -289,6 +315,8 @@ def aca_ensure_log_analytics_workspace(
     need a workspace; this helper is the one owning create-if-absent so
     every dependent helper can demand a resource ID and rely on it.
     """
+    if location is None:
+        location = _load_aca_facts()["location"]
     _step(
         f"verifying log analytics workspace '{workspace}' in resource "
         f"group '{resource_group}'"
@@ -334,7 +362,7 @@ def aca_ensure_app_insights_component(
     component: str,
     resource_group: str,
     workspace_id: str,
-    location: str = _ACA_DEFAULT_LOCATION,
+    location: str | None = None,
 ) -> str:
     """Ensure a workspace-based App Insights component exists. Returns its
     connection string for env-var injection into the Container App.
@@ -342,6 +370,8 @@ def aca_ensure_app_insights_component(
     Workspace-based AI (the modern shape) writes its tables into the
     supplied workspace; classic AI is intentionally not used here.
     """
+    if location is None:
+        location = _load_aca_facts()["location"]
     _step(
         f"verifying app insights component '{component}' in resource "
         f"group '{resource_group}'"
@@ -389,10 +419,12 @@ def aca_ensure_container_apps_environment(
     environment: str,
     resource_group: str,
     workspace: str,
-    location: str = _ACA_DEFAULT_LOCATION,
+    location: str | None = None,
 ) -> None:
     """Ensure the Container Apps Environment exists. System logs are routed
     into the supplied Log Analytics workspace."""
+    if location is None:
+        location = _load_aca_facts()["location"]
     _step(
         f"verifying container apps environment '{environment}' in resource "
         f"group '{resource_group}'"
@@ -465,12 +497,6 @@ def aca_ensure_container_apps_environment(
     _step(f"  container apps environment '{environment}' created.")
 
 
-# Placeholder image used when first-creating the Container App. Public MCR
-# image, no auth required. The deploy script's aca_update_container_app
-# replaces it with the real pipeline image in the same deploy.
-_ACA_PLACEHOLDER_IMAGE = "mcr.microsoft.com/k8se/quickstart:latest"
-
-
 def aca_ensure_container_app_exists(
     container_app: str,
     resource_group: str,
@@ -528,7 +554,7 @@ def aca_ensure_container_app_exists(
             "--name", container_app,
             "--resource-group", resource_group,
             "--environment", environment,
-            "--image", _ACA_PLACEHOLDER_IMAGE,
+            "--image", _load_aca_facts()["placeholder_image"],
             "--registry-server", f"{registry}.azurecr.io",
             "--registry-username", user,
             "--registry-password", pwd,
