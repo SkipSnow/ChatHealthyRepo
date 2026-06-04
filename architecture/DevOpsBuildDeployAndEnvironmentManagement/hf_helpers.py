@@ -142,6 +142,7 @@ def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
         "build": int(build_num_str) if build_num_str.isdigit() else None,
         "commit": commit,
         "env": env,
+        "target_id": target_id,
         "service": service,
         "version": "1.4.1",
         "framework": "0.1.5",
