@@ -505,7 +505,14 @@ def _migrate_slice(src_coll, dst_coll, base_filter: dict, partition: dict,
 
 
 def _mirror_indexes(src_coll, dst_coll) -> int:
-    created = 0
+    """Mirror every user-defined source index to the destination, then
+    explicitly verify every name is present in dst_coll.list_indexes()
+    before returning. Per operator requirement: not one record may be
+    written until every source index is completely built on the
+    destination. PyMongo's create_index blocks until the server acks
+    (which on Atlas 4.2+ means the build is complete), but we verify
+    list_indexes() as an explicit belt-and-suspenders proof."""
+    expected_names = []
     for idx in src_coll.list_indexes():
         name = idx.get("name", "")
         if name == "_id_":
@@ -517,9 +524,29 @@ def _mirror_indexes(src_coll, dst_coll) -> int:
                          "2dsphereIndexVersion", "wildcardProjection")
         }
         opts["name"] = name
+        log.info("Mirroring index %r unique=%r ...", name, opts.get("unique", False))
         dst_coll.create_index(key, **opts)
-        created += 1
-    return created
+        # Verify the index is present on the destination NOW, before we
+        # move to the next source index. If absent, the build did not
+        # land and we must NOT proceed to load data.
+        dst_names_after = {ix["name"] for ix in dst_coll.list_indexes()}
+        if name not in dst_names_after:
+            raise RuntimeError(
+                f"_mirror_indexes: create_index for {name!r} acked but the "
+                f"index is not present in dst_coll.list_indexes() afterward; "
+                f"refusing to write any docs."
+            )
+        log.info("Mirrored index %r (verified present on destination)", name)
+        expected_names.append(name)
+
+    # Final count check: every expected name must be present together.
+    final_names = {ix["name"] for ix in dst_coll.list_indexes()}
+    missing = [n for n in expected_names if n not in final_names]
+    if missing:
+        raise RuntimeError(
+            f"_mirror_indexes: final verification failed; missing on destination: {missing!r}"
+        )
+    return len(expected_names)
 
 
 def _mi_token() -> str:
@@ -654,7 +681,26 @@ def _main():
                     log.error("Thread %s failed: %r", thread_id, e)
                     raise
 
-        source_total = src_coll.count_documents(base_filter)
+        # Reconciliation count must be the EFFECTIVE covered scope, not
+        # the operator's raw base_filter. The operator's base_filter may
+        # use dotted notation (e.g. addresses.address_type=business,
+        # addresses.state in (...)), which matches documents where
+        # DIFFERENT array elements satisfy different parts. The
+        # partitions use $elemMatch (per-element scoping) so they only
+        # claim docs that have a SINGLE element matching the per-element
+        # constraints. Counting the raw base_filter overcounts vs what
+        # any thread could possibly write -- that gap is permanently
+        # uncoverable and was the source of every 25573-vs-27748 mismatch.
+        # The correct reconciliation target is the union of partition
+        # filters: count docs that match at least one partition.
+        partition_filters = [
+            _compose_slice_filter(base_filter, p) for p in partitions
+        ]
+        if len(partition_filters) == 1:
+            covered_query = partition_filters[0]
+        else:
+            covered_query = {"$or": partition_filters}
+        source_total = src_coll.count_documents(covered_query)
         if success_writes != source_total:
             has_exception = True
             raise RuntimeError(
