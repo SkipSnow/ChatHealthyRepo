@@ -1280,13 +1280,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/epic_planning_runner.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "f8f62c95d57f4d3188f75578b0d273839c6386a2a849052d22e5ea7f34806418"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "Code/Shared/ops/generate_roadmap_page.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -1305,13 +1298,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "d2ef2cd68a8fd0e00bbf465225a5986bf4cc972185f17c82ae755c7b3dc63a60"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/Shared/ops/manifest_generator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "e85a252296272973e3f23cb52d7fd87542c26e31418210fd25ac80d021a6d560"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1835,7 +1821,7 @@
           "source_location": "brain/machine_artifacts/content/agile_backlog.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "236aea37cfb12cdabb9b9782f2adbef03c3a62f63c3bce53ef94ef779db7d24b"
+          "content_hash": "1f9f31e44f421f7e84f66dd612d43953a420a16445a33474cd4192f395eba8c5"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1849,7 +1835,7 @@
           "source_location": "brain/machine_artifacts/content/bugs.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "9a89078d51bca4e50e9219c386203e80548684fc0fd4fb19a041192f36bebada"
+          "content_hash": "5a225470ad4555a40a2ec3f1f17dc41ed515642e9570553acf34e57244290e78"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2041,21 +2027,21 @@
           "source_location": "architecture/AuthorizationsAndAuthentications/agent_deps.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "703864f4a4dfe994cf132d9628137645be2eeaf3f0e079e4472af75290e171a6"
+          "content_hash": "6ef0f8931a2e0cd2d0977cdb988a16e68b550de97ecc6b851a088b514ce5d56a"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/AuthorizationsAndAuthentications/authorizations_and_authentications_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "36af33c0a4bfac2a04e8039783d7a7f2a4167601d6d355d847b188ac04fbfd80"
+          "content_hash": "5ddd51d669a6af9ca497a84daa936c4fe728cabc45c3bb02e2c35c757e3dd61d"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/AuthorizationsAndAuthentications/chathealthy_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "16349fde6784a4e2557ad0a746b6175711c1bed279fd845f4a444fa7ba65013e"
+          "content_hash": "7c0c72b4219931e4d6463922498060a81ad81e69ffd56f331ea2e7f8b9629990"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2083,7 +2069,7 @@
           "source_location": "architecture/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7aadec62b9e061b868c958c959a3d9d93d56eb14a8ee0770f012a8c6dff00ae6"
+          "content_hash": "dcdda830ba2fbe90dcf5fe90f0750895b67beeb4f45808add474d7065b72c5c7"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2239,7 +2225,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "06a4d86fcc70fb2c266c523c4a671dbf6cce67f98a8ae8ff58cbed990dbd18c8"
+          "content_hash": "3375a6fefe9b77faf6acef1d4dbc24d357d3bbba5aab2dc1cda89ded7fa358c9"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2436,7 +2422,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/chdm_helpers.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "809c06d975dc8eac45fabdab941ab3a16dab6f94228d64d58bdd983bac5e0aa5"
+          "content_hash": "ce6250883b9164ac4652d8c8db2bd9c048c08b91798330b217a90b6457953576"
         }
       ],
       "secrets": {
@@ -3503,7 +3489,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/provisioner.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "0f27daac6bdcd07e5d7d0430bfee33153aec2057abbd4b67b340b973c4637398"
+          "content_hash": "7318071fc6ea570d4621038ff651c0f117b4c9a44531319a91f67f7208db752c"
         }
       ],
       "secrets": {
@@ -3537,7 +3523,7 @@
           "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b4d31703e1fd0d64e3f9d2acf0ab7beb30c2785d7a679a158e0b576a58ed57ad"
+          "content_hash": "fe1e150ea8700dfe278c0dc299b51b72ed01120b1217c45e79266a9fb3502611"
         }
       ],
       "secrets": {
