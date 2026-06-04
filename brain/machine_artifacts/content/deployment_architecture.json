@@ -1534,8 +1534,7 @@
           "feature_id": "EPIC-008-F-012",
           "source_location": "brain/machine_artifacts/content/deployment_architecture.json",
           "handler_type": "json",
-          "disposition": "referenced",
-          "content_hash": "fddd401302f425603cb67f76f8c60eb49b0fbac3ddd732df0c23a1b01289e9e5"
+          "disposition": "referenced"
         },
         {
           "feature_id": "EPIC-008-F-012",
