@@ -215,39 +215,42 @@ def _hf_set_secret(token: str, space: str, key: str, value: str) -> None:
 # ── Source-set conventions per target_id ───────────────────────────────
 # These are the directories `local_publish.py` ships into each HF
 # Space's docker build context.
+def _source_set_for(target_id: str) -> list[tuple[str, str | None]]:
+    """Return the (src_rel, dst_rel|None) subtree list for an HF target,
+    read from its huggingface_source_set field in the manifest. dst=None
+    means same as src. Replaces the per-target hardcoded functions
+    (_findcare_source_set, _evaluatecare_source_set,
+    _sharedservices_source_set).
+    """
+    data = _load_manifest()
+    for rec in data["DeploymentTargetRecord"]:
+        if rec.get("target_id") != target_id:
+            continue
+        raw = rec.get("huggingface_source_set")
+        if not raw:
+            raise RuntimeError(
+                f"manifest target {target_id!r} has no huggingface_source_set "
+                f"declared — populate it before deploy."
+            )
+        out: list[tuple[str, str | None]] = []
+        for entry in raw:
+            src = entry["src"]
+            dst = entry.get("dst")
+            out.append((src, dst))
+        return out
+    raise RuntimeError(f"manifest has no target {target_id!r}.")
+
+
 def _findcare_source_set(repo_root: Path) -> list[tuple[str, str | None]]:
-    """Returns [(src_rel, dst_rel|None)]. dst_rel=None means same as src."""
-    return [
-        ("Code/ConversationalUX/FindCareChat/backend", "Code/ConversationalUX/FindCareChat/backend"),
-        ("Code/Shared", "Code/Shared"),
-        ("brain/machine_artifacts/content", "brain/machine_artifacts/content"),
-        ("Code/ConversationalUX/ChatHealthyWhoAmIChat/me", "Code/ConversationalUX/ChatHealthyWhoAmIChat/me"),
-        ("FrontEndApplicationLib", "FrontEndApplicationLib"),
-        ("FindCare", "FindCare"),
-        ("DevOps/FindCareBackend", "DevOps/FindCareBackend"),
-    ]
+    return _source_set_for("target_hf_space_findcare_backend")
 
 
 def _evaluatecare_source_set(repo_root: Path) -> list[tuple[str, str | None]]:
-    return [
-        ("evaluateCare/Code", "."),
-        ("FrontEndApplicationLib", "FrontEndApplicationLib"),
-    ]
+    return _source_set_for("target_hf_space_evaluatecare_backend")
 
 
 def _sharedservices_source_set(repo_root: Path) -> list[tuple[str, str | None]]:
-    return [
-        ("sharedServices/Code", "."),
-        ("FrontEndApplicationLib", "FrontEndApplicationLib"),
-        # EPIC-002-F-003: auth feature lives at architecture/
-        # AuthorizationsAndAuthentications/ in the source tree and is
-        # staged into the SharedServices build context as `authentication/`.
-        ("architecture/AuthorizationsAndAuthentications", "authentication"),
-        # EPIC-006-F-002: specialty_filter_tool lives under
-        # FindCare/SpecialtyFilter/; SharedServices' build context needs
-        # it at the root as `SpecialtyFilter/`.
-        ("FindCare/SpecialtyFilter", "SpecialtyFilter"),
-    ]
+    return _source_set_for("target_hf_space_shared_services")
 
 
 def _copy_tree(
