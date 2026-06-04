@@ -624,7 +624,7 @@ def _main():
 
         # Mirror indexes BEFORE the threadpool runs so that any unique
         # constraints (e.g. the NPI unique index on providers) enforce
-        # duplicate-write detection during the load, not after — and so
+        # duplicate-write detection during the load, not after -- and so
         # that the destination collection always has its source-mirror
         # invariant even on partial-write paths.
         if preserve_indexes:

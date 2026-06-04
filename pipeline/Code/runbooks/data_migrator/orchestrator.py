@@ -175,7 +175,7 @@ def _start_runbook_fire_and_forget(sub: str, rg: str, aa: str, runbook: str,
 
 def _wake_source_cluster_early(friendly_name: str) -> None:
     """Fire-and-forget Atlas wake on the source cluster. Runs in the
-    orchestrator — the first runbook in the chain — so Atlas resume
+    orchestrator -- the first runbook in the chain -- so Atlas resume
     runs in parallel with VM provisioning. The migrator still issues
     its own (idempotent) wake call and waits for IDLE. Best-effort:
     an exception here is logged and swallowed; the migrator retries."""
