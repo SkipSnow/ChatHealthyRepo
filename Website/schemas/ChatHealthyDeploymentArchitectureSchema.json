@@ -39,9 +39,11 @@
               "cloudflare_pages_project",
               "azure_function_app",
               "azure_container_app",
+              "azure_automation_account",
               "azure_automation_runbook",
               "host_os_process",
               "docker_local_container",
+              "mongodb_cluster",
               "mongodb_collection",
               "github_actions_workflow_runner"
             ]
@@ -211,8 +213,8 @@
 
           "files": {
             "type": "array",
-            "description": "Every file the target ships, enumerated. disposition partitions entries into 'managed' (JSON owns the bytes via embedded_content; deploy materializes via the Extractor; Crosswalk validates byte-equality with the repo tree) and 'referenced' (only source_location is declared; deploy copies bytes from origin/<branch>'s git tree at deploy time; Crosswalk validates presence). A TargetRecord with no files is meaningless — every target must declare at least one file.",
-            "minItems": 1,
+            "description": "Every file the target ships, enumerated. disposition partitions entries into 'managed' (JSON owns the bytes via embedded_content; deploy materializes via the Extractor; Crosswalk validates byte-equality with the repo tree) and 'referenced' (only source_location is declared; deploy copies bytes from origin/<branch>'s git tree at deploy time; Crosswalk validates presence). MAY be empty for shared-infrastructure target_kinds (azure_automation_account, mongodb_cluster) which carry no source files — those targets exist to declare entitlements and shared facts that other targets reference.",
+            "minItems": 0,
             "uniqueItems": true,
             "items": {
               "type": "object",
@@ -322,6 +324,78 @@
             "additionalProperties": {
               "type": "string",
               "enum": ["local_env", "gha_secret", "hf_space_secret", "cloudflare_env", "azure_function_app_setting", "azure_automation_variable"]
+            }
+          },
+
+          "entitlements": {
+            "type": "array",
+            "description": "Roles, role assignments, memberships, and access grants this TARGET requires. Not secrets — values live entirely in this JSON, never in any .env or external store. The deploy procedure reads this inventory and provisions every entitlement it lists; a ground-up build produces a runtime with exactly these entitlements and no others. Per EPIC-008-F-012-S-001-REQ-B-009.",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["kind", "principal", "role", "scope"],
+                  "properties": {
+                    "kind": { "const": "azure_rbac_role_assignment" },
+                    "principal": { "type": "string", "description": "Managed identity, service principal, or user that receives the role." },
+                    "role": { "type": "string", "description": "Built-in role name (e.g. Contributor) or custom role id." },
+                    "scope": { "type": "string", "description": "Azure resource id or scope path the role is granted at." }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "required": ["kind", "user", "role", "database"],
+                  "properties": {
+                    "kind": { "const": "atlas_db_role_assignment" },
+                    "user": { "type": "string", "description": "Atlas database user name." },
+                    "role": { "type": "string", "description": "Atlas role (e.g. readWriteAnyDatabase)." },
+                    "database": { "type": "string", "description": "Database the role applies to. Use '*' for any database." }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "required": ["kind", "space", "user", "access"],
+                  "properties": {
+                    "kind": { "const": "hf_space_membership" },
+                    "space": { "type": "string", "description": "HuggingFace Space name or id." },
+                    "user": { "type": "string", "description": "HF user or org granted access." },
+                    "access": { "enum": ["read", "write", "admin"] }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "required": ["kind", "account", "scopes"],
+                  "properties": {
+                    "kind": { "const": "cloudflare_api_token_scope" },
+                    "account": { "type": "string", "description": "Cloudflare account name or id the token authenticates against." },
+                    "scopes": {
+                      "type": "array",
+                      "description": "Scopes the API token grants (e.g. 'Cloudflare Pages:Edit', 'Account:Read').",
+                      "items": { "type": "string" },
+                      "minItems": 1,
+                      "uniqueItems": true
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "required": ["kind", "workflow", "permissions"],
+                  "properties": {
+                    "kind": { "const": "github_workflow_permission" },
+                    "workflow": { "type": "string", "description": "Repository-relative path of the GHA workflow file (e.g. '.github/workflows/remote-deploy.yml')." },
+                    "permissions": {
+                      "type": "object",
+                      "description": "Permission map applied to GITHUB_TOKEN for the workflow's job(s). Key = permission scope (e.g. 'contents', 'packages'); value = access level ('read' | 'write' | 'none').",
+                      "additionalProperties": { "enum": ["read", "write", "none"] }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ]
             }
           }
         }

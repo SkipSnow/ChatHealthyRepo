@@ -102,9 +102,9 @@
       ]
     },
     {
-      "bugid": "BUG-010",
-      "title": "No V18 deploy target for the ReservationReaper Automation Account runbook",
-      "description": "pipeline/Code/runbooks/reservation_reaper.py is the canonical source for the ReservationReaper runbook that runs every 5 minutes on the ChatHealthyJobManager Automation Account (rg ChatHhealthyResorceManager, eastus2) to reap overdue cluster_lifecycle reservations and pause the Atlas pipeline cluster when no live reservations remain. The runbook was manually published when ChatHealthyJobManager was provisioned (2026-05-09), but no V18 deployment target exists for it in brain/machine_artifacts/content/deployment_architecture.json. Net: any edit to the source file since the manual upload silently drifts from what is executing on the schedule. local_build picks up the file via the Azure Function App target's source-file glob and ships it inside the FA deploy.zip, where it sits as dead bytes (no @app trigger). Migration started 2026-05-09, never finished — drop-ball pattern.",
+      "bugid": "BUG-011",
+      "title": "Deploy build context ships files that no runtime code path uses",
+      "description": "It is required that our deployment scripts deploy exactly what is needed to each target — no more, no less. Today that requirement is not met for files: extraneous source files ship to targets where no runtime code path on that target imports or reads them. The reverse direction — artifacts required by deployed code that are not declared in the manifest — is captured by REQ-B-008 for env vars and REQ-B-009 for entitlements; both are approved and 'done' on S-001 with the substrate already in the schema. Why this matters: our runtime architecture is documented in deployment_architecture.json and nowhere else. As long as the manifest carries garbage (files that nothing on the target uses), no process — human or automated — can extract the actual architecture from it, and the firm continues to operate with undocumented architecture. Surfacing example: architecture/DevOpsBuildDeployAndEnvironmentManagement/hf_helpers.py:_findcare_source_set returns ('Code/Shared', 'Code/Shared') as one of the subtrees wholesale-copied into the FindCare HF build context by _copy_tree, which recursively copies every file under it. Code/Shared/ops/ is dev-time / planning-time tooling (promote_data.py, bump_build.py, seed_versions_collection.py, unattended_monitor.py, local_admin_server.py, sync_to_mongo.py, and — until 2026-06-04 — manifest_generator.py and epic_planning_runner.py) with no runtime caller in the FindCare backend. These files ride along into every FindCare HF deploy as dead bytes. The disposition: 'referenced' tag in deployment_architecture.json under target_hf_space_findcare_backend does NOT gate shipping — it is a content-hash audit trail only; what ships is determined by the subtree walk. EvaluateCare and SharedServices source sets do not include Code/Shared, so this specific symptom is FindCare-only, but the structural pattern (build context driven by wholesale subtree-copy rather than by an explicit per-target file list in the manifest) applies wherever the same mechanism is used.",
       "environments": [
         "dev",
         "qa",
@@ -113,23 +113,19 @@
       "status": "new",
       "severity": "high",
       "req_id": "ORPHAN",
-      "story_id": "EPIC-010-F-101-S-001",
+      "story_id": "EPIC-008-F-012-S-001",
       "test_id": "",
       "test_success_criteria": [
-        "Editing pipeline/Code/runbooks/reservation_reaper.py, committing, and running the standard build+deploy chain updates the runbook content on ChatHealthyJobManager so its next scheduled execution runs the new bytes.",
-        "Crosswalk fails loud if the runbook's source bytes drift from the published runbook content on the Automation Account."
+        "Every file present in a target's build context is reached by a runtime code path on that target. No file present in a build context is unused by the runtime that target hosts."
       ],
-      "discovery_date": "2026-05-24",
-      "due_date": "2026-05-25",
-      "reproduction": "1. Edit any line in pipeline/Code/runbooks/reservation_reaper.py. 2. Commit + push + local_build --target azure + local_deploy --env dev --target azure. 3. Inspect runbook content on ChatHealthyJobManager via `az automation runbook show-content --automation-account-name ChatHealthyJobManager --resource-group ChatHhealthyResorceManager --name ReservationReaper`. 4. Observe: published bytes do NOT contain the edit. They match whatever was manually uploaded at original provisioning.",
+      "discovery_date": "2026-06-04",
+      "due_date": "2026-09-01",
+      "reproduction": "1. Run local_build --target findcare. 2. Inspect the build_dir's Code/Shared/ops/ subdirectory; observe every file currently in repo Code/Shared/ops/ (minus standard excludes) is present. 3. Grep the FindCare backend (Code/ConversationalUX/FindCareChat/backend/, FindCare/, FrontEndApplicationLib/) for imports of any module under Code/Shared/ops/. Observe: zero hits. The files are dead bytes shipped to HF on every deploy.",
       "orphan": false,
       "next_action": [
-        "Extend ChatHealthyDeploymentArchitectureSchema.json target_kind enum with `azure_automation_runbook`; add an `azure_automation` coordinate block (resource_group + automation_account + runbook_name + schedule_names[]).",
-        "Add target_azure_automation_runbook_reservation_reaper to deployment_architecture.json with files=[pipeline/Code/runbooks/reservation_reaper.py], azure_automation coordinates, and the runbook's secret bindings (MONGO_FRONTEND_connectionString, ATLAS_PUBLIC_KEY, ATLAS_PRIVATE_KEY, ATLAS_PROJECT_ID, ENV_PREFIX, PIPELINE_CLUSTER, ACTIVITY_WINDOW_MINUTES, AZ_*, AZURE_WEBJOBS_STORAGE, SPARKMAIL_API_KEY, NOTIFICATION_FROM_EMAIL, NOTIFICATION_TO_EMAIL) bound to azure_automation_variable.",
-        "Remove pipeline/Code/runbooks/reservation_reaper.py from target_azure_function_app_pipeline's files[] so it stops shipping to the FA zip.",
-        "Implement build handler for target_kind=azure_automation_runbook in local_build.py: stages the single .py file + writes manifest.json with the secret bindings.",
-        "Implement deploy handler for target_kind=azure_automation_runbook in local_deploy.py + remote_deploy.py: pushes runbook content via `az automation runbook replace-content` and Automation Variables via `az automation variable update`.",
-        "V8 req capturing 'deploy target for the ReservationReaper Automation Account runbook' does NOT exist under EPIC-010-F-101-S-001. A new requirement (or a deployment-architecture-side requirement) MUST be authored to capture the runbook-deploy-target gap before this bug can be re-attached."
+        "Author a new REQ on EPIC-008-F-012-S-001 capturing the bidirectional exact-truth contract for files per target — analog to REQ-B-008 (env vars) and REQ-B-009 (entitlements). Re-link this bug's req_id when the REQ exists.",
+        "Replace the wholesale subtree-copy mechanism with an explicit per-target file list driven by deployment_architecture.json. The build stages only what the manifest enumerates for that target.",
+        "Implement, then bring this bug to closed."
       ]
     }
   ]
