@@ -15015,6 +15015,95 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-101-S-005",
+                    "name": "Data version management",
+                    "description": "Any collection in any cluster used by the code might have different versions. The ChatHealthy code must be capable of abstracting the name of a collection so that without changing code different collections with different schemas can be used by the code, as per specific business requirements on a per collection basis.",
+                    "size": "M",
+                    "status": "not_started",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-010-F-101-S-005-REQ-B-001",
+                          "name": "Provider collection must support versioning",
+                          "requirement": "The provider collection must be capable of having different versions.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-005-REQ-B-002",
+                          "name": "SpecialtyMetaData collection must support versioning",
+                          "requirement": "The SpecialtyMetaData collection must be capable of having different versions.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-005-REQ-B-003",
+                          "name": "All version configurations live in one MongoDB collection, hand-maintained by Claude as SA under human supervision",
+                          "requirement": "All configurations must be hosted in one MongoDB collection, which must be maintained by hand by Claude as SA and a human actor to supervise.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-010-F-101-S-005-REQ-B-004",
+                          "name": "Gateway is the facade; ChatHealthyJobManager spawns the propagation job",
+                          "requirement": "The pipeline function ChatHealthyDataPipelinesGatewayFunctionApp must be used as the facade from whence this story is realized. The ChatHealthyJobManager must be the place that spawns the job to propagate the changes configured in the DB.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
                   }
                 ]
               }

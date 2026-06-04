@@ -235,6 +235,13 @@
           "content_hash": "adc9b18a2f9fdf562cce4ebd1afe597a7cea1c7f2333c5e1ed9c99e486c0b18f"
         },
         {
+          "feature_id": "EPIC-010-F-101",
+          "source_location": "Website/schemas/ChatHealthyDBVersionsSchema.json",
+          "handler_type": "json",
+          "disposition": "referenced",
+          "content_hash": "2d0de60630de1e9a8f4e11f768e51cda49ee457baa34cad81b55e7e3dbdcbe05"
+        },
+        {
           "feature_id": "EPIC-008-F-012",
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
