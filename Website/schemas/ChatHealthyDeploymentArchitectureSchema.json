@@ -14,6 +14,24 @@
       "description": "Canonical URL of this schema document. Tooling fetches the schema at this URL to validate the file. Filesystem source: Website/schemas/ChatHealthyDeploymentArchitectureSchema.json."
     },
 
+    "firm": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Org-level facts that apply to every deploy this collection drives. Source-of-truth for identity-like values that deploy scripts otherwise tend to hardcode. Per EPIC-008-F-012-S-001-REQ-B-008/B-009.",
+      "properties": {
+        "git_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Git identity used by deploy scripts when they have to commit on the operator's behalf (HF Space git push, promote-build workflow bot, etc.). Replaces hardcoded `git config user.name` / `user.email` in local_deploy.py and .github/workflows/promote-build.yml.",
+          "required": ["name", "email"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "email": { "type": "string", "minLength": 1, "maxLength": 256 }
+          }
+        }
+      }
+    },
+
     "DeploymentTargetRecord": {
       "type": "array",
       "description": "Every TargetRecord that this deployment realizes. Each entry is one deployment target's full definition across every environment in which it is realized, plus the files that compose it. INVARIANT: target_id is unique across this array (enforced by software at write time; the schema's uniqueItems applies to whole-object equality but does not specifically enforce target_id uniqueness across non-identical records).",
@@ -126,9 +144,54 @@
                   }
                 },
 
+                "huggingface_space": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "HuggingFace Space deploy coordinates for this env binding. Present iff target_kind=='hf_space'. `space` is the fully-qualified Space identifier 'org/name' (e.g. 'SkipSnow/ChatHealthySpace', 'SkipSnow/dev_ChatHealthySpace'). Replaces the hardcoded _HF_ORG + _HF_SPACE_BASE mapping + env-prefix rule in hf_helpers.py.",
+                  "required": ["space"],
+                  "properties": {
+                    "space": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+                      "minLength": 3,
+                      "maxLength": 256
+                    }
+                  }
+                },
+
+                "cloudflare_pages": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Cloudflare Pages deploy coordinates for this env binding. Present iff target_kind=='cloudflare_pages_project'. `project_name` is the wrangler-recognized Pages project name (e.g. 'chathealthy-website-dev'). Replaces the hardcoded env->project_name map in local_deploy.py.",
+                  "required": ["project_name"],
+                  "properties": {
+                    "project_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                },
+
+                "azure_automation_account": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Azure Automation Account shared-infra facts that the CHDM deploy reads when it ensures persistent infrastructure on this AA. Present iff target_kind=='azure_automation_account'. Replaces hardcoded module-level constants in chdm_helpers.py (_VNET_NAME, _VM_SUBNET_NAME, _VM_SUBNET_PREFIX, _HYBRID_WORKER_GROUP, _CHDM_ADMIN_PRIVATE_KEY_FILENAME, _AUTOMATION_API, _NETWORK_API).",
+                  "required": ["vnet_name", "vm_subnet_name", "vm_subnet_address_prefix", "hybrid_worker_group_name", "admin_private_key_filename", "automation_api_version", "network_api_version"],
+                  "properties": {
+                    "vnet_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+                    "vm_subnet_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+                    "vm_subnet_address_prefix": { "type": "string", "pattern": "^[0-9.]+/[0-9]+$" },
+                    "hybrid_worker_group_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+                    "admin_private_key_filename": { "type": "string", "minLength": 1, "maxLength": 256 },
+                    "automation_api_version": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(-preview)?$" },
+                    "network_api_version": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(-preview)?$" }
+                  }
+                },
+
                 "azure_container_app": {
                   "type": "object",
-                  "description": "Azure Container Apps deploy coordinates for this env binding. Present iff target_kind=='azure_container_app'. resource_group + container_app identify the ACA resource; container_app_environment names the Container Apps Environment that hosts it; registry names the Azure Container Registry that hosts the image (deploy issues `az acr login --name <registry>` and pushes <registry>.azurecr.io/<container_app>:<build_number>); min_replicas / max_replicas set the scale-to-zero envelope; task_hub names the Durable Functions task hub used by the Netherite storage provider that this ACA hosts; event_hubs_namespace names the Azure Event Hubs namespace whose `partitions` Event Hub backs Netherite's partition queues — deploy verifies it exists with partitionCount matching host.json and creates it if missing (per the deploy-owns-permanent-infrastructure split).",
+                  "description": "Azure Container Apps deploy coordinates for this env binding. Present iff target_kind=='azure_container_app'. resource_group + container_app identify the ACA resource; container_app_environment names the Container Apps Environment that hosts it; registry names the Azure Container Registry that hosts the image (deploy issues `az acr login --name <registry>` and pushes <registry>.azurecr.io/<container_app>:<build_number>); min_replicas / max_replicas set the scale-to-zero envelope; task_hub names the Durable Functions task hub used by the Netherite storage provider that this ACA hosts; event_hubs_namespace names the Azure Event Hubs namespace whose `partitions` Event Hub backs Netherite's partition queues — deploy verifies it exists with partitionCount matching host.json and creates it if missing (per the deploy-owns-permanent-infrastructure split). location / dockerfile_from / placeholder_image / netherite move former module-level constants out of aca_helpers.py into per-target manifest declarations.",
                   "additionalProperties": false,
                   "required": ["resource_group", "container_app", "container_app_environment", "task_hub"],
                   "properties": {
@@ -196,6 +259,42 @@
                       "type": "number",
                       "minimum": 0.5,
                       "maximum": 32
+                    },
+                    "location": {
+                      "type": "string",
+                      "description": "Azure region the ACA + its ACA Environment + image registry live in (e.g. 'eastus2'). Replaces _ACA_DEFAULT_LOCATION in aca_helpers.py.",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "dockerfile_from": {
+                      "type": "string",
+                      "description": "Base image for the ACA's container Dockerfile (e.g. 'mcr.microsoft.com/azure-functions/python:4-python3.11'). Replaces _DOCKERFILE_FROM in aca_helpers.py.",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "placeholder_image": {
+                      "type": "string",
+                      "description": "Placeholder image used to provision the ACA before the first real image push (e.g. 'mcr.microsoft.com/k8se/quickstart:latest'). Replaces _ACA_PLACEHOLDER_IMAGE in aca_helpers.py.",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "netherite": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "Netherite (Durable Functions storage provider) Event Hub topology for this ACA. Replaces the _NETHERITE_* module constants in aca_helpers.py.",
+                      "required": ["partitions_eh_name", "loadmonitor_eh_name", "loadmonitor_partition_count", "clients_eh_names", "clients_partition_count"],
+                      "properties": {
+                        "partitions_eh_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+                        "loadmonitor_eh_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+                        "loadmonitor_partition_count": { "type": "integer", "minimum": 1, "maximum": 32 },
+                        "clients_eh_names": {
+                          "type": "array",
+                          "items": { "type": "string", "minLength": 1, "maxLength": 256 },
+                          "minItems": 1,
+                          "uniqueItems": true
+                        },
+                        "clients_partition_count": { "type": "integer", "minimum": 1, "maximum": 32 }
+                      }
                     }
                   }
                 },
