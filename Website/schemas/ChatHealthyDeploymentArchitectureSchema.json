@@ -426,6 +426,20 @@
             }
           },
 
+          "huggingface_source_set": {
+            "type": "array",
+            "description": "For target_kind=='hf_space' ONLY. The ordered list of (src, dst) subtree pairs the build wholesale-copies into this Space's docker build context. `src` is a repo-relative directory; `dst` is the destination relative path inside the build context (absent or equal to src means no rename, '.' means flatten to root). Replaces the hardcoded _findcare_source_set / _evaluatecare_source_set / _sharedservices_source_set functions in hf_helpers.py.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["src"],
+              "properties": {
+                "src": { "type": "string", "minLength": 1, "maxLength": 256 },
+                "dst": { "type": "string", "minLength": 1, "maxLength": 256 }
+              }
+            }
+          },
+
           "entitlements": {
             "type": "array",
             "description": "Roles, role assignments, memberships, and access grants this TARGET requires. Not secrets — values live entirely in this JSON, never in any .env or external store. The deploy procedure reads this inventory and provisions every entitlement it lists; a ground-up build produces a runtime with exactly these entitlements and no others. Per EPIC-008-F-012-S-001-REQ-B-009.",
