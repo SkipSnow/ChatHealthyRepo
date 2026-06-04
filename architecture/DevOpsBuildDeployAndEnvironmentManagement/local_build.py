@@ -438,6 +438,37 @@ def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build
     size_kb = dst.stat().st_size / 1024.0
     _step(f"  staged runbook -> {dst.name} ({size_kb:.1f} KB)")
 
+    if target.target_id == "target_azure_automation_runbook_change_db_version":
+        _emit_change_db_version_target_url_registry(repo_root, build_dir)
+
+
+def _emit_change_db_version_target_url_registry(repo_root: Path, build_dir: Path) -> None:
+    """Bake change_db_version_target_url_registry.json sibling to the runbook.
+
+    The runbook reads Config.DBVersions, walks each env doc's targets[],
+    and POSTs /admin/swap on each target. Target URLs come from this
+    registry — NOT from deployment_architecture.json at runtime. The
+    registry is a {env: {target_id: node_address}} map derived here at
+    build time from the manifest's environments[].node_address for every
+    hf_space target. Per EPIC-010-F-101-S-005-REQ-B-004.
+    """
+    manifest_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    registry: dict[str, dict[str, str]] = {}
+    for rec in data.get("DeploymentTargetRecord", []):
+        if rec.get("target_kind") != "hf_space":
+            continue
+        tid = rec.get("target_id")
+        for env_entry in rec.get("environments", []):
+            env = env_entry.get("env_binding")
+            url = env_entry.get("node_address")
+            if env and url and tid:
+                registry.setdefault(env, {})[tid] = url
+    out = build_dir / "change_db_version_target_url_registry.json"
+    out.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
+    target_count = sum(len(v) for v in registry.values())
+    _step(f"  baked URL registry -> {out.name} ({len(registry)} envs, {target_count} entries)")
+
 
 def _build_azure_container_app(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
     """Stage the Pipeline source tree + render the Dockerfile.

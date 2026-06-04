@@ -2277,7 +2277,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f8b80e11bd7be05a7cc509eee6c66fcce01f754a92c9e636e8ae20f79c992562"
+          "content_hash": "9c59dba6c400c88a4d63803f2fcff22f382183a0575f8f4f90c340bd5c78b6a1"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3371,7 +3371,7 @@
           "source_location": "pipeline/ChatHealthyDataPipelinesGatewayFunctionApp.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9cd2cff173674f55cb871ced47ce79cb6df9142961d737d1e3f113f03f99c15e"
+          "content_hash": "cac36b3a76ca3b92be7e4b4a57e53d78801ae5796e9ac932b622657d2bf0e18b"
         }
       ],
       "secrets": {
@@ -3539,6 +3539,35 @@
         "IDENTITY_ENDPOINT": "local_env",
         "IDENTITY_HEADER": "local_env",
         "MONGO_connectionString": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_automation_runbook_change_db_version",
+      "target_kind": "azure_automation_runbook",
+      "environments": [
+        {
+          "env_binding": "prod",
+          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChangeDBVersion",
+          "azure_automation": {
+            "resource_group": "ChatHhealthyResorceManager",
+            "automation_account": "ChatHealthyJobManager",
+            "runbook_name": "ChangeDBVersion"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-010-F-101",
+          "source_location": "pipeline/Code/change_db_version.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "9e7190eff8b25ee033fea14beaf6e02a9af3181aa627ad3b82eecb107e6153cb"
+        }
+      ],
+      "secrets": {
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "MONGO_connectionString": "local_env",
+        "API_TOKEN_MAP": "local_env"
       }
     },
     {
