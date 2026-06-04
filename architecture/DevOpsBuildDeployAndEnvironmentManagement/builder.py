@@ -71,6 +71,14 @@ _EXCLUDE_DIRS: frozenset[str] = frozenset({
     # gitignored (Archive/), so a Linux snapshot of origin/<branch>
     # won't have them, and Crosswalk would REJECT presence checks.
     "ArchitectureDesignAndAuditDocs",
+    # Code/Shared/ops is operator dev-time tooling (build/deploy
+    # helpers, certs, audit scripts, planning utilities). Nothing in
+    # it is imported by any runtime path on any deployed target, so
+    # the wholesale-subtree mechanism that staged Code/Shared into
+    # the FindCare HF build context was shipping it as dead bytes
+    # (BUG-011 surfacing example). REQ-B-010: manifest is exact-truth
+    # for files shipped.
+    "ops",
 })
 _EXCLUDE_FILE_NAMES: frozenset[str] = frozenset({".env", ".DS_Store"})
 # Operator dev tools and diagnostics that never belong in a deploy
