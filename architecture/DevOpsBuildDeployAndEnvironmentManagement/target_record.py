@@ -35,6 +35,17 @@ class EnvironmentBinding:
                                 # present iff target_kind=='azure_automation_runbook';
                                 # keys: resource_group, automation_account,
                                 # runbook_name, schedule_names[]
+    azure_automation_account: dict | None = None
+                                # present iff target_kind=='azure_automation_account';
+                                # keys: vnet_name, vm_subnet_name,
+                                # vm_subnet_address_prefix, hybrid_worker_group_name,
+                                # admin_private_key_filename, automation_api_version,
+                                # network_api_version
+    huggingface_space: dict | None = None
+                                # present iff target_kind=='hf_space'; keys: space
+    cloudflare_pages: dict | None = None
+                                # present iff target_kind=='cloudflare_pages_project';
+                                # keys: project_name
     branch: str | None = None   # source git branch this env deploys from;
                                  # required for git-branch-bound target_kinds
                                  # (cloudflare_pages_project, github_actions_workflow_runner)
@@ -48,6 +59,12 @@ class EnvironmentBinding:
             out["azure_container_app"] = self.azure_container_app
         if self.azure_automation is not None:
             out["azure_automation"] = self.azure_automation
+        if self.azure_automation_account is not None:
+            out["azure_automation_account"] = self.azure_automation_account
+        if self.huggingface_space is not None:
+            out["huggingface_space"] = self.huggingface_space
+        if self.cloudflare_pages is not None:
+            out["cloudflare_pages"] = self.cloudflare_pages
         if self.branch is not None:
             out["branch"] = self.branch
         return out
@@ -60,6 +77,9 @@ class EnvironmentBinding:
             azure=d.get("azure"),
             azure_container_app=d.get("azure_container_app"),
             azure_automation=d.get("azure_automation"),
+            azure_automation_account=d.get("azure_automation_account"),
+            huggingface_space=d.get("huggingface_space"),
+            cloudflare_pages=d.get("cloudflare_pages"),
             branch=d.get("branch"),
         )
 

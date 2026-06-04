@@ -32,12 +32,39 @@ import time
 import urllib.request
 
 
-_AUTOMATION_API = "2023-11-01"
-_NETWORK_API = "2024-01-01"
-_VM_SUBNET_NAME = "hybrid-worker-subnet"
-_VM_SUBNET_PREFIX = "10.0.2.0/24"
-_VNET_NAME = "ChatHealthy-VNet"
-_HYBRID_WORKER_GROUP = "ChatHealthyDataMigratorWorkGroup"
+# Shared-infra facts (VNet, subnet, hybrid worker group, SSH key
+# filename, Azure REST API versions) all live in the AA target's
+# azure_automation_account block in deployment_architecture.json. The
+# loaders below read them on demand.
+
+_AA_TARGET_ID = "target_azure_automation_account_chathealthyjobmanager"
+
+
+def _load_aa_facts() -> dict:
+    """Return the AA shared-infra facts from the manifest's
+    target_azure_automation_account_chathealthyjobmanager
+    environments[0].azure_automation_account block.
+    """
+    repo_root = pathlib.Path(__file__).resolve().parents[2]
+    manifest = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    for rec in data["DeploymentTargetRecord"]:
+        if rec.get("target_id") != _AA_TARGET_ID:
+            continue
+        envs = rec.get("environments", [])
+        if not envs:
+            sys.exit(
+                f"ERROR: target {_AA_TARGET_ID!r} has no environments[] entries."
+            )
+        facts = envs[0].get("azure_automation_account")
+        if not facts:
+            sys.exit(
+                f"ERROR: target {_AA_TARGET_ID!r} env_binding "
+                f"{envs[0].get('env_binding')!r} has no azure_automation_account "
+                f"block — populate it before deploy."
+            )
+        return facts
+    sys.exit(f"ERROR: target {_AA_TARGET_ID!r} not present in manifest.")
 
 # The complete, declared AA Python3 package set required by the chdm
 # runbooks running on the AA sandbox (orchestrator + provisioner +
@@ -97,35 +124,39 @@ def _subscription_id() -> str:
 
 
 def chdm_ensure_vm_subnet(vnet_rg: str) -> str:
-    """Ensure the undelegated VM subnet exists inside ChatHealthy-VNet.
+    """Ensure the undelegated VM subnet exists inside the project VNet.
 
     Returns the subnet ARM resource ID — caller wires it through to the
     provisioner as the AZ_VM_SUBNET_ID Automation Variable.
     """
+    facts = _load_aa_facts()
+    vnet_name = facts["vnet_name"]
+    subnet_name = facts["vm_subnet_name"]
+    subnet_prefix = facts["vm_subnet_address_prefix"]
     _step(
-        f"verifying VM subnet '{_VM_SUBNET_NAME}' in vnet '{_VNET_NAME}' "
+        f"verifying VM subnet '{subnet_name}' in vnet '{vnet_name}' "
         f"(rg={vnet_rg})"
     )
     rc, out, _ = _az_try([
         "az", "network", "vnet", "subnet", "show",
-        "--name", _VM_SUBNET_NAME,
-        "--vnet-name", _VNET_NAME,
+        "--name", subnet_name,
+        "--vnet-name", vnet_name,
         "--resource-group", vnet_rg,
         "--query", "id", "-o", "tsv",
     ])
     if rc == 0 and out:
-        _step(f"  subnet '{_VM_SUBNET_NAME}' exists — no-op")
+        _step(f"  subnet '{subnet_name}' exists — no-op")
         return out
-    _step(f"  subnet '{_VM_SUBNET_NAME}' missing — creating ({_VM_SUBNET_PREFIX})")
+    _step(f"  subnet '{subnet_name}' missing — creating ({subnet_prefix})")
     subnet_id = str(_az([
         "az", "network", "vnet", "subnet", "create",
-        "--name", _VM_SUBNET_NAME,
-        "--vnet-name", _VNET_NAME,
+        "--name", subnet_name,
+        "--vnet-name", vnet_name,
         "--resource-group", vnet_rg,
-        "--address-prefixes", _VM_SUBNET_PREFIX,
+        "--address-prefixes", subnet_prefix,
         "--query", "id", "-o", "tsv",
     ]))
-    _step(f"  subnet '{_VM_SUBNET_NAME}' created.")
+    _step(f"  subnet '{subnet_name}' created.")
     return subnet_id
 
 
@@ -133,31 +164,34 @@ def chdm_ensure_hybrid_worker_group(aa_rg: str, aa: str) -> None:
     """Ensure the persistent Hybrid Worker Group exists on the Automation
     Account. Extension-based group type — the provisioner uses the
     extension-based onboarding flow."""
+    facts = _load_aa_facts()
+    group_name = facts["hybrid_worker_group_name"]
+    api = facts["automation_api_version"]
     _step(
-        f"verifying hybrid worker group '{_HYBRID_WORKER_GROUP}' on "
+        f"verifying hybrid worker group '{group_name}' on "
         f"automation account '{aa}' (rg={aa_rg})"
     )
     sub = _subscription_id()
     url = (
         f"https://management.azure.com/subscriptions/{sub}"
         f"/resourceGroups/{aa_rg}/providers/Microsoft.Automation"
-        f"/automationAccounts/{aa}/hybridRunbookWorkerGroups/{_HYBRID_WORKER_GROUP}"
-        f"?api-version={_AUTOMATION_API}"
+        f"/automationAccounts/{aa}/hybridRunbookWorkerGroups/{group_name}"
+        f"?api-version={api}"
     )
     rc, _, _ = _az_try([
         "az", "rest", "--method", "get", "--url", url, "-o", "none",
     ])
     if rc == 0:
-        _step(f"  hybrid worker group '{_HYBRID_WORKER_GROUP}' exists — no-op")
+        _step(f"  hybrid worker group '{group_name}' exists — no-op")
         return
-    _step(f"  hybrid worker group '{_HYBRID_WORKER_GROUP}' missing — creating")
+    _step(f"  hybrid worker group '{group_name}' missing — creating")
     body = json.dumps({"properties": {}})
     _az([
         "az", "rest", "--method", "put", "--url", url,
         "--headers", "Content-Type=application/json",
         "--body", body, "-o", "none",
     ])
-    _step(f"  hybrid worker group '{_HYBRID_WORKER_GROUP}' created.")
+    _step(f"  hybrid worker group '{group_name}' created.")
 
 
 def chdm_ensure_aa_managed_identity(aa_rg: str, aa: str) -> str:
@@ -260,7 +294,7 @@ def _aa_python3_packages_list(aa_rg: str, aa: str) -> dict[str, dict]:
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
-        f"/python3Packages?api-version={_AUTOMATION_API}"
+        f"/python3Packages?api-version={_load_aa_facts()['automation_api_version']}"
     )
     rc, out, _ = _az_try([
         "az", "rest", "--method", "get", "--url", url, "-o", "json",
@@ -284,7 +318,7 @@ def _aa_python3_package_delete(aa_rg: str, aa: str, name: str) -> None:
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
-        f"/python3Packages/{name}?api-version={_AUTOMATION_API}"
+        f"/python3Packages/{name}?api-version={_load_aa_facts()['automation_api_version']}"
     )
     _step(f"  deleting AA Python3 package {name}")
     _az([
@@ -297,7 +331,7 @@ def _aa_python3_package_install(aa_rg: str, aa: str, name: str, version: str, wh
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{aa_rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
-        f"/python3Packages/{name}?api-version={_AUTOMATION_API}"
+        f"/python3Packages/{name}?api-version={_load_aa_facts()['automation_api_version']}"
     )
     body = json.dumps({"properties": {"contentLink": {"uri": wheel_url}}})
     _step(f"  installing AA Python3 package {name}=={version} (wheel={wheel_url.split('/')[-1]})")
@@ -362,14 +396,10 @@ def chdm_ensure_aa_python3_packages(aa_rg: str, aa: str) -> None:
             )
 
 
-_AA_TARGET_ID = "target_azure_automation_account_chathealthyjobmanager"
-
-
 def _load_aa_target_entitlements() -> list[dict]:
-    """Read the AA shared-infra target's entitlements[] from the brain
-    artifact. Source-of-truth for what role assignments the deploy
-    provisions on ChatHealthyJobManager (REQ-B-009).
-    """
+    """Read the AA shared-infra target's entitlements[] from the manifest.
+    Source-of-truth for what role assignments the deploy provisions
+    (REQ-B-009)."""
     repo_root = pathlib.Path(__file__).resolve().parents[2]
     manifest = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     data = json.loads(manifest.read_text(encoding="utf-8"))
@@ -434,20 +464,19 @@ def chdm_ensure_chdm_persistent_infrastructure(
     return subnet_id
 
 
-_CHDM_ADMIN_PRIVATE_KEY_FILENAME = "chdm_admin_id_ed25519"
-
-
 def chdm_ensure_admin_private_key_file(
     repo_root: pathlib.Path, private_key_b64: str,
 ) -> pathlib.Path:
-    """Decode AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64 and land the OpenSSH private key
-    file at Code/Shared/ops/certs/<filename> with mode 600. Operator runs
-    `ssh -i <that path> chdm-admin@<vm-ip>` to admin the Hybrid Worker VM.
-    Idempotent — overwrites on every call so a key rotation in .env
-    propagates immediately to the operator's workstation."""
+    """Decode AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64 and land the OpenSSH private
+    key file at Code/Shared/ops/certs/<admin_private_key_filename> with
+    mode 600. Operator runs `ssh -i <that path> chdm-admin@<vm-ip>` to
+    admin the Hybrid Worker VM. Idempotent — overwrites on every call so a
+    key rotation in .env propagates immediately to the operator's
+    workstation. Filename comes from the AA target's
+    azure_automation_account.admin_private_key_filename in the manifest."""
     certs_dir = repo_root / "Code" / "Shared" / "ops" / "certs"
     certs_dir.mkdir(parents=True, exist_ok=True)
-    key_path = certs_dir / _CHDM_ADMIN_PRIVATE_KEY_FILENAME
+    key_path = certs_dir / _load_aa_facts()["admin_private_key_filename"]
     key_path.write_bytes(base64.b64decode(private_key_b64))
     key_path.chmod(0o600)
     _step(f"wrote admin SSH private key to {key_path} (mode 600)")
