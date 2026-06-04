@@ -661,6 +661,15 @@
           "user": "SkipSnow",
           "access": "admin"
         }
+      ],
+      "huggingface_source_set": [
+        {
+          "src": "evaluateCare/Code",
+          "dst": "."
+        },
+        {
+          "src": "FrontEndApplicationLib"
+        }
       ]
     },
     {
@@ -1677,6 +1686,29 @@
           "user": "SkipSnow",
           "access": "admin"
         }
+      ],
+      "huggingface_source_set": [
+        {
+          "src": "Code/ConversationalUX/FindCareChat/backend"
+        },
+        {
+          "src": "Code/Shared"
+        },
+        {
+          "src": "brain/machine_artifacts/content"
+        },
+        {
+          "src": "Code/ConversationalUX/ChatHealthyWhoAmIChat/me"
+        },
+        {
+          "src": "FrontEndApplicationLib"
+        },
+        {
+          "src": "FindCare"
+        },
+        {
+          "src": "DevOps/FindCareBackend"
+        }
       ]
     },
     {
@@ -2093,6 +2125,23 @@
           "space": "SkipSnow/SharedServicesSpace (and dev_/qa_ variants)",
           "user": "SkipSnow",
           "access": "admin"
+        }
+      ],
+      "huggingface_source_set": [
+        {
+          "src": "sharedServices/Code",
+          "dst": "."
+        },
+        {
+          "src": "FrontEndApplicationLib"
+        },
+        {
+          "src": "architecture/AuthorizationsAndAuthentications",
+          "dst": "authentication"
+        },
+        {
+          "src": "FindCare/SpecialtyFilter",
+          "dst": "SpecialtyFilter"
         }
       ]
     },
