@@ -743,7 +743,7 @@ def _main():
             except Exception as e:
                 dst_existing, dst_count, dst_indexes = None, None, f"<count/list_indexes failed: {e!r}>"
             log.error(
-                "Migrator FAILED — destination preserved for debugging. "
+                "Migrator FAILED -- destination preserved for debugging. "
                 "job_id=%s vm_name=%s src=%s/%s.%s dst=%s/%s.%s "
                 "dst_collection_exists=%s dst_doc_count=%s dst_indexes=%s "
                 "thread_writes=%s preserve_indices=%s",
