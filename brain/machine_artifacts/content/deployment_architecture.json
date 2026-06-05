@@ -2544,7 +2544,7 @@
           "source_location": "pipeline/Code/change_db_version.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "06fff4dc5058075d9b353e2657e7648b457a2ab4850096404e2bccfdb69ec9c9"
+          "content_hash": "b7da10b64dcf77a09c22ca72e94c72a174b470448f1b4c00b2078f8885f52f1f"
         }
       ],
       "secrets": {

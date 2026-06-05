@@ -44,11 +44,11 @@ _CONFIG_DB = "ChatHealthyConfig"
 _CONFIG_COLL = "DBVersions"
 
 # Placeholder. The build step for target_azure_automation_runbook_
-# change_db_version replaces this with the actual {env: {target_id:
-# node_address}} map derived from deployment_architecture.json at the
-# moment of the build. The replacement is text-level so the literal
-# below MUST stay on a single line and MUST stay matchable by
-# `_BAKED_REGISTRY: dict = {}` exactly.
+# change_db_version replaces the assignment on the next line with the
+# actual {env: {target_id: node_address}} map derived from
+# deployment_architecture.json. Text-level replacement; assignment
+# must stay on a single line and the exact assignment string must
+# appear nowhere else in this file (not even in this comment).
 _BAKED_REGISTRY: dict = {}
 
 
