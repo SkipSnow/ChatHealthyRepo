@@ -2344,6 +2344,7 @@
     {
       "target_id": "target_azure_container_app_pipeline",
       "target_kind": "azure_container_app",
+      "promote_chain_bound": false,
       "environments": [
         {
           "env_binding": "prod",
@@ -2951,6 +2952,7 @@
     {
       "target_id": "target_azure_function_app_pipeline",
       "target_kind": "azure_function_app",
+      "promote_chain_bound": false,
       "environments": [
         {
           "env_binding": "prod",
@@ -3037,6 +3039,7 @@
     {
       "target_id": "target_azure_automation_account_chathealthyjobmanager",
       "target_kind": "azure_automation_account",
+      "promote_chain_bound": false,
       "environments": [
         {
           "env_binding": "prod",
@@ -3084,6 +3087,7 @@
     {
       "target_id": "target_azure_automation_runbook_reservation_reaper",
       "target_kind": "azure_automation_runbook",
+      "promote_chain_bound": false,
       "environments": [
         {
           "env_binding": "prod",
@@ -3141,6 +3145,7 @@
     {
       "target_id": "target_azure_automation_runbook_change_db_version",
       "target_kind": "azure_automation_runbook",
+      "promote_chain_bound": false,
       "environments": [
         {
           "env_binding": "prod",
@@ -3170,6 +3175,7 @@
     {
       "target_id": "target_azure_automation_runbook_chdm_orchestrator",
       "target_kind": "azure_automation_runbook",
+      "promote_chain_bound": false,
       "environments": [
         {
           "env_binding": "prod",
@@ -3224,6 +3230,7 @@
     {
       "target_id": "target_azure_automation_runbook_chdm_provisioner",
       "target_kind": "azure_automation_runbook",
+      "promote_chain_bound": false,
       "environments": [
         {
           "env_binding": "prod",
@@ -3276,6 +3283,7 @@
     {
       "target_id": "target_azure_automation_runbook_chdm_migrator",
       "target_kind": "azure_automation_runbook",
+      "promote_chain_bound": false,
       "environments": [
         {
           "env_binding": "prod",
@@ -3330,6 +3338,7 @@
     {
       "target_id": "target_azure_automation_runbook_chdm_deprovisioner",
       "target_kind": "azure_automation_runbook",
+      "promote_chain_bound": false,
       "environments": [
         {
           "env_binding": "prod",
