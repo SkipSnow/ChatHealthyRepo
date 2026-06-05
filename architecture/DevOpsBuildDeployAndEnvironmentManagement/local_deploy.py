@@ -1175,6 +1175,118 @@ def _ensure_chdm_persistent_infrastructure_once(
     return subnet_id
 
 
+def _az_automation_python3_packages_list(rg: str, aa: str) -> dict[str, dict]:
+    """Return a name -> properties map of currently-installed Python3
+    packages on the Automation Account. Empty when none installed."""
+    sub = _az_subscription_id()
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/python3Packages?api-version=2018-06-30"
+    )
+    r = subprocess.run(
+        ["az", "rest", "--method", "get", "--url", url, "-o", "json"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: AA python3Packages list failed for {aa!r}: "
+            f"{(r.stderr or '').strip()[:1500]}"
+        )
+    body = json.loads(r.stdout or "{}")
+    out: dict[str, dict] = {}
+    for item in body.get("value", []):
+        name = item.get("name")
+        if name:
+            out[name] = item.get("properties", {}) or {}
+    return out
+
+
+def _az_automation_python3_package_install(
+    rg: str, aa: str, name: str, content_url: str,
+) -> None:
+    """PUT a Python3 package on the AA, polling until terminal state.
+    Fails loud on terminal Failed; returns on Succeeded."""
+    import time as _time
+    sub = _az_subscription_id()
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/python3Packages/{name}?api-version=2018-06-30"
+    )
+    body = json.dumps({"properties": {"contentLink": {"uri": content_url}}})
+    _step(f"  PUT python3 package {name} <- {content_url}")
+    r = subprocess.run(
+        ["az", "rest", "--method", "put", "--url", url,
+         "--headers", "Content-Type=application/json",
+         "--body", body, "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: AA python3 package PUT failed for {name!r}: "
+            f"{(r.stderr or '').strip()[:1500]}"
+        )
+    deadline = _time.time() + 600  # 10 min cap
+    while _time.time() < deadline:
+        get_r = subprocess.run(
+            ["az", "rest", "--method", "get", "--url", url, "-o", "json"],
+            capture_output=True, text=True,
+            creationflags=_cflags(), shell=(sys.platform == "win32"),
+        )
+        if get_r.returncode != 0:
+            sys.exit(
+                f"ERROR: AA python3 package GET poll failed for {name!r}: "
+                f"{(get_r.stderr or '').strip()[:1500]}"
+            )
+        st = json.loads(get_r.stdout or "{}")
+        props = st.get("properties", {}) or {}
+        provisioning_state = props.get("provisioningState")
+        error = (props.get("error") or {}).get("message")
+        _step(f"    {name} provisioningState={provisioning_state}")
+        if provisioning_state == "Succeeded":
+            return
+        if provisioning_state in ("Failed", "Cancelled"):
+            sys.exit(
+                f"ERROR: AA python3 package {name!r} entered terminal "
+                f"state {provisioning_state!r}; error: {error or '<none>'}"
+            )
+        _time.sleep(10)
+    sys.exit(
+        f"ERROR: AA python3 package {name!r} did not reach a terminal "
+        f"state within 10 minutes; last provisioningState was "
+        f"{provisioning_state!r}."
+    )
+
+
+def _ensure_runbook_python_packages(
+    rg: str, aa: str, packages: list[dict],
+) -> None:
+    """Iterate declared packages; install any that are missing or whose
+    contentLink.uri has drifted from the declared URL. No-op when each
+    declared package is already at the named URL in Succeeded state."""
+    if not packages:
+        return
+    existing = _az_automation_python3_packages_list(rg, aa)
+    for pkg in packages:
+        name = pkg["name"]
+        url = pkg["content_url"]
+        cur = existing.get(name)
+        if cur is not None:
+            cur_url = (cur.get("contentLink") or {}).get("uri")
+            cur_state = cur.get("provisioningState")
+            if cur_url == url and cur_state == "Succeeded":
+                _step(f"  python3 package {name} already installed at declared URL")
+                continue
+            _step(
+                f"  python3 package {name} drift (state={cur_state}, "
+                f"url match={cur_url == url}); re-installing"
+            )
+        _az_automation_python3_package_install(rg, aa, name, url)
+
+
 def _az_automation_runbook_webhook_list(rg: str, aa: str, runbook: str) -> list[dict]:
     """List webhooks on the Automation Account, filtered to a single
     runbook. Note: the returned objects carry metadata only — Azure
@@ -1444,6 +1556,14 @@ def _deploy_azure_automation_runbook(
     if target.target_id == _CHDM_PROVISIONER_TARGET and chdm_subnet_id:
         _az_automation_variable_set(rg, aa, "AZ_VM_SUBNET_ID", chdm_subnet_id)
         _step("  pushed deploy-computed AZ_VM_SUBNET_ID Automation Variable")
+
+    # Ensure declared Python3 packages are installed on the AA before
+    # publishing the runbook content. The runbook's first execution can
+    # then import them at module load without ModuleNotFoundError.
+    declared_packages = aa_block.get("python_packages") or []
+    if declared_packages:
+        _step(f"  ensuring {len(declared_packages)} python3 package(s) on {aa}")
+        _ensure_runbook_python_packages(rg, aa, declared_packages)
 
     # Ensure the runbook resource exists on the AA before pushing content.
     # First-time deploys need a Python3 runbook resource created; subsequent

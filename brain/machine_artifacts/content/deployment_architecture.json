@@ -2272,7 +2272,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3c319253a81ffc1acefc1bdd99e3bbdb8434776e72ef5c815360708d2e27c3bd"
+          "content_hash": "1fae125f14d997ce2b64882846fc24740e124484db50284553b0ef38e34a2f86"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2524,7 +2524,17 @@
             "webhook": {
               "consumer_target_id": "target_azure_function_app_pipeline",
               "app_setting_name": "CHANGEDBVERSION_WEBHOOK_URL"
-            }
+            },
+            "python_packages": [
+              {
+                "name": "pymongo",
+                "content_url": "https://files.pythonhosted.org/packages/4f/c9/7352e0c20fe772541556e4d283c05e07ec48f8b0d2737ad930ac4a1b6655/pymongo-4.17.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+              },
+              {
+                "name": "dnspython",
+                "content_url": "https://files.pythonhosted.org/packages/ba/5a/18ad964b0086c6e62e2e7500f7edc89e3faa45033c71c1893d34eed2b2de/dnspython-2.8.0-py3-none-any.whl"
+              }
+            ]
           }
         }
       ],
