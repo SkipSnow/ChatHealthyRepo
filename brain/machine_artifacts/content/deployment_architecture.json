@@ -2528,7 +2528,7 @@
             "python_packages": [
               {
                 "name": "pymongo",
-                "content_url": "https://files.pythonhosted.org/packages/5f/54/7da021c70dbac3e993aee5544398f6c1ec58d0aaaf6f91de555e4b6a6e29/pymongo-4.10.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
+                "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
               },
               {
                 "name": "dnspython",
