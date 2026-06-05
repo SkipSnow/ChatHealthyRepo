@@ -122,7 +122,7 @@
 
                 "azure_automation": {
                   "type": "object",
-                  "description": "Azure Automation runbook deploy coordinates for this env binding. Present iff target_kind=='azure_automation_runbook'. resource_group + automation_account identify the Automation Account; runbook_name names the runbook whose content this target ships (replace-content on every deploy). schedule_names[] lists the Automation Schedules that fire this runbook — informational only; the deploy handler does not touch schedules. Secret bindings whose store is `azure_automation_variable` get materialized as Automation Variables on the same Automation Account during deploy.",
+                  "description": "Azure Automation runbook deploy coordinates for this env binding. Present iff target_kind=='azure_automation_runbook'. resource_group + automation_account identify the Automation Account; runbook_name names the runbook whose content this target ships (replace-content on every deploy). schedule_names[] lists the Automation Schedules that fire this runbook — informational only; the deploy handler does not touch schedules. Secret bindings whose store is `azure_automation_variable` get materialized as Automation Variables on the same Automation Account during deploy. The optional `webhook` block declares that this runbook is dispatched by HTTP POST from another deployed target: the runbook deploy MUST ensure a webhook bound to the runbook exists (mint if absent; reuse if present and the consumer already carries the named app setting; delete-and-re-mint if present but the consumer is missing the setting, since Azure Automation never re-exposes a webhook URL after creation), then push the URL onto the consumer target's runtime env surface as the named app setting via UPSERT (no other consumer settings touched).",
                   "additionalProperties": false,
                   "required": ["resource_group", "automation_account", "runbook_name"],
                   "properties": {
@@ -145,6 +145,25 @@
                       "type": "array",
                       "items": {"type": "string", "minLength": 1, "maxLength": 256},
                       "uniqueItems": true
+                    },
+                    "webhook": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "Declares the consumer target the runbook deploy must push its webhook URL onto, and the app-setting key name the URL is stored under on that consumer.",
+                      "required": ["consumer_target_id", "app_setting_name"],
+                      "properties": {
+                        "consumer_target_id": {
+                          "type": "string",
+                          "description": "target_id of the consumer that receives this runbook's webhook URL as an app setting at runbook-deploy time. The consumer target's secrets[] MUST declare the matching app_setting_name with store 'azure_automation_webhook' so the consumer's own deploy resolver skips it.",
+                          "pattern": "^target_[a-z0-9_]{1,64}$"
+                        },
+                        "app_setting_name": {
+                          "type": "string",
+                          "description": "Name of the app-setting key on the consumer that the webhook URL is written under. The consumer's runtime code reads the URL from os.environ[app_setting_name].",
+                          "minLength": 1,
+                          "maxLength": 256
+                        }
+                      }
                     }
                   }
                 },
@@ -424,10 +443,10 @@
 
           "secrets": {
             "type": "object",
-            "description": "Secret / environment key declarations for this TARGET. Map of key NAME -> store id. The same keys apply across every env_binding of this target; per-env VALUES come from the bound store via SecretsResolver. The deploy script reads this inventory and configures the target's runtime env surface (FA app settings, Automation Variables, HF Space secrets, Cloudflare env, etc.). Values themselves NEVER appear in this JSON — only names + store ids. Each target enumerates ITS OWN full key list; no inheritance, no shared base, no implicit defaults. Per EPIC-008-F-012-S-001-REQ-T-037/T-038.",
+            "description": "Secret / environment key declarations for this TARGET. Map of key NAME -> store id. The same keys apply across every env_binding of this target; per-env VALUES come from the bound store via SecretsResolver. The deploy script reads this inventory and configures the target's runtime env surface (FA app settings, Automation Variables, HF Space secrets, Cloudflare env, etc.). Values themselves NEVER appear in this JSON — only names + store ids. Each target enumerates ITS OWN full key list; no inheritance, no shared base, no implicit defaults. Per EPIC-008-F-012-S-001-REQ-T-037/T-038. The 'azure_automation_webhook' store names a key whose value is the webhook URL of another target (an azure_automation_runbook) — the runbook target's deploy step mints/reuses the webhook and pushes the URL directly onto this target's runtime env surface, and the THIS target's deploy resolver MUST skip entries carrying this store (they are set by the upstream runbook deploy, not by reading any local store).",
             "additionalProperties": {
               "type": "string",
-              "enum": ["local_env", "gha_secret", "hf_space_secret", "cloudflare_env", "azure_function_app_setting", "azure_automation_variable"]
+              "enum": ["local_env", "gha_secret", "hf_space_secret", "cloudflare_env", "azure_function_app_setting", "azure_automation_variable", "azure_automation_webhook"]
             }
           },
 
