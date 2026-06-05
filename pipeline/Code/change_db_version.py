@@ -138,6 +138,15 @@ def _post_swap(target_url: str, collections: list[dict], token: str, timeout: in
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
+            # Cloudflare's bot firewall (which fronts dev/qa/prod.
+            # chathealthy.ai) rejects requests with the default
+            # Python-urllib User-Agent with code 1010. Present a
+            # standard browser UA so the swap call gets through.
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
         },
     )
     try:
