@@ -2362,7 +2362,7 @@
           "source_location": "pipeline/ChatHealthyDataPipelinesGatewayFunctionApp.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "35e15a765a2dbd45d42cafefcc491af350f3d6105764df38f1b5d9093742e07b"
+          "content_hash": "975d3147fcb62cb792c88aa99c329cf9fa568528ed7923769cf00eb03a57be2d"
         }
       ],
       "secrets": {
@@ -2548,7 +2548,7 @@
           "source_location": "pipeline/Code/change_db_version.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d74479a87c3e272e7e9b86827b61415a499bf3ea256e37fa265a582e0944571b"
+          "content_hash": "9c936b3fdabcfb80783ff1c559d70a8776634befb1e6e6874cb9a16dc292a3d7"
         }
       ],
       "secrets": {
