@@ -258,7 +258,7 @@ from chathealthy_frontend_lib.runtime_data_collections import (
 register_fatal_handler(app, service_name="FindCare")
 
 # EPIC-010-F-101-S-005 (Data version management): bind runtime data
-# collections from Config.DBVersions on startup, and mount the
+# collections from ChatHealthyConfig.DBVersions on startup, and mount the
 # /admin/swap + /debug/active_collections endpoints.
 _bind_data_collections()
 app.include_router(_data_collections_router)

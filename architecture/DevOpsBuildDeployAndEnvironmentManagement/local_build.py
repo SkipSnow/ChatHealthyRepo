@@ -445,7 +445,7 @@ def _build_azure_automation_runbook(repo_root: Path, target: TargetRecord, build
 def _emit_change_db_version_target_url_registry(repo_root: Path, build_dir: Path) -> None:
     """Bake change_db_version_target_url_registry.json sibling to the runbook.
 
-    The runbook reads Config.DBVersions, walks each env doc's targets[],
+    The runbook reads ChatHealthyConfig.DBVersions, walks each env doc's targets[],
     and POSTs /admin/swap on each target. Target URLs come from this
     registry — NOT from deployment_architecture.json at runtime. The
     registry is a {env: {target_id: node_address}} map derived here at
