@@ -461,18 +461,21 @@ def _emit_change_db_version_target_url_registry(repo_root: Path, build_dir: Path
         tid = rec.get("target_id")
         for env_entry in rec.get("environments", []):
             env = env_entry.get("env_binding")
-            raw = env_entry.get("node_address")
-            if not (env and raw and tid):
+            hf = env_entry.get("huggingface_space") or {}
+            space = hf.get("space")
+            if not (env and tid and space):
                 continue
-            # node_address per schema is an unconstrained address form;
-            # for hf_space targets it is the wrapper-served host+path
-            # with no scheme (e.g. 'dev.chathealthy.ai/findcare'). The
-            # registry contract is "full HTTPS URLs the runbook can
-            # POST to" — prepend the scheme deterministically. Manifest
-            # discipline: node_address on hf_space targets MUST be
-            # scheme-less; if it ever carries one, the deploy package
-            # would emit 'https://https://...' and fail loud at runtime.
-            registry.setdefault(env, {})[tid] = f"https://{raw}"
+            # The /admin/swap endpoint lives on the HF Space's serving
+            # host, NOT on the wrapper path. node_address for hf_space
+            # targets points at the user-facing wrapper URL ('dev.chat
+            # healthy.ai/findcare') which is a static route, not an API
+            # proxy — POSTing /admin/swap there returns 405. Derive the
+            # HF Space serving URL from huggingface_space.space using
+            # HF's documented convention: lowercase 'owner-name.hf.space'
+            # with underscores becoming hyphens.
+            owner, _, name = space.partition("/")
+            host = f"{owner.lower()}-{name.lower().replace('_', '-')}.hf.space"
+            registry.setdefault(env, {})[tid] = f"https://{host}"
     out = build_dir / "change_db_version_target_url_registry.json"
     out.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
     target_count = sum(len(v) for v in registry.values())
