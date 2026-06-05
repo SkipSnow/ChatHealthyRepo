@@ -35,6 +35,27 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+# When this module runs as an Azure Automation runbook the deploy step
+# has pushed every secrets[] entry into the AA as an Automation Variable,
+# but AA does NOT auto-inject those into os.environ. Copy them in
+# explicitly using the AA-only `automationassets` module before any
+# os.environ.get() reads. Same pattern the CHDM orchestrator runbook
+# uses. When running locally (no AA) the import fails harmlessly and
+# os.environ reflects the operator's normal shell env.
+try:
+    import automationassets  # type: ignore[import-not-found]
+    for _k in (
+        "API_TOKEN_MAP",
+        "MONGO_FRONTEND_connectionString",
+        "MONGO_connectionString",
+    ):
+        try:
+            os.environ[_k] = str(automationassets.get_automation_variable(_k))
+        except Exception:
+            pass
+except ImportError:
+    pass
+
 from pymongo import MongoClient
 
 
