@@ -450,7 +450,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c36ba94ca45c6817779126f246c19b7456c99562cdfa225c047cdc9927606605"
+          "content_hash": "1cc40d882e7b408241ba353c440ed0be82e61a3dfeb910874247ea1ef0ebb285"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -774,7 +774,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2e2456b6327a428dedf8f328b37e1312fca71a255d7a90a3ba6412a1a993c999"
+          "content_hash": "e6baf12e917c423c4b8bf5adc723a74337316e9923b38c5fa922dd00bba84e4d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -866,13 +866,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "26103446a21ad26ff8cdd4d992c7ecc14884a20044063bdd85130c785ed833df"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "Code/ConversationalUX/FindCareChat/backend/domain/find_care/specialty_classifier.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8708604dc201aaa95f43d18e8c57166b2806d170a5b857082a00a8988cdfcf07"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1417,7 +1410,7 @@
           "source_location": "FindCare/ProviderManagement/provider_search_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e257628da9ea4c1599447faac362f797a389d8eea860481253938f89a8519858"
+          "content_hash": "3eed8750edbe761d0603f7039d3961f2aff048f08ea06fb55f929411b2db201d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1459,7 +1452,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3f4b3dbae445556696534ef7a831e2504169df7e0d652e582ff975e30a11b8c6"
+          "content_hash": "3f823710bada981d4f5e0810cabb7254836441fb3d1279b7f37b3be988b79e78"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1529,7 +1522,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c36ba94ca45c6817779126f246c19b7456c99562cdfa225c047cdc9927606605"
+          "content_hash": "1cc40d882e7b408241ba353c440ed0be82e61a3dfeb910874247ea1ef0ebb285"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1793,7 +1786,7 @@
           "source_location": "FindCare/SpecialtyFilter/filter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3f4b3dbae445556696534ef7a831e2504169df7e0d652e582ff975e30a11b8c6"
+          "content_hash": "3f823710bada981d4f5e0810cabb7254836441fb3d1279b7f37b3be988b79e78"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1863,7 +1856,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/runtime_data_collections.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c36ba94ca45c6817779126f246c19b7456c99562cdfa225c047cdc9927606605"
+          "content_hash": "1cc40d882e7b408241ba353c440ed0be82e61a3dfeb910874247ea1ef0ebb285"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2277,7 +2270,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9c59dba6c400c88a4d63803f2fcff22f382183a0575f8f4f90c340bd5c78b6a1"
+          "content_hash": "38781106b243b7c280a0734641b4ebd342f4d6969238efb35dcab8e2885397d5"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3561,7 +3554,7 @@
           "source_location": "pipeline/Code/change_db_version.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "9e7190eff8b25ee033fea14beaf6e02a9af3181aa627ad3b82eecb107e6153cb"
+          "content_hash": "962d81d3f2d3890302d1d794e7d86db8c366a4906dc2d2e3a5b7b95cd8e65454"
         }
       ],
       "secrets": {
