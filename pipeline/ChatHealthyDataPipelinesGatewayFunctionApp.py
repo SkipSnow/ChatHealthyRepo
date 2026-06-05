@@ -113,8 +113,10 @@ ROUTES: dict = {
         "computed": {},
     },
     "ChangeDBVersion": {
-        "required": [],
-        "allowed": {},
+        "required": ["env"],
+        "allowed": {
+            "env": None,
+        },
         "computed": {},
     },
 }

@@ -193,7 +193,10 @@ def _read_webhook_payload() -> dict:
 def main() -> int:
     payload = _read_webhook_payload()
     job_id = payload.get("job_id") or "ChangeDBVersion-no-job-id"
-    _log(f"job_id={job_id}")
+    env = payload.get("env")
+    if not env:
+        sys.exit("ERROR: payload missing required field 'env'.")
+    _log(f"job_id={job_id} env={env}")
 
     registry = _read_registry()
     _log(f"loaded target URL registry: {len(registry)} target(s)")
@@ -203,27 +206,27 @@ def main() -> int:
     if not uri:
         sys.exit("ERROR: MONGO_FRONTEND_connectionString not set.")
     client = MongoClient(uri, serverSelectionTimeoutMS=10000, tlsCAFile=_MONGO_TLS_CA_FILE)
-    docs = list(client[_CONFIG_DB][_CONFIG_COLL].find({}))
+    doc = client[_CONFIG_DB][_CONFIG_COLL].find_one({"env": env})
     client.close()
-    _log(f"loaded {len(docs)} env doc(s) from ChatHealthyConfig.DBVersions")
+    if doc is None:
+        sys.exit(f"ERROR: no ChatHealthyConfig.DBVersions doc for env={env!r}.")
+    _log(f"loaded env doc for {env!r} from ChatHealthyConfig.DBVersions")
 
     has_exception = False
-    for doc in docs:
-        env = doc.get("env")
-        for entry in doc.get("targets", []):
-            target_id = entry.get("deployment_target")
-            collections = entry.get("collections", [])
-            url = registry.get(env, {}).get(target_id) if isinstance(registry.get(env), dict) else registry.get(target_id)
-            if not url:
-                has_exception = True
-                _log(f"  {env}/{target_id}: NO URL in registry")
-                continue
-            code, body = _post_swap(url, collections, token)
-            if code == 202:
-                _log(f"  {env}/{target_id}: 202 Accepted")
-            else:
-                has_exception = True
-                _log(f"  {env}/{target_id}: {code} {body[:200]}")
+    for entry in doc.get("targets", []):
+        target_id = entry.get("deployment_target")
+        collections = entry.get("collections", [])
+        url = registry.get(env, {}).get(target_id) if isinstance(registry.get(env), dict) else registry.get(target_id)
+        if not url:
+            has_exception = True
+            _log(f"  {env}/{target_id}: NO URL in registry")
+            continue
+        code, body = _post_swap(url, collections, token)
+        if code == 202:
+            _log(f"  {env}/{target_id}: 202 Accepted")
+        else:
+            has_exception = True
+            _log(f"  {env}/{target_id}: {code} {body[:200]}")
 
     return 1 if has_exception else 0
 
