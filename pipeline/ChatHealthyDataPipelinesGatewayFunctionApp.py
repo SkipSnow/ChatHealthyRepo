@@ -41,9 +41,12 @@ import azure.functions as func
 # for resolving each upstream's current address and pushing it here as an
 # app setting. Missing setting = deploy bug → fail hard at the first request,
 # not silently route to a stale or wrong upstream.
-DURABLE_ROUTER_URL = os.environ["DURABLE_ROUTER_URL"]
+DURABLE_ROUTER_URL = os.environ.get("DURABLE_ROUTER_URL", "")
 MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL = os.environ.get(
     "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL", ""
+)
+CHANGEDBVERSION_WEBHOOK_URL = os.environ.get(
+    "CHANGEDBVERSION_WEBHOOK_URL", ""
 )
 _FORWARD_TIMEOUT_S = 60.0
 
@@ -116,10 +119,17 @@ ROUTES: dict = {
     },
 }
 
-# Routes whose upstream is the Automation Account orchestrator webhook (and
-# therefore mint a job_id at gateway entry instead of forwarding to the
-# durable container app).
-_AUTOMATION_ROUTES = {"MongoClusterMigrator", "ChangeDBVersion"}
+# Routes whose upstream is an Azure Automation runbook webhook (mint a
+# job_id at gateway entry; forward to the per-task webhook URL pushed
+# onto this FA at runbook-deploy time). Each task maps to its OWN
+# upstream URL — adding a new ChatHealthyTask that runs on AA means
+# adding a new {task: url} entry here and declaring a webhook block on
+# the corresponding azure_automation_runbook target in the manifest.
+_AUTOMATION_ROUTE_URLS: dict[str, str] = {
+    "MongoClusterMigrator": MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL,
+    "ChangeDBVersion":      CHANGEDBVERSION_WEBHOOK_URL,
+}
+_AUTOMATION_ROUTES = set(_AUTOMATION_ROUTE_URLS.keys())
 
 
 def require_auth(req) -> tuple[str | None, tuple[int, str] | None]:
@@ -333,12 +343,18 @@ def gateway_router(req: func.HttpRequest) -> func.HttpResponse:
         }))
 
         if task in _AUTOMATION_ROUTES:
-            if not MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL:
-                msg = "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL not configured"
+            upstream_url = _AUTOMATION_ROUTE_URLS.get(task, "")
+            if not upstream_url:
+                msg = (
+                    f"Upstream webhook URL for ChatHealthyTask {task!r} "
+                    f"is not configured on this Function App. The runbook "
+                    f"deploy step is responsible for minting the webhook "
+                    f"and pushing the URL onto this FA at the app setting "
+                    f"the runbook target's manifest declares."
+                )
                 return _respond(500, body={"success": False, "error": msg, "task": task},
                                 request_guid=request_guid, build_id=build_id,
                                 job_id=job_id, user_id=user_id, task=task, error=msg)
-            upstream_url = MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL
             upstream_body = {
                 **args,
                 "job_id":          job_id,

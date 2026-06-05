@@ -2272,7 +2272,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ff4dda21fe68fdca52377a8ecb98c7a087b07ee75e64c239b5f16bdaa7f5bbf2"
+          "content_hash": "9c6bff7a01ace3f5893282a1abe4c208684347c5fe00502ded9d19bba925a0b7"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2300,7 +2300,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/secrets_resolver.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ed5ac4f021f2e6c664119605cd41f3fcd9c4c26110345e8c1667bb81b99d467a"
+          "content_hash": "f8b6ef56f684b7de5e6616223c8a0568b7d878cdc5e58e8f3025ffb69e0f921a"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2362,7 +2362,7 @@
           "source_location": "pipeline/ChatHealthyDataPipelinesGatewayFunctionApp.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d87190173d0c782fdaa2a728129266c9a1a180f8434f2bada058a389c86859d0"
+          "content_hash": "35e15a765a2dbd45d42cafefcc491af350f3d6105764df38f1b5d9093742e07b"
         }
       ],
       "secrets": {
@@ -2399,7 +2399,8 @@
         "OPENAI_API_KEY": "local_env",
         "SPARKMAIL_API_KEY": "local_env",
         "SPECIALTY_COLLECTION": "local_env",
-        "UMLS_API_KEY": "local_env"
+        "UMLS_API_KEY": "local_env",
+        "CHANGEDBVERSION_WEBHOOK_URL": "azure_automation_webhook"
       }
     },
     {
@@ -2519,7 +2520,11 @@
           "azure_automation": {
             "resource_group": "ChatHhealthyResorceManager",
             "automation_account": "ChatHealthyJobManager",
-            "runbook_name": "ChangeDBVersion"
+            "runbook_name": "ChangeDBVersion",
+            "webhook": {
+              "consumer_target_id": "target_azure_function_app_pipeline",
+              "app_setting_name": "CHANGEDBVERSION_WEBHOOK_URL"
+            }
           }
         }
       ],

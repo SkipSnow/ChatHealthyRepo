@@ -687,7 +687,15 @@ def _deploy_azure_function_app(
     if coll is not None and coll.by_target_id(_GATEWAY_UPSTREAM_TARGET_ID) is not None:
         app_settings["DURABLE_ROUTER_URL"] = _resolve_durable_router_url(coll, env)
     if resolver is not None:
-        for name in (target.secrets or {}).keys():
+        for name, store_id in (target.secrets or {}).items():
+            if store_id == "azure_automation_webhook":
+                # The upstream azure_automation_runbook target's deploy
+                # step mints/reuses the webhook and UPSERTs the URL onto
+                # this FA. This handler MUST NOT try to resolve it from
+                # any local store, and MUST NOT include it in the app-
+                # settings batch (a stale or empty value here would
+                # clobber the value the runbook deploy already wrote).
+                continue
             try:
                 app_settings[name] = resolver.resolve(name, env)
             except Exception as exc:
@@ -1167,12 +1175,197 @@ def _ensure_chdm_persistent_infrastructure_once(
     return subnet_id
 
 
+def _az_automation_runbook_webhook_list(rg: str, aa: str, runbook: str) -> list[dict]:
+    """List webhooks on the Automation Account, filtered to a single
+    runbook. Note: the returned objects carry metadata only — Azure
+    Automation never re-exposes a webhook's URL after creation."""
+    sub = _az_subscription_id()
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/webhooks?api-version=2023-11-01"
+    )
+    r = subprocess.run(
+        ["az", "rest", "--method", "get", "--url", url, "-o", "json"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: AA webhook list failed for runbook {runbook!r}: "
+            f"{(r.stderr or '').strip()[:1500]}"
+        )
+    body = json.loads(r.stdout or "{}")
+    items = body.get("value") or []
+    return [
+        w for w in items
+        if (w.get("properties", {}).get("runbook", {}) or {}).get("name") == runbook
+    ]
+
+
+def _az_automation_runbook_webhook_delete(rg: str, aa: str, webhook_name: str) -> None:
+    sub = _az_subscription_id()
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/webhooks/{webhook_name}?api-version=2023-11-01"
+    )
+    r = subprocess.run(
+        ["az", "rest", "--method", "delete", "--url", url, "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: AA webhook delete failed for {webhook_name!r}: "
+            f"{(r.stderr or '').strip()[:1500]}"
+        )
+
+
+def _az_automation_runbook_webhook_create(
+    rg: str, aa: str, runbook: str, webhook_name: str,
+) -> str:
+    """Mint a webhook bound to a runbook. Returns the full URL with
+    embedded token. The URL is only available at creation time; Azure
+    Automation never re-exposes it after this call returns. Expiry is
+    set to ~10 years out, matching the CHDM webhook minted 2026-06-02."""
+    from datetime import datetime, timedelta, timezone
+    sub = _az_subscription_id()
+    expires = (
+        datetime.now(timezone.utc) + timedelta(days=365 * 10)
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/webhooks/{webhook_name}?api-version=2023-11-01"
+    )
+    body = json.dumps({
+        "properties": {
+            "isEnabled":  True,
+            "expiryTime": expires,
+            "runbook":    {"name": runbook},
+        }
+    })
+    r = subprocess.run(
+        ["az", "rest", "--method", "put", "--url", url,
+         "--headers", "Content-Type=application/json",
+         "--body", body, "-o", "json"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: AA webhook create failed for {webhook_name!r}: "
+            f"{(r.stderr or '').strip()[:1500]}"
+        )
+    body_out = json.loads(r.stdout or "{}")
+    webhook_url = body_out.get("properties", {}).get("uri") or ""
+    if not webhook_url:
+        sys.exit(
+            f"ERROR: AA webhook PUT for {webhook_name!r} did not return a URI; "
+            f"the URL is unrecoverable from this point. Body: {r.stdout!r}"
+        )
+    return webhook_url
+
+
+def _functionapp_get_appsetting(rg: str, app: str, name: str) -> str:
+    """Return the current value of a single FA app setting, or empty
+    string if it isn't present."""
+    r = subprocess.run(
+        ["az", "functionapp", "config", "appsettings", "list",
+         "--name", app, "--resource-group", rg, "-o", "json"],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: az functionapp config appsettings list failed for "
+            f"{app!r}: {(r.stderr or '').strip()[:1500]}"
+        )
+    settings = json.loads(r.stdout or "[]")
+    for s in settings:
+        if s.get("name") == name:
+            return s.get("value") or ""
+    return ""
+
+
+def _ensure_runbook_webhook_and_push_to_consumer(
+    rg: str, aa: str, runbook: str,
+    webhook_block: dict,
+    coll: "DeploymentCollection",
+    env: str,
+) -> None:
+    """Ensure a webhook bound to the runbook exists and the consumer
+    target carries its URL as the named app setting. Idempotent:
+      - If the consumer already has the named app setting populated,
+        the existing webhook URL is left in place (we cannot recover
+        the URL from Azure to verify identity).
+      - Otherwise: delete any stale webhook of the same name (we
+        cannot reuse it because the URL was lost), mint a fresh one,
+        and UPSERT the URL onto the consumer's app settings."""
+    consumer_target_id = webhook_block["consumer_target_id"]
+    app_setting_name = webhook_block["app_setting_name"]
+    consumer = coll.by_target_id(consumer_target_id)
+    if consumer is None:
+        sys.exit(
+            f"ERROR: runbook {runbook!r} webhook block names consumer "
+            f"{consumer_target_id!r} which is not in the manifest."
+        )
+    consumer_env = next(
+        (e for e in consumer.environments if e.env_binding == env), None,
+    )
+    if consumer_env is None:
+        sys.exit(
+            f"ERROR: consumer {consumer_target_id!r} has no env_binding "
+            f"for env={env!r}; cannot push webhook URL."
+        )
+    if consumer_env.azure is None:
+        sys.exit(
+            f"ERROR: consumer {consumer_target_id!r} env={env!r} is not "
+            f"an azure_function_app target — only FA consumers are "
+            f"wired today for webhook-URL push."
+        )
+    consumer_rg = consumer_env.azure["resource_group"]
+    consumer_app = consumer_env.azure["function_app"]
+    webhook_name = f"{runbook}Webhook"
+
+    existing_value = _functionapp_get_appsetting(
+        consumer_rg, consumer_app, app_setting_name,
+    )
+    if existing_value:
+        _step(
+            f"  webhook URL already present on {consumer_app}/"
+            f"{app_setting_name} — idempotent no-op"
+        )
+        return
+
+    existing_webhooks = _az_automation_runbook_webhook_list(rg, aa, runbook)
+    for w in existing_webhooks:
+        if w.get("name") == webhook_name:
+            _step(
+                f"  deleting stale webhook {webhook_name} (URL was not "
+                f"captured on the consumer; cannot reuse)"
+            )
+            _az_automation_runbook_webhook_delete(rg, aa, webhook_name)
+            break
+
+    _step(f"  minting webhook {webhook_name} for runbook {runbook}")
+    url = _az_automation_runbook_webhook_create(rg, aa, runbook, webhook_name)
+    _step(
+        f"  UPSERT webhook URL onto {consumer_app}/{app_setting_name}"
+    )
+    _functionapp_set_appsettings(
+        consumer_rg, consumer_app, {app_setting_name: url},
+    )
+
+
 def _deploy_azure_automation_runbook(
     build_dir: Path,
     target: TargetRecord,
     env: str,
     resolver: SecretsResolver,
     repo_root: Path,
+    coll: "DeploymentCollection | None" = None,
 ) -> str:
     env_binding = next(
         (e for e in target.environments if e.env_binding == env), None,
@@ -1280,6 +1473,24 @@ def _deploy_azure_automation_runbook(
         _az_automation_orchestrator_verify_via_webhook(rg, aa, webhook_url, runbook)
     else:
         _az_automation_runbook_verify_runnable(rg, aa, runbook)
+
+    # Webhook lifecycle for runbooks dispatched via HTTP webhook from a
+    # consumer target (e.g. the gateway FA forwarding ChatHealthyTask
+    # values to AA). Manifest declares the consumer + the app-setting
+    # name; this handler owns the mint/reuse/push flow.
+    webhook_block = aa_block.get("webhook")
+    if webhook_block is not None:
+        if coll is None:
+            sys.exit(
+                f"ERROR: runbook {runbook!r} declares an azure_automation."
+                f"webhook block but the deploy handler was invoked without "
+                f"a manifest collection — cannot resolve consumer target."
+            )
+        _ensure_runbook_webhook_and_push_to_consumer(
+            rg=rg, aa=aa, runbook=runbook,
+            webhook_block=webhook_block, coll=coll, env=env,
+        )
+
     return f"{aa}/{runbook}"
 
 
@@ -1557,7 +1768,9 @@ def _deploy_one(
         return _deploy_azure_container_app(build_dir, target, env, resolver, build_n)
     if target_kind == "azure_automation_runbook":
         target = coll.by_target_id(target_id)
-        return _deploy_azure_automation_runbook(build_dir, target, env, resolver, repo_root)
+        return _deploy_azure_automation_runbook(
+            build_dir, target, env, resolver, repo_root, coll,
+        )
     raise RuntimeError(
         f"target_kind {target_kind!r} not supported in local_deploy."
     )
