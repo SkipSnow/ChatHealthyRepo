@@ -1665,6 +1665,7 @@
         }
       ],
       "secrets": {
+        "API_TOKEN_MAP": "local_env",
         "FINDCARE_SIGNING_KEY_B64": "local_env",
         "GEMINI_API_KEY": "local_env",
         "HF_TOKEN": "local_env",
