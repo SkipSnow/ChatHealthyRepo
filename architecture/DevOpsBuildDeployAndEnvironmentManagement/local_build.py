@@ -461,9 +461,18 @@ def _emit_change_db_version_target_url_registry(repo_root: Path, build_dir: Path
         tid = rec.get("target_id")
         for env_entry in rec.get("environments", []):
             env = env_entry.get("env_binding")
-            url = env_entry.get("node_address")
-            if env and url and tid:
-                registry.setdefault(env, {})[tid] = url
+            raw = env_entry.get("node_address")
+            if not (env and raw and tid):
+                continue
+            # node_address per schema is an unconstrained address form;
+            # for hf_space targets it is the wrapper-served host+path
+            # with no scheme (e.g. 'dev.chathealthy.ai/findcare'). The
+            # registry contract is "full HTTPS URLs the runbook can
+            # POST to" — prepend the scheme deterministically. Manifest
+            # discipline: node_address on hf_space targets MUST be
+            # scheme-less; if it ever carries one, the deploy package
+            # would emit 'https://https://...' and fail loud at runtime.
+            registry.setdefault(env, {})[tid] = f"https://{raw}"
     out = build_dir / "change_db_version_target_url_registry.json"
     out.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
     target_count = sum(len(v) for v in registry.values())
