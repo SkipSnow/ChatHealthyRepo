@@ -219,8 +219,8 @@ def main() -> int:
                 _log(f"  {env}/{target_id}: NO URL in registry")
                 continue
             code, body = _post_swap(url, collections, token)
-            if code == 200:
-                _log(f"  {env}/{target_id}: 200 OK")
+            if code == 202:
+                _log(f"  {env}/{target_id}: 202 Accepted")
             else:
                 has_exception = True
                 _log(f"  {env}/{target_id}: {code} {body[:200]}")

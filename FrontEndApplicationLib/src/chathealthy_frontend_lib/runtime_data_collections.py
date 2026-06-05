@@ -172,7 +172,7 @@ def _require_bearer(authorization: str | None = Header(default=None)) -> str:
     return user
 
 
-@router.post("/admin/swap")
+@router.post("/admin/swap", status_code=202)
 def admin_swap(
     payload: dict[str, Any],
     _user: str = Depends(_require_bearer),
