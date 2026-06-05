@@ -131,10 +131,39 @@ def _finalize_status(job_id: str, *, has_exception: bool) -> None:
     client.close()
 
 
-def main() -> int:
+def _read_webhook_payload() -> dict:
+    """Unwrap legacy Azure Automation's WebhookData envelope into the
+    inner JSON payload. AA mangles the wrapper into a non-JSON format
+    with unquoted keys + shell-splits across sys.argv. Rejoin with
+    spaces, locate 'RequestBody:', raw_decode the embedded JSON object.
+    Same approach as runbooks/data_migrator/orchestrator.py::_read_payload."""
     if len(sys.argv) < 2:
-        sys.exit("ERROR: missing JSON payload argument (sys.argv[1]).")
-    payload = json.loads(sys.argv[1])
+        raise RuntimeError("no payload: sys.argv[1] missing")
+    s = " ".join(sys.argv[1:])
+    marker = "RequestBody:"
+    idx = s.find(marker)
+    if idx == -1:
+        raise RuntimeError(
+            f"ChangeDBVersion: sys.argv missing 'RequestBody:' marker; "
+            f"argv_count={len(sys.argv)}; joined first 500 chars={s[:500]!r}"
+        )
+    rest = s[idx + len(marker):].lstrip()
+    try:
+        body, _consumed = json.JSONDecoder().raw_decode(rest)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(
+            f"ChangeDBVersion: RequestBody not parseable JSON; "
+            f"rest first 500 chars={rest[:500]!r}; error={e}"
+        )
+    if not isinstance(body, dict):
+        raise RuntimeError(
+            f"ChangeDBVersion: RequestBody is not a dict; got {type(body).__name__}"
+        )
+    return body
+
+
+def main() -> int:
+    payload = _read_webhook_payload()
     job_id = payload.get("job_id") or "ChangeDBVersion-no-job-id"
     _log(f"job_id={job_id}")
 
