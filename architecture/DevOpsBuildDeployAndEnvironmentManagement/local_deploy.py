@@ -678,8 +678,13 @@ def _deploy_azure_function_app(
     }
     # Resolve the upstream durable container app's FQDN from Azure and push
     # it as DURABLE_ROUTER_URL so the gateway code does not have to carry a
-    # hardcoded URL fallback. No coll = test-only invocation; otherwise hard.
-    if coll is not None:
+    # hardcoded URL fallback. No coll = test-only invocation. When the
+    # upstream ACA target has been retired from the manifest we skip the
+    # call site entirely — _resolve_durable_router_url stays strict (its
+    # body documents the biz rule for when a durable upstream IS declared)
+    # and gateway routes that would have forwarded via this URL fail at
+    # runtime, which is the intended consequence of retiring the upstream.
+    if coll is not None and coll.by_target_id(_GATEWAY_UPSTREAM_TARGET_ID) is not None:
         app_settings["DURABLE_ROUTER_URL"] = _resolve_durable_router_url(coll, env)
     if resolver is not None:
         for name in (target.secrets or {}).keys():
