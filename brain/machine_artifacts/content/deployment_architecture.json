@@ -2533,6 +2533,10 @@
               {
                 "name": "dnspython",
                 "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
+              },
+              {
+                "name": "certifi",
+                "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
               }
             ]
           }
@@ -2544,7 +2548,7 @@
           "source_location": "pipeline/Code/change_db_version.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "8e908014cfcd096eb8ce148daaa508145a2602298bfdc0f3ff22ed1aecc18897"
+          "content_hash": "a13a95568d264d2bd5fbad9c793bf140e674b3d088d82c33e5bb9d17bfa903f7"
         }
       ],
       "secrets": {

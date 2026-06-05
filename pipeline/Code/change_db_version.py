@@ -73,6 +73,17 @@ except ImportError:
 
 from pymongo import MongoClient
 
+# Atlas requires a current CA bundle to validate its TLS chain. The AA
+# sandbox Windows Python doesn't always have a current trust store, so
+# we explicitly point pymongo at certifi's bundled CA file. Falls back
+# silently when certifi isn't installed (local dev / non-AA contexts
+# where the system trust store is usually fine).
+try:
+    import certifi  # type: ignore[import-not-found]
+    _MONGO_TLS_CA_FILE: str | None = certifi.where()
+except ImportError:
+    _MONGO_TLS_CA_FILE = None
+
 
 _REGISTRY_FILENAME = "change_db_version_target_url_registry.json"
 _STATUS_COLLECTION = ("admin", "ChangeDBVersion_jobs")
@@ -141,7 +152,7 @@ def _init_status_doc(job_id: str, total_targets: int) -> None:
     if not uri:
         _log("WARN: MONGO_connectionString not set; status doc will not be written.")
         return
-    client = MongoClient(uri, serverSelectionTimeoutMS=10000)
+    client = MongoClient(uri, serverSelectionTimeoutMS=10000, tlsCAFile=_MONGO_TLS_CA_FILE)
     db, coll = _STATUS_COLLECTION
     client[db][coll].insert_one({
         "job_id": job_id,
@@ -157,7 +168,7 @@ def _append_result(job_id: str, result: dict) -> None:
     uri = os.environ.get("MONGO_connectionString")
     if not uri:
         return
-    client = MongoClient(uri, serverSelectionTimeoutMS=10000)
+    client = MongoClient(uri, serverSelectionTimeoutMS=10000, tlsCAFile=_MONGO_TLS_CA_FILE)
     db, coll = _STATUS_COLLECTION
     client[db][coll].update_one({"job_id": job_id}, {"$push": {"results": result}})
     client.close()
@@ -167,7 +178,7 @@ def _finalize_status(job_id: str, *, has_exception: bool) -> None:
     uri = os.environ.get("MONGO_connectionString")
     if not uri:
         return
-    client = MongoClient(uri, serverSelectionTimeoutMS=10000)
+    client = MongoClient(uri, serverSelectionTimeoutMS=10000, tlsCAFile=_MONGO_TLS_CA_FILE)
     db, coll = _STATUS_COLLECTION
     client[db][coll].update_one(
         {"job_id": job_id},
@@ -222,7 +233,7 @@ def main() -> int:
     uri = os.environ.get("MONGO_FRONTEND_connectionString")
     if not uri:
         sys.exit("ERROR: MONGO_FRONTEND_connectionString not set.")
-    client = MongoClient(uri, serverSelectionTimeoutMS=10000)
+    client = MongoClient(uri, serverSelectionTimeoutMS=10000, tlsCAFile=_MONGO_TLS_CA_FILE)
     docs = list(client[_CONFIG_DB][_CONFIG_COLL].find({}))
     client.close()
     _log(f"loaded {len(docs)} env doc(s) from ChatHealthyConfig.DBVersions")
