@@ -4,7 +4,7 @@ Published to Automation Account ChatHealthyJobManager as runbook name
 'ChangeDBVersion'. Triggered by the gateway when ChatHealthyTask =
 'ChangeDBVersion' is posted to POST /Router.
 
-Reads every document from Config.DBVersions on the ChatHealthyFrontEnd
+Reads every document from ChatHealthyConfig.DBVersions on the ChatHealthyFrontEnd
 cluster. For each env doc, walks targets[] and POSTs the target's
 collections map to the runtime's /admin/swap endpoint. The runtime URL
 comes from change_db_version_target_url_registry.json baked next to
@@ -20,7 +20,7 @@ Input payload (JSON-encoded `payload` parameter, read via sys.argv[1]):
     { "job_id": "<gateway-minted>" }
 
 Environment (Automation Variables):
-    MONGO_FRONTEND_connectionString - front-end cluster (read Config.DBVersions).
+    MONGO_FRONTEND_connectionString - front-end cluster (read ChatHealthyConfig.DBVersions).
     MONGO_connectionString          - pipeline cluster (write status doc).
     API_TOKEN_MAP                   - JSON map; this runbook uses any token from
                                       it as the Bearer credential for /admin/swap.
@@ -40,7 +40,7 @@ from pymongo import MongoClient
 
 _REGISTRY_FILENAME = "change_db_version_target_url_registry.json"
 _STATUS_COLLECTION = ("admin", "ChangeDBVersion_jobs")
-_CONFIG_DB = "Config"
+_CONFIG_DB = "ChatHealthyConfig"
 _CONFIG_COLL = "DBVersions"
 
 
@@ -148,7 +148,7 @@ def main() -> int:
     client = MongoClient(uri, serverSelectionTimeoutMS=10000)
     docs = list(client[_CONFIG_DB][_CONFIG_COLL].find({}))
     client.close()
-    _log(f"loaded {len(docs)} env doc(s) from Config.DBVersions")
+    _log(f"loaded {len(docs)} env doc(s) from ChatHealthyConfig.DBVersions")
 
     total_targets = sum(len(d.get("targets", [])) for d in docs)
     _init_status_doc(job_id, total_targets)
