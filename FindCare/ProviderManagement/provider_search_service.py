@@ -14,6 +14,8 @@ import logging
 import os
 from typing import Optional
 
+from chathealthy_frontend_lib.runtime_data_collections import providers_coll, specialty_meta_coll
+
 _log = logging.getLogger("findcare.provider_search")
 
 
@@ -84,7 +86,7 @@ class FindCareService:
             # county sub-doc. $unwind expands the array (preserves docs without
             # an array via preserveNullAndEmptyArrays). $facet runs both arms in
             # one round-trip so the lookup builds in a single pass.
-            agg = list(db[f"{self._env}_PublicHealthData"]["providers"].aggregate([
+            agg = list(providers_coll().aggregate([
                 {"$facet": {
                     "doc_level": [
                         {"$match": {"county.fips": {"$exists": True}, "county.name": {"$exists": True}}},
@@ -249,7 +251,7 @@ class FindCareService:
             pipeline.append({"$match": self._make_county_filter(county)})
         pipeline += [{"$limit": limit}, {"$project": self._PROJECTION}]
         try:
-            raw = list(db[f"{self._env}_PublicHealthData"]["providers"].aggregate(pipeline))
+            raw = list(providers_coll().aggregate(pipeline))
             return [self._format_provider(p) for p in raw]
         except Exception as e:
             _log.warning("Vector search failed: %s", e)
@@ -384,7 +386,7 @@ class FindCareService:
             return {"error": "Database unavailable"}
 
         safe_limit = int(limit)
-        collection = db[f"{self._env}_PublicHealthData"]["providers"]
+        collection = providers_coll()
 
         # ── Route 1: NPI exact lookup ──
         if npi:
@@ -427,7 +429,7 @@ class FindCareService:
             # Look up selected specialty names for the summary
             specialization_options = []
             try:
-                meta_coll = db[f"{self._env}_PublicHealthData"]["SpecialtyMetaData"]
+                meta_coll = specialty_meta_coll()
                 for doc in meta_coll.find({"Code": {"$in": specialty_codes}},
                                            {"Code": 1, "Display Name": 1, "can_prescribe": 1, "homeopathic": 1, "_id": 0}):
                     specialization_options.append({
