@@ -246,7 +246,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "af6ff145cc749620620c271d4a0bf42f3904b5fb0eeaf72e7bcc0346243405a4"
+          "content_hash": "7fede0394245f6af4ff9433cb8ca67226c2c4d2059ecf3e8bf9ac76268af0070"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2272,7 +2272,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f661e7c49992553a740409a8868193b261afeba412085e5b84f9a21b3842e6bc"
+          "content_hash": "d3677b3eb5f427a9b96f923602acb8f461d6dbacd52f1baef10a6aa834e9354f"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2307,7 +2307,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/target_record.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "6e8b4e4c2e2b3f60e43c20fec477eeb91625e34a1fd24b8d59eabd9fb1a2db50"
+          "content_hash": "ae832d1e843bf2d0e5db7279e24255a4e881f04711abe6e8b00625ff46c3737d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2968,7 +2968,7 @@
           "source_location": "pipeline/ChatHealthyDataPipelinesGatewayFunctionApp.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "cac36b3a76ca3b92be7e4b4a57e53d78801ae5796e9ac932b622657d2bf0e18b"
+          "content_hash": "d87190173d0c782fdaa2a728129266c9a1a180f8434f2bada058a389c86859d0"
         }
       ],
       "secrets": {
