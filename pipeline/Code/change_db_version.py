@@ -56,6 +56,21 @@ try:
 except ImportError:
     pass
 
+# Atlas SRV connection strings (mongodb+srv://...) require dnspython
+# SRV resolution. The AA Python3 sandbox's system DNS does not answer
+# external SRV queries reliably, so explicitly point dnspython at
+# public resolvers. This is harmless in local/dev contexts (overrides
+# only the in-process resolver). Must run BEFORE pymongo is imported.
+try:
+    import dns.resolver  # type: ignore[import-not-found]
+    _r = dns.resolver.Resolver(configure=False)
+    _r.nameservers = ["8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"]
+    _r.timeout = 5
+    _r.lifetime = 10
+    dns.resolver.default_resolver = _r
+except ImportError:
+    pass
+
 from pymongo import MongoClient
 
 
