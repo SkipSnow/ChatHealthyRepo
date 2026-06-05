@@ -146,6 +146,32 @@
                       "items": {"type": "string", "minLength": 1, "maxLength": 256},
                       "uniqueItems": true
                     },
+                    "python_packages": {
+                      "type": "array",
+                      "description": "Python packages this runbook needs installed on the Automation Account's Python3 sandbox before it can run. Each entry pins one wheel via its content_url (PyPI's files.pythonhosted.org/.../*.whl is the canonical source). The runbook deploy MUST ensure every named package is installed and in terminal 'Succeeded' state on the AA before publishing the runbook content. Idempotent: deploy is a no-op when each package already exists at the named URL.",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["name", "content_url"],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Package name as it appears on the AA Python3 packages list — used as the path segment in the package REST resource (PUT /python3Packages/{name}).",
+                            "pattern": "^[A-Za-z0-9._-]+$",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "content_url": {
+                            "type": "string",
+                            "description": "Downloadable .whl URL. Version is pinned via the URL. The AA package PUT body sets contentLink.uri to this value; AA fetches and installs.",
+                            "format": "uri",
+                            "minLength": 1,
+                            "maxLength": 2048
+                          }
+                        }
+                      },
+                      "uniqueItems": true
+                    },
                     "webhook": {
                       "type": "object",
                       "additionalProperties": false,
