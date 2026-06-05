@@ -28,6 +28,7 @@ _STORE_HF_SPACE: str = "hf_space_secret"
 _STORE_CLOUDFLARE: str = "cloudflare_env"
 _STORE_AZURE_FA: str = "azure_function_app_setting"
 _STORE_AZURE_AA: str = "azure_automation_variable"
+_STORE_AZURE_AA_WEBHOOK: str = "azure_automation_webhook"
 
 
 class SecretsResolver:
@@ -111,6 +112,16 @@ class SecretsResolver:
             self._read_azure_function_app_settings(env)
         if store == _STORE_AZURE_AA:
             self._read_azure_automation_variables(env)
+        if store == _STORE_AZURE_AA_WEBHOOK:
+            raise RuntimeError(
+                f"binding {key!r} maps to {_STORE_AZURE_AA_WEBHOOK!r}; "
+                f"this store is NEVER resolved through SecretsResolver. "
+                f"The upstream azure_automation_runbook target's deploy "
+                f"step mints/reuses the webhook and pushes the URL onto "
+                f"the consumer target via UPSERT. The consumer's own "
+                f"deploy handler MUST skip secrets[] entries carrying "
+                f"this store before calling resolve()."
+            )
         raise RuntimeError(
             f"binding {key!r} maps to unknown store {store!r}; no fallback"
         )
