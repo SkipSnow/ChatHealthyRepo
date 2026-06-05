@@ -1183,7 +1183,7 @@ def _az_automation_runbook_webhook_list(rg: str, aa: str, runbook: str) -> list[
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
-        f"/webhooks?api-version=2023-11-01"
+        f"/webhooks?api-version=2018-06-30"
     )
     r = subprocess.run(
         ["az", "rest", "--method", "get", "--url", url, "-o", "json"],
@@ -1208,7 +1208,7 @@ def _az_automation_runbook_webhook_delete(rg: str, aa: str, webhook_name: str) -
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
-        f"/webhooks/{webhook_name}?api-version=2023-11-01"
+        f"/webhooks/{webhook_name}?api-version=2018-06-30"
     )
     r = subprocess.run(
         ["az", "rest", "--method", "delete", "--url", url, "-o", "none"],
@@ -1237,7 +1237,7 @@ def _az_automation_runbook_webhook_create(
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
-        f"/webhooks/{webhook_name}?api-version=2023-11-01"
+        f"/webhooks/{webhook_name}?api-version=2018-06-30"
     )
     body = json.dumps({
         "properties": {
