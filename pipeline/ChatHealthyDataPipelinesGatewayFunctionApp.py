@@ -301,8 +301,12 @@ def gateway_router(req: func.HttpRequest) -> func.HttpResponse:
 
         route = ROUTES.get(task)
         if route is None:
-            msg = f"Unknown route: {task!r}"
-            return _respond(404, body={"success": False, "error": msg, "task": task},
+            msg = (
+                f"ChatHealthyTask {task!r} is not implemented in this gateway "
+                f"build. A newer build that adds this task name to the gateway's "
+                f"ROUTES table must be deployed before this call can succeed."
+            )
+            return _respond(501, body={"success": False, "error": msg, "task": task},
                             user_id=user_id, task=task, error=msg)
 
         ok, err_msg = _validate(body, route)

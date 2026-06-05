@@ -179,6 +179,13 @@ class TargetRecord:
     files: list[FileComposition]
     secrets: dict | None = None  # name -> store_id; same keys apply across all envs;
                                   # per-env values resolved via SecretsResolver at deploy time
+    promote_chain_bound: bool = True
+    # True (default): target rides the dev->qa->prod promote chain; local
+    # branch must match env_binding.branch for the requested env. False:
+    # single-environment shared infrastructure (the one pipeline FA, the
+    # one durable router ACA, the one Automation Account + its runbooks)
+    # deployed from any branch, typically dev. Both branch-vs-env guards
+    # in local_deploy.py skip records with this flag set False.
 
     def env_binding_set(self) -> set[str]:
         return {e.env_binding for e in self.environments}
@@ -193,9 +200,11 @@ class TargetRecord:
         out: dict[str, object] = {
             "target_id": self.target_id,
             "target_kind": self.target_kind,
-            "environments": [e.to_dict() for e in self.environments],
-            "files": [f.to_dict() for f in self.files],
         }
+        if not self.promote_chain_bound:
+            out["promote_chain_bound"] = False
+        out["environments"] = [e.to_dict() for e in self.environments]
+        out["files"] = [f.to_dict() for f in self.files]
         if self.secrets:
             out["secrets"] = self.secrets
         return out
@@ -212,6 +221,7 @@ class TargetRecord:
             environments=[EnvironmentBinding.from_dict(e) for e in envs_raw],
             files=[FileComposition.from_dict(f) for f in files_raw],
             secrets=d.get("secrets"),  # type: ignore[arg-type]
+            promote_chain_bound=bool(d.get("promote_chain_bound", True)),
         )
 
 

@@ -1489,7 +1489,14 @@ def _require_branch_matches_env_binding(
     in code so a dev-branch checkout cannot push to qa or prod (and qa
     cannot push to prod). Per the firm-level promote rule (dev branch
     deploys dev, qa branch deploys qa, main branch deploys prod).
+
+    Targets carrying promote_chain_bound=false in the manifest are
+    single-environment shared infrastructure (one pipeline FA, one
+    durable router ACA, one Automation Account + its runbooks) and are
+    deployed from any branch. The guard skips them.
     """
+    if not target.promote_chain_bound:
+        return
     binding = next(
         (e for e in target.environments if e.env_binding == env), None,
     )
@@ -1621,6 +1628,12 @@ def _run_cloud_deploy(env: str, target_arg: str) -> int:
     if not selected:
         sys.exit(f"ERROR: no targets matched --target={target_arg!r}")
     by_id = {t.target_id: t for t in coll}
+    # Firm-level branch guard. Skipped only when EVERY selected target is
+    # promote-chain exempt (the pipeline-only carve-out). The per-target
+    # guard inside _deploy_one is still the authoritative enforcement;
+    # this is the fail-fast surface for promote-chain deploys.
+    if any(by_id[tid].promote_chain_bound for tid, _ in selected):
+        _require_branch_matches_env(env)
     succeeded: list[str] = []
     failed: list[tuple[str, str]] = []  # (target_id, error_message)
     for target_id, target_kind in selected:
@@ -2371,9 +2384,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     _require_local_context()
-    _require_branch_matches_env(args.env)
     if args.env == "local":
+        _require_branch_matches_env(args.env)
         return LocalDeploy().run()
+    # For cloud deploys, the global firm-level branch guard is enforced
+    # inside _run_cloud_deploy() after the manifest is loaded — so it can
+    # be skipped when every selected target is promote-chain exempt
+    # (single-environment shared infrastructure like the pipeline FA).
     return _run_cloud_deploy(args.env, args.target)
 
 
