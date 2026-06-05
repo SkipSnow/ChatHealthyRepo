@@ -18,6 +18,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from chathealthy_frontend_lib.runtime_data_collections import specialty_meta_coll
+
 _log = logging.getLogger("findcare.specialty_filter")
 
 
@@ -150,7 +152,7 @@ class SpecialtyFilter:
         db = self._get_db()
         if db is None:
             return []
-        coll = db[f"{self._env}_PublicHealthData"]["SpecialtyMetaData"]
+        coll = specialty_meta_coll()
         total = coll.count_documents({"Section": "Individual"})
         rows = list(coll.aggregate([
             {"$vectorSearch": {

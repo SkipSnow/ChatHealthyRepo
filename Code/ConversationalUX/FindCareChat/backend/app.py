@@ -249,7 +249,19 @@ app = FastAPI(title="ChatHealthy FindCare API")
 # EPIC-008-F-011-S-001-REQ-B-002 / REQ-B-003 — uniform fatal-error contract.
 # EPIC-003: consumed from the chathealthy-frontend-lib package.
 from chathealthy_frontend_lib.runtime_governance import ChatHealthyFatalError, register_fatal_handler
+from chathealthy_frontend_lib.runtime_data_collections import (
+    providers_coll,
+    specialty_meta_coll,
+    bind_from_manifest as _bind_data_collections,
+    router as _data_collections_router,
+)
 register_fatal_handler(app, service_name="FindCare")
+
+# EPIC-010-F-101-S-005 (Data version management): bind runtime data
+# collections from Config.DBVersions on startup, and mount the
+# /admin/swap + /debug/active_collections endpoints.
+_bind_data_collections()
+app.include_router(_data_collections_router)
 
 # ── EPIC-002-F-001-S-012-REQ-T-004: startup security-primitive verification ──
 # FindCare's security primitives are nonce restamp (signs with findcare.key)
@@ -439,7 +451,7 @@ async def classify(body: ClassifyRequest, request: Request):
         _db_for_class = _get_db()
         if _db_for_class is None:
             raise RuntimeError("Mongo unavailable")
-        spec_col = _db_for_class[f"{_ENV_PREFIX}_PublicHealthData"]["SpecialtyMetaData"]
+        spec_col = specialty_meta_coll()
         # find_specialists uses pydantic-ai's run_sync internally; FastAPI's
         # /classify is async and already inside an event loop, so direct
         # call deadlocks ("this event loop is already running"). Run in a
@@ -518,10 +530,10 @@ async def classify(body: ClassifyRequest, request: Request):
 def welcome():
     return {"message": WELCOME_MESSAGE}
 
-_REQUIRED_INDEXES = {
-    "providers": ["provider_vector_index"],
-    "SpecialtyMetaData": ["specialty_vector_index"],
-}
+_REQUIRED_INDEXES = [
+    ("providers", providers_coll, ["provider_vector_index"]),
+    ("SpecialtyMetaData", specialty_meta_coll, ["specialty_vector_index"]),
+]
 
 def _check_indexes() -> dict:
     """DR-016/DR-018: verify all required vector search indexes exist.
@@ -537,21 +549,17 @@ def _check_indexes() -> dict:
       - Indexes legitimately
         missing                  → status: "fail" with missing[] populated.
     """
-    db = _get_db()
-    if db is None:
-        return {"status": "db_unavailable", "missing": [], "errors": []}
     missing = []
     errors = []
-    for coll_name, index_names in _REQUIRED_INDEXES.items():
+    for coll_label, coll_fn, index_names in _REQUIRED_INDEXES:
         try:
-            existing = [idx.get("name") for idx in
-                        db[f"{_ENV_PREFIX}_PublicHealthData"][coll_name].list_search_indexes()]
+            existing = [idx.get("name") for idx in coll_fn().list_search_indexes()]
         except Exception as exc:
-            errors.append({"collection": coll_name, "error": f"{type(exc).__name__}: {exc}"})
+            errors.append({"collection": coll_label, "error": f"{type(exc).__name__}: {exc}"})
             continue
         for idx in index_names:
             if idx not in existing:
-                missing.append(f"{coll_name}/{idx}")
+                missing.append(f"{coll_label}/{idx}")
     status = "ok" if not missing and not errors else "fail"
     return {"status": status, "missing": missing, "errors": errors}
 
