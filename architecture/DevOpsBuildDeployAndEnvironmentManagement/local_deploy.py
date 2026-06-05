@@ -273,10 +273,11 @@ def _set_hf_config(
 def _push_thin_dockerfile_to_hf_space(
     target_id: str, env: str, hf_token: str, image_ref: str, port: int,
 ) -> None:
+    org = rd._hf_org(target_id, env)
     space = rd._hf_space_name(target_id, env)
     hf_clone = Path(tempfile.mkdtemp(prefix=f"hf_{space}_"))
-    repo_url = f"https://{rd._HF_ORG}:{hf_token}@huggingface.co/spaces/{rd._HF_ORG}/{space}"
-    _step(f"  clone https://huggingface.co/spaces/{rd._HF_ORG}/{space}")
+    repo_url = f"https://{org}:{hf_token}@huggingface.co/spaces/{org}/{space}"
+    _step(f"  clone https://huggingface.co/spaces/{org}/{space}")
     subprocess.run(
         ["git", "clone", repo_url, str(hf_clone)],
         check=True, capture_output=True,
