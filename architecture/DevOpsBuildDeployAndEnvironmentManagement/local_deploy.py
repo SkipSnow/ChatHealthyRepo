@@ -125,6 +125,49 @@ def _require_local_context() -> None:
         )
 
 
+# Firm-level promote-chain rule. local + dev deploy from the dev branch;
+# qa deploys from the qa branch; prod deploys from main. Every cloud
+# target in deployment_architecture.json carries the same env_binding.branch
+# values, so this map is the redundant firm-level statement of the rule —
+# enforced regardless of any per-target env_binding wiring at the cloud
+# dispatch path. local stand-up also enforces it here, before any other
+# work begins.
+_ENV_BRANCH: dict[str, str] = {
+    "local": "dev",
+    "dev":   "dev",
+    "qa":    "qa",
+    "prod":  "main",
+}
+
+
+def _require_branch_matches_env(env: str) -> None:
+    """Hard-fail unless the local working-tree branch is the one the firm
+    promote chain says deploys to `env`. Runs at main() entry so neither
+    local nor cloud deploys can ever ship a wrong-branch source set."""
+    expected = _ENV_BRANCH.get(env)
+    if not expected:
+        sys.exit(f"ERROR: unknown env {env!r}; promote-chain guard refuses to proceed.")
+    cp = subprocess.run(
+        ["git", "symbolic-ref", "--short", "HEAD"],
+        capture_output=True, text=True,
+    )
+    if cp.returncode != 0 or not cp.stdout.strip():
+        sys.exit(
+            "ERROR: deploy refuses to run from a detached HEAD or non-branch state.\n"
+            f"  stderr: {(cp.stderr or '').strip()[:300]}"
+        )
+    actual = cp.stdout.strip()
+    if actual != expected:
+        sys.exit(
+            f"ERROR: promote-chain guard — refusing to deploy.\n"
+            f"  env                   : {env}\n"
+            f"  expected branch       : {expected}\n"
+            f"  current branch (HEAD) : {actual}\n"
+            f"To deploy {env} you MUST be on branch '{expected}'. Use the "
+            "promote workflow to land the change there first."
+        )
+
+
 def _find_repo_root(start: Path) -> Path:
     p = start.resolve()
     while p != p.parent:
@@ -1421,6 +1464,60 @@ def _deploy_azure_container_app(
 # Cloud dispatch (--env dev|qa|prod)
 # ═════════════════════════════════════════════════════════════════════════
 
+def _current_git_branch(repo_root: Path) -> str:
+    """Return the local working tree's current branch name. Fails loud
+    in detached-HEAD or any other state we cannot pin to a branch."""
+    cp = subprocess.run(
+        ["git", "symbolic-ref", "--short", "HEAD"],
+        cwd=str(repo_root), capture_output=True, text=True,
+    )
+    if cp.returncode != 0 or not cp.stdout.strip():
+        sys.exit(
+            "ERROR: deploy refuses to run from a detached HEAD or non-branch state.\n"
+            f"  stderr: {(cp.stderr or '').strip()[:300]}"
+        )
+    return cp.stdout.strip()
+
+
+def _require_branch_matches_env_binding(
+    repo_root: Path,
+    target,
+    env: str,
+) -> None:
+    """Refuse the deploy unless the local branch matches the target's
+    env_binding.branch for the requested env. Enforces the promote chain
+    in code so a dev-branch checkout cannot push to qa or prod (and qa
+    cannot push to prod). Per the firm-level promote rule (dev branch
+    deploys dev, qa branch deploys qa, main branch deploys prod).
+    """
+    binding = next(
+        (e for e in target.environments if e.env_binding == env), None,
+    )
+    if binding is None:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} has no env_binding for env={env!r}; "
+            f"cannot enforce promote-chain guard."
+        )
+    expected = binding.branch
+    if not expected:
+        sys.exit(
+            f"ERROR: target {target.target_id!r} env_binding {env!r} has no "
+            "branch declared in deployment_architecture.json; the deploy refuses "
+            "to ship without a manifest-declared expected branch."
+        )
+    actual = _current_git_branch(repo_root)
+    if actual != expected:
+        sys.exit(
+            f"ERROR: promote-chain guard — refusing to deploy.\n"
+            f"  target_id     : {target.target_id}\n"
+            f"  env           : {env}\n"
+            f"  expected branch (manifest): {expected}\n"
+            f"  current branch (HEAD)     : {actual}\n"
+            f"To deploy {env} you must be on '{expected}' (use the promote workflow "
+            f"to land the change there first)."
+        )
+
+
 def _deploy_one(
     repo_root: Path,
     target_id: str,
@@ -1434,11 +1531,11 @@ def _deploy_one(
         sys.exit(f"ERROR: build dir missing: {build_dir}")
     manifest = _load_target_manifest(repo_root, target_id)
     build_n = int(manifest["build_number"])
+    target = coll.by_target_id(target_id)
+    _require_branch_matches_env_binding(repo_root, target, env)
     if target_kind == "cloudflare_pages_project":
-        target = coll.by_target_id(target_id)
         return _deploy_cloudflare(build_dir, env, resolver, target)
     if target_kind == "hf_space":
-        target = coll.by_target_id(target_id)
         return _deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver, target)
     if target_kind == "azure_function_app":
         target = coll.by_target_id(target_id)
@@ -2289,6 +2386,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     _require_local_context()
+    _require_branch_matches_env(args.env)
     if args.env == "local":
         return LocalDeploy().run()
     return _run_cloud_deploy(args.env, args.target)
