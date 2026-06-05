@@ -184,15 +184,6 @@ _url_guardian = URLGuardian(cache_ttl=3600, request_timeout=5)
 
 # UAT report
 # UAT report: local repo path or HF flat layout
-_ops_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared", "ops")
-if not os.path.isdir(_ops_dir):
-    _ops_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ops")
-sys.path.insert(0, _ops_dir)
-from uat_report import build_uat_welcome
-
-def _build_test_welcome():
-    return build_uat_welcome(get_db_fn=_get_db)
-
 def _system_prompt(follow_up_check: bool = False) -> str:
     return _prompt_maker.build_system_prompt(emergency_response=EMERGENCY_RESPONSE, follow_up_check=follow_up_check)
 
