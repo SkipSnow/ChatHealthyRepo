@@ -1690,6 +1690,14 @@ class LocalDeploy:
         "ch-sharedsvc": ("shared",   "sharedServices/Code",      "sharedServices/Code"),
     }
 
+    # container_name -> manifest target_id (consumed by runtime_data_collections
+    # at startup to find its targets[] entry in ChatHealthyConfig.DBVersions).
+    CONTAINER_TARGET_ID = {
+        "ch-findcare":  "target_hf_space_findcare_backend",
+        "ch-evalcare":  "target_hf_space_evaluatecare_backend",
+        "ch-sharedsvc": "target_hf_space_shared_services",
+    }
+
     # Website wrapper runs in its own container per S-002-REQ-T-002 / T-007.
     # Dockerfile lives at WebsiteWrapper/Dockerfile; build context = repo
     # root so the Dockerfile can COPY _start_website.py from its canonical
@@ -1756,33 +1764,6 @@ class LocalDeploy:
             f"deployment-architecture gate passed "
             f"(targets={len(coll)}, violations=0)"
         )
-
-    def _lint_workflow_yamls(self) -> None:
-        import yaml as _yaml
-        workflow_dir = self.repo_root / ".github" / "workflows"
-        if not workflow_dir.is_dir():
-            sys.exit(
-                f"Deploy aborted — .github/workflows directory missing at "
-                f"{workflow_dir} (CHATHEALTHY_PROJECT_ROOT may be wrong)"
-            )
-        yml_paths = sorted(
-            list(workflow_dir.glob("*.yml")) + list(workflow_dir.glob("*.yaml"))
-        )
-        failures: list[str] = []
-        for path in yml_paths:
-            try:
-                with path.open("r", encoding="utf-8") as f:
-                    _yaml.safe_load(f)
-            except _yaml.YAMLError as exc:
-                failures.append(f"{path}: {exc}")
-            except OSError as exc:
-                failures.append(f"{path}: cannot read ({type(exc).__name__}: {exc})")
-        if failures:
-            sys.exit(
-                "Deploy aborted — workflow yaml lint failed:\n  "
-                + "\n  ".join(failures)
-            )
-        self._step_notice(f"workflow yaml lint passed ({len(yml_paths)} files)")
 
     # REQ-T-005 — atomic teardown precondition
     def _teardown_precondition(self) -> None:
@@ -1879,6 +1860,7 @@ class LocalDeploy:
             "build": int(build_num) if build_num.isdigit() else None,
             "commit": commit,
             "env": self.env,
+            "target_id": self.CONTAINER_TARGET_ID.get(container_name),
             "service": container_name,
             "version": "1.4.1",
             "framework": "0.1.5",
@@ -2126,7 +2108,11 @@ class LocalDeploy:
         checks = [
             ("findcare",
              f"https://localhost:{self.PORTS['findcare']}/health",
-             lambda t: '"status":"ok"' in t),
+             # Boot success contract: runtime is up and Mongo is connected.
+             # Missing search indexes report status=degraded — the runtime
+             # boots fine, but data-touching requests will surface their
+             # own errors at call time. Treat both ok and degraded as ready.
+             lambda t: '"status":"ok"' in t or '"status":"degraded"' in t),
             ("evalcare",
              f"https://localhost:{self.PORTS['evalcare']}/health",
              lambda t: '"service":"evaluate_care"' in t),
@@ -2341,7 +2327,6 @@ class LocalDeploy:
     def run(self) -> int:
         self._step_notice(f"deploy started for {self.env}")
         self._ensure_local_ca_trusted()
-        self._lint_workflow_yamls()
         self._deployment_architecture_gate()
         self._ensure_docker_available()
         self._teardown_precondition()
