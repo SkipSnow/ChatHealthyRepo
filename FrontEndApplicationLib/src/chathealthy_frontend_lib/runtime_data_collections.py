@@ -106,16 +106,27 @@ def _bindings_from_doc(doc: dict, target_id: str) -> dict[str, str]:
 
 
 def bind_from_manifest() -> None:
-    """Read build_info.json + ChatHealthyConfig.DBVersions and bind module-level
-    collection statics. Call from the runtime's startup hook. Raises on
-    any missing piece — no silent fallbacks."""
+    """Read target_id (from build_info.json) + env (from ENV_PREFIX env
+    var) and bind module-level collection statics from
+    ChatHealthyConfig.DBVersions. Call from the runtime's startup hook.
+    Raises on any missing piece — no silent fallbacks.
+
+    target_id is build-time-stable (baked into the image); env is
+    deploy-time-stable (set per HF Space deploy via ENV_PREFIX), so the
+    two come from different sources by design.
+    """
     info = _read_build_info()
     target_id = info.get("target_id")
-    env = info.get("env")
-    if not target_id or not env:
+    env = os.environ.get("ENV_PREFIX")
+    if not target_id:
         raise RuntimeError(
-            "runtime_data_collections: build_info.json missing "
-            f"target_id ({target_id!r}) or env ({env!r})."
+            f"runtime_data_collections: build_info.json missing target_id "
+            f"({target_id!r}). Build step must emit it."
+        )
+    if not env:
+        raise RuntimeError(
+            "runtime_data_collections: ENV_PREFIX env var not set. The HF "
+            "deploy must set it per target environment binding."
         )
     doc = _read_env_doc(env)
     bindings = _bindings_from_doc(doc, target_id)
