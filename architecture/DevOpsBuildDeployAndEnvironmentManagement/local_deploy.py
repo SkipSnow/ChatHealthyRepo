@@ -231,8 +231,19 @@ def _set_hf_config(
     env: str,
     hf_token: str,
     resolver: SecretsResolver,
+    target: TargetRecord,
 ) -> None:
-    """Set the HF Space's variables (computed config) + secrets (from store)."""
+    """Set the HF Space's variables (deploy-computed) + secrets (manifest-driven).
+
+    Variables (deploy-computed, not in the manifest): ENV_PREFIX, peer URLs,
+    certificate PEMs encoded inline. These are derived at deploy time from
+    the deployment-architecture topology, not from .env.
+
+    Secrets (manifest-driven, REQ-B-008): every entry in target.secrets is
+    resolved through SecretsResolver and pushed as an HF Space secret.
+    Signing-key entries are remapped from their manifest names to the
+    runtime-expected names via _HF_SIGNING_VAR.
+    """
     space = rd._hf_space_name(target_id, env)
     findcare_peer = rd._hf_peer_url("target_hf_space_findcare_backend",     env)
     evalcare_peer = rd._hf_peer_url("target_hf_space_evaluatecare_backend", env)
@@ -259,15 +270,14 @@ def _set_hf_config(
     rd._hf_set_variable(hf_token, space, "SHARED_CERT_PEM",   _b64(certs_dir / "shared.crt"))
     rd._hf_set_variable(hf_token, space, "EVALCARE_CERT_PEM", _b64(certs_dir / "evalcare.crt"))
 
-    manifest_name, hf_secret_name = _HF_SIGNING_VAR[target_id]
-    signing_b64 = resolver.resolve(manifest_name, env)
-    rd._hf_set_secret(hf_token, space, hf_secret_name, signing_b64)
-
-    if target_id == "target_hf_space_findcare_backend":
-        rd._hf_set_secret(hf_token, space, "GEMINI_API_KEY", resolver.resolve("GEMINI_API_KEY", env))
-    if target_id == "target_hf_space_shared_services":
-        rd._hf_set_secret(hf_token, space, "GOOGLE_OAUTH_CLIENT_ID",     resolver.resolve("GOOGLE_OAUTH_CLIENT_ID", env))
-        rd._hf_set_secret(hf_token, space, "GOOGLE_OAUTH_CLIENT_SECRET", resolver.resolve("GOOGLE_OAUTH_CLIENT_SECRET", env))
+    signing_manifest_name, signing_runtime_name = _HF_SIGNING_VAR[target_id]
+    signing_rename = {signing_manifest_name: signing_runtime_name}
+    for manifest_name, store_id in target.secrets.items():
+        if store_id != "local_env":
+            continue
+        value = resolver.resolve(manifest_name, env)
+        runtime_name = signing_rename.get(manifest_name, manifest_name)
+        rd._hf_set_secret(hf_token, space, runtime_name, value)
 
 
 def _push_thin_dockerfile_to_hf_space(
@@ -323,13 +333,14 @@ def _deploy_hf_space(
     target_id: str,
     env: str,
     resolver: SecretsResolver,
+    target: TargetRecord,
 ) -> str:
     port = _HF_APP_PORT[target_id]
     image_ref = _ghcr_image_ref(target_id, env, build_n)
     _step(f"=== hf_space {target_id} env={env} -> {image_ref} ===")
     _docker_build_then_push(build_dir, image_ref)
     hf_token = resolver.resolve("HF_TOKEN", env)
-    _set_hf_config(repo_root, target_id, env, hf_token, resolver)
+    _set_hf_config(repo_root, target_id, env, hf_token, resolver, target)
     _push_thin_dockerfile_to_hf_space(target_id, env, hf_token, image_ref, port)
     return image_ref
 
@@ -1427,7 +1438,8 @@ def _deploy_one(
         target = coll.by_target_id(target_id)
         return _deploy_cloudflare(build_dir, env, resolver, target)
     if target_kind == "hf_space":
-        return _deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver)
+        target = coll.by_target_id(target_id)
+        return _deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver, target)
     if target_kind == "azure_function_app":
         target = coll.by_target_id(target_id)
         return _deploy_azure_function_app(build_dir, target, env, resolver, coll)
