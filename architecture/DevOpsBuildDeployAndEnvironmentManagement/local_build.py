@@ -469,6 +469,26 @@ def _emit_change_db_version_target_url_registry(repo_root: Path, build_dir: Path
     target_count = sum(len(v) for v in registry.values())
     _step(f"  baked URL registry -> {out.name} ({len(registry)} envs, {target_count} entries)")
 
+    # Inline the registry into the staged runbook.py so the AA-deployed
+    # runbook (which only carries the .py, no sibling files) can resolve
+    # target URLs at runtime. Replaces a single-line placeholder in the
+    # source; the placeholder string MUST match the literal in
+    # pipeline/Code/change_db_version.py exactly.
+    runbook_py = build_dir / "runbook.py"
+    if runbook_py.is_file():
+        original = runbook_py.read_text(encoding="utf-8")
+        placeholder = "_BAKED_REGISTRY: dict = {}"
+        replacement = f"_BAKED_REGISTRY: dict = {json.dumps(registry, separators=(', ', ': '))}"
+        if placeholder not in original:
+            sys.exit(
+                f"ERROR: cannot inline registry into runbook — placeholder "
+                f"{placeholder!r} not found in {runbook_py}. The source file "
+                "pipeline/Code/change_db_version.py must keep the "
+                "placeholder literal verbatim on a single line."
+            )
+        runbook_py.write_text(original.replace(placeholder, replacement, 1), encoding="utf-8")
+        _step(f"  inlined registry into {runbook_py.name}")
+
 
 def _build_azure_container_app(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
     """Stage the Pipeline source tree + render the Dockerfile.

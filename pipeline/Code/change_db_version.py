@@ -43,19 +43,31 @@ _STATUS_COLLECTION = ("admin", "ChangeDBVersion_jobs")
 _CONFIG_DB = "ChatHealthyConfig"
 _CONFIG_COLL = "DBVersions"
 
+# Placeholder. The build step for target_azure_automation_runbook_
+# change_db_version replaces this with the actual {env: {target_id:
+# node_address}} map derived from deployment_architecture.json at the
+# moment of the build. The replacement is text-level so the literal
+# below MUST stay on a single line and MUST stay matchable by
+# `_BAKED_REGISTRY: dict = {}` exactly.
+_BAKED_REGISTRY: dict = {}
+
 
 def _log(msg: str) -> None:
     print(f"[ChangeDBVersion] {msg}", flush=True)
 
 
 def _read_registry() -> dict[str, str]:
+    if _BAKED_REGISTRY:
+        return _BAKED_REGISTRY
     here = Path(__file__).resolve().parent
     registry_path = here / _REGISTRY_FILENAME
     if not registry_path.is_file():
         sys.exit(
-            f"ERROR: target URL registry not found at {registry_path}. The "
-            "build step for azure_automation_runbook must bake it from "
-            "deployment_architecture.json."
+            f"ERROR: target URL registry not found at {registry_path} and "
+            "_BAKED_REGISTRY is empty. The build step for the azure_"
+            "automation_runbook target must either populate _BAKED_REGISTRY "
+            "or write the sibling registry JSON file from deployment_"
+            "architecture.json."
         )
     return json.loads(registry_path.read_text(encoding="utf-8"))
 

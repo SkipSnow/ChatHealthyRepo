@@ -2265,7 +2265,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_build.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "38781106b243b7c280a0734641b4ebd342f4d6969238efb35dcab8e2885397d5"
+          "content_hash": "62676ba08c61f3f3b3cfceb1e79bf883007d2967d14664f5cdc92b703a908648"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2544,7 +2544,7 @@
           "source_location": "pipeline/Code/change_db_version.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b1c93316a60558ea4ef536b36861cb63a6057a36d4e525268c655e86a45794b4"
+          "content_hash": "06fff4dc5058075d9b353e2657e7648b457a2ab4850096404e2bccfdb69ec9c9"
         }
       ],
       "secrets": {
