@@ -21,7 +21,6 @@ Input payload (JSON-encoded `payload` parameter, read via sys.argv[1]):
 
 Environment (Automation Variables):
     MONGO_FRONTEND_connectionString - front-end cluster (read ChatHealthyConfig.DBVersions).
-    MONGO_connectionString          - pipeline cluster (write status doc).
     API_TOKEN_MAP                   - JSON map; this runbook uses any token from
                                       it as the Bearer credential for /admin/swap.
 """
@@ -32,7 +31,6 @@ import os
 import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
 from pathlib import Path
 
 # When this module runs as an Azure Automation runbook the deploy step
@@ -47,7 +45,6 @@ try:
     for _k in (
         "API_TOKEN_MAP",
         "MONGO_FRONTEND_connectionString",
-        "MONGO_connectionString",
     ):
         try:
             os.environ[_k] = str(automationassets.get_automation_variable(_k))
@@ -86,7 +83,6 @@ except ImportError:
 
 
 _REGISTRY_FILENAME = "change_db_version_target_url_registry.json"
-_STATUS_COLLECTION = ("admin", "ChangeDBVersion_jobs")
 _CONFIG_DB = "ChatHealthyConfig"
 _CONFIG_COLL = "DBVersions"
 
@@ -147,49 +143,6 @@ def _post_swap(target_url: str, collections: list[dict], token: str, timeout: in
         return 0, str(exc)
 
 
-def _init_status_doc(job_id: str, total_targets: int) -> None:
-    uri = os.environ.get("MONGO_connectionString")
-    if not uri:
-        _log("WARN: MONGO_connectionString not set; status doc will not be written.")
-        return
-    client = MongoClient(uri, serverSelectionTimeoutMS=10000, tlsCAFile=_MONGO_TLS_CA_FILE)
-    db, coll = _STATUS_COLLECTION
-    client[db][coll].insert_one({
-        "job_id": job_id,
-        "started_at": datetime.now(timezone.utc).isoformat(),
-        "total_targets": total_targets,
-        "results": [],
-        "has_exception": False,
-    })
-    client.close()
-
-
-def _append_result(job_id: str, result: dict) -> None:
-    uri = os.environ.get("MONGO_connectionString")
-    if not uri:
-        return
-    client = MongoClient(uri, serverSelectionTimeoutMS=10000, tlsCAFile=_MONGO_TLS_CA_FILE)
-    db, coll = _STATUS_COLLECTION
-    client[db][coll].update_one({"job_id": job_id}, {"$push": {"results": result}})
-    client.close()
-
-
-def _finalize_status(job_id: str, *, has_exception: bool) -> None:
-    uri = os.environ.get("MONGO_connectionString")
-    if not uri:
-        return
-    client = MongoClient(uri, serverSelectionTimeoutMS=10000, tlsCAFile=_MONGO_TLS_CA_FILE)
-    db, coll = _STATUS_COLLECTION
-    client[db][coll].update_one(
-        {"job_id": job_id},
-        {"$set": {
-            "ended_at": datetime.now(timezone.utc).isoformat(),
-            "has_exception": has_exception,
-        }},
-    )
-    client.close()
-
-
 def _read_webhook_payload() -> dict:
     """Unwrap legacy Azure Automation's WebhookData envelope into the
     inner JSON payload. AA mangles the wrapper into a non-JSON format
@@ -238,9 +191,6 @@ def main() -> int:
     client.close()
     _log(f"loaded {len(docs)} env doc(s) from ChatHealthyConfig.DBVersions")
 
-    total_targets = sum(len(d.get("targets", [])) for d in docs)
-    _init_status_doc(job_id, total_targets)
-
     has_exception = False
     for doc in docs:
         env = doc.get("env")
@@ -248,27 +198,17 @@ def main() -> int:
             target_id = entry.get("deployment_target")
             collections = entry.get("collections", [])
             url = registry.get(env, {}).get(target_id) if isinstance(registry.get(env), dict) else registry.get(target_id)
-            result: dict = {"env": env, "target_id": target_id, "collection_count": len(collections)}
             if not url:
-                result["status"] = "no_url"
-                result["detail"] = f"registry has no URL for env={env!r} target_id={target_id!r}"
                 has_exception = True
                 _log(f"  {env}/{target_id}: NO URL in registry")
-                _append_result(job_id, result)
                 continue
             code, body = _post_swap(url, collections, token)
-            result["http_status"] = code
-            result["response_preview"] = body[:300]
             if code == 200:
-                result["status"] = "ok"
                 _log(f"  {env}/{target_id}: 200 OK")
             else:
-                result["status"] = "fail"
                 has_exception = True
                 _log(f"  {env}/{target_id}: {code} {body[:200]}")
-            _append_result(job_id, result)
 
-    _finalize_status(job_id, has_exception=has_exception)
     return 1 if has_exception else 0
 
 
