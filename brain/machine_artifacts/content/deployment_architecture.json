@@ -2548,12 +2548,11 @@
           "source_location": "pipeline/Code/change_db_version.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a13a95568d264d2bd5fbad9c793bf140e674b3d088d82c33e5bb9d17bfa903f7"
+          "content_hash": "4da3d8a83e85ddd27891abbc3054836c88df5bdfd5f95385cfa1bba7a344c23b"
         }
       ],
       "secrets": {
         "MONGO_FRONTEND_connectionString": "local_env",
-        "MONGO_connectionString": "local_env",
         "API_TOKEN_MAP": "local_env"
       }
     },
