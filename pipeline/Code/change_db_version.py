@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 import sys
 import urllib.error
 import urllib.request
@@ -78,8 +79,14 @@ from pymongo import MongoClient
 try:
     import certifi  # type: ignore[import-not-found]
     _MONGO_TLS_CA_FILE: str | None = certifi.where()
+    # urllib.request.urlopen uses Python's default ssl context, which
+    # on the AA Windows sandbox has the same stale trust store that
+    # broke the Atlas connection. Build a context off certifi so the
+    # /admin/swap POSTs validate against a current Mozilla CA bundle.
+    _SWAP_SSL_CONTEXT: ssl.SSLContext | None = ssl.create_default_context(cafile=_MONGO_TLS_CA_FILE)
 except ImportError:
     _MONGO_TLS_CA_FILE = None
+    _SWAP_SSL_CONTEXT = None
 
 
 _REGISTRY_FILENAME = "change_db_version_target_url_registry.json"
@@ -134,7 +141,7 @@ def _post_swap(target_url: str, collections: list[dict], token: str, timeout: in
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout, context=_SWAP_SSL_CONTEXT) as resp:
             return resp.status, resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
