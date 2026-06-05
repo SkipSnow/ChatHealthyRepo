@@ -67,6 +67,11 @@
             ]
           },
 
+          "promote_chain_bound": {
+            "type": "boolean",
+            "description": "Whether this target participates in the firm-level dev->qa->prod promote chain. Default true (absent == true). When true, the deploy script enforces that the local git branch matches the env_binding.branch declared for the requested env (dev branch deploys dev, qa branch deploys qa, main branch deploys prod) — both at firm-level entry and at per-target dispatch. When false, the target is single-environment shared infrastructure (e.g. the one pipeline Function App, the one durable router ACA, the one Automation Account and its runbooks) that every developer deploys to from any branch, typically dev. Both branch-vs-env guards in local_deploy.py skip targets carrying promote_chain_bound=false."
+          },
+
           "environments": {
             "type": "array",
             "description": "The set of environment bindings under which this target is realized. INVARIANT: env_binding values MUST be unique within this array (one node_address per environment).",
