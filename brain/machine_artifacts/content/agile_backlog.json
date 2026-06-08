@@ -1905,59 +1905,6 @@
                     },
                     "orphan": false,
                     "approval": "approved"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-004-S-002",
-                    "name": "Downstream tool registry and metadata API",
-                    "description": "The universal router owns the registry of all downstream tools that can be invoked through it, and exposes the metadata API by which any caller can retrieve tool metadata at runtime.",
-                    "size": "M",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-004-S-002-REQ-B-001",
-                          "orphan": false,
-                          "name": "Universal router maintains downstream tool registry and exposes metadata API",
-                          "requirement": "The universal router MUST maintain a registry of all downstream tools that can be invoked through it. Downstream tools register with the router at build time, supplying their TOOL_NAME, Request schema, and natural-language minimum/total requirement strings per entity. The router MUST expose a metadata API by which any caller can retrieve, at runtime, either the full registry OR a single tool's metadata by TOOL_NAME. Build-time registration; runtime read-only access. The registry is the single source of truth for tool addressability.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-004-S-002-REQ-B-001-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "sharedServices/Code/tests/test_universal_router_tool_registry.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-002-F-004-S-002-REQ-B-002",
-                          "orphan": false,
-                          "name": "Registration entries carry per-attribute natural-language requirement statements",
-                          "requirement": "Each tool registration entry held by the universal router MUST include, for every attribute in the tool's Request class, a natural-language statement of what user information that attribute requires. The statements are how downstream callers (e.g., UtteranceManager) decide whether the user's utterance contains enough information to invoke a given tool.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-004-S-002-REQ-B-002-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "sharedServices/Code/tests/test_universal_router_tool_registry.py"
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
                   }
                 ]
               },
@@ -3559,16 +3506,11 @@
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-004",
                           "orphan": false,
                           "name": "UtteranceManager obtains tool metadata from the router and caches it at runtime",
-                          "requirement": "UtteranceManager MUST obtain downstream-tool metadata from the universal router's metadata API per EPIC-002-F-004-S-002-REQ-B-001. UtteranceManager MUST cache the retrieved metadata at runtime — the API call is for cache population on startup (or on cache invalidation), not a per-utterance lookup. The router's registry is the source of truth; UtteranceManager holds a runtime copy.",
+                          "requirement": "UtteranceManager MUST obtain downstream-tool metadata from the universal router's metadata API. UtteranceManager MUST cache the retrieved metadata at runtime — the API call is for cache population on startup (or on cache invalidation), not a per-utterance lookup. The router's registry is the source of truth; UtteranceManager holds a runtime copy.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-002-F-004-S-002",
-                              "reason": "Defines the router-side registry and metadata API that UtteranceManager caches"
-                            }
-                          ],
+                          "depends_on": [],
                           "tests": {
                             "test": [
                               {

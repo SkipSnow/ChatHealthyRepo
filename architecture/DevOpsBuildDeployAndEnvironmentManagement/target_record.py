@@ -179,6 +179,16 @@ class TargetRecord:
     files: list[FileComposition]
     secrets: dict | None = None  # name -> store_id; same keys apply across all envs;
                                   # per-env values resolved via SecretsResolver at deploy time
+    variables: dict | None = None  # name -> source_qualifier; deploy-computed values
+                                    # pushed as HF Space variables (visible config, not
+                                    # secrets). Each value is a source-qualifier string;
+                                    # the deploy script dispatches on the qualifier
+                                    # prefix. Supported qualifiers (data-driven, NO
+                                    # target-specific knowledge in the deploy code):
+                                    #   "env_name"                    — value = env name (dev/qa/prod)
+                                    #   "local_cert_file:<rel_path>"  — value = base64 of file content
+                                    #   "peer_url:<target_id>"        — value = peer HF Space URL
+                                    #   "rename_from:<other_entry>"   — value = resolved value of another entry, pushed under THIS name
     promote_chain_bound: bool = True
     # True (default): target rides the dev->qa->prod promote chain; local
     # branch must match env_binding.branch for the requested env. False:
@@ -207,6 +217,8 @@ class TargetRecord:
         out["files"] = [f.to_dict() for f in self.files]
         if self.secrets:
             out["secrets"] = self.secrets
+        if self.variables:
+            out["variables"] = self.variables
         return out
 
     @classmethod
@@ -221,6 +233,7 @@ class TargetRecord:
             environments=[EnvironmentBinding.from_dict(e) for e in envs_raw],
             files=[FileComposition.from_dict(f) for f in files_raw],
             secrets=d.get("secrets"),  # type: ignore[arg-type]
+            variables=d.get("variables"),  # type: ignore[arg-type]
             promote_chain_bound=bool(d.get("promote_chain_bound", True)),
         )
 
