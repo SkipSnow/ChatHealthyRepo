@@ -34,7 +34,7 @@ from application.facades.evaluate_care_facade import EvaluateCareFacade
 from ProviderManagement.provider_search_service import FindCareService
 from SpecialtyFilter.filter import SpecialtyFilter
 from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
-from ProviderManagement.provider_detail_service import ProviderDetailService
+from ProviderDetail.provider_detail_service import ProviderDetailService
 from domain.shared.safety.safety_service import SafetyService
 from domain.shared.consent.consent_service import ConsentService
 from domain.shared.lead_capture.lead_service import LeadService
@@ -254,6 +254,8 @@ register_fatal_handler(app, service_name="FindCare")
 _bind_data_collections()
 app.include_router(_data_collections_router)
 
+
+
 # ── EPIC-002-F-001-S-012-REQ-T-004: startup security-primitive verification ──
 # FindCare's security primitives are nonce restamp (signs with findcare.key)
 # and verify (reads peer certs). The probe loads both findcare.key and
@@ -405,9 +407,10 @@ class SearchRequest(BaseModel):
     state: Optional[str] = None
     city: Optional[str] = None
     county: Optional[str] = None
+    zip: Optional[str] = None
     name: Optional[str] = None
     npi: Optional[str] = None
-    specialty_codes: Optional[list[str]] = None
+    nucc_codes: Optional[list[str]] = None
     after_npi: Optional[str] = None
     limit: int = 25
 
@@ -478,23 +481,6 @@ async def classify(body: ClassifyRequest, request: Request):
         if not r.homeopathic_general
     ]
 
-    # Simple location extraction — no LLM needed
-    msg = body.message.lower()
-    state = None
-    city = None
-    county = None
-    # State codes
-    for code in ["DE", "MS", "VA", "IN"]:
-        if f" {code.lower()} " in f" {msg} " or msg.endswith(f" {code.lower()}"):
-            state = code
-            break
-    # Full state names
-    state_names = {"delaware": "DE", "mississippi": "MS", "virginia": "VA", "indiana": "IN"}
-    for name, code in state_names.items():
-        if name in msg:
-            state = code
-            break
-
     # Homeopathic generalists list-two — also delivered by the tool now.
     homeo_generalists = [
         {
@@ -510,9 +496,6 @@ async def classify(body: ClassifyRequest, request: Request):
     response = {
         "specialties": specialties,
         "homeopathic_generalists": homeo_generalists,
-        "state": state,
-        "city": city,
-        "county": county,
         "model": "text-embedding-3-large (vector search)",
     }
     return response
@@ -520,6 +503,22 @@ async def classify(body: ClassifyRequest, request: Request):
 @app.post("/welcome")
 def welcome():
     return {"message": WELCOME_MESSAGE}
+
+
+# Provider Detail click-path endpoint (EPIC-006-F-025). Pure deterministic
+# tool; no LLM. Input fields mirror the on-screen provider card.
+from ProviderDetail.provider_detail_models import (
+    ProviderDetailInput, ProviderDetailOutput,
+)
+
+@app.post("/provider-detail")
+def provider_detail(body: ProviderDetailInput) -> ProviderDetailOutput:
+    raw = _provider_detail_service.lookup(
+        provider_name=body.name,
+        npi=body.npi,
+        state=body.state or "",
+    )
+    return ProviderDetailOutput(**raw)
 
 _REQUIRED_INDEXES = [
     ("providers", providers_coll, ["provider_vector_index"]),

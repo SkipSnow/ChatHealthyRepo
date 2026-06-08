@@ -156,7 +156,7 @@ export default function ChatWindow() {
   // Filter apply — user selected specializations from left panel
   useEffect(() => {
     gui.onFilterApply((codes: string[], params: any) => {
-      const searchParams = { ...params, specialty_codes: codes }
+      const searchParams = { ...params, nucc_codes: codes }
       // Remove specialty_query — we have exact codes now
       delete searchParams.specialty_query
       setIsLoading(true)

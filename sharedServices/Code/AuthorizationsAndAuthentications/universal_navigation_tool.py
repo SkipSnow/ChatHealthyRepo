@@ -29,12 +29,11 @@ from pydantic import BaseModel, Field
 
 from authentication.agent_deps import (
     AgentDeps,
-    log_utterance,
     log_ux_event,
 )
 from authentication.chathealthy_tool import ChatHealthyTool
-from authentication import provider_search_and_selection_tool
-from SpecialtyFilter import specialty_filter_tool
+from authentication import provider_detail_tool
+from UtteranceManager import manager as utterance_manager
 
 _log = logging.getLogger("shared_services.universal_navigation")
 
@@ -242,48 +241,28 @@ async def _handle_record_ux_event(deps: AgentDeps, payload: dict[str, Any]) -> R
 
 
 async def _handle_utterance(deps: AgentDeps, payload: dict[str, Any]) -> Response:
-    """Person types something. Log it (Person stream). Invoke delegate
-    tools via their `run_and_log()` so the LLM → System and Machine
-    streams pick up the invocation automatically. Tools never log
-    themselves."""
+    """Person types something. Thin dispatch into UtteranceManager, which
+    owns the parallel fan-out (SpecialtyFilter + GeoExtractor), the
+    sufficiency gate, the deterministic provider query, and stream-event
+    emission. All future cross-cutting concerns (safety, unknowns,
+    clinical trials, etc.) get added inside UtteranceManager, not here.
+    """
     text = str(payload.get("text") or "").strip()
     if not text:
         return Response(kind="utterance", result={"ok": False, "error": "text required"})
+    result = await utterance_manager.run(deps, text)
+    return Response(kind="utterance", result=result)
 
-    # Person stream — what the user typed.
-    log_utterance(deps.user_object, text)
 
-    # Step 1 — SpecialtyFilter delegate (auto-logs via base class).
-    fs_req = specialty_filter_tool.Request()
-    fs = await specialty_filter_tool.TOOL.run_and_log(deps, fs_req)
-
-    if fs.error or not fs.specialties:
-        deps.stream({"kind": "final", "data": {"ok": False, "error": fs.error or "no_specialties"}})
-        return Response(
-            kind="utterance",
-            result={"ok": False, "classify": fs.model_dump(exclude_none=True)},
-        )
-
-    # Step 2 — ProviderSearchAndSelection delegate (auto-logs).
-    codes = [s.code for s in fs.specialties]
-    ps_req = provider_search_and_selection_tool.Request(
-        specialty_codes=codes,
-        state=fs.state,
-        city=fs.city,
-        county=fs.county,
-        limit=25,
-    )
-    ps = await provider_search_and_selection_tool.TOOL.run_and_log(deps, ps_req)
-
-    deps.stream({"kind": "final", "data": {"ok": True}})
-    return Response(
-        kind="utterance",
-        result={
-            "ok": True,
-            "classify": fs.model_dump(exclude_none=True),
-            "search": ps.model_dump(exclude_none=True),
-        },
-    )
+async def _handle_provider_detail(deps: AgentDeps, payload: dict[str, Any]) -> Response:
+    """Click path: a user clicked the detail link on a provider card. This
+    is NOT an utterance — no LLM hop. Forward the card-field payload to
+    the ProviderDetail tool, which HTTPS-hops to FindCare and streams
+    {kind: 'provider-detail', data: ...} back to the FE."""
+    req = provider_detail_tool.Request(**payload)
+    resp = await provider_detail_tool.TOOL.run_and_log(deps, req)
+    deps.stream({"kind": "final", "data": {"ok": not resp.error}})
+    return Response(kind="provider-detail", result=resp.model_dump(exclude_none=True))
 
 
 _HANDLERS = {
@@ -291,6 +270,7 @@ _HANDLERS = {
     "splash": _handle_splash,
     "record_ux_event": _handle_record_ux_event,
     "utterance": _handle_utterance,
+    "provider-detail": _handle_provider_detail,
 }
 
 

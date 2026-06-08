@@ -5,7 +5,7 @@
 
 For one assignment (byte range of the NPPES CSV), inline chain:
   stream -> state-filter -> normalize -> pass1 zip -> pass2 census ->
-  pass3 billing -> pass4 maps -> pass6 nppes -> stamp_urban -> stamp_flags ->
+  pass4 maps -> pass6 nppes -> stamp_urban -> stamp_flags ->
   mark_quality -> should_embed? -> embed -> stage (one blob per record).
 
 At assignment close: list-by-prefix, read each, bulk_write insert, delete blobs.
@@ -207,25 +207,25 @@ def _raw_row_matches_state(raw_row: dict, states_set: set) -> bool:
 # Each pass that gives up on an address tags that address with its own
 # pass-specific failure label. The recovery activity reads these labels and
 # resumes the funnel at the next pass after the one that failed — pass2 is
-# never re-attempted once tagged, pass3 is re-attempted only after pass2
-# failed, etc. There is no generic `geocoder_failed` label; that string is
-# illegal per the providers schema.
+# never re-attempted once tagged, etc. There is no generic `geocoder_failed`
+# label; that string is illegal per the providers schema. Pass 3 (Census
+# geocode of the business address) was removed because it cross-pollinated
+# a business-derived county onto practice addresses; legacy records on disk
+# that still carry `geocoder_pass3_failed` are intentionally stranded — no
+# new code path consumes that label.
 _FAILED_PASS2 = "geocoder_pass2_failed"
-_FAILED_PASS3 = "geocoder_pass3_failed"
 _FAILED_PASS4 = "geocoder_pass4_failed"
 _FAILED_PASS6 = "geocoder_pass6_failed"
 
 # Per-pass "I should attempt this address" entry set. Pass2 is the top of the
 # address-level funnel (no source-based entry — only no-fips addresses), so it
-# has no entry set defined here. Pass3/4/6 each pick up exactly the prior
-# pass's failures.
-_PASS3_ENTRY = frozenset({_FAILED_PASS2})
-_PASS4_ENTRY = frozenset({_FAILED_PASS3})
+# has no entry set defined here. Pass4 picks up Pass2's failures directly.
+_PASS4_ENTRY = frozenset({_FAILED_PASS2})
 _PASS6_ENTRY = frozenset({_FAILED_PASS4})
 
 # The recovery cohort is anything that ended a load run with a non-terminal
 # failure label — pass6's failures are chain-exhausted and excluded.
-_RECOVERY_COHORT_SOURCES = frozenset({_FAILED_PASS2, _FAILED_PASS3, _FAILED_PASS4})
+_RECOVERY_COHORT_SOURCES = frozenset({_FAILED_PASS2, _FAILED_PASS4})
 
 
 _PASSTHROUGH_RAW_COLUMNS = {
@@ -335,56 +335,13 @@ def _pass2_census(doc: dict) -> None:
             _addr_cache_put(a, c)
 
 
-def _pass3_billing(doc: dict) -> None:
-    """Pass3 entry: practice addresses tagged _FAILED_PASS2."""
-    targets = []
-    for addr in doc.get("addresses") or []:
-        if not isinstance(addr, dict):
-            continue
-        if addr.get("address_type") != "practice":
-            continue
-        county = addr.get("county") or {}
-        if county.get("source") not in _PASS3_ENTRY:
-            continue
-        targets.append(addr)
-    if not targets:
-        return
-    # Cache hits on the failed practice addrs themselves first
-    targets = [a for a in targets if not _try_addr_cache(a)]
-    if not targets:
-        return
-    billing_addr = None
-    for addr in doc.get("addresses") or []:
-        if isinstance(addr, dict) and addr.get("address_type") == "business":
-            billing_addr = addr
-            break
-    if not billing_addr:
-        # No billing address to fall through to; tag pass3 failure so pass4
-        # picks them up at the next funnel stop.
-        for a in targets:
-            a["county"] = {**(a.get("county") or {}), "source": _FAILED_PASS3}
-        return
-    # Cache the billing address too if we've resolved it before
-    cached_billing = _addr_cache_get(billing_addr)
-    if cached_billing and cached_billing.get("fips"):
-        for a in targets:
-            a["county"] = {**cached_billing, "source": "geocoder_pass3_billing"}
-        return
-    _CENSUS.acquire(n=1)
-    _call_census_for_addresses(
-        doc, [billing_addr],
-        pass_label="geocoder_pass3_billing",
-        failure_label=_FAILED_PASS3,
-        retarget=targets,
-    )
-    for a in targets:
-        c = a.get("county") or {}
-        if c.get("fips"):
-            _addr_cache_put(a, c)
-
-
 def _pass4_maps(doc: dict) -> None:
-    """Pass4 entry: practice addresses tagged _FAILED_PASS3."""
+    """Pass4 entry: practice addresses tagged _FAILED_PASS2.
+
+    (Pass 3 — Census geocode of the business address with cross-pollination
+    onto the practice address — was removed; Pass 4 now picks up directly
+    from Pass 2 failures.)
+    """
     targets = []
     for addr in doc.get("addresses") or []:
         if not isinstance(addr, dict):

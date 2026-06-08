@@ -2225,7 +2225,7 @@ class LocalDeploy:
         """V11 S-002-REQ-T-001 docker build for the 3 backends."""
         import shutil as _shutil
         frontend_lib_src = self.repo_root / "FrontEndApplicationLib"
-        auth_src = self.repo_root / "architecture" / "AuthorizationsAndAuthentications"
+        auth_src = self.repo_root / "sharedServices" / "Code" / "AuthorizationsAndAuthentications"
         specialty_filter_src = self.repo_root / "FindCare" / "SpecialtyFilter"
         for container_name, entry in self.BACKEND_CONTAINERS.items():
             _label, src_dir, build_ctx_rel = entry
@@ -2385,6 +2385,11 @@ class LocalDeploy:
             )
         from dotenv import dotenv_values
         env_dict = dotenv_values(env_file)
+        # Local stack always binds to env={self.env} regardless of any
+        # ENV_PREFIX value in Code/.env. HF Space deploys set this via
+        # _hf_set_variable per env; the Azure FA gateway deploy sets it
+        # to its own env; the local stack does the same here.
+        env_dict["ENV_PREFIX"] = self.env
         env_args: list[str] = []
         for k, v in env_dict.items():
             if v is None:

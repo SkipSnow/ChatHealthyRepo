@@ -268,7 +268,7 @@ def _session_token_wire(user_object) -> dict:
 @app.post("/gate", operation_id="UniversalGate",
           openapi_extra=_impl(
               "AuthorizationsAndAuthenticationsTool + UniversalNavigationTool",
-              "../architecture/AuthorizationsAndAuthentications/"
+              "AuthorizationsAndAuthentications/"
               "universal_navigation_tool.py",
           ))
 async def gate(
