@@ -95,12 +95,11 @@ _HF_APP_PORT: dict[str, int] = {
     "target_hf_space_evaluatecare_backend": 7860,
     "target_hf_space_shared_services":      7860,
 }
-_HF_SIGNING_VAR: dict[str, tuple[str, str]] = {
-    # target_id -> (secret_name_in_manifest, secret_name_pushed_to_hf)
-    "target_hf_space_findcare_backend":     ("FINDCARE_SIGNING_KEY_B64", "FINDCARE_SIGNING_KEY_PEM"),
-    "target_hf_space_evaluatecare_backend": ("EVALCARE_SIGNING_KEY_B64", "EVALCARE_SIGNING_KEY_PEM"),
-    "target_hf_space_shared_services":      ("SHARED_SIGNING_KEY_B64",   "SHARED_SIGNING_KEY_PEM"),
-}
+# NOTE: signing-key renames, peer URLs, cert PEMs, and ENV_PREFIX stamping
+# used to live in this module as hardcoded per-target maps. They have been
+# moved entirely into the per-target `variables` block in
+# deployment_architecture.json. The deploy script is now data-driven; no
+# target-specific knowledge lives here.
 
 _PIPELINE_SOURCE_PREFIX = "pipeline/Code/"
 _AZURE_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
@@ -276,51 +275,53 @@ def _set_hf_config(
     resolver: SecretsResolver,
     target: TargetRecord,
 ) -> None:
-    """Set the HF Space's variables (deploy-computed) + secrets (manifest-driven).
+    """Push the HF Space's variables and secrets, entirely data-driven from
+    the target record. Zero target-specific knowledge lives in this function.
 
-    Variables (deploy-computed, not in the manifest): ENV_PREFIX, peer URLs,
-    certificate PEMs encoded inline. These are derived at deploy time from
-    the deployment-architecture topology, not from .env.
+    The `variables` block holds entries pushed as HF Space VARIABLES (visible
+    config). Each value is a source-qualifier string; see the docstring on
+    TargetRecord.variables for the supported qualifier syntax.
 
-    Secrets (manifest-driven, REQ-B-008): every entry in target.secrets is
-    resolved through SecretsResolver and pushed as an HF Space secret.
-    Signing-key entries are remapped from their manifest names to the
-    runtime-expected names via _HF_SIGNING_VAR.
+    The `secrets` block holds entries pushed as HF Space SECRETS (hidden
+    credentials). Same qualifier dispatch — but most entries are simply
+    `local_env`-resolved.
     """
     space = rd._hf_space_name(target_id, env)
-    findcare_peer = rd._hf_peer_url("target_hf_space_findcare_backend",     env)
-    evalcare_peer = rd._hf_peer_url("target_hf_space_evaluatecare_backend", env)
-    shared_peer   = rd._hf_peer_url("target_hf_space_shared_services",       env)
 
-    rd._hf_set_variable(hf_token, space, "ENV_PREFIX", env)
-    if target_id == "target_hf_space_findcare_backend":
-        rd._hf_set_variable(hf_token, space, "EVALCARE_URL", evalcare_peer)
-        rd._hf_set_variable(hf_token, space, "SHARED_SERVICES_URL", shared_peer)
-    elif target_id == "target_hf_space_evaluatecare_backend":
-        rd._hf_set_variable(hf_token, space, "FINDCARE_URL", findcare_peer)
-        rd._hf_set_variable(hf_token, space, "SHARED_SERVICES_URL", shared_peer)
-    elif target_id == "target_hf_space_shared_services":
-        rd._hf_set_variable(hf_token, space, "FINDCARE_URL", findcare_peer)
-        rd._hf_set_variable(hf_token, space, "EVALCARE_URL", evalcare_peer)
-        rd._hf_set_variable(hf_token, space, "FINDCARE_INTERNAL_URL", findcare_peer)
+    def _resolve_qualifier(name: str, qualifier: str) -> str:
+        if qualifier == "local_env":
+            return resolver.resolve(name, env)
+        if qualifier == "env_name":
+            return env
+        if qualifier.startswith("local_cert_file:"):
+            rel = qualifier.split(":", 1)[1]
+            return base64.b64encode((repo_root / rel).read_bytes()).decode("ascii")
+        if qualifier.startswith("peer_url:"):
+            peer_target_id = qualifier.split(":", 1)[1]
+            return rd._hf_peer_url(peer_target_id, env)
+        if qualifier.startswith("rename_from:"):
+            other_name = qualifier.split(":", 1)[1]
+            other_qual = (target.secrets or {}).get(other_name) \
+                or (target.variables or {}).get(other_name)
+            if other_qual is None:
+                raise KeyError(
+                    f"target {target_id!r}: variable/secret {name!r} declared "
+                    f"as rename_from:{other_name} but {other_name!r} does not "
+                    "exist in the target's secrets or variables blocks"
+                )
+            return _resolve_qualifier(other_name, other_qual)
+        raise ValueError(
+            f"target {target_id!r}: unknown source qualifier "
+            f"{qualifier!r} on entry {name!r}"
+        )
 
-    certs_dir = repo_root / "Code" / "Shared" / "ops" / "certs"
+    for name, qualifier in (target.variables or {}).items():
+        value = _resolve_qualifier(name, qualifier)
+        rd._hf_set_variable(hf_token, space, name, value)
 
-    def _b64(p: Path) -> str:
-        return base64.b64encode(p.read_bytes()).decode("ascii")
-    rd._hf_set_variable(hf_token, space, "CA_CERT_PEM",       _b64(certs_dir / "ca.crt"))
-    rd._hf_set_variable(hf_token, space, "FINDCARE_CERT_PEM", _b64(certs_dir / "findcare.crt"))
-    rd._hf_set_variable(hf_token, space, "SHARED_CERT_PEM",   _b64(certs_dir / "shared.crt"))
-    rd._hf_set_variable(hf_token, space, "EVALCARE_CERT_PEM", _b64(certs_dir / "evalcare.crt"))
-
-    signing_manifest_name, signing_runtime_name = _HF_SIGNING_VAR[target_id]
-    signing_rename = {signing_manifest_name: signing_runtime_name}
-    for manifest_name, store_id in target.secrets.items():
-        if store_id != "local_env":
-            continue
-        value = resolver.resolve(manifest_name, env)
-        runtime_name = signing_rename.get(manifest_name, manifest_name)
-        rd._hf_set_secret(hf_token, space, runtime_name, value)
+    for name, qualifier in (target.secrets or {}).items():
+        value = _resolve_qualifier(name, qualifier)
+        rd._hf_set_secret(hf_token, space, name, value)
 
 
 def _push_thin_dockerfile_to_hf_space(

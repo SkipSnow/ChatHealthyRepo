@@ -246,7 +246,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "30c6d90f9d1f8167690b5c4432554022ef61e5cb33b25edb7787122191454a00"
+          "content_hash": "b7c5bf996ce6b5ab945c7aa16c5354b543eb7184c3f209f5363ce94bbea412a5"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -666,17 +666,7 @@
       "secrets": {
         "EVALCARE_SIGNING_KEY_B64": "local_env",
         "HF_TOKEN": "local_env",
-        "CA_CERT_PEM": "local_env",
-        "CERTS_DIR": "local_env",
-        "DEBUG": "local_env",
-        "ENV_PREFIX": "local_env",
-        "EVALCARE_CERT_PEM": "local_env",
-        "EVALCARE_SIGNING_KEY_PEM": "local_env",
-        "FINDCARE_CERT_PEM": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env",
-        "PORT": "local_env",
-        "SSL_CERTFILE": "local_env",
-        "SSL_KEYFILE": "local_env"
+        "MONGO_FRONTEND_connectionString": "local_env"
       },
       "entitlements": [
         {
@@ -694,7 +684,17 @@
         {
           "src": "FrontEndApplicationLib"
         }
-      ]
+      ],
+      "variables": {
+        "ENV_PREFIX": "env_name",
+        "FINDCARE_URL": "peer_url:target_hf_space_findcare_backend",
+        "SHARED_SERVICES_URL": "peer_url:target_hf_space_shared_services",
+        "CA_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/ca.crt",
+        "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
+        "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
+        "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
+        "EVALCARE_SIGNING_KEY_PEM": "rename_from:EVALCARE_SIGNING_KEY_B64"
+      }
     },
     {
       "target_id": "target_hf_space_findcare_backend",
@@ -1698,9 +1698,7 @@
         "HF_TOKEN": "local_env",
         "ADMIN_UNLOCK_KEY": "local_env",
         "Anthropic_API_KEY": "local_env",
-        "ENV_PREFIX": "local_env",
         "GOOGLE_MAPS_API_KEY": "local_env",
-        "HUMAN_TESTING": "local_env",
         "MONGO_FRONTEND_connectionString": "local_env",
         "NOTIFICATION_FROM_EMAIL": "local_env",
         "NOTIFICATION_TO_EMAIL": "local_env",
@@ -1737,7 +1735,17 @@
         {
           "src": "DevOps/FindCareBackend"
         }
-      ]
+      ],
+      "variables": {
+        "ENV_PREFIX": "env_name",
+        "EVALCARE_URL": "peer_url:target_hf_space_evaluatecare_backend",
+        "SHARED_SERVICES_URL": "peer_url:target_hf_space_shared_services",
+        "CA_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/ca.crt",
+        "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
+        "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
+        "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
+        "FINDCARE_SIGNING_KEY_PEM": "rename_from:FINDCARE_SIGNING_KEY_B64"
+      }
     },
     {
       "target_id": "target_hf_space_shared_services",
@@ -2189,14 +2197,9 @@
         "GOOGLE_OAUTH_CLIENT_ID": "local_env",
         "GOOGLE_OAUTH_CLIENT_SECRET": "local_env",
         "HF_TOKEN": "local_env",
-        "CERTS_DIR": "local_env",
-        "ENV_PREFIX": "local_env",
         "GEMINI_API_KEY": "local_env",
         "MONGO_FRONTEND_connectionString": "local_env",
-        "OPENAI_API_KEY": "local_env",
-        "PORT": "local_env",
-        "SSL_CERTFILE": "local_env",
-        "SSL_KEYFILE": "local_env"
+        "OPENAI_API_KEY": "local_env"
       },
       "entitlements": [
         {
@@ -2222,7 +2225,18 @@
           "src": "FindCare/SpecialtyFilter",
           "dst": "SpecialtyFilter"
         }
-      ]
+      ],
+      "variables": {
+        "ENV_PREFIX": "env_name",
+        "FINDCARE_URL": "peer_url:target_hf_space_findcare_backend",
+        "EVALCARE_URL": "peer_url:target_hf_space_evaluatecare_backend",
+        "FINDCARE_INTERNAL_URL": "peer_url:target_hf_space_findcare_backend",
+        "CA_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/ca.crt",
+        "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
+        "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
+        "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
+        "SHARED_SIGNING_KEY_PEM": "rename_from:SHARED_SIGNING_KEY_B64"
+      }
     },
     {
       "target_id": "target_host_local_deploy_tool",
@@ -2334,7 +2348,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ede30319e79da5a6022f5a78113a08ff5eac74022e0b211ec59efc2e7fb8d815"
+          "content_hash": "9442d5d7b8bc9fddace3d3c2245e93e884b9f453ba28a3f5f1114c7a0f6c808b"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2369,7 +2383,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/target_record.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ae832d1e843bf2d0e5db7279e24255a4e881f04711abe6e8b00625ff46c3737d"
+          "content_hash": "be4e49ff70430a6c07c3e0e9aae1ee1222a3e69bedcbc9275f1afb7e48e10abd"
         },
         {
           "feature_id": "EPIC-008-F-012",

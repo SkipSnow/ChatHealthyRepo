@@ -11,10 +11,11 @@ graph dispatches to.
 during their run() and the gate route forwards each event as a chunk on
 the streamed response so the browser sees progress immediately.
 
-`mongo_frontend` / `mongo_pipeline` are runtime resources. SharedServices
-holds connections to both clusters (front-end carries Users.sessions,
-pipeline carries SpecialtyMetaData + providers + everything else).
-Tools that need data read it off these, not off positional args.
+`mongo_frontend` is the front-end cluster handle. SharedServices runtime
+talks only to the front-end cluster (Users.sessions, SpecialtyMetaData,
+providers, and everything else the front-end app reads); the pipeline
+cluster is ETL-only and is never reachable from a runtime tool.
+Tools that need data read it off `mongo_frontend`, not off positional args.
 """
 from __future__ import annotations
 
@@ -35,7 +36,6 @@ class AgentDeps:
     user_object: UserObject
     session_token: SessionToken
     mongo_frontend: Any
-    mongo_pipeline: Optional[Any]
     server_env: str
     stream: StreamSink
 
@@ -58,13 +58,6 @@ class AuthnDeps:
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def log_utterance(user_object: UserObject, text: str) -> None:
-    """Person stream: the typed text the user submitted via the prompt."""
-    user_object.session_conversation_history.utterances.append({
-        "text": text, "at": _now_iso(),
-    })
 
 
 def log_ux_event(

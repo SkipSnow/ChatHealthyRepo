@@ -350,7 +350,6 @@ async def gate(
             user_object=user_object,
             session_token=user_object.current_session_token,
             mongo_frontend=authn_deps.mongo_frontend,
-            mongo_pipeline=None,
             server_env=_ENV,
             stream=stream_sink,
         )

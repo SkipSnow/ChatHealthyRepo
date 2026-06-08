@@ -22,7 +22,7 @@ UserObject field at the top level alongside `_id`.
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -181,4 +181,11 @@ class UserObject(BaseModel):
             "silly_question_counts": merged_sqc,
             "is_registered": derived_is_registered,
             "ip_address": guest.ip_address if guest.ip_address is not None else self.ip_address,
+        })
+
+    def persist_user_state(self, text: str) -> None:
+        """Append the typed user text to the session conversation history."""
+        self.session_conversation_history.utterances.append({
+            "text": text,
+            "at": datetime.now(timezone.utc).isoformat(),
         })

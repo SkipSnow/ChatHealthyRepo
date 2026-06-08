@@ -36,7 +36,7 @@ import asyncio
 import logging
 from typing import Any
 
-from authentication.agent_deps import AgentDeps, log_utterance
+from authentication.agent_deps import AgentDeps
 from authentication import provider_search_and_selection_tool
 from SpecialtyFilter import specialty_filter_tool
 from UtteranceManager import geo_extractor_tool
@@ -58,7 +58,7 @@ async def run(deps: AgentDeps, text: str) -> dict[str, Any]:
     wraps in its Response envelope.
     """
     # Person stream — what the user typed.
-    log_utterance(deps.user_object, text)
+    deps.user_object.persist_user_state(text)
 
     # Parallel: SpecialtyFilter (HTTPS to FindCare) + GeoExtractor (lib).
     # Each tool returns one JSON; this orchestrator decides what to stream.
