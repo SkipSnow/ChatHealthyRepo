@@ -234,7 +234,7 @@ export default function FindCareApp() {
           if (!codes.length && msg.value) {
             try { codes = JSON.parse(msg.value) } catch { codes = [] }
           }
-          const params = { ...searchParamsRef.current, specialty_codes: codes }
+          const params = { ...searchParamsRef.current, nucc_codes: codes }
           // EPIC-006-F-002-S-001-REQ-B-001 / S-004-REQ-T-001/T-002:
           //   clear unpicked providers, start two timers, preserve selected
           //   and the prompt. fetchProviders' .then() resets the state.
@@ -310,10 +310,7 @@ export default function FindCareApp() {
       specialtyMapRef.current = specMap
 
       const codes = data.specialties.map((s: any) => s.code)
-      const params: any = { specialty_codes: codes, limit: 25 }
-      if (data.state) params.state = data.state
-      if (data.city) params.city = data.city
-      if (data.county) params.county = data.county
+      const params: any = { nucc_codes: codes, limit: 25 }
       setSearchParams(params)
 
       const filterOptions = data.specialties.map((s: any) => ({
@@ -369,6 +366,12 @@ export default function FindCareApp() {
         if (data.last_npi) setLastNpi(data.last_npi)
         setHasMore((data.providers.length || 0) < (data.total_count || 0))
       }
+      // The provider response echoes search_params back (state/city/county/
+      // zip/nucc_codes). Merge into searchParams so subsequent pagination
+      // and filter-apply calls re-issue the same scope without an LLM hop.
+      if (data.search_params) {
+        setSearchParams((prev: any) => ({ ...(prev || {}), ...data.search_params }))
+      }
       finishTimer()
       setPhase('results')
     }
@@ -409,13 +412,17 @@ export default function FindCareApp() {
           try { evt = JSON.parse(trimmed) } catch { continue }
           if (evt.kind === 'specialties') onSpecialties(evt.data || {})
           else if (evt.kind === 'providers') onProviders(evt.data || {})
-          else if (evt.kind === 'final' && !sawError && evt.ok === false) {
-            finishTimer()
-            const msg = evt.error || 'Search failed'
-            sendToParent('gui:fatal-error', { message: msg })
-            setError(msg)
-            setPhase('error')
-            sawError = true
+          else if (evt.kind === 'final' && !sawError) {
+            // UtteranceManager emits ok/error under data; gate wraps in ok at top.
+            const okFlag = evt.data?.ok ?? evt.ok
+            if (okFlag === false) {
+              finishTimer()
+              const msg = evt.data?.error || evt.error || 'Search failed'
+              sendToParent('gui:fatal-error', { message: msg })
+              setError(msg)
+              setPhase('error')
+              sawError = true
+            }
           }
         }
       }
@@ -643,6 +650,70 @@ export default function FindCareApp() {
     }
   }, [question])
 
+  // ── Provider detail click — click path, NOT an utterance ─────────
+  // POSTs to SharedServices /gate with op="provider-detail" and the
+  // card fields. The gateway routes the click to provider_detail_tool
+  // (no LLM hop, no utterance manager). The response is forwarded to
+  // the parent wrapper which paints the right panel.
+  const openProviderDetail = useCallback(async (p: Provider) => {
+    const ssUrl = _sharedServicesUrl(API_URL)
+    const tok = _sessionToken && _sessionToken.token
+    const body: any = {
+      op: 'provider-detail',
+      payload: {
+        name: p.name,
+        npi: p.npi,
+        specialty: p.specialty || p.primary_specialty || null,
+        address: p.address || null,
+        county: p.county || null,
+        phone: p.phone || null,
+        state: p.state || null,
+      },
+    }
+    if (tok && typeof tok === 'string' && tok.length >= 32) {
+      body.prior_guid = tok.slice(-32)
+    }
+    try {
+      const resp = await fetch(`${ssUrl}/gate`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/x-ndjson',
+        },
+        body: JSON.stringify(body),
+      })
+      if (!resp.ok || !resp.body) {
+        throw new Error(`Gate stream failed: HTTP ${resp.status}`)
+      }
+      const reader = resp.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = ''
+      let detail: any = null
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) continue
+          let evt: any
+          try { evt = JSON.parse(trimmed) } catch { continue }
+          if (evt.kind === 'provider-detail') detail = evt.data
+        }
+      }
+      if (detail) {
+        sendToParent('gui:provider-detail', { detail, provider: p })
+      }
+    } catch (err: any) {
+      sendToParent('gui:fatal-error', {
+        message: `[provider-detail] ${err?.message || 'fetch failed'} for NPI ${p.npi}`,
+      })
+    }
+  }, [])
+
   // ── Handle send ────────────────────────────────────────────────
   // Single point: the Send button calls doSearch which opens ONE /gate
   // NDJSON stream. The universal_navigation_tool routes "utterance",
@@ -757,6 +828,7 @@ export default function FindCareApp() {
                 mode="available"
                 onSelect={selection.select}
                 onDismiss={selection.dismiss}
+                onDetail={openProviderDetail}
                 selectionFull={selection.isFull}
               />
             ))}

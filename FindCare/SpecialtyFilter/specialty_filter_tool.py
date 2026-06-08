@@ -48,9 +48,6 @@ class SpecialtyRow(BaseModel):
 class Response(BaseModel):
     specialties: list[SpecialtyRow] = Field(default_factory=list)
     homeopathic_generalists: list[SpecialtyRow] = Field(default_factory=list)
-    state: Optional[str] = None
-    city: Optional[str] = None
-    county: Optional[str] = None
     model: Optional[str] = None
     error: Optional[str] = None
 
@@ -105,9 +102,6 @@ class SpecialtyFilterTool(ChatHealthyTool):
         resp = self.Response(
             specialties=specialties,
             homeopathic_generalists=homeo,
-            state=raw.get("state"),
-            city=raw.get("city"),
-            county=raw.get("county"),
             model=raw.get("model"),
             error=raw.get("error"),
         )

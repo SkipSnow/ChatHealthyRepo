@@ -2031,6 +2031,54 @@
           }
         }
 
+        // Provider detail — click path. Painted into #rightContent.
+        // EPIC-006-F-025 'Provider Detail' (preliminary implementation).
+        if (msg.type === 'gui:provider-detail' && msg.detail) {
+          window.ensureRightPanelStructure();
+          var pdContent = document.getElementById('rightContent');
+          if (pdContent) {
+            var d = msg.detail;
+            var sites = d.research_sites || {};
+            var siteRows = Object.keys(sites).map(function(k) {
+              var s = sites[k];
+              return '<div style="padding:0.75em 1em;border-bottom:0.125em solid #e5e7eb;">'
+                + '<div style="font-weight:600;color:#0b7a75;font-size:0.95em;">'
+                + '<a href="' + (s.url || '#') + '" target="_blank" rel="noopener noreferrer" style="color:#0b7a75;">'
+                + (s.name || k) + '</a></div>'
+                + '<div style="font-size:0.85em;color:#6b7280;margin-top:0.25em;">' + (s.guidance || '') + '</div>'
+                + '</div>';
+            }).join('');
+            var nd = d.npi_details;
+            var ndHtml;
+            if (nd) {
+              ndHtml =
+                '<div style="padding:0.75em 1em;border-bottom:0.125em solid #e5e7eb;background:#f8fffe;">'
+                + '<div style="font-weight:600;color:#1f2937;">' + (nd.name || '') + '</div>'
+                + (nd.credential ? '<div style="font-size:0.85em;color:#6b7280;">' + nd.credential + '</div>' : '')
+                + (nd.specialty ? '<div style="font-size:0.85em;color:#0b7a75;">' + nd.specialty + '</div>' : '')
+                + (nd.address ? '<div style="font-size:0.85em;color:#374151;">' + nd.address + '</div>' : '')
+                + (nd.phone ? '<div style="font-size:0.85em;color:#6b7280;">Phone: ' + nd.phone + '</div>' : '')
+                + (nd.license ? '<div style="font-size:0.85em;color:#6b7280;">License: ' + nd.license + (nd.license_state ? ' (' + nd.license_state + ')' : '') + '</div>' : '')
+                + (nd.status ? '<div style="font-size:0.85em;color:#6b7280;">Status: ' + nd.status + '</div>' : '')
+                + (nd.enumeration_date ? '<div style="font-size:0.85em;color:#9ca3af;">Enumerated: ' + nd.enumeration_date + '</div>' : '')
+                + '<div style="font-size:0.85em;color:#9ca3af;">NPI: ' + (nd.npi || d.npi || '') + '</div>'
+                + '</div>';
+            } else {
+              ndHtml =
+                '<div style="padding:0.75em 1em;border-bottom:0.125em solid #e5e7eb;background:#fffbeb;color:#6b7280;font-size:0.9em;font-style:italic;">'
+                + "No 'external' detail found."
+                + '</div>';
+            }
+            pdContent.innerHTML =
+                '<div style="padding:1em;border-bottom:0.25em solid #0b7a75;background:#f0fffe;">'
+              + '<div style="font-size:1em;font-weight:700;color:#0b7a75;text-transform:uppercase;">Provider Detail</div>'
+              + '<div style="font-size:1em;color:#374151;margin-top:0.25em;font-weight:600;">' + (d.provider_name || '') + '</div>'
+              + '</div>'
+              + ndHtml
+              + (siteRows ? '<div style="padding:0.5em 1em;font-size:0.85em;color:#6b7280;text-transform:uppercase;border-bottom:0.125em solid #e5e7eb;">Research Sites</div>' + siteRows : '');
+          }
+        }
+
         // SharedServices result — render in #rightContent so it coexists
         // with the security panel in #rightSecurity owned by refreshTokenPanels.
         if (msg.type === 'gui:shared-result') {

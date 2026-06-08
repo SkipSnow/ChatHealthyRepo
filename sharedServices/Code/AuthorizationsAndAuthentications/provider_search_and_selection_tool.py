@@ -35,6 +35,7 @@ class Request(BaseModel):
     state: Optional[str] = None
     city: Optional[str] = None
     county: Optional[str] = None
+    zip: Optional[str] = None
     limit: int = 25
     after_npi: Optional[str] = None
 
@@ -74,7 +75,7 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
             return resp
 
         body: dict[str, Any] = {
-            "specialty_codes": request.specialty_codes,
+            "nucc_codes": request.specialty_codes,
             "limit": request.limit,
         }
         if request.state:
@@ -83,6 +84,8 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
             body["city"] = request.city
         if request.county:
             body["county"] = request.county
+        if request.zip:
+            body["zip"] = request.zip
         if request.after_npi:
             body["after_npi"] = request.after_npi
 

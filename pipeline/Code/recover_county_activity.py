@@ -161,11 +161,14 @@ def process_recovery_assignment_fn(config: dict) -> dict:
 
     The assignment carries a single stage value as a tag for metrics.
     The worker reuses the existing chain in process_assignment_activity
-    (_pass2_census -> _pass3_billing -> _pass4_maps -> _pass6_nppes);
-    each pass's selector decides per-address whether to act, so the
-    "continue down the funnel on lack of result" semantics fall out of
-    the existing logic. No new dispatch code, no new stage-routing
-    branch.
+    (_pass2_census -> _pass4_maps -> _pass6_nppes); each pass's selector
+    decides per-address whether to act, so the "continue down the funnel
+    on lack of result" semantics fall out of the existing logic. No new
+    dispatch code, no new stage-routing branch.
+
+    Pass 3 (Census geocode of the business address) was removed; records
+    on disk that still carry `geocoder_pass3_failed` on a practice
+    address are intentionally stranded — no recovery stage targets them.
     """
     t0 = time.time()
     load_id = config["load_id"]
@@ -184,7 +187,7 @@ def process_recovery_assignment_fn(config: dict) -> dict:
     coll = client[db_name][coll_name]
 
     from process_assignment_activity import (
-        _pass2_census, _pass3_billing, _pass4_maps, _pass6_nppes,
+        _pass2_census, _pass4_maps, _pass6_nppes,
         _stamp_urban, _load_rucc, _embed_batch,
     )
 
@@ -221,7 +224,6 @@ def process_recovery_assignment_fn(config: dict) -> dict:
         ]
         try:
             _pass2_census(doc)
-            _pass3_billing(doc)
             _pass4_maps(doc)
             _pass6_nppes(doc)
             _stamp_urban(doc, rucc)

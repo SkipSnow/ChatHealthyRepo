@@ -664,759 +664,6 @@
               ]
             },
             {
-              "feature_id": "EPIC-002-F-005",
-              "name": "Backend Shared Services and Infrastructure",
-              "description": "Backend shared services that support FindCare: push notifications, activity audit, request logging, CORS, URL validation, tool routing, lead capture, unknown question handling, consent framework, about content, safety IP locking, debug logging, embedding infrastructure, session tokens, and cross-domain provider location. Created during code audit 2026-04-10.",
-              "priority": "HIGH",
-              "status": "done",
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-002-F-005-S-001",
-                    "description": "Push notifications via SparkPost, activity audit trail to MongoDB, chat history formatting, request logging middleware, CORS security policy, welcome endpoint.",
-                    "size": "M",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-001-REQ-B-001",
-                          "requirement": "System must send push email notifications for lead/activity events via SparkPost when configured.",
-                          "priority": "should-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-001-REQ-B-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Send push email notifications for lead/activity events via SparkPost if enabled",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-001-REQ-B-002",
-                          "requirement": "GET /welcome must return the system welcome message.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-001-REQ-B-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "GET /welcome returns system welcome message",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-001-REQ-T-001",
-                          "requirement": "System must persist significant activity records to MongoDB via commitSignificantActivity.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-001-REQ-T-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Persist significant activity records to MongoDB with commitSignificantActivity",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-001-REQ-T-002",
-                          "requirement": "System must truncate and normalize chat history before injecting into tool calls (max 500 chars per message).",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-001-REQ-T-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Truncate and normalize chat history for tool calls (max 500 chars per message)",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-001-REQ-T-003",
-                          "requirement": "HTTP request logging middleware must log method, path, status code, elapsed ms, and client IP for every request.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-001-REQ-T-003-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Log method, path, status, elapsed ms, and client IP for each HTTP request",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Core backend infrastructure — notifications, audit, logging, CORS"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-002",
-                    "description": "Three-stage URL validation (HEAD check, AI content verification, Google search correction) with TTL cache. Defangs broken URLs in markdown text and tool results. Prevents users from clicking broken links.",
-                    "size": "L",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-002-REQ-T-001",
-                          "requirement": "URLGuardian must validate URLs via HEAD request with redirect following. Broken URLs detected, redirects resolved.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-002-REQ-T-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Validate URLs via HEAD request with redirect following",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-002-REQ-T-002",
-                          "requirement": "URLGuardian must validate URLs in tool result dicts (links key). Broken links removed, redirects updated.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-002-REQ-T-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Validate and update URLs in tool results; remove broken, update redirected links",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-002-REQ-T-003",
-                          "requirement": "URLGuardian must validate URLs in markdown text. Broken markdown links defanged (text kept, link removed). Broken bare URLs left as plain text.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-002-REQ-T-003-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Validate markdown URLs; defang broken links; leave broken bare URLs as plain",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-002-REQ-T-004",
-                          "requirement": "URLGuardian must use AI content verification to confirm reachable URLs show expected content. Pages with wrong content treated as broken.",
-                          "priority": "should-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-002-REQ-T-004-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "AI content verification for reachable URLs",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-002-REQ-T-005",
-                          "requirement": "URLGuardian must attempt Google search correction for broken URLs, then AI-verify the top result matches intent.",
-                          "priority": "should-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-002-REQ-T-005-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Search-correct broken URLs and AI-verify top result matches intent",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "URL Guardian — validate and sanitize URLs in LLM responses"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-003",
-                    "description": "CORS restricted to chathealthy.ai domains and localhost. No wildcard origins.",
-                    "size": "S",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-003-REQ-T-001",
-                          "requirement": "CORS allow_origins must include only chathealthy.ai domains. Localhost via allow_origin_regex only.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-003-REQ-T-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Restrict CORS allow_origins to chathealthy.ai; localhost via allow_origin_regex",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "CORS security policy"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-004",
-                    "description": "GET /session generates a signed session token using FindCare x509 cert. Client stores in memory, passes on cross-component calls (e.g., to EvaluateCare).",
-                    "size": "S",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": []
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Session token generation for cross-component calls"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-005",
-                    "description": "Pydantic-validated allowlist tool dispatch. Only registered tools can be called. GOV-004: 'The model may suggest. The system must decide.'",
-                    "size": "M",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-005-REQ-T-001",
-                          "requirement": "ToolRouter must maintain an explicit allowlist registry. Only registered tools can be dispatched.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-005-REQ-T-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Maintain allowlist registry; dispatch only to registered tools",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-005-REQ-T-002",
-                          "requirement": "ToolRouter must validate tool inputs via Pydantic models before calling handlers. Invalid inputs rejected with error.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-005-REQ-T-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "ToolRouter validates inputs via Pydantic, rejects invalid with error",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-005-REQ-T-003",
-                          "requirement": "ToolRouter must handle both Anthropic tool_use blocks and OpenAI normalized tool calls, injecting chat_history for tools that need it.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-005-REQ-T-003-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "ToolRouter supports Anthropic tool_use, OpenAI calls & injects chat_history as-e",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Tool Router — GOV-004 allowlist enforcement"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-006",
-                    "description": "Record user contact details with two-tier consent: verbatim transcript, de-identified summary, or contact-only. Dedup by email. Delegates to ConsentService.",
-                    "size": "M",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-006-REQ-B-001",
-                          "requirement": "If consent_verbatim is true, full chat history is stored with the lead record.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-006-REQ-B-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Store full chat history with lead if consent_verbatim is true",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-006-REQ-B-002",
-                          "requirement": "If consent_summary is true (not verbatim), conversation is summarized and de-identified before storage.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-006-REQ-B-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Summarize and de-identify conversation before storage if consent_summary is true",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-006-REQ-T-001",
-                          "requirement": "record_user_details must accept email, name, notes, message, and consent flags via Pydantic-validated input.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-006-REQ-T-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Accept email, name, notes, message, consent flags via Pydantic validation",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Lead Capture — contact record creation with consent (UAT Feature 6)"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-007",
-                    "description": "Classify unanswerable questions into healthcare_capability, medical_advice, or irrelevant. Present consent template. Record with de-identification if user consents.",
-                    "size": "M",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-007-REQ-B-001",
-                          "requirement": "Response templates must exist for three question classes: healthcare_capability, medical_advice, irrelevant.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-007-REQ-B-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Response templates for healthcare_capability, medical_advice, irrelevant classes",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-007-REQ-B-002",
-                          "requirement": "If user consents, chat history must be de-identified before recording. Question and class stored in AboutUs.AboutSkip.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-007-REQ-B-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "De-identify chat history on consent; store Q/class in AboutUs.AboutSkip",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-007-REQ-T-001",
-                          "requirement": "record_unknown_question must accept question, question_class, and consent flag via Pydantic-validated input.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-007-REQ-T-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "record_unknown_question accepts question, class, and consent via Pydantic input",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Unknown Question Handling (UAT Feature 12)"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-008",
-                    "description": "FindCareService.get_provider_location returns provider lat/lng/address for a given NPI. Called by EvaluateCareFacade for clinical trial travel time calculations.",
-                    "size": "S",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-008-REQ-B-001",
-                          "requirement": "get_provider_location must return lat, lng, and formatted address for a given NPI from the providers collection.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-008-REQ-B-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Return lat, lng, and formatted address for NPI from providers collection",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Cross-domain provider location for travel calculations"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-009",
-                    "description": "Two-tier consent: Tier 1 = verbatim transcript, Tier 2 = de-identified summary. ConsentService summarizes via Claude Haiku and de-identifies via HIPAA Safe Harbor.",
-                    "size": "M",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-009-REQ-B-001",
-                          "requirement": "summarize_conversation must produce a 2-3 sentence summary of chat history via Claude Haiku.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-009-REQ-B-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Summarize chat history in 2-3 sentences using Claude Haiku",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-009-REQ-B-002",
-                          "requirement": "de_identify must strip PII from chat history in-place per HIPAA Safe Harbor requirements using Claude Haiku.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-009-REQ-B-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Strip PII from chat history per HIPAA Safe Harbor using Claude Haiku",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Consent Framework — two-tier HIPAA consent (UAT Feature 7)"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-010",
-                    "description": "Static content service for about intents. Returns Skip Snow professional context with LinkedIn link, and ChatHealthy business plan and principles.",
-                    "size": "S",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-010-REQ-B-001",
-                          "requirement": "get_skip_snow_context must return summary, LinkedIn content, and connect info with markdown links rendered verbatim.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-010-REQ-B-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Return summary, LinkedIn content, connect info with markdown links rendered verb",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-010-REQ-B-002",
-                          "requirement": "get_chathealthy_context must return business_plan and anthropic_principles from pre-loaded ME context.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-010-REQ-B-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Return business_plan and anthropic_principles from ME context in get_chathealthy",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "About Content — Skip Snow and ChatHealthy context (UAT Feature 4)"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-011",
-                    "description": "DebugLogger persists chat call metadata (IP, message preview, tokens, errors) to {ENV}_Debug.chat_calls. On error, de-identified chat history is included.",
-                    "size": "S",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-011-REQ-T-001",
-                          "requirement": "log_chat must persist IP, message preview (200 chars), history length, tool loop iterations, token counts, response preview, and error to MongoDB. On error, de-identified chat history included.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-011-REQ-T-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Persist chat metadata and de-identified history to MongoDB on error",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Debug Logging — chat call metadata to MongoDB"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-005-S-012",
-                    "description": "EmbeddingClient provides the canonical embedding model for both provider vector search and specialty matching, plus Claude Haiku query expansion (regex pipeline). (see EPIC-008-F-011-S-004-REQ-B-001)",
-                    "size": "M",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-005-S-012-REQ-T-001",
-                          "requirement": "get_query_embedding must return a vector from the canonical embedding model for provider vector search. (see EPIC-008-F-011-S-004-REQ-B-001)",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-012-REQ-T-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "get_query_embedding returns a vector from the canonical embedding model for provider search",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-012-REQ-T-002",
-                          "requirement": "get_specialty_vector must return a vector from the canonical embedding model for specialty matching. (see EPIC-008-F-011-S-004-REQ-B-001)",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-012-REQ-T-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "get_specialty_vector returns a vector from the canonical embedding model for specialty matching",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-005-S-012-REQ-T-003",
-                          "requirement": "expand_query_terms must return 2-5 keyword stems via Claude Haiku for regex pipeline matching against Specialization and Display Name fields.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-005-S-012-REQ-T-003-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "expand_query_terms returns 2-5 keyword stems for regex matching on fields",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Embedding Infrastructure — centralized AI embedding and query expansion"
-                  }
-                ]
-              },
-              "realized_by": [
-                "FastAPI (Python 3.11)",
-                "MongoDB Atlas"
-              ],
-              "orphan": false,
-              "approval": "proposed",
-              "due_date": "2026-06-01"
-            },
-            {
               "feature_id": "EPIC-002-F-003",
               "name": "Authorizations and Authentications",
               "description": "The feature defines the complete requirements for human Authorizations and Authentications that use '{env}.chathealthy.ai' and chathealthy.ai. The scope of this excludes how users in the Dev Ops pipelines and processes manage their entitlements and identities.",
@@ -2615,6 +1862,862 @@
               "due_date": "2026-05-13"
             },
             {
+              "feature_id": "EPIC-002-F-004",
+              "orphan": false,
+              "name": "Universal Navigation",
+              "status": "in_progress",
+              "description": "The ChatHealthy.ai application guides users to find care, evaluate their choices objectively, and meet with their loved ones, care providers, and AI robots to discuss their options, and potentially get deep research based on their context. Users might be registered, guests, customers, or site administrators. The requirements for One Universal Navigation Mechanism are specified herein. Navigation takes place between an end user typing values into a prompt or using one of ChatHealthy's tools and corresponding UX component to do work such as picking providers, specialties, clinical trials, or tuning the mixing board in EvaluateCare. These requirements when met must, along with other controls, demonstrate ChatHealthy's compliance with NIST 800-53. I.e., they must meet the strictest requirements that any HIPAA audit might uncover.",
+              "priority": "must-have",
+              "realized_by": [
+                "EPIC-002-F-003"
+              ],
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-002-F-004-S-001",
+                    "name": "Universal entrance: all ChatHealthy.ai client to server calls route through SharedServices /gate",
+                    "description": "The single client-facing endpoint for the entire ChatHealthy.ai application is SharedServices /gate. Every browser-initiated HTTP call from any ChatHealthy.ai surface - the wrapper site, embedded FindCare/EvaluateCare iframes, future mobile webviews, future native clients - funnels through this one endpoint. SharedServices performs any cross-component work server-to-server on behalf of the client.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-004-S-001-REQ-B-001",
+                          "name": "All calls to ChatHealthy.ai MUST go to the ChatHealthy.ai Universal Gate",
+                          "requirement": "All browser, or other client, calls to ChatHealthy.ai servers MUST POST to {env}.sharedservices.chathealthy.ai/gate. Other calls to other URLs, except for the domain name by itself, MUST result in a 404; i.e., calls to http://chathealthy.ai, https://chathealthy.ai, http://dev.chathealthy.ai, https://dev.chathealthy.ai, http://qa.chathealthy.ai, https://qa.chathealthy.ai MUST all redirect to the universal gate call.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-004-S-001-REQ-B-001-TEST-1",
+                                "test_type": "Unsupportable",
+                                "orphan": false,
+                                "file": "UNSUPPORTABLE"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "approved"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-004-S-002",
+                    "name": "Downstream tool registry and metadata API",
+                    "description": "The universal router owns the registry of all downstream tools that can be invoked through it, and exposes the metadata API by which any caller can retrieve tool metadata at runtime.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-004-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "Universal router maintains downstream tool registry and exposes metadata API",
+                          "requirement": "The universal router MUST maintain a registry of all downstream tools that can be invoked through it. Downstream tools register with the router at build time, supplying their TOOL_NAME, Request schema, and natural-language minimum/total requirement strings per entity. The router MUST expose a metadata API by which any caller can retrieve, at runtime, either the full registry OR a single tool's metadata by TOOL_NAME. Build-time registration; runtime read-only access. The registry is the single source of truth for tool addressability.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-004-S-002-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "sharedServices/Code/tests/test_universal_router_tool_registry.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-004-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "Registration entries carry per-attribute natural-language requirement statements",
+                          "requirement": "Each tool registration entry held by the universal router MUST include, for every attribute in the tool's Request class, a natural-language statement of what user information that attribute requires. The statements are how downstream callers (e.g., UtteranceManager) decide whether the user's utterance contains enough information to invoke a given tool.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-004-S-002-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "sharedServices/Code/tests/test_universal_router_tool_registry.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "approval": "approved",
+              "due_date": "2026-05-17"
+            },
+            {
+              "feature_id": "EPIC-002-F-005",
+              "name": "Backend Shared Services and Infrastructure",
+              "description": "Backend shared services that support FindCare: push notifications, activity audit, request logging, CORS, URL validation, tool routing, lead capture, unknown question handling, consent framework, about content, safety IP locking, debug logging, embedding infrastructure, session tokens, and cross-domain provider location. Created during code audit 2026-04-10.",
+              "priority": "HIGH",
+              "status": "done",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-002-F-005-S-001",
+                    "description": "Push notifications via SparkPost, activity audit trail to MongoDB, chat history formatting, request logging middleware, CORS security policy, welcome endpoint.",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-001-REQ-B-001",
+                          "requirement": "System must send push email notifications for lead/activity events via SparkPost when configured.",
+                          "priority": "should-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-001-REQ-B-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Send push email notifications for lead/activity events via SparkPost if enabled",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-001-REQ-B-002",
+                          "requirement": "GET /welcome must return the system welcome message.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-001-REQ-B-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "GET /welcome returns system welcome message",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-001-REQ-T-001",
+                          "requirement": "System must persist significant activity records to MongoDB via commitSignificantActivity.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-001-REQ-T-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Persist significant activity records to MongoDB with commitSignificantActivity",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-001-REQ-T-002",
+                          "requirement": "System must truncate and normalize chat history before injecting into tool calls (max 500 chars per message).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-001-REQ-T-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Truncate and normalize chat history for tool calls (max 500 chars per message)",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-001-REQ-T-003",
+                          "requirement": "HTTP request logging middleware must log method, path, status code, elapsed ms, and client IP for every request.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-001-REQ-T-003-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Log method, path, status, elapsed ms, and client IP for each HTTP request",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Core backend infrastructure — notifications, audit, logging, CORS"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-002",
+                    "description": "Three-stage URL validation (HEAD check, AI content verification, Google search correction) with TTL cache. Defangs broken URLs in markdown text and tool results. Prevents users from clicking broken links.",
+                    "size": "L",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-002-REQ-T-001",
+                          "requirement": "URLGuardian must validate URLs via HEAD request with redirect following. Broken URLs detected, redirects resolved.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-002-REQ-T-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Validate URLs via HEAD request with redirect following",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-002-REQ-T-002",
+                          "requirement": "URLGuardian must validate URLs in tool result dicts (links key). Broken links removed, redirects updated.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-002-REQ-T-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Validate and update URLs in tool results; remove broken, update redirected links",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-002-REQ-T-003",
+                          "requirement": "URLGuardian must validate URLs in markdown text. Broken markdown links defanged (text kept, link removed). Broken bare URLs left as plain text.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-002-REQ-T-003-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Validate markdown URLs; defang broken links; leave broken bare URLs as plain",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-002-REQ-T-004",
+                          "requirement": "URLGuardian must use AI content verification to confirm reachable URLs show expected content. Pages with wrong content treated as broken.",
+                          "priority": "should-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-002-REQ-T-004-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "AI content verification for reachable URLs",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-002-REQ-T-005",
+                          "requirement": "URLGuardian must attempt Google search correction for broken URLs, then AI-verify the top result matches intent.",
+                          "priority": "should-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-002-REQ-T-005-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Search-correct broken URLs and AI-verify top result matches intent",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "URL Guardian — validate and sanitize URLs in LLM responses"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-003",
+                    "description": "CORS restricted to chathealthy.ai domains and localhost. No wildcard origins.",
+                    "size": "S",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-003-REQ-T-001",
+                          "requirement": "CORS allow_origins must include only chathealthy.ai domains. Localhost via allow_origin_regex only.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-003-REQ-T-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Restrict CORS allow_origins to chathealthy.ai; localhost via allow_origin_regex",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "CORS security policy"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-004",
+                    "description": "GET /session generates a signed session token using FindCare x509 cert. Client stores in memory, passes on cross-component calls (e.g., to EvaluateCare).",
+                    "size": "S",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": []
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Session token generation for cross-component calls"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-005",
+                    "description": "Pydantic-validated allowlist tool dispatch. Only registered tools can be called. GOV-004: 'The model may suggest. The system must decide.'",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-005-REQ-T-001",
+                          "requirement": "ToolRouter must maintain an explicit allowlist registry. Only registered tools can be dispatched.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-005-REQ-T-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Maintain allowlist registry; dispatch only to registered tools",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-005-REQ-T-002",
+                          "requirement": "ToolRouter must validate tool inputs via Pydantic models before calling handlers. Invalid inputs rejected with error.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-005-REQ-T-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "ToolRouter validates inputs via Pydantic, rejects invalid with error",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-005-REQ-T-003",
+                          "requirement": "ToolRouter must handle both Anthropic tool_use blocks and OpenAI normalized tool calls, injecting chat_history for tools that need it.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-005-REQ-T-003-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_tool_router.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "ToolRouter supports Anthropic tool_use, OpenAI calls & injects chat_history as-e",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Tool Router — GOV-004 allowlist enforcement"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-006",
+                    "description": "Record user contact details with two-tier consent: verbatim transcript, de-identified summary, or contact-only. Dedup by email. Delegates to ConsentService.",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-006-REQ-B-001",
+                          "requirement": "If consent_verbatim is true, full chat history is stored with the lead record.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-006-REQ-B-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Store full chat history with lead if consent_verbatim is true",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-006-REQ-B-002",
+                          "requirement": "If consent_summary is true (not verbatim), conversation is summarized and de-identified before storage.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-006-REQ-B-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Summarize and de-identify conversation before storage if consent_summary is true",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-006-REQ-T-001",
+                          "requirement": "record_user_details must accept email, name, notes, message, and consent flags via Pydantic-validated input.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-006-REQ-T-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Accept email, name, notes, message, consent flags via Pydantic validation",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Lead Capture — contact record creation with consent (UAT Feature 6)"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-007",
+                    "description": "Classify unanswerable questions into healthcare_capability, medical_advice, or irrelevant. Present consent template. Record with de-identification if user consents.",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-007-REQ-B-001",
+                          "requirement": "Response templates must exist for three question classes: healthcare_capability, medical_advice, irrelevant.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-007-REQ-B-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Response templates for healthcare_capability, medical_advice, irrelevant classes",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-007-REQ-B-002",
+                          "requirement": "If user consents, chat history must be de-identified before recording. Question and class stored in AboutUs.AboutSkip.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-007-REQ-B-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "De-identify chat history on consent; store Q/class in AboutUs.AboutSkip",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-007-REQ-T-001",
+                          "requirement": "record_unknown_question must accept question, question_class, and consent flag via Pydantic-validated input.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-007-REQ-T-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_unanswerable_questions.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "record_unknown_question accepts question, class, and consent via Pydantic input",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Unknown Question Handling (UAT Feature 12)"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-008",
+                    "description": "FindCareService.get_provider_location returns provider lat/lng/address for a given NPI. Called by EvaluateCareFacade for clinical trial travel time calculations.",
+                    "size": "S",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-008-REQ-B-001",
+                          "requirement": "get_provider_location must return lat, lng, and formatted address for a given NPI from the providers collection.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-008-REQ-B-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Return lat, lng, and formatted address for NPI from providers collection",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Cross-domain provider location for travel calculations"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-009",
+                    "description": "Two-tier consent: Tier 1 = verbatim transcript, Tier 2 = de-identified summary. ConsentService summarizes via Claude Haiku and de-identifies via HIPAA Safe Harbor.",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-009-REQ-B-001",
+                          "requirement": "summarize_conversation must produce a 2-3 sentence summary of chat history via Claude Haiku.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-009-REQ-B-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Summarize chat history in 2-3 sentences using Claude Haiku",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-009-REQ-B-002",
+                          "requirement": "de_identify must strip PII from chat history in-place per HIPAA Safe Harbor requirements using Claude Haiku.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-009-REQ-B-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Strip PII from chat history per HIPAA Safe Harbor using Claude Haiku",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Consent Framework — two-tier HIPAA consent (UAT Feature 7)"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-010",
+                    "description": "Static content service for about intents. Returns Skip Snow professional context with LinkedIn link, and ChatHealthy business plan and principles.",
+                    "size": "S",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-010-REQ-B-001",
+                          "requirement": "get_skip_snow_context must return summary, LinkedIn content, and connect info with markdown links rendered verbatim.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-010-REQ-B-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Return summary, LinkedIn content, connect info with markdown links rendered verb",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-010-REQ-B-002",
+                          "requirement": "get_chathealthy_context must return business_plan and anthropic_principles from pre-loaded ME context.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-010-REQ-B-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Return business_plan and anthropic_principles from ME context in get_chathealthy",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "About Content — Skip Snow and ChatHealthy context (UAT Feature 4)"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-011",
+                    "description": "DebugLogger persists chat call metadata (IP, message preview, tokens, errors) to {ENV}_Debug.chat_calls. On error, de-identified chat history is included.",
+                    "size": "S",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-011-REQ-T-001",
+                          "requirement": "log_chat must persist IP, message preview (200 chars), history length, tool loop iterations, token counts, response preview, and error to MongoDB. On error, de-identified chat history included.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-011-REQ-T-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_debug_logger.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Persist chat metadata and de-identified history to MongoDB on error",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Debug Logging — chat call metadata to MongoDB"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-005-S-012",
+                    "description": "EmbeddingClient provides the canonical embedding model for both provider vector search and specialty matching, plus Claude Haiku query expansion (regex pipeline). (see EPIC-008-F-011-S-004-REQ-B-001)",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-005-S-012-REQ-T-001",
+                          "requirement": "get_query_embedding must return a vector from the canonical embedding model for provider vector search. (see EPIC-008-F-011-S-004-REQ-B-001)",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-012-REQ-T-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "get_query_embedding returns a vector from the canonical embedding model for provider search",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-012-REQ-T-002",
+                          "requirement": "get_specialty_vector must return a vector from the canonical embedding model for specialty matching. (see EPIC-008-F-011-S-004-REQ-B-001)",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-012-REQ-T-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "get_specialty_vector returns a vector from the canonical embedding model for specialty matching",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-005-S-012-REQ-T-003",
+                          "requirement": "expand_query_terms must return 2-5 keyword stems via Claude Haiku for regex pipeline matching against Specialization and Display Name fields.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-005-S-012-REQ-T-003-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_embedding_client.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "expand_query_terms returns 2-5 keyword stems for regex matching on fields",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Embedding Infrastructure — centralized AI embedding and query expansion"
+                  }
+                ]
+              },
+              "realized_by": [
+                "FastAPI (Python 3.11)",
+                "MongoDB Atlas"
+              ],
+              "orphan": false,
+              "approval": "proposed",
+              "due_date": "2026-06-01"
+            },
+            {
               "feature_id": "EPIC-002-F-006",
               "name": "Emergency Lockout System",
               "description": "Dual-trigger emergency detection (keyword + AI classifier). IP-based lockout on emergency. Admin unlock with shared secret. De-identified audit trail of all safety events.",
@@ -2977,109 +3080,6 @@
               "approval": "proposed",
               "due_date": "2026-06-01",
               "priority": "must-have"
-            },
-            {
-              "feature_id": "EPIC-002-F-004",
-              "orphan": false,
-              "name": "Universal Navigation",
-              "status": "in_progress",
-              "description": "The ChatHealthy.ai application guides users to find care, evaluate their choices objectively, and meet with their loved ones, care providers, and AI robots to discuss their options, and potentially get deep research based on their context. Users might be registered, guests, customers, or site administrators. The requirements for One Universal Navigation Mechanism are specified herein. Navigation takes place between an end user typing values into a prompt or using one of ChatHealthy's tools and corresponding UX component to do work such as picking providers, specialties, clinical trials, or tuning the mixing board in EvaluateCare. These requirements when met must, along with other controls, demonstrate ChatHealthy's compliance with NIST 800-53. I.e., they must meet the strictest requirements that any HIPAA audit might uncover.",
-              "priority": "must-have",
-              "realized_by": [
-                "EPIC-002-F-003"
-              ],
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-002-F-004-S-001",
-                    "name": "Universal entrance: all ChatHealthy.ai client to server calls route through SharedServices /gate",
-                    "description": "The single client-facing endpoint for the entire ChatHealthy.ai application is SharedServices /gate. Every browser-initiated HTTP call from any ChatHealthy.ai surface - the wrapper site, embedded FindCare/EvaluateCare iframes, future mobile webviews, future native clients - funnels through this one endpoint. SharedServices performs any cross-component work server-to-server on behalf of the client.",
-                    "size": "M",
-                    "status": "in_progress",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-004-S-001-REQ-B-001",
-                          "name": "All calls to ChatHealthy.ai MUST go to the ChatHealthy.ai Universal Gate",
-                          "requirement": "All browser, or other client, calls to ChatHealthy.ai servers MUST POST to {env}.sharedservices.chathealthy.ai/gate. Other calls to other URLs, except for the domain name by itself, MUST result in a 404; i.e., calls to http://chathealthy.ai, https://chathealthy.ai, http://dev.chathealthy.ai, https://dev.chathealthy.ai, http://qa.chathealthy.ai, https://qa.chathealthy.ai MUST all redirect to the universal gate call.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-004-S-001-REQ-B-001-TEST-1",
-                                "test_type": "Unsupportable",
-                                "orphan": false,
-                                "file": "UNSUPPORTABLE"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "approved"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-004-S-002",
-                    "name": "Downstream tool registry and metadata API",
-                    "description": "The universal router owns the registry of all downstream tools that can be invoked through it, and exposes the metadata API by which any caller can retrieve tool metadata at runtime.",
-                    "size": "M",
-                    "status": "in_progress",
-                    "orphan": false,
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-004-S-002-REQ-B-001",
-                          "orphan": false,
-                          "name": "Universal router maintains downstream tool registry and exposes metadata API",
-                          "requirement": "The universal router MUST maintain a registry of all downstream tools that can be invoked through it. Downstream tools register with the router at build time, supplying their TOOL_NAME, Request schema, and natural-language minimum/total requirement strings per entity. The router MUST expose a metadata API by which any caller can retrieve, at runtime, either the full registry OR a single tool's metadata by TOOL_NAME. Build-time registration; runtime read-only access. The registry is the single source of truth for tool addressability.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-004-S-002-REQ-B-001-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "sharedServices/Code/tests/test_universal_router_tool_registry.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-002-F-004-S-002-REQ-B-002",
-                          "orphan": false,
-                          "name": "Registration entries carry per-attribute natural-language requirement statements",
-                          "requirement": "Each tool registration entry held by the universal router MUST include, for every attribute in the tool's Request class, a natural-language statement of what user information that attribute requires. The statements are how downstream callers (e.g., UtteranceManager) decide whether the user's utterance contains enough information to invoke a given tool.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-002-F-004-S-002-REQ-B-002-TEST-1",
-                                "orphan": false,
-                                "test_type": "integration",
-                                "file": "sharedServices/Code/tests/test_universal_router_tool_registry.py"
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              },
-              "approval": "approved",
-              "due_date": "2026-05-17"
             },
             {
               "feature_id": "EPIC-002-F-008",
@@ -3625,6 +3625,335 @@
                   }
                 ]
               }
+            },
+            {
+              "feature_id": "EPIC-002-F-011",
+              "name": "Parent Page Frame Layout",
+              "description": "Percentage-based frame layout: header (6%), left panel (1% default, expandable), center (chat iframe 83% + control frame 7%), right panel (1% default, expandable), footer (4%). Design record: gui_frame_layout in design.json.",
+              "priority": "HIGH",
+              "status": "not_started",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-002-F-011-S-001",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-011-S-001-REQ-B-001",
+                          "requirement": "Header height is 6% of viewport",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Set header height to 6% of viewport",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-001-REQ-B-002",
+                          "requirement": "Footer height is 4% of viewport",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Footer height set to 4% of viewport",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-001-REQ-B-003",
+                          "requirement": "Chat iframe fills 83% of center column height",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Chat iframe occupies 83% height of center column",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-001-REQ-B-004",
+                          "requirement": "Control frame is 7% of center column height and always visible (blank canvas when no controls)",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-011-S-001-REQ-B-004-TEST-1",
+                                "test_type": "analysis",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
+                              },
+                              {
+                                "test_id": "EPIC-002-F-011-S-001-REQ-B-004-TEST-2",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Control frame is 7% of center column height; always visible, even if blank",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-001-REQ-T-001",
+                          "requirement": "No pixel values in any frame dimension — all percentages",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Frame dimensions must use percentages, not pixel values",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "description": "Percentage-based frame dimensions",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Percentage-based frame dimensions"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-011-S-002",
+                    "size": "M",
+                    "status": "not_started",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-011-S-002-REQ-B-001",
+                          "requirement": "Left panel defaults to 1% width and is always present",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Left panel defaults to 1% width and is always present",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-002-REQ-B-002",
+                          "requirement": "Right panel defaults to 1% width and is always present",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Right panel always present and defaults to 1% width",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-002-REQ-B-003",
+                          "requirement": "Either panel can expand independently to push center content",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Allow either panel to expand independently and push center content",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-002-REQ-B-004",
+                          "requirement": "Right panel expands when a leaf page opens (architecture, roadmap, design docs)",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Expand right panel on opening leaf pages (architecture, roadmap, design docs)",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-002-REQ-B-005",
+                          "requirement": "Right panel retracts when leaf page is closed",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Right panel retracts when leaf page is closed",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "description": "Left and right panel behavior",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Left and right panel behavior"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-011-S-003",
+                    "size": "M",
+                    "status": "not_started",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-011-S-003-REQ-B-001",
+                          "requirement": "Right panel is an inline flex element, not a fixed overlay",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Right panel uses inline flex layout instead of fixed overlay",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-003-REQ-B-002",
+                          "requirement": "Right panel pushes center content when expanded, not overlays it",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Expand right panel to push, not overlay, center content",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-003-REQ-B-003",
+                          "requirement": "Leaf page loads into right panel iframe without full page reload",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Load leaf page in right panel iframe without full page reload",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-011-S-003-REQ-B-004",
+                          "requirement": "Close button returns right panel to 1% width",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Close button collapses right panel to 1% width",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "description": "Right panel inline flex refactor",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Right panel inline flex refactor"
+                  }
+                ]
+              },
+              "realized_by": [
+                "Static HTML/JS (Cloudflare Pages)"
+              ],
+              "orphan": false,
+              "approval": "proposed",
+              "due_date": "2026-04-01"
             }
           ]
         },
@@ -6740,6 +7069,142 @@
               "due_date": "2026-05-11"
             },
             {
+              "name": "Handoff to EvaluateCare",
+              "status": "in_progress",
+              "description": "Send selected providers to EvaluateCare service with signed session token.",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-006-F-003-S-001",
+                    "size": "M",
+                    "status": "done",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-001",
+                          "requirement": "Evaluate These Providers button is positioned to the right of the cursor control bar.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "depends_on": [
+                            {
+                              "story_id": "FC-SELECT-001",
+                              "reason": "Providers must be selected before evaluation"
+                            }
+                          ],
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-003-S-001-REQ-B-001-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Position 'Evaluate These Providers' button to right of cursor control bar"
+                        },
+                        {
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-002",
+                          "requirement": "When no providers are selected, the button displays in a cold/dimmed visual state — visually distinct from the active state.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-003-S-001-REQ-B-002-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Button shows cold/dimmed state when no providers are selected",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-003",
+                          "requirement": "When the cold button is clicked with no providers selected, a non-modal popup appears with instructions on how to manage providers: click to select, drag and drop to the evaluate container, and dismiss to garbage.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-003-S-001-REQ-B-003-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Show non-modal provider management instructions when cold button clicked with no",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-004",
+                          "requirement": "When providers are selected, the button displays in a hot/active visual state.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-003-S-001-REQ-B-004-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Show hot/active button state when providers are selected",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-003-S-001-REQ-B-005",
+                          "requirement": "When the hot button is clicked, the selected providers are sent to EvaluateCare with a signed session token.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-003-S-001-REQ-B-005-TEST-1",
+                                "test_type": "ordinary",
+                                "orphan": false,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "name": "Send selected providers to EvaluateCare with signed token on hot button click",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "description": "Evaluate These Providers button and handoff",
+                    "orphan": false,
+                    "approval": "approved",
+                    "name": "Evaluate These Providers button and handoff"
+                  }
+                ]
+              },
+              "realized_by": [
+                "FastAPI (Python 3.11)",
+                "mTLS (x509)"
+              ],
+              "feature_id": "EPIC-006-F-003",
+              "orphan": false,
+              "approval": "proposed",
+              "due_date": "2026-04-01",
+              "priority": "must-have"
+            },
+            {
               "feature_id": "EPIC-006-F-004",
               "name": "Search Result Presentation — System-Built Summary",
               "description": "GOV-011 compliance: the system builds the search result summary message from structured data, not the LLM. Message must echo the user's search term, report specialty type count with filter link, and present next page as an actionable link.",
@@ -7162,6 +7627,168 @@
               },
               "realized_by": [
                 "Python 3.11 (pre_deploy_rule_check.py)"
+              ],
+              "orphan": false,
+              "approval": "proposed",
+              "due_date": "2026-04-01"
+            },
+            {
+              "feature_id": "EPIC-006-F-022",
+              "name": "postMessage Orchestration Protocol",
+              "description": "Parent page ↔ React iframe communication via postMessage. React sends gui:render, gui:clear, gui:eval-render. Parent sends gui:event back. No page reloads.",
+              "priority": "HIGH",
+              "status": "not_started",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-006-F-022-S-001",
+                    "size": "M",
+                    "status": "not_started",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-022-S-001-REQ-B-001",
+                          "requirement": "React app sends gui:render with HTML payload and parent renders it into guiControlFrame div",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Render gui:render HTML payload in guiControlFrame div in parent React app",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-022-S-001-REQ-B-002",
+                          "requirement": "React app sends gui:clear and parent blanks the guiControlFrame div",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Send gui:clear and blank guiControlFrame div in React app parent",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-022-S-001-REQ-B-003",
+                          "requirement": "React app sends gui:eval-render and parent renders evaluation results from EvaluateCare",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [
+                            {
+                              "story_id": "FC-SELECT-001",
+                              "reason": "Providers must be selected before evaluation"
+                            }
+                          ],
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Parent renders EvaluateCare results from gui:eval-render sent by React app"
+                        },
+                        {
+                          "req_id": "EPIC-006-F-022-S-001-REQ-T-001",
+                          "requirement": "Parent page ignores postMessage events from origins other than the chat iframe",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Parent page filters postMessage events to only accept from chat iframe origin",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "description": "React → Parent postMessage rendering",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "React → Parent postMessage rendering"
+                  },
+                  {
+                    "story_id": "EPIC-006-F-022-S-002",
+                    "size": "S",
+                    "status": "not_started",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-022-S-002-REQ-B-001",
+                          "requirement": "React app receives gui:event and updates state accordingly (pagination, filter actions)",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "React app updates state on gui:event for pagination and filter actions",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-022-S-002-REQ-T-001",
+                          "requirement": "Parent page relays gui:event with action and value to React iframe contentWindow on control button clicks",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "proposed",
+                          "name": "Relay gui:event with action/value to React iframe on control button click",
+                          "depends_on": []
+                        }
+                      ]
+                    },
+                    "description": "Parent → React event relay",
+                    "orphan": false,
+                    "approval": "proposed",
+                    "name": "Parent → React event relay"
+                  }
+                ]
+              },
+              "realized_by": [
+                "Static HTML/JS (Cloudflare Pages)"
               ],
               "orphan": false,
               "approval": "proposed",
@@ -7654,109 +8281,17 @@
             },
             {
               "feature_id": "EPIC-006-F-025",
-              "name": "Leaf Page Management — Right Panel",
-              "description": "Right panel expands to display leaf pages (architecture, roadmap, design docs, security architecture). Human directive: more control over right panel behavior. Refactor from fixed overlay (legal-panel class) to inline flex panel.",
-              "priority": "HIGH",
-              "status": "not_started",
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-006-F-025-S-001",
-                    "size": "M",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-025-S-001-REQ-B-001",
-                          "requirement": "Right panel is an inline flex element, not a fixed overlay",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Right panel uses inline flex layout instead of fixed overlay",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-025-S-001-REQ-B-002",
-                          "requirement": "Right panel pushes center content when expanded, not overlays it",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Expand right panel to push, not overlay, center content",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-025-S-001-REQ-B-003",
-                          "requirement": "Leaf page loads into right panel iframe without full page reload",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Load leaf page in right panel iframe without full page reload",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-025-S-001-REQ-B-004",
-                          "requirement": "Close button returns right panel to 1% width",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Close button collapses right panel to 1% width",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Right panel inline flex refactor",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Right panel inline flex refactor"
-                  }
-                ]
-              },
-              "realized_by": [
-                "Static HTML/JS (Cloudflare Pages)"
-              ],
               "orphan": false,
-              "approval": "proposed",
-              "due_date": "2026-04-01"
+              "name": "Provider Detail",
+              "description": "This feature specifies the detailed user view and capabilities of a provider detail.",
+              "priority": "must-have",
+              "status": "not_started",
+              "approval": "approved",
+              "due_date": "",
+              "realized_by": [],
+              "stories": {
+                "story": []
+              }
             },
             {
               "feature_id": "EPIC-006-F-030",
@@ -7824,544 +8359,6 @@
               "approval": "proposed",
               "due_date": "2026-04-01",
               "priority": "must-have"
-            },
-            {
-              "name": "Handoff to EvaluateCare",
-              "status": "in_progress",
-              "description": "Send selected providers to EvaluateCare service with signed session token.",
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-006-F-003-S-001",
-                    "size": "M",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-003-S-001-REQ-B-001",
-                          "requirement": "Evaluate These Providers button is positioned to the right of the cursor control bar.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "depends_on": [
-                            {
-                              "story_id": "FC-SELECT-001",
-                              "reason": "Providers must be selected before evaluation"
-                            }
-                          ],
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Position 'Evaluate These Providers' button to right of cursor control bar"
-                        },
-                        {
-                          "req_id": "EPIC-006-F-003-S-001-REQ-B-002",
-                          "requirement": "When no providers are selected, the button displays in a cold/dimmed visual state — visually distinct from the active state.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Button shows cold/dimmed state when no providers are selected",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-003-S-001-REQ-B-003",
-                          "requirement": "When the cold button is clicked with no providers selected, a non-modal popup appears with instructions on how to manage providers: click to select, drag and drop to the evaluate container, and dismiss to garbage.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-003-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Show non-modal provider management instructions when cold button clicked with no",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-003-S-001-REQ-B-004",
-                          "requirement": "When providers are selected, the button displays in a hot/active visual state.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-004-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Show hot/active button state when providers are selected",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-003-S-001-REQ-B-005",
-                          "requirement": "When the hot button is clicked, the selected providers are sent to EvaluateCare with a signed session token.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-003-S-001-REQ-B-005-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "approved",
-                          "name": "Send selected providers to EvaluateCare with signed token on hot button click",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Evaluate These Providers button and handoff",
-                    "orphan": false,
-                    "approval": "approved",
-                    "name": "Evaluate These Providers button and handoff"
-                  }
-                ]
-              },
-              "realized_by": [
-                "FastAPI (Python 3.11)",
-                "mTLS (x509)"
-              ],
-              "feature_id": "EPIC-006-F-003",
-              "orphan": false,
-              "approval": "proposed",
-              "due_date": "2026-04-01",
-              "priority": "must-have"
-            },
-            {
-              "feature_id": "EPIC-006-F-021",
-              "name": "Parent Page Frame Layout",
-              "description": "Percentage-based frame layout: header (6%), left panel (1% default, expandable), center (chat iframe 83% + control frame 7%), right panel (1% default, expandable), footer (4%). Design record: gui_frame_layout in design.json.",
-              "priority": "HIGH",
-              "status": "not_started",
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-006-F-021-S-001",
-                    "size": "M",
-                    "status": "done",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-021-S-001-REQ-B-001",
-                          "requirement": "Header height is 6% of viewport",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Set header height to 6% of viewport",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-021-S-001-REQ-B-002",
-                          "requirement": "Footer height is 4% of viewport",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Footer height set to 4% of viewport",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-021-S-001-REQ-B-003",
-                          "requirement": "Chat iframe fills 83% of center column height",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Chat iframe occupies 83% height of center column",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-021-S-001-REQ-B-004",
-                          "requirement": "Control frame is 7% of center column height and always visible (blank canvas when no controls)",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-006-F-021-S-001-REQ-B-004-TEST-1",
-                                "test_type": "analysis",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
-                              },
-                              {
-                                "test_id": "EPIC-006-F-021-S-001-REQ-B-004-TEST-2",
-                                "test_type": "playwright",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_findcare_ui_requirements.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Control frame is 7% of center column height; always visible, even if blank",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-021-S-001-REQ-T-001",
-                          "requirement": "No pixel values in any frame dimension — all percentages",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Frame dimensions must use percentages, not pixel values",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Percentage-based frame dimensions",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Percentage-based frame dimensions"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-021-S-002",
-                    "size": "M",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-021-S-002-REQ-B-001",
-                          "requirement": "Left panel defaults to 1% width and is always present",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Left panel defaults to 1% width and is always present",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-021-S-002-REQ-B-002",
-                          "requirement": "Right panel defaults to 1% width and is always present",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Right panel always present and defaults to 1% width",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-021-S-002-REQ-B-003",
-                          "requirement": "Either panel can expand independently to push center content",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Allow either panel to expand independently and push center content",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-021-S-002-REQ-B-004",
-                          "requirement": "Right panel expands when a leaf page opens (architecture, roadmap, design docs)",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Expand right panel on opening leaf pages (architecture, roadmap, design docs)",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-021-S-002-REQ-B-005",
-                          "requirement": "Right panel retracts when leaf page is closed",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Right panel retracts when leaf page is closed",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Left and right panel behavior",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Left and right panel behavior"
-                  }
-                ]
-              },
-              "realized_by": [
-                "Static HTML/JS (Cloudflare Pages)"
-              ],
-              "orphan": false,
-              "approval": "proposed",
-              "due_date": "2026-04-01"
-            },
-            {
-              "feature_id": "EPIC-006-F-022",
-              "name": "postMessage Orchestration Protocol",
-              "description": "Parent page ↔ React iframe communication via postMessage. React sends gui:render, gui:clear, gui:eval-render. Parent sends gui:event back. No page reloads.",
-              "priority": "HIGH",
-              "status": "not_started",
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-006-F-022-S-001",
-                    "size": "M",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-022-S-001-REQ-B-001",
-                          "requirement": "React app sends gui:render with HTML payload and parent renders it into guiControlFrame div",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Render gui:render HTML payload in guiControlFrame div in parent React app",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-022-S-001-REQ-B-002",
-                          "requirement": "React app sends gui:clear and parent blanks the guiControlFrame div",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Send gui:clear and blank guiControlFrame div in React app parent",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-022-S-001-REQ-B-003",
-                          "requirement": "React app sends gui:eval-render and parent renders evaluation results from EvaluateCare",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "depends_on": [
-                            {
-                              "story_id": "FC-SELECT-001",
-                              "reason": "Providers must be selected before evaluation"
-                            }
-                          ],
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Parent renders EvaluateCare results from gui:eval-render sent by React app"
-                        },
-                        {
-                          "req_id": "EPIC-006-F-022-S-001-REQ-T-001",
-                          "requirement": "Parent page ignores postMessage events from origins other than the chat iframe",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Parent page filters postMessage events to only accept from chat iframe origin",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "React → Parent postMessage rendering",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "React → Parent postMessage rendering"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-022-S-002",
-                    "size": "S",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-022-S-002-REQ-B-001",
-                          "requirement": "React app receives gui:event and updates state accordingly (pagination, filter actions)",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "React app updates state on gui:event for pagination and filter actions",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-022-S-002-REQ-T-001",
-                          "requirement": "Parent page relays gui:event with action and value to React iframe contentWindow on control button clicks",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Relay gui:event with action/value to React iframe on control button click",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Parent → React event relay",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Parent → React event relay"
-                  }
-                ]
-              },
-              "realized_by": [
-                "Static HTML/JS (Cloudflare Pages)"
-              ],
-              "orphan": false,
-              "approval": "proposed",
-              "due_date": "2026-04-01"
             }
           ]
         },

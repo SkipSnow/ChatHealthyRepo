@@ -80,39 +80,13 @@ def _require_local_context() -> None:
         )
 
 
-def _require_clean_working_tree(repo_root: Path) -> str:
-    """HEAD SHA pins the source bytes we build. Reject uncommitted source
-    changes. localBuild/ is gitignored so changes there never appear in
-    git status; remoteBuild/ IS tracked and uncommitted changes there
-    DO block (they belong to the operator to commit or revert).
-    """
-    r = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=str(repo_root), capture_output=True, text=True, check=True,
-    )
-    build_root_prefix = str(_BUILD_ROOT_REL).replace("\\", "/") + "/"
-    offending = []
-    for line in r.stdout.splitlines():
-        if not line.strip():
-            continue
-        path = line[3:]
-        if " -> " in path:
-            path = path.split(" -> ", 1)[1]
-        path = path.strip('"')
-        if path.startswith(build_root_prefix):
-            continue
-        offending.append(line)
-    if offending:
-        sys.exit(
-            "ERROR: working tree has uncommitted source changes. Commit "
-            "them first so HEAD SHA pins the source bytes we build.\n\n"
-            + "\n".join(offending)
-        )
-    r = subprocess.run(
+def _resolve_build_sha(repo_root: Path) -> str:
+    """Return the short HEAD SHA. Local builds MUST work without a
+    commit, so this never rejects on uncommitted changes."""
+    return subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
         cwd=str(repo_root), capture_output=True, text=True, check=True,
-    )
-    return r.stdout.strip()
+    ).stdout.strip()
 
 
 def _read_dev_build_number() -> int:
@@ -649,8 +623,8 @@ def main(argv: list[str] | None = None) -> int:
     repo_root = _find_repo_root(Path(__file__))
     _step(f"repo_root={repo_root} target={args.target}")
 
-    build_sha = _require_clean_working_tree(repo_root)
-    _step(f"HEAD={build_sha} (clean tree)")
+    build_sha = _resolve_build_sha(repo_root)
+    _step(f"HEAD={build_sha}")
 
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     backlog_schema = repo_root / "Website" / "schemas" / "ChatHealthyAgileBacklogSchema.json"

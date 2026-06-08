@@ -346,45 +346,13 @@ class PromptSystemMaker:
     @staticmethod
     def build_welcome_message() -> str:
         return (
-            '<div style="font-size:12px;">'
-            '<h2 style="margin-top:0;font-size:16px;">Welcome to ChatHealthy.ai</h2>'
-            '<p><strong>Thank you for the visit.</strong> We are a new AI native company '
-            'formed on March 26<sup>th</sup>, 2026.</p>'
-            '<p>Our intention is to give unbiased guidance on the best possible care you can get from the '
-            'American healthcare system given your context such as your ability to absorb out of pocket '
-            'expenses, and your benefits in relation to your plan.</p>'
-            '<ul>'
-            '<li>We currently support inquiries providers about Virginia, Indiana, Delaware, and Mississippi.</li>'
-            '<li>We currently support letting you know about clinical trials you might wish to '
-            'participate in anywhere in the world.</li>'
-            '<li>We will not save any information about you without your express consent. And '
-            'even then, we will mostly only save de-identified data about you, unless you '
-            'specifically ask us to follow up with you.</li>'
-            '<li>This is a pre-Alpha application meaning: <em>it will be slow buggy and unreliable</em>. '
-            '<strong>Do not trust our advice until we are in production</strong> (November 2026 is our target).'
-            '<ul>'
-            '<li>Use this app to test its capabilities,</li>'
-            '<li>Thank you for any feedback</li>'
-            '<li>We will not ever give you clinical advice</li>'
-            '</ul></li>'
-            "<li>Here's what we can help you with: -"
-            '<ul>'
-            '<li>Find a health care provider or clinical trial.</li>'
-            '<li>Use natural language to describe what you are looking for, and we will '
-            'present a list of doctors and specialties or a list of clinical trials for '
-            'you to evaluate based on our conversation'
-            '<ul>'
-            '<li>We give you a robust capability of filtering for specialties</li>'
-            '<li>We allow you to only search for providers by state, city county, or zip code.</li>'
-            "<li>our mission, my bio (I'm Skip)</li>"
-            '</ul></li>'
-            '<li>You can ask us about the company ChatHealty.ai the product (this web site), or me.</li>'
-            '<li>You can leave your info with us,</li>'
-            '<li>If you ask us a question we cannot answer, we will seek your '
-            'permission to keep that question so we can learn more about what '
-            'users want. And improve our experience.</li>'
-            '</ul></li>'
-            '</ul>'
+            '<div style="margin-top:10vh;">'
+            '<p style="text-align:center;'
+            "font-family:Georgia,'Times New Roman',serif;"
+            'font-size:2em;line-height:1.3;margin:0;">'
+            'Find care in the US,<br>'
+            "Let's talk about it."
+            '</p>'
             '</div>'
         )
 

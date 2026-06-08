@@ -17,12 +17,15 @@ Enrichment strategy (six passes):
           Sends up to 500 addresses per batch POST. On error, providers are
           marked geocoder_failed for retry in later passes.
 
-  Pass 3: Census Geocoder batch API (billing address) for providers
-          marked geocoder_failed after Pass 2. Uses the addresses[] entry
-          with address_type=="business" as the fallback geocoding input.
+  Pass 3 was removed — it geocoded the business address and pasted the
+          resulting county onto failed practice addresses, which violated the
+          rule that a practice address's county must be legitimately derivable
+          from THAT practice address. Records on disk that still carry the
+          legacy source labels (`geocoder_pass3_billing`, `geocoder_pass3_failed`)
+          are preserved verbatim; reporting buckets below still classify them.
 
   Pass 4: Google Maps Geocoding API (practice address) for providers still
-          geocoder_failed after Pass 3. Paid API — requires google_maps_enabled=True.
+          geocoder_failed after Pass 2. Paid API — requires google_maps_enabled=True.
 
   Pass 5: Google Maps Geocoding API (billing address) for providers still
           geocoder_failed after Pass 4. Paid API — requires google_maps_enabled=True.
@@ -354,77 +357,6 @@ def county_enrichment_pass2_orchestrator_fn(context):
         "pass2_no_address": pass2_no_address,
         "pass2_failed": pass2_failed,
         "pass2_batch_results": pass2_results,
-    }
-
-
-def county_enrichment_pass3_orchestrator_fn(context):
-    """Pass 3: retry geocoder_failed providers using mailing/billing address.
-
-    Throttled per (state, primary_county) so the per-call retryable activity
-    return stays small enough to ship across the activity/orchestrator
-    process boundary without OOM.
-
-    On success sets county.source = geocoder_pass3_billing.
-    On failure leaves county.source = geocoder_failed unchanged.
-    """
-    config = context.get_input() or {}
-    load_id = config.get("load_id", context.instance_id)
-    config = {**config, "load_id": load_id}
-
-    states = config.get("states")
-    if not (isinstance(states, list) and states):
-        raise ValueError(
-            "Pass 3 orchestrator requires config['states'] as a non-empty list; "
-            "include/exclude dict form not supported under per-(state, county) throttle."
-        )
-
-    addr_batch_size = config.get("addr_batch_size", 5_000)
-    pass3_retryable = 0
-    pass3_modified = 0
-    pass3_failed   = 0
-    pass3_results: list = []
-
-    for st_idx, state in enumerate(states, 1):
-        single_state_cfg = {**config, "states": [state]}
-        context.set_custom_status(f"Pass3 [{st_idx}/{len(states)}] {state}: finding counties")
-        counties_result = yield context.call_activity(
-            "get_pass3_counties_for_state_activity", single_state_cfg
-        )
-        counties = counties_result["counties"]
-
-        for c_idx, county_fips in enumerate(counties, 1):
-            per_pair_cfg = {**single_state_cfg, "primary_county_fips": county_fips}
-            context.set_custom_status(
-                f"Pass3 {state} county [{c_idx}/{len(counties)}] {county_fips}: retryable list"
-            )
-            retryable = yield context.call_activity("get_billing_retryable_activity", per_pair_cfg)
-            ids = retryable["provider_ids"]
-            pass3_retryable += retryable["count"]
-            if not ids:
-                continue
-
-            batches = [ids[i:i + addr_batch_size] for i in range(0, len(ids), addr_batch_size)]
-            context.set_custom_status(
-                f"Pass3 {state} county {county_fips}: fanning out {len(batches)} batch(es)"
-            )
-            tasks = [
-                context.call_activity("enrich_by_billing_batch_activity", {**per_pair_cfg, "id_batch": batch})
-                for batch in batches
-            ]
-            results = yield context.task_all(tasks)
-            for r in results:
-                pass3_modified += r.get("modified", 0)
-                pass3_failed   += r.get("geocoder_failed", 0)
-            pass3_results.extend(results)
-
-    context.set_custom_status(
-        f"Done — {pass3_modified:,} billing enriched; {pass3_failed:,} still failed"
-    )
-    return {
-        "pass3_retryable":     pass3_retryable,
-        "pass3_modified":      pass3_modified,
-        "pass3_failed":        pass3_failed,
-        "pass3_batch_results": pass3_results,
     }
 
 
@@ -1136,153 +1068,6 @@ def enrich_by_address_batch_fn(config: dict) -> dict:
         "billing_modified": 0,            # back-compat key — billing moved to Pass 3
         "geocoder_failed":  geocoder_failed,
         "no_address":       no_address,
-        "started_at":       started_at,
-        "finished_at":      datetime.now(timezone.utc).isoformat(),
-        "duration_seconds": round(time.monotonic() - start_time, 2),
-    }
-
-
-def get_billing_retryable_fn(config: dict) -> dict:
-    """Return _id list of Pass 3 retryable providers, throttled by
-    (state, primary_county_fips). Excludes deactivated and foreign providers
-    (same rules as Pass 2).
-
-    Required config:
-      states              — mandatory state filter
-      primary_county_fips — mandatory; the county.fips of the first addresses[]
-                            entry with address_type=="practice", or None for the
-                            no-primary-county bucket
-    """
-    if "primary_county_fips" not in config:
-        raise ValueError(
-            "get_billing_retryable_fn requires config['primary_county_fips'] "
-            "(use None for the no-primary-county bucket); the orchestrator "
-            "must iterate per (state, primary_county) to avoid unbounded returns."
-        )
-    coll = _open_providers_coll(config)
-    query = _pass3_retryable_match(_build_states_filter(config))
-    # Primary county = first addresses[] entry with address_type=="practice".
-    query["$expr"] = {
-        "$eq": [
-            {"$let": {
-                "vars": {
-                    "practices": {
-                        "$filter": {
-                            "input": "$addresses",
-                            "as": "a",
-                            "cond": {"$eq": ["$$a.address_type", "practice"]},
-                        }
-                    }
-                },
-                "in": {"$arrayElemAt": ["$$practices.county.fips", 0]},
-            }},
-            config["primary_county_fips"],
-        ]
-    }
-    ids = [str(doc["_id"]) for doc in coll.find(query, {"_id": 1})]
-    logging.info(
-        "Pass 3 billing-retryable providers (state=%s primary_county=%s): %d",
-        config.get("states"), config["primary_county_fips"], len(ids),
-    )
-    return {"count": len(ids), "provider_ids": ids}
-
-
-def enrich_by_billing_batch_fn(config: dict) -> dict:
-    """Pass 3: For each provider with one or more geocoder_failed addresses[]
-    elements, geocode the provider's BUSINESS address ONCE. On match, apply
-    that business-derived county to every element still flagged
-    geocoder_failed.
-
-    Post-schema-reconciliation: the former separate `mailing_address` field
-    is now the entry in `addresses[]` with address_type='business'. Pass 3
-    reads that entry as the fallback geocoding input.
-
-    Rationale: the provider has a single business address; a successful
-    geocode gives one fallback county we can apply to every still-unresolved
-    practice location. Element-specific geocoding (per-element address) is
-    Pass 4's job (Maps).
-    """
-    started_at = datetime.now(timezone.utc).isoformat()
-    start_time = time.monotonic()
-    id_batch   = config["id_batch"]
-    collection = config.get("provider_collection", PROVIDERS_COLLECTION)
-    db_name, coll_name = collection.split(".", 1)
-    coll = _get_mongo_client()[db_name][coll_name]
-
-    object_ids = [ObjectId(i) for i in id_batch]
-    # Stream via cursor; skip providers with no usable business address
-    # before keeping a reference.
-    geocodable = []  # list of (pid_str, business_dict, provider_doc)
-    providers_assigned = 0
-    for p in coll.find(
-        {"_id": {"$in": object_ids}},
-        {"_id": 1, "addresses": 1},
-    ):
-        providers_assigned += 1
-        # Locate the business-type address (there's exactly one per provider
-        # in conformant records).
-        business = None
-        for a in (p.get("addresses") or []):
-            if isinstance(a, dict) and a.get("address_type") == "business":
-                business = a
-                break
-        if business and (business.get("line1") or business.get("city")):
-            geocodable.append((str(p["_id"]), business, p))
-
-    modified_elements = providers_failed = 0
-    ops: list = []
-
-    if geocodable:
-        rows = []
-        for pid, m, _p in geocodable:
-            line1 = (m.get("line1") or "").strip()
-            city  = (m.get("city")  or "").strip()
-            state = (m.get("state") or "").strip()
-            zip5  = (m.get("zip")   or "").strip()[:5]
-            rows.append((pid, line1, city, state, zip5))
-
-        batch_ok = False
-        matched: dict = {}
-        try:
-            matched = _census_batch_geocode(rows)
-            batch_ok = True
-        except Exception as exc:
-            logging.error(
-                "Pass 3 billing batch geocoder failed (%d providers left for retry): %s",
-                len(rows), exc,
-            )
-
-        if batch_ok:
-            for pid_str, _m, p in geocodable:
-                if pid_str not in matched:
-                    providers_failed += 1
-                    continue
-                fips = matched[pid_str]
-                county_subdoc = {
-                    "fips": fips,
-                    "name": _get_fips_to_name().get(fips, ""),
-                    "source": "geocoder_pass3_billing",
-                }
-                # Apply to every still-failed element on this provider.
-                for idx, _addr in _failed_elements(p):
-                    ops.append(UpdateOne(
-                        {"_id": p["_id"]},
-                        {"$set": {f"addresses.{idx}.county": county_subdoc}},
-                    ))
-                    modified_elements += 1
-
-    if ops:
-        coll.bulk_write(ops, ordered=False)
-
-    logging.info(
-        "Pass 3 billing batch: %d elements matched across providers, %d providers still failed",
-        modified_elements, providers_failed,
-    )
-    return {
-        "assigned":         providers_assigned,
-        "succeeded":        modified_elements,
-        "modified":         modified_elements,
-        "geocoder_failed":  providers_failed,
         "started_at":       started_at,
         "finished_at":      datetime.now(timezone.utc).isoformat(),
         "duration_seconds": round(time.monotonic() - start_time, 2),

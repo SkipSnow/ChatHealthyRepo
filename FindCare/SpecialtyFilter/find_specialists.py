@@ -147,7 +147,7 @@ When in doubt, KEEP a candidate with a lower score. Missing a true
 match is worse than including a borderline one. Use ONLY codes that
 appear in the supplied corpus — do not invent codes.
 
-OUTPUT — strict, typed JSON object with three fields:
+OUTPUT — strict, typed JSON object with these fields:
   - `include`: string, ≥50 characters, substantive natural-language
     paragraph describing the in-scope clinical intent.
   - `exclude`: string, ≥50 characters, substantive contrastive

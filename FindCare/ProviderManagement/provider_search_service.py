@@ -20,26 +20,18 @@ _log = logging.getLogger("findcare.provider_search")
 
 
 def _primary_practice_address(p: dict) -> dict:
-    """Return the primary practice_address as a dict.
-    Handles list-of-addresses (post-multi-practice-address) and legacy single-dict shapes."""
-    pa = p.get("practice_address")
-    if isinstance(pa, list):
-        return pa[0] if pa and isinstance(pa[0], dict) else {}
-    if isinstance(pa, dict):
-        return pa
+    """Return the first entry in addresses[] whose address_type=='practice'."""
+    for a in p.get("addresses") or []:
+        if isinstance(a, dict) and a.get("address_type") == "practice":
+            return a
     return {}
 
 
 def _primary_county(p: dict) -> dict:
-    """Return the primary county sub-doc; prefers per-element county on the
-    primary practice address, falls back to doc-level county for legacy records."""
-    addr = _primary_practice_address(p)
-    if isinstance(addr.get("county"), dict):
-        return addr["county"]
-    return p.get("county") or {}
+    """Return the county sub-doc on the primary practice address."""
+    return _primary_practice_address(p).get("county") or {}
 
 
-SUPPORTED_STATES = {"CA", "DE", "MS", "VA"}
 DEFAULT_LIMIT = 25  # F-10: raised from 10
 
 # HACK ASN-4AFBDA: static FIPS-to-county seed
@@ -81,28 +73,15 @@ class FindCareService:
         if db is None:
             return
         try:
-            # Multi-practice-address: collect (fips, name) pairs from BOTH the
-            # legacy doc-level county field AND every practice_address element's
-            # county sub-doc. $unwind expands the array (preserves docs without
-            # an array via preserveNullAndEmptyArrays). $facet runs both arms in
-            # one round-trip so the lookup builds in a single pass.
             agg = list(providers_coll().aggregate([
-                {"$facet": {
-                    "doc_level": [
-                        {"$match": {"county.fips": {"$exists": True}, "county.name": {"$exists": True}}},
-                        {"$group": {"_id": "$county.fips", "name": {"$first": "$county.name"}}},
-                    ],
-                    "per_address": [
-                        {"$unwind": {"path": "$practice_address", "preserveNullAndEmptyArrays": False}},
-                        {"$match": {"practice_address.county.fips": {"$exists": True},
-                                    "practice_address.county.name": {"$exists": True}}},
-                        {"$group": {"_id": "$practice_address.county.fips",
-                                    "name": {"$first": "$practice_address.county.name"}}},
-                    ],
+                {"$unwind": {"path": "$addresses", "preserveNullAndEmptyArrays": False}},
+                {"$match": {
+                    "addresses.address_type": "practice",
+                    "addresses.county.fips": {"$exists": True},
+                    "addresses.county.name": {"$exists": True},
                 }},
-                {"$project": {"all": {"$concatArrays": ["$doc_level", "$per_address"]}}},
-                {"$unwind": "$all"},
-                {"$group": {"_id": "$all._id", "name": {"$first": "$all.name"}}},
+                {"$group": {"_id": "$addresses.county.fips",
+                            "name": {"$first": "$addresses.county.name"}}},
             ]))
             db_map = {p["_id"]: p["name"] for p in agg if p.get("_id")}
             self._fips_to_county.update(db_map)
@@ -110,24 +89,41 @@ class FindCareService:
         except Exception as exc:
             _log.warning("HACK ASN-4AFBDA: failed to load FIPS map: %s", exc)
 
-    def _make_county_filter(self, county: str) -> dict:
-        term = county.strip().lower()
-        regex = {"$regex": county.strip(), "$options": "i"}
-        # Match providers whose county sits at the doc-level (legacy) OR on any
-        # practice_address element (post-multi-practice-address). Mongo's implicit
-        # array-element match handles practice_address.county.* across both array
-        # and dict shapes.
-        clauses = [
-            {"county.name": regex},
-            {"practice_address.county.name": regex},
-        ]
-        matching_fips = [fips for fips, name in self._fips_to_county.items() if term in name.lower()]
-        if matching_fips:
-            clauses.extend([
-                {"county.fips": {"$in": matching_fips}},
-                {"practice_address.county.fips": {"$in": matching_fips}},
-            ])
-        return {"$or": clauses}
+    def _practice_address_filter(self, state: str = "", city: str = "",
+                                  county: str = "", zip: str = "") -> dict:
+        """Build {"addresses": {"$elemMatch": ...}} for the practice address
+        using deterministic priority (most-specific wins) with exact-match
+        equality only — no regex:
+          1. zip alone (most specific)
+          2. county + state (per the operator's named ranking)
+          3. city + state
+          4. state alone
+          5. nothing → {} (no location scoping)
+
+        State is uppercased; city is uppercased to match the data shape
+        (NPPES practice addresses store city in uppercase). County is
+        passed through verbatim — the LLM's prompt instructs Title Case
+        with the literal 'County' suffix, matching the data shape."""
+        s = (state or "").strip().upper()
+        c = (city or "").strip().upper()
+        co = (county or "").strip()
+        # Practice addresses store zip as 5 digits; truncate the incoming
+        # value so a ZIP+4 emission from the LLM still matches.
+        z = (zip or "").strip()[:5]
+        elem = {"address_type": "practice"}
+        if z:
+            elem["zip"] = z
+        elif s and co:
+            elem["state"] = s
+            elem["county.name"] = co
+        elif s and c:
+            elem["state"] = s
+            elem["city"] = c
+        elif s:
+            elem["state"] = s
+        else:
+            return {}
+        return {"addresses": {"$elemMatch": elem}}
 
     def _format_provider(self, p: dict) -> dict:
         if p.get("entity_type_code") == "1":
@@ -225,13 +221,18 @@ class FindCareService:
         "provider_middle_name": 1, "provider_name_prefix_text": 1,
         "provider_name_suffix_text": 1, "provider_credential_text": 1,
         "provider_organization_name_legal_business_name": 1,
-        "practice_address": 1, "taxonomies": 1, "county": 1,
+        "addresses": 1, "taxonomies": 1,
     }
 
     def _vector_search(self, embedding: list, state: str, city: str, county: str, limit: int) -> list:
         db = self._get_db()
         if db is None:
             return []
+        # $vectorSearch.filter does not support $elemMatch; the pre-filter is
+        # lax on a dotted path and narrows candidates. The post-$match enforces
+        # the precise practice-address scope (state + city + county on the
+        # SAME array element) via $elemMatch through _practice_address_filter.
+        precise = self._practice_address_filter(state=state, city=city, county=county)
         pipeline = [
             {
                 "$vectorSearch": {
@@ -240,15 +241,11 @@ class FindCareService:
                     "queryVector": embedding,
                     "numCandidates": min(limit * 30, 300),
                     "limit": min(limit * 6, 60),
-                    "filter": {"practice_address.state": state},
+                    "filter": {"addresses.state": state, "addresses.address_type": "practice"},
                 }
             },
-            {"$match": {"practice_address.state": state}},
+            {"$match": precise or {"addresses": {"$elemMatch": {"address_type": "practice", "state": state}}}},
         ]
-        if city:
-            pipeline.append({"$match": {"practice_address.city": {"$regex": city.strip(), "$options": "i"}}})
-        if county:
-            pipeline.append({"$match": self._make_county_filter(county)})
         pipeline += [{"$limit": limit}, {"$project": self._PROJECTION}]
         try:
             raw = list(providers_coll().aggregate(pipeline))
@@ -331,8 +328,8 @@ class FindCareService:
         return result
 
     def search_providers(self, specialty_query: str = "", state: str = "", city: str = "",
-                         county: str = "", limit: int = 25, npi: str = "", name: str = "",
-                         fuzzy_specialty: str = "", specialty_codes: list[str] = None,
+                         county: str = "", zip: str = "", limit: int = 25, npi: str = "", name: str = "",
+                         nucc_codes: list[str] = None,
                          after_npi: str = "",
                          find_specialty_fn=None) -> dict:
         """Search for providers. Main entry point.
@@ -340,37 +337,22 @@ class FindCareService:
         Facade pattern (GoF) — routes to the right search strategy based on args.
 
         Args:
-            specialty_query: natural language specialty search (vector + taxonomy)
+            specialty_query: natural-language specialty intent; resolved by the
+                LLM tool to nucc_codes (no fuzzy matching anywhere).
             state: two-letter state code
             city: optional city filter
             county: optional county filter
-            limit: max results (default 25, ignored if fetch_all=True)
+            zip: optional ZIP code filter (5 digits)
+            limit: max results
             npi: exact NPI lookup
             name: provider name search
-            fuzzy_specialty: loose specialty text match -> identify_specialty -> codes -> filter
-            specialty_codes: list of NUCC taxonomy codes to filter by directly
-            fetch_all: if True, return all matching providers (overrides limit)
+            nucc_codes: list of exact NUCC taxonomy codes to filter by
             after_npi: keyset pagination — return results after this NPI (sorted by NPI ascending)
             find_specialty_fn: callable for taxonomy fallback (injected to avoid circular dep)
         """
-        # Route: fuzzy_specialty -> identify codes first, then search by codes
-        if fuzzy_specialty and not specialty_codes:
-            spec_result = self.identify_specialty(fuzzy_specialty)
-            specialty_codes = [s["Code"] for s in spec_result.get("specialties", [])]
-            if not specialty_codes:
-                return {"supported": True, "providers": [],
-                        "message": f"No matching specialty found for '{fuzzy_specialty}'."}
-
+        # Backwards-compat parameter name (the old `specialty_codes` is now `nucc_codes`).
+        specialty_codes = nucc_codes
         state_upper = state.upper().strip() if state else ""
-        if state_upper and state_upper not in SUPPORTED_STATES:
-            return {
-                "supported": False,
-                "state": state_upper,
-                "message": (
-                    f"FindCare is currently available in Delaware (DE), Mississippi (MS), and Virginia (VA) only. "
-                    f"We've noted interest in {state_upper}."
-                ),
-            }
 
         # Build search_params for pagination replay
         _search_params = {}
@@ -378,8 +360,9 @@ class FindCareService:
         if state_upper: _search_params["state"] = state_upper
         if city: _search_params["city"] = city
         if county: _search_params["county"] = county
+        if zip: _search_params["zip"] = zip
         if name: _search_params["name"] = name
-        if specialty_codes: _search_params["specialty_codes"] = specialty_codes
+        if specialty_codes: _search_params["nucc_codes"] = specialty_codes
 
         db = self._get_db()
         if db is None:
@@ -402,7 +385,7 @@ class FindCareService:
 
         # ── Route 2: Name search ──
         if name:
-            base_filter = {"practice_address.state": state_upper} if state_upper else {}
+            base_filter = self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip)
             base_filter["$or"] = [
                 {"provider_last_name_legal_name": {"$regex": name.strip(), "$options": "i"}},
                 {"provider_first_name": {"$regex": name.strip(), "$options": "i"}},
@@ -415,12 +398,7 @@ class FindCareService:
         # ── Route 3: Specialty codes direct filter ──
         if specialty_codes:
             base_filter = {"taxonomies.code": {"$in": specialty_codes}}
-            if state_upper:
-                base_filter["practice_address.state"] = state_upper
-            if city:
-                base_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
-            if county:
-                base_filter.update(self._make_county_filter(county))
+            base_filter.update(self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip))
 
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             _log.info("search: specialty_codes returned %d for %d codes in %s",
@@ -502,15 +480,8 @@ class FindCareService:
                 _log.warning("Homeopathic resolver failed: %s", _he)
 
             # Step 3: Database answers — deterministic taxonomy query
-            base_filter = {
-                "taxonomies.code": {"$in": codes},
-            }
-            if state_upper:
-                base_filter["practice_address.state"] = state_upper
-            if city:
-                base_filter["practice_address.city"] = {"$regex": city.strip(), "$options": "i"}
-            if county:
-                base_filter.update(self._make_county_filter(county))
+            base_filter = {"taxonomies.code": {"$in": codes}}
+            base_filter.update(self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip))
 
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             _log.info("search: specialty '%s' → %d codes → %d/%d providers in %s",
@@ -533,9 +504,10 @@ class FindCareService:
                     pass
 
             # search_params includes resolved codes — /search replays with codes, no AI
-            replay_params = {"state": state_upper, "specialty_codes": codes}
+            replay_params = {"state": state_upper, "nucc_codes": codes}
             if city: replay_params["city"] = city
             if county: replay_params["county"] = county
+            if zip: replay_params["zip"] = zip
             return self._paginated_result(providers, "taxonomy", safe_limit,
                                           search_params=replay_params, total_count=total_count,
                                           state=state_upper, specialty_searched=specialty_query,
@@ -544,11 +516,10 @@ class FindCareService:
         # ── Route 5: County fallback ──
         if county and state_upper:
             base_filter = {
-                "practice_address.state": state_upper,
                 "entity_type_code": "1",
                 "taxonomies": {"$elemMatch": {"code": {"$regex": "^2"}, "primary": True}},
             }
-            base_filter.update(self._make_county_filter(county))
+            base_filter.update(self._practice_address_filter(state=state_upper, county=county, zip=zip))
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
             _log.info("search: county fallback returned %d for '%s' in %s", len(providers), county, state_upper)
             return self._paginated_result(providers, "county_physicians", safe_limit,

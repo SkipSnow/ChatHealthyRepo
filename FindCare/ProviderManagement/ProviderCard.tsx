@@ -17,6 +17,7 @@ interface ProviderCardProps {
   onDeselect?: (npi: string) => void
   onDismiss?: (npi: string) => void
   onFilteredClick?: (npi: string) => void
+  onDetail?: (provider: Provider) => void
   selectionFull?: boolean
   draggable?: boolean
 }
@@ -67,6 +68,7 @@ export function ProviderCard({
   onDeselect,
   onDismiss,
   onFilteredClick,
+  onDetail,
   selectionFull = false,
   draggable = true,
 }: ProviderCardProps) {
@@ -101,6 +103,15 @@ export function ProviderCard({
         {!compact && p.county && <div style={detailStyle}>{p.county}</div>}
         {!compact && p.phone && <div style={detailStyle}>Phone: {p.phone}</div>}
         <div style={{ ...detailStyle, color: '#9ca3af' }}>NPI: {p.npi}</div>
+        {onDetail && (
+          <div style={{ ...detailStyle, marginTop: '0.25em' }}>
+            <a
+              href="#"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDetail(p) }}
+              style={{ color: '#0b7a75', textDecoration: 'underline', fontSize: '0.85em' }}
+            >More about {p.name}</a>
+          </div>
+        )}
       </div>
 
       {/* Action buttons */}
