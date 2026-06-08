@@ -120,26 +120,34 @@ def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
         "target_hf_space_shared_services":      "ch-sharedsvc",
     }
     service = service_map.get(target_id, target_id)
-    # Build = commit count on the deployed branch (Rule-063 /
-    # admin.Versions convention). Computed against the operator's local
-    # repo since the snapshot dir has no .git of its own.
-    try:
-        cp = subprocess.run(
-            ["git", "rev-list", "--count", "HEAD"],
-            capture_output=True, text=True, check=True,
-        )
-        build_num_str = cp.stdout.strip()
-    except Exception:
-        build_num_str = ""
-    try:
-        commit = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True, check=True,
-        ).stdout.strip()
-    except Exception:
-        commit = "unknown"
+    # Build = the canonical Rule-063 counter in admin.Versions on the
+    # front-end cluster. Same source local_build.py uses for image
+    # tagging; baking it here keeps image tag, build_info.json, /health,
+    # and banner all in lock-step by construction.
+    from dotenv import load_dotenv
+    from pymongo import MongoClient
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    load_dotenv(repo_root / "Code" / ".env")
+    conn = os.getenv("MONGO_FRONTEND_connectionString")
+    if not conn:
+        sys.exit("ERROR: MONGO_FRONTEND_connectionString not set in env or Code/.env")
+    latest = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"].find_one(
+        sort=[("from", -1)]
+    )
+    if latest is None:
+        sys.exit("ERROR: admin.Versions has no records.")
+    build_n = next(
+        (int(b["build"]) for b in latest.get("builds", []) if b.get("env") == env),
+        None,
+    )
+    if build_n is None:
+        sys.exit(f"ERROR: admin.Versions latest record has no {env!r} slot in builds[].")
+    commit = subprocess.run(
+        ["git", "rev-parse", "--short", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
     info = {
-        "build": int(build_num_str) if build_num_str.isdigit() else None,
+        "build": build_n,
         "commit": commit,
         "env": env,
         "target_id": target_id,

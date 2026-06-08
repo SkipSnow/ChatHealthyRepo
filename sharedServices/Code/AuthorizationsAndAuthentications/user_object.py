@@ -23,7 +23,7 @@ UserObject field at the top level alongside `_id`.
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -112,8 +112,13 @@ class UserObject(BaseModel):
       current_session_token, expires_at, session_conversation_history.
     Every other field is Optional and absent until its fact is known.
     """
-    # ── Skip 2026-05-15 additions ────────────────────────────
-    current_session_token: SessionToken
+    # current_session_token is the SessionToken envelope for the live
+    # session. Sentinel value "NULL" signals "no session yet" — the
+    # gateway uses this on a manufacture_session call so the auth tool
+    # can mint a fresh token in place. The sentinel never appears on a
+    # response: the manufacture_session branch replaces it with a real
+    # SessionToken before returning.
+    current_session_token: Union[SessionToken, Literal["NULL"]]
     expires_at: datetime
 
     # ── Existing User Schema ─────────────────────────────────
