@@ -264,29 +264,76 @@ class GoogleOAuthEndpoint:
         if not email or not claims.get("email_verified"):
             return _error_redirect("email_not_verified")
 
-        # Hand off to the A&A tool to register-or-find the users record.
+        # Construct the user_object for the login Request:
+        #   * load the live session record by session_guid -> hydrate UserObject
+        #   * set OAuthIdentities[0] to the newly-asserted identity
+        # The auth tool's login branch does the Users.users register/merge
+        # and mirrors the result back into Users.sessions.
         from authentication.authorizations_and_authentications_tool import (
             TOOL as AUTHN_TOOL,
             get_mongo_frontend,
+            Request as AuthnRequest,
+            _SESSION_DB,
+            _SESSION_COLLECTION,
         )
+        from authentication.user_object import UserObject, OAuthIdentity
+        from authentication.agent_deps import AuthnDeps
+
+        mongo = get_mongo_frontend()
+        sessions_coll = mongo[_SESSION_DB][_SESSION_COLLECTION]
+        session_doc = sessions_coll.find_one({"_id": session_guid})
+        if not session_doc:
+            _log.error(
+                "OAUTH-CALLBACK no session record for guid=%s; OAuth arrived "
+                "without prior /gate visit", session_guid[:8],
+            )
+            return _error_redirect("no_session_record")
+        try:
+            session_user_object = UserObject.model_validate(
+                {k: v for k, v in session_doc.items() if k != "_id"}
+            )
+        except Exception as exc:
+            _log.exception("OAUTH-CALLBACK could not validate session UserObject: %s", exc)
+            return _error_redirect(f"session_invalid_{type(exc).__name__}")
+
+        session_user_object.OAuthIdentities = [
+            OAuthIdentity(
+                identity_provider="Google",
+                identity_provider_user_id=google_sub,
+                email=email,
+            )
+        ]
+
         _log.info(
-            "OAUTH-CALLBACK handing off to handle_oauth_login email=%s google_sub_prefix=%s session_guid=%s",
+            "OAUTH-CALLBACK handing off to AUTHN_TOOL.run(intent='login') "
+            "email=%s google_sub_prefix=%s session_guid=%s",
             email, google_sub[:8], session_guid[:8] + "...",
         )
         try:
-            user_id = AUTHN_TOOL.handle_oauth_login(
-                get_mongo_frontend(),
-                identity_provider="Google",
-                google_sub=google_sub,
-                email=email,
-                session_guid=session_guid,
+            import asyncio
+            authn_deps = AuthnDeps(
+                prior_guid=session_guid,
+                server_env=server_env,
+                mongo_frontend=mongo,
+            )
+            authn_resp = asyncio.run(
+                AUTHN_TOOL.run(
+                    authn_deps,
+                    AuthnRequest(intent="login", user_object=session_user_object),
+                )
             )
         except Exception as exc:
-            _log.exception("OAUTH-CALLBACK handle_oauth_login raised: %s", exc)
+            _log.exception("OAUTH-CALLBACK AUTHN_TOOL.run(login) raised: %s", exc)
             return _error_redirect(f"register_failed_{type(exc).__name__}")
 
+        user_id = authn_resp.user_object.user_id
+        if not user_id:
+            _log.error("OAUTH-CALLBACK login returned user_object with no user_id")
+            return _error_redirect("login_no_user_id")
+
         _log.info(
-            "OAUTH-CALLBACK handle_oauth_login OK user_id=%s; setting ChatHealthyRegisteredUserCookie and redirecting to wrapper",
+            "OAUTH-CALLBACK login OK user_id=%s; setting "
+            "ChatHealthyRegisteredUserCookie and redirecting to wrapper",
             user_id,
         )
         redirect = RedirectResponse(

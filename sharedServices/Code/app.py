@@ -27,7 +27,7 @@ import os
 import sys
 import tempfile
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import Body, Cookie, FastAPI, Request, Response
@@ -155,6 +155,24 @@ _SESSION_COOKIE_NAME = "ch_session"
 _SESSION_COOKIE_MAX_AGE = 300
 _SESSION_COOKIE_DOMAIN = "chathealthy.ai"
 _SESSION_COOKIE_PATH = "/gate"
+_SESSION_TTL_SECONDS = 300
+
+# Wire intents understood on the /gate body. Absent or "utterance" =
+# default utterance/nav path. "login_register" = the gateway builds an
+# OAuth start redirect_url and short-circuits the response.
+_WIRE_INTENT_UTTERANCE = "utterance"
+_WIRE_INTENT_LOGIN_REGISTER = "login_register"
+_KNOWN_WIRE_INTENTS = frozenset({_WIRE_INTENT_UTTERANCE, _WIRE_INTENT_LOGIN_REGISTER})
+
+# SharedServices Space URL per env — used by /gate to build the
+# OAuth start redirect URL when wire intent == "login_register". Lifted
+# out of the auth tool 2026-06-08; HTTP knowledge belongs at the gateway.
+_ENV_TO_SHARED_URL = {
+    "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space",
+    "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space",
+    "prod":  "https://skipsnow-sharedservicesspace.hf.space",
+    "local": "https://localhost:8002",
+}
 
 
 def _impl(cls_name, file_subpath):
@@ -296,30 +314,91 @@ async def gate(
         prior_guid = payload.get("prior_guid")
 
     try:
-        # Step 1 — AuthN. Resolves the user_object; does NOT persist (the
-        # gate calls AUTHN_TOOL.persist at the very end so all downstream
-        # mutations land in a single write).
+        # Step 0 — Validate the wire intent (gateway concern; the auth
+        # tool sees only the three auth intents the gateway derives).
+        if intent is not None and intent not in _KNOWN_WIRE_INTENTS:
+            raise ValueError(
+                f"/gate: unknown intent {intent!r}; expected one of "
+                f"{sorted(_KNOWN_WIRE_INTENTS)} or absent"
+            )
+
+        # Step 1 — Decide the auth intent and construct the user_object
+        # payload the auth tool will operate on.
+        #   * prior_guid + live session in Users.sessions => manage_session
+        #   * otherwise => manufacture_session (sentinel current_session_token)
+        from authentication.user_object import UserObject
+        from authentication.authorizations_and_authentications_tool import (
+            _SESSION_DB, _SESSION_COLLECTION,
+        )
+        mongo_frontend = authn.get_mongo_frontend()
         authn_deps = AuthnDeps(
             prior_guid=prior_guid,
             server_env=_ENV,
-            mongo_frontend=authn.get_mongo_frontend(),
+            mongo_frontend=mongo_frontend,
         )
-        authn_resp = await AUTHN_TOOL.run(authn_deps, authn.Request(intent=intent))
+
+        loaded_user_object: Optional[UserObject] = None
+        if prior_guid:
+            sessions_coll = mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
+            session_doc = sessions_coll.find_one({"_id": prior_guid})
+            if session_doc:
+                try:
+                    candidate = UserObject.model_validate(
+                        {k: v for k, v in session_doc.items() if k != "_id"}
+                    )
+                    expires_at = candidate.expires_at
+                    if expires_at.tzinfo is None:
+                        expires_at = expires_at.replace(tzinfo=timezone.utc)
+                    if expires_at > datetime.now(timezone.utc):
+                        loaded_user_object = candidate
+                except Exception as exc:
+                    _log.warning(
+                        "could not reconstitute UserObject for %s: %s",
+                        prior_guid[:8], exc,
+                    )
+
+        if loaded_user_object is not None:
+            auth_intent = "manage_session"
+            inbound_user_object = loaded_user_object
+        else:
+            auth_intent = "manufacture_session"
+            inbound_user_object = UserObject(
+                current_session_token="NULL",
+                expires_at=datetime.now(timezone.utc)
+                + timedelta(seconds=_SESSION_TTL_SECONDS),
+            )
+
+        # Step 2 — Call the auth tool. It mutates the user_object per the
+        # picked intent and returns it.
+        authn_resp = await AUTHN_TOOL.run(
+            authn_deps,
+            authn.Request(intent=auth_intent, user_object=inbound_user_object),
+        )
         user_object = authn_resp.user_object
         fresh_mint = authn_resp.fresh_mint
         guid = user_object.current_session_token.get_auth_token()
         _set_session_cookie(response, user_object)
 
-        # Control-path short-circuit: AuthN signaled a redirect (login_register).
-        # Persist the session and return the redirect event; do NOT run nav.
-        if authn_resp.redirect_url:
+        # Step 3 — Wire-intent dispatch. login_register: the gateway
+        # builds the OAuth start URL and short-circuits with a redirect
+        # event. The auth tool has no knowledge of this URL.
+        if intent == _WIRE_INTENT_LOGIN_REGISTER:
+            shared = _ENV_TO_SHARED_URL.get(_ENV)
+            if not shared:
+                raise RuntimeError(
+                    f"/gate: no SharedServices URL for env {_ENV!r}"
+                )
+            redirect_url = (
+                f"{shared}/auth/google/start"
+                f"?session_guid={guid}"
+            )
             try:
                 await AUTHN_TOOL.persist(authn_deps, user_object, fresh_mint)
             except Exception as exc:
                 _log.exception("AuthN.persist (redirect path) failed: %s", exc)
             redirect_event = {
                 "type": "redirect",
-                "url": authn_resp.redirect_url,
+                "url": redirect_url,
                 "time_remaining_seconds": _time_remaining_seconds(user_object),
                 "was_registered": _was_registered(user_object),
                 "session_token": _session_token_wire(user_object),

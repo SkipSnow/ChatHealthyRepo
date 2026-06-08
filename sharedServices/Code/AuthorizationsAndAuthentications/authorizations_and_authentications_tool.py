@@ -1,25 +1,28 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""AuthorizationsAndAuthentications tool — the auth-only Agent.
+"""AuthorizationsAndAuthentications tool — pure session-data work.
 
-Runs first on every /gate hit. Two top-level routing paths:
+The tool exposes the canonical *_tool.py contract (TOOL_NAME, Request,
+Response, run()) plus a persist() method.
 
-  * utterance path  - default; resolve or mint the UserObject, return so
-                      UniversalNavigation can dispatch downstream.
-  * control path    - the request identifies a control use case. Today
-                      one control use case is wired: login_register,
-                      which returns a Response carrying redirect_url to
-                      the SharedServices /auth/google/start endpoint.
+run() is a three-way switch on `request.intent`:
 
-It exposes the canonical *_tool.py contract (TOOL_NAME, Request,
-Response, run()) plus a persist() method that is the sole writer to
-both Users.sessions (per-session) AND Users.users (long-lived mirror)
-when a users record exists.
+  * "manufacture_session" — mint a fresh SessionToken, stamp it onto
+    the incoming user_object's current_session_token field (which
+    arrived as the sentinel "NULL"), bump expires_at, return.
 
-After Google OAuth completes, the OAuth callback route calls
-TOOL.handle_oauth_login(...) to register-or-find the users record,
-which returns the user_id that the callback sets in
-ChatHealthyUserCookie.
+  * "manage_session" — the incoming user_object carries a real
+    SessionToken (the gateway loaded it from Users.sessions). Restamp
+    the nonce in place, bump expires_at, return.
+
+  * "login" — the incoming user_object carries a real SessionToken
+    AND an OAuthIdentities[0] entry populated by the OAuth callback.
+    Register-or-merge the users record in Users.users, mirror the
+    resulting user_object back into Users.sessions, return.
+
+The tool has no knowledge of HTTP, URLs, or callers. It does not
+dispatch on cookie state, request shape, or any input outside its
+typed Request. The gateway decides the intent; the tool executes it.
 """
 from __future__ import annotations
 
@@ -27,7 +30,7 @@ import logging
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel
 
@@ -46,34 +49,29 @@ _SESSION_COLLECTION = "sessions"
 _USERS_DB = "Users"
 _USERS_COLLECTION = "users"
 
-# SharedServices Space URL per env — used to build the absolute
-# redirect_url returned for login_register.
-_ENV_TO_SHARED_URL = {
-    "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space",
-    "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space",
-    "prod":  "https://skipsnow-sharedservicesspace.hf.space",
-    "local": "https://localhost:8002",
-}
-
-_INTENT_UTTERANCE = "utterance"
-_INTENT_LOGIN_REGISTER = "login_register"
-_KNOWN_INTENTS = frozenset({_INTENT_UTTERANCE, _INTENT_LOGIN_REGISTER})
-
 _indexes_ensured: bool = False
 
 
 class Request(BaseModel):
-    """Optional intent. Absent or "utterance" -> utterance path. Any other
-    recognized value identifies a control use case; unknown intents are a
-    hard error per S-004-REQ-T-003."""
-    intent: Optional[str] = None
-    model_config = {"extra": "ignore"}
+    """The auth tool's input. The gateway picks `intent` from the three
+    permitted operations and hands a `user_object` populated to the
+    degree appropriate for that operation:
+
+      * manufacture_session: user_object.current_session_token == "NULL"
+        (sentinel — no session exists yet). The branch mints the token.
+      * manage_session: user_object.current_session_token is a real
+        SessionToken loaded from Users.sessions by the gateway.
+      * login: user_object.current_session_token is a real SessionToken
+        AND user_object.OAuthIdentities[0] is the newly asserted
+        identity from the OAuth callback.
+    """
+    intent: Literal["manufacture_session", "manage_session", "login"]
+    user_object: UserObject
 
 
 class Response(BaseModel):
     user_object: UserObject
     fresh_mint: bool
-    redirect_url: Optional[str] = None
 
 
 def _auth_token_to_session_token(auth_token: Any) -> SessionToken:
@@ -109,35 +107,127 @@ def _reload(coll, guid: str) -> Optional[UserObject]:
         return None
 
 
-def _resolve_session(
-    coll, prior_guid: Optional[str], server_env: str,
-) -> tuple[UserObject, bool]:
-    """Resume an existing session (restamp nonce) or mint a fresh guest."""
+def _manufacture_session(user_object: UserObject, server_env: str) -> UserObject:
+    """Mint a SessionToken in place. The incoming user_object's
+    current_session_token is the sentinel "NULL"; replace it with a
+    real SessionToken and set expires_at to NOW + TTL."""
     now = datetime.now(timezone.utc)
-    if prior_guid:
-        existing = _reload(coll, prior_guid)
-        if existing is not None:
-            expires_at = existing.expires_at
-            if expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=timezone.utc)
-            if expires_at > now:
-                try:
-                    existing.current_session_token.put_nonce(_ORIGIN)
-                    existing.expires_at = now + timedelta(seconds=_SESSION_TTL_SECONDS)
-                    return existing, False
-                except Exception as exc:
-                    _log.warning(
-                        "restamp of stored session %s failed (%s: %s); minting fresh",
-                        prior_guid[:8], type(exc).__name__, exc,
-                    )
-
     minted = MintableAuthToken.manufacture(server_env=server_env)
-    session_token = _auth_token_to_session_token(minted)
-    user_object = UserObject(
-        current_session_token=session_token,
-        expires_at=now + timedelta(seconds=_SESSION_TTL_SECONDS),
+    user_object.current_session_token = _auth_token_to_session_token(minted)
+    user_object.expires_at = now + timedelta(seconds=_SESSION_TTL_SECONDS)
+    return user_object
+
+
+def _manage_session(user_object: UserObject) -> UserObject:
+    """Restamp the nonce on the existing SessionToken, bump expires_at.
+    The incoming user_object carries a real SessionToken — the gateway
+    loaded it from Users.sessions."""
+    now = datetime.now(timezone.utc)
+    if not isinstance(user_object.current_session_token, SessionToken):
+        raise ValueError(
+            "manage_session requires a real SessionToken on the incoming "
+            "user_object; got sentinel/None."
+        )
+    user_object.current_session_token.put_nonce(_ORIGIN)
+    user_object.expires_at = now + timedelta(seconds=_SESSION_TTL_SECONDS)
+    return user_object
+
+
+def _login(
+    sessions_coll, users_coll, user_object: UserObject,
+) -> UserObject:
+    """Register or merge the OAuth identity carried on the incoming
+    user_object's OAuthIdentities[0]. Mirror the resulting user_object
+    into BOTH Users.sessions and Users.users.
+
+    Pre-conditions (gateway must hold):
+      * user_object.current_session_token is a real SessionToken.
+      * user_object.OAuthIdentities[0] is populated with the newly
+        asserted identity {identity_provider, identity_provider_user_id,
+        email} from the OAuth callback.
+    """
+    if not isinstance(user_object.current_session_token, SessionToken):
+        raise ValueError(
+            "login requires a real SessionToken on the incoming user_object."
+        )
+    if not user_object.OAuthIdentities:
+        raise ValueError(
+            "login requires user_object.OAuthIdentities[0] populated with "
+            "the newly asserted identity."
+        )
+    new_identity = user_object.OAuthIdentities[0]
+    identity_provider = new_identity.identity_provider
+    identity_provider_user_id = new_identity.identity_provider_user_id
+    email = new_identity.email
+    session_guid = user_object.current_session_token.get_auth_token()
+
+    existing_user_id = _user_id_for_identity_provider_sub(
+        users_coll,
+        identity_provider=identity_provider,
+        identity_provider_user_id=identity_provider_user_id,
     )
-    return user_object, True
+
+    if existing_user_id is None:
+        # First-time: register a fresh users record. user_object becomes
+        # the registered record; mirror it into Users.users.
+        user_id = "u-" + secrets.token_urlsafe(16)
+        user_object.public_username = email
+        user_object.user_type = "Prospect"
+        user_object.is_registered = True
+        user_object.user_id = user_id
+        body = user_object.model_dump(mode="python", exclude_none=True)
+        users_coll.insert_one({"user_id": user_id, "user_object": body})
+        sessions_coll.replace_one(
+            {"_id": session_guid},
+            {"_id": session_guid, **body},
+            upsert=True,
+        )
+        _log.info(
+            "OAUTH-LOGIN registered new user user_id=%s session_guid=%s",
+            user_id, session_guid[:8] + "...",
+        )
+        return user_object
+
+    # Returning: refresh email on the matching identity entry, load the
+    # stored UserObject, merge stored.merge(guest), write the merged
+    # record back to both collections.
+    users_coll.update_one(
+        {
+            "user_id": existing_user_id,
+            "user_object.OAuthIdentities": {
+                "$elemMatch": {
+                    "identity_provider": identity_provider,
+                    "identity_provider_user_id": identity_provider_user_id,
+                },
+            },
+        },
+        {"$set": {"user_object.OAuthIdentities.$.email": email}},
+    )
+    existing = users_coll.find_one({"user_id": existing_user_id})
+    stored_user_object_doc = (existing or {}).get("user_object", {}) or {}
+    try:
+        db_record = UserObject.model_validate(stored_user_object_doc)
+    except Exception as exc:
+        raise RuntimeError(
+            f"AuthN.login: could not validate stored UserObject for merge "
+            f"({type(exc).__name__}: {exc})"
+        )
+    merged = db_record.merge(user_object)
+    merged_body = merged.model_dump(mode="python", exclude_none=True)
+    sessions_coll.replace_one(
+        {"_id": session_guid},
+        {"_id": session_guid, **merged_body},
+        upsert=True,
+    )
+    users_coll.update_one(
+        {"user_id": existing_user_id},
+        {"$set": {"user_object": merged_body}},
+    )
+    _log.info(
+        "OAUTH-LOGIN returning user_id=%s merged session_guid=%s",
+        existing_user_id, session_guid[:8] + "...",
+    )
+    return merged
 
 
 def _user_id_for_guid(users_coll, guid: str) -> Optional[str]:
@@ -201,186 +291,46 @@ def _persist(coll, users_coll, user_object: UserObject, fresh_mint: bool) -> Non
 
 
 class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
-    """Sole owner of session state and the registered-users mirror.
+    """Pure session-data work. Three operations on `user_object`:
 
-      * `run()`                  - resolves or mints user_object; routes
-                                   utterance vs control use case.
-      * `persist()`              - writes Users.sessions AND Users.users.
-      * `handle_oauth_login()`   - called by the Google OAuth callback
-                                   after the token exchange completes;
-                                   returns the user_id that the callback
-                                   sets in ChatHealthyUserCookie.
+      * `run(Request(intent="manufacture_session", user_object=...))`
+        Mint a SessionToken in place. user_object.current_session_token
+        arrives as the sentinel "NULL"; leaves as a real SessionToken.
+
+      * `run(Request(intent="manage_session", user_object=...))`
+        Restamp the nonce + bump expires_at. Gateway already loaded the
+        session record from Users.sessions and hydrated user_object.
+
+      * `run(Request(intent="login", user_object=...))`
+        Register-or-merge the OAuth identity carried on
+        user_object.OAuthIdentities[0]. Mirror result into
+        Users.sessions AND Users.users.
+
+    `persist()` is the sole writer for the post-utterance write-back of
+    user_object to Users.sessions (and to Users.users mirror when
+    is_registered).
     """
     TOOL_NAME = "authn"
     Request = Request
     Response = Response
 
-    async def run(self, deps: AuthnDeps, request: Optional["Request"] = None) -> "Response":
-        coll = deps.mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
-        user_object, fresh_mint = _resolve_session(coll, deps.prior_guid, deps.server_env)
-
-        intent = (request.intent if request is not None else None) or _INTENT_UTTERANCE
-        if intent not in _KNOWN_INTENTS:
-            raise ValueError(
-                f"AuthN: unknown intent {intent!r}; "
-                f"expected one of {sorted(_KNOWN_INTENTS)}"
-            )
-
-        redirect_url: Optional[str] = None
-        if intent == _INTENT_LOGIN_REGISTER:
-            shared = _ENV_TO_SHARED_URL.get(deps.server_env)
-            if not shared:
-                raise RuntimeError(
-                    f"AuthN: no SharedServices URL for env {deps.server_env!r}"
-                )
-            redirect_url = (
-                f"{shared}/auth/google/start"
-                f"?session_guid={user_object.current_session_token.get_auth_token()}"
-            )
-
-        return self.Response(
-            user_object=user_object,
-            fresh_mint=fresh_mint,
-            redirect_url=redirect_url,
-        )
+    async def run(self, deps: AuthnDeps, request: "Request") -> "Response":
+        if request.intent == "manufacture_session":
+            user_object = _manufacture_session(request.user_object, deps.server_env)
+            return self.Response(user_object=user_object, fresh_mint=True)
+        if request.intent == "manage_session":
+            user_object = _manage_session(request.user_object)
+            return self.Response(user_object=user_object, fresh_mint=False)
+        # intent == "login"
+        sessions_coll = deps.mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
+        users_coll = deps.mongo_frontend[_USERS_DB][_USERS_COLLECTION]
+        user_object = _login(sessions_coll, users_coll, request.user_object)
+        return self.Response(user_object=user_object, fresh_mint=False)
 
     async def persist(self, deps: AuthnDeps, user_object, fresh_mint: bool) -> None:
         coll = deps.mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
         users_coll = deps.mongo_frontend[_USERS_DB][_USERS_COLLECTION]
         _persist(coll, users_coll, user_object, fresh_mint)
-
-    def handle_oauth_login(
-        self, mongo_frontend, *,
-        identity_provider: str, google_sub: str, email: str, session_guid: str,
-    ) -> str:
-        """Register-or-find a users record for this OAuth identity, bind it
-        to the current session, and return the user_id that the OAuth
-        callback MUST set in ChatHealthyUserCookie.
-
-        `identity_provider` is the identity provider name (e.g. "Google").
-        `google_sub` is the provider's stable user-id ("sub" in OIDC). The
-        argument keeps its historical name so callers don't churn; it is
-        persisted as OAuthIdentities[].identity_provider_user_id per the
-        canonical schema.
-
-        First-time (REQ-T-009): creates a users record with a freshly
-        generated user_id and a user_object whose OAuthIdentities array
-        contains one entry with this identity_provider. The new
-        user_object has is_registered = True, user_type = "Prospect", and
-        public_username = identity_provider_user_id.
-
-        Returning (REQ-T-012): reuses the existing user_id; refreshes the
-        matching OAuthIdentities entry's email; merges the stored
-        UserObject with the guest session per the model's merge rules.
-        """
-        sessions_coll = mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
-        users_coll = mongo_frontend[_USERS_DB][_USERS_COLLECTION]
-
-        _log.info(
-            "OAUTH-LOGIN entry identity_provider=%s session_guid=%s email=%s sub_prefix=%s",
-            identity_provider, session_guid[:8] + "...", email, google_sub[:8],
-        )
-        session_doc = sessions_coll.find_one({"_id": session_guid})
-        if not session_doc:
-            _log.error("OAUTH-LOGIN no session record for guid=%s — aborting", session_guid[:8])
-            raise RuntimeError(
-                f"AuthN.handle_oauth_login: no session record for "
-                f"{session_guid[:8]}; OAuth callback arrived without a "
-                "prior /gate visit"
-            )
-        _log.info(
-            "OAUTH-LOGIN session_doc found pre-flip: user_type=%s is_registered=%s public_username=%s",
-            session_doc.get("user_type"), session_doc.get("is_registered"),
-            session_doc.get("public_username"),
-        )
-        session_user_object = {k: v for k, v in session_doc.items() if k != "_id"}
-
-        existing_user_id = _user_id_for_identity_provider_sub(
-            users_coll,
-            identity_provider=identity_provider,
-            identity_provider_user_id=google_sub,
-        )
-
-        if existing_user_id is None:
-            # REQ-T-009: register. public_username = verified email.
-            user_id = "u-" + secrets.token_urlsafe(16)
-            new_user_object = dict(session_user_object)
-            new_user_object["public_username"] = email
-            new_user_object["user_type"] = "Prospect"
-            new_user_object["is_registered"] = True
-            new_user_object["user_id"] = user_id
-            new_user_object["OAuthIdentities"] = [{
-                "identity_provider": identity_provider,
-                "identity_provider_user_id": google_sub,
-                "email": email,
-            }]
-            users_coll.insert_one({
-                "user_id": user_id,
-                "user_object": new_user_object,
-            })
-            # Reflect the upgraded state into the live session record so
-            # the next persist() round-trip sees a consistent UserObject.
-            update_result = sessions_coll.update_one(
-                {"_id": session_guid},
-                {"$set": {
-                    "public_username": email,
-                    "user_type": "Prospect",
-                    "is_registered": True,
-                    "user_id": user_id,
-                    "OAuthIdentities": new_user_object["OAuthIdentities"],
-                }},
-            )
-            _log.info(
-                "OAUTH-LOGIN registered new user user_id=%s session_guid=%s session_matched=%d session_modified=%d",
-                user_id, session_guid[:8] + "...",
-                update_result.matched_count, update_result.modified_count,
-            )
-            return user_id
-
-        # REQ-T-012 + REQ-T-015: returning. Refresh the email on the
-        # matching OAuthIdentities entry, load the DB record, call
-        # db_record.merge(guest_record) to produce the merged
-        # UserObject (per the model's documented merge rules), then
-        # write the merged record to BOTH Users.sessions and
-        # Users.users.
-        users_coll.update_one(
-            {
-                "user_id": existing_user_id,
-                "user_object.OAuthIdentities": {
-                    "$elemMatch": {
-                        "identity_provider": identity_provider,
-                        "identity_provider_user_id": google_sub,
-                    },
-                },
-            },
-            {"$set": {"user_object.OAuthIdentities.$.email": email}},
-        )
-        existing = users_coll.find_one({"user_id": existing_user_id})
-        stored_user_object_doc = (existing or {}).get("user_object", {}) or {}
-        try:
-            db_record = UserObject.model_validate(stored_user_object_doc)
-            guest_record = UserObject.model_validate(session_user_object)
-        except Exception as exc:
-            raise RuntimeError(
-                f"AuthN.handle_oauth_login: could not validate stored or "
-                f"guest UserObject for merge ({type(exc).__name__}: {exc})"
-            )
-        merged = db_record.merge(guest_record)
-        merged_body = merged.model_dump(mode="python", exclude_none=True)
-        sessions_coll.replace_one(
-            {"_id": session_guid},
-            {"_id": session_guid, **merged_body},
-            upsert=True,
-        )
-        users_coll.update_one(
-            {"user_id": existing_user_id},
-            {"$set": {"user_object": merged_body}},
-        )
-        _log.info(
-            "OAUTH-LOGIN returning user_id=%s merged session_guid=%s; sessions+users updated",
-            existing_user_id, session_guid[:8] + "...",
-        )
-        return existing_user_id
 
 
 TOOL = AuthorizationsAndAuthenticationsTool()
