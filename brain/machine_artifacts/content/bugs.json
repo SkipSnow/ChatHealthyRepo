@@ -127,6 +127,23 @@
         "Replace the wholesale subtree-copy mechanism with an explicit per-target file list driven by deployment_architecture.json. The build stages only what the manifest enumerates for that target.",
         "Implement, then bring this bug to closed."
       ]
+    },
+    {
+      "bugid": "BUG-012",
+      "title": "Machine-level Windows env var overrides Code/.env on credential rotation",
+      "description": "The Kafka producer reads MONGO_FRONTEND_connectionString from os.environ. It was set at Windows machine scope so the sidecar could find it. That value beats Code/.env because load_dotenv doesn't override by default, so password rotations silently fail to propagate. Fix: producer calls load_dotenv(Code/.env, override=True); remove the OS-level var. No ChatHealthy secret at OS scope.",
+      "environments": [
+        "local"
+      ],
+      "status": "new",
+      "severity": "high",
+      "req_id": "ORPHAN",
+      "story_id": "EPIC-008-F-013-S-002",
+      "test_id": "",
+      "discovery_date": "2026-06-09",
+      "due_date": "2026-09-01",
+      "reproduction": "1. Set MONGO_FRONTEND_connectionString at Windows Machine scope. 2. Edit Code/.env to a new value. 3. Fresh shell, call load_dotenv('Code/.env'), read the env var — observe the OS value wins.",
+      "orphan": false
     }
   ]
 }
