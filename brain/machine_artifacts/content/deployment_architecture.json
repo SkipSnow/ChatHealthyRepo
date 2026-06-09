@@ -1570,7 +1570,7 @@
           "source_location": "brain/machine_artifacts/content/bugs.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "5a225470ad4555a40a2ec3f1f17dc41ed515642e9570553acf34e57244290e78"
+          "content_hash": "de0422c85f7b795e765cb25beb1b498bd042ab6266cf686ffc9207fcea51090a"
         },
         {
           "feature_id": "EPIC-008-F-012",
