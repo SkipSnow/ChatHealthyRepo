@@ -1603,3 +1603,60 @@ class TestStep99FiddlesticksNoFatal:
                 pass
             page.wait_for_timeout(1000); deadline -= 1000
         _screenshot(page, "99")
+
+
+# Step 99b — UM regression: a nonsense word arriving after a findAProvider
+# prior must classify as nonsense. Sends two POSTs to /gate directly (no
+# browser, no UI state coupling): (1) "Find me a bone doctor in Delaware"
+# on a fresh session — establishes target_action=findAProvider as the
+# prior; (2) "fidelsticks" on that same session. UM must evaluate the
+# utterance alone first and pick nonsense. Misclassifying as findAProvider
+# (the previously-observed bias) runs SpecialtyFilter + ProviderSearch
+# against gibberish and the user waits ~20+ seconds for an irrelevant
+# result.
+class TestStep99bNonsenseAfterFindAProvider:
+    def test_nonsense_after_findaprovider_prior(self, env):
+        if SMOKE_ENV != "local":
+            pytest.skip("Step 99b uses direct /gate; local-only for now")
+        import json as _json
+
+        def post_utterance(text, prior_guid):
+            body = {"op": "utterance", "payload": {"text": text}}
+            if prior_guid:
+                body["prior_guid"] = prior_guid
+            c = httpx.Client(verify=False, timeout=60)
+            try:
+                r = c.post(f"{SHARED_URL}/gate", json=body)
+            finally:
+                c.close()
+            assert r.status_code == 200, (
+                f"/gate returned {r.status_code}: {r.text[:300]}"
+            )
+            return r.json()
+
+        evt1 = post_utterance("Find me a bone doctor in Delaware", None)
+        assert evt1.get("ok") is True, f"turn 1 not ok: {evt1}"
+        ta1 = (evt1.get("result") or {}).get("target_action")
+        assert ta1 == "findAProvider", (
+            f"turn 1 expected target_action=findAProvider, got {ta1!r}"
+        )
+        guid = evt1.get("guid")
+        assert guid, f"turn 1 missing guid: {evt1}"
+
+        evt2 = post_utterance("fidelsticks", guid)
+        assert evt2.get("ok") is True, f"turn 2 not ok: {evt2}"
+        ta2 = (evt2.get("result") or {}).get("target_action")
+        assert ta2 not in ("findAProvider", "specialtySearch"), (
+            f"BUG REGRESSION: nonsense word 'fidelsticks' submitted after a "
+            f"findAProvider-only prior was misclassified as {ta2!r}. UM must "
+            f"evaluate the utterance alone first and classify gibberish as "
+            f"nonsense regardless of prior context. A target_action of "
+            f"findAProvider or specialtySearch on this turn means SpecialtyFilter "
+            f"+ ProviderSearch ran against gibberish."
+        )
+        assert ta2 == "closeConnection200", (
+            f"turn 2 expected target_action=closeConnection200 (NonsenseTool "
+            f"morphs the IntentDocument to closeConnection200 after streaming "
+            f"the clarification; UR chains to CloseConnection200Tool which is "
+            f"the terminal action). Got {ta2!r}."
+        )

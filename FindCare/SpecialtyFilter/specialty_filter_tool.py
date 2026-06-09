@@ -32,8 +32,11 @@ _FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
 
 
 class Request(BaseModel):
-    """No payload — the tool reads its input off user_object.utterances[-1]."""
+    """The natural-language complaint UM extracted from the user's utterance.
+    Required and non-empty; SpecialtyFilter does not source from any other
+    field on user_object."""
     model_config = {"extra": "ignore"}
+    query: str
 
 
 class SpecialtyRow(BaseModel):
@@ -56,33 +59,22 @@ def _findcare_url() -> str:
     return os.environ.get(_FINDCARE_INTERNAL_URL_ENV) or _FINDCARE_INTERNAL_URL_DEFAULT
 
 
-def _latest_utterance_text(deps: AgentDeps) -> str:
-    utterances = deps.user_object.session_conversation_history.utterances
-    if not utterances:
-        return ""
-    last = utterances[-1]
-    if isinstance(last, dict):
-        return str(last.get("text", "")).strip()
-    return ""
-
-
 class SpecialtyFilterTool(ChatHealthyTool):
-    """Vernacular text → NUCC specialty codes. Reads the user's latest
-    utterance off deps.user_object; HTTP-calls the existing /classify
+    """Vernacular text → NUCC specialty codes. Consumes the UM-extracted
+    complaint phrase via Request.query; HTTP-calls the existing /classify
     engine; emits a stream event so the FE renders the filter as soon as
     picks arrive."""
     TOOL_NAME = "specialty_filter"
-    # Reference the module-level pydantic models so they remain importable
-    # via the canonical `<module>.Request` / `.Response` path.
     Request = Request
     Response = Response
 
-    async def run(self, deps: AgentDeps, request: Optional["Request"] = None) -> "Response":
-        text = _latest_utterance_text(deps)
+    async def run(self, deps: AgentDeps, request: "Request") -> "Response":
+        text = (request.query or "").strip()
         if not text:
-            resp = self.Response(error="No utterance text on user_object.")
-            deps.stream({"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
-            return resp
+            raise ValueError(
+                "SpecialtyFilter requires a non-empty Request.query; UR "
+                "must pass the UM-extracted complaint phrase."
+            )
 
         url = _findcare_url() + "/classify"
         try:

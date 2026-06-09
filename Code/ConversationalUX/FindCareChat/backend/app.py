@@ -237,16 +237,25 @@ import time as _time_mod
 
 app = FastAPI(title="ChatHealthy FindCare API")
 
-# EPIC-008-F-011-S-001-REQ-B-002 / REQ-B-003 — uniform fatal-error contract.
-# EPIC-003: consumed from the chathealthy-frontend-lib package.
-from chathealthy_frontend_lib.runtime_governance import ChatHealthyFatalError, register_fatal_handler
 from chathealthy_frontend_lib.runtime_data_collections import (
     providers_coll,
     specialty_meta_coll,
     bind_from_manifest as _bind_data_collections,
     router as _data_collections_router,
 )
-register_fatal_handler(app, service_name="FindCare")
+
+import datetime as _dt
+from fastapi.responses import JSONResponse as _JSONResponse
+
+
+@app.exception_handler(Exception)
+async def _fatal(request: Request, exc: Exception):
+    _log.exception("fatal on %s", request.url.path)
+    return _JSONResponse(
+        status_code=503,
+        content={"service": "FindCare", "source": "unhandled",
+                 "time": _dt.datetime.now(_dt.timezone.utc).isoformat()},
+    )
 
 # EPIC-010-F-101-S-005 (Data version management): bind runtime data
 # collections from ChatHealthyConfig.DBVersions on startup, and mount the
@@ -692,14 +701,8 @@ def _extract_user_search_term(user_message: str) -> str:
         term = resp.choices[0].message.content.strip().strip("'\"")
         _log.info("GOV-011-STD-002: '%s' → '%s'", user_message, term)
         return term if term else user_message
-    except Exception as exc:
-        # EPIC-008-F-011-S-001-REQ-B-001: GPT-extraction failure is not declared
-        # less-than-fatal. Surface as fatal rather than silently feeding the
-        # user's raw message into the search pipeline as if extraction succeeded.
-        raise ChatHealthyFatalError(
-            api="/chat (term extraction)",
-            source="openai chat.completions",
-        ) from exc
+    except Exception:
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -734,13 +737,8 @@ def _strip_redundant_summary(text: str, total_count: int, page_count: int) -> st
         cleaned = resp.choices[0].message.content.strip()
         _log.info("GOV-011-STD-001: stripped %d → %d chars", len(text), len(cleaned))
         return cleaned if cleaned else text
-    except Exception as exc:
-        # EPIC-008-F-011-S-001-REQ-B-001: GOV-011-STD-001 dedup failure is not
-        # declared less-than-fatal. Don't silently return un-cleaned text.
-        raise ChatHealthyFatalError(
-            api="/chat (summary dedup)",
-            source="openai chat.completions",
-        ) from exc
+    except Exception:
+        raise
 
 
 # ---------------------------------------------------------------------------
