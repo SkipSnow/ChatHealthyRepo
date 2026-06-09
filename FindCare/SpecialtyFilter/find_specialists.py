@@ -139,6 +139,15 @@ etc.) just because they are CAM. They are licensed in many U.S.
 jurisdictions and may be the right answer. Drop them only if they are
 clinically off-target for the user's specific request.
 
+USER-NAMED PROVIDER TYPE IS BINDING:
+If the user explicitly names a provider type, role, license, or
+credential (e.g. "nurse practitioner", "psychiatrist", "MD", "NP",
+"PA", "DO", "midwife", "shrink", "bone doctor", "chiropractor"),
+EVERY NUCC code matching that named type MUST appear in `nucc_codes`
+with score 1.0. You MAY also include adjacent provider types that fit
+the clinical intent, but they MUST score strictly lower (≤ 0.7). The
+named type leads the list. Omitting the named type is a hard error.
+
 SCORING — `score` is YOUR judgment of relevance for each picked code:
   1.0 = exactly what they asked for
   0.7 = strong adjacent option
