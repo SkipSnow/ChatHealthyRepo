@@ -20,22 +20,25 @@
 # refactor and stay direct.
 
 import base64
-import json as _json
 import logging
-import math
 import os
 import sys
 import tempfile
 import time
-from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from fastapi import Body, Cookie, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
+_LOG_LEVEL_NAME = os.getenv("LOG_LEVEL", "INFO").upper()
+_LOG_LEVEL = getattr(logging, _LOG_LEVEL_NAME, None)
+if not isinstance(_LOG_LEVEL, int):
+    raise RuntimeError(
+        f"LOG_LEVEL={_LOG_LEVEL_NAME!r} is not a valid Python logging level"
+    )
+logging.basicConfig(level=_LOG_LEVEL, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 _log = logging.getLogger("shared_services")
 
 
@@ -75,8 +78,17 @@ _bootstrap_certs_from_env()
 
 app = FastAPI(title="ChatHealthy.ai Shared Services", version="0.1.5")
 
-from chathealthy_frontend_lib.runtime_governance import register_fatal_handler
-register_fatal_handler(app, service_name="SharedServices")
+import datetime as _dt
+
+
+@app.exception_handler(Exception)
+async def _fatal(request: Request, exc: Exception):
+    _log.exception("fatal on %s", request.url.path)
+    return JSONResponse(
+        status_code=503,
+        content={"service": "SharedServices", "source": "unhandled",
+                 "time": _dt.datetime.now(_dt.timezone.utc).isoformat()},
+    )
 
 
 class _AsgiLogMiddleware:
@@ -144,7 +156,6 @@ from authentication import (
     authorizations_and_authentications_tool as authn,
     universal_navigation_tool as nav,
 )
-from authentication.agent_deps import AgentDeps, AuthnDeps
 AUTHN_TOOL = authn.TOOL
 UNIVERSAL_NAV_TOOL = nav.TOOL
 
@@ -155,24 +166,6 @@ _SESSION_COOKIE_NAME = "ch_session"
 _SESSION_COOKIE_MAX_AGE = 300
 _SESSION_COOKIE_DOMAIN = "chathealthy.ai"
 _SESSION_COOKIE_PATH = "/gate"
-_SESSION_TTL_SECONDS = 300
-
-# Wire intents understood on the /gate body. Absent or "utterance" =
-# default utterance/nav path. "login_register" = the gateway builds an
-# OAuth start redirect_url and short-circuits the response.
-_WIRE_INTENT_UTTERANCE = "utterance"
-_WIRE_INTENT_LOGIN_REGISTER = "login_register"
-_KNOWN_WIRE_INTENTS = frozenset({_WIRE_INTENT_UTTERANCE, _WIRE_INTENT_LOGIN_REGISTER})
-
-# SharedServices Space URL per env — used by /gate to build the
-# OAuth start redirect URL when wire intent == "login_register". Lifted
-# out of the auth tool 2026-06-08; HTTP knowledge belongs at the gateway.
-_ENV_TO_SHARED_URL = {
-    "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space",
-    "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space",
-    "prod":  "https://skipsnow-sharedservicesspace.hf.space",
-    "local": "https://localhost:8002",
-}
 
 
 def _impl(cls_name, file_subpath):
@@ -192,26 +185,13 @@ def health():
 # /gate — the universal entrance. Streams NDJSON.
 # ─────────────────────────────────────────────────────────────────────
 
-def _assemble_session_token_value(user_object) -> str:
-    """Assemble the 67-byte ch_session cookie value per
-    EPIC-002-F-003-S-003-REQ-B-007: GUID(32) + first_stamp(17) + 'X' + second_stamp(17).
-
-    Inputs come from user_object.current_session_token; the GUID is the
-    auth_token tail of the signed token; the nonce field carries the two
-    17-byte timestamps separated by an 'X'.
-    """
-    st = user_object.current_session_token
-    guid = st.get_auth_token()              # 32 bytes
-    nonce_field = st.get_nonce()            # 17 + 1 + 17 = 35 bytes ("YYYYMMDDhhmmssfffXYYYYMMDDhhmmssfff")
-    return f"{guid}{nonce_field}"           # 32 + 35 = 67 bytes
-
-
-def _set_session_cookie(response: Response, user_object) -> None:
+def _set_session_cookie(response: Response, cookie_value: str) -> None:
     """REQ-T-001 + REQ-T-002.
 
     Cookie attributes: Secure, HttpOnly, Max-Age=300, SameSite=None,
     Domain=chathealthy.ai, Path=/gate. Value is the 67-byte session-token
-    assembly per REQ-B-007.
+    assembly per REQ-B-007 (assembled inside UniversalNavigationTool's
+    orchestrator; this thin wrapper just puts it on the HTTP response).
 
     The Domain attribute is included on every response regardless of host
     so the header satisfies REQ-T-001 byte-for-byte. Browsers that reach
@@ -223,7 +203,7 @@ def _set_session_cookie(response: Response, user_object) -> None:
     """
     response.set_cookie(
         key=_SESSION_COOKIE_NAME,
-        value=_assemble_session_token_value(user_object),
+        value=cookie_value,
         max_age=_SESSION_COOKIE_MAX_AGE,
         httponly=True,
         secure=True,
@@ -231,56 +211,6 @@ def _set_session_cookie(response: Response, user_object) -> None:
         domain=_SESSION_COOKIE_DOMAIN,
         path=_SESSION_COOKIE_PATH,
     )
-
-
-def _do_history_push(mongo_client, guid: str, directive) -> None:
-    if directive is None:
-        return
-    coll = mongo_client["Users"]["sessions"]
-    coll.update_one(
-        {"_id": guid},
-        {"$push": {f"session_conversation_history.{directive.array}": directive.entry}},
-    )
-
-
-def _time_remaining_seconds(user_object) -> int:
-    """REQ-T-004: floor((most_recent_restamp + 300s) - server_response_instant)
-    against UTC milliseconds; clipped to non-negative integers."""
-    nonce_field = user_object.current_session_token.get_nonce()
-    # latest_stamp = nonce_field[18:35]; format = "YYYYMMDDhhmmssfff"
-    latest = nonce_field[18:]
-    try:
-        secs = datetime.strptime(latest[:14], "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
-        ms = int(latest[14:17])
-        restamp_ms = int(secs.timestamp() * 1000) + ms
-    except Exception:
-        # Malformed stamp would be a server-side bug; surface zero so the
-        # browser fails the next pre-flight rather than silently extending.
-        return 0
-    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
-    return max(0, math.floor((restamp_ms + 300_000 - now_ms) / 1000))
-
-
-def _was_registered(user_object) -> bool:
-    """Tiny derived flag for REQ-T-010: lets the browser pick the right
-    timeout copy without ever needing to read user_object on the wire."""
-    return bool(getattr(user_object, "is_registered", False))
-
-
-def _session_token_wire(user_object) -> dict:
-    """Cryptographic-display projection of the session token.
-
-    Surfaces the bare SessionToken — the three display fields the panels
-    render (signed token, nonce, GUID) plus the SessionToken envelope
-    (origin, signature, created_at, signed, server_env, last_used) needed
-    by the existing /session + /verify-token chain. PHI / model-tier user
-    state (the full user_object) stays server-side per the S-005 contract.
-    """
-    st = user_object.current_session_token
-    if hasattr(st, "model_dump"):
-        return st.model_dump(mode="python", exclude_none=False)
-    # Defensive fallback if the in-memory object is already a dict.
-    return dict(st)
 
 
 @app.post("/gate", operation_id="UniversalGate",
@@ -291,15 +221,15 @@ def _session_token_wire(user_object) -> dict:
           ))
 async def gate(
     request: Request,
-    response: Response,
     body: dict | None = Body(default=None),
     ch_session: str | None = Cookie(default=None),
 ):
     """Single entrance for every client call.
 
-    Returns an NDJSON streaming response when the client sends
-    `Accept: application/x-ndjson`. Otherwise returns a single JSON
-    object identical to the last (terminal) event emitted.
+    HTTP plumbing only: parse the POST body + cookies, hand off to
+    UniversalNavigationTool.handle_gate for all orchestration, then
+    shape the returned GateResponse into a FastAPI response (Streaming,
+    bytes-NDJSON, or JSON) and stamp the session cookie.
     """
     payload = dict(body or {})
     op = str(payload.get("op") or "boot")
@@ -313,188 +243,32 @@ async def gate(
     elif payload.get("prior_guid"):
         prior_guid = payload.get("prior_guid")
 
+    accept = (request.headers.get("accept") or "").lower()
+    want_ndjson = "application/x-ndjson" in accept or "text/event-stream" in accept
+
     try:
-        # Step 0 — Validate the wire intent (gateway concern; the auth
-        # tool sees only the three auth intents the gateway derives).
-        if intent is not None and intent not in _KNOWN_WIRE_INTENTS:
-            raise ValueError(
-                f"/gate: unknown intent {intent!r}; expected one of "
-                f"{sorted(_KNOWN_WIRE_INTENTS)} or absent"
-            )
-
-        # Step 1 — Decide the auth intent and construct the user_object
-        # payload the auth tool will operate on.
-        #   * prior_guid + live session in Users.sessions => manage_session
-        #   * otherwise => manufacture_session (sentinel current_session_token)
-        from authentication.user_object import UserObject
-        from authentication.authorizations_and_authentications_tool import (
-            _SESSION_DB, _SESSION_COLLECTION,
-        )
-        mongo_frontend = authn.get_mongo_frontend()
-        authn_deps = AuthnDeps(
+        gate_req = nav.GateRequest(
+            op=op,
+            payload=op_payload,
+            intent=intent,
             prior_guid=prior_guid,
-            server_env=_ENV,
-            mongo_frontend=mongo_frontend,
+            want_ndjson=want_ndjson,
         )
+        gate_resp = await UNIVERSAL_NAV_TOOL.handle_gate(gate_req)
 
-        loaded_user_object: Optional[UserObject] = None
-        if prior_guid:
-            sessions_coll = mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
-            session_doc = sessions_coll.find_one({"_id": prior_guid})
-            if session_doc:
-                try:
-                    candidate = UserObject.model_validate(
-                        {k: v for k, v in session_doc.items() if k != "_id"}
-                    )
-                    expires_at = candidate.expires_at
-                    if expires_at.tzinfo is None:
-                        expires_at = expires_at.replace(tzinfo=timezone.utc)
-                    if expires_at > datetime.now(timezone.utc):
-                        loaded_user_object = candidate
-                except Exception as exc:
-                    _log.warning(
-                        "could not reconstitute UserObject for %s: %s",
-                        prior_guid[:8], exc,
-                    )
-
-        if loaded_user_object is not None:
-            auth_intent = "manage_session"
-            inbound_user_object = loaded_user_object
-        else:
-            auth_intent = "manufacture_session"
-            inbound_user_object = UserObject(
-                current_session_token="NULL",
-                expires_at=datetime.now(timezone.utc)
-                + timedelta(seconds=_SESSION_TTL_SECONDS),
+        if gate_resp.body_kind == "ndjson_stream":
+            resp = StreamingResponse(
+                gate_resp.body_data, media_type="application/x-ndjson",
             )
-
-        # Step 2 — Call the auth tool. It mutates the user_object per the
-        # picked intent and returns it.
-        authn_resp = await AUTHN_TOOL.run(
-            authn_deps,
-            authn.Request(intent=auth_intent, user_object=inbound_user_object),
-        )
-        user_object = authn_resp.user_object
-        fresh_mint = authn_resp.fresh_mint
-        guid = user_object.current_session_token.get_auth_token()
-        _set_session_cookie(response, user_object)
-
-        # Step 3 — Wire-intent dispatch. login_register: the gateway
-        # builds the OAuth start URL and short-circuits with a redirect
-        # event. The auth tool has no knowledge of this URL.
-        if intent == _WIRE_INTENT_LOGIN_REGISTER:
-            shared = _ENV_TO_SHARED_URL.get(_ENV)
-            if not shared:
-                raise RuntimeError(
-                    f"/gate: no SharedServices URL for env {_ENV!r}"
-                )
-            redirect_url = (
-                f"{shared}/auth/google/start"
-                f"?session_guid={guid}"
+        elif gate_resp.body_kind == "ndjson_bytes":
+            resp = Response(
+                content=gate_resp.body_data, media_type="application/x-ndjson",
             )
-            try:
-                await AUTHN_TOOL.persist(authn_deps, user_object, fresh_mint)
-            except Exception as exc:
-                _log.exception("AuthN.persist (redirect path) failed: %s", exc)
-            redirect_event = {
-                "type": "redirect",
-                "url": redirect_url,
-                "time_remaining_seconds": _time_remaining_seconds(user_object),
-                "was_registered": _was_registered(user_object),
-                "session_token": _session_token_wire(user_object),
-            }
-            accept = (request.headers.get("accept") or "").lower()
-            want_ndjson_short = "application/x-ndjson" in accept or "text/event-stream" in accept
-            if want_ndjson_short:
-                body_bytes = (_json.dumps(redirect_event, default=str) + "\n").encode("utf-8")
-                short_resp = Response(content=body_bytes, media_type="application/x-ndjson")
-                _set_session_cookie(short_resp, user_object)
-                return short_resp
-            return redirect_event
+        else:  # "json"
+            resp = JSONResponse(content=gate_resp.body_data)
 
-        accept = (request.headers.get("accept") or "").lower()
-        want_ndjson = "application/x-ndjson" in accept or "text/event-stream" in accept
-
-        # Iteration 1: buffer events and emit the whole batch as one
-        # NDJSON-formatted Response. True progressive streaming is iteration-2
-        # work (we tried StreamingResponse here and smoke timed out on the
-        # 26s tail of /search; need to debug FE chunk-handling before
-        # re-enabling — until then, this guarantees green smoke).
-        events: list[dict] = []
-
-        def stream_sink(event: dict) -> None:
-            events.append(event)
-
-        deps = AgentDeps(
-            user_object=user_object,
-            session_token=user_object.current_session_token,
-            mongo_frontend=authn_deps.mongo_frontend,
-            server_env=_ENV,
-            stream=stream_sink,
-        )
-        nav_req = nav.Request(op=op, payload=op_payload)
-
-        nav_exc: Optional[BaseException] = None
-        res = None
-        try:
-            res = await UNIVERSAL_NAV_TOOL.run(deps, nav_req)
-        except Exception as exc:
-            nav_exc = exc
-            _log.exception(
-                "UniversalNavigation run failed for op=%s payload=%r: %s",
-                op, op_payload, exc,
-            )
-
-        # REQ-T-008 contract: the full user_object (PHI / model-tier user
-        # state) MUST NOT cross the wire on /gate responses. The browser
-        # keeps no copy of user_object. The cryptographic-display
-        # projection of the session token (signed token, nonce, GUID +
-        # the SessionToken envelope) IS surfaced — it is what the
-        # session-verification panels (S-003-REQ-B-004) and the
-        # cross-service /session + /verify-token chain consume.
-        session_token_proj = _session_token_wire(user_object)
-        if nav_exc is not None:
-            final_event = {
-                "kind": "final", "ok": False,
-                "error": f"{type(nav_exc).__name__}: {nav_exc}",
-                "guid": guid,
-                "time_remaining_seconds": _time_remaining_seconds(user_object),
-                "was_registered": _was_registered(user_object),
-                "session_token": session_token_proj,
-            }
-        else:
-            final_event = {
-                "kind": "final", "ok": True,
-                "guid": guid,
-                "result": res.result if res else {},
-                "result_kind": res.kind if res else "unknown",
-                "time_remaining_seconds": _time_remaining_seconds(user_object),
-                "was_registered": _was_registered(user_object),
-                "session_token": session_token_proj,
-            }
-
-        # Single persist: write the (possibly-mutated) user_object back to
-        # Users.sessions. AuthN is the sole writer; tools never touch Mongo.
-        try:
-            await AUTHN_TOOL.persist(authn_deps, user_object, fresh_mint)
-        except Exception as exc:
-            _log.exception("AuthN.persist failed: %s", exc)
-
-        if want_ndjson:
-            body_lines = [
-                (_json.dumps(e, default=str) + "\n").encode("utf-8") for e in events
-            ]
-            body_lines.append(
-                (_json.dumps(final_event, default=str) + "\n").encode("utf-8"),
-            )
-            body = b"".join(body_lines)
-            ndjson_resp = Response(
-                content=body, media_type="application/x-ndjson",
-            )
-            _set_session_cookie(ndjson_resp, user_object)
-            return ndjson_resp
-
-        return final_event
+        _set_session_cookie(resp, gate_resp.cookie_value)
+        return resp
     except Exception as exc:
         # REQ-T-009: any /gate exception MUST log the full stack with the
         # originating request shape. The browser sees HTTP 500 and renders

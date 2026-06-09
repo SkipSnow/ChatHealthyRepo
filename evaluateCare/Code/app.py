@@ -14,6 +14,7 @@ import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 # Code/ on sys.path so api/, healthcheck/, externalInterface/, security/
 # all import as top-level packages.
@@ -63,10 +64,17 @@ _bootstrap_certs_from_env()
 
 app = FastAPI(title="ChatHealthy.ai EvaluateCare", version="0.1.4")
 
-# EPIC-008-F-011-S-001-REQ-B-002 / REQ-B-003 — uniform fatal-error contract.
-# EPIC-003: consumed from the chathealthy-frontend-lib package.
-from chathealthy_frontend_lib.runtime_governance import register_fatal_handler
-register_fatal_handler(app, service_name="EvaluateCare")
+import datetime as _dt
+
+
+@app.exception_handler(Exception)
+async def _fatal(request: Request, exc: Exception):
+    _log.exception("fatal on %s", request.url.path)
+    return JSONResponse(
+        status_code=503,
+        content={"service": "EvaluateCare", "source": "unhandled",
+                 "time": _dt.datetime.now(_dt.timezone.utc).isoformat()},
+    )
 
 
 @app.middleware("http")

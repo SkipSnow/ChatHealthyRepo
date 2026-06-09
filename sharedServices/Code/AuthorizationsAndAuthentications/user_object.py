@@ -29,6 +29,8 @@ from pydantic import BaseModel, Field
 
 from chathealthy_frontend_lib.authentication.session_token import SessionToken
 
+from UtteranceManager.intent_document import IntentDocument
+
 
 class SessionConversationHistory(BaseModel):
     """All human / machine / LLM turns captured during the session.
@@ -135,6 +137,11 @@ class UserObject(BaseModel):
     OAuthIdentities: list[OAuthIdentity] = Field(default_factory=list)
     registered_profile: Optional[RegisteredProfile] = None
     not_registered_followup: Optional[NotRegisteredFollowup] = None
+
+    # IntentDocument carried across turns; populated and updated by
+    # UtteranceManager, read and dispatched by UniversalNavigationTool.
+    # Per https://dev.chathealthy.ai/schemas/ChatHealthyUtteranceManagerOutputSchema.json
+    intent: Optional["IntentDocument"] = None
 
     def merge(self, guest: "UserObject") -> "UserObject":
         """Merge a guest UserObject INTO this stored UserObject.

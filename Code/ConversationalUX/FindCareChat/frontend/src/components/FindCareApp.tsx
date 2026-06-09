@@ -32,7 +32,7 @@ import type { SpecialtyRecord } from '@findcare/SpecialtyFilter/useSpecialtyFilt
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 const EVALCARE_URL = import.meta.env.VITE_EVALCARE_URL ?? ''
 
-type Phase = 'welcome' | 'searching' | 'results' | 'error'
+type Phase = 'welcome' | 'searching' | 'results' | 'error' | 'clarify'
 
 // ── Utility: send postMessage to parent page ─────────────────────
 function sendToParent(type: string, data: any = {}) {
@@ -143,6 +143,7 @@ export default function FindCareApp() {
   const [question, setQuestion] = useState('')
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
+  const [systemMessage, setSystemMessage] = useState('')
   const [welcomeHtml, setWelcomeHtml] = useState('')
   const [thinkSeconds, setThinkSeconds] = useState(0)
   const [totalCount, setTotalCount] = useState(0)
@@ -278,6 +279,7 @@ export default function FindCareApp() {
     setPhase('searching')
     setThinkSeconds(0)
     setError('')
+    setSystemMessage('')
     selection.flushGarbage()
 
     const start = Date.now()
@@ -292,6 +294,16 @@ export default function FindCareApp() {
     }
 
     let sawError = false
+    let sawTerminalEvent = false
+
+    const onPrompt = (data: any) => {
+      const text = String(data?.text || '').trim()
+      if (!text) return
+      finishTimer()
+      setSystemMessage(text)
+      setPhase('clarify')
+      sawTerminalEvent = true
+    }
 
     const onSpecialties = (data: any) => {
       if (data.error || !data.specialties?.length) {
@@ -410,18 +422,20 @@ export default function FindCareApp() {
           if (!trimmed) continue
           let evt: any
           try { evt = JSON.parse(trimmed) } catch { continue }
-          if (evt.kind === 'specialties') onSpecialties(evt.data || {})
-          else if (evt.kind === 'providers') onProviders(evt.data || {})
+          if (evt.kind === 'specialties') { onSpecialties(evt.data || {}); sawTerminalEvent = true }
+          else if (evt.kind === 'providers') { onProviders(evt.data || {}); sawTerminalEvent = true }
+          else if (evt.kind === 'prompt') onPrompt(evt.data || {})
           else if (evt.kind === 'final' && !sawError) {
-            // UtteranceManager emits ok/error under data; gate wraps in ok at top.
             const okFlag = evt.data?.ok ?? evt.ok
+            finishTimer()
             if (okFlag === false) {
-              finishTimer()
               const msg = evt.data?.error || evt.error || 'Search failed'
               sendToParent('gui:fatal-error', { message: msg })
               setError(msg)
               setPhase('error')
               sawError = true
+            } else if (!sawTerminalEvent) {
+              setPhase('welcome')
             }
           }
         }
@@ -750,6 +764,16 @@ export default function FindCareApp() {
             padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
             border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6,
           }} dangerouslySetInnerHTML={{ __html: welcomeHtml }} />
+        </div>
+      )}
+
+      {/* CLARIFY PHASE — system clarification message from server */}
+      {phase === 'clarify' && (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1em', maxWidth: 800, margin: '1em', width: '100%' }}>
+          <div style={{
+            padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
+            border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6, color: '#0b7a75',
+          }}>{systemMessage}</div>
         </div>
       )}
 
