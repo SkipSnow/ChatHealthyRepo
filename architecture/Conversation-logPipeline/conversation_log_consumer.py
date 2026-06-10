@@ -24,9 +24,86 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 try:
     from dotenv import load_dotenv
-    load_dotenv(PROJECT_ROOT / "Code" / ".env")
+    # BUG-012 / v2.2 Part A 5.4: override=True so the file beats whatever the
+    # parent process injected via OS env. The C# service will inject the value
+    # from HKLM as the canonical path; the file remains the source of truth
+    # for non-service consumers (pytest, ops scripts).
+    load_dotenv(PROJECT_ROOT / "Code" / ".env", override=True)
 except ImportError:
     pass
+
+# v2.2 Part B 7.1: Mongo-failure visibility surface. Each PyMongoError
+# during batch write writes a Windows Application Event Log entry with
+# source "ChatHealthyLogService.Consumer" so the operator's existing
+# Windows monitoring sees the failure. On non-Windows hosts (dev
+# containers, CI) the helper degrades to a CRITICAL log line.
+_EVENTLOG_SOURCE = "ChatHealthy Conversation Log Consumer"
+_EVENTLOG_EVENTID = 1001
+try:
+    import win32evtlog  # type: ignore
+    import win32evtlogutil  # type: ignore
+    _HAS_WIN32EVT = True
+except ImportError:
+    _HAS_WIN32EVT = False
+
+
+def _emit_eventlog_critical(message: str) -> None:
+    """Write an ERROR-level Application Event Log entry. On non-Windows
+    or when pywin32 is unavailable, fall back to a CRITICAL log.
+
+    The source (`ChatHealthy Conversation Log Consumer`) is registered
+    once at migration time via `New-EventLog -LogName Application
+    -Source ...`. Event ID 1001 is chosen at write time; eventcreate's
+    /ID flag caps at 1000 and cannot be used to pre-register IDs above
+    that, so registration is source-only and write-time ID lives here.
+    """
+    if _HAS_WIN32EVT:
+        try:
+            win32evtlogutil.ReportEvent(
+                _EVENTLOG_SOURCE,
+                eventID=_EVENTLOG_EVENTID,
+                eventType=win32evtlog.EVENTLOG_ERROR_TYPE,
+                strings=[message[:30000]],
+            )
+            return
+        except Exception as e:  # noqa: BLE001
+            _log_fallback_warning = logging.getLogger("conversation_log_consumer")
+            _log_fallback_warning.warning("Event Log write failed: %s", e)
+    logging.getLogger("conversation_log_consumer").critical(message)
+
+
+# v2.2 Part B 7.1: consecutive-Mongo-failure counter. Persists across
+# batches via %TEMP%/chathealthy_consecutive_mongo_failures.txt. When
+# the counter crosses 3 the consumer sys.exit(1)s so the C# supervisor
+# observes the crash, restarts, and (with a persistently-bad credential)
+# trips the Worker.cs circuit breaker. Reset to 0 on successful flush.
+_CONSEC_FAIL_PATH = Path(tempfile.gettempdir()) / "chathealthy_consecutive_mongo_failures.txt"
+_CONSEC_FAIL_THRESHOLD = 3
+
+
+def _read_consec_failures() -> int:
+    try:
+        return int(_CONSEC_FAIL_PATH.read_text(encoding="utf-8").strip() or "0")
+    except (FileNotFoundError, ValueError):
+        return 0
+
+
+def _write_consec_failures(n: int) -> None:
+    try:
+        _CONSEC_FAIL_PATH.write_text(str(n), encoding="utf-8")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _bump_consecutive_mongo_failure_counter() -> int:
+    n = _read_consec_failures() + 1
+    _write_consec_failures(n)
+    return n
+
+
+def _reset_consecutive_mongo_failure_counter() -> None:
+    if _CONSEC_FAIL_PATH.exists():
+        _write_consec_failures(0)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -108,17 +185,21 @@ def _get_env_content() -> str:
 
 
 def _get_prior_utterances(mongo_client, before_ts: str, n: int = 5) -> list:
-    """Query Mongo for N most recent utterances strictly before the given timestamp."""
-    try:
-        coll = mongo_client[MONGO_DB][MONGO_COLLECTION]
-        cursor = (
-            coll.find({"timestamp_utc": {"$lt": before_ts}}, {"actor": 1, "content": 1, "_id": 0})
-                .sort("timestamp_utc", -1)
-                .limit(n)
-        )
-        return list(cursor)
-    except Exception:
-        return []
+    """Query Mongo for N most recent utterances strictly before the given timestamp.
+
+    v2.2 Part B 7.2: PyMongoError (the credential-drift / connectivity class)
+    propagates so the run_consumer main loop's batch-flush failure handling
+    runs uniformly. The prior catch-all `except Exception: return []` silently
+    produced empty redaction context on a Mongo failure and the LLM-driven
+    redaction proceeded with degraded data — a security-sensitive silent path.
+    """
+    coll = mongo_client[MONGO_DB][MONGO_COLLECTION]
+    cursor = (
+        coll.find({"timestamp_utc": {"$lt": before_ts}}, {"actor": 1, "content": 1, "_id": 0})
+            .sort("timestamp_utc", -1)
+            .limit(n)
+    )
+    return list(cursor)
 
 
 def _redact_credentials(content, oai_client, mongo_client, before_ts):
@@ -415,10 +496,39 @@ def _flush_batch(batch, redaction_errors, consumer, mongo_client):
 
         consumer.commit(asynchronous=False)
         _log.info("Committed offset")
+        # v2.2 Part B 7.1: successful flush resets the consecutive-failure
+        # counter so transient errors don't accumulate toward the exit
+        # threshold.
+        _reset_consecutive_mongo_failure_counter()
 
     except PyMongoError as e:
+        # v2.2 Part B 7.1 — failure surfacing. Keep the existing log +
+        # don't-commit semantics (Kafka redelivery handles transient
+        # errors correctly). Additionally:
+        #   (a) write a Windows Application Event Log entry so the
+        #       operator's monitoring sees credential drift in real time
+        #       (BUG-012 manifests here as a silent failure today),
+        #   (b) bump a consecutive-failure counter; after the threshold
+        #       sys.exit(1) so the C# supervisor restarts and (with the
+        #       Worker.cs circuit breaker landing under 7.3) trips the
+        #       crash-loop alarm.
         _log.error("MongoDB write failed: %s — will retry on next flush", e)
         _write_error(f"MongoDB batch write failed: {e}")
+        _emit_eventlog_critical(
+            f"ChatHealthy conversation-log consumer MongoDB batch write "
+            f"failed. Most likely cause: rotated MONGO_FRONTEND_connectionString "
+            f"not yet propagated to the C# service's registry read. "
+            f"Underlying error: {e}"
+        )
+        consecutive = _bump_consecutive_mongo_failure_counter()
+        if consecutive >= _CONSEC_FAIL_THRESHOLD:
+            _log.critical(
+                "MongoDB write failed %d consecutive times; exiting so the "
+                "C# supervisor restarts this consumer (credential drift "
+                "suspected — check HKLM\\SOFTWARE\\ChatHealthy\\Secrets).",
+                consecutive,
+            )
+            sys.exit(1)
 
 
 if __name__ == "__main__":

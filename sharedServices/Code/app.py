@@ -178,7 +178,16 @@ def _impl(cls_name, file_subpath):
 @app.post("/health", operation_id="HealthEndpoint",
           openapi_extra=_impl("HealthEndpoint", "healthcheck/health_endpoint.py"))
 def health():
-    return HealthEndpoint()()
+    # v2.2 Part B 7.7 — when the Mongo client is unreachable, return 503
+    # (not 200). The Website fetch wrapper at Website/index.html lines
+    # 670-688 paints chFatalError on any 503; that turns this endpoint
+    # into the visible operator surface that the rotation-as-operational-
+    # response model depends on. The JSON body is preserved so the
+    # non-prod banner still renders degraded state.
+    payload = HealthEndpoint()()
+    if payload.get("db") != "connected":
+        return JSONResponse(status_code=503, content=payload)
+    return payload
 
 
 # ─────────────────────────────────────────────────────────────────────

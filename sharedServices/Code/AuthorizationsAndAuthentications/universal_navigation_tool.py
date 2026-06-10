@@ -681,10 +681,14 @@ class UniversalNavigationTool(ChatHealthyTool):
                     f"/gate: no SharedServices URL for env {_ENV!r}"
                 )
             redirect_url = f"{shared}/auth/google/start?session_guid={guid}"
-            try:
-                await authn.TOOL.persist(authn_deps, user_object, fresh_mint)
-            except Exception as exc:
-                _log.exception("AuthN.persist (redirect path) failed: %s", exc)
+            # v2.2 Part B 7.8 — let PyMongoError propagate. The prior
+            # try/except swallowed Mongo failures during OAuth-start
+            # session persistence: the redirect to Google would proceed
+            # with a missing or stale session, and the OAuth callback
+            # would later silently fail to find it (indistinguishable
+            # from attack noise). Re-raising lets the global 503 handler
+            # at app.py lines 84-91 fire chFatalError on the wrapper.
+            await authn.TOOL.persist(authn_deps, user_object, fresh_mint)
             redirect_event = {
                 "type": "redirect",
                 "url": redirect_url,
