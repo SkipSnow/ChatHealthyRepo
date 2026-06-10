@@ -159,6 +159,12 @@ export default function FindCareApp() {
   const [reclassifying, setReclassifying] = useState(false)
   const [tokenReady, setTokenReady] = useState<boolean>(_sessionToken != null)
   const [loadingSeconds, setLoadingSeconds] = useState(0)
+  // When the server streams a kind:"prompt" mid-stream, we keep the
+  // timer running and the Send button disabled so the user can't fire
+  // a second /gate hit before the first one persists. The input field
+  // re-enables so the user can pre-type their answer; only Send stays
+  // gated until kind:"final" arrives.
+  const [searchPromptUp, setSearchPromptUp] = useState(false)
 
   const selection = useSelectionState()
   const selectedRef = useRef<Provider[]>([])
@@ -295,17 +301,31 @@ export default function FindCareApp() {
 
     let sawError = false
     let sawTerminalEvent = false
+    let sawPrompt = false
+    let sawProviders = false
+    let sawSpecialties = false
 
     const onPrompt = (data: any) => {
       const text = String(data?.text || '').trim()
       if (!text) return
-      finishTimer()
+      // Show the prompt to the user mid-stream, but DO NOT stop the timer
+      // and DO NOT exit the 'searching' phase — the server is still
+      // working (SpecialtyFilter, ProviderSearch, persist all run after
+      // kind:"prompt"). Releasing Send here lets the user click again
+      // before the prior turn persists, which produces a stale read on
+      // the next /gate hit. Send stays disabled until kind:"final".
+      // searchPromptUp re-enables the input field so the user can pre-type
+      // their answer while the server finishes.
+      console.log('[FindCare] stream event kind=prompt text=', text)
       setSystemMessage(text)
-      setPhase('clarify')
+      setSearchPromptUp(true)
       sawTerminalEvent = true
+      sawPrompt = true
     }
 
     const onSpecialties = (data: any) => {
+      console.log('[FindCare] stream event kind=specialties count=', data?.specialties?.length || 0)
+      sawSpecialties = true
       if (data.error || !data.specialties?.length) {
         // No-match path — surface as a fatal so the parent wrapper renders
         // the full-screen overlay (same UX as today).
@@ -359,6 +379,8 @@ export default function FindCareApp() {
     }
 
     const onProviders = (data: any) => {
+      console.log('[FindCare] stream event kind=providers count=', data?.providers?.length || 0, 'total=', data?.total_count)
+      sawProviders = true
       if (ac.signal.aborted) return
       if (data.error) {
         finishTimer()
@@ -369,6 +391,10 @@ export default function FindCareApp() {
         return
       }
       if (data.providers) {
+        // Providers arrived — clear the mid-stream system prompt text so
+        // it doesn't linger over the provider list once phase moves to
+        // 'results'.
+        setSystemMessage('')
         const enriched = data.providers.map((p: any) => ({
           ...p,
           specialty: specialtyMapRef.current[p.taxonomy_code] || '',
@@ -427,13 +453,28 @@ export default function FindCareApp() {
           else if (evt.kind === 'prompt') onPrompt(evt.data || {})
           else if (evt.kind === 'final' && !sawError) {
             const okFlag = evt.data?.ok ?? evt.ok
+            console.log('[FindCare] stream event kind=final ok=', okFlag,
+              'sawPrompt=', sawPrompt, 'sawSpecialties=', sawSpecialties,
+              'sawProviders=', sawProviders)
             finishTimer()
+            setSearchPromptUp(false)
             if (okFlag === false) {
               const msg = evt.data?.error || evt.error || 'Search failed'
               sendToParent('gui:fatal-error', { message: msg })
               setError(msg)
               setPhase('error')
               sawError = true
+            } else if (sawProviders) {
+              // ProviderSearch ran and onProviders already setPhase('results').
+              // Do not clobber that with 'clarify' even if a prompt was
+              // streamed earlier in the same turn (findAProvider with
+              // user_message acknowledgement does both).
+              // Nothing to do here — leave phase as set by onProviders.
+            } else if (sawPrompt) {
+              // Mid-stream prompt was shown; no providers/specialties
+              // terminal arrived. Move to 'clarify' so Send re-enables
+              // and the user can submit the answer they pre-typed.
+              setPhase('clarify')
             } else if (!sawTerminalEvent) {
               setPhase('welcome')
             }
@@ -779,10 +820,19 @@ export default function FindCareApp() {
 
       {/* SEARCHING PHASE */}
       {phase === 'searching' && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-          <div style={{ fontSize: '1em', color: '#6b7280' }}>Searching for: <strong>{question}</strong></div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '1em' }}>
+          {searchPromptUp && systemMessage ? (
+            <div style={{
+              padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
+              border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6, color: '#0b7a75', maxWidth: 800,
+            }}>{systemMessage}</div>
+          ) : (
+            <div style={{ fontSize: '1em', color: '#6b7280' }}>Searching for: <strong>{question}</strong></div>
+          )}
           <div style={{ fontSize: '1em', color: '#0b7a75', fontWeight: 700 }}>{thinkSeconds}s</div>
-          <div style={{ fontSize: '1em', color: '#9ca3af' }}>Waiting for response...</div>
+          <div style={{ fontSize: '1em', color: '#9ca3af' }}>
+            {searchPromptUp ? 'Server still working — Send unlocks when the response completes.' : 'Waiting for response...'}
+          </div>
         </div>
       )}
 
@@ -941,7 +991,15 @@ export default function FindCareApp() {
         onSubmit={(e) => {
           e.preventDefault()
           if (phase === 'searching' || reclassifying) {
-            // Stop in flight
+            // Stream still open. If the server has emitted a mid-stream
+            // prompt (searchPromptUp), the input is unlocked so the user
+            // can pre-type the answer — but Send is gated until the
+            // stream actually closes. No-op the submit so the answer
+            // stays in the input; we'll fire it for real on Send after
+            // phase moves to 'clarify'.
+            if (searchPromptUp) return
+            // No prompt up — Stop button behavior: abort the in-flight
+            // fetch.
             if (searchAbortRef.current) searchAbortRef.current.abort()
             if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
             setReclassifying(false)
@@ -970,7 +1028,9 @@ export default function FindCareApp() {
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Type a message..."
-          disabled={phase === 'searching' || reclassifying}
+          // Input is unlocked when a mid-stream prompt arrives, so the
+          // user can compose the answer while the server finishes.
+          disabled={(phase === 'searching' && !searchPromptUp) || reclassifying}
           style={{
             flex: 1, padding: '0.67em 1em', borderRadius: 8,
             border: '0.125em solid #d1d5db', fontSize: '1em', outline: 'none',
@@ -981,11 +1041,14 @@ export default function FindCareApp() {
           type="submit"
           style={{
             padding: '0.67em 1em', borderRadius: 8, border: 'none',
-            background: (phase === 'searching' || reclassifying) ? '#b91c1c' : '#0b7a75',
-            color: '#fff', fontSize: '1em', fontWeight: 600, cursor: 'pointer',
+            background: searchPromptUp
+              ? '#9ca3af'  // gray: waiting for stream close
+              : (phase === 'searching' || reclassifying) ? '#b91c1c' : '#0b7a75',
+            color: '#fff', fontSize: '1em', fontWeight: 600,
+            cursor: searchPromptUp ? 'not-allowed' : 'pointer',
             minHeight: 44, minWidth: 44,
           }}
-        >{(phase === 'searching' || reclassifying) ? 'Stop' : 'Send'}</button>
+        >{searchPromptUp ? 'Wait…' : (phase === 'searching' || reclassifying) ? 'Stop' : 'Send'}</button>
       </form>
     </div>
   )
