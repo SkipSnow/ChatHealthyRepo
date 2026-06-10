@@ -469,9 +469,23 @@ async def _run_or_cache_specialty_filter(deps: AgentDeps, complaint: str) -> lis
         deps.stream({"kind": "specialties", "data": {"specialties": cached}})
         return cached
 
+    # Restore prior behavior: SpecialtyFilter sees the VERBATIM latest
+    # person utterance, not UM's narrow `complaint` extraction. The
+    # filter's prompt scores user-named roles ("nurse practitioner",
+    # "acupuncturist", etc.) at 1.0 with adjacents <=0.7 — but only if
+    # the role name actually reaches it. UM's complaint extraction
+    # strips role names, so the filter must source the raw utterance.
+    raw_utterance = ""
+    for u in reversed(deps.user_object.session_conversation_history.utterances):
+        actor = getattr(u, "actor", None) or (u.get("actor") if isinstance(u, dict) else None)
+        text = getattr(u, "text", None) or (u.get("text") if isinstance(u, dict) else "")
+        if actor == "person" and text:
+            raw_utterance = str(text).strip()
+            break
+    query = raw_utterance or complaint
     from SpecialtyFilter import specialty_filter_tool
     fs = await specialty_filter_tool.TOOL.run_and_log(
-        deps, specialty_filter_tool.Request(query=complaint),
+        deps, specialty_filter_tool.Request(query=query),
     )
     if fs.error or not fs.specialties:
         return []

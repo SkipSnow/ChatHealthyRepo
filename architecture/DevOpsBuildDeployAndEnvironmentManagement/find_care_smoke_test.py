@@ -1661,3 +1661,123 @@ class TestStep99bNonsenseAfterFindAProvider:
             f"the clarification; UR chains to CloseConnection200Tool which is "
             f"the terminal action). Got {ta2!r}."
         )
+
+
+# Step 99c [EPIC-002-F-010-S-002-REQ-B-001 + EPIC-002-F-004-S-002-REQ-B-001
+#          + EPIC-002-F-003-S-005 session-history persistence]
+# Enduring regression for the geography-disambiguation flow.
+#
+# Turn 1: a complaint plus a city without a state ("milwaukee" alone).
+# UM must classify as specialtySearch (geography partial, ProviderSearch
+# not yet sufficient) AND emit a user_message proposing the candidate
+# state. SpecialtyFilter runs and caches nucc_codes on the IntentDocument.
+#
+# Turn 2: a bare 'yes' on the same session. UM must read the prior
+# IntentDocument's pending_disambiguation, treat the 'yes' as resolving
+# the candidate state, and upgrade target_action to findAProvider.
+# Classifying 'yes' as nonsense here is the previously-observed regression
+# this test guards against.
+#
+# Also asserts the persisted user_object integrity: the same session's
+# splash MUST surface BOTH person utterances AND both system utterances,
+# AND the action sequence MUST include specialty_filter (turn 1) and
+# provider_search_and_selection (turn 2). A truncated dialogue bucket or
+# a missing action entry indicates session-history corruption.
+class TestStep99cGeographyDisambiguationFlow:
+    def test_geography_disambiguation_resolves_and_persists(self, env):
+        if SMOKE_ENV != "local":
+            pytest.skip("Step 99c uses direct /gate; local-only for now")
+
+        def post_gate(body):
+            c = httpx.Client(verify=False, timeout=90)
+            try:
+                r = c.post(f"{SHARED_URL}/gate", json=body)
+            finally:
+                c.close()
+            assert r.status_code == 200, (
+                f"/gate returned {r.status_code}: {r.text[:300]}"
+            )
+            return r.json()
+
+        # Turn 1: city alone, state missing.
+        evt1 = post_gate({
+            "op": "utterance",
+            "payload": {"text": "I need a nurse practitioner to help me with my pain in milwaukee"},
+        })
+        assert evt1.get("ok") is True, f"turn 1 not ok: {evt1}"
+        ta1 = (evt1.get("result") or {}).get("target_action")
+        assert ta1 == "specialtySearch", (
+            f"turn 1 expected target_action=specialtySearch (geography is "
+            f"partial — city without state — so ProviderSearch must NOT "
+            f"run yet; UM parks a findAProvider entry with "
+            f"pending_disambiguation and falls back to specialtySearch "
+            f"so the FE still gets specialty rows). Got {ta1!r}."
+        )
+        guid = evt1.get("guid")
+        assert guid, f"turn 1 missing guid: {evt1}"
+
+        # Turn 2: bare 'yes' resolves the pending state candidate.
+        evt2 = post_gate({
+            "op": "utterance",
+            "payload": {"text": "yes"},
+            "prior_guid": guid,
+        })
+        assert evt2.get("ok") is True, f"turn 2 not ok: {evt2}"
+        ta2 = (evt2.get("result") or {}).get("target_action")
+        assert ta2 != "nonsense" and ta2 != "closeConnection200", (
+            f"BUG REGRESSION: bare 'yes' submitted while a pending_dis"
+            f"ambiguation was set on the prior IntentDocument was "
+            f"misclassified as {ta2!r}. UM Rule 1 says a yes/no on a "
+            f"pending turn MUST resolve the pending state, NOT fall "
+            f"through to nonsense."
+        )
+        assert ta2 == "findAProvider", (
+            f"turn 2 expected target_action=findAProvider (UM resolved "
+            f"the pending state candidate, now geography is sufficient). "
+            f"Got {ta2!r}."
+        )
+
+        # Splash same session — assert dialogue + action integrity.
+        splash = post_gate({
+            "op": "splash",
+            "payload": {},
+            "prior_guid": guid,
+        })
+        threads = ((splash.get("result") or {}).get("threads")) or {}
+        utterances = threads.get("utterances") or []
+        actions = threads.get("actions") or []
+
+        # Dialogue: at least 3 entries (person 1, system 2, person 3).
+        # A 4th system entry is allowed if UM acknowledges the resolution.
+        assert len(utterances) >= 3, (
+            f"BUG REGRESSION: persisted utterances bucket truncated. "
+            f"Expected >=3 entries (person nurse-practitioner / system "
+            f"prompt / person yes) — got {len(utterances)}. Full bucket: "
+            f"{utterances}"
+        )
+        u1, u2, u3 = utterances[0], utterances[1], utterances[2]
+        assert u1.get("actor") == "person" and "nurse practitioner" in (u1.get("text") or "").lower(), (
+            f"utterance #1 should be the original person utterance about "
+            f"nurse practitioner. Got {u1}"
+        )
+        assert u2.get("actor") == "system" and (u2.get("text") or "").strip(), (
+            f"utterance #2 should be the LLM-authored system prompt "
+            f"(non-empty). Got {u2}"
+        )
+        assert u3.get("actor") == "person" and (u3.get("text") or "").strip().lower() == "yes", (
+            f"utterance #3 should be the person 'yes' resolving the "
+            f"disambiguation. Got {u3}"
+        )
+
+        # Actions: must include specialty_filter (turn 1) and
+        # provider_search_and_selection (turn 2). Cache lookups on turn 2
+        # are also OK; the requirement is that ProviderSearch ran.
+        tool_names = [a.get("tool_name") for a in actions]
+        assert "specialty_filter" in tool_names, (
+            f"actions should include specialty_filter from turn 1. "
+            f"Got tool_names={tool_names}"
+        )
+        assert "provider_search_and_selection" in tool_names, (
+            f"actions should include provider_search_and_selection from "
+            f"turn 2. Got tool_names={tool_names}"
+        )
