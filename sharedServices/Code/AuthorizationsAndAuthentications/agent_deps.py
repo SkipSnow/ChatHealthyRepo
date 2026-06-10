@@ -20,10 +20,15 @@ Tools that need data read it off `mongo_frontend`, not off positional args.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Callable, Optional
+from zoneinfo import ZoneInfo
 
-from authentication.user_object import UserObject
+from authentication.user_object import (
+    Action,
+    UserObject,
+    Utterance,
+)
 from chathealthy_frontend_lib.authentication.session_token import SessionToken
 
 
@@ -50,71 +55,70 @@ class AuthnDeps:
 
 
 # ────────────────────────────────────────────────────────────────────
-# Shared logging helpers — every tool (and the universal navigation
-# orchestrator) writes to the user_object's session_conversation_history
-# through these functions. Mutate-in-place; the gate persists at the end.
+# Two-bucket session-history append helpers. utterances + actions live
+# on user_object.session_conversation_history; each bucket carries its
+# own per-session monotonic sequence number computed at append time.
+# Timestamps render in Pacific time with a literal " PST" suffix per
+# Skip 2026-06-10 — the offset is unambiguous regardless of DST and
+# the suffix keeps the string human-readable.
 # ────────────────────────────────────────────────────────────────────
 
 
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+_PT = ZoneInfo("America/Los_Angeles")
 
 
-def log_ux_event(
-    user_object: UserObject,
-    event_type: str,
-    value: Any = None,
-    pedantic_response: Any = None,
-) -> None:
-    """Person → System stream (+ Machine when a pedantic_response is given).
-    The user clicked a UX control; the system may have a pedantic textual
-    response paired inline."""
-    entry: dict[str, Any] = {
-        "event_type": event_type,
-        "value": value,
-        "at": _now_iso(),
-    }
-    if pedantic_response is not None:
-        entry["pedantic_response"] = (
-            pedantic_response if isinstance(pedantic_response, dict)
-            else {"text": str(pedantic_response)}
-        )
-    user_object.session_conversation_history.ux_events.append(entry)
+def _now_pst() -> str:
+    """ISO-8601 local Pacific time + literal ' PST' suffix."""
+    return datetime.now(_PT).isoformat() + " PST"
 
 
-def log_tool_invocation(
+import logging as _logging
+_log = _logging.getLogger("shared_services.session_history")
+
+
+def append_person_utterance(user_object: UserObject, text: str) -> None:
+    bucket = user_object.session_conversation_history.utterances
+    bucket.append(Utterance(
+        n=len(bucket) + 1,
+        at=_now_pst(),
+        actor="person",
+        text=text,
+    ))
+    _log.debug(
+        "append_person_utterance n=%d text=%r total_utterances=%d",
+        len(bucket), text[:80], len(bucket),
+    )
+
+
+def append_system_utterance(user_object: UserObject, text: str) -> None:
+    bucket = user_object.session_conversation_history.utterances
+    bucket.append(Utterance(
+        n=len(bucket) + 1,
+        at=_now_pst(),
+        actor="system",
+        text=text,
+    ))
+    _log.debug(
+        "append_system_utterance n=%d text=%r total_utterances=%d",
+        len(bucket), text[:80], len(bucket),
+    )
+
+
+def append_action(
     user_object: UserObject,
     tool_name: str,
-    tool_args: dict[str, Any],
-    tool_result: Any,
+    input_json: Optional[dict[str, Any]] = None,
+    output_json: Optional[dict[str, Any]] = None,
+    at: Optional[str] = None,
 ) -> None:
-    """LLM → System (invocation side) + Machine (tool_result side).
-    Every tool the navigation orchestrator dispatches to should call this
-    after running so the user_object carries the full audit trail."""
-    user_object.session_conversation_history.utterances.append({
-        "text": f"{tool_name}",
-        "at": _now_iso(),
-        "bridge_response": {
-            "kind": "tool_invocation",
-            "tool_name": tool_name,
-            "tool_args": tool_args,
-            "tool_result": tool_result,
-        },
-    })
-
-
-def log_llm_clarification(
-    user_object: UserObject,
-    llm_response: str,
-    info_sought: Optional[list[str]] = None,
-) -> None:
-    """LLM → System: the LLM emitted a clarification back to the person."""
-    user_object.session_conversation_history.utterances.append({
-        "text": llm_response,
-        "at": _now_iso(),
-        "bridge_response": {
-            "kind": "llm_clarification",
-            "llm_response": llm_response,
-            "info_sought": info_sought or [],
-        },
-    })
+    """Append a system action. tool_name='on_load' for action #1 of a new
+    session; otherwise the dispatched tool's TOOL_NAME or 'ux_event' for
+    a recorded user gesture."""
+    bucket = user_object.session_conversation_history.actions
+    bucket.append(Action(
+        n=len(bucket) + 1,
+        at=at if at is not None else _now_pst(),
+        tool_name=tool_name,
+        input_json=input_json or {},
+        output_json=output_json or {},
+    ))

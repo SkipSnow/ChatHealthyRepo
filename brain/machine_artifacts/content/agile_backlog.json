@@ -1900,11 +1900,134 @@
                             ]
                           },
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-004-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "Skip already-completed upstream work on follow-up turns",
+                          "requirement": "When the Utterance Manager (UM) upgrades target_action on a follow-up turn because a pending_disambiguation just resolved, the Universal Router (UR) does not re-run any upstream tool whose result is already cached on the IntentDocument. UR reads the cached output from the relevant intent entry's arguments and dispatches only the downstream tool that still needs to run. Asking the user a clarification question therefore does not pay the cost of re-classifying or re-fetching upstream work the user has already seen.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-010-S-001",
+                              "reason": "Depends on UM's pending_disambiguation state per REQ-B-007 and REQ-B-009."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-004-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "IntentDocument carries upstream tool outputs across turns",
+                          "requirement": "Each typed intent entry in the IntentDocument carries the outputs of upstream tools as additional arguments. The Universal Router (UR) writes these arguments after the upstream tool runs the first time and reads them on follow-up turns to satisfy REQ-B-002. The schema for each intent entry enumerates the upstream-output arguments it accepts so the contract between the Utterance Manager (UM), UR, and each consuming tool is explicit.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-004-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "Serial wire order on partial-information turns",
+                          "requirement": "On a turn that carries both a user_message and a partial-information target_action, the wire order is deterministic. The Utterance Manager (UM) streams its {kind:\"prompt\"} event and awaits an event-loop tick to flush before returning to the Universal Router (UR). UR then dispatches downstream tools per target_action; each tool streams its own events and flushes before returning. UR emits its terminal {kind:\"final\"}. UR does not chain to closeConnection200 on a turn that carries a pending disambiguation, because the connection is logically still open across the user's next turn.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-010-S-001",
+                              "reason": "Depends on UM REQ-B-009 (user_message field) and REQ-B-010 (LLM authors prose)."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
                         }
                       ]
                     },
                     "orphan": false,
                     "approval": "approved"
+                  },
+                  {
+                    "story_id": "EPIC-002-F-004-S-002",
+                    "orphan": false,
+                    "name": "Implement unique FindCare Universal Router requirements",
+                    "description": "This story specifies the Universal Router (UR) behavior that is specific to FindCare's two action types — findAProvider and specialtySearch — beyond what the general Universal Router story (EPIC-002-F-004-S-001) defines. It covers the SpecialtyFilter output as the cached upstream result carried as nucc_codes on each FindCare intent entry, the UR-side write and re-read of nucc_codes across turns so SpecialtyFilter does not run twice on the same complaint, and the schema sufficiency rule that gates UR dispatch of ProviderSearch so the provider search executes only when geography is fully specified. UR behavior shared with non-FindCare actions is out of scope for this story.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-004-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "NUCC codes are the cached upstream result",
+                          "requirement": "For the findAProvider and specialtySearch actions, the SpecialtyFilter output is the cached upstream result that satisfies Universal Router (UR) REQ-B-003. The IntentDocument's IntentSpecialtySearch and IntentFindAProvider entries each carry an nucc_codes argument holding the SpecialtyFilter codes and their scores. UR writes nucc_codes after the first SpecialtyFilter run and reads it on the geography-resolution turn so SpecialtyFilter does not run twice on the same complaint.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-004-S-001",
+                              "reason": "Instantiates the cached-upstream-output pattern from REQ-B-002 and REQ-B-003."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-004-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "ProviderSearch fires only when geography is sufficient",
+                          "requirement": "ProviderSearch executes only when target_action is findAProvider and the geography on the IntentFindAProvider entry passes the schema sufficiency rule — zip alone, state alone, state plus city, or state plus county. On any turn where the Utterance Manager (UM) holds target_action at specialtySearch because of pending geography disambiguation, ProviderSearch does not fire; the Universal Router (UR) streams the specialties event and the user_message event and emits its terminal final event without provider results.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   }
                 ]
               },
@@ -3558,6 +3681,138 @@
                                 "orphan": false,
                                 "test_type": "integration",
                                 "file": "sharedServices/Code/tests/test_utterance_routing.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Classifier input is the last N user utterances",
+                          "requirement": "The Utterance Manager (UM) classifier input is up to the last 10 user utterances drawn from user_object.session_conversation_history.utterances. The cap is a maximum, not a target — fewer turns are passed when the session has not accumulated that many. Tool-invocation entries and LLM-clarification bridge entries are excluded from the window so the classifier sees only what the human said.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-007",
+                          "orphan": false,
+                          "name": "Ambiguous-but-resolvable third action state",
+                          "requirement": "The Utterance Manager (UM) classifier distinguishes three states for any required action slot: sufficient, missing, and ambiguous-with-candidate. Ambiguous-with-candidate applies when the slot cannot be filled from the utterance alone but the classifier has a plausible candidate value for it. In this state UM sets target_action to the partial-information action so any work that does not depend on the missing slot can still proceed, records the candidate value as pending_disambiguation on the relevant intent entry, and emits an LLM-authored user_message proposing the candidate to the user.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-008",
+                          "orphan": false,
+                          "name": "Pending disambiguation resolved on the next turn",
+                          "requirement": "When the next utterance is a yes/no answer to the prior pending disambiguation, the Utterance Manager (UM) resolves it. \"Yes\" fills the candidate value into the appropriate argument on the IntentDocument and upgrades target_action to the now-fully-specified action. \"No\" keeps target_action at the partial-information action and emits a follow-up LLM-authored user_message requesting the missing slot a different way. Either outcome clears the prior pending_disambiguation.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-009",
+                          "orphan": false,
+                          "name": "IntentDocument carries disambiguation state and user-facing prose",
+                          "requirement": "The canonical IntentDocument has two optional fields beyond its required target_action and intents. The first is pending_disambiguation, attached per-intent on each entry in intents[], an object that captures the disambiguation kind, the candidate value being proposed, and any scaffolding the next-turn resolver needs; it persists across turns until the Utterance Manager (UM) clears it. The second is user_message, attached at the top level of the IntentDocument, a string carrying the LLM's prose intended for the user; when it is non-empty UM streams it as {kind:\"prompt\", data:{text: user_message}} and flushes before returning to the Universal Router (UR), when it is absent UM streams nothing.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-010",
+                          "orphan": false,
+                          "name": "LLM authors all user-facing chat prose",
+                          "requirement": "The Utterance Manager (UM) classifier's structured output includes a user_message field. The LLM writes every user-facing chat line — clarification questions, follow-ups, friendly framing, error explanations — and UM streams whatever the LLM produced. No hardcoded clarification or chat string appears in UM, NonsenseTool, CloseConnection200Tool, or any other component on the dispatch path. The LLM owns the prose; the runtime owns the transport.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-002-F-010-S-002",
+                    "orphan": false,
+                    "name": "Implement unique FindCare Utterance Manager requirements",
+                    "description": "This story specifies the Utterance Manager (UM) behavior that is specific to FindCare's two action types — findAProvider and specialtySearch — beyond what the general Utterance Manager story (EPIC-002-F-010-S-001) defines. It covers the geography slot as the ambiguous-but-resolvable disambiguation slot when the user names a city or county without a state, the UM-side handling of the corresponding pending_disambiguation marker on the IntentDocument's findAProvider intent entry, and the LLM-authored user_message proposing the candidate state to the user. UM behavior shared with non-FindCare actions (nonsense, closeConnection200) is out of scope for this story.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-010-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "Geography slot is the disambiguation slot for findAProvider",
+                          "requirement": "For the findAProvider action, the geography slot uses the general ambiguous-but-resolvable pattern defined in Utterance Manager (UM) REQ-B-007. When the SpecialtyFilter has produced NUCC codes but UM has only a city or county without state, the IntentDocument's IntentFindAProvider entry carries the candidate state on pending_disambiguation, target_action remains at specialtySearch so the filter still renders, and UM proposes the candidate via user_message.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-010-S-001",
+                              "reason": "Instantiates the general ambiguous-but-resolvable pattern from REQ-B-007 and the schema additions from REQ-B-009."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
                               }
                             ]
                           }

@@ -32,16 +32,38 @@ from chathealthy_frontend_lib.authentication.session_token import SessionToken
 from UtteranceManager.intent_document import IntentDocument
 
 
-class SessionConversationHistory(BaseModel):
-    """All human / machine / LLM turns captured during the session.
+class Utterance(BaseModel):
+    """One line of verbatim dialogue between person and system.
 
-    Three actors (Person, Machine, LLM); the splash renders these as
-    four parallel scroll-bar threads (Person, Machine, LLM→Person,
-    LLM→Machine). Arrays grow as ops fire through the gate.
+    Both actors land in the same bucket so the dialogue reads top-to-bottom
+    as a narrative — exactly the form the LLM classifier receives when
+    UM rebuilds the transcript as "user: ...\\nsystem: ...".
     """
-    unanswered_questions: list[str] = Field(default_factory=list)
-    ux_events: list[dict] = Field(default_factory=list)
-    utterances: list[dict] = Field(default_factory=list)
+    n: int = Field(ge=1, description="Per-session sequence, monotonic from 1.")
+    at: str = Field(description="ISO-8601 local time + literal ' PST' suffix.")
+    actor: Literal["person", "system"]
+    text: str
+
+
+class Action(BaseModel):
+    """One system-recorded event in the session. Includes tool invocations
+    (UM, UR-dispatched tools), the on_load marker (action #1 of every
+    session), and recorded UX gestures (button clicks, etc.).
+    """
+    n: int = Field(ge=1, description="Per-session sequence, monotonic from 1.")
+    at: str = Field(description="ISO-8601 local time + literal ' PST' suffix.")
+    tool_name: str = Field(description="'on_load' for action #1; otherwise the tool's TOOL_NAME or 'ux_event'.")
+    input_json: dict = Field(default_factory=dict)
+    output_json: dict = Field(default_factory=dict)
+
+
+class SessionConversationHistory(BaseModel):
+    """Two buckets per Skip 2026-06-10: a single dialogue narrative and a
+    parallel system-action log. Each bucket has its own per-session counter
+    starting at 1. Timestamps on every entry handle cross-bucket ordering.
+    """
+    utterances: list[Utterance] = Field(default_factory=list)
+    actions: list[Action] = Field(default_factory=list)
 
 
 class SillyQuestionCounts(BaseModel):
@@ -161,13 +183,30 @@ class UserObject(BaseModel):
           registered_profile            stored
           not_registered_followup       stored
         """
+        # Concatenate stored arrays first, guest appended. Re-number both
+        # buckets monotonically so the merged session has a clean 1..N
+        # sequence in each bucket (the original n values came from two
+        # separate sessions and would collide).
+        def _renumber(items: list, kind: str) -> list:
+            out = []
+            for i, item in enumerate(items, start=1):
+                d = item.model_dump() if hasattr(item, "model_dump") else dict(item)
+                d["n"] = i
+                cls = Utterance if kind == "utterance" else Action
+                out.append(cls.model_validate(d))
+            return out
+
+        merged_utterances = (
+            list(self.session_conversation_history.utterances)
+            + list(guest.session_conversation_history.utterances)
+        )
+        merged_actions = (
+            list(self.session_conversation_history.actions)
+            + list(guest.session_conversation_history.actions)
+        )
         merged_hist = SessionConversationHistory(
-            utterances=list(self.session_conversation_history.utterances)
-                + list(guest.session_conversation_history.utterances),
-            ux_events=list(self.session_conversation_history.ux_events)
-                + list(guest.session_conversation_history.ux_events),
-            unanswered_questions=list(self.session_conversation_history.unanswered_questions)
-                + list(guest.session_conversation_history.unanswered_questions),
+            utterances=_renumber(merged_utterances, "utterance"),
+            actions=_renumber(merged_actions, "action"),
         )
 
         # silly_question_counts: lifetime accumulator.
@@ -196,8 +235,7 @@ class UserObject(BaseModel):
         })
 
     def persist_user_state(self, text: str) -> None:
-        """Append the typed user text to the session conversation history."""
-        self.session_conversation_history.utterances.append({
-            "text": text,
-            "at": datetime.now(timezone.utc).isoformat(),
-        })
+        """Append the typed user text to the session conversation history
+        as a person utterance with the next sequence number."""
+        from authentication.agent_deps import append_person_utterance
+        append_person_utterance(self, text)

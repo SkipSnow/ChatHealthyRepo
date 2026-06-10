@@ -238,10 +238,22 @@ async def gate(
     # ch_session cookie value carries the 67-byte assembled session token
     # per REQ-B-007. The first 32 bytes are the GUID.
     prior_guid = None
+    prior_guid_source = "none"
     if ch_session and len(ch_session) >= 32:
         prior_guid = ch_session[:32]
+        prior_guid_source = "cookie"
     elif payload.get("prior_guid"):
         prior_guid = payload.get("prior_guid")
+        prior_guid_source = "body"
+    _log.debug(
+        "/gate ENTRY op=%s intent=%r prior_guid=%s source=%s "
+        "(cookie_present=%s body_keys=%s)",
+        op, intent,
+        (prior_guid[:8] + "..." if prior_guid else None),
+        prior_guid_source,
+        bool(ch_session),
+        sorted(list(payload.keys())),
+    )
 
     accept = (request.headers.get("accept") or "").lower()
     want_ndjson = "application/x-ndjson" in accept or "text/event-stream" in accept

@@ -2192,14 +2192,19 @@ class LocalDeploy:
 
     def _write_build_info(self, build_ctx_abs: Path, container_name: str) -> Path:
         cflags = _cflags()
-        try:
-            build_num = subprocess.run(
-                ["git", "rev-list", "--count", "HEAD"],
-                cwd=str(self.repo_root), capture_output=True, text=True,
-                creationflags=cflags, check=True,
-            ).stdout.strip()
-        except Exception:
-            build_num = "0"
+        from dotenv import load_dotenv
+        from pymongo import MongoClient
+        load_dotenv(self.repo_root / "Code" / ".env")
+        conn = os.environ.get("MONGO_FRONTEND_connectionString")
+        if not conn:
+            sys.exit("ERROR: MONGO_FRONTEND_connectionString not set; cannot read local build counter.")
+        latest = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"].find_one(sort=[("from", -1)])
+        build_num = next(
+            (int(e["build"]) for e in (latest or {}).get("builds", []) if e.get("env") == "local"),
+            None,
+        )
+        if build_num is None:
+            sys.exit("ERROR: admin.Versions latest record has no 'local' slot.")
         try:
             commit = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
@@ -2209,7 +2214,7 @@ class LocalDeploy:
         except Exception:
             commit = "unknown"
         info = {
-            "build": int(build_num) if build_num.isdigit() else None,
+            "build": build_num,
             "commit": commit,
             "env": self.env,
             "target_id": self.CONTAINER_TARGET_ID.get(container_name),

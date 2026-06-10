@@ -110,11 +110,22 @@ def _reload(coll, guid: str) -> Optional[UserObject]:
 def _manufacture_session(user_object: UserObject, server_env: str) -> UserObject:
     """Mint a SessionToken in place. The incoming user_object's
     current_session_token is the sentinel "NULL"; replace it with a
-    real SessionToken and set expires_at to NOW + TTL."""
+    real SessionToken and set expires_at to NOW + TTL.
+
+    Action #1 of every new session is the on_load marker, appended
+    here so every session has a deterministic anchor in the actions
+    bucket (Skip 2026-06-10)."""
+    from authentication.agent_deps import append_action
     now = datetime.now(timezone.utc)
     minted = MintableAuthToken.manufacture(server_env=server_env)
     user_object.current_session_token = _auth_token_to_session_token(minted)
     user_object.expires_at = now + timedelta(seconds=_SESSION_TTL_SECONDS)
+    append_action(
+        user_object,
+        tool_name="on_load",
+        input_json={"server_env": server_env},
+        output_json={"guid": user_object.current_session_token.get_auth_token()},
+    )
     return user_object
 
 

@@ -686,12 +686,13 @@ class TestStep05b:
         )
         res = (result or {}).get('result') or {}
         threads = res.get('threads') or {}
-        assert threads.get('empty') is True, (
-            "Pre-utterance splash MUST report threads.empty=true. "
-            f"Got result keys={list(res.keys())} threads={threads}"
+        # Pre-utterance the dialogue bucket is empty. The actions bucket
+        # already carries action #1 (on_load) appended at session mint;
+        # we don't gate on threads.empty here since that flag now means
+        # "both buckets empty" and on_load makes actions non-empty.
+        assert not threads.get('utterances'), (
+            f"utterances should be empty pre-utterance: {threads.get('utterances')}"
         )
-        assert not threads.get('person'), f"person should be empty pre-utterance: {threads.get('person')}"
-        assert not threads.get('person_to_system'), f"person_to_system should be empty pre-utterance: {threads.get('person_to_system')}"
 
 
 # Step 6 [EPIC-005-F-001-S-001-REQ-B-005]
@@ -1234,7 +1235,7 @@ class TestStep27bSplashJsonContract:
         assert "threads" in result and isinstance(result["threads"], dict), (
             f"splash response missing threads dict. result: {result}"
         )
-        for k in ("person", "person_to_system", "machine", "llm_to_system"):
+        for k in ("utterances", "actions"):
             assert k in result["threads"], f"threads missing key '{k}': {result['threads']}"
 
 
@@ -1267,23 +1268,23 @@ class TestStep28:
             "capture path is broken. Three utterances were typed before "
             f"this step. Splash (first 600c): {text[:600]}"
         )
-        # Populated: four threads (Skip taxonomy 2026-05-15):
-        #   Person | Person → System | Machine | LLM → System.
+        # Populated: two threads (Skip taxonomy 2026-06-10):
+        #   Utterances | Actions.
         # CSS text-transform may uppercase the labels; compare case-insensitively.
-        for label in ("person", "person → system", "machine", "llm → system"):
+        for label in ("utterances", "actions"):
             assert label in text_lower, f"Missing thread label '{label}': {text[:300]}"
         # The old thread labels MUST be gone.
-        for retired in ("llm → person", "llm → machine"):
+        for retired in ("person → system", "llm → system", "llm → person", "llm → machine"):
             assert retired not in text_lower, f"Retired thread label '{retired}' still present: {text[:300]}"
         # Every utterance the smoke typed earlier MUST appear in the
-        # rendered Person thread. Step 06 typed one, Step 25 typed two
-        # more — three total. If the /gate utterance capture path
-        # regresses, this trips.
+        # Utterances column. Step 06 typed one, Step 25 typed two more
+        # — three total. If the /gate utterance capture path regresses,
+        # this trips.
         typed = env.get("typed_utterances", [])
         assert len(typed) >= 3, f"Smoke harness only recorded {len(typed)} utterances; need ≥3"
         for u in typed:
             assert u.lower() in text_lower, (
-                f"Utterance {u!r} missing from Person thread; capture path broken. "
+                f"Utterance {u!r} missing from Utterances column; capture path broken. "
                 f"Splash text (first 600c): {text[:600]}"
             )
         _screenshot(page, "28")

@@ -25,6 +25,11 @@
           { "$ref": "#/$defs/IntentCloseConnection200" }
         ]
       }
+    },
+    "user_message": {
+      "type": "string",
+      "maxLength": 4096,
+      "description": "LLM-authored prose intended for the user (clarification question, follow-up, friendly framing). When non-empty UM streams it as {kind:'prompt', data:{text: user_message}} and awaits an event-loop tick to flush before returning to UR. When absent or empty UM streams nothing. The LLM owns this prose; no hardcoded chat strings appear in UM, NonsenseTool, CloseConnection200Tool, or any other component on the dispatch path."
     }
   },
   "$defs": {
@@ -45,7 +50,7 @@
           "type": "string",
           "description": "The argument's value, serialized as a string. For type='boolean', exactly 'true' or 'false'. For type='integer'/'number', the decimal string with no leading zeros or whitespace. For type='object'/'array', a JSON-encoded string the consumer parses with json.loads. For type='string', the raw text. MUST be non-empty when the argument is required: true.",
           "minLength": 0,
-          "maxLength": 1000
+          "maxLength": 32768
         },
         "type": {
           "description": "Names the JSON-native type that value, once parsed, will produce. Constrained to the JSON Schema 2020-12 primitive type set.",
@@ -54,6 +59,28 @@
         "required": {
           "type": "boolean",
           "description": "True when the dispatched tool cannot run without this argument's value being present and parseable. False when the argument is optional (tool has a default or can proceed without it). UM MUST NOT emit a target_action whose required: true arguments are missing or whose values fail to parse to their declared type; UM's fallback when any required is unfillable is to set target_action to closeConnection200 after streaming a clarification prompt."
+        }
+      }
+    },
+    "PendingDisambiguation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "candidate"],
+      "description": "Marker carried on an intent entry when the classifier could not fully fill a required slot but has a plausible candidate value for it. UM sets it; UR does not dispatch the intent's action while pending_disambiguation is set. UM clears it on a subsequent turn when the user resolves the disambiguation (yes/no answer), at which point the slot is filled and target_action is upgraded.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "The disambiguation category. FindCare's geography slot uses 'geography_state'."
+        },
+        "candidate": {
+          "type": "object",
+          "description": "Structured candidate value the classifier proposed (e.g., {\"state\":\"WI\"})."
+        },
+        "scaffolding": {
+          "type": "object",
+          "description": "Optional free-form context the next-turn resolver needs."
         }
       }
     },
@@ -66,6 +93,7 @@
         "name": {
           "const": "nonsense"
         },
+        "pending_disambiguation": { "$ref": "#/$defs/PendingDisambiguation" },
         "arguments": {
           "type": "array",
           "description": "Exactly two arguments: utterance (the typed text) and is_nonsense (always true). Both required.",
@@ -111,30 +139,35 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "arguments"],
-      "description": "Intent entry for an utterance where UM has extracted a complaint phrase but no usable geography. UR dispatches to SpecialtyFilter, which translates the complaint into NUCC specialty codes; the FE renders the specialty list so the user can see candidate provider types even before they tell us where they are. specialtySearch is the partial-information counterpart to findAProvider; once the user supplies geography on a subsequent turn UM upgrades the target_action to findAProvider.",
+      "description": "Intent entry for an utterance where UM has extracted a complaint phrase but no usable geography. UR dispatches to SpecialtyFilter, which translates the complaint into NUCC specialty codes; the FE renders the specialty list so the user can see candidate provider types even before they tell us where they are. specialtySearch is the partial-information counterpart to findAProvider; once the user supplies geography on a subsequent turn UM upgrades the target_action to findAProvider. The optional nucc_codes argument carries the SpecialtyFilter output and persists across turns so UR can skip re-running SpecialtyFilter when the user resolves a pending disambiguation.",
       "properties": {
         "name": {
           "const": "specialtySearch"
         },
+        "pending_disambiguation": { "$ref": "#/$defs/PendingDisambiguation" },
         "arguments": {
           "type": "array",
-          "description": "Exactly one argument: complaint (the natural-language symptom/condition phrase).",
+          "description": "One required argument (complaint) and one optional argument (nucc_codes) carrying the cached SpecialtyFilter output.",
           "minItems": 1,
-          "maxItems": 1,
+          "maxItems": 2,
           "uniqueItems": true,
           "items": {
-            "allOf": [
-              { "$ref": "#/$defs/Argument" },
+            "oneOf": [
               {
-                "properties": {
-                  "name": { "const": "complaint" },
-                  "type": { "const": "string" },
-                  "required": { "const": true },
-                  "value": { "minLength": 1, "maxLength": 1024 }
-                }
+                "allOf": [
+                  { "$ref": "#/$defs/Argument" },
+                  { "properties": { "name": { "const": "complaint" }, "type": { "const": "string" }, "required": { "const": true }, "value": { "minLength": 1, "maxLength": 1024 } } }
+                ],
+                "description": "Natural-language complaint phrase UM extracted (e.g. 'back pain'). SpecialtyFilter translates this into NUCC codes via its own LLM call."
+              },
+              {
+                "allOf": [
+                  { "$ref": "#/$defs/Argument" },
+                  { "properties": { "name": { "const": "nucc_codes" }, "type": { "const": "array" }, "required": { "const": false }, "value": { "minLength": 2, "maxLength": 4096 } } }
+                ],
+                "description": "Cached SpecialtyFilter output. value is a JSON-encoded array of {code, name, score, ...} objects. UR writes this after SpecialtyFilter runs the first time and reads it on follow-up turns to avoid re-running SpecialtyFilter on the same complaint."
               }
-            ],
-            "description": "Natural-language complaint phrase UM extracted (e.g. 'back pain'). SpecialtyFilter translates this into NUCC codes via its own LLM call."
+            ]
           }
         }
       }
@@ -143,16 +176,17 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "arguments"],
-      "description": "Intent entry for an utterance UM classified as the user looking for a healthcare provider. When target_action is findAProvider, UR dispatches to the find-a-provider tool, which uses complaint to drive the SpecialtyFilter (NUCC classification) and geography to drive the provider query.",
+      "description": "Intent entry for an utterance UM classified as the user looking for a healthcare provider. When target_action is findAProvider, UR dispatches SpecialtyFilter (if nucc_codes has not been cached) and then ProviderSearch. When pending_disambiguation is set on this entry, target_action stays at specialtySearch (or another partial-information state) until the user resolves the disambiguation; geography may be partial on the entry while pending_disambiguation is set, and UR enforces the geography sufficiency rule only when it is about to dispatch the findAProvider action. The optional nucc_codes argument carries the SpecialtyFilter output across turns so UR can skip re-running SpecialtyFilter on the resolution turn.",
       "properties": {
         "name": {
           "const": "findAProvider"
         },
+        "pending_disambiguation": { "$ref": "#/$defs/PendingDisambiguation" },
         "arguments": {
           "type": "array",
-          "description": "Exactly two arguments: complaint (the natural-language symptom/condition phrase) and geography (the structured location facts). Both required.",
-          "minItems": 2,
-          "maxItems": 2,
+          "description": "Up to three arguments: complaint (required), geography (required when dispatched as findAProvider; may be partial while pending_disambiguation is set), and an optional nucc_codes carrying the cached SpecialtyFilter output.",
+          "minItems": 1,
+          "maxItems": 3,
           "uniqueItems": true,
           "items": {
             "oneOf": [
@@ -182,7 +216,21 @@
                     }
                   }
                 ],
-                "description": "Structured location facts. value is a JSON-encoded object the consumer parses with json.loads. The parsed object MUST have at minimum one of: (a) zip as a 5-digit ZIP code, (b) state as a 2-letter USPS code, (c) state plus city, or (d) state plus county. City or county WITHOUT state is NOT sufficient. UM-side code guards enforce this rule before setting target_action to findAProvider; if the rule cannot be met, UM streams a clarification prompt asking for the missing location and sets target_action to closeConnection200 instead. The parsed object MAY also have any combination of state/city/county/zip beyond the minimum."
+                "description": "Structured location facts. value is a JSON-encoded object the consumer parses with json.loads. The parsed object MUST have at minimum one of: (a) zip as a 5-digit ZIP code, (b) state as a 2-letter USPS code, (c) state plus city, or (d) state plus county when target_action is findAProvider. While pending_disambiguation is set on this entry the geography may be partial (e.g., city alone) and UR does not enforce the sufficiency rule because the entry's action is not being dispatched."
+              },
+              {
+                "allOf": [
+                  { "$ref": "#/$defs/Argument" },
+                  {
+                    "properties": {
+                      "name": { "const": "nucc_codes" },
+                      "type": { "const": "array" },
+                      "required": { "const": false },
+                      "value": { "minLength": 2, "maxLength": 4096 }
+                    }
+                  }
+                ],
+                "description": "Cached SpecialtyFilter output. value is a JSON-encoded array of {code, name, score, ...} objects. UR writes this after SpecialtyFilter runs the first time and reads it on follow-up turns to avoid re-running SpecialtyFilter on the same complaint."
               }
             ]
           }
@@ -193,11 +241,12 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "arguments"],
-      "description": "Intent entry for the close-with-200 action UR dispatches. UM is responsible for streaming the prompt to the user before emitting closeConnection200 as target_action; UR is responsible for closing the connection. The closeConnection200 tool has no knowledge of what was said to the user or what the user said to elicit the response — its only job is to close the StreamingResponse with HTTP 200 OK.",
+      "description": "Intent entry for the close-with-200 action UR dispatches. UM authors the user-facing prose (top-level user_message) on any turn that needs to talk to the user; UR streams it and is responsible for closing the connection. The closeConnection200 tool has no knowledge of what was said to the user or what the user said to elicit the response — its only job is to close the StreamingResponse with HTTP 200 OK.",
       "properties": {
         "name": {
           "const": "closeConnection200"
         },
+        "pending_disambiguation": { "$ref": "#/$defs/PendingDisambiguation" },
         "arguments": {
           "type": "array",
           "description": "Exactly one argument: close_connection (boolean, always true).",

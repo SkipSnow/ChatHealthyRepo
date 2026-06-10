@@ -2,10 +2,12 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 """UtteranceManager — the classifier ChatHealthyTool.
 
-Reads the user's latest utterance off deps.user_object, calls an LLM to
-classify it into one of the catalog actions, optionally streams a
-clarification prompt to the user, builds the IntentDocument, writes it
-back to deps.user_object.intent, and returns.
+Reads up to the last 10 USER utterances off deps.user_object, calls an LLM
+to classify the latest utterance in context, builds the canonical
+IntentDocument (including any pending_disambiguation marker and the
+LLM-authored top-level user_message), streams the user_message if
+present, writes the document back to deps.user_object.intent, and
+returns.
 
 Per https://dev.chathealthy.ai/schemas/ChatHealthyUtteranceManagerOutputSchema.json
 """
@@ -29,12 +31,19 @@ from UtteranceManager.intent_document import (
     IntentFindAProvider,
     IntentNonsense,
     IntentSpecialtySearch,
+    PendingDisambiguation,
 )
 
 _log = logging.getLogger("shared_services.utterance_manager")
 
 
 _LLM_MODEL = "google-gla:gemini-2.5-flash"
+_MAX_USER_UTTERANCE_WINDOW = 10  # EPIC-002-F-010-S-001-REQ-B-006
+
+
+# ────────────────────────────────────────────────────────────────────
+# Classifier structured output
+# ────────────────────────────────────────────────────────────────────
 
 
 class _GeoFacts(BaseModel):
@@ -44,20 +53,32 @@ class _GeoFacts(BaseModel):
     zip: Optional[str] = None
 
 
+class _PendingDisambiguationOut(BaseModel):
+    """LLM-emitted pending-disambiguation marker. Mirrors the canonical
+    PendingDisambiguation shape on the IntentDocument."""
+    kind: str
+    candidate: dict[str, Any] = Field(default_factory=dict)
+
+
 class _ClassifierOutput(BaseModel):
     """Structured output of the UM classifier LLM. Field names match the
-    canonical IntentDocument schema so the LLM writes the document's
-    target_action directly."""
+    canonical IntentDocument so downstream Python can copy them through
+    with minimal translation."""
+
     target_action: Literal[
         "nonsense", "specialtySearch", "findAProvider", "closeConnection200",
     ]
     complaint: Optional[str] = None
     geography: Optional[_GeoFacts] = None
-    prompt_text: Optional[str] = None
+    user_message: Optional[str] = None
+    pending_disambiguation: Optional[_PendingDisambiguationOut] = None
 
 
-_CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""
-{
+# ────────────────────────────────────────────────────────────────────
+# Embedded canonical schema (kept in sync with Website/schemas/…)
+# ────────────────────────────────────────────────────────────────────
+
+_CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyUtteranceManagerOutputSchema.json",
   "title": "ChatHealthy UtteranceManager Output",
@@ -84,6 +105,11 @@ _CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""
           { "$ref": "#/$defs/IntentCloseConnection200" }
         ]
       }
+    },
+    "user_message": {
+      "type": "string",
+      "maxLength": 4096,
+      "description": "LLM-authored prose intended for the user (clarification question, follow-up, friendly framing). When non-empty UM streams it as {kind:'prompt', data:{text: user_message}} and awaits an event-loop tick to flush before returning to UR. When absent or empty UM streams nothing. The LLM owns this prose; no hardcoded chat strings appear in UM, NonsenseTool, CloseConnection200Tool, or any other component on the dispatch path."
     }
   },
   "$defs": {
@@ -104,7 +130,7 @@ _CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""
           "type": "string",
           "description": "The argument's value, serialized as a string. For type='boolean', exactly 'true' or 'false'. For type='integer'/'number', the decimal string with no leading zeros or whitespace. For type='object'/'array', a JSON-encoded string the consumer parses with json.loads. For type='string', the raw text. MUST be non-empty when the argument is required: true.",
           "minLength": 0,
-          "maxLength": 1000
+          "maxLength": 32768
         },
         "type": {
           "description": "Names the JSON-native type that value, once parsed, will produce. Constrained to the JSON Schema 2020-12 primitive type set.",
@@ -116,13 +142,38 @@ _CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""
         }
       }
     },
+    "PendingDisambiguation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "candidate"],
+      "description": "Marker carried on an intent entry when the classifier could not fully fill a required slot but has a plausible candidate value for it. UM sets it; UR does not dispatch the intent's action while pending_disambiguation is set. UM clears it on a subsequent turn when the user resolves the disambiguation (yes/no answer), at which point the slot is filled and target_action is upgraded.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "The disambiguation category. FindCare's geography slot uses 'geography_state'."
+        },
+        "candidate": {
+          "type": "object",
+          "description": "Structured candidate value the classifier proposed (e.g., {\"state\":\"WI\"})."
+        },
+        "scaffolding": {
+          "type": "object",
+          "description": "Optional free-form context the next-turn resolver needs."
+        }
+      }
+    },
     "IntentNonsense": {
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "arguments"],
       "description": "Intent entry for an utterance UM classified as gibberish or otherwise not a real request. When target_action is nonsense, UR dispatches to NonsenseTool, whose deploy-1 behavior is to bump the silly-question counter on user_object using the utterance and is_nonsense arguments.",
       "properties": {
-        "name": { "const": "nonsense" },
+        "name": {
+          "const": "nonsense"
+        },
+        "pending_disambiguation": { "$ref": "#/$defs/PendingDisambiguation" },
         "arguments": {
           "type": "array",
           "description": "Exactly two arguments: utterance (the typed text) and is_nonsense (always true). Both required.",
@@ -134,14 +185,28 @@ _CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""
               {
                 "allOf": [
                   { "$ref": "#/$defs/Argument" },
-                  { "properties": { "name": { "const": "utterance" }, "type": { "const": "string" }, "required": { "const": true }, "value": { "minLength": 1, "maxLength": 4096 } } }
+                  {
+                    "properties": {
+                      "name": { "const": "utterance" },
+                      "type": { "const": "string" },
+                      "required": { "const": true },
+                      "value": { "minLength": 1, "maxLength": 4096 }
+                    }
+                  }
                 ],
                 "description": "Exact text the user typed that was classified as nonsense. NonsenseTool consumes this verbatim for the silly-question audit record."
               },
               {
                 "allOf": [
                   { "$ref": "#/$defs/Argument" },
-                  { "properties": { "name": { "const": "is_nonsense" }, "type": { "const": "boolean" }, "required": { "const": true }, "value": { "const": "true" } } }
+                  {
+                    "properties": {
+                      "name": { "const": "is_nonsense" },
+                      "type": { "const": "boolean" },
+                      "required": { "const": true },
+                      "value": { "const": "true" }
+                    }
+                  }
                 ],
                 "description": "Explicit boolean carried as data so NonsenseTool can assert on it directly without re-reading target_action. value MUST be the string 'true' (parsed as boolean true) on every nonsense intent entry, when target_action is nonsense."
               }
@@ -154,36 +219,16 @@ _CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "arguments"],
-      "description": "Intent entry for an utterance where UM has extracted a complaint phrase but no usable geography. UR dispatches to SpecialtyFilter, which translates the complaint into NUCC specialty codes; the FE renders the specialty list so the user can see candidate provider types even before they tell us where they are. specialtySearch is the partial-information counterpart to findAProvider; once the user supplies geography on a subsequent turn UM upgrades the target_action to findAProvider.",
+      "description": "Intent entry for an utterance where UM has extracted a complaint phrase but no usable geography. UR dispatches to SpecialtyFilter, which translates the complaint into NUCC specialty codes; the FE renders the specialty list so the user can see candidate provider types even before they tell us where they are. specialtySearch is the partial-information counterpart to findAProvider; once the user supplies geography on a subsequent turn UM upgrades the target_action to findAProvider. The optional nucc_codes argument carries the SpecialtyFilter output and persists across turns so UR can skip re-running SpecialtyFilter when the user resolves a pending disambiguation.",
       "properties": {
-        "name": { "const": "specialtySearch" },
+        "name": {
+          "const": "specialtySearch"
+        },
+        "pending_disambiguation": { "$ref": "#/$defs/PendingDisambiguation" },
         "arguments": {
           "type": "array",
-          "description": "Exactly one argument: complaint (the natural-language symptom/condition phrase).",
+          "description": "One required argument (complaint) and one optional argument (nucc_codes) carrying the cached SpecialtyFilter output.",
           "minItems": 1,
-          "maxItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "allOf": [
-              { "$ref": "#/$defs/Argument" },
-              { "properties": { "name": { "const": "complaint" }, "type": { "const": "string" }, "required": { "const": true }, "value": { "minLength": 1, "maxLength": 1024 } } }
-            ],
-            "description": "Natural-language complaint phrase UM extracted (e.g. 'back pain'). SpecialtyFilter translates this into NUCC codes via its own LLM call."
-          }
-        }
-      }
-    },
-    "IntentFindAProvider": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "arguments"],
-      "description": "Intent entry for an utterance UM classified as the user looking for a healthcare provider. When target_action is findAProvider, UR dispatches to the find-a-provider tool, which uses complaint to drive the SpecialtyFilter (NUCC classification) and geography to drive the provider query.",
-      "properties": {
-        "name": { "const": "findAProvider" },
-        "arguments": {
-          "type": "array",
-          "description": "Exactly two arguments: complaint (the natural-language symptom/condition phrase) and geography (the structured location facts). Both required.",
-          "minItems": 2,
           "maxItems": 2,
           "uniqueItems": true,
           "items": {
@@ -193,14 +238,79 @@ _CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""
                   { "$ref": "#/$defs/Argument" },
                   { "properties": { "name": { "const": "complaint" }, "type": { "const": "string" }, "required": { "const": true }, "value": { "minLength": 1, "maxLength": 1024 } } }
                 ],
+                "description": "Natural-language complaint phrase UM extracted (e.g. 'back pain'). SpecialtyFilter translates this into NUCC codes via its own LLM call."
+              },
+              {
+                "allOf": [
+                  { "$ref": "#/$defs/Argument" },
+                  { "properties": { "name": { "const": "nucc_codes" }, "type": { "const": "array" }, "required": { "const": false }, "value": { "minLength": 2, "maxLength": 4096 } } }
+                ],
+                "description": "Cached SpecialtyFilter output. value is a JSON-encoded array of {code, name, score, ...} objects. UR writes this after SpecialtyFilter runs the first time and reads it on follow-up turns to avoid re-running SpecialtyFilter on the same complaint."
+              }
+            ]
+          }
+        }
+      }
+    },
+    "IntentFindAProvider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "arguments"],
+      "description": "Intent entry for an utterance UM classified as the user looking for a healthcare provider. When target_action is findAProvider, UR dispatches SpecialtyFilter (if nucc_codes has not been cached) and then ProviderSearch. When pending_disambiguation is set on this entry, target_action stays at specialtySearch (or another partial-information state) until the user resolves the disambiguation; geography may be partial on the entry while pending_disambiguation is set, and UR enforces the geography sufficiency rule only when it is about to dispatch the findAProvider action. The optional nucc_codes argument carries the SpecialtyFilter output across turns so UR can skip re-running SpecialtyFilter on the resolution turn.",
+      "properties": {
+        "name": {
+          "const": "findAProvider"
+        },
+        "pending_disambiguation": { "$ref": "#/$defs/PendingDisambiguation" },
+        "arguments": {
+          "type": "array",
+          "description": "Up to three arguments: complaint (required), geography (required when dispatched as findAProvider; may be partial while pending_disambiguation is set), and an optional nucc_codes carrying the cached SpecialtyFilter output.",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "oneOf": [
+              {
+                "allOf": [
+                  { "$ref": "#/$defs/Argument" },
+                  {
+                    "properties": {
+                      "name": { "const": "complaint" },
+                      "type": { "const": "string" },
+                      "required": { "const": true },
+                      "value": { "minLength": 1, "maxLength": 1024 }
+                    }
+                  }
+                ],
                 "description": "Natural-language complaint phrase UM extracted (e.g. 'back pain', 'persistent cough'). SpecialtyFilter downstream translates this into NUCC codes via its own LLM call. value is the phrase as the user expressed it (or as UM paraphrased it from the prior conversation history)."
               },
               {
                 "allOf": [
                   { "$ref": "#/$defs/Argument" },
-                  { "properties": { "name": { "const": "geography" }, "type": { "const": "object" }, "required": { "const": true }, "value": { "minLength": 2, "maxLength": 512 } } }
+                  {
+                    "properties": {
+                      "name": { "const": "geography" },
+                      "type": { "const": "object" },
+                      "required": { "const": true },
+                      "value": { "minLength": 2, "maxLength": 512 }
+                    }
+                  }
                 ],
-                "description": "Structured location facts. value is a JSON-encoded object the consumer parses with json.loads. The parsed object MUST have at minimum one of: (a) zip as a 5-digit ZIP code, (b) state as a 2-letter USPS code, (c) state plus city, or (d) state plus county. City or county WITHOUT state is NOT sufficient. UM-side code guards enforce this rule before setting target_action to findAProvider; if the rule cannot be met, UM streams a clarification prompt asking for the missing location and sets target_action to closeConnection200 instead. The parsed object MAY also have any combination of state/city/county/zip beyond the minimum."
+                "description": "Structured location facts. value is a JSON-encoded object the consumer parses with json.loads. The parsed object MUST have at minimum one of: (a) zip as a 5-digit ZIP code, (b) state as a 2-letter USPS code, (c) state plus city, or (d) state plus county when target_action is findAProvider. While pending_disambiguation is set on this entry the geography may be partial (e.g., city alone) and UR does not enforce the sufficiency rule because the entry's action is not being dispatched."
+              },
+              {
+                "allOf": [
+                  { "$ref": "#/$defs/Argument" },
+                  {
+                    "properties": {
+                      "name": { "const": "nucc_codes" },
+                      "type": { "const": "array" },
+                      "required": { "const": false },
+                      "value": { "minLength": 2, "maxLength": 4096 }
+                    }
+                  }
+                ],
+                "description": "Cached SpecialtyFilter output. value is a JSON-encoded array of {code, name, score, ...} objects. UR writes this after SpecialtyFilter runs the first time and reads it on follow-up turns to avoid re-running SpecialtyFilter on the same complaint."
               }
             ]
           }
@@ -211,9 +321,12 @@ _CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "arguments"],
-      "description": "Intent entry for the close-with-200 action UR dispatches. UM is responsible for streaming the prompt to the user before emitting closeConnection200 as target_action; UR is responsible for closing the connection. The closeConnection200 tool has no knowledge of what was said to the user or what the user said to elicit the response — its only job is to close the StreamingResponse with HTTP 200 OK.",
+      "description": "Intent entry for the close-with-200 action UR dispatches. UM authors the user-facing prose (top-level user_message) on any turn that needs to talk to the user; UR streams it and is responsible for closing the connection. The closeConnection200 tool has no knowledge of what was said to the user or what the user said to elicit the response — its only job is to close the StreamingResponse with HTTP 200 OK.",
       "properties": {
-        "name": { "const": "closeConnection200" },
+        "name": {
+          "const": "closeConnection200"
+        },
+        "pending_disambiguation": { "$ref": "#/$defs/PendingDisambiguation" },
         "arguments": {
           "type": "array",
           "description": "Exactly one argument: close_connection (boolean, always true).",
@@ -223,7 +336,14 @@ _CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""
           "items": {
             "allOf": [
               { "$ref": "#/$defs/Argument" },
-              { "properties": { "name": { "const": "close_connection" }, "type": { "const": "boolean" }, "required": { "const": true }, "value": { "const": "true" } } }
+              {
+                "properties": {
+                  "name": { "const": "close_connection" },
+                  "type": { "const": "boolean" },
+                  "required": { "const": true },
+                  "value": { "const": "true" }
+                }
+              }
             ],
             "description": "Explicit confirmation boolean. value MUST be the string 'true' (parsed as boolean true) on every closeConnection200 intent entry. The closing tool asserts on this before terminating the StreamingResponse with HTTP 200 OK."
           }
@@ -236,91 +356,148 @@ _CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""
 
 
 _CLASSIFIER_SYSTEM_PROMPT = """\
-You are the utterance classifier for ChatHealthy.ai (the UtteranceManager, "UM"
-in the schema below). Your single job: examine the user's latest utterance and
-the prior IntentDocument context, and decide which target_action the Universal
-Router (UR) must dispatch next. You set target_action; downstream Python turns
-your choice into the canonical IntentDocument shown in the schema.
+You are the utterance classifier for ChatHealthy.ai (the UtteranceManager,
+"UM" in the schema below). Your job: examine the user's recent utterance
+window AND the prior IntentDocument carried on user_object.intent, and
+return a structured output that captures (a) the next target_action the
+Universal Router (UR) must dispatch, (b) any per-intent
+pending_disambiguation marker, and (c) the top-level user_message you
+want streamed to the user before UR dispatches the action. Downstream
+Python translates your output into the canonical IntentDocument.
 
 WHERE YOU SIT IN THE PROCESS:
   - The user types an utterance into the ChatHealthy.ai client.
   - The client POSTs the utterance to SharedServices /gate.
-  - /gate authenticates the session, then hands the user_object (with the
-    new utterance appended and any prior intent document attached) to UR
-    (the UniversalNavigationTool).
-  - UR dispatches you (UM) FIRST, on every utterance. You read the latest
-    utterance and the prior IntentDocument off user_object.intent, and you
-    return your structured output.
+  - /gate authenticates the session, appends the new utterance to
+    user_object.session_conversation_history.utterances, and hands the
+    user_object to the Universal Router (UR).
+  - UR dispatches you (UM) FIRST. You receive up to the last 10 dialogue
+    lines (person AND system, interleaved, oldest-first) AND the prior
+    IntentDocument off user_object.intent. Each line is prefixed with
+    "user: " or "system: " — the system lines are prior user_message
+    prose YOU wrote to the user on earlier turns.
+  - You return your structured output.
   - Python translates your output into the canonical IntentDocument and
     writes it back onto user_object.intent.
+  - If user_message is non-empty in your output, UM streams it as
+    {kind:"prompt", data:{text: user_message}} and flushes before
+    returning to UR. THIS IS THE ONLY PROSE THE USER SEES FROM
+    THIS TURN. No other component streams chat text on this turn.
   - UR then reads user_object.intent.target_action and dispatches the
-    matching downstream tool: NonsenseTool, SpecialtyFilter (specialtySearch),
-    SpecialtyFilter+ProviderSearch (findAProvider), or CloseConnection200Tool.
-  - Each downstream tool streams its events back to the client through the
-    same /gate StreamingResponse.
-  - Your target_action is the single decision that drives all of that. If
-    you pick wrong, the wrong tool runs, the user waits for nothing useful,
-    and the streaming response carries no relevant content.
+    matching downstream tool: NonsenseTool, SpecialtyFilter alone
+    (specialtySearch), SpecialtyFilter+ProviderSearch (findAProvider),
+    or CloseConnection200Tool.
 
-READ THE SCHEMA'S COMMENTS, NOT JUST THE TYPES. Every description field in
-the schema below carries the WHY behind a rule — PERSISTENCE, DIVISION OF
-RESPONSIBILITY, STREAMING CONTRACT, MULTI-INTENT, CATALOG, the per-intent
-semantics, and the per-argument constraints. Read each description field
-carefully and let it guide your choice. The descriptions explain when each
-target_action is correct and what each intent requires once chosen; do not
-skim past them.
+READ THE SCHEMA'S COMMENTS. Every description field in the schema below
+carries the WHY behind a rule. Read them and let them guide your output.
 
 Canonical IntentDocument schema (read every description, not just the
 normative type/enum bits):
 
 """ + _CANONICAL_INTENT_DOCUMENT_SCHEMA + """
 
-Your structured output (the JSON you return) is a simplified projection of the
-canonical IntentDocument. Return ONLY this JSON, no surrounding text:
+Your structured output is a JSON object with these fields:
 
 {
   "target_action": "nonsense" | "specialtySearch" | "findAProvider" | "closeConnection200",
   "complaint": string | null,
   "geography": { "state": string | null, "city": string | null, "county": string | null, "zip": string | null } | null,
-  "prompt_text": string | null
+  "user_message": string | null,
+  "pending_disambiguation": { "kind": string, "candidate": object } | null
 }
 
-The Python code translates your output into the canonical IntentDocument:
-  - target_action: copied verbatim onto IntentDocument.target_action.
-  - complaint: becomes the complaint Argument on IntentSpecialtySearch /
-    IntentFindAProvider. Required when target_action is "specialtySearch" or
-    "findAProvider"; MUST be null otherwise.
-  - geography: becomes the geography Argument (JSON-encoded) on
-    IntentFindAProvider. Required when target_action is "findAProvider"; MUST
-    be null otherwise (including specialtySearch). The schema's geography
-    sufficiency rule (zip OR state OR state+city OR state+county) is binding;
-    city or county WITHOUT state is NOT sufficient — set target_action to
-    "specialtySearch" instead.
-  - prompt_text: streamed to the user as a clarification question. Required
-    when target_action is "closeConnection200"; MUST be null otherwise.
+How the Python translator uses each field:
+  - target_action: copied to IntentDocument.target_action.
+  - complaint: becomes the complaint Argument on IntentSpecialtySearch
+    and/or IntentFindAProvider. Required whenever target_action involves
+    a complaint (specialtySearch, findAProvider, or
+    ambiguous-but-resolvable holding pattern).
+  - geography: becomes the geography Argument on IntentFindAProvider
+    (JSON-encoded). May be partial (e.g., {"city":"milwaukee"} alone)
+    when pending_disambiguation is set. Must be sufficient (zip, state,
+    state+city, or state+county) when target_action is findAProvider.
+  - user_message: streamed to the user verbatim as {kind:"prompt"}.
+    The LLM owns this prose; the runtime never substitutes hardcoded
+    chat strings. Set it on any turn that needs to talk to the user.
+  - pending_disambiguation: set when you cannot fully fill a required
+    slot but have a plausible candidate. Holds {kind, candidate}.
+    For FindCare's geography slot use kind="geography_state" and
+    candidate={"state":"WI"} (or similar). Persists across turns until
+    cleared.
 
-Decision rules (applied in this order):
-  1. Evaluate the user's latest utterance ALONE first. If it is gibberish,
-     random characters, a single nonsense word, or otherwise not a real
-     request, set target_action to "nonsense" regardless of any prior turn
-     context. Prior context never converts gibberish into a real request.
-  2. If the utterance is a real request and you can extract a healthcare
-     complaint AND a usable geography (per the schema's sufficiency rule),
-     set target_action to "findAProvider" and populate both complaint and
-     geography.
-  3. If the utterance is a real request and you can extract a complaint but
-     geography is missing or insufficient, set target_action to
-     "specialtySearch" and populate only complaint.
-  4. If the utterance is a real request but you cannot extract a complaint
-     or recognize a healthcare ask, set target_action to "closeConnection200"
-     and populate prompt_text with a brief friendly clarification question.
+DECISION RULES (apply in this order):
+
+  1. PENDING DISAMBIGUATION TAKES PRECEDENCE OVER EVERY OTHER RULE.
+     Before considering anything else, check the prior IntentDocument
+     summary. If it lists a pending_disambiguation, the latest user
+     utterance MUST be interpreted as a yes/no/answer to that pending
+     question. The prior system: line in the transcript is the question
+     you (UM) asked the user on the previous turn — the user's latest
+     line is the answer.
+
+       - Affirmative ("yes", "yeah", "yep", "y", "sure", "ok", "right",
+         "correct", "uh-huh", "confirmed", any equivalent): fill the
+         candidate value into geography (or whichever slot the
+         pending_disambiguation names) and upgrade target_action to
+         the now-fully-specified action (e.g., findAProvider). DO NOT
+         re-emit pending_disambiguation. user_message MAY be a brief
+         acknowledgement or null.
+
+       - Negative ("no", "nope", "nah", "n", "negative", "wrong", any
+         equivalent): the candidate was wrong. Leave target_action at
+         the partial-information action; emit a follow-up user_message
+         asking a different way (e.g., "Which state did you mean?");
+         pending_disambiguation MAY be re-emitted with a refined
+         candidate or left null if you cannot guess.
+
+       - Direct answer (e.g., user replies with the actual missing
+         value: "Wisconsin" / "WI" / "michigan"): fill that value
+         into the slot, upgrade target_action, do not re-emit pending.
+
+     A "yes" utterance on a turn with a pending disambiguation is
+     NEVER nonsense. NEVER classify it as nonsense. The pending
+     question gives the "yes" its full meaning.
+
+  2. If not resolving a prior disambiguation, evaluate the latest
+     utterance ALONE. If it is gibberish, random characters, a single
+     nonsense word, or otherwise not a real request, set target_action
+     to "nonsense". Set user_message to a friendly clarification line.
+     Prior context never converts gibberish into a real request.
+
+  3. If the utterance is a real request with a clear healthcare
+     complaint AND a fully usable geography (zip, state, state+city, or
+     state+county), set target_action to "findAProvider" and populate
+     complaint + geography. user_message optional.
+
+  4. If the utterance is a real request with a complaint and the
+     geography mentions a place name but NOT a state (e.g., "milwaukee"
+     alone), set target_action to "specialtySearch" so SpecialtyFilter
+     still renders. Populate complaint and a PARTIAL geography (city
+     only). Set pending_disambiguation = {"kind":"geography_state",
+     "candidate":{"state": YOUR-BEST-GUESS}} and set user_message to
+     propose the candidate (e.g., "Did you mean Milwaukee, Wisconsin?").
+
+  5. If the utterance has a complaint but no location at all, set
+     target_action to "specialtySearch". Populate complaint. Set
+     user_message asking for a location. Do NOT set
+     pending_disambiguation (there's nothing to confirm).
+
+  6. If the utterance is a real request but you cannot extract a
+     complaint or recognize a healthcare ask, set target_action to
+     "closeConnection200" and set user_message to a brief friendly
+     clarification.
 
 State codes are 2-letter USPS uppercase. ZIP codes are 5 digits.
 """
 
 
+# ────────────────────────────────────────────────────────────────────
+# Request / Response
+# ────────────────────────────────────────────────────────────────────
+
+
 class Request(BaseModel):
-    """No payload — UM reads the utterance off deps.user_object."""
+    """No payload — UM reads the utterances off deps.user_object."""
     model_config = {"extra": "ignore"}
 
 
@@ -330,14 +507,33 @@ class Response(BaseModel):
     target_action: str
 
 
-def _latest_utterance_text(deps: AgentDeps) -> str:
+# ────────────────────────────────────────────────────────────────────
+# Utterance window (EPIC-002-F-010-S-001-REQ-B-006)
+# ────────────────────────────────────────────────────────────────────
+
+
+def _recent_transcript(deps: AgentDeps, max_count: int = _MAX_USER_UTTERANCE_WINDOW) -> list[str]:
+    """Return the most recent up-to-max_count dialogue lines (person AND
+    system), oldest first, each rendered as 'user: <text>' or
+    'system: <text>'. The narrative form lets the LLM resolve follow-up
+    turns like 'yes' against the system's prior proposal."""
+    out: list[str] = []
     utterances = deps.user_object.session_conversation_history.utterances
-    if not utterances:
-        return ""
-    last = utterances[-1]
-    if isinstance(last, dict):
-        return str(last.get("text", "")).strip()
-    return ""
+    for u in reversed(utterances):
+        actor = getattr(u, "actor", None) or (u.get("actor") if isinstance(u, dict) else None)
+        text = getattr(u, "text", None) or (u.get("text") if isinstance(u, dict) else "")
+        if actor not in ("person", "system") or not text:
+            continue
+        label = "user" if actor == "person" else "system"
+        out.append(f"{label}: {text}")
+        if len(out) >= max_count:
+            break
+    return list(reversed(out))
+
+
+# ────────────────────────────────────────────────────────────────────
+# Classifier call
+# ────────────────────────────────────────────────────────────────────
 
 
 _classifier_agent = Agent(
@@ -347,27 +543,69 @@ _classifier_agent = Agent(
 )
 
 
-async def _call_classifier_llm(
-    utterance_text: str, prior: Optional[IntentDocument],
-) -> _ClassifierOutput:
-    """Single LLM call: classify the utterance and (if needed) generate a
-    clarification prompt. Returns the structured output."""
-    prior_summary = "(no prior turns)"
-    if prior is not None:
-        prior_summary = (
-            f"Prior target_action was {prior.target_action!r}. Prior intents tracked: "
-            f"{[i.name for i in prior.intents]}."
-        )
+def _summarize_prior(prior: Optional[IntentDocument]) -> str:
+    if prior is None:
+        return "(no prior turns)"
+    parts = [
+        f"Prior target_action was {prior.target_action!r}.",
+        f"Prior intents tracked: {[i.name for i in prior.intents]}.",
+    ]
+    if prior.user_message:
+        parts.append(f"Prior user_message was: {prior.user_message!r}.")
+    for entry in prior.intents:
+        pd = getattr(entry, "pending_disambiguation", None)
+        if pd is not None:
+            parts.append(
+                f"Prior pending_disambiguation on {entry.name}: "
+                f"kind={pd.kind!r} candidate={pd.candidate!r}."
+            )
+    return " ".join(parts)
 
+
+async def _call_classifier_llm(
+    transcript: list[str], prior: Optional[IntentDocument],
+) -> _ClassifierOutput:
+    """Single LLM call. Receives the recent transcript as already-labeled
+    lines (each prefixed with 'user: ' or 'system: ') plus the prior
+    IntentDocument summary. Classifies the latest 'user: ...' line."""
+    if not transcript:
+        raise ValueError("UtteranceManager: empty transcript window")
+    window_block = "\n".join(f"  {i+1}. {line}" for i, line in enumerate(transcript))
+    prior_summary = _summarize_prior(prior)
     user_msg = (
-        f"User's latest utterance: {utterance_text!r}\n"
-        f"{prior_summary}\n\n"
-        "Classify and return the structured output."
+        f"Recent dialogue (last {len(transcript)} lines, oldest first):\n"
+        f"{window_block}\n\n"
+        f"Prior IntentDocument summary: {prior_summary}\n\n"
+        "Classify the LATEST 'user:' line (the most recent person turn) "
+        "using the decision rules in the system prompt. If the prior "
+        "IntentDocument summary lists a pending_disambiguation, Rule 1 "
+        "applies and overrides every other rule. Return the structured "
+        "output."
     )
     _log.debug("UM classifier input: %s", user_msg)
     result = await _classifier_agent.run(user_msg)
     _log.debug("UM classifier output: %s", result.output.model_dump_json())
     return result.output
+
+
+# ────────────────────────────────────────────────────────────────────
+# Intent builders
+# ────────────────────────────────────────────────────────────────────
+
+
+def _existing_intent(document: IntentDocument, name: str) -> Optional[Any]:
+    return next((i for i in document.intents if i.name == name), None)
+
+
+def _cached_nucc_codes(entry: Any) -> Optional[str]:
+    """Return the JSON-encoded nucc_codes argument value from an intent
+    entry if present, else None."""
+    if entry is None:
+        return None
+    for arg in entry.arguments:
+        if arg.name == "nucc_codes":
+            return arg.value
+    return None
 
 
 def _build_nonsense_intent(utterance_text: str) -> IntentNonsense:
@@ -380,27 +618,41 @@ def _build_nonsense_intent(utterance_text: str) -> IntentNonsense:
     )
 
 
-def _build_specialty_search_intent(complaint: str) -> IntentSpecialtySearch:
-    return IntentSpecialtySearch(
-        name="specialtySearch",
-        arguments=[
-            Argument(name="complaint", value=complaint, type="string", required=True),
-        ],
-    )
+def _build_specialty_search_intent(
+    complaint: str,
+    nucc_codes_json: Optional[str] = None,
+) -> IntentSpecialtySearch:
+    args = [Argument(name="complaint", value=complaint, type="string", required=True)]
+    if nucc_codes_json:
+        args.append(Argument(
+            name="nucc_codes", value=nucc_codes_json, type="array", required=False,
+        ))
+    return IntentSpecialtySearch(name="specialtySearch", arguments=args)
 
 
-def _build_find_a_provider_intent(complaint: str, geography: dict[str, Any]) -> IntentFindAProvider:
+def _build_find_a_provider_intent(
+    complaint: str,
+    geography: dict[str, Any],
+    nucc_codes_json: Optional[str] = None,
+    pending: Optional[PendingDisambiguation] = None,
+) -> IntentFindAProvider:
+    args = [Argument(name="complaint", value=complaint, type="string", required=True)]
+    geo_compact = {k: v for k, v in (geography or {}).items() if v}
+    if geo_compact:
+        args.append(Argument(
+            name="geography",
+            value=json.dumps(geo_compact),
+            type="object",
+            required=True,
+        ))
+    if nucc_codes_json:
+        args.append(Argument(
+            name="nucc_codes", value=nucc_codes_json, type="array", required=False,
+        ))
     return IntentFindAProvider(
         name="findAProvider",
-        arguments=[
-            Argument(name="complaint", value=complaint, type="string", required=True),
-            Argument(
-                name="geography",
-                value=json.dumps({k: v for k, v in geography.items() if v}),
-                type="object",
-                required=True,
-            ),
-        ],
+        arguments=args,
+        pending_disambiguation=pending,
     )
 
 
@@ -417,29 +669,37 @@ def _geography_sufficient(geo: Optional[dict[str, Any]]) -> bool:
     if not geo:
         return False
     state = (geo.get("state") or "").strip()
-    city = (geo.get("city") or "").strip()
-    county = (geo.get("county") or "").strip()
     zip_code = (geo.get("zip") or "").strip()
-    if zip_code:
-        return True
-    if state:
-        return True
-    return False
+    return bool(zip_code or state)
 
 
-def _merge_intent_into_document(
+def _merge_intents(
     document: IntentDocument,
-    new_intent: Any,
-    new_target_action: str,
+    new_intents: list[Any],
+    target_action: str,
+    user_message: Optional[str],
 ) -> IntentDocument:
-    """Replace the existing entry for new_intent.name (if any) with the new
-    entry, leaving other entries intact. Set target_action."""
-    keep = [i for i in document.intents if i.name != new_intent.name]
-    keep.append(new_intent)
+    """Replace existing entries by name with the new ones, leaving any
+    other entries intact. Cap at 3 to honor the schema."""
+    new_names = {i.name for i in new_intents}
+    keep = [i for i in document.intents if i.name not in new_names]
+    keep.extend(new_intents)
     return IntentDocument(
-        target_action=new_target_action,  # type: ignore[arg-type]
-        intents=keep[:3],
+        target_action=target_action,  # type: ignore[arg-type]
+        intents=keep[-3:],
+        user_message=user_message,
     )
+
+
+# ────────────────────────────────────────────────────────────────────
+# Tool entry point
+# ────────────────────────────────────────────────────────────────────
+
+
+def _to_pending(out: Optional[_PendingDisambiguationOut]) -> Optional[PendingDisambiguation]:
+    if out is None:
+        return None
+    return PendingDisambiguation(kind=out.kind, candidate=out.candidate)
 
 
 class UtteranceManagerTool(ChatHealthyTool):
@@ -452,42 +712,70 @@ class UtteranceManagerTool(ChatHealthyTool):
     Response = Response
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
-        utterance_text = _latest_utterance_text(deps)
-        if not utterance_text:
-            raise ValueError("UtteranceManager: no utterance text on user_object")
-
+        transcript = _recent_transcript(deps)
+        if not transcript:
+            raise ValueError("UtteranceManager: no utterances on user_object")
+        # latest_text must be the LATEST PERSON utterance (raw text, no
+        # 'user: ' prefix). Read it directly off the live bucket so the
+        # intent-builders get the verbatim string.
+        latest_text = ""
+        for u in reversed(deps.user_object.session_conversation_history.utterances):
+            actor = getattr(u, "actor", None) or (u.get("actor") if isinstance(u, dict) else None)
+            text = getattr(u, "text", None) or (u.get("text") if isinstance(u, dict) else "")
+            if actor == "person" and text:
+                latest_text = str(text).strip()
+                break
+        if not latest_text:
+            raise ValueError("UtteranceManager: no person utterance on user_object")
         prior = deps.user_object.intent
 
-        llm_result = await _call_classifier_llm(utterance_text, prior)
-
+        llm_result = await _call_classifier_llm(transcript, prior)
         target_action = llm_result.target_action
+        complaint = (llm_result.complaint or "").strip()
+        geography = llm_result.geography.model_dump() if llm_result.geography else {}
+        user_message = (llm_result.user_message or "").strip() or None
+        pending = _to_pending(llm_result.pending_disambiguation)
 
-        document = prior or IntentDocument(
+        base_doc = prior or IntentDocument(
             target_action="closeConnection200",
             intents=[_build_close_connection_200_intent()],
         )
 
+        # Cache lookups so we can carry SpecialtyFilter output across turns.
+        cached_specialty = _cached_nucc_codes(_existing_intent(base_doc, "specialtySearch"))
+        cached_findap = _cached_nucc_codes(_existing_intent(base_doc, "findAProvider"))
+        cached_nucc = cached_specialty or cached_findap
+
         if target_action == "nonsense":
-            new_doc = _merge_intent_into_document(
-                document, _build_nonsense_intent(utterance_text), target_action,
+            new_doc = _merge_intents(
+                base_doc,
+                [_build_nonsense_intent(latest_text)],
+                target_action,
+                user_message,
             )
 
         elif target_action == "specialtySearch":
-            complaint = (llm_result.complaint or "").strip()
             if not complaint:
                 raise ValueError(
                     "UtteranceManager classifier set target_action=specialtySearch "
                     "but produced no complaint"
                 )
-            new_doc = _merge_intent_into_document(
-                document,
-                _build_specialty_search_intent(complaint),
-                target_action,
-            )
+            built: list[Any] = [
+                _build_specialty_search_intent(complaint, cached_nucc),
+            ]
+            # Ambiguous-but-resolvable: also park a findAProvider entry
+            # with the partial geography and the pending disambiguation
+            # marker, so a follow-up "yes" can upgrade it cleanly.
+            if pending is not None:
+                built.append(_build_find_a_provider_intent(
+                    complaint,
+                    geography,  # partial allowed
+                    nucc_codes_json=cached_nucc,
+                    pending=pending,
+                ))
+            new_doc = _merge_intents(base_doc, built, target_action, user_message)
 
         elif target_action == "findAProvider":
-            complaint = (llm_result.complaint or "").strip()
-            geography = llm_result.geography.model_dump() if llm_result.geography else {}
             if not complaint:
                 raise ValueError(
                     "UtteranceManager classifier set target_action=findAProvider "
@@ -499,22 +787,25 @@ class UtteranceManagerTool(ChatHealthyTool):
                     "but geography is insufficient (need zip, state, state+city, "
                     "or state+county)"
                 )
-            new_doc = _merge_intent_into_document(
-                document,
-                _build_find_a_provider_intent(complaint, geography),
-                target_action,
-            )
+            built = [
+                _build_specialty_search_intent(complaint, cached_nucc),
+                _build_find_a_provider_intent(
+                    complaint, geography, nucc_codes_json=cached_nucc, pending=None,
+                ),
+            ]
+            new_doc = _merge_intents(base_doc, built, target_action, user_message)
 
         elif target_action == "closeConnection200":
-            prompt = (llm_result.prompt_text or "").strip()
-            if not prompt:
+            if not user_message:
                 raise ValueError(
                     "UtteranceManager classifier set target_action=closeConnection200 "
-                    "but produced no prompt_text"
+                    "but produced no user_message"
                 )
-            deps.stream({"kind": "prompt", "data": {"text": prompt}})
-            new_doc = _merge_intent_into_document(
-                document, _build_close_connection_200_intent(), target_action,
+            new_doc = _merge_intents(
+                base_doc,
+                [_build_close_connection_200_intent()],
+                target_action,
+                user_message,
             )
 
         else:
@@ -523,12 +814,19 @@ class UtteranceManagerTool(ChatHealthyTool):
                 f"target_action {target_action!r}"
             )
 
+        # Stream the LLM-authored user_message before returning, per
+        # REQ-B-009 and REQ-B-010. Also append it to the dialogue bucket
+        # as a system utterance so it (a) appears verbatim on the splash
+        # next to the prior person turn, and (b) is part of the labeled
+        # transcript UM hands itself on the NEXT turn, which is what
+        # gives a follow-up "yes" its referent.
+        if new_doc.user_message:
+            from authentication.agent_deps import append_system_utterance
+            deps.stream({"kind": "prompt", "data": {"text": new_doc.user_message}})
+            append_system_utterance(deps.user_object, new_doc.user_message)
+
         deps.user_object.intent = new_doc
-
-        # Streaming-contract flush: yield once so any queued events drain
-        # before we return control to the router.
         await asyncio.sleep(0)
-
         return self.Response(target_action=new_doc.target_action)
 
 
