@@ -49,7 +49,7 @@ class ChatHealthyTool(ABC):
         method.
         """
         result = await self.run(deps, request)
-        from authentication.agent_deps import log_tool_invocation
+        from authentication.agent_deps import append_action
         try:
             args_dump = (
                 request.model_dump(exclude_none=True) if request is not None else {}
@@ -62,11 +62,11 @@ class ChatHealthyTool(ABC):
             )
         except Exception:
             result_dump = {}
-        log_tool_invocation(
+        append_action(
             deps.user_object,
             tool_name=self.TOOL_NAME,
-            tool_args=args_dump,
-            tool_result=result_dump,
+            input_json=args_dump,
+            output_json=result_dump,
         )
         return result
 

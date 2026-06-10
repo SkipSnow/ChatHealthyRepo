@@ -14,8 +14,8 @@ Runs after AuthorizationsAndAuthentications has established the user
 
 Every handler reads its input off deps.user_object (the working memory)
 and emits its result via deps.stream(...). The dispatcher returns a
-NavResult carrying the final event + any history_append directive so the
-gate route can $push into Users.sessions after the run.
+NavResult carrying the final event; the gate route persists the
+mutated user_object back to Users.sessions after the run.
 
 Canonical *_tool.py exports: TOOL_NAME, Request, Response, run().
 """
@@ -34,7 +34,7 @@ from pydantic import BaseModel, Field
 from authentication.agent_deps import (
     AgentDeps,
     AuthnDeps,
-    log_ux_event,
+    append_action,
 )
 from authentication.chathealthy_tool import ChatHealthyTool
 from authentication import (
@@ -78,17 +78,9 @@ class Request(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
-class HistoryAppend(BaseModel):
-    """A directive the gate executes after the navigation run: $push the
-    given entry onto the named session_conversation_history.<array>."""
-    array: Literal["ux_events", "utterances"]
-    entry: dict[str, Any]
-
-
 class Response(BaseModel):
     kind: str
     result: dict[str, Any] = Field(default_factory=dict)
-    history_append: Optional[HistoryAppend] = None
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -180,35 +172,10 @@ def _session_token_wire(user_object: UserObject) -> dict:
 
 
 # ────────────────────────────────────────────────────────────────────
-# History helpers (absorbed from the deleted session_conversation_history.py)
+# Splash data — two buckets shipped verbatim to splash_render.js. The
+# dialogue narrative + the system-action log are independent threads in
+# the FE; each carries its own per-session sequence number.
 # ────────────────────────────────────────────────────────────────────
-
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _ux_event(event_type: str, value: Any, pedantic_response: Any) -> HistoryAppend:
-    entry: dict[str, Any] = {
-        "event_type": event_type,
-        "value": value,
-        "at": _now_iso(),
-    }
-    if pedantic_response is not None:
-        entry["pedantic_response"] = (
-            pedantic_response if isinstance(pedantic_response, dict)
-            else {"text": str(pedantic_response)}
-        )
-    return HistoryAppend(array="ux_events", entry=entry)
-
-
-def _utterance(text: str, bridge_response: Optional[dict[str, Any]] = None) -> HistoryAppend:
-    entry: dict[str, Any] = {"text": text, "at": _now_iso()}
-    if bridge_response is not None:
-        entry["bridge_response"] = bridge_response
-    return HistoryAppend(array="utterances", entry=entry)
-
-
-_SPLASH_PEDANTIC = "SharedServices took ownership of the page and rendered the User Object."
 
 
 def _splash_data(user_object) -> dict[str, Any]:
@@ -225,100 +192,16 @@ def _splash_data(user_object) -> dict[str, Any]:
         "expires_at": str(user_object.expires_at) if user_object.expires_at is not None else "",
     }
     sch = user_object.session_conversation_history.model_dump()
-    if not isinstance(sch, dict):
-        sch = {}
-    ux_events = sch.get("ux_events") if isinstance(sch.get("ux_events"), list) else []
-    utterances = sch.get("utterances") if isinstance(sch.get("utterances"), list) else []
-    threads = {
-        "empty": not ux_events and not utterances,
-        "person": _collect_person(utterances),
-        "person_to_system": _collect_person_to_system(ux_events),
-        "machine": _collect_machine(ux_events, utterances),
-        "llm_to_system": _collect_llm_to_system(utterances),
-    }
+    utterances = sch.get("utterances") if isinstance(sch, dict) else []
+    actions = sch.get("actions") if isinstance(sch, dict) else []
     return {
         "identity": identity,
-        "threads": threads,
+        "threads": {
+            "empty": not utterances and not actions,
+            "utterances": utterances or [],
+            "actions": actions or [],
+        },
     }
-
-
-def _collect_person(utterances: list) -> list[dict[str, Any]]:
-    out = [
-        {"at": str(u.get("at", "")), "text": str(u.get("text", ""))}
-        for u in utterances if isinstance(u, dict)
-    ]
-    out.sort(key=lambda r: r["at"])
-    return out
-
-
-def _collect_person_to_system(ux_events: list) -> list[dict[str, Any]]:
-    out = [
-        {
-            "at": str(e.get("at", "")),
-            "event_type": str(e.get("event_type", "?")),
-            "value": e.get("value"),
-        }
-        for e in ux_events if isinstance(e, dict)
-    ]
-    out.sort(key=lambda r: r["at"])
-    return out
-
-
-def _collect_machine(ux_events: list, utterances: list) -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    for e in ux_events:
-        if not isinstance(e, dict):
-            continue
-        ped = e.get("pedantic_response")
-        if not ped:
-            continue
-        text = ped.get("text") if isinstance(ped, dict) else str(ped)
-        out.append({
-            "at": str(e.get("at", "")),
-            "kind": "pedantic",
-            "text": str(text or ""),
-        })
-    for u in utterances:
-        if not isinstance(u, dict):
-            continue
-        br = u.get("bridge_response") or {}
-        if isinstance(br, dict) and br.get("kind") == "tool_invocation":
-            out.append({
-                "at": str(u.get("at", "")),
-                "kind": "tool_result",
-                "tool_name": str(br.get("tool_name", "?")),
-                "tool_result": br.get("tool_result"),
-            })
-    out.sort(key=lambda r: r["at"])
-    return out
-
-
-def _collect_llm_to_system(utterances: list) -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    for u in utterances:
-        if not isinstance(u, dict):
-            continue
-        br = u.get("bridge_response") or {}
-        if not isinstance(br, dict):
-            continue
-        kind = br.get("kind")
-        at = str(u.get("at", ""))
-        if kind == "llm_clarification":
-            out.append({
-                "at": at,
-                "kind": "llm_clarification",
-                "llm_response": str(br.get("llm_response", "")),
-                "info_sought": br.get("info_sought") or [],
-            })
-        elif kind == "tool_invocation":
-            out.append({
-                "at": at,
-                "kind": "tool_invocation",
-                "tool_name": str(br.get("tool_name", "?")),
-                "tool_args": br.get("tool_args"),
-            })
-    out.sort(key=lambda r: r["at"])
-    return out
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -332,11 +215,11 @@ async def _handle_boot(deps: AgentDeps, payload: dict[str, Any]) -> Response:
 
 async def _handle_splash(deps: AgentDeps, payload: dict[str, Any]) -> Response:
     data = _splash_data(deps.user_object)
-    log_ux_event(
+    append_action(
         deps.user_object,
-        "splash_displayed",
-        value=None,
-        pedantic_response={"text": _SPLASH_PEDANTIC},
+        tool_name="splash_displayed",
+        input_json={},
+        output_json={"note": "SharedServices took ownership and rendered the User Object."},
     )
     deps.stream({"kind": "splash", "data": data})
     return Response(kind="splash", result=data)
@@ -346,11 +229,14 @@ async def _handle_record_ux_event(deps: AgentDeps, payload: dict[str, Any]) -> R
     event_type = str(payload.get("event_type") or "").strip()
     if not event_type:
         return Response(kind="record_ux_event", result={"ok": False, "error": "event_type required"})
-    log_ux_event(
+    append_action(
         deps.user_object,
-        event_type,
-        value=payload.get("value"),
-        pedantic_response=payload.get("pedantic_response"),
+        tool_name="ux_event",
+        input_json={
+            "event_type": event_type,
+            "value": payload.get("value"),
+        },
+        output_json={},
     )
     deps.stream({"kind": "ux_event_recorded", "data": {"event_type": event_type}})
     return Response(kind="record_ux_event", result={"ok": True})
@@ -392,6 +278,16 @@ async def _handle_utterance(deps: AgentDeps, payload: dict[str, Any]) -> Respons
         if target_action == last_target_action:
             break
 
+        # REQ-B-004: do not chain to closeConnection200 on a turn that
+        # carries a pending disambiguation — the connection is logically
+        # still open across the user's next turn.
+        if target_action == "closeConnection200" and _any_pending_disambiguation(document):
+            _log.debug(
+                "UR: suppressing closeConnection200 chain because at least "
+                "one intent carries pending_disambiguation"
+            )
+            break
+
         _validate_document(document, target_action)
         await _dispatch_target_action(deps, document, target_action)
         last_target_action = target_action
@@ -405,6 +301,17 @@ async def _handle_utterance(deps: AgentDeps, payload: dict[str, Any]) -> Respons
         kind="utterance",
         result={"target_action": last_target_action},
     )
+
+
+def _any_pending_disambiguation(document) -> bool:
+    """True when any intent entry on the document carries a
+    pending_disambiguation marker. UR uses this to suppress closeConnection200
+    chaining (REQ-B-004) so the connection remains logically open across the
+    user's next turn."""
+    for entry in document.intents:
+        if getattr(entry, "pending_disambiguation", None) is not None:
+            return True
+    return False
 
 
 _MAX_DISPATCH_HOPS = 3
@@ -482,46 +389,42 @@ async def _dispatch_target_action(deps: AgentDeps, document, target_action: str)
         )
 
     elif target_action == "specialtySearch":
-        from SpecialtyFilter import specialty_filter_tool
         complaint = next(
             (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
             "",
         )
-        fs = await specialty_filter_tool.TOOL.run_and_log(
-            deps, specialty_filter_tool.Request(query=complaint),
-        )
-        if fs.error or not fs.specialties:
+        specialties = await _run_or_cache_specialty_filter(deps, complaint)
+        if not specialties:
             deps.stream({
                 "kind": "final",
-                "data": {"ok": False, "error": fs.error or "no_specialties"},
+                "data": {"ok": False, "error": "no_specialties"},
             })
         else:
             deps.stream({"kind": "final", "data": {"ok": True}})
 
     elif target_action == "findAProvider":
-        from SpecialtyFilter import specialty_filter_tool
         from authentication import provider_search_and_selection_tool
 
         complaint = next(
             (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
             "",
         )
-        fs = await specialty_filter_tool.TOOL.run_and_log(
-            deps, specialty_filter_tool.Request(query=complaint),
-        )
-        if fs.error or not fs.specialties:
+        specialties = await _run_or_cache_specialty_filter(deps, complaint)
+        if not specialties:
             deps.stream({
                 "kind": "final",
-                "data": {"ok": False, "error": fs.error or "no_specialties"},
+                "data": {"ok": False, "error": "no_specialties"},
             })
         else:
+            # FindCare-UR REQ-B-002: ProviderSearch fires only when
+            # geography is sufficient.
             geo_arg_val = next(
                 (a for a in target_intent_entry.arguments if a.name == "geography"),
                 None,
             )
             geo = _json.loads(geo_arg_val.value) if geo_arg_val else {}
             ps_req = provider_search_and_selection_tool.Request(
-                specialty_codes=[s.code for s in fs.specialties],
+                specialty_codes=[c["code"] for c in specialties],
                 state=geo.get("state"),
                 city=geo.get("city"),
                 county=geo.get("county"),
@@ -537,6 +440,91 @@ async def _dispatch_target_action(deps: AgentDeps, document, target_action: str)
         raise RuntimeError(
             f"UR compliance: out-of-catalog target_action {target_action!r}"
         )
+
+
+async def _run_or_cache_specialty_filter(deps: AgentDeps, complaint: str) -> list[dict]:
+    """REQ-B-002 + REQ-B-003 + FindCare-UR REQ-B-001.
+
+    Look for a cached nucc_codes argument on the IntentDocument's
+    specialtySearch and findAProvider entries. On a cache hit, parse
+    the cached value and stream it back to the FE as a
+    {kind:"specialties"} event without re-running SpecialtyFilter.
+    On a cache miss, run SpecialtyFilter, then write nucc_codes back
+    onto both intent entries (whichever exist) so subsequent turns hit
+    the cache.
+
+    Returns the list of {code, name, score, ...} dicts.
+    """
+    import json as _json
+    from UtteranceManager.intent_document import Argument
+
+    document = deps.user_object.intent
+    if document is None:
+        return []
+
+    cached = _read_nucc_codes_cache(document)
+    if cached is not None:
+        # Stream the cached codes to the FE so the specialty filter renders
+        # on this turn without re-running SpecialtyFilter.
+        deps.stream({"kind": "specialties", "data": {"specialties": cached}})
+        return cached
+
+    from SpecialtyFilter import specialty_filter_tool
+    fs = await specialty_filter_tool.TOOL.run_and_log(
+        deps, specialty_filter_tool.Request(query=complaint),
+    )
+    if fs.error or not fs.specialties:
+        return []
+
+    specialties = [s.model_dump(exclude_none=True) for s in fs.specialties]
+    encoded = _json.dumps(specialties)
+
+    # Write nucc_codes back onto every applicable intent entry so the
+    # next turn (after the user resolves a pending disambiguation) sees
+    # the cached value. Rebuild each affected entry through Pydantic so
+    # validation runs on the new argument list.
+    new_intents = []
+    for entry in document.intents:
+        if entry.name in ("specialtySearch", "findAProvider"):
+            kept_args = [a for a in entry.arguments if a.name != "nucc_codes"]
+            kept_args.append(Argument(
+                name="nucc_codes", value=encoded, type="array", required=False,
+            ))
+            new_intents.append(type(entry).model_validate({
+                **entry.model_dump(),
+                "arguments": [a.model_dump() for a in kept_args],
+            }))
+        else:
+            new_intents.append(entry)
+    from UtteranceManager.intent_document import IntentDocument as _IntentDocument
+    deps.user_object.intent = _IntentDocument(
+        target_action=document.target_action,
+        intents=new_intents,
+        user_message=document.user_message,
+    )
+
+    return specialties
+
+
+def _read_nucc_codes_cache(document) -> Optional[list[dict]]:
+    """Return the parsed nucc_codes list cached on any specialty/find
+    intent entry, or None if no cache hit. Prefers specialtySearch's
+    cache (the first place SpecialtyFilter writes to today)."""
+    import json as _json
+
+    for name in ("specialtySearch", "findAProvider"):
+        entry = next((i for i in document.intents if i.name == name), None)
+        if entry is None:
+            continue
+        for arg in entry.arguments:
+            if arg.name == "nucc_codes" and arg.value:
+                try:
+                    parsed = _json.loads(arg.value)
+                except _json.JSONDecodeError:
+                    continue
+                if isinstance(parsed, list) and parsed:
+                    return parsed
+    return None
 
 
 async def _handle_provider_detail(deps: AgentDeps, payload: dict[str, Any]) -> Response:
@@ -631,12 +619,33 @@ class UniversalNavigationTool(ChatHealthyTool):
         if loaded_user_object is not None:
             auth_intent = "manage_session"
             inbound_user_object = loaded_user_object
+            sch_dump = loaded_user_object.session_conversation_history.model_dump()
+            intent_dump = (
+                loaded_user_object.intent.model_dump()
+                if loaded_user_object.intent is not None else None
+            )
+            _log.debug(
+                "handle_gate SESSION LOADED prior_guid=%s utterances=%d actions=%d "
+                "has_intent=%s\nLOADED session_conversation_history=%s\n"
+                "LOADED intent=%s",
+                gate_req.prior_guid[:8] + "..." if gate_req.prior_guid else None,
+                len(loaded_user_object.session_conversation_history.utterances),
+                len(loaded_user_object.session_conversation_history.actions),
+                loaded_user_object.intent is not None,
+                _json.dumps(sch_dump, default=str),
+                _json.dumps(intent_dump, default=str),
+            )
         else:
             auth_intent = "manufacture_session"
             inbound_user_object = UserObject(
                 current_session_token="NULL",
                 expires_at=datetime.now(timezone.utc)
                 + timedelta(seconds=_SESSION_TTL_SECONDS),
+            )
+            _log.debug(
+                "handle_gate FRESH MINT (no prior_guid or session not found) "
+                "prior_guid=%s",
+                gate_req.prior_guid[:8] + "..." if gate_req.prior_guid else None,
             )
 
         # 4. Call AUTHN_TOOL.run.
@@ -739,6 +748,24 @@ class UniversalNavigationTool(ChatHealthyTool):
                     }
 
                 try:
+                    sch_dump = user_object.session_conversation_history.model_dump()
+                    intent_dump = (
+                        user_object.intent.model_dump()
+                        if user_object.intent is not None else None
+                    )
+                    _log.debug(
+                        "handle_gate PERSIST guid=%s utterances=%d actions=%d "
+                        "has_intent=%s fresh_mint=%s\n"
+                        "PERSIST session_conversation_history=%s\n"
+                        "PERSIST intent=%s",
+                        guid[:8] + "...",
+                        len(user_object.session_conversation_history.utterances),
+                        len(user_object.session_conversation_history.actions),
+                        user_object.intent is not None,
+                        fresh_mint,
+                        _json.dumps(sch_dump, default=str),
+                        _json.dumps(intent_dump, default=str),
+                    )
                     await authn.TOOL.persist(authn_deps, user_object, fresh_mint)
                 except Exception as exc:
                     _log.exception("AuthN.persist failed: %s", exc)

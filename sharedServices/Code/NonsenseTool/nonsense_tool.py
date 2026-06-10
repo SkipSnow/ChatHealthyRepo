@@ -3,14 +3,16 @@
 """NonsenseTool — increments the silly-question counter on user_object.
 
 Dispatched by UR when the IntentDocument's target_action is "nonsense".
-Deploy-1 behavior is just the counter bump; later behavior may add user-
-facing messaging or analytics.
+Streams nothing user-visible — the LLM-authored top-level user_message
+on the IntentDocument is the only chat prose for this turn (streamed by
+UM before NonsenseTool runs). NonsenseTool morphs the IntentDocument so
+target_action becomes closeConnection200; UR chains to
+CloseConnection200Tool on the next dispatch hop.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -27,14 +29,6 @@ from UtteranceManager.intent_document import (
 _log = logging.getLogger("shared_services.nonsense_tool")
 
 
-_NONSENSE_CLARIFICATION_TEXT = (
-    "I didn't catch that. To help you find a provider I need two things: "
-    "(a) a complaint — the symptom or condition you're concerned about — "
-    "and (b) a location: a state, city + state, county + state, or 5-digit "
-    "ZIP code."
-)
-
-
 class Request(BaseModel):
     """No payload — NonsenseTool reads its data off deps.user_object.intent."""
     model_config = {"extra": "ignore"}
@@ -46,10 +40,9 @@ class Response(BaseModel):
 
 
 class NonsenseTool(ChatHealthyTool):
-    """Increments silly_question_counts on user_object, streams a hardcoded
-    clarification prompt to the user, and morphs the IntentDocument so
-    target_action becomes closeConnection200 (UR chains to
-    CloseConnection200Tool on the next dispatch hop)."""
+    """Increments silly_question_counts on user_object and morphs the
+    IntentDocument so target_action becomes closeConnection200. Streams
+    no chat prose — UM already streamed user_message before dispatch."""
 
     TOOL_NAME = "nonsense_tool"
     Request = Request
@@ -60,12 +53,6 @@ class NonsenseTool(ChatHealthyTool):
         counts.session_total = counts.session_total + 1
         counts.current_sequence_total = counts.current_sequence_total + 1
         deps.user_object.silly_question_counts = counts
-
-        deps.stream({
-            "kind": "prompt",
-            "data": {"text": _NONSENSE_CLARIFICATION_TEXT},
-        })
-        await asyncio.sleep(0)
 
         document = deps.user_object.intent
         close_entry = IntentCloseConnection200(
@@ -83,16 +70,22 @@ class NonsenseTool(ChatHealthyTool):
             new_doc = IntentDocument(
                 target_action="closeConnection200",
                 intents=[close_entry],
+                user_message=None,
             )
         else:
             keep = [i for i in document.intents if i.name != "closeConnection200"]
             keep.append(close_entry)
+            # Carry forward the prior user_message — UM already streamed it.
+            # Clear it on the morph so UR does not re-stream it on the
+            # closeConnection200 hop.
             new_doc = IntentDocument(
                 target_action="closeConnection200",
                 intents=keep[-3:],
+                user_message=None,
             )
         deps.user_object.intent = new_doc
 
+        await asyncio.sleep(0)
         return self.Response(
             session_total=counts.session_total,
             current_sequence_total=counts.current_sequence_total,

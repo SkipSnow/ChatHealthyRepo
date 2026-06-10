@@ -40,12 +40,15 @@ class Response(BaseModel):
 
 
 def _latest_utterance_text(deps: AgentDeps) -> str:
+    """Return the most recent PERSON utterance text on the session.
+    System turns and earlier person turns are skipped."""
     utterances = deps.user_object.session_conversation_history.utterances
-    if not utterances:
-        return ""
-    last = utterances[-1]
-    if isinstance(last, dict):
-        return str(last.get("text", "")).strip()
+    for entry in reversed(utterances):
+        actor = getattr(entry, "actor", None) or (entry.get("actor") if isinstance(entry, dict) else None)
+        if actor != "person":
+            continue
+        text = getattr(entry, "text", None) or (entry.get("text") if isinstance(entry, dict) else "")
+        return str(text or "").strip()
     return ""
 
 

@@ -40,9 +40,14 @@
     return section;
   }
 
-  function renderRow(at, body) {
+  function renderRow(at, body, n) {
     var row = el("div", "ch-splash__row");
-    row.appendChild(el("div", "ch-splash__row-at", at));
+    var head = el("div", "ch-splash__row-at");
+    if (n !== undefined && n !== null) {
+      head.appendChild(el("span", "ch-splash__row-n", "#" + n + " "));
+    }
+    head.appendChild(document.createTextNode(at || ""));
+    row.appendChild(head);
     var b = el("div", "ch-splash__row-body");
     if (body instanceof Node) b.appendChild(body);
     else b.textContent = body == null ? "" : String(body);
@@ -63,58 +68,30 @@
     return box;
   }
 
-  function fmtPerson(it) {
-    return renderRow(it.at, '"' + (it.text || "") + '"');
-  }
-
-  function fmtPersonToSystem(it) {
+  function fmtUtterance(it) {
     var b = el("span");
-    b.appendChild(el("strong", null, it.event_type || "?"));
-    if (it.value !== null && it.value !== undefined && it.value !== "") {
-      var tail = typeof it.value === "object" ? JSON.stringify(it.value) : String(it.value);
-      if (tail.length > 90) tail = tail.slice(0, 90);
-      b.appendChild(document.createTextNode(" · " + tail));
-    }
-    return renderRow(it.at, b);
+    var actor = it.actor || "?";
+    b.appendChild(el("strong", "ch-splash__actor ch-splash__actor--" + actor, actor + ":"));
+    b.appendChild(document.createTextNode(" " + (it.text || "")));
+    return renderRow(it.at, b, it.n);
   }
 
-  function fmtMachine(it) {
-    if (it.kind === "tool_result") {
-      var b = el("span");
-      b.appendChild(document.createTextNode("tool_result from "));
-      b.appendChild(el("strong", null, it.tool_name || "?"));
-      if (it.tool_result !== null && it.tool_result !== undefined) {
-        var tail = JSON.stringify(it.tool_result);
-        if (tail.length > 120) tail = tail.slice(0, 120);
-        b.appendChild(document.createTextNode(" → " + tail));
-      }
-      return renderRow(it.at, b);
-    }
-    return renderRow(it.at, it.text || "(empty pedantic response)");
-  }
-
-  function fmtLlmToSystem(it) {
+  function fmtAction(it) {
     var b = el("span");
-    if (it.kind === "llm_clarification") {
-      b.appendChild(el("strong", null, "→ Person:"));
-      var text = " " + (it.llm_response || "");
-      if (Array.isArray(it.info_sought) && it.info_sought.length) {
-        text += " · seeking: " + it.info_sought.join(", ");
-      }
-      b.appendChild(document.createTextNode(text));
-    } else if (it.kind === "tool_invocation") {
-      b.appendChild(el("strong", null, "→ Machine:"));
-      b.appendChild(document.createTextNode(" invoke "));
-      b.appendChild(el("strong", null, it.tool_name || "?"));
-      if (it.tool_args !== null && it.tool_args !== undefined) {
-        var args = JSON.stringify(it.tool_args);
-        if (args.length > 120) args = args.slice(0, 120);
-        b.appendChild(document.createTextNode("(" + args + ")"));
-      }
-    } else {
-      b.textContent = it.kind || "";
+    b.appendChild(el("strong", null, it.tool_name || "?"));
+    var inJson = it.input_json && Object.keys(it.input_json).length
+      ? JSON.stringify(it.input_json) : "";
+    var outJson = it.output_json && Object.keys(it.output_json).length
+      ? JSON.stringify(it.output_json) : "";
+    if (inJson) {
+      if (inJson.length > 120) inJson = inJson.slice(0, 120) + "…";
+      b.appendChild(document.createTextNode("(" + inJson + ")"));
     }
-    return renderRow(it.at, b);
+    if (outJson) {
+      if (outJson.length > 120) outJson = outJson.slice(0, 120) + "…";
+      b.appendChild(document.createTextNode(" → " + outJson));
+    }
+    return renderRow(it.at, b, it.n);
   }
 
   function renderThreads(threads) {
@@ -123,15 +100,13 @@
     if (!threads || threads.empty) {
       section.appendChild(el(
         "p", "ch-splash__empty",
-        "No UX events or utterances yet. Click around or type a prompt to see this grow."
+        "No utterances or actions yet. Type a prompt or click around to see this grow."
       ));
       return section;
     }
     var grid = el("div", "ch-splash__threads");
-    grid.appendChild(renderThread("Person", "person", threads.person, fmtPerson));
-    grid.appendChild(renderThread("Person → System", "p2s", threads.person_to_system, fmtPersonToSystem));
-    grid.appendChild(renderThread("Machine", "machine", threads.machine, fmtMachine));
-    grid.appendChild(renderThread("LLM → System", "llm2s", threads.llm_to_system, fmtLlmToSystem));
+    grid.appendChild(renderThread("Utterances", "utterances", threads.utterances, fmtUtterance));
+    grid.appendChild(renderThread("Actions", "actions", threads.actions, fmtAction));
     section.appendChild(grid);
     return section;
   }

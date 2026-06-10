@@ -11,7 +11,7 @@ accumulates across turns.
 """
 from __future__ import annotations
 
-from typing import Annotated, Literal, Union
+from typing import Annotated, Any, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -31,9 +31,37 @@ class Argument(BaseModel):
         max_length=64,
         pattern=r"^[a-z][a-z0-9_]{0,63}$",
     )
-    value: str = Field(min_length=0, max_length=1000)
+    value: str = Field(min_length=0, max_length=32768)
     type: Literal["string", "boolean", "integer", "number", "object", "array"]
     required: bool
+
+
+# ────────────────────────────────────────────────────────────────────
+# Per-intent pending disambiguation marker (REQ-B-009)
+# ────────────────────────────────────────────────────────────────────
+
+
+class PendingDisambiguation(BaseModel):
+    """Marker carried on an intent entry when the classifier could not fully
+    fill a required slot but has a plausible candidate value for it. UM
+    sets it; UR ignores the partially-filled intent (does not dispatch its
+    action) until UM clears it on a subsequent turn."""
+
+    model_config = {"extra": "forbid"}
+
+    kind: str = Field(
+        min_length=1,
+        max_length=64,
+        description="The disambiguation category. For FindCare's geography slot this is 'geography_state'.",
+    )
+    candidate: dict[str, Any] = Field(
+        default_factory=dict,
+        description="The structured candidate value the classifier proposed (e.g., {'state':'WI'}).",
+    )
+    scaffolding: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="Optional free-form context the next-turn resolver needs.",
+    )
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -49,39 +77,45 @@ class IntentNonsense(BaseModel):
 
     name: Literal["nonsense"]
     arguments: list[Argument] = Field(min_length=2, max_length=2)
+    pending_disambiguation: Optional[PendingDisambiguation] = None
 
 
 class IntentSpecialtySearch(BaseModel):
-    """Intent entry: UM extracted a complaint but no geography. SpecialtyFilter
-    can still translate the complaint into specialty codes; the FE renders
-    candidate provider types. Once geography arrives on a later turn UM
-    upgrades the target_action to findAProvider."""
+    """Intent entry: UM extracted a complaint. Carries the complaint
+    argument and may carry the SpecialtyFilter output (nucc_codes) once UR
+    has run SpecialtyFilter at least once for this complaint."""
 
     model_config = {"extra": "forbid"}
 
     name: Literal["specialtySearch"]
-    arguments: list[Argument] = Field(min_length=1, max_length=1)
+    arguments: list[Argument] = Field(min_length=1, max_length=2)
+    pending_disambiguation: Optional[PendingDisambiguation] = None
 
 
 class IntentFindAProvider(BaseModel):
     """Intent entry: user is looking for a healthcare provider. Carries the
-    complaint phrase and a JSON-encoded geography object."""
+    complaint phrase, a JSON-encoded geography object, and optionally the
+    cached SpecialtyFilter output (nucc_codes). When the classifier can
+    propose a candidate for the geography slot but cannot fully fill it,
+    pending_disambiguation is set and target_action stays at specialtySearch."""
 
     model_config = {"extra": "forbid"}
 
     name: Literal["findAProvider"]
-    arguments: list[Argument] = Field(min_length=2, max_length=2)
+    arguments: list[Argument] = Field(min_length=1, max_length=3)
+    pending_disambiguation: Optional[PendingDisambiguation] = None
 
 
 class IntentCloseConnection200(BaseModel):
-    """Intent entry: UM has streamed a clarification prompt to the user and
-    UR should close the connection with HTTP 200 OK. Carries a single
+    """Intent entry: UR closes the StreamingResponse with HTTP 200 OK after
+    every dispatched tool has flushed its events. Carries a single
     close_connection=true confirmation argument."""
 
     model_config = {"extra": "forbid"}
 
     name: Literal["closeConnection200"]
     arguments: list[Argument] = Field(min_length=1, max_length=1)
+    pending_disambiguation: Optional[PendingDisambiguation] = None
 
 
 # Discriminated union — pydantic uses the `name` field to pick the variant.
@@ -109,10 +143,15 @@ TargetAction = Literal[
 class IntentDocument(BaseModel):
     """UtteranceManager's output document. Lives on user_object.intent and
     accumulates across turns. target_action names the next action UR
-    dispatches; intents[] holds the typed entry for that action plus any
-    other intents UM is tracking across turns."""
+    dispatches; intents[] holds the typed entries; user_message is the
+    LLM-authored prose UM streams to the user before returning."""
 
     model_config = {"extra": "forbid"}
 
     target_action: TargetAction
     intents: list[IntentEntry] = Field(min_length=1, max_length=3)
+    user_message: Optional[str] = Field(
+        default=None,
+        max_length=4096,
+        description="LLM-authored prose intended for the user. When non-empty UM streams it as {kind:'prompt', data:{text: user_message}} and flushes before returning to UR.",
+    )
