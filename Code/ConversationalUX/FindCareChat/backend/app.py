@@ -257,6 +257,26 @@ async def _fatal(request: Request, exc: Exception):
                  "time": _dt.datetime.now(_dt.timezone.utc).isoformat()},
     )
 
+# v2.2 Part B 7.4 — startup Mongo probe. ChatHealthyMongoUtilities runs
+# client.admin.command("ping") in __init__; failure raises ConnectionError.
+# A failure at startup is the loud surface the rotation-as-operational-
+# response model requires: the container crashes, HF (or local docker)
+# restarts, and the operator sees the restart loop and reads the logs.
+# Steady-state degraded mode in _get_db() remains for transient runtime
+# blips; only the startup probe is mandatory-loud.
+if _mongo_frontend_str:
+    _startup_db_probe = ChatHealthyMongoUtilities(_mongo_frontend_str)
+    _log.info("FindCare backend Mongo startup probe: ping OK")
+else:
+    _log.critical(
+        "MONGO_FRONTEND_connectionString is empty at FindCare backend "
+        "startup. The C# service (or local .env) is the supplier; check "
+        r"HKLM\SOFTWARE\ChatHealthy\Secrets on the host."
+    )
+    raise RuntimeError(
+        "MONGO_FRONTEND_connectionString not set at FindCare backend startup"
+    )
+
 # EPIC-010-F-101-S-005 (Data version management): bind runtime data
 # collections from ChatHealthyConfig.DBVersions on startup, and mount the
 # /admin/swap + /debug/active_collections endpoints.
@@ -643,6 +663,12 @@ def health():
         _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
     if _version_error:
         result["version_error"] = _version_error
+    # v2.2 Part B 7.6 — return 503 instead of 200 when Mongo is
+    # unreachable. The Website fetch wrapper paints chFatalError on 503,
+    # turning /health into the visible operator surface that the
+    # rotation-as-operational-response model depends on.
+    if db_status != "connected":
+        return _JSONResponse(status_code=503, content=result)
     return result
 
 from chathealthy_frontend_lib.authentication import (

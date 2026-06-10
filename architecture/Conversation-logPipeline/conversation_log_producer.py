@@ -26,6 +26,39 @@ from fastapi import FastAPI, Request, Response
 from confluent_kafka import Producer
 from pymongo import MongoClient
 
+# v2.2 Part B 7.3 — Event Log surface for sidecar startup failures.
+# Source `ChatHealthy Conversation Log Sidecar` is registered once at
+# migration time. EventID 1002 distinguishes sidecar startup failures
+# from consumer batch-write failures (EventID 1001 under a different
+# source name).
+_EVENTLOG_SOURCE = "ChatHealthy Conversation Log Sidecar"
+_EVENTLOG_EVENTID = 1002
+try:
+    import win32evtlog  # type: ignore
+    import win32evtlogutil  # type: ignore
+    _HAS_WIN32EVT = True
+except ImportError:
+    _HAS_WIN32EVT = False
+
+
+def _emit_eventlog_critical(message: str) -> None:
+    """ERROR-level Application Event Log entry. On non-Windows or when
+    pywin32 is unavailable, fall back to a CRITICAL log only."""
+    if _HAS_WIN32EVT:
+        try:
+            win32evtlogutil.ReportEvent(
+                _EVENTLOG_SOURCE,
+                eventID=_EVENTLOG_EVENTID,
+                eventType=win32evtlog.EVENTLOG_ERROR_TYPE,
+                strings=[message[:30000]],
+            )
+            return
+        except Exception as e:  # noqa: BLE001
+            logging.getLogger("conversation_log_producer").warning(
+                "Event Log write failed: %s", e
+            )
+    logging.getLogger("conversation_log_producer").critical(message)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s — %(message)s",
@@ -104,7 +137,25 @@ def _load_initial_version_from_mongo():
             _log.warning("admin.Versions has no records; version stamps "
                          "will be unknown until first bump")
     except Exception as e:
-        _log.error("Failed to load initial version from MongoDB: %s", e)
+        # v2.2 Part B 7.3: prior behaviour logged at ERROR and kept the
+        # process alive with build=0, version=?, framework=? — every
+        # downstream Kafka message stamped "?" until the next
+        # /version_bump push. That's exactly the silent BUG-012 path:
+        # a rotated credential leaves the sidecar stamping garbage and
+        # the operator never sees a failure. Emit an Event Log entry
+        # so the operator's Windows monitoring sees the failure, then
+        # exit so the C# supervisor restarts; persistent crash-looping
+        # trips the Worker.cs circuit breaker.
+        msg = (
+            f"ChatHealthy conversation-log sidecar failed to load initial "
+            f"version from MongoDB on startup: {e}. Most likely cause: "
+            f"rotated MONGO_FRONTEND_connectionString not yet propagated "
+            f"to the C# service's registry read "
+            f"(HKLM\\SOFTWARE\\ChatHealthy\\Secrets)."
+        )
+        _emit_eventlog_critical(msg)
+        _log.critical(msg)
+        sys.exit(1)
 
 
 def _version_headers() -> dict:

@@ -132,7 +132,12 @@ def _impl(cls_name, file_subpath):
 @app.post("/health", operation_id="HealthEndpoint",
           openapi_extra=_impl("HealthEndpoint", "healthcheck/health_endpoint.py"))
 def health():
-    return HealthEndpoint()()
+    # v2.2 Part B 7.6/7.7 — return 503 (not 200) when Mongo is
+    # unreachable so the Website fetch wrapper triggers chFatalError.
+    payload = HealthEndpoint()()
+    if payload.get("db") != "connected":
+        return JSONResponse(status_code=503, content=payload)
+    return payload
 
 
 @app.post("/splash", operation_id="SplashEndpoint",
