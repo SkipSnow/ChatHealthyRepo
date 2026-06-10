@@ -76,32 +76,6 @@
       ]
     },
     {
-      "bugid": "BUG-008",
-      "title": "Human intent is not honoured by the ChatHealthy.ai application",
-      "description": "For example: A user types 'get me a bone doc in Richmond VA' and the search executes against the entire state of VA. The city 'Richmond' is never passed to the provider search; the returned result set is the statewide pool, not the Richmond pool. This violates EPIC-006-F-001-S-001-REQ-B-001 ('Enable free text search for users') — the user's literal intent is not honored. Root cause spans the prompt-to-tool routing chain: today the FindCare frontend submits the prompt directly to /search on the FindCare backend; whatever LLM / parser converts the prompt into a search-args contract loses the city.",
-      "environments": [
-        "local",
-        "dev",
-        "qa",
-        "prod"
-      ],
-      "status": "in_analysis",
-      "severity": "show_stopper",
-      "req_id": "EPIC-006-F-001-S-001-REQ-B-001",
-      "story_id": "EPIC-006-F-001-S-001",
-      "test_id": "ORPHAN",
-      "test_success_criteria": [
-        "Successful execution of a rich Playwright script that exercises the application's major navigation routes. This script MUST be maintained as the application changes and adds new functional routes."
-      ],
-      "discovery_date": "2026-05-15",
-      "due_date": "2026-05-16",
-      "reproduction": "1) Visit https://dev.chathealthy.ai/. 2) Type 'get me a bone doc in Richmond VA' and click Send. Observed: results span the whole state of VA. Expected: results scoped to Richmond, VA.",
-      "orphan": false,
-      "next_action": [
-        "Design a universal site navigation route. If a user makes an utterance, send them through an utterance interpreter. If they hit a navigation button or control, and it is managed on the server side, send them and the correct data to the correct tool, which will return a result as a proprietary pedantic object, which the universal navigation tool will route correctly and potentially in parallel. E.g., back to the client, to the DB, and to other servers such as the FindCare, EvaluateCare, or TalkAboutCare servers."
-      ]
-    },
-    {
       "bugid": "BUG-011",
       "title": "Deploy build context ships files that no runtime code path uses",
       "description": "It is required that our deployment scripts deploy exactly what is needed to each target — no more, no less. Today that requirement is not met for files: extraneous source files ship to targets where no runtime code path on that target imports or reads them. The reverse direction — artifacts required by deployed code that are not declared in the manifest — is captured by REQ-B-008 for env vars and REQ-B-009 for entitlements; both are approved and 'done' on S-001 with the substrate already in the schema. Why this matters: our runtime architecture is documented in deployment_architecture.json and nowhere else. As long as the manifest carries garbage (files that nothing on the target uses), no process — human or automated — can extract the actual architecture from it, and the firm continues to operate with undocumented architecture. Surfacing example: architecture/DevOpsBuildDeployAndEnvironmentManagement/hf_helpers.py:_findcare_source_set returns ('Code/Shared', 'Code/Shared') as one of the subtrees wholesale-copied into the FindCare HF build context by _copy_tree, which recursively copies every file under it. Code/Shared/ops/ is dev-time / planning-time tooling (promote_data.py, bump_build.py, seed_versions_collection.py, unattended_monitor.py, local_admin_server.py, sync_to_mongo.py, and — until 2026-06-04 — manifest_generator.py and epic_planning_runner.py) with no runtime caller in the FindCare backend. These files ride along into every FindCare HF deploy as dead bytes. The disposition: 'referenced' tag in deployment_architecture.json under target_hf_space_findcare_backend does NOT gate shipping — it is a content-hash audit trail only; what ships is determined by the subtree walk. EvaluateCare and SharedServices source sets do not include Code/Shared, so this specific symptom is FindCare-only, but the structural pattern (build context driven by wholesale subtree-copy rather than by an explicit per-target file list in the manifest) applies wherever the same mechanism is used.",
@@ -127,23 +101,6 @@
         "Replace the wholesale subtree-copy mechanism with an explicit per-target file list driven by deployment_architecture.json. The build stages only what the manifest enumerates for that target.",
         "Implement, then bring this bug to closed."
       ]
-    },
-    {
-      "bugid": "BUG-012",
-      "title": "Machine-level Windows env var overrides Code/.env on credential rotation",
-      "description": "The Kafka producer reads MONGO_FRONTEND_connectionString from os.environ. It was set at Windows machine scope so the sidecar could find it. That value beats Code/.env because load_dotenv doesn't override by default, so password rotations silently fail to propagate. Fix: producer calls load_dotenv(Code/.env, override=True); remove the OS-level var. No ChatHealthy secret at OS scope.",
-      "environments": [
-        "local"
-      ],
-      "status": "new",
-      "severity": "high",
-      "req_id": "ORPHAN",
-      "story_id": "EPIC-008-F-013-S-002",
-      "test_id": "",
-      "discovery_date": "2026-06-09",
-      "due_date": "2026-09-01",
-      "reproduction": "1. Set MONGO_FRONTEND_connectionString at Windows Machine scope. 2. Edit Code/.env to a new value. 3. Fresh shell, call load_dotenv('Code/.env'), read the env var — observe the OS value wins.",
-      "orphan": false
     }
   ]
 }
