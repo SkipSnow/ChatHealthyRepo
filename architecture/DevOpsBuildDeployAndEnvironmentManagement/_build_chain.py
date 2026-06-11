@@ -609,59 +609,7 @@ def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetR
     return []
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Build per-target deploy packages under localBuild/<target_id>/."
-    )
-    parser.add_argument(
-        "--target", default="all",
-        help="'all' | 'cloudflare' | 'hf' | 'azure' | 'aca' | a specific target_id.",
-    )
-    args = parser.parse_args(argv)
-
-    _require_local_context()
-    repo_root = _find_repo_root(Path(__file__))
-    _step(f"repo_root={repo_root} target={args.target}")
-
-    build_sha = _resolve_build_sha(repo_root)
-    _step(f"HEAD={build_sha}")
-
-    brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
-    backlog_schema = repo_root / "Website" / "schemas" / "ChatHealthyAgileBacklogSchema.json"
-    backlog_path = repo_root / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
-    env_file = repo_root / "Code" / ".env"
-
-    backlog = AgileBacklogLoader(schema_uri=backlog_schema).load(backlog_path)
-    coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
-    env_values_for_leak: set[str] = (
-        SecretsResolver().env_values_for_leak_check(env_file)
-        if env_file.is_file() else set()
-    )
-    report = Crosswalk().check(
-        coll=coll, backlog=backlog, repo_root=repo_root,
-        env_values=env_values_for_leak,
-    )
-    if not report.is_pass:
-        sys.stderr.write(report.format() + "\n")
-        return report.exit_code()
-    _step(f"crosswalk gate passed (targets={len(coll)}, violations=0)")
-
-    build_n = _read_dev_build_number()
-    _step(f"build_number={build_n} (dev slot in admin.Versions)")
-
-    targets = _select_targets(coll, args.target)
-    if not targets:
-        sys.exit(f"ERROR: no targets matched --target={args.target!r}")
-
-    built: list[Path] = []
-    for t in targets:
-        built.append(_build_one(repo_root, t, build_n, build_sha))
-
-    _step(f"built {len(built)} package(s) (build={build_n}):")
-    for b in built:
-        _step(f"  {b.relative_to(repo_root)}")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+# Helper-only module — no main() entry point. Per build_deploy_promote_plan
+# v3 §INV-5 the only entry points are build_chathealthy.py + deploy_chathealthy.py
+# + promote_chathealthy.py; this module is imported by them, not invoked
+# directly.

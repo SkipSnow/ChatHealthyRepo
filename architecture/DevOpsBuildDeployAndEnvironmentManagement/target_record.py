@@ -194,8 +194,8 @@ class TargetRecord:
     # branch must match env_binding.branch for the requested env. False:
     # single-environment shared infrastructure (the one pipeline FA, the
     # one durable router ACA, the one Automation Account + its runbooks)
-    # deployed from any branch, typically dev. Both branch-vs-env guards
-    # in local_deploy.py skip records with this flag set False.
+    # deployed from any branch, typically dev. The branch-vs-env guards
+    # in deploy_chathealthy.py skip records with this flag set False.
 
     def env_binding_set(self) -> set[str]:
         return {e.env_binding for e in self.environments}

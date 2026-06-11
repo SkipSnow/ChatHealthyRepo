@@ -37,7 +37,7 @@ from pathlib import Path
 # Per-target_kind handlers, helper utilities, crosswalk gate — all
 # imported from local_build.py for now. They migrate in step 5.7.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from local_build import (  # noqa: E402
+from _build_chain import (  # noqa: E402
     _build_one,
     _find_repo_root,
     _read_dev_build_number,
