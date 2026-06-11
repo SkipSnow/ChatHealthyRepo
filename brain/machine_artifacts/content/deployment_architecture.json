@@ -1611,7 +1611,7 @@
           "source_location": "brain/machine_artifacts/content/engineering_rules.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "eaeb49184b77122122e4d14588d0aca2fb34693008a73aa31a8b62a17a68f4af"
+          "content_hash": "4295789718afb4d06c30124fda380400f9d8881a757360d8b0b3d08534a2f59d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2394,7 +2394,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/_deploy_chain.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a60f399a3ff919b24fa932a5c2bd37a17e3d3a6cb04650dff0ebaea831001ea3"
+          "content_hash": "233ab8abbfefd4e58a6ddaf88aeeb8ca7d090c572fb1adaa9ef57bce7a73a3a3"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2408,7 +2408,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/deploy_chathealthy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "23632ec3bf03a282e065b3956431ff75b35afe5ca5d7a32358593e72e0f2cd21"
+          "content_hash": "f3df430e34541d01ce3aaa450c3b1efcefef0a3dae50a906695e6b8fd3f108f2"
         },
         {
           "feature_id": "EPIC-008-F-012",

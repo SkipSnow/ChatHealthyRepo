@@ -248,6 +248,7 @@ def _docker_build_then_push(build_dir: Path, image_ref: str) -> None:
     r = subprocess.run(
         ["docker", "build", "-t", image_ref, str(build_dir)],
         capture_output=True, text=True, creationflags=_cflags(),
+        encoding="utf-8", errors="replace",
     )
     if r.returncode != 0:
         sys.exit(
@@ -258,6 +259,7 @@ def _docker_build_then_push(build_dir: Path, image_ref: str) -> None:
     r = subprocess.run(
         ["docker", "push", image_ref],
         capture_output=True, text=True, creationflags=_cflags(),
+        encoding="utf-8", errors="replace",
     )
     if r.returncode != 0:
         sys.exit(
