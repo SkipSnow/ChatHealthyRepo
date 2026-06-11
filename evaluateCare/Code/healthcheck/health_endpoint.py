@@ -69,22 +69,13 @@ class HealthEndpoint:
                 "source": "build_info.json",
             }
 
-        # Legacy fallback: build info from admin.Versions.
-        _builds_arr = mongo_doc.get("builds", [])
-        _build_for_env = None
-        if isinstance(_builds_arr, list):
-            _build_for_env = next(
-                (b.get("build") for b in _builds_arr
-                 if isinstance(b, dict) and b.get("env") == self.env_prefix),
-                None,
-            )
         return {
             "status": "ok" if db_status == "connected" else "degraded",
             "service": "evaluate_care",
             "db": db_status,
             "env": self.env_prefix,
-            "build": _build_for_env,
+            "build": mongo_doc.get("build"),
+            "git_number": mongo_doc.get("git_number"),
             "version": mongo_doc.get("version"),
-            "framework": mongo_doc.get("framework"),
             "source": "admin.Versions",
         }

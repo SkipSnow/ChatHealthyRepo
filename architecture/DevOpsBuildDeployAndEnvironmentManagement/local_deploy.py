@@ -2199,12 +2199,10 @@ class LocalDeploy:
         if not conn:
             sys.exit("ERROR: MONGO_FRONTEND_connectionString not set; cannot read local build counter.")
         latest = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"].find_one(sort=[("from", -1)])
-        build_num = next(
-            (int(e["build"]) for e in (latest or {}).get("builds", []) if e.get("env") == "local"),
-            None,
-        )
+        build_num = (latest or {}).get("build")
         if build_num is None:
-            sys.exit("ERROR: admin.Versions latest record has no 'local' slot.")
+            sys.exit("ERROR: admin.Versions latest record has no 'build' field.")
+        build_num = int(build_num)
         try:
             commit = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
@@ -2590,43 +2588,6 @@ class LocalDeploy:
         if ans != "y":
             sys.exit("Teardown aborted at human verify gate.")
 
-    # Rule-063 per-env bump (local catches up to dev)
-    def _bump_local_build_counter(self) -> None:
-        cflags = _cflags()
-        subprocess.run(
-            ["git", "fetch", "origin", "dev"],
-            cwd=str(self.repo_root), capture_output=True, creationflags=cflags,
-        )
-        diff = subprocess.run(
-            ["git", "diff", "origin/dev", "--quiet"],
-            cwd=str(self.repo_root), creationflags=cflags,
-        )
-        if diff.returncode != 0:
-            self._step_notice(
-                "build counter NOT bumped: working tree differs from "
-                "origin/dev. Local keeps its prior build number."
-            )
-            self.results["build_after_bump"] = "skipped_tree_divergent"
-            return
-        ops_dir = self.repo_root / "Code" / "Shared" / "ops"
-        added = False
-        if str(ops_dir) not in sys.path:
-            sys.path.insert(0, str(ops_dir))
-            added = True
-        try:
-            from bump_build import bump as _bump
-            record = _bump(env="local")
-        finally:
-            if added and str(ops_dir) in sys.path:
-                sys.path.remove(str(ops_dir))
-        builds = {b["env"]: b["build"] for b in record["builds"]}
-        self.results["build_after_bump"] = builds
-        self._step_notice(
-            f"build counter bumped: local={builds.get('local')} "
-            f"(dev={builds.get('dev')}, qa={builds.get('qa')}, "
-            f"prod={builds.get('prod')})"
-        )
-
     # REQ-T-006 — structured deploy output
     def _write_structured_output(self) -> None:
         self.results["finished_at"] = datetime.now(timezone.utc).isoformat()
@@ -2703,7 +2664,6 @@ class LocalDeploy:
         self._wait_for_all_components()
         self._verify_components()
         self._step_notice("new environment built and verified")
-        self._bump_local_build_counter()
         self._step_notice("smoke test started")
         smoke_rc = self._invoke_smoke_test()
         self.results["smoke_rc"] = smoke_rc

@@ -613,7 +613,7 @@ def health():
     idx_check = _check_indexes()
     _build = None
     _version_str = None
-    _framework_str = None
+    _git_number = None
     _commit = None
     _built_at = None
     _version_error = None
@@ -633,18 +633,12 @@ def health():
         _commit = baked.get("commit")
         _built_at = baked.get("built_at")
         _version_str = baked.get("version") or mongo_doc.get("version")
-        _framework_str = baked.get("framework") or mongo_doc.get("framework")
+        _git_number = baked.get("commit") or mongo_doc.get("git_number")
         _source = "build_info.json"
     else:
-        _builds_arr = mongo_doc.get("builds", [])
-        if isinstance(_builds_arr, list):
-            _build = next(
-                (b.get("build") for b in _builds_arr
-                 if isinstance(b, dict) and b.get("env") == env_label),
-                None,
-            )
+        _build = mongo_doc.get("build")
         _version_str = mongo_doc.get("version")
-        _framework_str = mongo_doc.get("framework")
+        _git_number = mongo_doc.get("git_number")
         _source = "admin.Versions"
 
     db_status = "connected" if db is not None and _version_error is None else (
@@ -656,7 +650,7 @@ def health():
               "commit": _commit,
               "built_at": _built_at,
               "version": _version_str,
-              "framework": _framework_str,
+              "git_number": _git_number,
               "source": _source}
     if idx_check.get("missing"):
         result["missing_indexes"] = idx_check["missing"]
