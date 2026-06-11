@@ -232,32 +232,26 @@ export default function FindCareApp() {
             checkedCodesRef.current = msg.codes
           }
         }
-        if (msg.action === 'filter-apply' && searchParamsRef.current) {
-          // EPIC-006-F-002-S-001-REQ-B-001 submission rule: the codes submitted
-          // are the SpecialtyFilter's currently-checked rows. Fall back to
-          // msg.value for back-compat with the parent's legacy HTML panel
-          // until the parent stops sending it.
+        if (msg.action === 'filter-apply') {
+          // EPIC-002-F-010-S-002-REQ-B-002: Apply Filter routes
+          // through SharedServices /gate, NOT FindCare's /search.
+          // UR reads the carried session geography and either:
+          //   - dispatches ProviderSearch directly with the new codes
+          //     (geography sufficient), or
+          //   - dispatches UM as a manufacture-trigger (geography
+          //     insufficient) which authors a context-sensitive
+          //     location prompt and ends in closeConnection200.
+          // EPIC-006-F-002-S-001-REQ-B-001 submission rule: the codes
+          // submitted are the SpecialtyFilter's currently-checked
+          // rows. Fall back to msg.value for back-compat with the
+          // parent's legacy HTML panel until the parent stops sending
+          // it.
           let codes: string[] = checkedCodesRef.current
           if (!codes.length && msg.value) {
             try { codes = JSON.parse(msg.value) } catch { codes = [] }
           }
-          const params = { ...searchParamsRef.current, nucc_codes: codes }
-          // EPIC-006-F-002-S-001-REQ-B-001 / S-004-REQ-T-001/T-002:
-          //   clear unpicked providers, start two timers, preserve selected
-          //   and the prompt. fetchProviders' .then() resets the state.
-          selection.setAvailable([])
           setReclassifying(true)
-          setThinkSeconds(0)
-          if (timerRef.current) clearInterval(timerRef.current)
-          const start = Date.now()
-          timerRef.current = setInterval(() => {
-            setThinkSeconds(Math.round((Date.now() - start) / 1000))
-          }, 1000)
-          fetchProviders(params, questionRef.current).finally(() => {
-            if (timerRef.current) {
-              clearInterval(timerRef.current)
-              timerRef.current = null
-            }
+          doApplyFilter(codes).finally(() => {
             setReclassifying(false)
           })
         }
@@ -485,6 +479,169 @@ export default function FindCareApp() {
       if (err && (err.name === 'AbortError' || ac.signal.aborted)) return
       finishTimer()
       const msg = err.message || 'Search failed'
+      sendToParent('gui:fatal-error', { message: msg })
+      setError(msg)
+      setPhase('error')
+    }
+  }, [])
+
+  // ── Apply Filter via /gate (EPIC-002-F-010-S-002-REQ-B-002) ────
+  // The Apply Filter button in the parent's specialty panel posts
+  // back via postMessage. We send op="apply_filter" to SharedServices
+  // /gate with the new nucc_codes set. UR reads the carried
+  // IntentDocument's geography from session:
+  //   - sufficient: UR runs ProviderSearch directly with the new
+  //     codes; stream emits kind:"specialties" + kind:"providers" +
+  //     kind:"final".
+  //   - insufficient: UR dispatches UM as a manufacture-trigger; UM
+  //     authors a context-sensitive location prompt; stream emits
+  //     kind:"prompt" + kind:"final". Send is re-enabled in
+  //     'clarify' phase so the user can supply the missing geography.
+  const doApplyFilter = useCallback(async (nuccCodes: string[]) => {
+    if (searchAbortRef.current) searchAbortRef.current.abort()
+    const ac = new AbortController()
+    searchAbortRef.current = ac
+
+    setPhase('searching')
+    setThinkSeconds(0)
+    setError('')
+    setSystemMessage('')
+    selection.flushGarbage()
+    selection.setAvailable([])
+
+    const start = Date.now()
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = setInterval(() => {
+      setThinkSeconds(Math.round((Date.now() - start) / 1000))
+    }, 1000)
+
+    const finishTimer = () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+
+    let sawError = false
+    let sawTerminalEvent = false
+    let sawPrompt = false
+    let sawProviders = false
+    let sawSpecialties = false
+
+    const onPrompt = (data: any) => {
+      const text = String(data?.text || '').trim()
+      if (!text) return
+      console.log('[FindCare apply_filter] stream event kind=prompt text=', text)
+      setSystemMessage(text)
+      setSearchPromptUp(true)
+      sawTerminalEvent = true
+      sawPrompt = true
+    }
+    const onSpecialties = (data: any) => {
+      console.log('[FindCare apply_filter] stream event kind=specialties count=', data?.specialties?.length || 0)
+      sawSpecialties = true
+      if (data.error || !data.specialties?.length) return
+      const specMap: Record<string, string> = {}
+      data.specialties.forEach((s: any) => { specMap[s.code] = s.name })
+      specialtyMapRef.current = specMap
+      setSearchParams((prev: any) => ({ ...(prev || {}), nucc_codes: data.specialties.map((s: any) => s.code), limit: 25 }))
+    }
+    const onProviders = (data: any) => {
+      console.log('[FindCare apply_filter] stream event kind=providers count=', data?.providers?.length || 0)
+      sawProviders = true
+      if (ac.signal.aborted) return
+      if (data.error) {
+        finishTimer()
+        sendToParent('gui:fatal-error', { message: data.error })
+        setError(data.error)
+        setPhase('error')
+        sawError = true
+        return
+      }
+      if (data.providers) {
+        setSystemMessage('')
+        const enriched = data.providers.map((p: any) => ({
+          ...p,
+          specialty: specialtyMapRef.current[p.taxonomy_code] || '',
+        }))
+        selection.setAvailable(enriched as Provider[])
+        if (data.total_count) setTotalCount(data.total_count)
+        if (data.last_npi) setLastNpi(data.last_npi)
+        setHasMore((data.providers.length || 0) < (data.total_count || 0))
+        if (data.search_params) {
+          setSearchParams((prev: any) => ({ ...(prev || {}), ...data.search_params }))
+        }
+        finishTimer()
+        setPhase('results')
+      }
+    }
+
+    try {
+      const ssUrl = _sharedServicesUrl(API_URL)
+      const body: any = { op: 'apply_filter', payload: { nucc_codes: nuccCodes } }
+      const tok = _sessionToken && _sessionToken.token
+      if (tok && typeof tok === 'string' && tok.length >= 32) {
+        body.prior_guid = tok.slice(-32)
+      }
+      const resp = await fetch(`${ssUrl}/gate`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/x-ndjson',
+        },
+        body: JSON.stringify(body),
+        signal: ac.signal,
+      })
+      if (!resp.ok || !resp.body) {
+        throw new Error(`Apply Filter /gate stream failed: HTTP ${resp.status}`)
+      }
+      const reader = resp.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = ''
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) continue
+          let evt: any
+          try { evt = JSON.parse(trimmed) } catch { continue }
+          if (evt.kind === 'specialties') { onSpecialties(evt.data || {}); sawTerminalEvent = true }
+          else if (evt.kind === 'providers') { onProviders(evt.data || {}); sawTerminalEvent = true }
+          else if (evt.kind === 'prompt') onPrompt(evt.data || {})
+          else if (evt.kind === 'final' && !sawError) {
+            const okFlag = evt.data?.ok ?? evt.ok
+            console.log('[FindCare apply_filter] stream event kind=final ok=', okFlag,
+              'sawPrompt=', sawPrompt, 'sawSpecialties=', sawSpecialties,
+              'sawProviders=', sawProviders)
+            finishTimer()
+            setSearchPromptUp(false)
+            if (okFlag === false) {
+              const msg = evt.data?.error || evt.error || 'Apply Filter failed'
+              sendToParent('gui:fatal-error', { message: msg })
+              setError(msg)
+              setPhase('error')
+              sawError = true
+            } else if (sawProviders) {
+              // ProviderSearch ran (geography sufficient path). Phase
+              // already set by onProviders.
+            } else if (sawPrompt) {
+              // Manufacture-trigger path: UM authored a prompt. Move
+              // to 'clarify' so Send re-enables and the user can
+              // supply the missing slot via free-text.
+              setPhase('clarify')
+            } else if (!sawTerminalEvent) {
+              setPhase('welcome')
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      if (err && (err.name === 'AbortError' || ac.signal.aborted)) return
+      finishTimer()
+      const msg = err.message || 'Apply Filter failed'
       sendToParent('gui:fatal-error', { message: msg })
       setError(msg)
       setPhase('error')

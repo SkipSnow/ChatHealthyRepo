@@ -3530,7 +3530,7 @@
             {
               "feature_id": "EPIC-002-F-010",
               "name": "Utterance Tool",
-              "description": "This feature defines the requirement for the handling of every utterance made by users of ChatHealthy.ai's core front end application. All utterances have 2 possible paths: 1- they either invoke a response that asks the user directly or indirectly questions that will help it either get to know the user better, or route the user to an appropriate tool. 2 - Based on the utterance the intent of the user seems clear and a tool is invoked that will allow data to be passed back to the front end and displayed. An utterance is the words that a user either types into a prompt into the UX or otherwise uses natural language to tell the application about themselves and what they want. This feature will not be complete until the entire application's code base utilizes this architecture of tool to Front end intermediated by utterance.",
+              "description": "This feature defines the requirements for the handling of every user interaction with ChatHealthy.ai's core front-end application that requires LLM-mediated routing or prose. The Utterance Manager (UM) has two responsibilities. (a) Interpret — when the user types free-text into the prompt, UM classifies the latest utterance, builds the canonical IntentDocument, and may author a user_message prompt the user back. This is the 'interpret an utterance' path. (b) Manufacture — when the user clicks a structured UI control (Apply Filter, future selected-for-evaluation gates, future pagination edges) that requires the system to ask the user something before it can act, the Universal Router (UR) dispatches UM with a synthetic trigger. UM reads the carried IntentDocument's slot state and authors a brief LLM-generated user_message requesting whatever slot is missing. No free-text utterance was typed; UM is manufacturing an utterance the system needs to deliver. Both paths end the same way: UM writes an IntentDocument back to user_object.intent, optionally streams user_message as kind:'prompt', and returns. UR validates and dispatches the resulting target_action. This feature is complete when every user-facing chat prose in the application is either (a) interpreted from a free-text utterance via path (a) or (b) manufactured by UM via path (b) — and no tool authors its own chat strings.",
               "priority": "must-have",
               "status": "in_progress",
               "orphan": false,
@@ -3807,6 +3807,124 @@
                               "reason": "Instantiates the general ambiguous-but-resolvable pattern from REQ-B-007 and the schema additions from REQ-B-009."
                             }
                           ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "Apply Filter with insufficient geography routes through UM as a manufacture turn",
+                          "requirement": "When UR receives op='apply_filter' with a payload containing the new nucc_codes set, UR reads the carried IntentDocument's geography from user_object.intent. If geography is sufficient (per the same sufficiency rule findAProvider applies — zip, state, state+city, or state+county), UR builds the IntentDocument deterministically with target_action=findAProvider using the new nucc_codes set, and dispatches ProviderSearch without calling UM. If geography is insufficient, UR populates a manufacture_utterance_reason dict with at minimum gesture='apply_filter' and missing_slot='geography', optionally adds session-derived facts (prior complaint, prior partial geography candidate, etc.) it deems useful, and dispatches UM as a manufacture-trigger Request per EPIC-002-F-010-S-003-REQ-T-001. UR does NOT specify the prose; UM authors it per EPIC-002-F-010-S-003-REQ-B-003.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-010-S-003",
+                              "reason": "Depends on the manufacture-trigger Request schema (REQ-T-001), the always-end-in-closeConnection200 rule (REQ-B-002), and the context-sensitive prose rule (REQ-B-003)."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-002-F-010-S-003",
+                    "orphan": false,
+                    "name": "Manufacture utterances for non-free-text triggers",
+                    "description": "Defines UM's manufacture-path responsibility. When UR receives a structured UI gesture instead of a free-text utterance, UR dispatches UM with a synthetic trigger Request carrying a structured manufacture_utterance_reason — a set of hardcoded, non-user-facing facts UR has assembled about why a manufactured utterance is needed (e.g., gesture='apply_filter', missing_slot='geography', plus any session-state facts UR thinks relevant). UM uses a distinct, narrower prompt template that takes those facts AND the prior dialogue from session_conversation_history and authors a brief user-facing user_message sensitive to the conversational context — NOT a phrase the operator could have hardcoded. UM then morphs the IntentDocument's target_action to closeConnection200 (the user-facing prose is the answer for this turn; the user's next free-text utterance comes back through the interpret path and resolves any pending slot via the normal disambiguation mechanism). The manufacture prompt is distinct from the classifier prompt and is governed by its own output schema constraints.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-010-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "UM accepts two trigger types",
+                          "requirement": "UM's Request shape carries a discriminator field trigger_type with values 'utterance' (the free-text classifier path) and 'manufacture' (the manufacture path). When trigger_type='utterance' UM reads the latest person utterance from user_object.session_conversation_history and runs the classifier prompt as today. When trigger_type='manufacture' UM does NOT read free-text; it reads the synthetic trigger context off the Request and runs the manufacture prompt. UM's Response shape is unchanged — an IntentDocument written to user_object.intent.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "Manufacture path uses a distinct prompt template that always ends in closeConnection200",
+                          "requirement": "The manufacture prompt is narrower than the classifier prompt: it does not classify intents (the manufacture trigger and reason already name the intent context), it authors a brief user-facing user_message responsive to the supplied manufacture_utterance_reason and the prior dialogue. Hardcoded chat strings remain forbidden everywhere; the LLM authors all manufacture-path user_message text. After authoring the user_message, UM MUST set target_action=closeConnection200 on the emitted IntentDocument — the manufactured utterance IS the turn's answer; UR closes the connection and the user's next free-text utterance returns through the interpret path. The IntentDocument's intents[] array may carry forward intent entries (e.g. cached nucc_codes, partial geography, pending_disambiguation markers) so the next-turn interpret path can resolve naturally; only the target_action is constrained.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-010-S-001",
+                              "reason": "Builds on the LLM-authored-prose rule (REQ-B-010) and the IntentDocument shape (REQ-B-009)."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-003-REQ-B-003",
+                          "orphan": false,
+                          "name": "Manufactured user_message must be context-sensitive, not formulaic",
+                          "requirement": "The manufacture path EXISTS because the user-facing prose is too context-dependent to hardcode. UM's manufacture prompt MUST consult the prior dialogue (recent transcript window) AND the manufacture_utterance_reason facts together when authoring the user_message. The result must read as a natural continuation of the conversation, not as a generic templated phrase. A prose output that ignores prior dialogue and could have been hardcoded in UR is a regression on this REQ — the whole reason the path is LLM-mediated is that UR cannot author this prose deterministically.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-003-REQ-T-001",
+                          "orphan": false,
+                          "name": "Synthetic trigger Request schema",
+                          "requirement": "The synthetic-trigger Request carries: trigger_type='manufacture', manufacture_utterance_reason: dict[str, Any] (UR-populated structured facts; keys are fact names — at minimum gesture and missing_slot, plus any additional context UR wants UM to consider; values are JSON-serialisable scalars or lists; none of this dict is user-facing). Future gestures and slots are added by populating new keys; the Request shape is stable. The IntentDocument that UR passes through user_object.intent is the carried session state UM reads alongside the reason dict.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [],
                           "tests": {
                             "test": [
                               {

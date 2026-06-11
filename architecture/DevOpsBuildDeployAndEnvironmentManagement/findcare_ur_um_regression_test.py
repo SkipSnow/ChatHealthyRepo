@@ -1,37 +1,52 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""End-to-end regression for the FindCare geography-disambiguation flow.
+"""ONE end-to-end regression file for every FindCare UR/UM use case.
 
-This is NOT part of `find_care_smoke_test.py` (the smoke test). It is a
-standalone Playwright regression that drives the actual browser through
-the full two-turn disambiguation behaviour and asserts the user-visible
-outputs:
+This is NOT part of `find_care_smoke_test.py` (the smoke test) — it is
+the sibling Playwright regression that drives the actual browser through
+each UR/UM scenario and asserts on user-visible outputs. New UR/UM use
+cases land HERE as additional test methods, not in their own sibling
+files (operator's standing rule).
 
-  Turn 1 — "I need a nurse practitioner to help me with my pain in milwaukee"
-    The verbatim utterance is the SpecialtyFilter input (UR passes the raw
-    person utterance, not UM's narrow `complaint`). The role-scoring prompt
-    must therefore land on "nurse practitioner" and surface Nurse-
-    Practitioner specialty rows in the parent-page filter panel — NOT the
-    pain-doctor list that the prior bug produced.
-    UM emits a kind:"prompt" mid-stream ("Did you mean Milwaukee,
-    Wisconsin?") which the chat iframe shows inline while the timer keeps
-    running and Send is locked.
+Use cases currently covered
+---------------------------
 
-  Turn 2 — "yes"
-    UM resolves the prior IntentDocument's pending_disambiguation and
-    upgrades target_action to findAProvider. UR dispatches
-    ProviderSearch which streams kind:"providers" — every returned
-    provider address must contain MILWAUKEE, WI.
+1. **Geography disambiguation** —
+   Turn 1: "I need a nurse practitioner to help me with my pain in
+   milwaukee" — verbatim utterance reaches SpecialtyFilter so the role-
+   scoring prompt honours "nurse practitioner"; UM emits kind:"prompt"
+   ("Did you mean Milwaukee, Wisconsin?") mid-stream, the chat iframe
+   shows it inline while the screen timer keeps running and Send is
+   locked.
+   Turn 2: "yes" — UM resolves the prior IntentDocument's
+   pending_disambiguation, upgrades target_action to findAProvider, UR
+   dispatches ProviderSearch, every returned provider address contains
+   MILWAUKEE, WI.
 
-The "stream closed" signal is the screen timer (data-testid
+2. **safetyLockout three-task flow** —
+   Task C: a fresh-session utterance signalling immediate medical
+   attention triggers UM to emit target_action=safetyLockout;
+   LockoutTool inserts a {env}_Safety.emergency_incidents row and
+   renders the "when you said '...'" + Skip phone-number text.
+   Task B: an arbitrary utterance on the now-locked session — UR's pre-
+   UM hydration short-circuits UM entirely and dispatches LockoutTool,
+   which renders the "you are still safety-locked" reminder using the
+   original trigger utterance (not the user's current one).
+   Task A: the literal `"unlock$123"` (case-insensitive, strip+lower
+   exact match) — LockoutTool writes unlocked=true to the
+   emergency_incidents row, clears the in-memory lockout, renders the
+   "you have been unlocked" success text. A normal request after that
+   routes through UM normally.
+
+The browser "stream closed" signal is the screen timer (data-testid
 "prompt-row-timer") disappearing — that element renders only while
-phase === 'searching' || reclassifying, and phase only leaves 'searching'
-on kind:"final" (per the race-prevention fix). Polling that element's
-absence is the reliable way to know the prior /gate hit fully completed
-before sending the next one.
+phase === 'searching' || reclassifying, and phase only leaves
+'searching' on kind:"final" (per the race-prevention fix). Polling that
+element's absence is the reliable way to know the prior /gate hit fully
+completed before sending the next one.
 
 Run standalone:
-  python -m pytest architecture/DevOpsBuildDeployAndEnvironmentManagement/findcare_geography_disambiguation_regression_test.py -v
+  python -m pytest architecture/DevOpsBuildDeployAndEnvironmentManagement/findcare_ur_um_regression_test.py -v
 
 Requires:
   - The local stack up at https://localhost (run `python
@@ -194,3 +209,89 @@ def test_geography_disambiguation_e2e(page_ctx):
             "ProviderSearch did not apply the resolved Wisconsin scope. "
             f"Chat body (first 600c): {chat_body_t2[:600]}"
         )
+
+
+# ────────────────────────────────────────────────────────────────────
+# safetyLockout — three-task end-to-end
+# ────────────────────────────────────────────────────────────────────
+
+SAFETY_TRIGGER = (
+    "I am having crushing chest pain right now and I cannot breathe"
+)
+SAFETY_UNLOCK_LITERAL = "unlock$123"
+SAFETY_ARBITRARY = "are you there?"
+
+
+def test_safety_lockout_three_tasks_e2e(page_ctx):
+    """Task C → Task B → Task A, all in one browser session.
+
+    UM-emitted lockout (Task C), UR pre-UM hydration short-circuit
+    (Task B), unlock literal (Task A), then a normal post-unlock
+    request — every turn polled on the screen timer just like the
+    disambiguation flow above.
+    """
+    page = page_ctx["page"]
+
+    page.goto(BASE_URL, wait_until="load", timeout=60_000)
+    chat_frame = _chat_frame(page)
+
+    # ── Task C: fresh-session immediate-medical-attention utterance. ────
+    _send(chat_frame, SAFETY_TRIGGER)
+    _wait_for_stream_closed(chat_frame)
+
+    chat_body_c = chat_frame.locator("body").inner_text()
+    assert SAFETY_TRIGGER in chat_body_c, (
+        "Task C system message must include the verbatim trigger so the "
+        "user reads 'when you said \"...\"'. Chat body (first 800c): "
+        f"{chat_body_c[:800]}"
+    )
+    assert "1 hour" in chat_body_c, (
+        "Task C message must state the 1-hour lockout duration. "
+        f"Chat body (first 800c): {chat_body_c[:800]}"
+    )
+    assert "Skip" in chat_body_c and "646 408 8999" in chat_body_c, (
+        "Task C message must offer operator support: "
+        "'contact Skip at 646 408 8999'. Chat body (first 800c): "
+        f"{chat_body_c[:800]}"
+    )
+
+    # ── Task B: arbitrary utterance on locked session — UR short-circuits.
+    _send(chat_frame, SAFETY_ARBITRARY)
+    _wait_for_stream_closed(chat_frame)
+
+    chat_body_b = chat_frame.locator("body").inner_text()
+    assert "still safety-locked" in chat_body_b, (
+        "Task B reminder must say 'still safety-locked'. "
+        f"Chat body (first 800c): {chat_body_b[:800]}"
+    )
+    assert SAFETY_TRIGGER in chat_body_b, (
+        "Task B reminder must include the ORIGINAL trigger utterance "
+        "(not the user's current utterance). The Lockout sub-object "
+        "on user_object preserves it across turns. Chat body (first "
+        f"800c): {chat_body_b[:800]}"
+    )
+
+    # ── Task A: the literal '$unlock' — case-insensitive exact match.
+    _send(chat_frame, SAFETY_UNLOCK_LITERAL)
+    _wait_for_stream_closed(chat_frame)
+
+    chat_body_a = chat_frame.locator("body").inner_text()
+    assert "unlocked" in chat_body_a.lower(), (
+        "Task A success message must announce the unlock. "
+        f"Chat body (first 800c): {chat_body_a[:800]}"
+    )
+    assert "911" in chat_body_a, (
+        "Task A success message must remind the user to call 911 in a "
+        f"real emergency. Chat body (first 800c): {chat_body_a[:800]}"
+    )
+
+    # ── Post-unlock: a normal request must route through UM normally. ───
+    _send(chat_frame, "Find me a bone doctor in Delaware")
+    _wait_for_stream_closed(chat_frame)
+
+    chat_body_post = chat_frame.locator("body").inner_text()
+    assert "NPI" in chat_body_post.upper() or "Orthopaedic" in chat_body_post or "specialty" in chat_body_post.lower(), (
+        "After Task A unlocks the session, normal provider-search "
+        "routing must resume — providers or specialties should render. "
+        f"Chat body (first 800c): {chat_body_post[:800]}"
+    )

@@ -18,6 +18,13 @@ NavResult carrying the final event; the gate route persists the
 mutated user_object back to Users.sessions after the run.
 
 Canonical *_tool.py exports: TOOL_NAME, Request, Response, run().
+
+UR is a class: orchestration logic lives as methods on
+UniversalNavigationTool so each component has its own encapsulation.
+Pure utility functions (session-token assembly, splash data shape,
+small read-only helpers) stay module-level since they hold no
+orchestration state and are referenced from non-orchestration code
+paths.
 """
 from __future__ import annotations
 
@@ -67,6 +74,8 @@ _ENV_TO_SHARED_URL = {
     "local": "https://localhost:8002",
 }
 
+_MAX_DISPATCH_HOPS = 3
+
 
 # ────────────────────────────────────────────────────────────────────
 # Request / Response contracts
@@ -96,6 +105,12 @@ class GateRequest:
     intent: Optional[str] = None
     prior_guid: Optional[str] = None
     want_ndjson: bool = False
+    # Pulled by /gate from X-Forwarded-For (preferred — Cloudflare and HF
+    # proxies populate it with the real client) or scope.client.host. UR
+    # stamps it onto user_object.ip_address before any tool dispatch so
+    # SafetyLockoutTool reads it from session state, not from the HTTP
+    # layer.
+    client_ip: Optional[str] = None
 
 
 @dataclass
@@ -120,8 +135,10 @@ class GateResponse:
 
 
 # ────────────────────────────────────────────────────────────────────
-# Helpers (moved from app.py — they belong with the orchestrator that
-# uses them, not with HTTP plumbing).
+# Pure utility helpers (no orchestration state; referenced from /gate
+# and from UR methods). Kept module-level so non-orchestration callers
+# (login-register short-circuit, final-event projection) can use them
+# without instantiating UR.
 # ────────────────────────────────────────────────────────────────────
 
 
@@ -171,14 +188,8 @@ def _session_token_wire(user_object: UserObject) -> dict:
     return dict(st)
 
 
-# ────────────────────────────────────────────────────────────────────
-# Splash data — two buckets shipped verbatim to splash_render.js. The
-# dialogue narrative + the system-action log are independent threads in
-# the FE; each carries its own per-session sequence number.
-# ────────────────────────────────────────────────────────────────────
-
-
 def _splash_data(user_object) -> dict[str, Any]:
+    """Splash payload shape. Read-only projection of user_object."""
     cst = user_object.current_session_token
     identity = {
         "user_type": getattr(user_object, "user_type", None) or "Guest",
@@ -204,105 +215,6 @@ def _splash_data(user_object) -> dict[str, Any]:
     }
 
 
-# ────────────────────────────────────────────────────────────────────
-# Op handlers — graph nodes
-# ────────────────────────────────────────────────────────────────────
-
-async def _handle_boot(deps: AgentDeps, payload: dict[str, Any]) -> Response:
-    deps.stream({"kind": "boot", "data": {"ok": True}})
-    return Response(kind="boot", result={"op": "boot"})
-
-
-async def _handle_splash(deps: AgentDeps, payload: dict[str, Any]) -> Response:
-    data = _splash_data(deps.user_object)
-    append_action(
-        deps.user_object,
-        tool_name="splash_displayed",
-        input_json={},
-        output_json={"note": "SharedServices took ownership and rendered the User Object."},
-    )
-    deps.stream({"kind": "splash", "data": data})
-    return Response(kind="splash", result=data)
-
-
-async def _handle_record_ux_event(deps: AgentDeps, payload: dict[str, Any]) -> Response:
-    event_type = str(payload.get("event_type") or "").strip()
-    if not event_type:
-        return Response(kind="record_ux_event", result={"ok": False, "error": "event_type required"})
-    append_action(
-        deps.user_object,
-        tool_name="ux_event",
-        input_json={
-            "event_type": event_type,
-            "value": payload.get("value"),
-        },
-        output_json={},
-    )
-    deps.stream({"kind": "ux_event_recorded", "data": {"event_type": event_type}})
-    return Response(kind="record_ux_event", result={"ok": True})
-
-
-async def _handle_utterance(deps: AgentDeps, payload: dict[str, Any]) -> Response:
-    """UR dispatch for op == 'utterance'. Routes the user's typed text
-    through UtteranceManager (which classifies and writes IntentDocument
-    to user_object.intent), then pattern-matches on target_action and
-    dispatches the appropriate tool.
-
-    UR validates schema + semantic compliance before dispatch; raises if
-    UM gave us a malformed document. The tool dispatched is the only one
-    that should write user-facing output for that intent.
-    """
-    text = str(payload.get("text") or "").strip()
-    if not text:
-        return Response(kind="utterance", result={"ok": False, "error": "text required"})
-
-    # Persist the utterance onto user_object so UM reads it from the
-    # canonical place (session_conversation_history.utterances[-1]).
-    deps.user_object.persist_user_state(text)
-
-    from UtteranceManager import manager as utterance_manager_module
-    await utterance_manager_module.TOOL.run_and_log(
-        deps, utterance_manager_module.Request(),
-    )
-
-    last_target_action: Optional[str] = None
-    for _hop in range(_MAX_DISPATCH_HOPS):
-        document = deps.user_object.intent
-        if document is None:
-            raise RuntimeError(
-                "UR compliance: UtteranceManager returned without setting "
-                "user_object.intent"
-            )
-
-        target_action = document.target_action
-        if target_action == last_target_action:
-            break
-
-        # REQ-B-004: do not chain to closeConnection200 on a turn that
-        # carries a pending disambiguation — the connection is logically
-        # still open across the user's next turn.
-        if target_action == "closeConnection200" and _any_pending_disambiguation(document):
-            _log.debug(
-                "UR: suppressing closeConnection200 chain because at least "
-                "one intent carries pending_disambiguation"
-            )
-            break
-
-        _validate_document(document, target_action)
-        await _dispatch_target_action(deps, document, target_action)
-        last_target_action = target_action
-    else:
-        raise RuntimeError(
-            f"UR dispatch exceeded {_MAX_DISPATCH_HOPS} hops; last "
-            f"target_action={last_target_action!r}"
-        )
-
-    return Response(
-        kind="utterance",
-        result={"target_action": last_target_action},
-    )
-
-
 def _any_pending_disambiguation(document) -> bool:
     """True when any intent entry on the document carries a
     pending_disambiguation marker. UR uses this to suppress closeConnection200
@@ -312,212 +224,6 @@ def _any_pending_disambiguation(document) -> bool:
         if getattr(entry, "pending_disambiguation", None) is not None:
             return True
     return False
-
-
-_MAX_DISPATCH_HOPS = 3
-
-
-def _validate_document(document, target_action: str) -> None:
-    """UR compliance check on the IntentDocument: target_action enumerated
-    by Pydantic; must correspond to a name in intents[]; required arguments
-    non-empty and parseable; findAProvider geography sufficiency."""
-    import json as _json
-
-    target_intent_entry = next(
-        (i for i in document.intents if i.name == target_action), None,
-    )
-    if target_intent_entry is None:
-        raise RuntimeError(
-            f"UR compliance: target_action {target_action!r} has no matching "
-            f"entry in intents[] (names={[i.name for i in document.intents]})"
-        )
-    for arg in target_intent_entry.arguments:
-        if arg.required and not arg.value:
-            raise RuntimeError(
-                f"UR compliance: required argument {arg.name!r} for target_action "
-                f"{target_action!r} has empty value"
-            )
-        if arg.type == "boolean" and arg.value not in ("true", "false"):
-            raise RuntimeError(
-                f"UR compliance: boolean argument {arg.name!r} has value "
-                f"{arg.value!r}, must be 'true' or 'false'"
-            )
-        if arg.type in ("object", "array"):
-            try:
-                _json.loads(arg.value)
-            except _json.JSONDecodeError as exc:
-                raise RuntimeError(
-                    f"UR compliance: {arg.type} argument {arg.name!r} value is not "
-                    f"valid JSON: {exc}"
-                )
-
-    if target_action == "findAProvider":
-        geo_arg = next(
-            (a for a in target_intent_entry.arguments if a.name == "geography"), None,
-        )
-        if geo_arg is None:
-            raise RuntimeError(
-                "UR compliance: findAProvider missing geography argument"
-            )
-        geo = _json.loads(geo_arg.value)
-        zip_code = (geo.get("zip") or "").strip()
-        state = (geo.get("state") or "").strip()
-        if not zip_code and not state:
-            raise RuntimeError(
-                "UR compliance: findAProvider geography insufficient — needs "
-                "zip OR state (city/county without state are not enough)"
-            )
-
-
-async def _dispatch_target_action(deps: AgentDeps, document, target_action: str) -> None:
-    """Dispatch the tool that owns this target_action. Tools may mutate
-    user_object.intent before returning; the caller loops and re-dispatches."""
-    import json as _json
-
-    target_intent_entry = next(
-        (i for i in document.intents if i.name == target_action), None,
-    )
-
-    if target_action == "nonsense":
-        from NonsenseTool import nonsense_tool
-        await nonsense_tool.TOOL.run_and_log(deps, nonsense_tool.Request())
-
-    elif target_action == "closeConnection200":
-        from CloseConnection200Tool import close_connection_200_tool
-        await close_connection_200_tool.TOOL.run_and_log(
-            deps, close_connection_200_tool.Request(),
-        )
-
-    elif target_action == "specialtySearch":
-        complaint = next(
-            (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
-            "",
-        )
-        specialties = await _run_or_cache_specialty_filter(deps, complaint)
-        if not specialties:
-            deps.stream({
-                "kind": "final",
-                "data": {"ok": False, "error": "no_specialties"},
-            })
-        else:
-            deps.stream({"kind": "final", "data": {"ok": True}})
-
-    elif target_action == "findAProvider":
-        from authentication import provider_search_and_selection_tool
-
-        complaint = next(
-            (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
-            "",
-        )
-        specialties = await _run_or_cache_specialty_filter(deps, complaint)
-        if not specialties:
-            deps.stream({
-                "kind": "final",
-                "data": {"ok": False, "error": "no_specialties"},
-            })
-        else:
-            # FindCare-UR REQ-B-002: ProviderSearch fires only when
-            # geography is sufficient.
-            geo_arg_val = next(
-                (a for a in target_intent_entry.arguments if a.name == "geography"),
-                None,
-            )
-            geo = _json.loads(geo_arg_val.value) if geo_arg_val else {}
-            ps_req = provider_search_and_selection_tool.Request(
-                specialty_codes=[c["code"] for c in specialties],
-                state=geo.get("state"),
-                city=geo.get("city"),
-                county=geo.get("county"),
-                zip=geo.get("zip"),
-                limit=25,
-            )
-            await provider_search_and_selection_tool.TOOL.run_and_log(
-                deps, ps_req,
-            )
-            deps.stream({"kind": "final", "data": {"ok": True}})
-
-    else:
-        raise RuntimeError(
-            f"UR compliance: out-of-catalog target_action {target_action!r}"
-        )
-
-
-async def _run_or_cache_specialty_filter(deps: AgentDeps, complaint: str) -> list[dict]:
-    """REQ-B-002 + REQ-B-003 + FindCare-UR REQ-B-001.
-
-    Look for a cached nucc_codes argument on the IntentDocument's
-    specialtySearch and findAProvider entries. On a cache hit, parse
-    the cached value and stream it back to the FE as a
-    {kind:"specialties"} event without re-running SpecialtyFilter.
-    On a cache miss, run SpecialtyFilter, then write nucc_codes back
-    onto both intent entries (whichever exist) so subsequent turns hit
-    the cache.
-
-    Returns the list of {code, name, score, ...} dicts.
-    """
-    import json as _json
-    from UtteranceManager.intent_document import Argument
-
-    document = deps.user_object.intent
-    if document is None:
-        return []
-
-    cached = _read_nucc_codes_cache(document)
-    if cached is not None:
-        # Stream the cached codes to the FE so the specialty filter renders
-        # on this turn without re-running SpecialtyFilter.
-        deps.stream({"kind": "specialties", "data": {"specialties": cached}})
-        return cached
-
-    # Restore prior behavior: SpecialtyFilter sees the VERBATIM latest
-    # person utterance, not UM's narrow `complaint` extraction. The
-    # filter's prompt scores user-named roles ("nurse practitioner",
-    # "acupuncturist", etc.) at 1.0 with adjacents <=0.7 — but only if
-    # the role name actually reaches it. UM's complaint extraction
-    # strips role names, so the filter must source the raw utterance.
-    raw_utterance = ""
-    for u in reversed(deps.user_object.session_conversation_history.utterances):
-        actor = getattr(u, "actor", None) or (u.get("actor") if isinstance(u, dict) else None)
-        text = getattr(u, "text", None) or (u.get("text") if isinstance(u, dict) else "")
-        if actor == "person" and text:
-            raw_utterance = str(text).strip()
-            break
-    query = raw_utterance or complaint
-    from SpecialtyFilter import specialty_filter_tool
-    fs = await specialty_filter_tool.TOOL.run_and_log(
-        deps, specialty_filter_tool.Request(query=query),
-    )
-    if fs.error or not fs.specialties:
-        return []
-
-    specialties = [s.model_dump(exclude_none=True) for s in fs.specialties]
-    encoded = _json.dumps(specialties)
-
-    # Write nucc_codes back onto every applicable intent entry so the
-    # next turn (after the user resolves a pending disambiguation) sees
-    # the cached value. Rebuild each affected entry through Pydantic so
-    # validation runs on the new argument list.
-    new_intents = []
-    for entry in document.intents:
-        if entry.name in ("specialtySearch", "findAProvider"):
-            kept_args = [a for a in entry.arguments if a.name != "nucc_codes"]
-            kept_args.append(Argument(
-                name="nucc_codes", value=encoded, type="array", required=False,
-            ))
-            new_intents.append(type(entry).model_validate({
-                **entry.model_dump(),
-                "arguments": [a.model_dump() for a in kept_args],
-            }))
-        else:
-            new_intents.append(entry)
-    from UtteranceManager.intent_document import IntentDocument as _IntentDocument
-    deps.user_object.intent = _IntentDocument(
-        target_action=document.target_action,
-        intents=new_intents,
-        user_message=document.user_message,
-    )
-
-    return specialties
 
 
 def _read_nucc_codes_cache(document) -> Optional[list[dict]]:
@@ -541,29 +247,12 @@ def _read_nucc_codes_cache(document) -> Optional[list[dict]]:
     return None
 
 
-async def _handle_provider_detail(deps: AgentDeps, payload: dict[str, Any]) -> Response:
-    """Click path: a user clicked the detail link on a provider card. This
-    is NOT an utterance — no LLM hop. Forward the card-field payload to
-    the ProviderDetail tool, which HTTPS-hops to FindCare and streams
-    {kind: 'provider-detail', data: ...} back to the FE."""
-    req = provider_detail_tool.Request(**payload)
-    resp = await provider_detail_tool.TOOL.run_and_log(deps, req)
-    deps.stream({"kind": "final", "data": {"ok": not resp.error}})
-    return Response(kind="provider-detail", result=resp.model_dump(exclude_none=True))
-
-
-_HANDLERS = {
-    "boot": _handle_boot,
-    "splash": _handle_splash,
-    "record_ux_event": _handle_record_ux_event,
-    "utterance": _handle_utterance,
-    "provider-detail": _handle_provider_detail,
-}
-
-
 # ────────────────────────────────────────────────────────────────────
-# Tool class — single dispatch entry point for the gate
+# Tool class — single dispatch entry point for the gate. UR's
+# orchestration helpers live as methods so each component is
+# self-contained and the class is the unit of testing and extension.
 # ────────────────────────────────────────────────────────────────────
+
 
 class UniversalNavigationTool(ChatHealthyTool):
     """Receives the post-AuthN deps + a typed NavRequest (op + payload),
@@ -576,12 +265,709 @@ class UniversalNavigationTool(ChatHealthyTool):
     Request = Request
     Response = Response
 
+    # Map ops to method names. run() looks up by op and dispatches via
+    # getattr(self, name). Adding a new op = new method + new dict entry.
+    _OP_HANDLERS = {
+        "boot":            "_handle_boot",
+        "splash":          "_handle_splash",
+        "record_ux_event": "_handle_record_ux_event",
+        "utterance":       "_handle_utterance",
+        "provider-detail": "_handle_provider_detail",
+        "apply_filter":    "_handle_apply_filter",
+    }
+
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         op = (request.op or "boot")
-        handler = _HANDLERS.get(op)
-        if handler is None:
-            return self.Response(kind="unknown_op", result={"op": op, "error": f"unknown op {op!r}"})
-        return await handler(deps, request.payload or {})
+        method_name = self._OP_HANDLERS.get(op)
+        if method_name is None:
+            return self.Response(
+                kind="unknown_op",
+                result={"op": op, "error": f"unknown op {op!r}"},
+            )
+        return await getattr(self, method_name)(deps, request.payload or {})
+
+    # ── Op handlers ───────────────────────────────────────────────
+
+    async def _handle_boot(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        deps.stream({"kind": "boot", "data": {"ok": True}})
+        return Response(kind="boot", result={"op": "boot"})
+
+    async def _handle_splash(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        data = _splash_data(deps.user_object)
+        append_action(
+            deps.user_object,
+            tool_name="splash_displayed",
+            input_json={},
+            output_json={"note": "SharedServices took ownership and rendered the User Object."},
+        )
+        deps.stream({"kind": "splash", "data": data})
+        return Response(kind="splash", result=data)
+
+    async def _handle_record_ux_event(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        event_type = str(payload.get("event_type") or "").strip()
+        if not event_type:
+            return Response(kind="record_ux_event", result={"ok": False, "error": "event_type required"})
+        append_action(
+            deps.user_object,
+            tool_name="ux_event",
+            input_json={
+                "event_type": event_type,
+                "value": payload.get("value"),
+            },
+            output_json={},
+        )
+        deps.stream({"kind": "ux_event_recorded", "data": {"event_type": event_type}})
+        return Response(kind="record_ux_event", result={"ok": True})
+
+    async def _handle_utterance(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """UR dispatch for op == 'utterance'. Routes the user's typed text
+        through UtteranceManager (which classifies and writes IntentDocument
+        to user_object.intent), then pattern-matches on target_action and
+        dispatches the appropriate tool.
+
+        UR validates schema + semantic compliance before dispatch; raises if
+        UM gave us a malformed document. The tool dispatched is the only one
+        that should write user-facing output for that intent.
+        """
+        text = str(payload.get("text") or "").strip()
+        if not text:
+            return Response(kind="utterance", result={"ok": False, "error": "text required"})
+
+        # Persist the utterance onto user_object so downstream tools (UM or
+        # LockoutTool) read it from the canonical place
+        # (session_conversation_history.utterances[-1]).
+        deps.user_object.persist_user_state(text)
+
+        # safetyLockout pre-UM gate. UR hydrates user_object.is_locked_out +
+        # user_object.lockout from {env}_Safety.emergency_incidents by IP. If
+        # the IP has an active (unexpired, not-unlocked) record, UM is NOT
+        # called this turn — LockoutTool runs directly to handle Task A
+        # (operator $unlock backdoor) or Task B (still-locked reminder).
+        await self._hydrate_lockout_if_any(deps)
+        if deps.user_object.is_locked_out:
+            from LockoutTool import lockout_tool
+            await lockout_tool.TOOL.run_and_log(deps, lockout_tool.Request())
+            return Response(kind="utterance", result={"target_action": "safetyLockout"})
+
+        from UtteranceManager import manager as utterance_manager_module
+        await utterance_manager_module.TOOL.run_and_log(
+            deps, utterance_manager_module.Request(),
+        )
+
+        last_target_action: Optional[str] = None
+        for _hop in range(_MAX_DISPATCH_HOPS):
+            document = deps.user_object.intent
+            if document is None:
+                raise RuntimeError(
+                    "UR compliance: UtteranceManager returned without setting "
+                    "user_object.intent"
+                )
+
+            target_action = document.target_action
+            if target_action == last_target_action:
+                break
+
+            # REQ-B-004: do not chain to closeConnection200 on a turn that
+            # carries a pending disambiguation — the connection is logically
+            # still open across the user's next turn.
+            if target_action == "closeConnection200" and _any_pending_disambiguation(document):
+                _log.debug(
+                    "UR: suppressing closeConnection200 chain because at least "
+                    "one intent carries pending_disambiguation"
+                )
+                break
+
+            self._validate_document(document, target_action)
+            await self._dispatch_target_action(deps, document, target_action)
+            last_target_action = target_action
+        else:
+            raise RuntimeError(
+                f"UR dispatch exceeded {_MAX_DISPATCH_HOPS} hops; last "
+                f"target_action={last_target_action!r}"
+            )
+
+        return Response(
+            kind="utterance",
+            result={"target_action": last_target_action},
+        )
+
+    async def _handle_provider_detail(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """Click path: a user clicked the detail link on a provider card. This
+        is NOT an utterance — no LLM hop. Forward the card-field payload to
+        the ProviderDetail tool, which HTTPS-hops to FindCare and streams
+        {kind: 'provider-detail', data: ...} back to the FE."""
+        req = provider_detail_tool.Request(**payload)
+        resp = await provider_detail_tool.TOOL.run_and_log(deps, req)
+        deps.stream({"kind": "final", "data": {"ok": not resp.error}})
+        return Response(kind="provider-detail", result=resp.model_dump(exclude_none=True))
+
+    async def _handle_apply_filter(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """UR dispatch for op == 'apply_filter' per
+        EPIC-002-F-010-S-002-REQ-B-002.
+
+        The FE just told us the user clicked Apply Filter with a new
+        specialty selection (payload carries the new nucc_codes set).
+        UR reads the carried IntentDocument's geography and branches:
+
+        * Geography sufficient (zip OR state, per the same rule
+          findAProvider applies) — build a new IntentDocument with
+          target_action=findAProvider using the new nucc_codes set,
+          dispatch ProviderSearch directly. UM is NOT called (no prose
+          needed; the provider list IS the response).
+
+        * Geography insufficient — populate
+          manufacture_utterance_reason with the relevant facts and
+          dispatch UM as a manufacture-trigger Request per
+          EPIC-002-F-010-S-003-REQ-T-001. UM authors the
+          context-sensitive location prompt and morphs the
+          IntentDocument to closeConnection200; UR's bounded dispatch
+          loop chains to CloseConnection200Tool.
+        """
+        import json as _json
+        from UtteranceManager.intent_document import (
+            Argument, IntentDocument, IntentSpecialtySearch, IntentFindAProvider,
+        )
+
+        nucc_codes = payload.get("nucc_codes") or []
+        if not isinstance(nucc_codes, list):
+            return Response(
+                kind="apply_filter",
+                result={"ok": False, "error": "nucc_codes must be a list"},
+            )
+        # The user's Apply-Filter narrowing — list of code STRINGS the
+        # FE sent. This stores on selected_nucc_codes and is what
+        # ProviderSearch filters against. The full specialty universe
+        # (the FE's panel) lives on nucc_codes and MUST NOT be
+        # overwritten by Apply Filter — that's the bug Skip reported on
+        # 2026-06-10: complaint did not change, so the filter choices
+        # must not change either.
+        selected_codes = [c for c in nucc_codes if isinstance(c, str)]
+        selected_codes_json = _json.dumps(selected_codes)
+
+        prior = deps.user_object.intent
+        complaint, geography = self._extract_complaint_and_geography(prior)
+
+        if self._geography_sufficient(geography):
+            new_doc = self._build_apply_filter_findaprovider_doc(
+                prior, complaint, geography, selected_codes_json,
+            )
+            deps.user_object.intent = new_doc
+            await self._dispatch_target_action(deps, new_doc, "findAProvider")
+            return Response(
+                kind="apply_filter",
+                result={"target_action": "findAProvider"},
+            )
+
+        reason: dict[str, Any] = {
+            "gesture": "apply_filter",
+            "missing_slot": "geography",
+            "selected_specialty_count": len(selected_codes),
+        }
+        if complaint:
+            reason["prior_complaint"] = complaint
+        partial_geo = {k: v for k, v in (geography or {}).items() if v}
+        if partial_geo:
+            reason["prior_partial_geography"] = partial_geo
+
+        # Carry the user's selection through onto the existing
+        # specialtySearch / findAProvider intents WITHOUT touching the
+        # nucc_codes universe. The next-turn interpret path (after the
+        # user supplies geography) will read selected_nucc_codes for
+        # ProviderSearch.
+        seeded_doc = self._seed_intent_with_selection(
+            prior, complaint, geography, selected_codes_json,
+        )
+        deps.user_object.intent = seeded_doc
+
+        from UtteranceManager import manager as utterance_manager_module
+        await utterance_manager_module.TOOL.run_and_log(
+            deps,
+            utterance_manager_module.Request(
+                trigger_type="manufacture",
+                manufacture_utterance_reason=reason,
+            ),
+        )
+        return Response(
+            kind="apply_filter",
+            result={"target_action": "closeConnection200"},
+        )
+
+    # ── Orchestration helpers ─────────────────────────────────────
+
+    @staticmethod
+    def _geography_sufficient(geo: Optional[dict]) -> bool:
+        """Same rule findAProvider applies — zip OR state. city/county
+        without state are not enough."""
+        if not geo:
+            return False
+        return bool((geo.get("zip") or "").strip()) or bool((geo.get("state") or "").strip())
+
+    @staticmethod
+    def _extract_complaint_and_geography(
+        document,
+    ) -> tuple[str, dict]:
+        """Read the latest known complaint + geography off the carried
+        IntentDocument. Looks at findAProvider first (preferred — carries
+        both), falls back to specialtySearch for complaint. Returns
+        ('', {}) if no useful data is found."""
+        import json as _json
+        if document is None:
+            return "", {}
+        complaint = ""
+        geography: dict = {}
+        for name in ("findAProvider", "specialtySearch"):
+            entry = next((i for i in document.intents if i.name == name), None)
+            if entry is None:
+                continue
+            for arg in entry.arguments:
+                if arg.name == "complaint" and arg.value and not complaint:
+                    complaint = arg.value
+                if arg.name == "geography" and arg.value and not geography:
+                    try:
+                        parsed = _json.loads(arg.value)
+                        if isinstance(parsed, dict):
+                            geography = parsed
+                    except _json.JSONDecodeError:
+                        pass
+        return complaint, geography
+
+    @staticmethod
+    def _carry_universe_args(prior_entry) -> list:
+        """Pull complaint + nucc_codes (universe) + geography from an
+        existing intent entry on the prior document. Returns a list of
+        Argument objects ready to be re-emitted on a refreshed entry.
+        Filters out any prior selected_nucc_codes — Apply Filter
+        regenerates that on every click."""
+        from UtteranceManager.intent_document import Argument
+        out: list = []
+        if prior_entry is None:
+            return out
+        for arg in prior_entry.arguments:
+            if arg.name == "selected_nucc_codes":
+                continue
+            out.append(Argument(
+                name=arg.name, value=arg.value, type=arg.type, required=arg.required,
+            ))
+        return out
+
+    @staticmethod
+    def _build_apply_filter_findaprovider_doc(
+        prior, complaint: str, geography: dict, selected_codes_json: str,
+    ):
+        """When apply_filter arrives with sufficient geography, build a
+        synthetic IntentDocument with target_action=findAProvider. The
+        existing dispatch path runs ProviderSearch with the user's
+        selection (selected_nucc_codes). The full specialty universe
+        carried on nucc_codes is preserved — it is what the FE filter
+        panel renders, and the complaint did not change so the universe
+        does not change."""
+        import json as _json
+        from UtteranceManager.intent_document import (
+            Argument, IntentDocument, IntentFindAProvider, IntentSpecialtySearch,
+        )
+        prior_spec = next(
+            (i for i in (prior.intents if prior is not None else []) if i.name == "specialtySearch"),
+            None,
+        ) if prior is not None else None
+        prior_findap = next(
+            (i for i in (prior.intents if prior is not None else []) if i.name == "findAProvider"),
+            None,
+        ) if prior is not None else None
+
+        # specialtySearch: carry everything except selected_nucc_codes
+        # from prior + add the new selected_nucc_codes. Ensure complaint
+        # is present.
+        spec_args = UniversalNavigationTool._carry_universe_args(prior_spec)
+        if not any(a.name == "complaint" for a in spec_args):
+            spec_args.insert(0, Argument(
+                name="complaint", value=complaint or "", type="string", required=True,
+            ))
+        spec_args.append(Argument(
+            name="selected_nucc_codes", value=selected_codes_json,
+            type="array", required=False,
+        ))
+        spec = IntentSpecialtySearch(name="specialtySearch", arguments=spec_args)
+
+        # findAProvider: carry everything (universe nucc_codes,
+        # complaint, prior geography) + new geography from THIS turn +
+        # new selected_nucc_codes.
+        geo_compact = {k: v for k, v in (geography or {}).items() if v}
+        findap_args = UniversalNavigationTool._carry_universe_args(prior_findap)
+        findap_args = [a for a in findap_args if a.name not in ("complaint", "geography")]
+        findap_args.insert(0, Argument(
+            name="complaint", value=complaint or "", type="string", required=True,
+        ))
+        findap_args.append(Argument(
+            name="geography", value=_json.dumps(geo_compact),
+            type="object", required=True,
+        ))
+        findap_args.append(Argument(
+            name="selected_nucc_codes", value=selected_codes_json,
+            type="array", required=False,
+        ))
+        findap = IntentFindAProvider(name="findAProvider", arguments=findap_args)
+
+        intents: list = [spec, findap]
+        if prior is not None:
+            for entry in prior.intents:
+                if entry.name not in ("specialtySearch", "findAProvider"):
+                    intents.append(entry)
+        return IntentDocument(
+            target_action="findAProvider",
+            intents=intents[:4],
+            user_message=None,
+        )
+
+    @staticmethod
+    def _seed_intent_with_selection(
+        prior, complaint: str, geography: dict, selected_codes_json: str,
+    ):
+        """Apply-Filter with insufficient geography: write the user's
+        selection onto selected_nucc_codes on the carried specialtySearch
+        and findAProvider intents WITHOUT touching the nucc_codes
+        universe. The complaint did not change, so the universe does not
+        change. The next-turn interpret path will see selected_nucc_codes
+        and ProviderSearch will use it as its filter."""
+        import json as _json
+        from UtteranceManager.intent_document import (
+            Argument, IntentDocument, IntentFindAProvider, IntentSpecialtySearch,
+        )
+        prior_spec = next(
+            (i for i in (prior.intents if prior is not None else []) if i.name == "specialtySearch"),
+            None,
+        ) if prior is not None else None
+        prior_findap = next(
+            (i for i in (prior.intents if prior is not None else []) if i.name == "findAProvider"),
+            None,
+        ) if prior is not None else None
+
+        # specialtySearch: carry everything (universe nucc_codes,
+        # complaint) + new selected_nucc_codes.
+        spec_args = UniversalNavigationTool._carry_universe_args(prior_spec)
+        if not any(a.name == "complaint" for a in spec_args):
+            spec_args.insert(0, Argument(
+                name="complaint", value=complaint or "", type="string", required=True,
+            ))
+        spec_args.append(Argument(
+            name="selected_nucc_codes", value=selected_codes_json,
+            type="array", required=False,
+        ))
+        spec = IntentSpecialtySearch(name="specialtySearch", arguments=spec_args)
+
+        intents: list = [spec]
+
+        # findAProvider only if we have prior partial geography to carry.
+        geo_compact = {k: v for k, v in (geography or {}).items() if v}
+        if geo_compact or prior_findap is not None:
+            findap_args = UniversalNavigationTool._carry_universe_args(prior_findap)
+            findap_args = [a for a in findap_args if a.name not in ("complaint", "geography")]
+            findap_args.insert(0, Argument(
+                name="complaint", value=complaint or "", type="string", required=True,
+            ))
+            if geo_compact:
+                findap_args.append(Argument(
+                    name="geography", value=_json.dumps(geo_compact),
+                    type="object", required=True,
+                ))
+            findap_args.append(Argument(
+                name="selected_nucc_codes", value=selected_codes_json,
+                type="array", required=False,
+            ))
+            intents.append(IntentFindAProvider(name="findAProvider", arguments=findap_args))
+
+        if prior is not None:
+            for entry in prior.intents:
+                if entry.name not in ("specialtySearch", "findAProvider"):
+                    intents.append(entry)
+        return IntentDocument(
+            target_action="specialtySearch",
+            intents=intents[:4],
+            user_message=None,
+        )
+
+    async def _hydrate_lockout_if_any(self, deps: AgentDeps) -> None:
+        """UR's pre-UM hydration step for the safetyLockout flow.
+
+        Single find_one against {env}_Safety.emergency_incidents keyed by
+        user_object.ip_address. If an active record exists (expires_at >
+        now AND unlocked != true), stamps is_locked_out=True and a Lockout
+        sub-object straight from the DB record's matching fields. Otherwise
+        leaves user_object untouched.
+
+        All three LockoutTool tasks read their inputs from user_object;
+        this is the only DB read in the lockout flow.
+        """
+        ip = (deps.user_object.ip_address or "").strip()
+        if not ip:
+            return
+        if deps.mongo_frontend is None:
+            return
+        coll = deps.mongo_frontend[f"{_ENV}_Safety"]["emergency_incidents"]
+        now_iso = datetime.now(timezone.utc).isoformat()
+        try:
+            record = coll.find_one({
+                "ip": ip,
+                "expires_at": {"$gt": now_iso},
+                "unlocked": {"$ne": True},
+            })
+        except Exception as exc:
+            _log.exception("UR: _hydrate_lockout_if_any find_one failed: %s", exc)
+            return
+        if record is None:
+            return
+        from authentication.user_object import Lockout
+        expires_str = record.get("expires_at") or ""
+        try:
+            expires_at = datetime.fromisoformat(expires_str)
+        except Exception:
+            _log.warning(
+                "UR: emergency_incidents row for ip=%s has invalid expires_at=%r; "
+                "treating as inactive", ip[:16] + "...", expires_str,
+            )
+            return
+        deps.user_object.is_locked_out = True
+        deps.user_object.lockout = Lockout(
+            expires_at=expires_at,
+            trigger_utterance=str(record.get("trigger_message") or ""),
+            history=list(record.get("history") or []),
+        )
+        _log.debug(
+            "UR: hydrated lockout for ip=%s; expires_at=%s",
+            ip[:16] + "...", expires_str,
+        )
+
+    def _validate_document(self, document, target_action: str) -> None:
+        """UR compliance check on the IntentDocument: target_action enumerated
+        by Pydantic; must correspond to a name in intents[]; required arguments
+        non-empty and parseable; findAProvider geography sufficiency."""
+        import json as _json
+
+        target_intent_entry = next(
+            (i for i in document.intents if i.name == target_action), None,
+        )
+        if target_intent_entry is None:
+            raise RuntimeError(
+                f"UR compliance: target_action {target_action!r} has no matching "
+                f"entry in intents[] (names={[i.name for i in document.intents]})"
+            )
+        for arg in target_intent_entry.arguments:
+            if arg.required and not arg.value:
+                raise RuntimeError(
+                    f"UR compliance: required argument {arg.name!r} for target_action "
+                    f"{target_action!r} has empty value"
+                )
+            if arg.type == "boolean" and arg.value not in ("true", "false"):
+                raise RuntimeError(
+                    f"UR compliance: boolean argument {arg.name!r} has value "
+                    f"{arg.value!r}, must be 'true' or 'false'"
+                )
+            if arg.type in ("object", "array"):
+                try:
+                    _json.loads(arg.value)
+                except _json.JSONDecodeError as exc:
+                    raise RuntimeError(
+                        f"UR compliance: {arg.type} argument {arg.name!r} value is not "
+                        f"valid JSON: {exc}"
+                    )
+
+        if target_action == "findAProvider":
+            geo_arg = next(
+                (a for a in target_intent_entry.arguments if a.name == "geography"), None,
+            )
+            if geo_arg is None:
+                raise RuntimeError(
+                    "UR compliance: findAProvider missing geography argument"
+                )
+            geo = _json.loads(geo_arg.value)
+            zip_code = (geo.get("zip") or "").strip()
+            state = (geo.get("state") or "").strip()
+            if not zip_code and not state:
+                raise RuntimeError(
+                    "UR compliance: findAProvider geography insufficient — needs "
+                    "zip OR state (city/county without state are not enough)"
+                )
+
+    async def _dispatch_target_action(self, deps: AgentDeps, document, target_action: str) -> None:
+        """Dispatch the tool that owns this target_action. Tools may mutate
+        user_object.intent before returning; the caller loops and re-dispatches."""
+        import json as _json
+
+        target_intent_entry = next(
+            (i for i in document.intents if i.name == target_action), None,
+        )
+
+        if target_action == "nonsense":
+            from NonsenseTool import nonsense_tool
+            await nonsense_tool.TOOL.run_and_log(deps, nonsense_tool.Request())
+
+        elif target_action == "safetyLockout":
+            # UM judged the latest utterance signals immediate medical
+            # attention. LockoutTool's Task C inserts the
+            # {env}_Safety.emergency_incidents record, stamps user_object
+            # state, streams the deterministic "why" + Skip phone number,
+            # and morphs target_action to closeConnection200.
+            from LockoutTool import lockout_tool
+            await lockout_tool.TOOL.run_and_log(deps, lockout_tool.Request())
+
+        elif target_action == "closeConnection200":
+            from CloseConnection200Tool import close_connection_200_tool
+            await close_connection_200_tool.TOOL.run_and_log(
+                deps, close_connection_200_tool.Request(),
+            )
+
+        elif target_action == "specialtySearch":
+            complaint = next(
+                (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
+                "",
+            )
+            specialties = await self._run_or_cache_specialty_filter(deps, complaint)
+            if not specialties:
+                deps.stream({
+                    "kind": "final",
+                    "data": {"ok": False, "error": "no_specialties"},
+                })
+            else:
+                deps.stream({"kind": "final", "data": {"ok": True}})
+
+        elif target_action == "findAProvider":
+            from authentication import provider_search_and_selection_tool
+
+            complaint = next(
+                (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
+                "",
+            )
+            specialties = await self._run_or_cache_specialty_filter(deps, complaint)
+            if not specialties:
+                deps.stream({
+                    "kind": "final",
+                    "data": {"ok": False, "error": "no_specialties"},
+                })
+            else:
+                # FindCare-UR REQ-B-002: ProviderSearch fires only when
+                # geography is sufficient.
+                geo_arg_val = next(
+                    (a for a in target_intent_entry.arguments if a.name == "geography"),
+                    None,
+                )
+                geo = _json.loads(geo_arg_val.value) if geo_arg_val else {}
+
+                # Apply-Filter selection (if any) narrows the search.
+                # Absent selection: search the full universe.
+                selected_arg = next(
+                    (a for a in target_intent_entry.arguments if a.name == "selected_nucc_codes"),
+                    None,
+                )
+                if selected_arg and selected_arg.value:
+                    try:
+                        selected_codes = _json.loads(selected_arg.value)
+                    except _json.JSONDecodeError:
+                        selected_codes = []
+                    if isinstance(selected_codes, list) and selected_codes:
+                        specialty_codes = [c for c in selected_codes if isinstance(c, str)]
+                    else:
+                        specialty_codes = [c["code"] for c in specialties]
+                else:
+                    specialty_codes = [c["code"] for c in specialties]
+
+                ps_req = provider_search_and_selection_tool.Request(
+                    specialty_codes=specialty_codes,
+                    state=geo.get("state"),
+                    city=geo.get("city"),
+                    county=geo.get("county"),
+                    zip=geo.get("zip"),
+                    limit=25,
+                )
+                await provider_search_and_selection_tool.TOOL.run_and_log(
+                    deps, ps_req,
+                )
+                deps.stream({"kind": "final", "data": {"ok": True}})
+
+        else:
+            raise RuntimeError(
+                f"UR compliance: out-of-catalog target_action {target_action!r}"
+            )
+
+    async def _run_or_cache_specialty_filter(self, deps: AgentDeps, complaint: str) -> list[dict]:
+        """REQ-B-002 + REQ-B-003 + FindCare-UR REQ-B-001.
+
+        Look for a cached nucc_codes argument on the IntentDocument's
+        specialtySearch and findAProvider entries. On a cache hit, parse
+        the cached value and stream it back to the FE as a
+        {kind:"specialties"} event without re-running SpecialtyFilter.
+        On a cache miss, run SpecialtyFilter, then write nucc_codes back
+        onto both intent entries (whichever exist) so subsequent turns hit
+        the cache.
+
+        Returns the list of {code, name, score, ...} dicts.
+        """
+        import json as _json
+        from UtteranceManager.intent_document import Argument
+
+        document = deps.user_object.intent
+        if document is None:
+            return []
+
+        cached = _read_nucc_codes_cache(document)
+        if cached is not None:
+            # Cache hit: the complaint did not change, so the FE
+            # specialty panel already reflects this universe. DO NOT
+            # stream kind:"specialties" — repainting the panel wipes
+            # the user's checked state (see 2026-06-10 Apply Filter
+            # bug). The cached value is still used internally for
+            # downstream dispatch (e.g., ProviderSearch fallback).
+            return cached
+
+        # Restore prior behavior: SpecialtyFilter sees the VERBATIM latest
+        # person utterance, not UM's narrow `complaint` extraction. The
+        # filter's prompt scores user-named roles ("nurse practitioner",
+        # "acupuncturist", etc.) at 1.0 with adjacents <=0.7 — but only if
+        # the role name actually reaches it. UM's complaint extraction
+        # strips role names, so the filter must source the raw utterance.
+        raw_utterance = ""
+        for u in reversed(deps.user_object.session_conversation_history.utterances):
+            actor = getattr(u, "actor", None) or (u.get("actor") if isinstance(u, dict) else None)
+            text = getattr(u, "text", None) or (u.get("text") if isinstance(u, dict) else "")
+            if actor == "person" and text:
+                raw_utterance = str(text).strip()
+                break
+        query = raw_utterance or complaint
+        from SpecialtyFilter import specialty_filter_tool
+        fs = await specialty_filter_tool.TOOL.run_and_log(
+            deps, specialty_filter_tool.Request(query=query),
+        )
+        if fs.error or not fs.specialties:
+            return []
+
+        specialties = [s.model_dump(exclude_none=True) for s in fs.specialties]
+        encoded = _json.dumps(specialties)
+
+        # Write nucc_codes back onto every applicable intent entry so the
+        # next turn (after the user resolves a pending disambiguation) sees
+        # the cached value. Rebuild each affected entry through Pydantic so
+        # validation runs on the new argument list.
+        new_intents = []
+        for entry in document.intents:
+            if entry.name in ("specialtySearch", "findAProvider"):
+                kept_args = [a for a in entry.arguments if a.name != "nucc_codes"]
+                kept_args.append(Argument(
+                    name="nucc_codes", value=encoded, type="array", required=False,
+                ))
+                new_intents.append(type(entry).model_validate({
+                    **entry.model_dump(),
+                    "arguments": [a.model_dump() for a in kept_args],
+                }))
+            else:
+                new_intents.append(entry)
+        from UtteranceManager.intent_document import IntentDocument as _IntentDocument
+        deps.user_object.intent = _IntentDocument(
+            target_action=document.target_action,
+            intents=new_intents,
+            user_message=document.user_message,
+        )
+
+        return specialties
+
+    # ── /gate orchestration entry point ───────────────────────────
 
     async def handle_gate(self, gate_req: GateRequest) -> GateResponse:
         """The whole /gate request lifecycle minus the HTTP envelope.
@@ -671,6 +1057,13 @@ class UniversalNavigationTool(ChatHealthyTool):
         fresh_mint = authn_resp.fresh_mint
         guid = user_object.current_session_token.get_auth_token()
         cookie_value = _assemble_session_token_value(user_object)
+
+        # Stamp client IP onto user_object at the HTTP boundary so tools
+        # (SafetyLockoutTool in particular) never touch the Request. UR's
+        # subsequent _hydrate_lockout_if_any consumes this in
+        # _handle_utterance.
+        if gate_req.client_ip:
+            user_object.ip_address = gate_req.client_ip
 
         # 5. Login_register short-circuit. The gateway-level OAuth start
         #    URL is built here (HTTP knowledge stays out of the auth tool).

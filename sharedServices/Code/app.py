@@ -267,6 +267,12 @@ async def gate(
     accept = (request.headers.get("accept") or "").lower()
     want_ndjson = "application/x-ndjson" in accept or "text/event-stream" in accept
 
+    # Client IP for safety-lockout hydration. X-Forwarded-For wins because
+    # Cloudflare and HF proxies put the real client there; bare
+    # request.client.host falls back when there's no proxy (local docker).
+    xff = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    client_ip = xff or (request.client.host if request.client else "")
+
     try:
         gate_req = nav.GateRequest(
             op=op,
@@ -274,6 +280,7 @@ async def gate(
             intent=intent,
             prior_guid=prior_guid,
             want_ndjson=want_ndjson,
+            client_ip=client_ip,
         )
         gate_resp = await UNIVERSAL_NAV_TOOL.handle_gate(gate_req)
 

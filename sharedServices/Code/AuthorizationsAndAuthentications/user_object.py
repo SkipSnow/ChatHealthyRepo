@@ -129,6 +129,28 @@ class OAuthIdentity(BaseModel):
     email: str
 
 
+class Lockout(BaseModel):
+    """Active safety-lockout state populated by UR's hydration step from
+    {env}_Safety.emergency_incidents (keyed by user_object.ip_address).
+    None on the user_object means there is no active lockout. UR sets
+    user_object.is_locked_out=True and stamps this sub-object straight
+    from the matching DB record before any tool dispatch.
+
+    Fields:
+      - expires_at:        when the lockout naturally expires
+      - trigger_utterance: the verbatim text that caused the lockout, so
+                           LockoutTool's Task B reminder can render the
+                           same "when you said '...'" prose Task C did
+                           on the locking turn
+      - history:           snapshot of utterances at lockout time, for
+                           in-session forensics; the {env}_Safety doc
+                           keeps the canonical audit trail
+    """
+    expires_at: datetime
+    trigger_utterance: str
+    history: list[dict] = Field(default_factory=list)
+
+
 class UserObject(BaseModel):
     """The complete session-bound user state.
 
@@ -150,6 +172,7 @@ class UserObject(BaseModel):
         default_factory=SessionConversationHistory
     )
     is_locked_out: Optional[bool] = None
+    lockout: Optional[Lockout] = None
     silly_question_counts: Optional[SillyQuestionCounts] = None
     ip_address: Optional[str] = None
     is_registered: Optional[bool] = None
@@ -183,30 +206,40 @@ class UserObject(BaseModel):
           registered_profile            stored
           not_registered_followup       stored
         """
-        # Concatenate stored arrays first, guest appended. Re-number both
-        # buckets monotonically so the merged session has a clean 1..N
-        # sequence in each bucket (the original n values came from two
-        # separate sessions and would collide).
-        def _renumber(items: list, kind: str) -> list:
-            out = []
-            for i, item in enumerate(items, start=1):
-                d = item.model_dump() if hasattr(item, "model_dump") else dict(item)
-                d["n"] = i
-                cls = Utterance if kind == "utterance" else Action
-                out.append(cls.model_validate(d))
-            return out
-
-        merged_utterances = (
+        # Concatenate stored arrays first, guest appended. The merged
+        # session uses a single global event counter (utterances and
+        # actions share one sequence so the narrative is reconstructible
+        # by sort-by-n). The merge pass sorts the union of both buckets
+        # by their `at` timestamp and assigns 1..N in chronological
+        # order; entries then live in their respective buckets but with
+        # globally-unique, time-ordered n.
+        all_events = []
+        for u in (
             list(self.session_conversation_history.utterances)
             + list(guest.session_conversation_history.utterances)
-        )
-        merged_actions = (
+        ):
+            d = u.model_dump() if hasattr(u, "model_dump") else dict(u)
+            all_events.append(("u", d))
+        for a in (
             list(self.session_conversation_history.actions)
             + list(guest.session_conversation_history.actions)
-        )
+        ):
+            d = a.model_dump() if hasattr(a, "model_dump") else dict(a)
+            all_events.append(("a", d))
+        all_events.sort(key=lambda kv: str(kv[1].get("at", "")))
+
+        merged_utterances: list[Utterance] = []
+        merged_actions: list[Action] = []
+        for i, (kind, d) in enumerate(all_events, start=1):
+            d["n"] = i
+            if kind == "u":
+                merged_utterances.append(Utterance.model_validate(d))
+            else:
+                merged_actions.append(Action.model_validate(d))
+
         merged_hist = SessionConversationHistory(
-            utterances=_renumber(merged_utterances, "utterance"),
-            actions=_renumber(merged_actions, "action"),
+            utterances=merged_utterances,
+            actions=merged_actions,
         )
 
         # silly_question_counts: lifetime accumulator.

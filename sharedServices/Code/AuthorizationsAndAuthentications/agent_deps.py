@@ -76,31 +76,52 @@ import logging as _logging
 _log = _logging.getLogger("shared_services.session_history")
 
 
+def _next_session_event_n(user_object: UserObject) -> int:
+    """ONE global session-wide event counter shared across both buckets.
+    Computed as max(n) over the union of utterances and actions, plus
+    one. Per-bucket counters (the prior design) collided on n=1, n=2
+    between buckets and made the chronological narrative impossible to
+    reconstruct; a single sequence interleaves the two streams so
+    sort-by-n recovers the actual order of events.
+    """
+    sch = user_object.session_conversation_history
+    max_n = 0
+    for u in sch.utterances:
+        if u.n > max_n:
+            max_n = u.n
+    for a in sch.actions:
+        if a.n > max_n:
+            max_n = a.n
+    return max_n + 1
+
+
 def append_person_utterance(user_object: UserObject, text: str) -> None:
     bucket = user_object.session_conversation_history.utterances
+    n = _next_session_event_n(user_object)
     bucket.append(Utterance(
-        n=len(bucket) + 1,
+        n=n,
         at=_now_pst(),
         actor="person",
         text=text,
     ))
     _log.debug(
         "append_person_utterance n=%d text=%r total_utterances=%d",
-        len(bucket), text[:80], len(bucket),
+        n, text[:80], len(bucket),
     )
 
 
 def append_system_utterance(user_object: UserObject, text: str) -> None:
     bucket = user_object.session_conversation_history.utterances
+    n = _next_session_event_n(user_object)
     bucket.append(Utterance(
-        n=len(bucket) + 1,
+        n=n,
         at=_now_pst(),
         actor="system",
         text=text,
     ))
     _log.debug(
         "append_system_utterance n=%d text=%r total_utterances=%d",
-        len(bucket), text[:80], len(bucket),
+        n, text[:80], len(bucket),
     )
 
 
@@ -113,10 +134,13 @@ def append_action(
 ) -> None:
     """Append a system action. tool_name='on_load' for action #1 of a new
     session; otherwise the dispatched tool's TOOL_NAME or 'ux_event' for
-    a recorded user gesture."""
+    a recorded user gesture. n is drawn from the single session-wide
+    sequence (shared with utterances) so the narrative is reconstructible
+    by sorting the union of both buckets by n."""
     bucket = user_object.session_conversation_history.actions
+    n = _next_session_event_n(user_object)
     bucket.append(Action(
-        n=len(bucket) + 1,
+        n=n,
         at=at if at is not None else _now_pst(),
         tool_name=tool_name,
         input_json=input_json or {},

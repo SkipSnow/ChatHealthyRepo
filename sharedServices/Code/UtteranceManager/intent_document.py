@@ -82,27 +82,34 @@ class IntentNonsense(BaseModel):
 
 class IntentSpecialtySearch(BaseModel):
     """Intent entry: UM extracted a complaint. Carries the complaint
-    argument and may carry the SpecialtyFilter output (nucc_codes) once UR
-    has run SpecialtyFilter at least once for this complaint."""
+    argument and may carry the SpecialtyFilter output (nucc_codes) plus
+    the user's Apply-Filter selection (selected_nucc_codes) once UR has
+    run SpecialtyFilter at least once for this complaint. nucc_codes is
+    the FULL specialty universe — it MUST NOT be overwritten by Apply
+    Filter; the user's narrowing goes onto selected_nucc_codes."""
 
     model_config = {"extra": "forbid"}
 
     name: Literal["specialtySearch"]
-    arguments: list[Argument] = Field(min_length=1, max_length=2)
+    arguments: list[Argument] = Field(min_length=1, max_length=3)
     pending_disambiguation: Optional[PendingDisambiguation] = None
 
 
 class IntentFindAProvider(BaseModel):
     """Intent entry: user is looking for a healthcare provider. Carries the
-    complaint phrase, a JSON-encoded geography object, and optionally the
-    cached SpecialtyFilter output (nucc_codes). When the classifier can
-    propose a candidate for the geography slot but cannot fully fill it,
-    pending_disambiguation is set and target_action stays at specialtySearch."""
+    complaint phrase, a JSON-encoded geography object, optionally the
+    cached SpecialtyFilter universe (nucc_codes), and optionally the
+    user's Apply-Filter selection (selected_nucc_codes). nucc_codes
+    represents the FULL universe — it MUST NOT be overwritten by Apply
+    Filter; the user's narrowing goes onto selected_nucc_codes. When
+    the classifier can propose a candidate for the geography slot but
+    cannot fully fill it, pending_disambiguation is set and
+    target_action stays at specialtySearch."""
 
     model_config = {"extra": "forbid"}
 
     name: Literal["findAProvider"]
-    arguments: list[Argument] = Field(min_length=1, max_length=3)
+    arguments: list[Argument] = Field(min_length=1, max_length=4)
     pending_disambiguation: Optional[PendingDisambiguation] = None
 
 
@@ -118,6 +125,22 @@ class IntentCloseConnection200(BaseModel):
     pending_disambiguation: Optional[PendingDisambiguation] = None
 
 
+class IntentSafetyLockout(BaseModel):
+    """Intent entry: UM classified the latest utterance as signalling
+    immediate medical attention. UR dispatches LockoutTool, which writes
+    the {env}_Safety.emergency_incidents record, stamps user_object
+    lockout state, and morphs target_action to closeConnection200.
+    Carries a single lockout_reason audit-label argument; the user-facing
+    'why' is rendered from the verbatim trigger utterance, not from this
+    label."""
+
+    model_config = {"extra": "forbid"}
+
+    name: Literal["safetyLockout"]
+    arguments: list[Argument] = Field(min_length=1, max_length=1)
+    pending_disambiguation: Optional[PendingDisambiguation] = None
+
+
 # Discriminated union — pydantic uses the `name` field to pick the variant.
 IntentEntry = Annotated[
     Union[
@@ -125,6 +148,7 @@ IntentEntry = Annotated[
         IntentSpecialtySearch,
         IntentFindAProvider,
         IntentCloseConnection200,
+        IntentSafetyLockout,
     ],
     Field(discriminator="name"),
 ]
@@ -136,7 +160,11 @@ IntentEntry = Annotated[
 
 
 TargetAction = Literal[
-    "nonsense", "specialtySearch", "findAProvider", "closeConnection200",
+    "nonsense",
+    "specialtySearch",
+    "findAProvider",
+    "closeConnection200",
+    "safetyLockout",
 ]
 
 
@@ -149,7 +177,7 @@ class IntentDocument(BaseModel):
     model_config = {"extra": "forbid"}
 
     target_action: TargetAction
-    intents: list[IntentEntry] = Field(min_length=1, max_length=3)
+    intents: list[IntentEntry] = Field(min_length=1, max_length=4)
     user_message: Optional[str] = Field(
         default=None,
         max_length=4096,
