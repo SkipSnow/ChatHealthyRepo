@@ -2,27 +2,28 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyUtteranceManagerOutputSchema.json",
   "title": "ChatHealthy UtteranceManager Output",
-  "description": "Structured output of the UtteranceManager (UM) classifier used by the ChatHealthy Universal Router (UR) to call the correct tool to do work on behalf of an end user. UM examines the user's latest utterance with others as necessary, and the prior intent document carried on user_object.intent.\n\nPERSISTENCE: this document lives on the session as `user_object.intent`. UM's first action on every invocation is to read user_object.intent and construct the Pydantic object from it; if the field is empty (first turn of the session), UM constructs a fresh document and assigns it to user_object.intent. UM updates the document over the course of its classification work and writes the updated version back to user_object.intent BEFORE returning control to UR. The document survives across turns — UM accumulates intents and arguments turn-by-turn rather than starting fresh each time.\n\nDIVISION OF RESPONSIBILITY:\n  * UM (producing side) — before emitting, validates that the chosen target_action's intent entry exists in intents[] and that every required argument for that intent has a value that parses to its declared type. UM enforces every semantic rule the JSON Schema cannot reach (e.g., the sufficiency rule on findAProvider.geography). If any required argument cannot be filled, UM streams a clarification prompt to the user and sets target_action to closeConnection200.\n  * UR (dispatch + compliance check) — UR validates the document before dispatching: target_action MUST be one of the catalog enum values; target_action MUST correspond to a name in intents[]; that intent entry MUST have all of its required: true arguments present with non-empty values that parse to their declared types; every semantic rule the JSON Schema cannot reach (e.g., findAProvider.geography sufficiency) MUST hold. If any check fails UR raises immediately at the smallest possible scope. UR is responsible for not making bad calls.\n  * Each tool (consuming side) — receives the document (or its intent's slice), reads the arguments it cares about, applies any tool-specific business rules, executes its work. Tools add their own defensive asserts without relying on UR having pre-validated.\n\nSTREAMING CONTRACT: every dispatched tool flushes the stream (awaits at least one event-loop tick after its last deps.stream(...) call) before returning control to UR, so when closeConnection200 is the next dispatch all bytes prior tools wrote are on the wire before the StreamingResponse terminates.\n\nMULTI-INTENT: intents[] can carry more than one entry. UM may have detected findAProvider on turn 1 (geography missing) and still be tracking that intent on turn 2 when the user provides the missing geography. UM may also have detected a secondary intent (e.g., a safety concern) in the same utterance. target_action is always the single intent UR actions this turn; the other intents remain in the document for future turns.\n\nCATALOG (this deploy's closed set): nonsense, findAProvider, closeConnection200. UM clamps to one of these three; UR raises on any out-of-catalog target_action.",
+  "description": "Structured output of the UtteranceManager (UM) classifier used by the ChatHealthy Universal Router (UR) to call the correct tool to do work on behalf of an end user. UM examines the user's latest utterance with others as necessary, and the prior intent document carried on user_object.intent.\n\nPERSISTENCE: this document lives on the session as `user_object.intent`. UM's first action on every invocation is to read user_object.intent and construct the Pydantic object from it; if the field is empty (first turn of the session), UM constructs a fresh document and assigns it to user_object.intent. UM updates the document over the course of its classification work and writes the updated version back to user_object.intent BEFORE returning control to UR. The document survives across turns — UM accumulates intents and arguments turn-by-turn rather than starting fresh each time.\n\nDIVISION OF RESPONSIBILITY:\n  * UM (producing side) — before emitting, validates that the chosen target_action's intent entry exists in intents[] and that every required argument for that intent has a value that parses to its declared type. UM enforces every semantic rule the JSON Schema cannot reach (e.g., the sufficiency rule on findAProvider.geography). If any required argument cannot be filled, UM streams a clarification prompt to the user and sets target_action to closeConnection200.\n  * UR (dispatch + compliance check) — UR validates the document before dispatching: target_action MUST be one of the catalog enum values; target_action MUST correspond to a name in intents[]; that intent entry MUST have all of its required: true arguments present with non-empty values that parse to their declared types; every semantic rule the JSON Schema cannot reach (e.g., findAProvider.geography sufficiency) MUST hold. If any check fails UR raises immediately at the smallest possible scope. UR is responsible for not making bad calls.\n  * Each tool (consuming side) — receives the document (or its intent's slice), reads the arguments it cares about, applies any tool-specific business rules, executes its work. Tools add their own defensive asserts without relying on UR having pre-validated.\n\nSTREAMING CONTRACT: every dispatched tool flushes the stream (awaits at least one event-loop tick after its last deps.stream(...) call) before returning control to UR, so when closeConnection200 is the next dispatch all bytes prior tools wrote are on the wire before the StreamingResponse terminates.\n\nMULTI-INTENT: intents[] can carry more than one entry. UM may have detected findAProvider on turn 1 (geography missing) and still be tracking that intent on turn 2 when the user provides the missing geography. UM may also have detected a secondary intent (e.g., a safety concern) in the same utterance. target_action is always the single intent UR actions this turn; the other intents remain in the document for future turns.\n\nCATALOG (this deploy's closed set): nonsense, specialtySearch, findAProvider, closeConnection200, safetyLockout. UM clamps to one of these five; UR raises on any out-of-catalog target_action. safetyLockout is special — UR may dispatch it WITHOUT calling UM whenever user_object.is_locked_out is true (UR hydrates that flag from {env}_Safety.emergency_incidents by IP at /gate entry); UM only emits target_action=safetyLockout on a turn where the user is NOT yet locked out and the classifier judges the utterance signals immediate medical attention.",
   "type": "object",
   "additionalProperties": false,
   "required": ["target_action", "intents"],
   "properties": {
     "target_action": {
-      "description": "The single action UR must dispatch next. UM picks one of the catalog values; UR's match/case is keyed off this field. MUST correspond to a name in intents[] — UM enforces that invariant before emitting.",
-      "enum": ["nonsense", "specialtySearch", "findAProvider", "closeConnection200"]
+      "description": "The single action UR must dispatch next. UM picks one of the catalog values; UR's match/case is keyed off this field. MUST correspond to a name in intents[] — UM enforces that invariant before emitting. NOTE: when user_object.is_locked_out is true (UR stamps it from {env}_Safety.emergency_incidents during hydration), UR dispatches safetyLockout directly without calling UM at all; UM's only role for safetyLockout is to recognise immediate-medical-attention utterances on turns where the user is NOT yet locked out and emit target_action=safetyLockout so UR locks them.",
+      "enum": ["nonsense", "specialtySearch", "findAProvider", "closeConnection200", "safetyLockout"]
     },
     "intents": {
       "type": "array",
       "description": "All intents UM has recognized for this document across turns. Each entry is one of the typed intent shapes defined in $defs. uniqueItems is enforced on the (name) field via the per-shape const — two entries with the same name MUST NOT exist in this array.",
       "minItems": 1,
-      "maxItems": 3,
+      "maxItems": 4,
       "uniqueItems": true,
       "items": {
         "oneOf": [
           { "$ref": "#/$defs/IntentNonsense" },
           { "$ref": "#/$defs/IntentSpecialtySearch" },
           { "$ref": "#/$defs/IntentFindAProvider" },
-          { "$ref": "#/$defs/IntentCloseConnection200" }
+          { "$ref": "#/$defs/IntentCloseConnection200" },
+          { "$ref": "#/$defs/IntentSafetyLockout" }
         ]
       }
     },
@@ -233,6 +234,39 @@
                 "description": "Cached SpecialtyFilter output. value is a JSON-encoded array of {code, name, score, ...} objects. UR writes this after SpecialtyFilter runs the first time and reads it on follow-up turns to avoid re-running SpecialtyFilter on the same complaint."
               }
             ]
+          }
+        }
+      }
+    },
+    "IntentSafetyLockout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "arguments"],
+      "description": "Intent entry for the safety-lockout action. UM emits this on a turn where the LLM classifier determines the user's utterance signals immediate medical attention (the prompt asks the LLM to make that determination 100%; no hardcoded keyword match outside the prompt). UR also dispatches LockoutTool when user_object.is_locked_out is already true (UR's pre-UM hydration stamped the flag from {env}_Safety.emergency_incidents); in that path UM is NOT called, so this intent entry only appears on the locking-now turn. LockoutTool reads the trigger utterance from user_object.session_conversation_history (the latest person utterance) and the IP from user_object.ip_address; no required arguments on this intent.",
+      "properties": {
+        "name": {
+          "const": "safetyLockout"
+        },
+        "pending_disambiguation": { "$ref": "#/$defs/PendingDisambiguation" },
+        "arguments": {
+          "type": "array",
+          "description": "Exactly one argument: lockout_reason (string). UM provides a short LLM-authored category label (e.g. 'cardiac symptoms', 'severe trauma', 'overdose') purely for the audit record; the user-facing 'why' is rendered by LockoutTool from the verbatim trigger utterance, not from this label.",
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              { "$ref": "#/$defs/Argument" },
+              {
+                "properties": {
+                  "name": { "const": "lockout_reason" },
+                  "type": { "const": "string" },
+                  "required": { "const": true },
+                  "value": { "minLength": 1, "maxLength": 256 }
+                }
+              }
+            ],
+            "description": "Audit-only label for the safety classification. LockoutTool stores it on the {env}_Safety.emergency_incidents record alongside the trigger_message but does NOT include it in user-facing prose."
           }
         }
       }

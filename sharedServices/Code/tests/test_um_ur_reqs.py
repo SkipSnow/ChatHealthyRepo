@@ -261,7 +261,7 @@ def test_req_ur_b002_b003_cache_hit_skips_specialty_filter():
 
     from SpecialtyFilter import specialty_filter_tool as sft
     with patch.object(sft.TOOL, "run_and_log", new=AsyncMock(side_effect=AssertionError("should not run"))):
-        codes = asyncio.run(nav._run_or_cache_specialty_filter(deps, "back pain"))
+        codes = asyncio.run(nav.TOOL._run_or_cache_specialty_filter(deps, "back pain"))
 
     assert codes == cached_codes
     assert any(e.get("kind") == "specialties" for e in events), events
@@ -295,7 +295,7 @@ def test_req_ur_b003_first_run_writes_nucc_codes_to_intent():
         specialties = [FakeRow("207X00000X", "Orthopaedic Surgery Physician", 0.9)]
 
     with patch.object(sft.TOOL, "run_and_log", new=AsyncMock(return_value=FakeResponse())):
-        codes = asyncio.run(nav._run_or_cache_specialty_filter(deps, "back pain"))
+        codes = asyncio.run(nav.TOOL._run_or_cache_specialty_filter(deps, "back pain"))
 
     assert codes and codes[0]["code"] == "207X00000X"
     new_doc = uo.intent
@@ -420,7 +420,7 @@ def test_req_findcare_ur_b001_nucc_codes_cached_on_findcare_intents():
         specialties = [FakeRow("207X00000X", "Orthopaedic Surgery Physician", 0.9)]
 
     with patch.object(sft.TOOL, "run_and_log", new=AsyncMock(return_value=FakeResponse())):
-        asyncio.run(nav._run_or_cache_specialty_filter(deps, "back pain"))
+        asyncio.run(nav.TOOL._run_or_cache_specialty_filter(deps, "back pain"))
 
     new_doc = uo.intent
     for nm in ("specialtySearch", "findAProvider"):
@@ -451,4 +451,4 @@ def test_req_findcare_ur_b002_validate_rejects_partial_geography():
         ],
     )
     with pytest.raises(RuntimeError, match="geography insufficient"):
-        nav._validate_document(bad_doc, "findAProvider")
+        nav.TOOL._validate_document(bad_doc, "findAProvider")
