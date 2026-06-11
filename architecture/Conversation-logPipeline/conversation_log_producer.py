@@ -82,8 +82,8 @@ _producer_config = {
 
 _producer: Producer = None
 
-# Rule-063 in-memory static — updated by /version_bump POST.
-_version_info = {"build": 0, "version": "?", "framework": "?"}
+# In-memory build stamp seeded from admin.Versions on startup.
+_version_info = {"build": 0, "version": "?", "git_number": "?"}
 _version_lock = threading.Lock()
 
 
@@ -114,25 +114,15 @@ def _load_initial_version_from_mongo():
         client = MongoClient(MONGO_CONN, serverSelectionTimeoutMS=5000)
         latest = client["admin"]["Versions"].find_one(sort=[("from", -1)])
         if latest:
-            # Per-env builds[] array shape: extract this producer's env slot.
-            # The producer runs co-located with backend containers; ENV_PREFIX
-            # identifies its env (dev|qa|prod). Off-Space defaults to dev.
-            _env = os.getenv("ENV_PREFIX") or "dev"
-            _builds_arr = latest.get("builds", [])
-            _build_for_env = 0
-            if isinstance(_builds_arr, list):
-                _build_for_env = next(
-                    (int(b.get("build", 0)) for b in _builds_arr
-                     if isinstance(b, dict) and b.get("env") == _env),
-                    0,
-                )
+            # Single global build counter per build_deploy_promote_plan v3 §3.
+            _build = int(latest.get("build", 0))
             with _version_lock:
-                _version_info["build"] = _build_for_env
-                _version_info["version"] = str(latest["version"])
-                _version_info["framework"] = str(latest["framework"])
-            _log.info("Initial version loaded: build=%s version=%s framework=%s",
+                _version_info["build"] = _build
+                _version_info["version"] = str(latest.get("version", ""))
+                _version_info["git_number"] = str(latest.get("git_number", ""))
+            _log.info("Initial version loaded: build=%s version=%s git_number=%s",
                       _version_info["build"], _version_info["version"],
-                      _version_info["framework"])
+                      _version_info["git_number"])
         else:
             _log.warning("admin.Versions has no records; version stamps "
                          "will be unknown until first bump")
@@ -164,7 +154,7 @@ def _version_headers() -> dict:
         return {
             "_build": str(_version_info["build"]),
             "_version": str(_version_info["version"]),
-            "_framework": str(_version_info["framework"]),
+            "_git_number": str(_version_info["git_number"]),
         }
 
 
@@ -218,30 +208,6 @@ async def produce(request: Request):
 
     except Exception as e:
         _log.error("Failed to enqueue: %s", e)
-        return Response(status_code=500, content=str(e))
-
-
-@app.post("/version_bump")
-async def version_bump(request: Request):
-    """Rule-063: receive a push of new {build, version, framework} values
-    and update the in-memory static. Body is JSON: {build, version, framework}.
-    Called by the build-bump enforcement worker (post-commit) and by the
-    human routine that sets version/framework on prod deploy."""
-    try:
-        payload = await request.json()
-        with _version_lock:
-            _version_info["build"] = int(payload["build"])
-            _version_info["version"] = str(payload["version"])
-            _version_info["framework"] = str(payload["framework"])
-        _log.info("Version updated via /version_bump: build=%s version=%s framework=%s",
-                  _version_info["build"], _version_info["version"],
-                  _version_info["framework"])
-        return Response(status_code=200, content="Updated")
-    except (KeyError, ValueError, json.JSONDecodeError) as e:
-        _log.error("/version_bump bad payload: %s", e)
-        return Response(status_code=400, content=f"Bad payload: {e}")
-    except Exception as e:
-        _log.error("/version_bump failed: %s", e)
         return Response(status_code=500, content=str(e))
 
 

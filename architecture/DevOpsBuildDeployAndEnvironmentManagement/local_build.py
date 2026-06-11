@@ -90,9 +90,9 @@ def _resolve_build_sha(repo_root: Path) -> str:
 
 
 def _read_dev_build_number() -> int:
-    """Read the current dev build counter from admin.Versions on the
-    front-end cluster. Rule-063 auto-increments this on every non-deploy
-    commit, so this is the build number for HEAD."""
+    """Read the current build counter from admin.Versions on the
+    front-end cluster. One global counter shared across envs per the
+    build_deploy_promote_plan v3 (§3); per-env slots removed."""
     from dotenv import load_dotenv
     from pymongo import MongoClient
 
@@ -105,11 +105,11 @@ def _read_dev_build_number() -> int:
     coll = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"]
     latest = coll.find_one(sort=[("from", -1)])
     if latest is None:
-        sys.exit("ERROR: admin.Versions has no records. Run seed_versions_collection.py first.")
-    for entry in latest.get("builds", []):
-        if entry.get("env") == "dev":
-            return int(entry["build"])
-    sys.exit("ERROR: admin.Versions latest record has no dev slot in builds[].")
+        sys.exit("ERROR: admin.Versions has no records.")
+    build = latest.get("build")
+    if build is None:
+        sys.exit("ERROR: admin.Versions latest record has no 'build' field.")
+    return int(build)
 
 
 def _target_build_dir(repo_root: Path, build_n: int, target_id: str, build_root_rel: Path | None = None) -> Path:

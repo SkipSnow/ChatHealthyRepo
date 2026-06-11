@@ -120,10 +120,11 @@ def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
         "target_hf_space_shared_services":      "ch-sharedsvc",
     }
     service = service_map.get(target_id, target_id)
-    # Build = the canonical Rule-063 counter in admin.Versions on the
-    # front-end cluster. Same source local_build.py uses for image
-    # tagging; baking it here keeps image tag, build_info.json, /health,
-    # and banner all in lock-step by construction.
+    # Build = the canonical global counter in admin.Versions on the
+    # front-end cluster (one int, not per-env per build_deploy_promote_plan
+    # v3 §3). Same source local_build.py uses for image tagging; baking
+    # it here keeps image tag, build_info.json, /health, and banner all
+    # in lock-step by construction.
     from dotenv import load_dotenv
     from pymongo import MongoClient
     repo_root = Path(__file__).resolve().parent.parent.parent
@@ -136,12 +137,10 @@ def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
     )
     if latest is None:
         sys.exit("ERROR: admin.Versions has no records.")
-    build_n = next(
-        (int(b["build"]) for b in latest.get("builds", []) if b.get("env") == env),
-        None,
-    )
+    build_n = latest.get("build")
     if build_n is None:
-        sys.exit(f"ERROR: admin.Versions latest record has no {env!r} slot in builds[].")
+        sys.exit("ERROR: admin.Versions latest record has no 'build' field.")
+    build_n = int(build_n)
     commit = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
         capture_output=True, text=True, check=True,
@@ -153,7 +152,6 @@ def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
         "target_id": target_id,
         "service": service,
         "version": "1.4.1",
-        "framework": "0.1.5",
         "built_at": datetime.now(timezone.utc).isoformat(),
     }
     (workspace / "build_info.json").write_text(
