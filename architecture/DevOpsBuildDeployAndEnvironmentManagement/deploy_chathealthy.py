@@ -152,7 +152,8 @@ def _collect_target_ids_for_env(repo_root: Path, env: str, target_arg: str) -> l
     """Mirror local_deploy._select_target_ids logic minus the env filter.
     For staleness-gate purposes we need the set of target_ids the deploy
     is going to touch."""
-    from target_record import RecordLoader, DeploymentCollection
+    from target_record import DeploymentCollection
+    from record_loader import RecordLoader
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
     from _deploy_chain import _select_target_ids
