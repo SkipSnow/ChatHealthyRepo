@@ -50,8 +50,9 @@ Run standalone:
 
 Requires:
   - The local stack up at https://localhost (run `python
-    architecture/DevOpsBuildDeployAndEnvironmentManagement/local_deploy.py
-    --env local` first).
+    architecture/DevOpsBuildDeployAndEnvironmentManagement/deploy_chathealthy.py
+    --env local` first; build the package first via
+    `build_chathealthy.py --env local`).
 """
 from __future__ import annotations
 

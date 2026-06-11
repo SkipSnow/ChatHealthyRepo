@@ -1,7 +1,7 @@
 """hf_helpers.py - HF Space helper library imported by the deploy chain.
 
-Library-only module (no main(), no CLI). Used by local_build.py and
-local_deploy.py for HF Space target_kind handling. Exposes:
+Library-only module (no main(), no CLI). Used by build_chathealthy.py and
+deploy_chathealthy.py for HF Space target_kind handling. Exposes:
 
   - HF Space naming + peer URL helpers (_hf_space_name, _hf_peer_url)
   - HF API write helpers (_hf_set_variable, _hf_set_secret)
@@ -122,9 +122,9 @@ def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
     service = service_map.get(target_id, target_id)
     # Build = the canonical global counter in admin.Versions on the
     # front-end cluster (one int, not per-env per build_deploy_promote_plan
-    # v3 §3). Same source local_build.py uses for image tagging; baking
-    # it here keeps image tag, build_info.json, /health, and banner all
-    # in lock-step by construction.
+    # v3 §3). Same source build_chathealthy.py uses for image tagging;
+    # baking it here keeps image tag, build_info.json, /health, and banner
+    # all in lock-step by construction.
     from dotenv import load_dotenv
     from pymongo import MongoClient
     repo_root = Path(__file__).resolve().parent.parent.parent

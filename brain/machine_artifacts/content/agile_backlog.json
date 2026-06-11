@@ -12729,25 +12729,6 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-008-F-012-S-001-REQ-T-049",
-                          "name": "One local + one remote deploy script pair (symmetric)",
-                          "requirement": "The deploy toolchain MUST consist of exactly two operator-facing local scripts (`local_build.py`, `local_deploy.py`) and exactly two CI-facing remote scripts (`remote_build.py`, `remote_deploy.py`). No other script MAY exist on the deploy chain. The two pairs are symmetric: each `build` produces a versioned per-target package; the paired `deploy` ships that package to its target. Adding a script outside this four-way symmetry MUST cause the gate to REJECT.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
                           "req_id": "EPIC-008-F-012-S-001-REQ-T-050",
                           "name": "Code-branch facts live in deployment_architecture.json",
                           "requirement": "Every TargetRecord whose `target_kind` resolves to a git-branch-bound cloud destination MUST declare the source code branch as a fact in `environments[].node_address` (or an equivalent typed field reachable from the manifest). The build and deploy scripts MUST read the branch from the manifest and MUST NOT carry a hard-coded branch map anywhere in code.",

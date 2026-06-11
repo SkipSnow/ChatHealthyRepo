@@ -2677,31 +2677,11 @@ class LocalDeploy:
 
 
 # ═════════════════════════════════════════════════════════════════════════
-# main() dispatcher
-# ═════════════════════════════════════════════════════════════════════════
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Deploy per-target build packages: --env local stands up "
-                    "the local host stack; --env dev|qa|prod ships cloud targets."
-    )
-    parser.add_argument("--env", required=True, choices=["local", "dev", "qa", "prod"])
-    parser.add_argument(
-        "--target", default="all",
-        help="'all' | 'cloudflare' | 'hf' | 'azure' | 'aca' | a specific target_id. "
-             "Ignored for --env local.",
-    )
-    args = parser.parse_args(argv)
-    _require_local_context()
-    if args.env == "local":
-        _require_branch_matches_env(args.env)
-        return LocalDeploy().run()
-    # For cloud deploys, the global firm-level branch guard is enforced
-    # inside _run_cloud_deploy() after the manifest is loaded — so it can
-    # be skipped when every selected target is promote-chain exempt
-    # (single-environment shared infrastructure like the pipeline FA).
-    return _run_cloud_deploy(args.env, args.target)
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+# Helper-only module — no main() entry point. Per build_deploy_promote_plan
+# v3 §INV-5 the only entry points are build_chathealthy.py + deploy_chathealthy.py
+# + promote_chathealthy.py; this module is imported by them, not invoked
+# directly.
+#
+# LocalDeploy is aliased as LocalStandUp for callers that prefer the
+# operator-facing name per plan v3 §C.2 / §E.5 RESOLUTION.
+LocalStandUp = LocalDeploy

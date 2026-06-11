@@ -38,8 +38,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from local_deploy import (  # noqa: E402
-    LocalDeploy,
+from _deploy_chain import (  # noqa: E402
+    LocalStandUp,
     _require_local_context,
     _run_cloud_deploy,
     _BUILD_ROOT_REL,
@@ -155,7 +155,7 @@ def _collect_target_ids_for_env(repo_root: Path, env: str, target_arg: str) -> l
     from target_record import RecordLoader, DeploymentCollection
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
-    from local_deploy import _select_target_ids
+    from _deploy_chain import _select_target_ids
     selected = _select_target_ids(coll, target_arg)
     out = []
     for tid, _kind in selected:
@@ -219,7 +219,7 @@ def main(argv: list[str] | None = None) -> int:
     _staleness_gate(repo_root, args.env, target_ids)
 
     if args.env == "local":
-        rc = LocalDeploy().run()
+        rc = LocalStandUp().run()
     else:
         rc = _run_cloud_deploy(args.env, args.target)
 
