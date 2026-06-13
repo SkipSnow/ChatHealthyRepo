@@ -347,19 +347,7 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
 TOOL = AuthorizationsAndAuthenticationsTool()
 
 
-# Module-level Mongo client cache (one connection per process).
-_mongo_client = None
-
-
 def get_mongo_frontend():
-    """Lazy singleton for the front-end cluster client (Users.sessions + Users.users)."""
-    global _mongo_client
-    if _mongo_client is None:
-        from pymongo import MongoClient
-        conn = os.getenv("MONGO_FRONTEND_connectionString")
-        if not conn:
-            raise RuntimeError(
-                "MONGO_FRONTEND_connectionString not set; AuthN tool cannot persist."
-            )
-        _mongo_client = MongoClient(conn, serverSelectionTimeoutMS=10000)
-    return _mongo_client
+    """Front-end cluster client (Users.sessions + Users.users) via the canonical utility."""
+    from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+    return ChatHealthyMongoUtilities().getConnection()

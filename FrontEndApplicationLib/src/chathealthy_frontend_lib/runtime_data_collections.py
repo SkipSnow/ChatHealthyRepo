@@ -31,6 +31,8 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
+from .mongo_utilities import ChatHealthyMongoUtilities
+
 
 _CONFIG_DB = "ChatHealthyConfig"
 _CONFIG_COLL = "DBVersions"
@@ -43,7 +45,6 @@ class _State:
     target_id: str | None = None
     env: str | None = None
     bindings: dict[str, str] = {}
-    client: MongoClient | None = None
 
 
 _state = _State()
@@ -66,16 +67,7 @@ def _read_build_info() -> dict:
 
 
 def _mongo_client() -> MongoClient:
-    if _state.client is not None:
-        return _state.client
-    uri = os.environ.get("MONGO_FRONTEND_connectionString")
-    if not uri:
-        raise RuntimeError(
-            "runtime_data_collections: MONGO_FRONTEND_connectionString not "
-            "set in the runtime environment."
-        )
-    _state.client = MongoClient(uri, serverSelectionTimeoutMS=10000)
-    return _state.client
+    return ChatHealthyMongoUtilities().getConnection()
 
 
 def _read_env_doc(env: str) -> dict:
