@@ -348,6 +348,7 @@
                                                           "unit",
                                                           "integration",
                                                           "analysis",
+                                                          "engineering_rule",
                                                           "ORPHAN",
                                                           "Unsupportable"
                                                         ]
