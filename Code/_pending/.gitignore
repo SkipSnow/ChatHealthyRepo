@@ -1,5 +1,0 @@
-# Python build/test artifacts inside Code/_pending/
-__pycache__/
-.pytest_cache/
-*.pyc
-*.pyo
