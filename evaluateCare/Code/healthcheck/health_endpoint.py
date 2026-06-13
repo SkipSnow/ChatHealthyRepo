@@ -47,8 +47,8 @@ class HealthEndpoint:
         mongo_doc: dict = {}
         if self.uri:
             try:
-                from pymongo import MongoClient
-                client = MongoClient(self.uri, serverSelectionTimeoutMS=5000)
+                from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+                client = ChatHealthyMongoUtilities().getConnection()
                 mongo_doc = client["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
                 db_status = "connected"
             except Exception as e:
@@ -65,7 +65,7 @@ class HealthEndpoint:
                 "commit": baked.get("commit"),
                 "built_at": baked.get("built_at"),
                 "version": baked.get("version") or mongo_doc.get("version"),
-                "framework": baked.get("framework") or mongo_doc.get("framework"),
+                "git_number": baked.get("commit") or mongo_doc.get("git_number"),
                 "source": "build_info.json",
             }
 

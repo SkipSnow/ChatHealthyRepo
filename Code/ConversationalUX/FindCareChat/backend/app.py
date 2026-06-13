@@ -16,7 +16,7 @@ from typing import Optional
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests as _requests_lib
@@ -51,7 +51,7 @@ load_dotenv(override=True)
 
 # Shared utilities
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared"))
-from ChatHealthyMongoUtilities import ChatHealthyMongoUtilities
+from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 from prompt_system_maker import PromptSystemMaker
 
 # ---------------------------------------------------------------------------
@@ -89,7 +89,7 @@ def _get_db():
         return None
     try:
         if _db_manager is None:
-            _db_manager = ChatHealthyMongoUtilities(_mongo_frontend_str)
+            _db_manager = ChatHealthyMongoUtilities()
         return _db_manager.getConnection()
     except Exception as e:
         _log.warning("MongoDB unavailable (will retry next call): %s", e)
@@ -137,13 +137,20 @@ def commitSignificantActivity(payload=None, **kwargs):
                                  MUST inspect this; upstream code has no excuse
                                  for treating this as success.
     """
-    if _get_db() is None:
+    client = _get_db()
+    if client is None:
         return {"recorded": "skipped", "reason": "db_unavailable"}
     try:
         payload = payload or kwargs
         if isinstance(payload, str):
             payload = json.loads(payload)
-        return _db_manager.commit(_ENV_PREFIX, payload["database"], payload["collection"], payload["record"])
+        db_name = f"{_ENV_PREFIX}_{payload['database']}"
+        coll = client[db_name][payload["collection"]]
+        record = dict(payload["record"])
+        record["record_number"] = coll.count_documents({}) + 1
+        record["datetime"] = _dt.datetime.now().isoformat()
+        coll.insert_one(record)
+        return {"recorded": "ok"}
     except Exception as exc:
         _log.error("commitSignificantActivity failed: %s", exc)
         return {"recorded": "error", "error": f"{type(exc).__name__}: {exc}"}
@@ -257,15 +264,14 @@ async def _fatal(request: Request, exc: Exception):
                  "time": _dt.datetime.now(_dt.timezone.utc).isoformat()},
     )
 
-# v2.2 Part B 7.4 — startup Mongo probe. ChatHealthyMongoUtilities runs
-# client.admin.command("ping") in __init__; failure raises ConnectionError.
-# A failure at startup is the loud surface the rotation-as-operational-
-# response model requires: the container crashes, HF (or local docker)
-# restarts, and the operator sees the restart loop and reads the logs.
-# Steady-state degraded mode in _get_db() remains for transient runtime
-# blips; only the startup probe is mandatory-loud.
+# v2.2 Part B 7.4 — startup Mongo probe. Construct the canonical utility
+# then issue an explicit ping; failure raises and the container crashes,
+# HF (or local docker) restarts, and the operator sees the restart loop
+# and reads the logs. Steady-state degraded mode in _get_db() remains for
+# transient runtime blips; only the startup probe is mandatory-loud.
 if _mongo_frontend_str:
-    _startup_db_probe = ChatHealthyMongoUtilities(_mongo_frontend_str)
+    _startup_db_probe = ChatHealthyMongoUtilities()
+    _startup_db_probe.getConnection().admin.command("ping")
     _log.info("FindCare backend Mongo startup probe: ping OK")
 else:
     _log.critical(
@@ -541,11 +547,16 @@ from ProviderDetail.provider_detail_models import (
 )
 
 @app.post("/provider-detail")
-def provider_detail(body: ProviderDetailInput) -> ProviderDetailOutput:
+def provider_detail(
+    body: ProviderDetailInput,
+    background_tasks: BackgroundTasks,
+) -> ProviderDetailOutput:
     raw = _provider_detail_service.lookup(
         provider_name=body.name,
         npi=body.npi,
         state=body.state or "",
+        provider_coll=providers_coll,
+        schedule_background_task=background_tasks.add_task,
     )
     return ProviderDetailOutput(**raw)
 
@@ -644,7 +655,9 @@ def health():
     db_status = "connected" if db is not None and _version_error is None else (
         "unavailable" if db is None else "unreachable")
     status = "ok" if (idx_check["status"] == "ok" and db_status == "connected") else "degraded"
-    result = {"status": status, "db": db_status,
+    result = {"status": status,
+              "service": "find_care",
+              "db": db_status,
               "env": env_label,
               "build": _build,
               "commit": _commit,

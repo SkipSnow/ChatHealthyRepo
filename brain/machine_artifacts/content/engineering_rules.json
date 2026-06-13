@@ -101,6 +101,120 @@
         }
       },
       {
+        "id": "Rule-003",
+        "name": "Deliberate raises must use ChatHealthyException, not built-in exception types",
+        "description": "Realizes EPIC-003-F-003-S-001-REQ-B-006. Every deliberate raise of an exception authored in ChatHealthy.ai repository code MUST use ChatHealthyException with an appropriate mode discriminator. Use of built-in Python exception types (ValueError, RuntimeError, AssertionError, TypeError, KeyError) in deliberate raises is forbidden. The pre-commit gate is the runtime enforcement. Historical violations carve-out per REQ-B-006: the gate rejects only commits where a staged file has MORE forbidden raises than its HEAD version; fixing or relocating existing violations is allowed. Re-raises (bare `raise`) are always allowed.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "Every deliberate raise authored in ChatHealthy.ai repository code MUST use ChatHealthyException with an appropriate mode discriminator. Built-in Python exception types (ValueError, RuntimeError, AssertionError, KeyError, TypeError) in deliberate raises are forbidden.",
+              "req_id": "EPIC-003-F-003-S-001-REQ-B-002"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces NEW deliberate raises of the forbidden built-in types beyond what exists in HEAD. Re-raises (bare `raise`) are allowed. Test files and one-shot scripts are excluded.",
+              "req_id": "EPIC-003-F-003-S-001-REQ-B-006"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-003-ENF-001",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_deliberate_raises_enforcement_worker.py",
+              "requires_lock": false,
+              "scopes": [
+                [
+                  "_scan_deliberate_raises",
+                  "allowed_pattern",
+                  [
+                    "^sharedServices/.+\\.py$",
+                    "^FindCare/.+\\.py$",
+                    "^Code/ConversationalUX/FindCareChat/backend/.+\\.py$",
+                    "^evaluateCare/.+\\.py$",
+                    "^FrontEndApplicationLib/src/.+\\.py$",
+                    "^architecture/EngineeringRuleEnforcement/code/.+\\.py$",
+                    "^Code/Shared/ops/.+\\.py$"
+                  ]
+                ],
+                [
+                  "_scan_deliberate_raises",
+                  "excluded_pattern",
+                  [
+                    "(^|/)tests?/",
+                    "(^|/)test_.+\\.py$",
+                    "_test\\.py$",
+                    "(^|/)conftest\\.py$",
+                    "(^|/)_oneshots/",
+                    "(^|/)__pycache__/"
+                  ]
+                ]
+              ],
+              "timeout": 30
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-004",
+        "name": "Direct MongoClient(...) instantiation forbidden outside the canonical utility",
+        "description": "Realizes EPIC-003-F-004-S-001-REQ-B-007. Direct MongoClient(...) instantiation in any ChatHealthy.ai-authored Python file is forbidden except within FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py itself. All callers MUST obtain a MongoClient via ChatHealthyMongoUtilities().getConnection().",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a direct MongoClient(...) call outside FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py. Scope is the front-end application code (sharedServices, FindCare, EvaluateCare, FindCareChat backend, FrontEndApplicationLib/src). Test files and one-shot scripts are excluded.",
+              "req_id": "EPIC-003-F-004-S-001-REQ-B-007"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-004-ENF-001",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py",
+              "requires_lock": false,
+              "scopes": [
+                [
+                  "_scan_mongo_client_direct_access",
+                  "allowed_pattern",
+                  [
+                    "^sharedServices/.+\\.py$",
+                    "^FindCare/.+\\.py$",
+                    "^Code/ConversationalUX/FindCareChat/backend/.+\\.py$",
+                    "^evaluateCare/.+\\.py$",
+                    "^FrontEndApplicationLib/src/.+\\.py$"
+                  ]
+                ],
+                [
+                  "_scan_mongo_client_direct_access",
+                  "excluded_pattern",
+                  [
+                    "(^|/)tests?/",
+                    "(^|/)test_.+\\.py$",
+                    "_test\\.py$",
+                    "(^|/)conftest\\.py$",
+                    "(^|/)_oneshots/",
+                    "(^|/)__pycache__/"
+                  ]
+                ],
+                [
+                  "_scan_mongo_client_direct_access",
+                  "excluded_exact",
+                  [
+                    "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py"
+                  ]
+                ]
+              ],
+              "timeout": 30
+            }
+          ]
+        }
+      },
+      {
         "id": "Rule-008",
         "name": "All files added to the local Git repository must be scanned for architectural compliance.",
         "description": "All JSONs, code and configuration files must be scanned for compliance. Current scope is to ensure that only permissible references to HTTP can be in our code base and other artifacts, and that all JSONs be validated by standard Python schema mechanisms.",
