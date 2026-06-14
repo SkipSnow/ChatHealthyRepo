@@ -1,0 +1,121 @@
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+"""Build the test database slice for the Provider Detail data-management
+pytest (EPIC-006-F-025-S-002).
+
+Per design §14.3: copy every provider record from PublicHealthData.
+provider_v03 whose primary practice address ZIP equals the test
+provider's ZIP, into a separate test database on the front-end Mongo
+cluster. The slice is small but representative; the pytest exercises
+the compare-and-write-back cycle against it without touching the live
+collection.
+
+Usage (programmatic — called by the pytest fixture):
+    from build_provider_detail_test_db import (
+        build, teardown, TEST_DB, TEST_COLL,
+    )
+    build()
+    ...
+    teardown()
+"""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+
+TEST_DB = "PublicHealthData_test"
+TEST_COLL = "provider_test_slice"
+TEST_NPI = "1003199654"  # Stephanie Lauren Post — the divergence reference
+
+# Stephanie's stored record carries two SF addresses, ZIPs 94115 + 94123.
+# The slice is built from her primary practice ZIP — the first address
+# entry whose address_type=='practice'.
+_BASELINE_PATH = (
+    Path(__file__).resolve().parents[5]
+    / "FindCare" / "architectureAndDesign"
+    / "EPIC-006-F-025-baseline-record-NPI-1003199654.json"
+)
+
+
+def _mongo_uri() -> str:
+    env_path = Path(__file__).resolve().parents[5] / "Code" / ".env"
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("MONGO_FRONTEND_connectionString="):
+            return line.split("=", 1)[1].strip()
+    raise RuntimeError("MONGO_FRONTEND_connectionString not found")
+
+
+def _primary_practice_zip(record: dict) -> str:
+    for a in record.get("addresses", []):
+        if a.get("address_type") == "practice" and a.get("zip"):
+            return a["zip"]
+    raise RuntimeError(
+        f"baseline record {record.get('npi')} has no practice address"
+    )
+
+
+def build() -> int:
+    """Build the test slice. Returns the count of records copied."""
+    from pymongo import MongoClient
+    c = MongoClient(_mongo_uri())
+    live = c["PublicHealthData"]["provider_v03"]
+    test = c[TEST_DB][TEST_COLL]
+
+    test.drop()
+
+    baseline = json.loads(_BASELINE_PATH.read_text(encoding="utf-8"))
+    target_zip = _primary_practice_zip(baseline)
+    docs = list(live.find({"addresses.zip": target_zip}))
+    if not docs:
+        # Fall back to inserting just the baseline so the pytest can run
+        # against at least one record even if the live ZIP slice is
+        # empty.
+        docs = [baseline]
+    else:
+        # Ensure the baseline (NPI 1003199654) is present even if the
+        # live record carries a different ZIP than the stored baseline.
+        if not any(d.get("npi") == TEST_NPI for d in docs):
+            docs.append(baseline)
+
+    test.insert_many(docs)
+    test.create_index("npi")
+    return test.count_documents({})
+
+
+def teardown() -> None:
+    """Drop the test collection. (FrontEndUser does not have
+    dropDatabase rights; per-collection drop works.)"""
+    from pymongo import MongoClient
+    c = MongoClient(_mongo_uri())
+    c[TEST_DB][TEST_COLL].drop()
+
+
+def restore_baseline_record_to_v03() -> None:
+    """Restore Stephanie's record in the LIVE provider_v03 collection
+    to the captured baseline (per Skip's instruction: leave v03
+    untouched after testing). Call only from the pytest teardown OR
+    from the operator-run restore script — never from production
+    code."""
+    from pymongo import MongoClient
+    c = MongoClient(_mongo_uri())
+    baseline = json.loads(_BASELINE_PATH.read_text(encoding="utf-8"))
+    coll = c["PublicHealthData"]["provider_v03"]
+    coll.replace_one({"npi": TEST_NPI}, baseline, upsert=True)
+
+
+if __name__ == "__main__":
+    import sys
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "build"
+    if cmd == "build":
+        n = build()
+        print(f"test slice built at {TEST_DB}.{TEST_COLL}: {n} records")
+    elif cmd == "teardown":
+        teardown()
+        print(f"test database {TEST_DB} dropped")
+    elif cmd == "restore":
+        restore_baseline_record_to_v03()
+        print(f"NPI {TEST_NPI} restored to baseline in provider_v03")
+    else:
+        print(f"unknown command: {cmd}")
+        sys.exit(1)

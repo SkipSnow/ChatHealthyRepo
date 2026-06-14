@@ -4322,6 +4322,655 @@
               "stories": {
                 "story": []
               }
+            },
+            {
+              "feature_id": "EPIC-003-F-003",
+              "orphan": false,
+              "name": "Manage Errors",
+              "description": "This feature defines the requirements to manage errors that the ChatHealthy.ai's application code encounters. It defines a unified deliberate-exception model across the ChatHealthy.ai codebase. Every exception explicitly managed shares an exception class — ChatHealthyException. This exception class has a mode discriminator and structured context dict. Catch sites discriminate on mode, not on exception type. External exceptions (httpx, pymongo, etc.) remain as their native types and are converted to ChatHealthyException at well-defined boundaries. The default behavior is and remains, when an exception occurs, fail hard and fast. But that policy is mitigated by the need to handle expected errors from users and external systems gracefully.",
+              "priority": "must-have",
+              "status": "in_progress",
+              "approval": "approved",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-003-F-003-S-001",
+                    "orphan": false,
+                    "name": "Use only the ChatHealthyException when deliberately throwing exceptions within the code base.",
+                    "description": "Establishes the foundational rule and the implementation that realizes it. Defines ChatHealthyException in chathealthy-frontend-lib, specifies the constructor contract (mode discriminator + message for logging + context dict), mandates the substitution at every existing deliberate-raise site in our authored code, and adds a pre-commit gate that rejects new raises of forbidden built-in exception types in our modules. The first mode the substrate uses is llm_unavailable, introduced by the LLM facade with context {provider, call_site, attempts}. Additional modes (compliance violations, geography insufficient, db unreachable, rate limited, etc.) land as the operator approves their definitions; the substrate accepts them without code change at the catch sites.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "ChatHealthyException class definition",
+                          "requirement": "The chathealthy-frontend-lib package MUST define a class ChatHealthyException that inherits from the standard library Exception. The constructor signature is (mode: str, message: str, **context). Message is used for logging, and not for end user communications. Context is a dict; its keys vary by mode. The instance exposes attributes mode (str), message (str), context (dict), and exception (Exception — the original wrapped exception, when ChatHealthyException is being raised as a boundary conversion of an external library exception; None when this is an originating raise from our own code). The class lives at a stable import path within the package so every consumer service can import it.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "Exhaustive use rule for deliberate raises in our authored code",
+                          "requirement": "Every deliberate raise of an exception authored in ChatHealthy.ai repository code MUST use ChatHealthyException with an appropriate mode discriminator. Use of built-in Python exception types (ValueError, RuntimeError, AssertionError, TypeError, KeyError) in deliberate raises authored by our code is forbidden. Re-raises of external exceptions (e.g. httpx.RemoteProtocolError, pymongo.errors.*) preserve the original type and the call stack of the original exception, so that logging of the exception becomes the duty of the exception class and not the code that creates the exception.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "Boundary conversion rule for external-library exceptions",
+                          "requirement": "External-library exceptions MAY be converted to ChatHealthyException at defined system boundaries. The LLM facade (EPIC-003-F-003-S-001-REQ-B-007 below) is one such boundary. When such a conversion happens, the exception object MUST log the original exception with full traceback for operator forensic value before raising the new ChatHealthyException, so the original failure is not lost.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "Catch-side discrimination on mode",
+                          "requirement": "Code that catches ChatHealthyException SHOULD discriminate on the mode attribute, not on isinstance against new exception subclasses (there are no subclasses). The mode taxonomy is the design surface for discriminating failure shapes. Catch sites that need to handle several modes use an explicit conditional on exc.mode.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "Mode taxonomy lives in the feature's design doc",
+                          "requirement": "The set of valid modes is documented in the feature's architecture design doc under FrontEndApplicationLib/architectureAndDesign/. Adding a new mode is a design-doc edit that the operator approves, not a code-only change. Code that raises with an undocumented mode MAY be rejected by a future enforcement gate (out of scope for this story).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Pre-commit gate forbids new deliberate raises of built-in types",
+                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, FrontEndApplicationLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Forbidden raises in existing code at the moment the rule lands are tracked as orphan-fix items; the rule rejects only NEW commits that introduce additional violations until the historical backlog is migrated.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
+                            },
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "EPIC-003-F-003-S-001-REQ-B-002"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-007",
+                          "orphan": false,
+                          "name": "LLM facade boundary defines the first concrete mode llm_unavailable",
+                          "requirement": "The LLM call facade in chathealthy-frontend-lib catches transient HTTP errors (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.PoolTimeout) from the underlying pydantic-ai Agent.run call and, after the retry policy is exhausted, raises ChatHealthyException(mode='llm_unavailable', provider=<str>, call_site=<str>, attempts=<int>). UR catches this exception in _handle_utterance and re-dispatches to UM as a manufacture-trigger Request whose manufacture_utterance_reason carries the same context, so UM authors a user-facing message via the existing manufacture pattern. If the manufacture call itself raises ChatHealthyException, that exception propagates to UR's outermost catch and the existing fatal path fires; the operator sees the failure via telemetry and the user sees chFatalError. This three-rung ladder (transient blip covered by retry, sustained-recoverable covered by manufacture dialogue, truly-down covered by fatal) is the substrate.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
+                            },
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "EPIC-003-F-003-S-001-REQ-B-003"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "due_date": "2026-06-12",
+              "realized_by": [
+                "FrontEndApplicationLib/"
+              ]
+            },
+            {
+              "feature_id": "EPIC-003-F-004",
+              "orphan": false,
+              "name": "Manage Database Connections",
+              "description": "All database client instantiation from any ChatHealthy.ai service routes through a single shared library utility that owns connection lifecycle, service identity (appname), timeout policy, and connection-related logging.",
+              "priority": "must-have",
+              "realized_by": [
+                "FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py"
+              ],
+              "due_date": "2026-06-13",
+              "status": "done",
+              "approval": "approved",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-003-F-004-S-001",
+                    "orphan": false,
+                    "name": "Manage MongoDB Connections",
+                    "description": "ChatHealthyMongoUtilities (lives at FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py) is the canonical entry point for obtaining a MongoClient. Every live service path uses it. Direct MongoClient(...) instantiation outside the utility itself is forbidden and enforced at pre-commit via Rule-004.",
+                    "size": "S",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-003-F-004-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Canonical Mongo client provider exists",
+                          "requirement": "A class named ChatHealthyMongoUtilities MUST exist at FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py and serve as the canonical Mongo client provider for every ChatHealthy.ai service.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-004-S-001-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-004-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "Zero-parameter constructor, environment-sourced configuration",
+                          "requirement": "The constructor takes zero parameters. The utility sources connection coordinates and service identity from runtime environment configuration without caller input.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-004-S-001-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-004-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "Process-wide singleton client",
+                          "requirement": "The utility maintains a process-wide singleton MongoClient. Repeated instantiation of ChatHealthyMongoUtilities returns the same underlying client and connection pool.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-004-S-001-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-004-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "getConnection() is the single public method",
+                          "requirement": "getConnection() is the single public method. It returns the MongoClient. Callers select their own database and collection from the returned client.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-004-S-001-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-004-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "Default operation timeout",
+                          "requirement": "The utility sets timeoutMS on the MongoClient per the CSOT (Client-Side Operation Timeout) policy, with default value 15000ms.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-004-S-001-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-004-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Per-call overrides use pymongo's native context manager",
+                          "requirement": "Per-call timeout overrides are performed by the calling code using pymongo's native `with pymongo.timeout(seconds):` context manager. The utility does NOT expose a wrapper API for timeout overrides.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-004-S-001-REQ-B-006-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-004-S-001-REQ-B-007",
+                          "orphan": false,
+                          "name": "Direct MongoClient instantiation forbidden outside the utility",
+                          "requirement": "Direct MongoClient(...) instantiation in any ChatHealthy.ai-authored Python file is forbidden except within FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py itself.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-004-S-001-REQ-B-007-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-004-S-001-REQ-B-008",
+                          "orphan": false,
+                          "name": "Logging is governed by uniform application logging",
+                          "requirement": "The utility's logging surface is governed by EPIC-008-F-011-S-005 (Uniform application logging).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-011-S-005",
+                              "reason": "Logging surface is governed by the uniform application logging story."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-004-S-001-REQ-B-008-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "feature_id": "EPIC-003-F-005",
+              "orphan": false,
+              "name": "Manage logging",
+              "description": "All ChatHealthy.ai code MUST log through one library.",
+              "priority": "must-have",
+              "realized_by": [
+                "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py"
+              ],
+              "due_date": "2026-06-13",
+              "status": "not_started",
+              "approval": "approved",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-003-F-005-S-001",
+                    "orphan": false,
+                    "name": "Manage logging using Python's logging library",
+                    "description": "Every ChatHealthy.ai Python file MUST get its logger from ChatHealthyLoggingService in chathealthy_frontend_lib. ChatHealthyLoggingService uses Python's logging module. logging.basicConfig(), logging.getLogger(), and print() MUST NOT appear in ChatHealthy.ai code. Pre-commit Rule-005 MUST enforce this.",
+                    "size": "S",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-003-F-005-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "ChatHealthyLoggingService is the only place loggers come from",
+                          "requirement": "ChatHealthyLoggingService MUST exist in chathealthy_frontend_lib. Every ChatHealthy.ai Python file MUST get its logger from it.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-005-S-001-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-005-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "logging.basicConfig(), logging.getLogger(), and print() are forbidden in ChatHealthy.ai code",
+                          "requirement": "logging.basicConfig(), logging.getLogger(), and print() MUST NOT appear in any ChatHealthy.ai Python file except ChatHealthyLoggingService itself. Pre-commit Rule-005 MUST enforce this.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-005-S-001-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-005-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "Default log level and destination come from environment variables",
+                          "requirement": "ChatHealthyLoggingService MUST read its default log level and log destination from environment variables. If no environment variable is set, the default level MUST be INFO.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-005-S-001-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-005-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "All log messages, including 3rd-party library logs, write to the same log file",
+                          "requirement": "All log messages from ChatHealthy.ai code AND from other Python libraries (pymongo, openai, httpx, etc.) MUST write to the same log file. ChatHealthyLoggingService MUST route them via handlers configured on the root logger.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-005-S-001-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-005-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "One log file per ChatHealthy component",
+                          "requirement": "There MUST be one log file per ChatHealthy component (FindCareServer, EvaluateCareServer, SharedServices, etc.). ChatHealthyLoggingService MUST select the file based on the component the process is running.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-005-S-001-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-005-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Application MUST NOT be disrupted by rotating or deleting the log file",
+                          "requirement": "The application MUST continue uninterrupted when its log file is archived, renamed, or deleted by an external process. Managing rotation or archival is out of scope. Implementation hint: changing the value of the log-destination environment variable is a valid way to point the application at a new file.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-005-S-001-REQ-B-006-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-005-S-001-REQ-B-007",
+                          "orphan": false,
+                          "name": "Logger renders ChatHealthyException with all attributes and both stack traces",
+                          "requirement": "ChatHealthyLoggingService MUST recognize ChatHealthyException at log time and render every attribute - mode, message, component, server, context - together with a full stack trace of both the wrapped original `exception` (when present) and the ChatHealthyException itself, in a single log entry. The exception argument passed to ChatHealthyLoggingService log methods (exc_info=, or the implicit current exception captured by log.exception() inside an except block) MUST be a ChatHealthyException; passing a non-ChatHealthyException exception is forbidden.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "ChatHealthyException class and contract (Manage Errors story)."
+                            },
+                            {
+                              "story_id": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
+                              "reason": "Exception rendering policy lives in the Manage Errors design."
+                            },
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-005-S-001-REQ-B-007-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-005-S-001-REQ-B-009",
+                          "orphan": false,
+                          "name": "Per-call debug gate - opt-in conditional emission",
+                          "requirement": "Every log call to a ChatHealthyLoggingService logger MUST accept an optional parameter (working name `if_not_debug_log` - final name TBD). The parameter's default value MUST be False: when omitted, the call MUST be a no-op unless debug mode is on. When explicitly set to True, the call emits as a normal log call subject to standard level filtering. The flag MUST NOT alter the severity stamped on records that DO emit: logger.info(msg, if_not_debug_log=True) MUST emit at INFO level when debug mode is on, not DEBUG. \"Debug mode is on\" is defined as: the effective log level of the receiving logger is DEBUG (or lower) - equivalently, the same logger would emit a DEBUG-level record.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-005-S-001-REQ-B-009-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-005-S-001-REQ-B-010",
+                          "orphan": false,
+                          "name": "Code that throws ChatHealthyException MUST NOT log; the catcher logs",
+                          "requirement": "In any ChatHealthy.ai-authored Python function or method whose body contains a `raise ChatHealthyException(...)` statement, no call to ChatHealthyLoggingService log methods (debug, info, warning, error, critical, exception) MUST appear in the same function/method body. The catch site (the function that handles the raised exception) is where the log occurs. Pre-commit Rule-005 MUST enforce this.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "ChatHealthyException class and contract (Manage Errors story)."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-005-S-001-REQ-B-010-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
             }
           ]
         }
@@ -8600,12 +9249,507 @@
               "name": "Provider Detail",
               "description": "This feature specifies the detailed user view and capabilities of a provider detail.",
               "priority": "must-have",
-              "status": "not_started",
+              "status": "in_progress",
               "approval": "approved",
-              "due_date": "",
-              "realized_by": [],
+              "due_date": "2026-06-12",
+              "realized_by": [
+                "FindCare/ProviderDetail/provider_detail_service.py",
+                "FindCare/ProviderDetail/provider_detail_models.py",
+                "sharedServices/Code/AuthorizationsAndAuthentications/provider_detail_tool.py",
+                "Code/ConversationalUX/FindCareChat/frontend/",
+                "Website/index.html",
+                "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py",
+                "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+              ],
               "stories": {
-                "story": []
+                "story": [
+                  {
+                    "story_id": "EPIC-006-F-025-S-001",
+                    "orphan": false,
+                    "name": "Provider Detail display",
+                    "description": "The Provider Detail panel is the user-facing surface the user reaches by clicking a Provider link from wherever it is presented within the ChatHealthy.ai application. It shows identity, credentials, every practice and business address (labeled and ordered), every license, insurance identifiers, the pipeline-derived enrichments (county info, urban marker), and external research links the user can click to verify the provider independently. Every field is read from the provider record in our Mongo; that record is brought to live-NPPES freshness on each click by the data-management story (EPIC-006-F-025-S-002).",
+                    "size": "M",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-025-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "Display reads only from the provider record",
+                          "requirement": "Every Provider Detail render MUST read its fields from the Mongo provider record document for the clicked NPI. The rendering is independent of any maintenance done on the record by EPIC-006-F-025-S-002 — the display shows what is currently in the record at render time.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-001-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "playwright",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "Identity and credential fields",
+                          "requirement": "The panel MUST display the provider's full name (prefix, first, middle, last), credentials, primary taxonomy (NUCC display name), NPI, status (active/inactive), and enumeration date. Missing fields render as empty placeholders — no fallback prose.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-001-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "playwright",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-001-REQ-B-003",
+                          "orphan": false,
+                          "name": "All licenses, one row per licenses[] entry",
+                          "requirement": "The panel MUST display every entry in the record's normalized licenses[] array. Each row shows the licensing state and the license number. When a provider has multiple licenses in the same state, each is shown as its own row. When the licenses[] array is empty the License section is still labeled but shows an empty list — no fallback prose.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-001-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "playwright",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-001-REQ-B-004",
+                          "orphan": false,
+                          "name": "All addresses, labeled, business at the bottom",
+                          "requirement": "The panel MUST display every entry in the record's addresses[] array. Each row carries an explicit label (\"Practice\" for address_type='practice', \"Business\" for address_type='business'). Display order: all practice addresses first (in the order they appear on the record); all business addresses last. The fields per row are: street (line1 + line2 if present), city, state, ZIP, country, phone, and the enriched county info (see REQ-B-005).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-001-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "playwright",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-001-REQ-B-005",
+                          "orphan": false,
+                          "name": "Pipeline-enriched county info shown per address",
+                          "requirement": "For every address row the panel MUST display the county name (from county.name on the address) and the urban marker (from county.urban). When county.urban is absent on an address (e.g. a just-written-back new address whose urban workbook pass has not yet re-run) the panel renders the county name only, no urban marker. The county.fips and county.source fields are internal — not shown to the user.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-001-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "playwright",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-001-REQ-B-006",
+                          "orphan": false,
+                          "name": "Insurance section from the normalized insurance[] array",
+                          "requirement": "The panel MUST display an Insurance section rendering every entry in the record's normalized insurance[] array. Each row shows the insurance_type (human-readable, e.g. 'Medicaid', 'Medicare'), the brand (human-readable issuer with state suffix, e.g. 'State Medicaid Agency — AK'), the state, and the raw_value (the original identifier the issuer assigned). When insurance[] is empty the Insurance section is still labeled but shows an empty list — no fallback prose. The raw other_identifiers[] array is internal — not shown to the user.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-001-REQ-B-006-TEST-1",
+                                "orphan": false,
+                                "test_type": "playwright",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-001-REQ-B-007",
+                          "orphan": false,
+                          "name": "External research links always rendered",
+                          "requirement": "Every render MUST include Healthgrades (search by name + state) and the NPI Registry (lookup by NPI). The panel MUST also render a third link to the appropriate state medical board for the provider's primary practice state, with coverage for every US state and the District of Columbia. For practice addresses in US territories and outlying sovereignties (PR, GU, VI, AS, MP, etc.) the panel MUST render the licensing authority link appropriate to that sovereignty. Each link MUST prefill suitable search criteria (provider name, license number, NPI) where the destination supports it so the user lands already scoped to the right provider. Each link carries a short guidance string explaining what the user will find at the destination.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-001-REQ-B-007-TEST-1",
+                                "orphan": false,
+                                "test_type": "playwright",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-001-REQ-B-008",
+                          "orphan": false,
+                          "name": "Page invocation contract",
+                          "requirement": "The panel MUST be invoked exclusively by the user clicking a Provider link. No utterance, no language-model call. The click payload carries the NPI and the link-as-shown snapshot (name, state, taxonomy) so the backend has the bare minimum to identify the record and run the data-management flow.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-001-REQ-B-008-TEST-1",
+                                "orphan": false,
+                                "test_type": "playwright",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-001-REQ-B-009",
+                          "orphan": false,
+                          "name": "Rendering layer separation",
+                          "requirement": "The panel HTML template lives at Website/index.html (the host page). The FindCare iframe MUST send only structured data via a postMessage event carrying the provider record + the research-sites object. The host page owns the layout; the iframe owns the payload. No prose strings cross the postMessage boundary.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-001-REQ-B-009-TEST-1",
+                                "orphan": false,
+                                "test_type": "playwright",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-025-S-002",
+                    "orphan": false,
+                    "name": "Provider Detail data management and retrieval",
+                    "description": "Every Provider Detail click triggers a four-step data-management cycle: (1) fetch the live NPPES record by NPI; (2) compare every NPPES-sourced field on the live response to the corresponding field on the provider record in our Mongo; (3) when divergence is detected, write the live values back into the provider record while preserving or re-running pipeline enrichments according to the per-enrichment rules below; (4) display proceeds from the current provider record via the display story. Our trust model is unchanged: NPPES is authoritative for NPPES-sourced fields; our pipeline owns the enrichments (county info, urban marker, can_prescribe, is_homeopathic, is_disqualified, active log, normalized licenses[], normalized insurance[], embedding). Insurance is sourced exclusively from NPPES other_identifiers and then normalized; there is no separate insurance feed.",
+                    "size": "L",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "Live NPPES fetch on every click",
+                          "requirement": "Every Provider Detail request MUST fetch the full NPI record from the NPPES Registry public API at https://npiregistry.cms.hhs.gov/api/?number={npi}&version=2.1 with a 10-second timeout. NPPES is the authoritative source for all NPPES-sourced fields: basic identity, taxonomies, addresses, other_identifiers, status, and enumeration date.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "Compare live vs the provider record before writing",
+                          "requirement": "After the live fetch the backend MUST compare every NPPES-sourced field on the response to the corresponding field on the provider record. The comparison covers name, taxonomies (codes + primary switch), the full addresses array (line1, line2, city, state, ZIP, country, phone, address_type), the raw other_identifiers array, status, enumeration date, and active log. When every field matches, no write occurs and the flow proceeds directly to display.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-003",
+                          "orphan": false,
+                          "name": "Write-back on divergence",
+                          "requirement": "When the comparison detects any divergence the backend MUST overwrite the NPPES-sourced fields on the provider record with the live values, then re-run or preserve pipeline enrichments per the rules in REQ-B-005 through REQ-B-011. The write is a single document update; the display read happens after the write succeeds.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-004",
+                          "orphan": false,
+                          "name": "New-address county lookup via Google Maps only",
+                          "requirement": "When the live NPPES response includes an address NOT present on the provider record (a brand-new street + city + state), the backend MUST resolve the new address's county.fips and county.name by calling the Google Maps geocoding API exclusively. The pipeline's earlier-stage funnel (ZIP crosswalk, Census Geocoder, NPPES API) is NOT used in this path. The county.source on the new address MUST be stamped 'geocoder_pass4_maps' to record the resolution provenance. If Google does not return an authoritative result for the new address, the county object on that address MUST be omitted (the address ships without county info) and a WARNING MUST be logged naming the NPI and the unresolved address.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-005",
+                          "orphan": false,
+                          "name": "Urban marker left off on new addresses",
+                          "requirement": "When a new address is written back, county.urban MUST be left absent on the new address's county object. The urban marker is owned by the pipeline's USDA Rural-Urban Continuum Codes (RUCC) workbook pass and is re-stamped on the next full pipeline load. Until then the display story renders the new address with county name but no urban marker (per S-001-REQ-B-005).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-006",
+                          "orphan": false,
+                          "name": "Preserve county info on unchanged addresses",
+                          "requirement": "For every address on the live NPPES response that matches an existing address on the provider record, the backend MUST preserve the existing county object verbatim (county.fips, county.name, county.source, county.zip_ratio if present, county.urban if present). The county info is not re-computed; the prior pipeline run already paid the resolution cost and the inputs have not changed.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-006-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-007",
+                          "orphan": false,
+                          "name": "Re-run prescriber and homeopathic flags on taxonomy change",
+                          "requirement": "When the live NPPES taxonomies array differs from the provider record (any added, removed, or changed taxonomy code), the backend MUST recompute can_prescribe, is_homeopathic, and is_disqualified by ORing/ANDing across the new taxonomy set against the ProprietaryData.SpecialtyAndProviderFlags catalog (the same logic the pipeline's provider_flags_enrichment uses). When taxonomies are unchanged, these top-level flags MUST be preserved as-is.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-007-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-008",
+                          "orphan": false,
+                          "name": "Re-normalize licenses[] and insurance[] on write-back",
+                          "requirement": "On every write-back, the backend MUST replace BOTH the raw other_identifiers[] array (the NPPES-sourced data, exactly as the pipeline's normalize_provider_rows produces it) AND the normalized insurance[] array (the pipeline-derived form with insurance_type, brand, state, raw_value that the display consumes). Similarly the normalized licenses[] array MUST be regenerated from the live taxonomies' license fields so display and search consumers see consistent data. There is no enrichment of other_identifiers from any external insurance feed — NPPES is the only source.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-008-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-009",
+                          "orphan": false,
+                          "name": "Update active log if NPPES status changed",
+                          "requirement": "When the live NPPES basic.status, npi_deactivation_date, or npi_reactivation_date differs from the values represented by the last active[] log entry on the provider record, the backend MUST append a new event entry to active[] carrying the new event type (deactivated/reactivated), the date, the resulting is_active bool, and a source marker (nppes_deactivation_date / nppes_reactivation_date). When the status is unchanged, active[] is preserved verbatim.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-009-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-010",
+                          "orphan": false,
+                          "name": "Recompute quality flags after write-back",
+                          "requirement": "After write-back the backend MUST recompute the bad_data and out_of_scope flags from the new record state, using the same rules the pipeline's _mark_quality uses: bad_data {flagged: true, reason: 'no_address'} if addresses[] is empty; out_of_scope {flagged: true, reason: 'foreign_provider'} if the primary practice address country != 'US'; out_of_scope {flagged: true, reason: 'deactivated'} if the last active event is is_active=false. When inputs are unchanged the flags are preserved.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-010-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-011",
+                          "orphan": false,
+                          "name": "Stamp the provenance object on every successful write-back",
+                          "requirement": "On every successful write-back, the backend MUST set the provider record's sidecar provenance object as follows: provenance.origin = 'real_time_sync'; provenance.last_touched_at = the ISO timestamp of the write moment; provenance.real_time_sync_count is incremented by 1 if the field exists, otherwise initialized to 1. The four existing batch-ingest identifiers — load_id, loaded_at, chunk_id, row_index_in_chunk — MUST be preserved unchanged; they continue to identify the record's original pipeline ingest and are NEVER overwritten by a live write-back. The embedding, embedding_model, and embedding_version fields MUST also be preserved here; they are then superseded by REQ-B-014 when re-embedding completes.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-011-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-012",
+                          "orphan": false,
+                          "name": "Failure modes do not corrupt the record",
+                          "requirement": "When the NPPES live fetch fails (timeout, non-200, malformed response, zero results) OR the Google Maps geocoding call fails for a new address (covered separately by REQ-B-004), the backend MUST NOT write to the provider record. The display story is served from the existing (possibly stale) record. The failure is logged at WARNING. The user is not told the freshness sync failed — they see what we have.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-012-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-013",
+                          "orphan": false,
+                          "name": "One write per click, atomic, idempotent",
+                          "requirement": "When divergence is detected, the backend MUST issue exactly one MongoDB update against the provider record containing all the NPPES-sourced field updates plus the recomputed enrichment fields. Concurrent clicks for the same NPI MUST be safe — idempotent: the second write sees the same live response and either no-ops (because the first already wrote it) or produces identical fields.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-013-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-006-F-025-S-002-REQ-B-014",
+                          "orphan": false,
+                          "name": "Re-embed using the global embedding model on write-back",
+                          "requirement": "After a successful write-back, the backend MUST re-embed the record using the canonical global embedding model (per EPIC-008-F-011-S-004 and EPIC-002-F-005-S-012). The new embedding REPLACES the prior embedding, embedding_model, and embedding_version fields on the record. This keeps vector-search surfaces (provider search, specialty filter) consistent with the fresh field state after a live sync. If the embedding call fails, the prior embedding fields MUST be preserved and the write-back is still considered successful (the rest of the record is fresh; vector search will lag by one click until the next embedding attempt succeeds).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-006-F-025-S-002-REQ-B-014-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_provider_detail_data_management.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             },
             {

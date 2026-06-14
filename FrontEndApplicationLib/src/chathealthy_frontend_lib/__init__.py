@@ -11,10 +11,15 @@ from .authentication import (
     TokenInfraError,
     TokenWidgetData,
 )
+from .exceptions import ChatHealthyException
+from .llm import run_llm, run_llm_sync
 
 __all__ = [
+    "ChatHealthyException",
     "SessionToken",
     "SessionTokenVerification",
     "TokenInfraError",
     "TokenWidgetData",
+    "run_llm",
+    "run_llm_sync",
 ]

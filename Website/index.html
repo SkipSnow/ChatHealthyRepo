@@ -836,34 +836,30 @@
         }
         var root = (window._envServiceUrls || {})[key] || '';
         var healthUrl = root + '/health';
-        function paintBanner(version, framework, build) {
+        function paintBanner(version, build, gitNumber) {
           // All banner text routed through chFont so font-size is governed by
           // the canonical font registry, not hand-tuned per element. Inline
           // font-size is required because ch_fonts_snippet sets
           // `span { font-size: 1rem }` which would otherwise reset each span
           // to the root size and ignore the parent banner's intent.
-          var bf = window.chFont(1.3);   // banner field text (2x of prior 0.65)
-          var bk = window.chFont(1.1);   // bracket-context [findcare] (2x of prior 0.55)
+          var bf = window.chFont(1.3);   // banner field text
+          var bk = window.chFont(1.1);   // bracket-context [findcare]
           var cell = 'font-size:' + bf + ';margin-right: 1em;';
           banner.innerHTML = '<span style="' + cell + '">' + env + '</span>'
             + '<span style="' + cell + '">Version: ' + (version || '?') + '</span>'
-            + '<span style="' + cell + '">Framework: ' + (framework || '?') + '</span>'
             + '<span style="' + cell + '">Build: ' + (build || '?') + '</span>'
+            + '<span style="' + cell + '">Git: ' + (gitNumber || '?') + '</span>'
             + '<span style="font-size:' + bk + ';margin-right: 1em;opacity:0.85;">[' + key + ']</span>'
             + '<span id="serviceButtons"></span>';
           if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
         }
         // V11 S-005-REQ-B-002: bracket MUST reflect the new owner on
-        // ownership transfer. Old code only updated the bracket on /health
-        // fetch SUCCESS — when the fetch failed/timed out, the bracket
-        // stayed showing the PREVIOUS owner while the button gray-state
-        // (renderBannerButtons, called synchronously from the transition
-        // handler) already reflected the NEW owner. Paint synchronously
-        // first so bracket and buttons stay atomically aligned, then
-        // overlay real values when /health resolves.
+        // ownership transfer. Paint synchronously first so bracket and
+        // buttons stay atomically aligned, then overlay real values when
+        // /health resolves.
         paintBanner('?', '?', '?');
         fetch(healthUrl, { method: 'POST' }).then(function(r) { return r.json(); }).then(function(d) {
-          paintBanner(d.version, d.framework, d.build);
+          paintBanner(d.version, d.build, d.git_number);
         }).catch(function() { window.chFatalError(''); });
       };
 
