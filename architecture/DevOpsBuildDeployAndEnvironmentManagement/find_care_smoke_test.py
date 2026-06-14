@@ -422,8 +422,8 @@ class TestStep02:
         health = _get_health()
         assert BANNER_LABEL in text.upper(), f"Missing {BANNER_LABEL}: {text}"
         assert f"Version: {health['version']}" in text, f"Version wrong: {text}"
-        assert f"Framework: {health['framework']}" in text, f"Framework wrong: {text}"
         assert f"Build: {health['build']}" in text, f"Build wrong: {text}"
+        assert f"Git: {health['git_number']}" in text, f"Git wrong: {text}"
         _screenshot(page, "02")
 
 

@@ -23,6 +23,7 @@ from pydantic_ai import Agent
 
 from authentication.agent_deps import AgentDeps
 from authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_frontend_lib import run_llm
 
 from UtteranceManager.intent_document import (
     Argument,
@@ -715,6 +716,18 @@ Examples of gestures you may encounter and what they typically imply:
     they just did. Vary the phrasing based on what was said before.
     Example shape (NOT verbatim): "Got it — happy to apply that filter.
     What city and state are you in?"
+  - gesture='system_llm_unavailable': the language model that powers
+    the system just had a transient failure (per
+    EPIC-003-F-003-S-001-REQ-B-007 — the LLM facade exhausted its
+    retries against the provider). The reason dict carries `provider`,
+    `call_site`, and `attempts`; these are internal plumbing — the
+    user MUST NEVER see provider names, exception class names, call
+    sites, or attempt counts. Author a brief, calm, non-technical
+    apology that names what's happening in plain terms and invites
+    the user to try again in a moment. Do NOT speculate on why or
+    when service will return. Do NOT use the word "exception" or
+    "error". Example shape (NOT verbatim): "Sorry — my language model
+    just had a brief hiccup. Could you try that again in a moment?"
   - Other gestures will be added by populating new reason keys; treat
     the dict as the source of truth for what to ask.
 
@@ -761,7 +774,14 @@ async def _call_manufacture_llm(
         "prompt rules. Return the structured output."
     )
     _log.debug("UM manufacture input: %s", user_msg)
-    result = await _manufacture_agent.run(user_msg)
+    result = await run_llm(
+        _manufacture_agent,
+        user_msg,
+        call_site="UM._manufacture_agent",
+        provider="gemini",
+        server="shared_services",
+        component="UM",
+    )
     _log.debug("UM manufacture output: %s", result.output.model_dump_json())
     return result.output
 
@@ -787,7 +807,14 @@ async def _call_classifier_llm(
         "output."
     )
     _log.debug("UM classifier input: %s", user_msg)
-    result = await _classifier_agent.run(user_msg)
+    result = await run_llm(
+        _classifier_agent,
+        user_msg,
+        call_site="UM._classifier_agent",
+        provider="gemini",
+        server="shared_services",
+        component="UM",
+    )
     _log.debug("UM classifier output: %s", result.output.model_dump_json())
     return result.output
 

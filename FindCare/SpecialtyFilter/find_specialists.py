@@ -22,6 +22,8 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pymongo.collection import Collection
 
+from chathealthy_frontend_lib import run_llm_sync
+
 
 # ── Pydantic I/O contracts ────────────────────────────────────────────
 class NuccCodePick(BaseModel):
@@ -275,7 +277,14 @@ def find_specialists(
         n_records=len(corpus),
         corpus_block=_format_corpus(corpus),
     )
-    result = _get_pick_agent().run_sync(user_msg).output
+    result = run_llm_sync(
+        _get_pick_agent(),
+        user_msg,
+        call_site="FindCare.SpecialtyFilter._pick_agent",
+        provider="gemini",
+        server="find_care",
+        component="SpecialtyFilter",
+    ).output
 
     # Defensive: filter any LLM-emitted code that isn't in the corpus
     # (the system prompt forbids invented codes, but enforce server-side).

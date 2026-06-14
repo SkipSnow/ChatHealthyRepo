@@ -1,0 +1,63 @@
+{
+  "npi": "1003199654",
+  "taxonomies": [
+    {
+      "code": "103TC0700X",
+      "primary": true
+    }
+  ],
+  "licenses": [
+    {
+      "state": "CA",
+      "number": "31012"
+    }
+  ],
+  "addresses": [
+    {
+      "line1": "1630 LOMBARD ST",
+      "city": "SAN FRANCISCO",
+      "state": "CA",
+      "zip": "94123",
+      "country": "US",
+      "phone": "7039016833",
+      "address_type": "practice",
+      "county": {
+        "fips": "06075",
+        "name": "San Francisco County",
+        "source": "crosswalk_pass1",
+        "zip_ratio": 1.0,
+        "urban": true
+      }
+    },
+    {
+      "line1": "2141 PACIFIC AVE",
+      "city": "SAN FRANCISCO",
+      "state": "CA",
+      "zip": "94115",
+      "country": "US",
+      "phone": "7039016833",
+      "address_type": "business",
+      "county": {
+        "fips": "06075",
+        "name": "San Francisco County",
+        "source": "crosswalk_pass1",
+        "zip_ratio": 1.0
+      }
+    }
+  ],
+  "entity_type_code": "1",
+  "provider_last_name_legal_name": "POST",
+  "provider_first_name": "STEPHANIE",
+  "provider_middle_name": "LAUREN",
+  "provider_enumeration_date": "09/20/2011",
+  "last_update_date": "10/24/2019",
+  "provider_sex_code": "F",
+  "is_sole_proprietor": "Y",
+  "load_id": "03100674e2c5424c92161f9985df0ef3",
+  "loaded_at": "2026-06-01T01:32:23.002937+00:00",
+  "chunk_id": 3519,
+  "row_index_in_chunk": 843,
+  "can_prescribe": false,
+  "is_homeopathic": false,
+  "is_disqualified": false
+}

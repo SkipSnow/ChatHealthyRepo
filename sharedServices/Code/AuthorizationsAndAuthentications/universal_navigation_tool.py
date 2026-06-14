@@ -49,6 +49,7 @@ from authentication import (
     provider_detail_tool,
 )
 from authentication.user_object import UserObject
+from chathealthy_frontend_lib import ChatHealthyException
 from UtteranceManager import manager as utterance_manager
 
 _log = logging.getLogger("shared_services.universal_navigation")
@@ -350,9 +351,41 @@ class UniversalNavigationTool(ChatHealthyTool):
             return Response(kind="utterance", result={"target_action": "safetyLockout"})
 
         from UtteranceManager import manager as utterance_manager_module
-        await utterance_manager_module.TOOL.run_and_log(
-            deps, utterance_manager_module.Request(),
-        )
+        try:
+            await utterance_manager_module.TOOL.run_and_log(
+                deps, utterance_manager_module.Request(),
+            )
+        except ChatHealthyException as exc:
+            if exc.mode != "llm_unavailable":
+                raise
+            _log.exception(
+                "UR caught ChatHealthyException — raised at server=%s "
+                "component=%s; caught at server=shared_services "
+                "component=UR; mode=%s message=%s context=%s",
+                exc.server, exc.component, exc.mode, exc.message,
+                exc.context,
+                stack_info=True,
+            )
+            await self._dispatch_llm_unavailable_dialogue(deps, exc)
+            return Response(
+                kind="utterance",
+                result={"target_action": "closeConnection200",
+                        "mode": "llm_unavailable"},
+            )
+
+        # "New is new" invariant: a fresh free-text utterance clears any
+        # selected_nucc_codes carried over from a prior turn's apply_filter
+        # gesture. selected_nucc_codes exists on the IntentDocument ONLY as
+        # the immediate result of an apply_filter; it does not survive a
+        # subsequent free-text utterance. Without this strip the prior
+        # turn's filter selection silently narrows ProviderSearch on the
+        # new query (reported by operator 2026-06-11).
+        document = deps.user_object.intent
+        if document is not None:
+            for entry in document.intents:
+                entry.arguments = [
+                    a for a in entry.arguments if a.name != "selected_nucc_codes"
+                ]
 
         last_target_action: Optional[str] = None
         for _hop in range(_MAX_DISPATCH_HOPS):
@@ -480,13 +513,31 @@ class UniversalNavigationTool(ChatHealthyTool):
         deps.user_object.intent = seeded_doc
 
         from UtteranceManager import manager as utterance_manager_module
-        await utterance_manager_module.TOOL.run_and_log(
-            deps,
-            utterance_manager_module.Request(
-                trigger_type="manufacture",
-                manufacture_utterance_reason=reason,
-            ),
-        )
+        try:
+            await utterance_manager_module.TOOL.run_and_log(
+                deps,
+                utterance_manager_module.Request(
+                    trigger_type="manufacture",
+                    manufacture_utterance_reason=reason,
+                ),
+            )
+        except ChatHealthyException as exc:
+            if exc.mode != "llm_unavailable":
+                raise
+            _log.exception(
+                "UR caught ChatHealthyException — raised at server=%s "
+                "component=%s; caught at server=shared_services "
+                "component=UR; mode=%s message=%s context=%s",
+                exc.server, exc.component, exc.mode, exc.message,
+                exc.context,
+                stack_info=True,
+            )
+            await self._dispatch_llm_unavailable_dialogue(deps, exc)
+            return Response(
+                kind="apply_filter",
+                result={"target_action": "closeConnection200",
+                        "mode": "llm_unavailable"},
+            )
         return Response(
             kind="apply_filter",
             result={"target_action": "closeConnection200"},
@@ -786,6 +837,37 @@ class UniversalNavigationTool(ChatHealthyTool):
                     "UR compliance: findAProvider geography insufficient — needs "
                     "zip OR state (city/county without state are not enough)"
                 )
+
+    async def _dispatch_llm_unavailable_dialogue(
+        self, deps: AgentDeps, exc: ChatHealthyException,
+    ) -> None:
+        """Rung 2 of the failure ladder (EPIC-003-F-003-S-001-REQ-B-007).
+
+        UM's classifier or apply_filter LLM call exhausted retries against
+        an LLM provider. Re-dispatch UM with a manufacture trigger so it
+        authors a non-technical user-facing message via the existing
+        manufacture pattern. If THIS manufacture call also raises
+        ChatHealthyException, it propagates to UR's outermost catch and
+        the existing fatal path fires (rung 3).
+        """
+        from UtteranceManager import manager as utterance_manager_module
+        reason = {
+            "gesture": "system_llm_unavailable",
+            "raised_at_server": exc.server,
+            "raised_at_component": exc.component,
+            "caught_at_server": "shared_services",
+            "caught_at_component": "UR",
+            "provider": exc.context.get("provider"),
+            "call_site": exc.context.get("call_site"),
+            "attempts": exc.context.get("attempts"),
+        }
+        await utterance_manager_module.TOOL.run_and_log(
+            deps,
+            utterance_manager_module.Request(
+                trigger_type="manufacture",
+                manufacture_utterance_reason=reason,
+            ),
+        )
 
     async def _dispatch_target_action(self, deps: AgentDeps, document, target_action: str) -> None:
         """Dispatch the tool that owns this target_action. Tools may mutate

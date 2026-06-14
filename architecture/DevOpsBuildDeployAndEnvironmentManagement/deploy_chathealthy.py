@@ -213,15 +213,18 @@ def main(argv: list[str] | None = None) -> int:
 
     _enforce_env_branch_check(repo_root, args.env)
 
-    target_ids = _collect_target_ids_for_env(repo_root, args.env, args.target)
-    if not target_ids:
-        sys.exit(f"ERROR: no targets matched --env={args.env} --target={args.target!r}")
-
-    _staleness_gate(repo_root, args.env, target_ids)
-
     if args.env == "local":
+        # LocalStandUp owns the local stack lifecycle (Docker containers
+        # + host-OS Website wrapper). It does not consume per-target
+        # manifests; deployment_architecture.json's HF Space targets are
+        # cloud-bound and not env_binding=local. Skip the per-target
+        # staleness gate for local.
         rc = LocalStandUp().run()
     else:
+        target_ids = _collect_target_ids_for_env(repo_root, args.env, args.target)
+        if not target_ids:
+            sys.exit(f"ERROR: no targets matched --env={args.env} --target={args.target!r}")
+        _staleness_gate(repo_root, args.env, target_ids)
         rc = _run_cloud_deploy(args.env, args.target)
 
     if rc == 0:
