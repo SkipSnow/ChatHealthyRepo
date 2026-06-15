@@ -479,6 +479,18 @@ def write_back(coll, npi: str, new_doc: dict) -> bool:
 # ── Embedding background task ─────────────────────────────────────────
 
 
+def build_embedding_text(record: dict) -> str:
+    """The embedding input. Single source of truth for both the embed call and
+    the diff check that gates whether re-embedding is needed.
+
+    Delegates to chathealthy_frontend_lib.provider_embedding so the front-end
+    re-embed produces byte-identical text to what the pipeline produced when
+    the record was first embedded — same record yields same vector on both
+    sides."""
+    from chathealthy_frontend_lib.provider_embedding import project, render
+    return render(project(record))
+
+
 def embed_after_response(coll, npi: str) -> None:
     """Called from FastAPI BackgroundTasks after the handler returns.
 
@@ -505,18 +517,7 @@ def embed_after_response(coll, npi: str) -> None:
         doc = coll.find_one({"npi": npi})
         if doc is None:
             return
-        # Same projection shape the pipeline uses: a single flattened
-        # text from the most informative fields.
-        text_parts = [
-            doc.get("provider_first_name", ""),
-            doc.get("provider_last_name_legal_name", ""),
-            *[t.get("code", "") for t in doc.get("taxonomies") or []],
-            *[
-                f"{a.get('city', '')} {a.get('state', '')}"
-                for a in doc.get("addresses") or []
-            ],
-        ]
-        text = " ".join(s for s in text_parts if s).strip()
+        text = build_embedding_text(doc)
         if not text:
             return
         client = EmbeddingClient()

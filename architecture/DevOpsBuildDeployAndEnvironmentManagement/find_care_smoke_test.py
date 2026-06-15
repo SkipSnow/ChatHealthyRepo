@@ -1742,3 +1742,81 @@ class TestStep99cGeographyDisambiguationFlow:
             f"actions should include provider_search_and_selection from "
             f"turn 2. Got tool_names={tool_names}"
         )
+
+
+class TestStep99dMisspelledUtteranceNoFatal:
+    """EPIC-002-F-010-S-001-REQ-B-012: a user utterance MUST NEVER propagate
+    a fatal application exception. Drives the regression that motivated the
+    REQ — a misspelled city ('wilington' for Wilmington) used to surface as
+    an opaque 503 to the user."""
+
+    def test_misspelled_utterance_does_not_propagate_fatal(self, env):
+        if SMOKE_ENV != "local":
+            pytest.skip("Step 99d uses direct /gate; local-only for now")
+        import json as _json
+        c = httpx.Client(verify=False, timeout=90)
+        try:
+            r = c.post(f"{SHARED_URL}/gate", json={
+                "op": "utterance",
+                "payload": {"text": "find me a shrink in wilington DE"},
+            })
+        finally:
+            c.close()
+        assert r.status_code == 200, (
+            f"REGRESSION REQ-B-012: misspelled-city utterance returned "
+            f"HTTP {r.status_code}; user-typed input MUST NEVER yield "
+            f"a 5xx. body={r.text[:300]}"
+        )
+        body = r.json()
+        assert body.get("ok") is True, (
+            f"REGRESSION REQ-B-012: /gate ok=False on a misspelled-city "
+            f"utterance. /gate must surface a graceful classification, "
+            f"never an unhandled error. body={_json.dumps(body)[:400]}"
+        )
+        ta = (body.get("result") or {}).get("target_action")
+        assert ta in {
+            "findAProvider", "specialtySearch", "closeConnection200", "nonsense"
+        }, (
+            f"REGRESSION REQ-B-012: misspelled-city utterance produced "
+            f"target_action={ta!r} — outside the legal set. UM must "
+            f"always classify into a known action."
+        )
+
+
+class TestStep99eHighConfidenceSpellingCorrected:
+    """EPIC-002-F-010-S-001-REQ-B-011: when the classifier is >=75%
+    confident of the intended word, it MUST silently substitute the
+    corrected form and proceed normally. 'wilington DE' is the
+    canonical example baked into the prompt — Wilmington DE is the only
+    plausible major DE city near that spelling."""
+
+    def test_high_confidence_misspelling_routes_to_search(self, env):
+        if SMOKE_ENV != "local":
+            pytest.skip("Step 99e uses direct /gate; local-only for now")
+        c = httpx.Client(verify=False, timeout=90)
+        try:
+            r = c.post(f"{SHARED_URL}/gate", json={
+                "op": "utterance",
+                "payload": {"text": "find me a shrink in wilington DE"},
+            })
+        finally:
+            c.close()
+        assert r.status_code == 200, (
+            f"REQ-B-011: /gate returned {r.status_code} on a "
+            f"high-confidence-correctable misspelling. "
+            f"body={r.text[:300]}"
+        )
+        body = r.json()
+        assert body.get("ok") is True, (
+            f"REQ-B-011: /gate ok=False on 'wilington DE'. "
+            f"body={body}"
+        )
+        result = body.get("result") or {}
+        ta = result.get("target_action")
+        assert ta in {"findAProvider", "specialtySearch"}, (
+            f"REQ-B-011: high-confidence misspelling 'wilington DE' "
+            f"MUST be silently corrected to Wilmington and proceed to "
+            f"findAProvider/specialtySearch. Got target_action={ta!r}. "
+            f"If the classifier picked closeConnection200 it is asking "
+            f"the user to clarify when it should have substituted."
+        )

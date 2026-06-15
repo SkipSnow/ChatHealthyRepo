@@ -8,6 +8,11 @@ import { SelectionManager } from '@providers/SelectionManager'
 import { useSelectionState } from '@providers/useSelectionState'
 import type { Provider } from '@providers/provider'
 
+export interface Correction {
+  original: string
+  corrected: string
+}
+
 export interface Message {
   role: 'user' | 'assistant'
   content: string
@@ -16,6 +21,7 @@ export interface Message {
   thinkSeconds?: number
   tokensIn?: number
   build?: string
+  corrections?: Correction[]
 }
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''

@@ -230,6 +230,7 @@ def _load_corpus(col: Collection) -> list[dict[str, Any]]:
             "Code": {"$nin": EXCLUDED_CODES},
         },
         projection,
+        batch_size=1000,
     )
     out: list[dict[str, Any]] = []
     for d in cursor:

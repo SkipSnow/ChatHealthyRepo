@@ -3779,6 +3779,46 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-011",
+                          "orphan": false,
+                          "name": "Classifier prompt corrects significant misspellings or asks when uncertain",
+                          "requirement": "If a spelling error is significant to understanding an utterance, the Utterance Manager classifier prompt MUST treat user-typed misspellings as a first-class case. For each suspected significant misspelling: if the classifier is at least 75% confident of the intended word, it MUST substitute the corrected form into the output fields (e.g. complaint, geography.city, geography.state, geography.county etc.) and proceed with the normal classification rules. On the same turn the classifier MUST populate BOTH (a) a structured corrections[] list on its output containing one {\"original\": <user-typed word>, \"corrected\": <corrected word>} entry per substitution applied, AND (b) user_message set to the user's full corrected utterance with each correction annotated inline in the form <corrected_word> (corrected from '<original>') using straight single quotes. The two outputs MUST be consistent: every corrections[] entry MUST appear in user_message as a (corrected from '...') marker and vice versa. The frontend uses the corrections[] list (not text-parsing of user_message) to identify and render each marker in red font, so the user sees that their spelling was interpreted, not ignored. If confidence is below 75%, the classifier MUST NOT guess; it MUST set target_action=\"closeConnection200\" and emit a brief user_message naming up to three plausible candidates and asking the user to clarify; corrections[] MUST be empty in that case.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-010-S-001-REQ-B-011-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-012",
+                          "orphan": false,
+                          "name": "User utterances MUST NOT propagate a fatal exception",
+                          "requirement": "No user utterance — regardless of content, length, language, malformedness, ambiguity, or spelling — CAN cause the Utterance Manager to propagate a fatal application exception to the user. The classifier MUST always produce a valid IntentDocument with a usable target_action (typically closeConnection200 with a brief friendly clarification when no other action can be derived). No exception within the Utterance Manager tool can throw. Any unhandled exception inside UM MUST be caught within the UM tool and converted to an appropriate user message.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-010-S-001-REQ-B-012-TEST-1",
+                                "orphan": false,
+                                "test_type": "integration",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
                         }
                       ]
                     }
@@ -4704,6 +4744,26 @@
                                 "orphan": false,
                                 "test_type": "engineering_rule",
                                 "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-004-S-001-REQ-B-009",
+                          "orphan": false,
+                          "name": "Explicit per-call batch_size override on library find()",
+                          "requirement": "The ChatHealthyMongoUtilities Mongo wrapper SHALL expose batch_size as an explicit named keyword parameter on its find() method, with default value None. When batch_size is None the library MUST NOT pass any batch_size to pymongo (pymongo default applies). When the caller sets batch_size to an integer, the library MUST forward that integer to pymongo. The library MUST NOT impose a default batch_size for any caller, MUST NOT cache or persist a batch_size across calls, and MUST NOT infer a batch_size from collection size or call history. Choosing to override batch_size is a per-call caller decision. Compliance test: a pytest configures the canonical logging service to DEBUG, calls find() with batch_size set to a known integer, then reads the configured log destination and asserts the captured mongo.find START line includes the batch_size kwarg verbatim. The same pytest also asserts that omitting batch_size results in a START line that does NOT include batch_size in opts.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-004-S-001-REQ-B-009-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "FrontEndApplicationLib/tests/test_mongo_utilities_batch_size.py"
                               }
                             ]
                           }
@@ -14068,6 +14128,25 @@
                           "requirement": "Every file present in a target's build context MUST be declared in `deployment_architecture.json` under that target's `files[]` AND MUST be reached by a runtime code path on that target. Every file declared in `deployment_architecture.json` under a target's `files[]` MUST be present in that target's build context. The relationship is bidirectional and exact: no extras in the build context, no extras in the manifest, no file in either that the runtime does not actually use. A ground-up deploy from the manifest alone MUST stage exactly the files the runtime needs on that target, and no others.",
                           "priority": "must-have",
                           "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-001-REQ-B-011",
+                          "name": "Audit log for commit/push authorization verdicts",
+                          "requirement": "Every approve, reject, timeout, and interrupt verdict produced by the commit-authorization worker MUST be appended as one JSON line to a durable, machine-local audit log at architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/commit_authorization.log. Each line MUST include ISO-8601 UTC timestamp, hook name, enforcement id, action (commit or push), verdict (approve, reject, timeout, or interrupt), reason, and process pid. The audit log file MUST be gitignored and never committed to source control.",
+                          "priority": "must-have",
+                          "status": "in_progress",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {

@@ -60,6 +60,15 @@ class PendingDisambiguationOut(BaseModel):
     candidate: dict[str, Any] = Field(default_factory=dict)
 
 
+class Correction(BaseModel):
+    """One spelling substitution applied by rule 1.5. The classifier emits
+    these as a structured list so the frontend can apply red styling to the
+    original word without parsing prose for parentheses (which would false-
+    positive on legitimate LLM-authored parens). EPIC-002-F-010-S-001-REQ-B-011."""
+    original: str
+    corrected: str
+
+
 class ClassifierOutput(BaseModel):
     """Structured output of the UM classifier LLM. Field names match the
     canonical IntentDocument so downstream Python can copy them through
@@ -73,6 +82,7 @@ class ClassifierOutput(BaseModel):
     geography: Optional[GeoFacts] = None
     user_message: Optional[str] = None
     pending_disambiguation: Optional[PendingDisambiguationOut] = None
+    corrections: list[Correction] = Field(default_factory=list)
     # Audit-only label carried on the safetyLockout intent. LockoutTool
     # writes it onto {env}_Safety.emergency_incidents but renders the
     # user-facing prose from the trigger utterance, not from this label.
@@ -555,6 +565,129 @@ DECISION RULES (apply in this order):
      NEVER nonsense. NEVER classify it as nonsense. The pending
      question gives the "yes" its full meaning.
 
+  1.5. SPELLING CORRECTION. User utterances often contain typos —
+     especially in city names, complaint terms, and specialty names.
+     A USER UTTERANCE MUST NEVER PROPAGATE AS A FATAL ERROR. If a
+     misspelling leaves you unable to extract any meaningful slot,
+     route to rule 6 (closeConnection200 with a friendly
+     clarification) — never let downstream code raise on it.
+
+     SPELLING ONLY — NEVER TRANSLATE SEMANTICS. This rule corrects
+     misspellings, not word choice. A word that is correctly spelled
+     in any register of English MUST NOT be "corrected" to a synonym,
+     a more formal term, a clinical term, or any other re-wording.
+     Slang, colloquial, lay, and informal terms are correctly spelled
+     and MUST pass through verbatim — they are NOT misspellings.
+
+     A misspelling is a word that the user TRIED to spell but got
+     wrong (one or two character edits away from a real word, or an
+     obviously phonetic mis-rendering). Examples and counter-examples:
+
+       MISSPELLINGS (correct these):
+         - "wilington"   -> "Wilmington"   (one missing letter)
+         - "winington"   -> "Wilmington"   (transposition)
+         - "willingtun"  -> "Wilmington"   (phonetic)
+         - "psyciatrist" -> "psychiatrist" (missing 'h')
+         - "chest pian"  -> "chest pain"   (transposition)
+
+       NOT MISSPELLINGS — leave verbatim, NEVER substitute:
+         - "shrink"      stays "shrink"   (slang for psychiatrist)
+         - "doc"         stays "doc"      (informal for doctor)
+         - "OB"          stays "OB"       (abbreviation)
+         - "ENT"         stays "ENT"      (abbreviation)
+         - "foot doctor" stays "foot doctor" (lay term for podiatrist)
+         - "eye doctor"  stays "eye doctor"  (lay term for optometrist/ophthalmologist)
+         - "head shrinker" stays "head shrinker" (slang)
+         - "gyno"        stays "gyno"     (informal)
+         - "PT"          stays "PT"       (abbreviation)
+         - "back pain"   stays "back pain" (already a real phrase)
+
+     Translation from lay/slang/abbreviated terms to clinical or NUCC
+     terminology happens DOWNSTREAM in the SpecialtyFilter pipeline,
+     NOT in the Utterance Manager. Your job is to faithfully extract
+     what the user typed, fixing only typos.
+
+     For each word in the utterance that you suspect is a TYPO
+     (NOT a slang/lay term to translate) of a healthcare condition,
+     body part, US city, US state, US county, or NUCC specialty:
+
+       - If you are >=75% confident of the intended word, substitute
+         the corrected form in the output fields (complaint,
+         geography.city, geography.state, geography.county). Proceed
+         with decision rules 2-6 below as if the user had typed it
+         correctly.
+
+         CRITICAL — STRUCTURED FIELDS ARE NON-OPTIONAL FOR PLACE-NAME
+         CORRECTIONS. If the corrected word is a city, state, or
+         county name, you MUST also populate the corresponding
+         structured field on the geography object on your output:
+           - corrected city  -> geography.city  = <corrected city>
+           - corrected state -> geography.state = <2-letter USPS code>
+           - corrected county -> geography.county = <corrected county>
+         The user_message + corrections[] annotation alone is NOT
+         enough. The geography object MUST carry the corrected fact
+         in its dedicated slot — downstream code reads geography, not
+         user_message, to decide whether to dispatch findAProvider.
+
+         If you cannot populate the geography field for any reason
+         (e.g., you corrected a city but can't decide the state, or
+         the utterance still leaves geography ambiguous), you MUST
+         fall through to Rule 4 or Rule 5 below (specialtySearch +
+         user_message asking for the missing piece). NEVER emit
+         target_action=findAProvider unless the geography object is
+         fully populated to the sufficiency rule (zip alone, state
+         alone, state+city, or state+county).
+
+         IN ADDITION you MUST do TWO things on the same turn so the
+         user sees that their spelling was interpreted, not ignored:
+
+           (a) Append one entry per correction to the corrections[]
+               list on your output: {"original": <user's word>,
+               "corrected": <your corrected word>}. The original
+               value is verbatim from the user's utterance. Multiple
+               corrections in one utterance produce multiple entries.
+               The frontend uses this structured list to apply red
+               visual highlighting to the original word — never trust
+               text-parsing on the user_message prose to find what to
+               highlight; the corrections[] list is the source of
+               truth.
+
+           (b) Set user_message to the user's full corrected
+               utterance, with the original misspelled token written
+               inline after each corrected word as
+                   <corrected_word> (corrected from '<original_word>')
+               using straight single quotes around the original. For
+               example, the user's "find me a shrink in wilington DE"
+               becomes user_message =
+                   "find me a shrink in Wilmington (corrected from 'wilington') DE"
+               Multiple corrections appear in their original order.
+               The two outputs MUST be consistent: every entry in
+               corrections[] MUST appear in user_message in the
+               "(corrected from '<original>')" form, and every such
+               form in user_message MUST have a matching entry in
+               corrections[].
+
+       - If you are <75% confident, do NOT guess. Set target_action to
+         "closeConnection200". Set user_message to a brief
+         clarification question naming up to three plausible candidates
+         (e.g., "Did you mean Wilmington, Williston, or Williamsburg?").
+         Do not populate complaint or geography on this turn. Do not
+         set pending_disambiguation. Leave corrections[] empty — no
+         substitution was applied.
+
+     Examples of >=75% confident corrections (each produces both a
+     corrections[] entry AND a user_message acknowledgment):
+       - "wilington DE"   -> "Wilmington DE"
+       - "winington DE"   -> "Wilmington DE"
+       - "shink"          -> "shrink"
+       - "chest pian"     -> "chest pain"
+       - "psyciatrist"    -> "psychiatrist"
+
+     Examples where confidence is <75% and you must ask:
+       - "Springfeld" alone (no state context) — many US cities named
+         Springfield-like; ask for the state or the intended city.
+       - "phsyological"   - could be "psychological" or "physiological".
+
   2. If not resolving a prior disambiguation, evaluate the latest
      utterance ALONE. If it is gibberish, random characters, a single
      nonsense word, or otherwise not a real request, set target_action
@@ -964,9 +1097,57 @@ class UtteranceManagerTool(ChatHealthyTool):
     Response = Response
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
-        if request.trigger_type == "manufacture":
-            return await self._run_manufacture(deps, request)
-        return await self._run_interpret(deps, request)
+        # REQ-B-012: any exception inside UM is caught here and converted to
+        # a closeConnection200 with a single clarification message. The
+        # primary defenses (prompt rules 0-6, sufficiency checks) keep this
+        # path cold; this is the backstop that guarantees a user utterance
+        # NEVER produces a fatal 5xx.
+        try:
+            if request.trigger_type == "manufacture":
+                return await self._run_manufacture(deps, request)
+            return await self._run_interpret(deps, request)
+        except Exception as exc:
+            return await self._terminate_with_clarification(deps, exc)
+
+    async def _terminate_with_clarification(
+        self, deps: AgentDeps, exc: BaseException,
+    ) -> "Response":
+        """Single error-management site for the UM tool. ANY unhandled
+        exception arrives here and is converted to a closeConnection200
+        with one clarification message. No branching on exception type,
+        no per-cause prose — one path, one outcome."""
+        log.warning(
+            "UM caught unhandled exception; downgrading to clarification: %s",
+            exc,
+            exc=ChatHealthyException(
+                mode="um_unhandled_exception_downgraded",
+                message=f"UM caught unhandled exception: {exc}",
+                component="UtteranceManagerTool",
+                exception=exc if isinstance(exc, Exception) else None,
+            ),
+            if_not_debug_log=True,
+        )
+        fallback = (
+            "I had trouble understanding that. Could you say it a "
+            "different way?"
+        )
+        prior = deps.user_object.intent
+        base_doc = prior or IntentDocument(
+            target_action="closeConnection200",
+            intents=[build_close_connection_200_intent()],
+        )
+        new_doc = merge_intents(
+            base_doc,
+            [build_close_connection_200_intent()],
+            target_action="closeConnection200",
+            user_message=fallback,
+        )
+        from authentication.agent_deps import append_system_utterance
+        deps.stream({"kind": "prompt", "data": {"text": fallback}})
+        append_system_utterance(deps.user_object, fallback)
+        deps.user_object.intent = new_doc
+        await asyncio.sleep(0)
+        return self.Response(target_action="closeConnection200")
 
     async def _run_manufacture(self, deps: AgentDeps, request: "Request") -> "Response":
         """Manufacture path per EPIC-002-F-010-S-003. UR populated
@@ -1135,7 +1316,13 @@ class UtteranceManagerTool(ChatHealthyTool):
         # gives a follow-up "yes" its referent.
         if new_doc.user_message:
             from authentication.agent_deps import append_system_utterance
-            deps.stream({"kind": "prompt", "data": {"text": new_doc.user_message}})
+            data: dict[str, Any] = {"text": new_doc.user_message}
+            if llm_result.corrections:
+                data["corrections"] = [
+                    {"original": c.original, "corrected": c.corrected}
+                    for c in llm_result.corrections
+                ]
+            deps.stream({"kind": "prompt", "data": data})
             append_system_utterance(deps.user_object, new_doc.user_message)
 
         deps.user_object.intent = new_doc

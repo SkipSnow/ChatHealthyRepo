@@ -26,6 +26,7 @@ Wired to two git hooks via two enforcement entries on the same rule:
 
 from __future__ import annotations
 
+import json
 import os
 import secrets
 import socket
@@ -34,6 +35,7 @@ import sys
 import threading
 import time
 import webbrowser
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
@@ -64,6 +66,15 @@ _AGENT_MARKERS = ("CLAUDECODE", "CLAUDE_AGENT_SDK_VERSION", "CLAUDE_CODE_ENTRYPO
 
 # Web-prompt timeout (seconds).
 _BROWSER_TIMEOUT_SECONDS = 600
+
+# Audit log: every approve/reject/timeout/interrupt/error verdict is appended
+# here as one JSON line. Lives in the feature's ArchitectureDesignAndAuditDocs
+# directory alongside the design docs for EPIC-008-F-002.
+_AUDIT_LOG_PATH = (
+    _THIS_FILE.parent.parent
+    / "ArchitectureDesignAndAuditDocs"
+    / "commit_authorization.log"
+)
 
 
 class CommitAuthorizationWorker(EnforcementWorker):
@@ -108,6 +119,7 @@ class CommitAuthorizationWorker(EnforcementWorker):
             return EXIT_VIOLATIONS_FOUND
 
         if reply.strip().lower() == "approve":
+            self._audit(action, "approve", "inline")
             return EXIT_OK
 
         self._reject(action, "not approved")
@@ -242,6 +254,7 @@ class CommitAuthorizationWorker(EnforcementWorker):
                 pass
 
         if verdict["value"] == "approve":
+            self._audit(action, "approve", "browser")
             return EXIT_OK
         if verdict["value"] == "reject":
             self._reject(action, "rejected by human")
@@ -261,6 +274,7 @@ class CommitAuthorizationWorker(EnforcementWorker):
         )
 
     def _reject(self, action: str, reason: str) -> None:
+        self._audit(action, "reject", reason)
         self._emit_violation(ViolationRecord(
             enforcement_id=self.enforcement_id,
             rule_id=self.rule_id,
@@ -269,6 +283,23 @@ class CommitAuthorizationWorker(EnforcementWorker):
             severity="error",
         ))
         self.violation_count = 1
+
+    def _audit(self, action: str, verdict: str, reason: str) -> None:
+        entry = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "hook": self.hook,
+            "enforcement_id": self.enforcement_id,
+            "action": action,
+            "verdict": verdict,
+            "reason": reason,
+            "pid": os.getpid(),
+        }
+        try:
+            _AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with _AUDIT_LOG_PATH.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(entry) + "\n")
+        except Exception:
+            pass
 
 
 def main(argv: list[str] | None = None) -> int:

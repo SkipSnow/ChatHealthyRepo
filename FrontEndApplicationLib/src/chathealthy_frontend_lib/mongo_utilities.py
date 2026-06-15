@@ -11,10 +11,23 @@ and enforced at pre-commit via Rule-004.
 from __future__ import annotations
 
 import os
+import time
 from typing import Any, Optional
 
 from bson.json_util import dumps as bson_dumps
 from pymongo import MongoClient
+from pymongo.errors import (
+    ConfigurationError,
+    ConnectionFailure,
+    DocumentTooLarge,
+    EncryptionError,
+    InvalidDocument,
+    InvalidName,
+    InvalidOperation,
+    OperationFailure,
+    ProtocolError,
+    ServerSelectionTimeoutError,
+)
 
 from .exceptions import ChatHealthyException
 from .logging_service import ChatHealthyLoggingService
@@ -33,6 +46,68 @@ def q(value: Any) -> str:
         return repr(value)
 
 
+def _exc_detail(exc: BaseException) -> str:
+    """Render verbatim the Mongo-side response carried on a pymongo exception:
+    .code, .code_name, and .details (the raw server reply document)."""
+    parts = []
+    code = getattr(exc, "code", None)
+    if code is not None:
+        parts.append(f"code={code}")
+    code_name = getattr(exc, "code_name", None)
+    if code_name is not None:
+        parts.append(f"code_name={code_name}")
+    details = getattr(exc, "details", None)
+    if details is not None:
+        parts.append(f"details={q(details)}")
+    errors = getattr(exc, "errors", None)
+    if errors:
+        parts.append(f"errors={q(errors)}")
+    return " ".join(parts)
+
+
+def _classify_mongo_exception(exc: BaseException, elapsed_s: float) -> str:
+    """Map a pymongo error to a ChatHealthy mode. Empty string for non-pymongo
+    exceptions — caller re-raises raw.
+
+    `mongo_query_timeout` ONLY fires when elapsed is within 2s of the
+    configured client budget (TIMEOUT_MS). Anything else from the
+    ConnectionFailure family is `mongo_network_failure` — the connection
+    layer dropped for some reason that is NOT a budget exhaustion."""
+    if isinstance(exc, (ConnectionFailure, ServerSelectionTimeoutError)):
+        if elapsed_s >= (TIMEOUT_MS / 1000.0) - 2.0:
+            return "mongo_query_timeout"
+        return "mongo_network_failure"
+    if isinstance(exc, DocumentTooLarge):
+        return "mongo_document_too_large"
+    if isinstance(exc, OperationFailure):
+        return "mongo_server_rejected"
+    if isinstance(exc, (ConfigurationError, InvalidOperation, InvalidName, InvalidDocument)):
+        return "mongo_invalid_operation"
+    if isinstance(exc, (ProtocolError, EncryptionError)):
+        return "mongo_protocol_failure"
+    return ""
+
+
+def _convert_mongo_exception(exc: BaseException, elapsed_s: float,
+                              op: str, db: str, coll: str) -> None:
+    """Translate a recognised pymongo exception into a ChatHealthyException
+    carrying the verbatim Mongo response in context, raised `from exc`. For
+    an unrecognised exception, return None — the caller re-raises raw."""
+    mode = _classify_mongo_exception(exc, elapsed_s)
+    if not mode:
+        return
+    raise ChatHealthyException(
+        mode=mode,
+        message=f"mongo.{op} {db}.{coll} {type(exc).__name__}: {exc}",
+        component="ChatHealthyMongoUtilities",
+        elapsed_s=round(elapsed_s, 3),
+        mongo_detail=_exc_detail(exc),
+        op=op,
+        db=db,
+        coll=coll,
+    ) from exc
+
+
 class TimedCursor:
     """Pass-through cursor wrapper. Logs START / END / FAIL for the
     cursor iteration. Elapsed time is the asctime delta between START
@@ -47,19 +122,23 @@ class TimedCursor:
     def __iter__(self):
         log.info("mongo.%s iter START db=%s coll=%s",
                   self._op, self._db, self._coll)
+        start = time.monotonic()
         try:
             for doc in self._cursor:
                 yield doc
             log.info("mongo.%s iter END db=%s coll=%s",
                       self._op, self._db, self._coll)
         except Exception as exc:
-            log.info("mongo.%s iter FAIL db=%s coll=%s exc=%s: %s",
-                      self._op, self._db, self._coll,
-                      type(exc).__name__, exc)
+            elapsed = time.monotonic() - start
+            log.info("mongo.%s iter FAIL db=%s coll=%s elapsed_s=%.3f exc=%s: %s %s",
+                      self._op, self._db, self._coll, elapsed,
+                      type(exc).__name__, exc, _exc_detail(exc))
             try:
                 self._cursor.close()
             except Exception:
                 pass
+            _convert_mongo_exception(exc, elapsed, f"{self._op}_iter",
+                                     self._db, self._coll)
             raise
 
     def close(self) -> None:
@@ -99,26 +178,36 @@ class TimedCollection:
     def aggregate(self, pipeline, *args, **kwargs):
         log.info("mongo.aggregate START db=%s coll=%s pipeline=%s opts=%s",
                   self._db_name, self._coll_name, q(pipeline), q(kwargs))
+        start = time.monotonic()
         try:
             cursor = self._coll.aggregate(pipeline, *args, **kwargs)
         except Exception as exc:
-            log.info("mongo.aggregate FAIL db=%s coll=%s exc=%s: %s",
-                      self._db_name, self._coll_name,
-                      type(exc).__name__, exc)
+            elapsed = time.monotonic() - start
+            log.info("mongo.aggregate FAIL db=%s coll=%s elapsed_s=%.3f exc=%s: %s %s",
+                      self._db_name, self._coll_name, elapsed,
+                      type(exc).__name__, exc, _exc_detail(exc))
+            _convert_mongo_exception(exc, elapsed, "aggregate",
+                                     self._db_name, self._coll_name)
             raise
         return TimedCursor(cursor, "aggregate", self._db_name, self._coll_name)
 
-    def find(self, *args, **kwargs):
+    def find(self, *args, batch_size: int | None = None, **kwargs):
+        if batch_size is not None:
+            kwargs["batch_size"] = batch_size
         filt = args[0] if args else kwargs.get("filter", {})
         proj = args[1] if len(args) > 1 else kwargs.get("projection")
         log.info("mongo.find START db=%s coll=%s filter=%s projection=%s opts=%s",
                   self._db_name, self._coll_name, q(filt), q(proj), q(kwargs))
+        start = time.monotonic()
         try:
             cursor = self._coll.find(*args, **kwargs)
         except Exception as exc:
-            log.info("mongo.find FAIL db=%s coll=%s exc=%s: %s",
-                      self._db_name, self._coll_name,
-                      type(exc).__name__, exc)
+            elapsed = time.monotonic() - start
+            log.info("mongo.find FAIL db=%s coll=%s elapsed_s=%.3f exc=%s: %s %s",
+                      self._db_name, self._coll_name, elapsed,
+                      type(exc).__name__, exc, _exc_detail(exc))
+            _convert_mongo_exception(exc, elapsed, "find",
+                                     self._db_name, self._coll_name)
             raise
         return TimedCursor(cursor, "find", self._db_name, self._coll_name)
 
@@ -127,30 +216,38 @@ class TimedCollection:
         proj = args[1] if len(args) > 1 else kwargs.get("projection")
         log.info("mongo.find_one START db=%s coll=%s filter=%s projection=%s opts=%s",
                   self._db_name, self._coll_name, q(filt), q(proj), q(kwargs))
+        start = time.monotonic()
         try:
             result = self._coll.find_one(*args, **kwargs)
             log.info("mongo.find_one END db=%s coll=%s hit=%s",
                       self._db_name, self._coll_name, result is not None)
             return result
         except Exception as exc:
-            log.info("mongo.find_one FAIL db=%s coll=%s exc=%s: %s",
-                      self._db_name, self._coll_name,
-                      type(exc).__name__, exc)
+            elapsed = time.monotonic() - start
+            log.info("mongo.find_one FAIL db=%s coll=%s elapsed_s=%.3f exc=%s: %s %s",
+                      self._db_name, self._coll_name, elapsed,
+                      type(exc).__name__, exc, _exc_detail(exc))
+            _convert_mongo_exception(exc, elapsed, "find_one",
+                                     self._db_name, self._coll_name)
             raise
 
     def count_documents(self, *args, **kwargs):
         filt = args[0] if args else kwargs.get("filter", {})
         log.info("mongo.count_documents START db=%s coll=%s filter=%s opts=%s",
                   self._db_name, self._coll_name, q(filt), q(kwargs))
+        start = time.monotonic()
         try:
             result = self._coll.count_documents(*args, **kwargs)
             log.info("mongo.count_documents END db=%s coll=%s n=%d",
                       self._db_name, self._coll_name, result)
             return result
         except Exception as exc:
-            log.info("mongo.count_documents FAIL db=%s coll=%s exc=%s: %s",
-                      self._db_name, self._coll_name,
-                      type(exc).__name__, exc)
+            elapsed = time.monotonic() - start
+            log.info("mongo.count_documents FAIL db=%s coll=%s elapsed_s=%.3f exc=%s: %s %s",
+                      self._db_name, self._coll_name, elapsed,
+                      type(exc).__name__, exc, _exc_detail(exc))
+            _convert_mongo_exception(exc, elapsed, "count_documents",
+                                     self._db_name, self._coll_name)
             raise
 
 
