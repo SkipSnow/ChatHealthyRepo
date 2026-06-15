@@ -116,3 +116,7 @@ _oneshots/
 # carries the artifact promoted via merge), so it is NOT listed here.
 architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild/
 .claude/worktrees/
+
+# Rule-065 commit-authorization audit log: machine-local audit trail of every
+# approve/reject/timeout/interrupt verdict. Durable, never committed.
+architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/commit_authorization.log

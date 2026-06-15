@@ -137,6 +137,64 @@ async function fetchWithColdStartRetry(
   return fetch(url, init)
 }
 
+// ── Helper: render a system message with corrections marked red ──
+// EPIC-002-F-010-S-001-REQ-B-011. Rule-008 statement 4 forbids regex in
+// frontend code, so this walks the string with indexOf/substring.
+function renderSystemMessageWithCorrections(
+  text: string,
+  corrections: Array<{original: string; corrected: string}>,
+): React.ReactNode {
+  if (!corrections.length) return text
+  const parts: React.ReactNode[] = []
+  let remaining = text
+  let key = 0
+  for (const c of corrections) {
+    const marker = "(corrected from '" + c.original + "')"
+    const idx = remaining.indexOf(marker)
+    if (idx < 0) continue
+    if (idx > 0) parts.push(<span key={key++}>{remaining.substring(0, idx)}</span>)
+    parts.push(
+      <span key={key++} style={{color: '#dc2626'}}>{marker}</span>
+    )
+    remaining = remaining.substring(idx + marker.length)
+  }
+  if (remaining) parts.push(<span key={key++}>{remaining}</span>)
+  return <>{parts}</>
+}
+
+
+// ── Helper: render the user's original question with each misspelled
+// word followed by a red "(corrected from '<original>')" annotation.
+// Used in the question-bar header so the header carries the same
+// correction signal as the system bubble. Case-insensitive search
+// because the classifier may normalize the original word's case.
+function renderQuestionWithCorrections(
+  original: string,
+  corrections: Array<{original: string; corrected: string}>,
+): React.ReactNode {
+  if (!corrections.length) return original
+  let remaining = original
+  const parts: React.ReactNode[] = []
+  let key = 0
+  for (const c of corrections) {
+    const lowerRemaining = remaining.toLowerCase()
+    const idx = lowerRemaining.indexOf(c.original.toLowerCase())
+    if (idx < 0) continue
+    const matched = remaining.substring(idx, idx + c.original.length)
+    if (idx > 0) parts.push(<span key={key++}>{remaining.substring(0, idx)}</span>)
+    parts.push(<span key={key++}>{c.corrected}</span>)
+    parts.push(
+      <span key={key++} style={{color: '#dc2626'}}>
+        {" (corrected from '" + matched + "')"}
+      </span>
+    )
+    remaining = remaining.substring(idx + c.original.length)
+  }
+  if (remaining) parts.push(<span key={key++}>{remaining}</span>)
+  return <>{parts}</>
+}
+
+
 // ── Main Component ───────────────────────────────────────────────
 export default function FindCareApp() {
   const [phase, setPhase] = useState<Phase>('welcome')
@@ -144,6 +202,7 @@ export default function FindCareApp() {
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
   const [systemMessage, setSystemMessage] = useState('')
+  const [systemCorrections, setSystemCorrections] = useState<Array<{original: string; corrected: string}>>([])
   const [welcomeHtml, setWelcomeHtml] = useState('')
   const [thinkSeconds, setThinkSeconds] = useState(0)
   const [totalCount, setTotalCount] = useState(0)
@@ -280,6 +339,7 @@ export default function FindCareApp() {
     setThinkSeconds(0)
     setError('')
     setSystemMessage('')
+    setSystemCorrections([])
     selection.flushGarbage()
 
     const start = Date.now()
@@ -312,6 +372,7 @@ export default function FindCareApp() {
       // their answer while the server finishes.
       console.log('[FindCare] stream event kind=prompt text=', text)
       setSystemMessage(text)
+      setSystemCorrections(Array.isArray(data?.corrections) ? data.corrections : [])
       setSearchPromptUp(true)
       sawTerminalEvent = true
       sawPrompt = true
@@ -387,7 +448,10 @@ export default function FindCareApp() {
       if (data.providers) {
         // Providers arrived — clear the mid-stream system prompt text so
         // it doesn't linger over the provider list once phase moves to
-        // 'results'.
+        // 'results'. systemCorrections is deliberately NOT cleared here:
+        // the results-phase question header needs it to render the
+        // (corrected from '...') red annotation per REQ-B-011. It is
+        // cleared at the start of the next /gate call.
         setSystemMessage('')
         const enriched = data.providers.map((p: any) => ({
           ...p,
@@ -506,6 +570,7 @@ export default function FindCareApp() {
     setThinkSeconds(0)
     setError('')
     setSystemMessage('')
+    setSystemCorrections([])
     selection.flushGarbage()
     selection.setAvailable([])
 
@@ -557,6 +622,9 @@ export default function FindCareApp() {
         return
       }
       if (data.providers) {
+        // systemCorrections deliberately preserved through results phase
+        // so the question header can render the (corrected from '...')
+        // annotation. Cleared at the start of the next /gate call.
         setSystemMessage('')
         const enriched = data.providers.map((p: any) => ({
           ...p,
@@ -971,7 +1039,7 @@ export default function FindCareApp() {
           <div style={{
             padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
             border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6, color: '#0b7a75',
-          }}>{systemMessage}</div>
+          }}>{renderSystemMessageWithCorrections(systemMessage, systemCorrections)}</div>
         </div>
       )}
 
@@ -982,7 +1050,7 @@ export default function FindCareApp() {
             <div style={{
               padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
               border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6, color: '#0b7a75', maxWidth: 800,
-            }}>{systemMessage}</div>
+            }}>{renderSystemMessageWithCorrections(systemMessage, systemCorrections)}</div>
           ) : (
             <div style={{ fontSize: '1em', color: '#6b7280' }}>Searching for: <strong>{question}</strong></div>
           )}
@@ -1010,7 +1078,7 @@ export default function FindCareApp() {
             padding: '1em', background: '#f0fffe', borderBottom: '0.25em solid #0b7a75',
             fontSize: '1em', color: '#0b7a75', fontWeight: 600,
           }}>
-            {question}
+            {renderQuestionWithCorrections(question, systemCorrections)}
             <span style={{ float: 'right', fontWeight: 400, color: '#6b7280', fontSize: '1em' }}>
               {totalCount} providers found
             </span>

@@ -2579,22 +2579,11 @@ class LocalDeploy:
             "\n=========================================="
             "\n  SMOKE TEST FAILED"
             "\n  Environment left up for inspection."
+            "\n  Tear-down is the operator's call — never automatic."
             "\n=========================================="
         )
         print(banner, flush=True)
         sys.stderr.write(banner + "\n")
-
-    def _human_verify_before_teardown(self) -> None:
-        self._step_notice(
-            "smoke failed — environment left up; operator intervention "
-            "required."
-        )
-        try:
-            ans = input("Smoke failed. Tear down anyway? (y/n): ").strip().lower()
-        except (EOFError, OSError):
-            return
-        if ans != "y":
-            sys.exit("Teardown aborted at human verify gate.")
 
     # REQ-T-006 — structured deploy output
     def _write_structured_output(self) -> None:
@@ -2679,7 +2668,6 @@ class LocalDeploy:
         self._step_notice(f"smoke test ended: rc={smoke_rc}")
         if smoke_rc != 0:
             self._display_smoke_failure_banner()
-            self._human_verify_before_teardown()
         self._write_structured_output()
         return smoke_rc
 
