@@ -8,12 +8,12 @@
 #
 # Design: ARCH-001
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 
 from domain.evaluate_care_quality.clinical_trials_service import ClinicalTrialsService
 from ProviderDetail.provider_detail_service import ProviderDetailService
 
-_log = logging.getLogger("findcare.facade.evaluate_care")
+log = ChatHealthyLoggingService()
 
 
 class EvaluateCareFacade:

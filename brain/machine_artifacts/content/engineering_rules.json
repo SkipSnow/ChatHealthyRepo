@@ -215,6 +215,78 @@
         }
       },
       {
+        "id": "Rule-005",
+        "name": "Uniform logging discipline",
+        "description": "Realizes EPIC-003-F-005-S-001 REQs B-002, B-007 (typed exc), and B-010. Four independent AST checks: (a) outside the canonical surface, logging.basicConfig/getLogger and print() are forbidden; (b) the exc= argument passed to any ChatHealthyLoggingService log method MUST be a ChatHealthyException; (c) any function whose body raises a ChatHealthyException MUST NOT call any ChatHealthyLoggingService log method in the same function body; (d) outside the canonical surface, the stdlib `logging` module MUST NOT be imported in any form (`import logging`, `import logging as <alias>`, or `from logging import …`). HEAD-delta carve-out per Rule-003 pattern: only commits that increase violation count vs HEAD fail.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW direct call to logging.basicConfig(), logging.getLogger(), or print() outside FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py. Scope is the front-end application code (sharedServices, FindCare, EvaluateCare, FindCareChat backend, FrontEndApplicationLib/src). Test files and one-shot scripts are excluded.",
+              "req_id": "EPIC-003-F-005-S-001-REQ-B-002"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW ChatHealthyLoggingService log method call whose exc= keyword argument does not resolve to a ChatHealthyException. Names bound by `except ChatHealthyException as <name>:` are accepted.",
+              "req_id": "EPIC-003-F-005-S-001-REQ-B-007"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW ChatHealthyLoggingService log method call inside the same function/method body as a `raise ChatHealthyException(...)` statement.",
+              "req_id": "EPIC-003-F-005-S-001-REQ-B-010"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW import of the stdlib `logging` module outside FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py. Forbidden forms: `import logging`, `import logging as <alias>`, and `from logging import …`. Scope and exclusions match statement 1.",
+              "req_id": "EPIC-003-F-005-S-001-REQ-B-002"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-005-ENF-001",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py",
+              "requires_lock": false,
+              "scopes": [
+                [
+                  "_scan_uniform_logging",
+                  "allowed_pattern",
+                  [
+                    "^sharedServices/.+\\.py$",
+                    "^FindCare/.+\\.py$",
+                    "^Code/ConversationalUX/FindCareChat/backend/.+\\.py$",
+                    "^evaluateCare/.+\\.py$",
+                    "^FrontEndApplicationLib/src/.+\\.py$"
+                  ]
+                ],
+                [
+                  "_scan_uniform_logging",
+                  "excluded_pattern",
+                  [
+                    "(^|/)tests?/",
+                    "(^|/)test_.+\\.py$",
+                    "_test\\.py$",
+                    "(^|/)conftest\\.py$",
+                    "(^|/)_oneshots/",
+                    "(^|/)__pycache__/"
+                  ]
+                ],
+                [
+                  "_scan_uniform_logging",
+                  "excluded_exact",
+                  [
+                    "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py"
+                  ]
+                ]
+              ],
+              "timeout": 30
+            }
+          ]
+        }
+      },
+      {
         "id": "Rule-008",
         "name": "All files added to the local Git repository must be scanned for architectural compliance.",
         "description": "All JSONs, code and configuration files must be scanned for compliance. Current scope is to ensure that only permissible references to HTTP can be in our code base and other artifacts, and that all JSONs be validated by standard Python schema mechanisms.",
@@ -280,6 +352,7 @@
                   [
                     "package-lock.json",
                     ".claude/settings.json",
+                    ".claude/settings.local.json",
                     "pipeline/Code/host.json",
                     "architecture/Conversation-logPipeline/appsettings.json",
                     "architecture/Conversation-logPipeline/appsettings.Development.json",

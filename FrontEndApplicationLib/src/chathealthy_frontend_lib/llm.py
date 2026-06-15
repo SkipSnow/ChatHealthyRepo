@@ -17,7 +17,7 @@ clearing the variable.
 from __future__ import annotations
 
 import asyncio
-import logging
+from .logging_service import ChatHealthyLoggingService
 import os
 import random
 import time
@@ -27,21 +27,20 @@ import httpx
 
 from .exceptions import ChatHealthyException
 
-_log = logging.getLogger("chathealthy.llm")
-
-_MAX_ATTEMPTS = 3
-_BACKOFF_SECONDS = (0.5, 1.5)
-_TRANSIENT = (
+log = ChatHealthyLoggingService()
+MAX_ATTEMPTS = 3
+BACKOFF_SECONDS = (0.5, 1.5)
+TRANSIENT = (
     httpx.RemoteProtocolError,
     httpx.ConnectError,
     httpx.ReadTimeout,
     httpx.WriteTimeout,
     httpx.PoolTimeout,
 )
-_INJECT_ENV = "CHATHEALTHY_INJECT_LLM_FAILURE"
+INJECT_ENV = "CHATHEALTHY_INJECT_LLM_FAILURE"
 
 
-def _injected_failure(call_site: str) -> bool:
+def injected_failure(call_site: str) -> bool:
     """Test-only failure injection.
 
     Empty / "0" / "false" / "no" → no injection.
@@ -50,7 +49,7 @@ def _injected_failure(call_site: str) -> bool:
         inject only when `call_site` contains it. Lets a test fail the
         classifier without failing the manufacture call.
     """
-    raw = os.environ.get(_INJECT_ENV, "")
+    raw = os.environ.get(INJECT_ENV, "")
     if raw in ("", "0", "false", "False", "no", "No"):
         return False
     if raw in ("1", "true", "True", "yes", "Yes"):
@@ -58,7 +57,7 @@ def _injected_failure(call_site: str) -> bool:
     return raw in call_site
 
 
-def _model_name(agent: Any) -> str:
+def model_name(agent: Any) -> str:
     model = getattr(agent, "model", None)
     if model is None:
         return "unknown"
@@ -69,11 +68,11 @@ def _model_name(agent: Any) -> str:
     return type(model).__name__
 
 
-def _jittered(delay: float) -> float:
+def jittered(delay: float) -> float:
     return delay * (0.5 + random.random())
 
 
-def _raise_unavailable(provider: str, call_site: str, server: str,
+def raise_unavailable(provider: str, call_site: str, server: str,
                        component: str, model_name_str: str,
                        last_exc: Exception) -> None:
     raise ChatHealthyException(
@@ -85,7 +84,7 @@ def _raise_unavailable(provider: str, call_site: str, server: str,
         component=component,
         provider=provider,
         call_site=call_site,
-        attempts=_MAX_ATTEMPTS,
+        attempts=MAX_ATTEMPTS,
         exception=last_exc,
     ) from last_exc
 
@@ -107,37 +106,68 @@ async def run_llm(agent: Any, prompt: str, *, call_site: str,
     Any kwargs beyond call_site/provider/server/component are
     forwarded to agent.run.
     """
-    model_name_str = _model_name(agent)
+    model_name_str = model_name(agent)
     last_exc: Exception | None = None
-    for attempt in range(1, _MAX_ATTEMPTS + 1):
+    for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
-            if _injected_failure(call_site):
+            if injected_failure(call_site):
                 raise httpx.RemoteProtocolError(
                     "CHATHEALTHY_INJECT_LLM_FAILURE: synthetic failure"
                 )
             return await agent.run(prompt, **agent_kwargs)
-        except _TRANSIENT as exc:
+        except TRANSIENT as exc:
             last_exc = exc
-            if attempt < _MAX_ATTEMPTS:
-                delay = _jittered(_BACKOFF_SECONDS[attempt - 1])
-                _log.warning(
+            if attempt < MAX_ATTEMPTS:
+                delay = jittered(BACKOFF_SECONDS[attempt - 1])
+                log.warning(
                     "llm transient failure attempt %d/%d server=%s "
                     "component=%s call_site=%s provider=%s model=%s "
                     "exc=%s retrying in %.2fs",
-                    attempt, _MAX_ATTEMPTS, server, component, call_site,
+                    attempt, MAX_ATTEMPTS, server, component, call_site,
                     provider, model_name_str, type(exc).__name__, delay,
+                    exc=ChatHealthyException(
+                        mode="llm_transient_retrying",
+                        message=(
+                            f"llm transient failure attempt {attempt}/{MAX_ATTEMPTS} "
+                            f"server={server} component={component} call_site={call_site} "
+                            f"provider={provider} model={model_name_str} "
+                            f"exc={type(exc).__name__}"
+                        ),
+                        server=server,
+                        component=component,
+                        provider=provider,
+                        call_site=call_site,
+                        attempts=attempt,
+                        exception=exc,
+                    ),
+                    if_not_debug_log=True,
                 )
                 await asyncio.sleep(delay)
                 continue
-            _log.exception(
+            log.exception(
                 "llm exhausted attempts=%d server=%s component=%s "
                 "call_site=%s provider=%s model=%s",
-                _MAX_ATTEMPTS, server, component, call_site, provider,
+                MAX_ATTEMPTS, server, component, call_site, provider,
                 model_name_str,
-                stack_info=True,
+                exc=ChatHealthyException(
+                    mode="llm_exhausted",
+                    message=(
+                        f"llm exhausted attempts={MAX_ATTEMPTS} "
+                        f"server={server} component={component} call_site={call_site} "
+                        f"provider={provider} model={model_name_str} "
+                        f"exc={type(exc).__name__}"
+                    ),
+                    server=server,
+                    component=component,
+                    provider=provider,
+                    call_site=call_site,
+                    attempts=attempt,
+                    exception=exc,
+                ),
+                if_not_debug_log=True,
             )
     assert last_exc is not None
-    _raise_unavailable(provider, call_site, server, component,
+    raise_unavailable(provider, call_site, server, component,
                        model_name_str, last_exc)
 
 
@@ -149,35 +179,66 @@ def run_llm_sync(agent: Any, prompt: str, *, call_site: str,
     SpecialtyFilter (_pick_agent.run_sync, find_specialists.py). See
     run_llm for the meaning of the server and component kwargs.
     """
-    model_name_str = _model_name(agent)
+    model_name_str = model_name(agent)
     last_exc: Exception | None = None
-    for attempt in range(1, _MAX_ATTEMPTS + 1):
+    for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
-            if _injected_failure(call_site):
+            if injected_failure(call_site):
                 raise httpx.RemoteProtocolError(
                     "CHATHEALTHY_INJECT_LLM_FAILURE: synthetic failure"
                 )
             return agent.run_sync(prompt, **agent_kwargs)
-        except _TRANSIENT as exc:
+        except TRANSIENT as exc:
             last_exc = exc
-            if attempt < _MAX_ATTEMPTS:
-                delay = _jittered(_BACKOFF_SECONDS[attempt - 1])
-                _log.warning(
+            if attempt < MAX_ATTEMPTS:
+                delay = jittered(BACKOFF_SECONDS[attempt - 1])
+                log.warning(
                     "llm transient failure attempt %d/%d server=%s "
                     "component=%s call_site=%s provider=%s model=%s "
                     "exc=%s retrying in %.2fs",
-                    attempt, _MAX_ATTEMPTS, server, component, call_site,
+                    attempt, MAX_ATTEMPTS, server, component, call_site,
                     provider, model_name_str, type(exc).__name__, delay,
+                    exc=ChatHealthyException(
+                        mode="llm_transient_retrying",
+                        message=(
+                            f"llm transient failure attempt {attempt}/{MAX_ATTEMPTS} "
+                            f"server={server} component={component} call_site={call_site} "
+                            f"provider={provider} model={model_name_str} "
+                            f"exc={type(exc).__name__}"
+                        ),
+                        server=server,
+                        component=component,
+                        provider=provider,
+                        call_site=call_site,
+                        attempts=attempt,
+                        exception=exc,
+                    ),
+                    if_not_debug_log=True,
                 )
                 time.sleep(delay)
                 continue
-            _log.exception(
+            log.exception(
                 "llm exhausted attempts=%d server=%s component=%s "
                 "call_site=%s provider=%s model=%s",
-                _MAX_ATTEMPTS, server, component, call_site, provider,
+                MAX_ATTEMPTS, server, component, call_site, provider,
                 model_name_str,
-                stack_info=True,
+                exc=ChatHealthyException(
+                    mode="llm_exhausted",
+                    message=(
+                        f"llm exhausted attempts={MAX_ATTEMPTS} "
+                        f"server={server} component={component} call_site={call_site} "
+                        f"provider={provider} model={model_name_str} "
+                        f"exc={type(exc).__name__}"
+                    ),
+                    server=server,
+                    component=component,
+                    provider=provider,
+                    call_site=call_site,
+                    attempts=attempt,
+                    exception=exc,
+                ),
+                if_not_debug_log=True,
             )
     assert last_exc is not None
-    _raise_unavailable(provider, call_site, server, component,
+    raise_unavailable(provider, call_site, server, component,
                        model_name_str, last_exc)

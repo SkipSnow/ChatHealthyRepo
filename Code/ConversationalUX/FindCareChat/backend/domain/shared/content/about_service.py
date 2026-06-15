@@ -5,9 +5,9 @@
 #
 # Design: ARCH-001, shared infrastructure
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 
-_log = logging.getLogger("findcare.about")
+log = ChatHealthyLoggingService()
 
 
 class AboutService:

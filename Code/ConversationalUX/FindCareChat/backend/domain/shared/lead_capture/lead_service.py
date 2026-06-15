@@ -7,12 +7,13 @@
 #
 # Design: ARCH-001, shared infrastructure
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from datetime import datetime
 
 from domain.shared.consent.consent_service import ConsentService
 
-_log = logging.getLogger("findcare.lead")
+log = ChatHealthyLoggingService()
 
 
 class LeadService:
@@ -48,7 +49,12 @@ class LeadService:
             for doc in lead_coll.find({"email": str(email).strip()}):
                 return {"recorded": "ok"}
         except Exception as exc:
-            _log.error("record_user_details DB lookup failed: %s", exc)
+            log.error("record_user_details DB lookup failed: %s", exc, exc=ChatHealthyException(
+                                                                        mode="lead_lookup_failed",
+                                                                        message=f"record_user_details DB lookup failed: {exc}",
+                                                                        component="LeadService",
+                                                                        exception=exc,
+                                                                    ), if_not_debug_log=True)
             return {"recorded": "error", "note": "Database error"}
 
         self._push(f"Recording interest from {name} with email {email}: {reason}")

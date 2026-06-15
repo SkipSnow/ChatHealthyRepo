@@ -10,9 +10,10 @@
 # Design: ARCH-001 Phase 1
 
 import json
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
-_log = logging.getLogger("findcare.tool_router")
+log = ChatHealthyLoggingService()
 
 
 class ToolRouter:
@@ -31,7 +32,7 @@ class ToolRouter:
         self._registry[tool_name] = handler
         if model:
             self._models[tool_name] = model
-        _log.debug("Registered tool: %s -> %s (model: %s)", tool_name, handler.__name__ if hasattr(handler, '__name__') else str(handler), model.__name__ if model else "None")
+        log.debug("Registered tool: %s -> %s (model: %s)", tool_name, handler.__name__ if hasattr(handler, '__name__') else str(handler), model.__name__ if model else "None")
 
     def register_with_models(self, mapping: list[tuple]) -> None:
         """Register tools with Pydantic models: [(name, handler, model), ...]"""
@@ -52,7 +53,7 @@ class ToolRouter:
         Phase 6: validates inputs via Pydantic if model registered.
         """
         if tool_name not in self._registry:
-            _log.warning("BLOCKED: unregistered tool '%s' — not in allowlist", tool_name)
+            log.warning("BLOCKED: unregistered tool '%s' — not in allowlist", tool_name)
             return {"error": f"Tool '{tool_name}' is not registered. This call has been blocked."}
 
         # Phase 6: Pydantic validation
@@ -62,15 +63,25 @@ class ToolRouter:
                 validated = model(**arguments)
                 arguments = validated.model_dump()
             except Exception as exc:
-                _log.warning("VALIDATION FAILED for '%s': %s", tool_name, exc)
+                log.warning("VALIDATION FAILED for '%s': %s", tool_name, exc, exc=ChatHealthyException(
+                                                                               mode="tool_input_validation_failed",
+                                                                               message=f"VALIDATION FAILED for {tool_name!r}: {exc}",
+                                                                               component="ToolRouter",
+                                                                               exception=exc,
+                                                                           ), if_not_debug_log=True)
                 return {"error": f"Tool '{tool_name}' input validation failed: {str(exc)}"}
 
         handler = self._registry[tool_name]
-        _log.info("Dispatching tool: %s (validated: %s)", tool_name, bool(model))
+        log.info("Dispatching tool: %s (validated: %s)", tool_name, bool(model))
         try:
             return handler(**arguments)
         except Exception as exc:
-            _log.error("Tool '%s' failed: %s", tool_name, exc, exc_info=True)
+            log.error("Tool '%s' failed: %s", tool_name, exc, exc_info=True, exc=ChatHealthyException(
+                                                                              mode="tool_handler_failed",
+                                                                              message=f"Tool {tool_name!r} failed: {exc}",
+                                                                              component="ToolRouter",
+                                                                              exception=exc,
+                                                                          ), if_not_debug_log=True)
             return {"error": f"Tool '{tool_name}' failed: {str(exc)}"}
 
     def handle_tool_calls(self, tool_use_blocks, messages, format_history_fn=None) -> list:

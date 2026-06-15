@@ -39,7 +39,8 @@ exact match after `text.strip().lower()`. No env var; no .env entry.
 from __future__ import annotations
 
 import asyncio
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -55,26 +56,26 @@ from UtteranceManager.intent_document import (
     IntentDocument,
 )
 
-_log = logging.getLogger("shared_services.lockout_tool")
+log = ChatHealthyLoggingService()
 
 # Hardcoded per operator. Exact match (no substring) after strip+lower.
-_UNLOCK_LITERAL = "unlock$123"
-_LOCKOUT_DURATION_SECONDS = 3600  # 1 hour
-_OPERATOR_PHONE = "646 408 8999"
-_OPERATOR_NAME = "Skip"
+UNLOCK_LITERAL = "unlock$123"
+LOCKOUT_DURATION_SECONDS = 3600  # 1 hour
+OPERATOR_PHONE = "646 408 8999"
+OPERATOR_NAME = "Skip"
 
 
-def _env_prefix() -> str:
+def env_prefix() -> str:
     return os.getenv("ENV_PREFIX", "dev")
 
 
-def _safety_collection(deps: AgentDeps):
+def safety_collection(deps: AgentDeps):
     if deps.mongo_frontend is None:
         return None
     return deps.mongo_frontend[f"{_env_prefix()}_Safety"]["emergency_incidents"]
 
 
-def _latest_person_utterance_text(deps: AgentDeps) -> str:
+def latest_person_utterance_text(deps: AgentDeps) -> str:
     for u in reversed(
         deps.user_object.session_conversation_history.utterances
     ):
@@ -89,11 +90,11 @@ def _latest_person_utterance_text(deps: AgentDeps) -> str:
     return ""
 
 
-def _is_unlock_literal(text: str) -> bool:
-    return text.strip().lower() == _UNLOCK_LITERAL
+def is_unlock_literal(text: str) -> bool:
+    return text.strip().lower() == UNLOCK_LITERAL
 
 
-def _morph_to_close_connection_200(deps: AgentDeps) -> None:
+def morph_to_close_connection_200(deps: AgentDeps) -> None:
     """End-of-tool morph used by all three tasks. Mirrors NonsenseTool's
     pattern so UR's bounded dispatch loop chains to CloseConnection200Tool
     on the next hop."""
@@ -126,7 +127,7 @@ def _morph_to_close_connection_200(deps: AgentDeps) -> None:
     deps.user_object.intent = new_doc
 
 
-def _format_expires_phrase(expires_at: datetime) -> str:
+def format_expires_phrase(expires_at: datetime) -> str:
     """Render 'in N minutes' / 'in N hours' / 'at HH:MM UTC' for the
     deterministic reminder text. Computed off `now`, not stored."""
     now = datetime.now(timezone.utc)
@@ -159,10 +160,10 @@ class LockoutTool(ChatHealthyTool):
     Response = Response
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
-        utterance = _latest_person_utterance_text(deps)
+        utterance = latest_person_utterance_text(deps)
         was_locked = bool(deps.user_object.is_locked_out)
 
-        if was_locked and _is_unlock_literal(utterance):
+        if was_locked and is_unlock_literal(utterance):
             return await self._task_a_unlock(deps)
         if was_locked:
             return await self._task_b_reminder(deps)
@@ -170,7 +171,7 @@ class LockoutTool(ChatHealthyTool):
 
     async def _task_a_unlock(self, deps: AgentDeps) -> Response:
         ip = (deps.user_object.ip_address or "").strip()
-        coll = _safety_collection(deps)
+        coll = safety_collection(deps)
         if coll is not None and ip:
             try:
                 coll.update_one(
@@ -182,7 +183,12 @@ class LockoutTool(ChatHealthyTool):
                     }},
                 )
             except Exception as exc:
-                _log.exception("LockoutTool Task A update_one failed: %s", exc)
+                log.exception("LockoutTool Task A update_one failed: %s", exc, exc=ChatHealthyException(
+                                                                                mode="lockout_task_a_update_failed",
+                                                                                message=f"LockoutTool Task A update_one failed: {exc}",
+                                                                                component="LockoutTool",
+                                                                                exception=exc,
+                                                                            ), if_not_debug_log=True)
         # In-memory state clears regardless of DB outcome.
         deps.user_object.is_locked_out = False
         deps.user_object.lockout = None
@@ -196,7 +202,7 @@ class LockoutTool(ChatHealthyTool):
         deps.stream({"kind": "prompt", "data": {"text": msg}})
         append_system_utterance(deps.user_object, msg)
 
-        _morph_to_close_connection_200(deps)
+        morph_to_close_connection_200(deps)
         await asyncio.sleep(0)
         return self.Response(task="A", unlocked=True)
 
@@ -204,7 +210,7 @@ class LockoutTool(ChatHealthyTool):
         lockout = deps.user_object.lockout
         trigger = (lockout.trigger_utterance if lockout else "") or "your earlier message"
         expires_phrase = (
-            _format_expires_phrase(lockout.expires_at)
+            format_expires_phrase(lockout.expires_at)
             if lockout else "soon"
         )
         msg = (
@@ -218,14 +224,14 @@ class LockoutTool(ChatHealthyTool):
         deps.stream({"kind": "prompt", "data": {"text": msg}})
         append_system_utterance(deps.user_object, msg)
 
-        _morph_to_close_connection_200(deps)
+        morph_to_close_connection_200(deps)
         await asyncio.sleep(0)
         return self.Response(task="B", locked=True)
 
     async def _task_c_lockout(self, deps: AgentDeps, utterance: str) -> Response:
         ip = (deps.user_object.ip_address or "").strip()
         now = datetime.now(timezone.utc)
-        expires_at = now + timedelta(seconds=_LOCKOUT_DURATION_SECONDS)
+        expires_at = now + timedelta(seconds=LOCKOUT_DURATION_SECONDS)
 
         # Snapshot session utterances for audit + the in-memory Lockout sub-object.
         history_dump = []
@@ -234,7 +240,13 @@ class LockoutTool(ChatHealthyTool):
                 u.model_dump() if hasattr(u, "model_dump") else dict(u)
                 for u in deps.user_object.session_conversation_history.utterances
             ]
-        except Exception:
+        except Exception as _exc:
+            log.warning("LockoutTool history dump failed (using []): %s", _exc, exc=ChatHealthyException(
+                                                                                 mode="lockout_history_dump_failed",
+                                                                                 message=f"LockoutTool history dump failed (using []): {_exc}",
+                                                                                 component="LockoutTool",
+                                                                                 exception=_exc,
+                                                                             ), if_not_debug_log=True)
             history_dump = []
 
         # Audit label from UM's IntentSafetyLockout arg, if present.
@@ -251,7 +263,7 @@ class LockoutTool(ChatHealthyTool):
                     "",
                 )
 
-        coll = _safety_collection(deps)
+        coll = safety_collection(deps)
         if coll is not None and ip:
             try:
                 coll.insert_one({
@@ -264,7 +276,12 @@ class LockoutTool(ChatHealthyTool):
                     "unlocked": False,
                 })
             except Exception as exc:
-                _log.exception("LockoutTool Task C insert_one failed: %s", exc)
+                log.exception("LockoutTool Task C insert_one failed: %s", exc, exc=ChatHealthyException(
+                                                                                mode="lockout_task_c_insert_failed",
+                                                                                message=f"LockoutTool Task C insert_one failed: {exc}",
+                                                                                component="LockoutTool",
+                                                                                exception=exc,
+                                                                            ), if_not_debug_log=True)
 
         deps.user_object.is_locked_out = True
         deps.user_object.lockout = Lockout(
@@ -284,7 +301,7 @@ class LockoutTool(ChatHealthyTool):
         deps.stream({"kind": "prompt", "data": {"text": msg}})
         append_system_utterance(deps.user_object, msg)
 
-        _morph_to_close_connection_200(deps)
+        morph_to_close_connection_200(deps)
         await asyncio.sleep(0)
         return self.Response(task="C", locked=True)
 

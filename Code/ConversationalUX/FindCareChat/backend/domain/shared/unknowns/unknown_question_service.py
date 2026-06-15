@@ -5,11 +5,12 @@
 #
 # Design: ARCH-001, shared infrastructure
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 
 from domain.shared.consent.consent_service import ConsentService
 
-_log = logging.getLogger("findcare.unknowns")
+log = ChatHealthyLoggingService()
+
 
 TEMPLATES = {
     "healthcare_capability": (

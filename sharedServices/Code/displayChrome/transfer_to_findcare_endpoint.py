@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 
 
 class TransferToFindCareEndpoint:
@@ -9,8 +9,7 @@ class TransferToFindCareEndpoint:
     back to FindCare. Mirrors the EvaluateCare pattern."""
 
     def __init__(self):
-        self.log = logging.getLogger("shared_services.transfer_to_findcare")
-
+        self.log = ChatHealthyLoggingService()
     def __call__(self):
         self.log.info("CONTROL TRANSFER: SharedServices → FindCare")
         return {"owner": "findcare", "reason": "filter_interaction"}

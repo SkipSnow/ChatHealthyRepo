@@ -4,11 +4,12 @@
 # DebugLogger — persists chat call metadata to MongoDB for debugging.
 # Source: {ENV_PREFIX}_Debug.chat_calls
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from datetime import datetime, timezone
 from typing import Optional
 
-_log = logging.getLogger("findcare.debug")
+log = ChatHealthyLoggingService()
 
 
 class DebugLogger:
@@ -44,4 +45,9 @@ class DebugLogger:
                 record["chat_history_deidentified"] = safe_history
             db[f"{self._env}_Debug"]["chat_calls"].insert_one(record)
         except Exception as exc:
-            _log.warning("debug log failed: %s", exc)
+            log.warning("debug log failed: %s", exc, exc=ChatHealthyException(
+                                                      mode="debug_log_write_failed",
+                                                      message=f"debug log write failed: {exc}",
+                                                      component="DebugLogger",
+                                                      exception=exc,
+                                                  ), if_not_debug_log=True)

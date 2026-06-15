@@ -23,8 +23,9 @@ production handler injects the runtime-bound collection.
 """
 from __future__ import annotations
 
-import datetime as _dt
-import logging
+import datetime as dt
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from copy import deepcopy
 from typing import Any
@@ -32,26 +33,25 @@ from typing import Any
 import requests
 
 
-_log = logging.getLogger("findcare.provider_detail.sync")
-
-
 # ── Live -> comparable projection ─────────────────────────────────────
+
+log = ChatHealthyLoggingService()
 
 
 def live_to_comparable(live: dict) -> dict:
     return {
-        "name": _live_name(live),
-        "addresses": _live_addresses(live),
-        "taxonomies": _live_taxonomies(live),
-        "other_identifiers": _live_other_identifiers(live),
-        "status_active": _live_status_active(live),
+        "name": live_name(live),
+        "addresses": live_to_addresses(live),
+        "taxonomies": live_to_taxonomies(live),
+        "other_identifiers": live_to_other_identifiers(live),
+        "status_active": live_status_active(live),
         "enumeration_date": (live.get("basic") or {}).get("enumeration_date"),
     }
 
 
 def stored_to_comparable(stored: dict) -> dict:
     return {
-        "name": _stored_name(stored),
+        "name": stored_name(stored),
         "addresses": [
             {k: v for k, v in a.items() if k != "county"}
             for a in (stored.get("addresses") or [])
@@ -61,12 +61,12 @@ def stored_to_comparable(stored: dict) -> dict:
             for t in (stored.get("taxonomies") or [])
         ],
         "other_identifiers": stored.get("other_identifiers") or [],
-        "status_active": _stored_status_active(stored),
+        "status_active": stored_status_active(stored),
         "enumeration_date": stored.get("provider_enumeration_date"),
     }
 
 
-def _live_name(live: dict) -> dict:
+def live_name(live: dict) -> dict:
     b = live.get("basic") or {}
     return {
         "first": (b.get("first_name") or "").strip(),
@@ -77,7 +77,7 @@ def _live_name(live: dict) -> dict:
     }
 
 
-def _stored_name(stored: dict) -> dict:
+def stored_name(stored: dict) -> dict:
     return {
         "first": (stored.get("provider_first_name") or "").strip(),
         "middle": (stored.get("provider_middle_name") or "").strip(),
@@ -90,7 +90,7 @@ def _stored_name(stored: dict) -> dict:
     }
 
 
-def _live_addresses(live: dict) -> list[dict]:
+def live_to_addresses(live: dict) -> list[dict]:
     out = []
     for a in live.get("addresses") or []:
         purpose = (a.get("address_purpose") or "").upper()
@@ -112,14 +112,14 @@ def _live_addresses(live: dict) -> list[dict]:
     return out
 
 
-def _live_taxonomies(live: dict) -> list[dict]:
+def live_to_taxonomies(live: dict) -> list[dict]:
     return [
         {"code": t.get("code", ""), "primary": bool(t.get("primary"))}
         for t in (live.get("taxonomies") or [])
     ]
 
 
-def _live_other_identifiers(live: dict) -> list[dict]:
+def live_to_other_identifiers(live: dict) -> list[dict]:
     out = []
     for oi in live.get("other_identifiers") or []:
         out.append({
@@ -132,11 +132,11 @@ def _live_other_identifiers(live: dict) -> list[dict]:
     return out
 
 
-def _live_status_active(live: dict) -> bool:
+def live_status_active(live: dict) -> bool:
     return (live.get("basic") or {}).get("status") == "A"
 
 
-def _stored_status_active(stored: dict) -> bool:
+def stored_status_active(stored: dict) -> bool:
     active = stored.get("active") or []
     if not active:
         return True  # Records without an active log are presumed active.
@@ -184,7 +184,7 @@ def regenerate_licenses(live_taxonomies: list[dict]) -> list[dict]:
     return out
 
 
-_INSURANCE_TYPE_MAP = {
+INSURANCE_TYPE_MAP = {
     "01": "Other",
     "05": "Medicaid",
     "06": "Medicare",
@@ -196,7 +196,7 @@ def regenerate_insurance(live_other_identifiers: list[dict]) -> list[dict]:
     for oi in live_other_identifiers or []:
         type_code = (oi.get("code") or "").strip()
         type_desc = (oi.get("desc") or "").strip()
-        insurance_type = _INSURANCE_TYPE_MAP.get(type_code) or type_desc or "Other"
+        insurance_type = INSURANCE_TYPE_MAP.get(type_code) or type_desc or "Other"
         state = (oi.get("state") or "").strip()
         issuer = (oi.get("issuer") or "").strip()
         brand = issuer if issuer else (
@@ -215,7 +215,7 @@ def regenerate_insurance(live_other_identifiers: list[dict]) -> list[dict]:
 # ── Google Maps geocoding for new addresses ───────────────────────────
 
 
-_GMAPS_ENDPOINT = "https://maps.googleapis.com/maps/api/geocode/json"
+GMAPS_ENDPOINT = "https://maps.googleapis.com/maps/api/geocode/json"
 
 
 def geocode_new_address(address: dict) -> dict:
@@ -225,7 +225,7 @@ def geocode_new_address(address: dict) -> dict:
     api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
     out = dict(address)
     if not api_key:
-        _log.warning(
+        log.warning(
             "GOOGLE_MAPS_API_KEY absent; new address county lookup "
             "skipped for %s, %s",
             address.get("line1"), address.get("city"),
@@ -238,17 +238,22 @@ def geocode_new_address(address: dict) -> dict:
     q = f"{line1}, {city}, {state} {zip5}"
     try:
         resp = requests.get(
-            _GMAPS_ENDPOINT,
+            GMAPS_ENDPOINT,
             params={"address": q, "key": api_key},
             timeout=15,
         )
         data = resp.json()
     except Exception as exc:
-        _log.warning("Google Maps lookup failed for %s: %s", q, exc)
+        log.warning("Google Maps lookup failed for %s: %s", q, exc, exc=ChatHealthyException(
+                                                                     mode="google_maps_lookup_failed",
+                                                                     message=f"Google Maps lookup failed for {q}: {exc}",
+                                                                     component="ProviderRecordSync",
+                                                                     exception=exc,
+                                                                 ), if_not_debug_log=True)
         return out
     results = (data or {}).get("results") or []
     if not results:
-        _log.warning(
+        log.warning(
             "Google Maps returned no authoritative result for %s; "
             "county omitted on this address", q,
         )
@@ -260,7 +265,7 @@ def geocode_new_address(address: dict) -> dict:
             county_name = (c.get("long_name") or "").strip()
             break
     if not county_name:
-        _log.warning(
+        log.warning(
             "Google Maps returned a result without administrative_area_level_2 "
             "for %s; county omitted", q,
         )
@@ -275,7 +280,7 @@ def geocode_new_address(address: dict) -> dict:
 # ── Per-enrichment preservation matrix ────────────────────────────────
 
 
-def _addresses_with_preserved_county(
+def addresses_with_preserved_county(
     live_addresses: list[dict], stored_addresses: list[dict],
 ) -> list[dict]:
     """For each live address: if it matches a stored address by line1 +
@@ -308,7 +313,7 @@ def _addresses_with_preserved_county(
     return out
 
 
-def _update_active_log(
+def update_active_log(
     stored_active: list[dict],
     live: dict,
 ) -> list[dict]:
@@ -346,7 +351,7 @@ def _update_active_log(
     return stored
 
 
-def _recompute_quality_flags(record: dict) -> dict:
+def recompute_quality_flags(record: dict) -> dict:
     addresses = record.get("addresses") or []
     active = record.get("active") or []
     out = dict(record)
@@ -378,7 +383,7 @@ def stamp_provenance(record: dict) -> dict:
     out = dict(record)
     prov = dict(out.get("provenance") or {})
     prov["origin"] = "real_time_sync"
-    prov["last_touched_at"] = _dt.datetime.now(_dt.timezone.utc).isoformat()
+    prov["last_touched_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
     prov["real_time_sync_count"] = int(prov.get("real_time_sync_count", 0)) + 1
     out["provenance"] = prov
     return out
@@ -422,19 +427,19 @@ def merge_for_writeback(live: dict, stored: dict) -> dict:
         new["provider_enumeration_date"] = basic.get("enumeration_date")
 
     # Addresses — preserve county on unchanged, geocode on new.
-    live_addrs = _live_addresses(live)
+    live_addrs = live_to_addresses(live)
     stored_addrs = stored.get("addresses") or []
-    new["addresses"] = _addresses_with_preserved_county(live_addrs, stored_addrs)
+    new["addresses"] = addresses_with_preserved_county(live_addrs, stored_addrs)
 
     # Taxonomies + flags
-    live_tax = _live_taxonomies(live)
+    live_tax = live_to_taxonomies(live)
     new["taxonomies"] = live_tax
     stored_tax = [
         {"code": t.get("code", ""), "primary": bool(t.get("primary"))}
         for t in (stored.get("taxonomies") or [])
     ]
     if live_tax != stored_tax:
-        _log.warning(
+        log.warning(
             "taxonomies changed for NPI %s; flag recompute deferred — "
             "catalog may be unreachable, preserving stored flags",
             stored.get("npi"),
@@ -445,14 +450,14 @@ def merge_for_writeback(live: dict, stored: dict) -> dict:
     new["licenses"] = regenerate_licenses(live.get("taxonomies") or [])
 
     # other_identifiers (raw) + insurance[] regenerated
-    new["other_identifiers"] = _live_other_identifiers(live)
+    new["other_identifiers"] = live_to_other_identifiers(live)
     new["insurance"] = regenerate_insurance(live.get("other_identifiers") or [])
 
     # active[] appended on status change
-    new["active"] = _update_active_log(stored.get("active") or [], live)
+    new["active"] = update_active_log(stored.get("active") or [], live)
 
     # quality flags recomputed
-    new = _recompute_quality_flags(new)
+    new = recompute_quality_flags(new)
 
     # provenance stamped
     new = stamp_provenance(new)
@@ -484,10 +489,16 @@ def embed_after_response(coll, npi: str) -> None:
     """
     try:
         from infrastructure.embeddings.embedding_client import EmbeddingClient
-    except ImportError:
-        _log.warning(
+    except ImportError as _imp:
+        log.warning(
             "EmbeddingClient unavailable; skipping re-embed for NPI %s",
             npi,
+            exc=ChatHealthyException(
+             mode="embedding_client_unavailable",
+             message=f"EmbeddingClient unavailable; skipping re-embed for NPI {npi}: {_imp}",
+             component="ProviderRecordSync",
+             exception=_imp,
+         ), if_not_debug_log=True,
         )
         return
     try:
@@ -519,7 +530,13 @@ def embed_after_response(coll, npi: str) -> None:
             }},
         )
     except Exception as exc:
-        _log.warning(
+        log.warning(
             "Embedding call failed after write-back for NPI %s: %s",
             npi, exc,
+            exc=ChatHealthyException(
+             mode="embedding_call_failed_after_writeback",
+             message=f"Embedding call failed after write-back for NPI {npi}: {exc}",
+             component="ProviderRecordSync",
+             exception=exc,
+         ), if_not_debug_log=True,
         )

@@ -15,7 +15,8 @@ service boundary.
 from __future__ import annotations
 
 import asyncio
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from typing import Optional
 
 from pydantic import BaseModel
@@ -24,7 +25,7 @@ from authentication.agent_deps import AgentDeps
 from authentication.chathealthy_tool import ChatHealthyTool
 from chathealthy_frontend_lib.geo_extractor import extract_location
 
-_log = logging.getLogger("shared_services.geo_extractor")
+log = ChatHealthyLoggingService()
 
 
 class Request(BaseModel):
@@ -39,7 +40,7 @@ class Response(BaseModel):
     error: Optional[str] = None
 
 
-def _latest_utterance_text(deps: AgentDeps) -> str:
+def latest_utterance_text(deps: AgentDeps) -> str:
     """Return the most recent PERSON utterance text on the session.
     System turns and earlier person turns are skipped."""
     utterances = deps.user_object.session_conversation_history.utterances
@@ -58,13 +59,18 @@ class GeoExtractorTool(ChatHealthyTool):
     Response = Response
 
     async def run(self, deps: AgentDeps, request: Optional["Request"] = None) -> "Response":
-        text = _latest_utterance_text(deps)
+        text = latest_utterance_text(deps)
         if not text:
             return self.Response(error="No utterance text on user_object.")
         try:
             out = await asyncio.to_thread(extract_location, text)
         except Exception as exc:
-            _log.error("geo_extractor failed: %s: %s", type(exc).__name__, exc)
+            log.error("geo_extractor failed: %s: %s", type(exc).__name__, exc, exc=ChatHealthyException(
+                                                                                mode="geo_extractor_failed",
+                                                                                message=f"geo_extractor failed: {type(exc).__name__}: {exc}",
+                                                                                component="GeoExtractorTool",
+                                                                                exception=exc,
+                                                                            ), if_not_debug_log=True)
             return self.Response(error=f"geo_unavailable: {type(exc).__name__}")
         return self.Response(
             state=out.state,

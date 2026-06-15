@@ -9,10 +9,11 @@
 # Design: ARCH-001, shared infrastructure (bounded context)
 
 import json
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 
-_log = logging.getLogger("findcare.consent")
+log = ChatHealthyLoggingService()
 
 
 class ConsentService:
@@ -46,7 +47,12 @@ class ConsentService:
             )
             return response.content[0].text.strip()
         except Exception as exc:
-            _log.error("summarize_conversation failed: %s", exc)
+            log.error("summarize_conversation failed: %s", exc, exc=ChatHealthyException(
+                                                                 mode="summarize_conversation_failed",
+                                                                 message=f"summarize_conversation failed: {exc}",
+                                                                 component="ConsentService",
+                                                                 exception=exc,
+                                                             ), if_not_debug_log=True)
             return ""
 
     def de_identify(self, chat_history: list) -> None:
@@ -88,4 +94,9 @@ class ConsentService:
                 if i < len(chat_history):
                     chat_history[i]["content"] = content
         except Exception as exc:
-            _log.warning("de_identify failed: %s — keeping original", exc)
+            log.warning("de_identify failed: %s — keeping original", exc, exc=ChatHealthyException(
+                                                                           mode="de_identify_failed",
+                                                                           message=f"de_identify failed (keeping original): {exc}",
+                                                                           component="ConsentService",
+                                                                           exception=exc,
+                                                                       ), if_not_debug_log=True)

@@ -8,7 +8,7 @@
 
 import asyncio
 import json
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 import os
 import sys
 import traceback
@@ -19,13 +19,16 @@ from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import requests as _requests_lib
-from url_guardian import URLGuardian
+import requests as requests_lib
 
 # FindCare/ on sys.path so business-model tools (SpecialtyFilter,
 # ProviderManagement) are importable. Must happen BEFORE the imports
 # below that pull from those packages. Dockerfile COPYs FindCare/ into
 # /app/FindCare so the same relative walk resolves in the container.
+
+log = ChatHealthyLoggingService()
+
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "FindCare"))
 
 # ARCH-001 — domain services
@@ -52,25 +55,20 @@ load_dotenv(override=True)
 # Shared utilities
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "Shared"))
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from prompt_system_maker import PromptSystemMaker
 
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
-logging.basicConfig(
-    level=logging.DEBUG if os.getenv("DEBUG", "false").lower() == "true" else logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
-)
-_log = logging.getLogger("findcare")
-
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-_ENV_PREFIX    = os.getenv("ENV_PREFIX", "dev")
-_DEBUG         = os.getenv("DEBUG", "false").lower() == "true"
-_HUMAN_TESTING_RAW = os.getenv("HUMAN_TESTING", "false")
-_HUMAN_TESTING = _HUMAN_TESTING_RAW.lower() not in ("false", "0", "")
-_APP_VERSION   = os.getenv("APP_VERSION", "unknown")
+ENV_PREFIX    = os.getenv("ENV_PREFIX", "dev")
+DEBUG         = os.getenv("DEBUG", "false").lower() == "true"
+HUMAN_TESTING_RAW = os.getenv("HUMAN_TESTING", "false")
+HUMAN_TESTING = HUMAN_TESTING_RAW.lower() not in ("false", "0", "")
+APP_VERSION   = os.getenv("APP_VERSION", "unknown")
 
 EMERGENCY_RESPONSE = (
     "<b>Call 911 or go to the nearest emergency room immediately. Do not wait.</b>\n\n"
@@ -80,28 +78,33 @@ EMERGENCY_RESPONSE = (
 # ---------------------------------------------------------------------------
 # MongoDB
 # ---------------------------------------------------------------------------
-_mongo_frontend_str = os.getenv("MONGO_FRONTEND_connectionString") or ""
-_db_manager = None
+mongo_frontend_str = os.getenv("MONGO_FRONTEND_connectionString") or ""
+db_manager = None
 
-def _get_db():
-    global _db_manager
-    if not _mongo_frontend_str:
+def get_db():
+    global db_manager
+    if not mongo_frontend_str:
         return None
     try:
-        if _db_manager is None:
-            _db_manager = ChatHealthyMongoUtilities()
-        return _db_manager.getConnection()
+        if db_manager is None:
+            db_manager = ChatHealthyMongoUtilities()
+        return db_manager.getConnection()
     except Exception as e:
-        _log.warning("MongoDB unavailable (will retry next call): %s", e)
-        _db_manager = None
+        log.warning("MongoDB unavailable (will retry next call): %s", e, exc=ChatHealthyException(
+                                                                          mode="mongo_unavailable",
+                                                                          message=f"MongoDB unavailable (will retry next call): {e}",
+                                                                          component="FindCareBackend",
+                                                                          exception=e,
+                                                                      ), if_not_debug_log=True)
+        db_manager = None
         return None
 
 # ---------------------------------------------------------------------------
 # Utilities — push notification + DB write
 # ---------------------------------------------------------------------------
-_SPARKMAIL_API_KEY = os.getenv("SPARKMAIL_API_KEY", "")
-_SPARKMAIL_FROM    = os.getenv("NOTIFICATION_FROM_EMAIL", "")
-_SPARKMAIL_TO      = os.getenv("NOTIFICATION_TO_EMAIL", "")
+SPARKMAIL_API_KEY = os.getenv("SPARKMAIL_API_KEY", "")
+SPARKMAIL_FROM    = os.getenv("NOTIFICATION_FROM_EMAIL", "")
+SPARKMAIL_TO      = os.getenv("NOTIFICATION_TO_EMAIL", "")
 
 def push(message):
     """Send an operator-notification email via SparkPost.
@@ -114,17 +117,22 @@ def push(message):
                                          (no silent swallow per the no-fallback
                                          rule).
     """
-    if not _SPARKMAIL_API_KEY:
+    if not SPARKMAIL_API_KEY:
         return {"sent": False, "skipped": "SPARKMAIL_API_KEY not configured"}
     try:
         from sparkpost import SparkPost
-        SparkPost(_SPARKMAIL_API_KEY).transmissions.send(
-            recipients=[_SPARKMAIL_TO], from_email=_SPARKMAIL_FROM,
+        SparkPost(SPARKMAIL_API_KEY).transmissions.send(
+            recipients=[SPARKMAIL_TO], from_email=SPARKMAIL_FROM,
             subject="ChatHealthy — Activity", text=message,
         )
         return {"sent": True}
     except Exception as exc:
-        _log.warning("SparkPost send failed: %s", exc)
+        log.warning("SparkPost send failed: %s", exc, exc=ChatHealthyException(
+                                                       mode="sparkpost_send_failed",
+                                                       message=f"SparkPost send failed: {exc}",
+                                                       component="FindCareBackend",
+                                                       exception=exc,
+                                                   ), if_not_debug_log=True)
         return {"sent": False, "error": f"{type(exc).__name__}: {exc}"}
 
 def commitSignificantActivity(payload=None, **kwargs):
@@ -137,7 +145,7 @@ def commitSignificantActivity(payload=None, **kwargs):
                                  MUST inspect this; upstream code has no excuse
                                  for treating this as success.
     """
-    client = _get_db()
+    client = get_db()
     if client is None:
         return {"recorded": "skipped", "reason": "db_unavailable"}
     try:
@@ -148,14 +156,19 @@ def commitSignificantActivity(payload=None, **kwargs):
         coll = client[db_name][payload["collection"]]
         record = dict(payload["record"])
         record["record_number"] = coll.count_documents({}) + 1
-        record["datetime"] = _dt.datetime.now().isoformat()
+        record["datetime"] = dt.datetime.now().isoformat()
         coll.insert_one(record)
         return {"recorded": "ok"}
     except Exception as exc:
-        _log.error("commitSignificantActivity failed: %s", exc)
+        log.error("commitSignificantActivity failed: %s", exc, exc=ChatHealthyException(
+                                                                mode="commit_significant_activity_failed",
+                                                                message=f"commitSignificantActivity failed: {exc}",
+                                                                component="FindCareBackend",
+                                                                exception=exc,
+                                                            ), if_not_debug_log=True)
         return {"recorded": "error", "error": f"{type(exc).__name__}: {exc}"}
 
-def _format_chat_history(messages, truncate: bool = True):
+def format_chat_history(messages, truncate: bool = True):
     max_len = 500 if truncate else None
     formatted = []
     for m in messages:
@@ -173,95 +186,93 @@ def _format_chat_history(messages, truncate: bool = True):
 # PromptSystemMaker — loads all config from brain artifacts
 # ---------------------------------------------------------------------------
 # Brain dir: try local repo structure first, fall back to HuggingFace flat layout
-_brain_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "brain")
-if not os.path.isdir(_brain_dir):
-    _brain_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brain")
-_prompt_maker = PromptSystemMaker(brain_dir=_brain_dir, env_prefix=_ENV_PREFIX)
-EMERGENCY_KEYWORDS = _prompt_maker.load_emergency_keywords()
-anthropic_tools = _prompt_maker.load_tool_definitions()
+brain_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "brain")
+if not os.path.isdir(brain_dir):
+    brain_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "brain")
+prompt_maker = PromptSystemMaker(brain_dir=brain_dir, env_prefix=ENV_PREFIX)
+EMERGENCY_KEYWORDS = prompt_maker.load_emergency_keywords()
+anthropic_tools = prompt_maker.load_tool_definitions()
 WELCOME_MESSAGE = PromptSystemMaker.build_welcome_message()
 # Build/version/framework: live from MongoDB per EPIC-008-F-004-S-001-REQ-T-002
 
-_ME_DIR = os.getenv("ME_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "me")
-if not os.path.isdir(_ME_DIR):
-    _ME_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatHealthyWhoAmIChat", "me")
-_ME = _prompt_maker.load_me_context(_ME_DIR)
-
-_url_guardian = URLGuardian(cache_ttl=3600, request_timeout=5)
+ME_DIR = os.getenv("ME_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "me")
+if not os.path.isdir(ME_DIR):
+    ME_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "ChatHealthyWhoAmIChat", "me")
+ME = prompt_maker.load_me_context(ME_DIR)
 
 # UAT report
 # UAT report: local repo path or HF flat layout
-def _system_prompt(follow_up_check: bool = False) -> str:
-    return _prompt_maker.build_system_prompt(emergency_response=EMERGENCY_RESPONSE, follow_up_check=follow_up_check)
+def system_prompt(follow_up_check: bool = False) -> str:
+    return prompt_maker.build_system_prompt(emergency_response=EMERGENCY_RESPONSE, follow_up_check=follow_up_check)
 
 # ---------------------------------------------------------------------------
 # Service initialization — ARCH-001
 # ---------------------------------------------------------------------------
-_embedding_client = EmbeddingClient()
+embedding_client = EmbeddingClient()
 
-_specialty_service = SpecialtyFilter(
-    get_db_fn=_get_db, env_prefix=_ENV_PREFIX,
-    get_vector_fn=_embedding_client.get_specialty_vector)
-_find_care = FindCareService(
-    get_db_fn=_get_db, env_prefix=_ENV_PREFIX,
-    get_embedding_fn=_embedding_client.get_query_embedding, specialty_service=_specialty_service)
+specialty_service = SpecialtyFilter(
+    get_db_fn=get_db, env_prefix=ENV_PREFIX,
+    get_vector_fn=embedding_client.get_specialty_vector)
+find_care = FindCareService(
+    get_db_fn=get_db, env_prefix=ENV_PREFIX,
+    get_embedding_fn=embedding_client.get_query_embedding, specialty_service=specialty_service)
 
-_clinical_trials_service = ClinicalTrialsService()
-_provider_detail_service = ProviderDetailService()
-_evaluate_care_facade = EvaluateCareFacade(
-    clinical_trials=_clinical_trials_service, provider_detail=_provider_detail_service, find_care_facade=_find_care)
+clinical_trials_service = ClinicalTrialsService()
+provider_detail_service = ProviderDetailService()
+evaluate_care_facade = EvaluateCareFacade(
+    clinical_trials=clinical_trials_service, provider_detail=provider_detail_service, find_care_facade=find_care)
 
-_safety_service = SafetyService(get_db_fn=_get_db, env_prefix=_ENV_PREFIX, emergency_keywords=EMERGENCY_KEYWORDS)
-_consent_service = ConsentService()
-_lead_service = LeadService(get_db_fn=_get_db, env_prefix=_ENV_PREFIX, consent=_consent_service, push_fn=push, commit_fn=commitSignificantActivity)
-_unknown_question_service = UnknownQuestionService(consent=_consent_service, push_fn=push, commit_fn=commitSignificantActivity)
-_about_service = AboutService(me_context=_ME, trim_fn=PromptSystemMaker.trim)
+safety_service = SafetyService(get_db_fn=get_db, env_prefix=ENV_PREFIX, emergency_keywords=EMERGENCY_KEYWORDS)
+consent_service = ConsentService()
+lead_service = LeadService(get_db_fn=get_db, env_prefix=ENV_PREFIX, consent=consent_service, push_fn=push, commit_fn=commitSignificantActivity)
+unknown_question_service = UnknownQuestionService(consent=consent_service, push_fn=push, commit_fn=commitSignificantActivity)
+about_service = AboutService(me_context=ME, trim_fn=PromptSystemMaker.trim)
 
-_debug_logger = DebugLogger(get_db_fn=_get_db, env_prefix=_ENV_PREFIX, consent_service=_consent_service)
+debug_logger = DebugLogger(get_db_fn=get_db, env_prefix=ENV_PREFIX, consent_service=consent_service)
 
 # ToolRouter — F-05 fix
-_tool_router = ToolRouter()
-_tool_router.register_with_models([
-    ("find_providers",          _find_care.search_providers,            ProviderSearchInput),
-    ("find_specialty_codes",    _find_care.identify_specialty,          SpecialtyInput),
-    ("search_clinical_trials",  _evaluate_care_facade.search_clinical_trials,  ClinicalTrialsInput),
-    ("lookup_provider_external", _evaluate_care_facade.get_provider_details,   ProviderDetailInput),
-    ("record_user_details",     _lead_service.record_user_details,             LeadInput),
-    ("record_unknown_question", _unknown_question_service.record,              UnknownInput),
-    ("get_skip_snow_context",   _about_service.get_skip_snow_context),
-    ("get_chathealthy_context", _about_service.get_chathealthy_context),
+tool_router = ToolRouter()
+tool_router.register_with_models([
+    ("find_providers",          find_care.search_providers,            ProviderSearchInput),
+    ("find_specialty_codes",    find_care.identify_specialty,          SpecialtyInput),
+    ("search_clinical_trials",  evaluate_care_facade.search_clinical_trials,  ClinicalTrialsInput),
+    ("lookup_provider_external", evaluate_care_facade.get_provider_details,   ProviderDetailInput),
+    ("record_user_details",     lead_service.record_user_details,             LeadInput),
+    ("record_unknown_question", unknown_question_service.record,              UnknownInput),
+    ("get_skip_snow_context",   about_service.get_skip_snow_context),
+    ("get_chathealthy_context", about_service.get_chathealthy_context),
     ("commitSignificantActivity", commitSignificantActivity),
 ])
-_log.info("ToolRouter initialized: %s", _tool_router.registered_tools)
+log.info("ToolRouter initialized: %s", tool_router.registered_tools)
 
-def _handle_tool_calls(tool_use_blocks, messages):
-    return _tool_router.handle_tool_calls(tool_use_blocks, messages, _format_chat_history)
+def handle_tool_calls(tool_use_blocks, messages):
+    return tool_router.handle_tool_calls(tool_use_blocks, messages, format_chat_history)
 
 # ---------------------------------------------------------------------------
 # FastAPI
 # ---------------------------------------------------------------------------
-import time as _time_mod
+import time as time_mod
 
 app = FastAPI(title="ChatHealthy FindCare API")
 
 from chathealthy_frontend_lib.runtime_data_collections import (
     providers_coll,
     specialty_meta_coll,
-    bind_from_manifest as _bind_data_collections,
-    router as _data_collections_router,
+    bind_from_manifest as bind_data_collections,
+    router as data_collections_router,
 )
 
-import datetime as _dt
-from fastapi.responses import JSONResponse as _JSONResponse
+import datetime as dt
+from fastapi.responses import JSONResponse as JSONResponse
 
 
 @app.exception_handler(Exception)
-async def _fatal(request: Request, exc: Exception):
-    _log.exception("fatal on %s", request.url.path)
-    return _JSONResponse(
+async def fatal(request: Request, exc: Exception):
+    log.exception("fatal on %s", request.url.path)
+    return JSONResponse(
         status_code=503,
         content={"service": "FindCare", "source": "unhandled",
-                 "time": _dt.datetime.now(_dt.timezone.utc).isoformat()},
+                 "time": dt.datetime.now(dt.timezone.utc).isoformat()},
     )
 
 # v2.2 Part B 7.4 — startup Mongo probe. Construct the canonical utility
@@ -269,12 +280,12 @@ async def _fatal(request: Request, exc: Exception):
 # HF (or local docker) restarts, and the operator sees the restart loop
 # and reads the logs. Steady-state degraded mode in _get_db() remains for
 # transient runtime blips; only the startup probe is mandatory-loud.
-if _mongo_frontend_str:
+if mongo_frontend_str:
     _startup_db_probe = ChatHealthyMongoUtilities()
     _startup_db_probe.getConnection().admin.command("ping")
-    _log.info("FindCare backend Mongo startup probe: ping OK")
+    log.info("FindCare backend Mongo startup probe: ping OK")
 else:
-    _log.critical(
+    log.critical(
         "MONGO_FRONTEND_connectionString is empty at FindCare backend "
         "startup. The C# service (or local .env) is the supplier; check "
         r"HKLM\SOFTWARE\ChatHealthy\Secrets on the host."
@@ -286,9 +297,8 @@ else:
 # EPIC-010-F-101-S-005 (Data version management): bind runtime data
 # collections from ChatHealthyConfig.DBVersions on startup, and mount the
 # /admin/swap + /debug/active_collections endpoints.
-_bind_data_collections()
-app.include_router(_data_collections_router)
-
+bind_data_collections()
+app.include_router(data_collections_router)
 
 
 # ── EPIC-002-F-001-S-012-REQ-T-004: startup security-primitive verification ──
@@ -298,7 +308,61 @@ app.include_router(_data_collections_router)
 #   78 (EX_CONFIG)    — missing key or cert file
 #   77 (EX_NOPERM)    — permission denied on cert/key
 #   70 (EX_SOFTWARE)  — unexpected internal error
-def _bootstrap_certs_from_env():
+def decode_cert_pem(env_var: str, b64_value: str) -> bytes:
+    """Decode one PEM env var. Raises on malformed base64. No logging here —
+    the caller decides what to do with the failure."""
+    import base64
+    try:
+        return base64.b64decode(b64_value.strip())
+    except Exception as exc:
+        raise ChatHealthyException(
+            mode="startup_invalid_base64",
+            message=f"STARTUP: {env_var} is present but not valid base64: {exc}",
+            component="FindCareBackend",
+            exception=exc,
+        )
+
+
+def try_chmod_0600(path: str) -> None:
+    """Best-effort restrict file mode. Logs and continues on failure (Windows
+    or non-POSIX filesystems return non-fatal errors). Never raises."""
+    try:
+        os.chmod(path, 0o600)
+    except Exception as exc:
+        log.warning(
+            "STARTUP: chmod 0600 on %s failed (continuing): %s", path, exc,
+            exc=ChatHealthyException(
+                mode="startup_chmod_failed",
+                message=f"STARTUP: chmod 0600 on {path} failed (continuing): {exc}",
+                component="FindCareBackend",
+                exception=exc,
+            ),
+            if_not_debug_log=True,
+        )
+
+
+def write_certs_to_runtime_dir(mapping: dict[str, str], runtime_dir: str) -> list[str]:
+    """For each present env var, decode and write to runtime_dir. Returns the
+    list of filenames written. Logs the final summary on success."""
+    wrote = []
+    for env_var, filename in mapping.items():
+        b64 = os.environ.get(env_var)
+        if not b64:
+            continue
+        pem_bytes = decode_cert_pem(env_var, b64)
+        os.makedirs(runtime_dir, exist_ok=True)
+        path = os.path.join(runtime_dir, filename)
+        with open(path, "wb") as f:
+            f.write(pem_bytes)
+        try_chmod_0600(path)
+        wrote.append(filename)
+    if wrote:
+        log.info("startup bootstrap: wrote %s to %s (CERTS_DIR=%s)",
+                 ",".join(wrote), runtime_dir, runtime_dir)
+    return wrote
+
+
+def bootstrap_certs_from_env():
     """Write PKI material from env vars to a runtime dir and point CERTS_DIR at it.
 
     HF Spaces don't support bind-mounted cert directories. The deploy pipeline
@@ -310,7 +374,6 @@ def _bootstrap_certs_from_env():
     resolution remains in effect. Malformed PEM content raises, which the
     startup check turns into an exit-78 abend per EPIC-002-F-001-S-012-REQ-T-004.
     """
-    import base64
     runtime_dir = "/tmp/ch_certs"
     mapping = {
         "FINDCARE_SIGNING_KEY_PEM":  "findcare.key",
@@ -321,46 +384,30 @@ def _bootstrap_certs_from_env():
         "EVALCARE_CERT_PEM":         "evalcare.crt",
         "CA_CERT_PEM":               "ca.crt",
     }
-    wrote = []
-    for env_var, filename in mapping.items():
-        b64 = os.environ.get(env_var)
-        if not b64:
-            continue
-        try:
-            pem_bytes = base64.b64decode(b64.strip())
-        except Exception as _exc:
-            _log.error("STARTUP: %s is present but not valid base64: %s", env_var, _exc)
-            raise
-        os.makedirs(runtime_dir, exist_ok=True)
-        path = os.path.join(runtime_dir, filename)
-        with open(path, "wb") as f:
-            f.write(pem_bytes)
-        try:
-            os.chmod(path, 0o600)
-        except Exception:
-            pass
-        wrote.append(filename)
+    wrote = write_certs_to_runtime_dir(mapping, runtime_dir)
     if wrote:
         os.environ["CERTS_DIR"] = runtime_dir
-        _log.info("startup bootstrap: wrote %s to %s (CERTS_DIR=%s)",
-                  ",".join(wrote), runtime_dir, runtime_dir)
 
-def _startup_security_verification():
+def startup_security_verification():
     """EPIC-002-F-001-S-012-REQ-T-004: exercise the security primitives this
     service uses. FindCare does NOT manufacture auth tokens — that's
     SharedServices's /auth/issue. FindCare's primitives are nonce restamp
     (signs with findcare.key) and verify (reads the page-owner's cert).
     Probe loads both to confirm CERTS_DIR is bootstrapped and the
     cryptography primitives can parse them."""
-    import sys as _sys
-    _bootstrap_certs_from_env()
+    bootstrap_certs_from_env()
     try:
         from chathealthy_frontend_lib.authentication.session_token import _cert_basename
         from cryptography.hazmat.primitives import serialization
         from cryptography.x509 import load_pem_x509_certificate
     except ImportError as _imp:
-        _log.error("STARTUP ABEND exit=78 primitive=crypto reason=import_failed: %s", _imp)
-        _sys.exit(78)
+        log.error("STARTUP ABEND exit=78 primitive=crypto reason=import_failed: %s", _imp, exc=ChatHealthyException(
+                                                                                            mode="startup_abend_crypto_import_failed",
+                                                                                            message=f"STARTUP ABEND exit=78 primitive=crypto reason=import_failed: {_imp}",
+                                                                                            component="FindCareBackend",
+                                                                                            exception=_imp,
+                                                                                        ), if_not_debug_log=True)
+        sys.exit(78)
     certs_dir = os.environ.get("CERTS_DIR", "/certs")
     key_path = os.path.join(certs_dir, f"{_cert_basename('FindCare')}.key")
     cert_path = os.path.join(certs_dir, f"{_cert_basename('FindCare')}.crt")
@@ -370,24 +417,39 @@ def _startup_security_verification():
         with open(cert_path, "rb") as _f:
             load_pem_x509_certificate(_f.read())
     except FileNotFoundError as _fnf:
-        _log.error("STARTUP ABEND exit=78 primitive=session_token reason=missing_cert_or_key: %s", _fnf)
-        _sys.exit(78)
+        log.error("STARTUP ABEND exit=78 primitive=session_token reason=missing_cert_or_key: %s", _fnf, exc=ChatHealthyException(
+                                                                                                         mode="startup_abend_session_token_missing",
+                                                                                                         message=f"STARTUP ABEND exit=78 primitive=session_token reason=missing_cert_or_key: {_fnf}",
+                                                                                                         component="FindCareBackend",
+                                                                                                         exception=_fnf,
+                                                                                                     ), if_not_debug_log=True)
+        sys.exit(78)
     except PermissionError as _perm:
-        _log.error("STARTUP ABEND exit=77 primitive=session_token reason=permission: %s", _perm)
-        _sys.exit(77)
+        log.error("STARTUP ABEND exit=77 primitive=session_token reason=permission: %s", _perm, exc=ChatHealthyException(
+                                                                                                 mode="startup_abend_session_token_permission",
+                                                                                                 message=f"STARTUP ABEND exit=77 primitive=session_token reason=permission: {_perm}",
+                                                                                                 component="FindCareBackend",
+                                                                                                 exception=_perm,
+                                                                                             ), if_not_debug_log=True)
+        sys.exit(77)
     except Exception as _exc:
-        _log.error("STARTUP ABEND exit=70 primitive=session_token reason=key_or_cert_unreadable: %s", _exc)
-        _sys.exit(70)
-    _log.info("startup security check PASSED — findcare.key + findcare.crt OK at %s", certs_dir)
+        log.error("STARTUP ABEND exit=70 primitive=session_token reason=key_or_cert_unreadable: %s", _exc, exc=ChatHealthyException(
+                                                                                                            mode="startup_abend_session_token_unreadable",
+                                                                                                            message=f"STARTUP ABEND exit=70 primitive=session_token reason=key_or_cert_unreadable: {_exc}",
+                                                                                                            component="FindCareBackend",
+                                                                                                            exception=_exc,
+                                                                                                        ), if_not_debug_log=True)
+        sys.exit(70)
+    log.info("startup security check PASSED — findcare.key + findcare.crt OK at %s", certs_dir)
 
-_startup_security_verification()
+startup_security_verification()
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    start = _time_mod.time()
+    start = time_mod.time()
     response = await call_next(request)
-    elapsed = round((_time_mod.time() - start) * 1000)
-    _log.info("REQUEST %s %s → %d (%dms) from %s",
+    elapsed = round((time_mod.time() - start) * 1000)
+    log.info("REQUEST %s %s → %d (%dms) from %s",
               request.method, request.url.path, response.status_code, elapsed,
               request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown"))
     return response
@@ -453,7 +515,7 @@ class SearchRequest(BaseModel):
 async def search(body: SearchRequest):
     """Direct provider search — for pagination. No LLM involved."""
     params = body.model_dump(exclude_none=True)
-    result = _find_care.search_providers(**params)
+    result = find_care.search_providers(**params)
     return result
 
 
@@ -475,9 +537,9 @@ async def classify(body: ClassifyRequest, request: Request):
     # one Gemini call walks the full enriched NUCC corpus and returns
     # picks with scores in [0, 1].
     import uuid as _uuid
-    from datetime import datetime as _dt, timezone as _tz
+    from datetime import datetime as dt, timezone as _tz
     try:
-        _db_for_class = _get_db()
+        _db_for_class = get_db()
         if _db_for_class is None:
             raise RuntimeError("Mongo unavailable")
         spec_col = specialty_meta_coll()
@@ -490,10 +552,15 @@ async def classify(body: ClassifyRequest, request: Request):
         # EPIC-008-F-011-S-001-REQ-B-002/B-003: sanitized external error +
         # full detail logged server-side keyed by req_id.
         req_id = _uuid.uuid4().hex[:8]
-        ts = _dt.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        ts = dt.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         stage = type(exc).__name__
-        _log.error("classify req_id=%s ip=%s stage=%s detail=%r message=%r",
-                   req_id, ip, stage, repr(exc)[:300], body.message)
+        log.error("classify req_id=%s ip=%s stage=%s detail=%r message=%r",
+                   req_id, ip, stage, repr(exc)[:300], body.message, exc=ChatHealthyException(
+                                                                      mode="classify_failed",
+                                                                      message=f"classify req_id={req_id} ip={ip} stage={stage} detail={repr(exc)[:300]} message={body.message!r}",
+                                                                      component="FindCareBackend",
+                                                                      exception=exc,
+                                                                  ), if_not_debug_log=True)
         sanitized = (
             f"FindCare /classify temporarily unavailable "
             f"(stage: {stage}) at {ts}. Ref: {req_id}"
@@ -551,21 +618,21 @@ def provider_detail(
     body: ProviderDetailInput,
     background_tasks: BackgroundTasks,
 ) -> ProviderDetailOutput:
-    raw = _provider_detail_service.lookup(
+    return provider_detail_service.lookup(
         provider_name=body.name,
         npi=body.npi,
         state=body.state or "",
-        provider_coll=providers_coll,
+        provider_coll=providers_coll(),
+        specialty_meta_coll=specialty_meta_coll,
         schedule_background_task=background_tasks.add_task,
     )
-    return ProviderDetailOutput(**raw)
 
-_REQUIRED_INDEXES = [
+REQUIRED_INDEXES = [
     ("providers", providers_coll, ["provider_vector_index"]),
     ("SpecialtyMetaData", specialty_meta_coll, ["specialty_vector_index"]),
 ]
 
-def _check_indexes() -> dict:
+def check_indexes() -> dict:
     """DR-016/DR-018: verify all required vector search indexes exist.
 
     Failure semantics (NO silent fallbacks):
@@ -581,10 +648,16 @@ def _check_indexes() -> dict:
     """
     missing = []
     errors = []
-    for coll_label, coll_fn, index_names in _REQUIRED_INDEXES:
+    for coll_label, coll_fn, index_names in REQUIRED_INDEXES:
         try:
             existing = [idx.get("name") for idx in coll_fn().list_search_indexes()]
         except Exception as exc:
+            log.error("index check on %s failed: %s", coll_label, exc, exc=ChatHealthyException(
+                                                                        mode="index_check_failed",
+                                                                        message=f"index check on {coll_label} failed: {exc}",
+                                                                        component="FindCareBackend",
+                                                                        exception=exc,
+                                                                    ), if_not_debug_log=True)
             errors.append({"collection": coll_label, "error": f"{type(exc).__name__}: {exc}"})
             continue
         for idx in index_names:
@@ -594,19 +667,25 @@ def _check_indexes() -> dict:
     return {"status": status, "missing": missing, "errors": errors}
 
 # graph-exempt: health check — no business logic; per BUG-ARCH-GRAPH-EXEMPT-001
-_BUILD_INFO_PATH = "/app/build_info.json"
+BUILD_INFO_PATH = "/app/build_info.json"
 
 
-def _read_build_info():
+def read_build_info():
     """Baked-at-build-time build/version/framework. Returns None if the
     file is absent (older image); caller falls back to admin.Versions."""
     from pathlib import Path
-    p = Path(_BUILD_INFO_PATH)
+    p = Path(BUILD_INFO_PATH)
     if not p.is_file():
         return None
     try:
         return json.loads(p.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as _exc:
+        log.warning("build_info read failed (ignored, caller falls back): %s", _exc, exc=ChatHealthyException(
+                                                                                      mode="build_info_read_failed",
+                                                                                      message=f"build_info read failed (ignored, caller falls back): {_exc}",
+                                                                                      component="FindCareBackend",
+                                                                                      exception=_exc,
+                                                                                  ), if_not_debug_log=True)
         return None
 
 
@@ -620,8 +699,8 @@ def health():
          what's actually running.
       2. admin.Versions latest doc — legacy fallback for older images.
     """
-    env_label = _ENV_PREFIX if os.getenv("SPACE_ID") else "local"
-    idx_check = _check_indexes()
+    env_label = ENV_PREFIX if os.getenv("SPACE_ID") else "local"
+    idx_check = check_indexes()
     _build = None
     _version_str = None
     _git_number = None
@@ -629,16 +708,21 @@ def health():
     _built_at = None
     _version_error = None
     _source = None
-    db = _get_db()
+    db = get_db()
     mongo_doc = {}
     if db is not None:
         try:
             mongo_doc = db["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
         except Exception as _exc:
-            _log.warning("/health: MongoDB read for build/version/framework failed: %s", _exc)
+            log.warning("/health: MongoDB read for build/version/framework failed: %s", _exc, exc=ChatHealthyException(
+                                                                                               mode="health_mongo_read_failed",
+                                                                                               message=f"/health: MongoDB read for build/version/framework failed: {_exc}",
+                                                                                               component="FindCareBackend",
+                                                                                               exception=_exc,
+                                                                                           ), if_not_debug_log=True)
             _version_error = f"{type(_exc).__name__}: {_exc}"
 
-    baked = _read_build_info()
+    baked = read_build_info()
     if baked is not None:
         _build = baked.get("build")
         _commit = baked.get("commit")
@@ -667,7 +751,7 @@ def health():
               "source": _source}
     if idx_check.get("missing"):
         result["missing_indexes"] = idx_check["missing"]
-        _log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
+        log.error("HEALTH CHECK: missing indexes — %s", idx_check["missing"])
     if _version_error:
         result["version_error"] = _version_error
     # v2.2 Part B 7.6 — return 503 instead of 200 when Mongo is
@@ -675,42 +759,47 @@ def health():
     # turning /health into the visible operator surface that the
     # rotation-as-operational-response model depends on.
     if db_status != "connected":
-        return _JSONResponse(status_code=503, content=result)
+        return JSONResponse(status_code=503, content=result)
     return result
 
 from chathealthy_frontend_lib.authentication import (
     AuthToken, SessionRestampRequest, SessionToken, VerifyTokenResponse,
 )
 
-_ORIGIN = "FindCare"
+ORIGIN = "FindCare"
 
 
 @app.post("/session", response_model=SessionToken)
 def post_session(body: SessionRestampRequest):
-    return AuthToken.handle_session(body, origin=_ORIGIN, server_env=_ENV_PREFIX)
+    return AuthToken.handle_session(body, origin=ORIGIN, server_env=ENV_PREFIX)
 
 
 @app.post("/verify-token", response_model=VerifyTokenResponse)
 def verify_token(body: SessionRestampRequest):
-    return AuthToken.handle_verify(body, origin=_ORIGIN, server_env=_ENV_PREFIX)
+    return AuthToken.handle_verify(body, origin=ORIGIN, server_env=ENV_PREFIX)
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
     try:
-        return await _chat_inner(body, request)
+        return await chat_inner(body, request)
     except Exception as e:
         tb = traceback.format_exc()
-        _log.error("CHAT ERROR: %s\n%s", e, tb)
+        log.error("CHAT ERROR: %s\n%s", e, tb, exc=ChatHealthyException(
+                                                mode="chat_endpoint_failed",
+                                                message=f"CHAT ERROR: {e}",
+                                                component="FindCareBackend",
+                                                exception=e,
+                                            ), if_not_debug_log=True)
         err_str = str(e)
         if "429" in err_str or "rate_limit" in err_str.lower():
             err_type, err_msg = "rate_limit", f"Rate limit hit — {err_str}"
         elif "unavailable" in err_str.lower() or "connection" in err_str.lower():
             err_type, err_msg = "db_unavailable", err_str
         else:
-            err_type, err_msg = "internal", tb if _DEBUG else err_str
-        _debug_logger.log_chat(ip, body.message, len(body.history), 0, None, None, None, err_msg, body.history)
+            err_type, err_msg = "internal", tb if DEBUG else err_str
+        debug_logger.log_chat(ip, body.message, len(body.history), 0, None, None, None, err_msg, body.history)
         return ChatResponse(error=err_msg, error_type=err_type)
 
 # ---------------------------------------------------------------------------
@@ -718,7 +807,7 @@ async def chat(body: ChatRequest, request: Request):
 # "find me a bone doc in VA" → "bone doc"
 # "show me shrinks near Richmond" → "shrinks"
 # ---------------------------------------------------------------------------
-def _extract_user_search_term(user_message: str) -> str:
+def extract_user_search_term(user_message: str) -> str:
     """Use GPT-4.1-nano to extract the colloquial search term from user's message."""
     try:
         from openai import OpenAI
@@ -732,17 +821,21 @@ def _extract_user_search_term(user_message: str) -> str:
             ],
         )
         term = resp.choices[0].message.content.strip().strip("'\"")
-        _log.info("GOV-011-STD-002: '%s' → '%s'", user_message, term)
         return term if term else user_message
-    except Exception:
-        raise
+    except Exception as exc:
+        raise ChatHealthyException(
+            mode="gov_011_std_002_failed",
+            message=f"GOV-011-STD-002 query expansion failed: {exc}",
+            component="FindCareBackend",
+            exception=exc,
+        )
 
 
 # ---------------------------------------------------------------------------
 # GOV-011-STD-001: Strip redundant summary/pagination language from LLM text
 # when the system has already built a summary_message.
 # ---------------------------------------------------------------------------
-def _strip_redundant_summary(text: str, total_count: int, page_count: int) -> str:
+def strip_redundant_summary(text: str, total_count: int, page_count: int) -> str:
     """GOV-011-STD-001: Use GPT-4.1-mini to strip LLM content that duplicates
     the system summary. Keep only the provider listing. Remove all summary,
     pagination, filter suggestions, and conversational fluff."""
@@ -768,30 +861,33 @@ def _strip_redundant_summary(text: str, total_count: int, page_count: int) -> st
             ],
         )
         cleaned = resp.choices[0].message.content.strip()
-        _log.info("GOV-011-STD-001: stripped %d → %d chars", len(text), len(cleaned))
         return cleaned if cleaned else text
-    except Exception:
-        raise
+    except Exception as exc:
+        raise ChatHealthyException(
+            mode="gov_011_std_001_failed",
+            message=f"GOV-011-STD-001 strip failed: {exc}",
+            component="FindCareBackend",
+            exception=exc,
+        )
 
 
 # ---------------------------------------------------------------------------
 # Chat handler — sequential implementation (LangGraph removed 2026-04-20)
 # ---------------------------------------------------------------------------
-import sys as _sys
-_sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "Shared"))
 from llm_client import chat as llm_chat
 
-async def _chat_inner(body: ChatRequest, request: Request):
+async def chat_inner(body: ChatRequest, request: Request):
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
         request.client.host if request.client else "unknown")
 
-    if _safety_service.try_admin_unlock(body.message, ip):
+    if safety_service.try_admin_unlock(body.message, ip):
         return ChatResponse(response="Session unlocked.")
-    if _safety_service.is_ip_locked(ip):
+    if safety_service.is_ip_locked(ip):
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
-    if _safety_service.is_emergency(body.message):
+    if safety_service.is_emergency(body.message):
         full_history = list(body.history) + [{"role": "user", "content": body.message}]
-        _safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
+        safety_service.lock_ip(ip, trigger_message=body.message, history=full_history)
         return ChatResponse(response=EMERGENCY_RESPONSE, emergency=True)
 
     # EPIC-002-F-003-S-004: register/sign-in intent → short-circuit the
@@ -816,11 +912,11 @@ async def _chat_inner(body: ChatRequest, request: Request):
     _CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4.1")
 
     user_msg_count = sum(1 for m in body.history if m.get("role") == "user")
-    system = _system_prompt(follow_up_check=user_msg_count > 0 and user_msg_count % 5 == 0)
+    system = system_prompt(follow_up_check=user_msg_count > 0 and user_msg_count % 5 == 0)
     messages = list(body.history) + [{"role": "user", "content": body.message}]
     total_in = total_out = 0
 
-    _log.info("CHAT model=%s call=initial msgs=%d", _CHAT_MODEL, len(messages))
+    log.info("CHAT model=%s call=initial msgs=%d", _CHAT_MODEL, len(messages))
     response = llm_chat(_CHAT_MODEL, messages, tools=anthropic_tools, system=system, max_tokens=4096)
     total_in  += response.get("usage", {}).get("input_tokens", 0)
     total_out += response.get("usage", {}).get("output_tokens", 0)
@@ -833,20 +929,30 @@ async def _chat_inner(body: ChatRequest, request: Request):
         tool_calls = response.get("tool_calls", [])
         if not tool_calls:
             break
-        tool_results = _tool_router.handle_normalized_tool_calls(tool_calls, messages, _format_chat_history)
+        tool_results = tool_router.handle_normalized_tool_calls(tool_calls, messages, format_chat_history)
 
         for i, tc in enumerate(tool_calls):
             tc_name = tc["function"]["name"]
             if tc_name == "find_providers":
                 try:
                     last_provider_result = json.loads(tool_results[i]["content"])
-                except (json.JSONDecodeError, KeyError, IndexError):
-                    pass
+                except (json.JSONDecodeError, KeyError, IndexError) as _exc:
+                    log.warning("tool_result parse for find_providers failed (ignored): %s", _exc, exc=ChatHealthyException(
+                                                                                                    mode="tool_result_parse_failed",
+                                                                                                    message=f"tool_result parse for find_providers failed (ignored): {_exc}",
+                                                                                                    component="FindCareBackend",
+                                                                                                    exception=_exc,
+                                                                                                ), if_not_debug_log=True)
             elif tc_name == "search_clinical_trials":
                 try:
                     last_trials_result = json.loads(tool_results[i]["content"])
-                except (json.JSONDecodeError, KeyError, IndexError):
-                    pass
+                except (json.JSONDecodeError, KeyError, IndexError) as _exc:
+                    log.warning("tool_result parse for search_clinical_trials failed (ignored): %s", _exc, exc=ChatHealthyException(
+                                                                                                            mode="tool_result_parse_failed",
+                                                                                                            message=f"tool_result parse for search_clinical_trials failed (ignored): {_exc}",
+                                                                                                            component="FindCareBackend",
+                                                                                                            exception=_exc,
+                                                                                                        ), if_not_debug_log=True)
 
         assistant_msg = {"role": "assistant", "content": response.get("content", "")}
         if tool_calls:
@@ -859,13 +965,12 @@ async def _chat_inner(body: ChatRequest, request: Request):
             messages.append(tr)
 
         loop_iter += 1
-        _log.info("CHAT tool_loop iter=%d tools=%s", loop_iter, [tc["function"]["name"] for tc in tool_calls])
+        log.info("CHAT tool_loop iter=%d tools=%s", loop_iter, [tc["function"]["name"] for tc in tool_calls])
         response = llm_chat(_CHAT_MODEL, messages, tools=anthropic_tools, system=system, max_tokens=4096)
         total_in  += response.get("usage", {}).get("input_tokens", 0)
         total_out += response.get("usage", {}).get("output_tokens", 0)
 
     text = response.get("content", "")
-    text = _url_guardian.guard_text(text)
     # Replace bare "Skip Snow on LinkedIn" with its markdown link form,
     # but only when it isn't already in markdown-link form
     # (i.e., not surrounded by `[` and `]`). No regex per Rule-008.
@@ -894,7 +999,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
         total_count = last_provider_result.get("total_count", 0)
         if total_count > 0:
             from ProviderManagement.provider_search_service import FindCareService
-            user_term = _extract_user_search_term(body.message)
+            user_term = extract_user_search_term(body.message)
             user_summary = FindCareService._build_summary_message(
                 has_more=last_provider_result.get("has_more", False),
                 total_count=total_count,
@@ -924,7 +1029,7 @@ async def _chat_inner(body: ChatRequest, request: Request):
         if trial_list:
             trial_count = len(trial_list)
             has_travel = any(t.get("travel_info") for t in trial_list)
-            user_msg = _extract_user_search_term(body.message)
+            user_msg = extract_user_search_term(body.message)
             parts = [f"Found {trial_count} recruiting trial{'s' if trial_count != 1 else ''} for '{user_msg}'."]
             if has_travel:
                 parts.append(" Travel times included.")
@@ -936,19 +1041,19 @@ async def _chat_inner(body: ChatRequest, request: Request):
             )
 
     if pagination and pagination.summary_message and text:
-        text = _strip_redundant_summary(text, pagination.total_count, pagination.count)
+        text = strip_redundant_summary(text, pagination.total_count, pagination.count)
 
-    _log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s trials=%s",
+    log.info("CHAT complete tokens_in=%d tokens_out=%d pagination=%s trials=%s",
               total_in, total_out, bool(pagination), bool(trials_meta))
-    _debug_logger.log_chat(ip, body.message, len(body.history), loop_iter, total_in, total_out, text, None)
+    debug_logger.log_chat(ip, body.message, len(body.history), loop_iter, total_in, total_out, text, None)
     return ChatResponse(response=text, tokens_in=total_in, tokens_out=total_out,
                         pagination=pagination, trials=trials_meta)
 
 # ---------------------------------------------------------------------------
 # Static files
 # ---------------------------------------------------------------------------
-_static_dir = os.path.join(os.path.dirname(__file__), "static")
-if os.path.isdir(_static_dir):
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.isdir(static_dir):
     from starlette.staticfiles import StaticFiles
     from starlette.responses import FileResponse
 
@@ -956,10 +1061,10 @@ if os.path.isdir(_static_dir):
     @app.get("/")
     async def serve_index():
         return FileResponse(
-            os.path.join(_static_dir, "index.html"),
+            os.path.join(static_dir, "index.html"),
             headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
 
-    app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets")), name="assets")
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
 
 if __name__ == "__main__":
     import uvicorn

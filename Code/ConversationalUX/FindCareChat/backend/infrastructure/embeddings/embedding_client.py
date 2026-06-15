@@ -5,14 +5,15 @@
 # Source: OpenAI (embeddings), Anthropic Haiku (query expansion)
 
 import json
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from typing import Optional
 
 from anthropic import Anthropic
 from openai import OpenAI
 
-_log = logging.getLogger("findcare.embeddings")
+log = ChatHealthyLoggingService()
 
 
 class EmbeddingClient:
@@ -34,7 +35,12 @@ class EmbeddingClient:
         try:
             return self._get_oai().embeddings.create(model="text-embedding-3-large", input=text).data[0].embedding
         except Exception as e:
-            _log.warning("Embedding (large) failed: %s", e)
+            log.warning("Embedding (large) failed: %s", e, exc=ChatHealthyException(
+                                                            mode="embedding_large_failed",
+                                                            message=f"Embedding (large) failed: {e}",
+                                                            component="EmbeddingClient",
+                                                            exception=e,
+                                                        ), if_not_debug_log=True)
             return None
 
     def get_specialty_vector(self, text: str) -> list:
@@ -69,5 +75,10 @@ class EmbeddingClient:
             raw = response.content[0].text.strip() if response.content else ""
             return json.loads(raw) if raw else []
         except Exception as exc:
-            _log.warning("expand_query_terms failed for %r: %s", query, exc)
+            log.warning("expand_query_terms failed for %r: %s", query, exc, exc=ChatHealthyException(
+                                                                             mode="expand_query_terms_failed",
+                                                                             message=f"expand_query_terms failed for {query!r}: {exc}",
+                                                                             component="EmbeddingClient",
+                                                                             exception=exc,
+                                                                         ), if_not_debug_log=True)
             return []

@@ -11,20 +11,22 @@ EPIC-006-F-025 'Provider Detail'.
 """
 from __future__ import annotations
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from typing import Any, Optional
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 from authentication.agent_deps import AgentDeps
 from authentication.chathealthy_tool import ChatHealthyTool
 
-_log = logging.getLogger("shared_services.provider_detail")
+log = ChatHealthyLoggingService()
 
-_FINDCARE_INTERNAL_URL_ENV = "FINDCARE_INTERNAL_URL"
-_FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
+
+FINDCARE_INTERNAL_URL_ENV = "FINDCARE_INTERNAL_URL"
+FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
 
 
 class Request(BaseModel):
@@ -40,34 +42,72 @@ class Request(BaseModel):
 
 
 class ResearchSiteRow(BaseModel):
-    url: str
+    url: HttpUrl
     name: str
     guidance: str
 
 
-class NpiDetailsRow(BaseModel):
-    name: str
-    npi: str
-    status: str
-    credential: str
-    specialty: str
-    license: str
-    license_state: str
-    address: str
-    phone: str
-    enumeration_date: str
+class IdentityRow(BaseModel):
+    name_prefix: str = ""
+    first_name: str = ""
+    middle_name: str = ""
+    last_name: str = ""
+    credentials: str = ""
+    npi: str = ""
+    primary_taxonomy_display: str = ""
+    status_active: bool = True
+    enumeration_date: str = ""
+
+
+class CountyRow(BaseModel):
+    name: str = ""
+    urban: Optional[bool] = None
+
+
+class AddressRow(BaseModel):
+    address_type: str = ""
+    line1: str = ""
+    line2: str = ""
+    city: str = ""
+    state: str = ""
+    zip: str = ""
+    country: str = ""
+    phone: str = ""
+    county: Optional[CountyRow] = None
+
+
+class LicenseRow(BaseModel):
+    state: str = ""
+    number: str = ""
+
+
+class InsuranceRow(BaseModel):
+    insurance_type: str = ""
+    brand: str = ""
+    state: str = ""
+    raw_value: str = ""
+
+
+class TaxonomyRow(BaseModel):
+    code: str = ""
+    display_name: str = ""
+    primary: bool = False
 
 
 class Response(BaseModel):
     provider_name: str = ""
     npi: str = ""
-    npi_details: Optional[NpiDetailsRow] = None
+    identity: Optional[IdentityRow] = None
+    addresses: list[AddressRow] = Field(default_factory=list)
+    licenses: list[LicenseRow] = Field(default_factory=list)
+    insurance: list[InsuranceRow] = Field(default_factory=list)
+    taxonomies: list[TaxonomyRow] = Field(default_factory=list)
     research_sites: dict[str, ResearchSiteRow] = Field(default_factory=dict)
     error: Optional[str] = None
 
 
-def _findcare_url() -> str:
-    return os.environ.get(_FINDCARE_INTERNAL_URL_ENV) or _FINDCARE_INTERNAL_URL_DEFAULT
+def findcare_url() -> str:
+    return os.environ.get(FINDCARE_INTERNAL_URL_ENV) or FINDCARE_INTERNAL_URL_DEFAULT
 
 
 class ProviderDetailTool(ChatHealthyTool):
@@ -77,15 +117,21 @@ class ProviderDetailTool(ChatHealthyTool):
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         body: dict[str, Any] = request.model_dump(exclude_none=True)
-        url = _findcare_url() + "/provider-detail"
+        url = findcare_url() + "/provider-detail"
         try:
             async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
                 r = await client.post(url, json=body)
                 r.raise_for_status()
                 raw = r.json()
         except Exception as exc:
-            _log.error("provider_detail HTTP /provider-detail failed: %s: %s",
-                       type(exc).__name__, exc)
+            log.error("provider_detail HTTP /provider-detail failed: %s: %s",
+                       type(exc).__name__, exc,
+                       exc=ChatHealthyException(
+                        mode="provider_detail_unavailable",
+                        message=f"provider_detail HTTP /provider-detail failed: {type(exc).__name__}: {exc}",
+                        component="ProviderDetailTool",
+                        exception=exc,
+                    ), if_not_debug_log=True)
             resp = self.Response(error=f"detail_unavailable: {type(exc).__name__}")
             deps.stream({"kind": "provider-detail", "data": resp.model_dump(exclude_none=True)})
             return resp

@@ -4,7 +4,11 @@
 import os
 import traceback
 
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 from chathealthy_frontend_lib.authentication import AuthToken, SessionToken
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
+
+log = ChatHealthyLoggingService()
 
 
 class DebugVerifyLiveEndpoint:
@@ -33,6 +37,12 @@ class DebugVerifyLiveEndpoint:
             at = AuthToken(body, origin="EvaluateCare")
             result["verified"] = at.verify()
         except Exception as e:
+            log.warning("debug_verify_live verify failed: %s", e, exc=ChatHealthyException(
+                                                                   mode="debug_verify_live_failed",
+                                                                   message=f"debug_verify_live verify failed: {e}",
+                                                                   component="DebugVerifyLiveEndpoint",
+                                                                   exception=e,
+                                                               ), if_not_debug_log=True)
             result["error"] = f"{type(e).__name__}: {e}"
             result["tb"] = traceback.format_exc()
         return result

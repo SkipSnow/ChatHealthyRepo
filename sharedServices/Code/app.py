@@ -20,7 +20,8 @@
 # refactor and stay direct.
 
 import base64
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 import sys
 import tempfile
@@ -30,19 +31,12 @@ from fastapi import Body, Cookie, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
+log = ChatHealthyLoggingService()
+
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-_LOG_LEVEL_NAME = os.getenv("LOG_LEVEL", "INFO").upper()
-_LOG_LEVEL = getattr(logging, _LOG_LEVEL_NAME, None)
-if not isinstance(_LOG_LEVEL, int):
-    raise RuntimeError(
-        f"LOG_LEVEL={_LOG_LEVEL_NAME!r} is not a valid Python logging level"
-    )
-logging.basicConfig(level=_LOG_LEVEL, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
-_log = logging.getLogger("shared_services")
-
-
-def _bootstrap_certs_from_env():
+def bootstrap_certs_from_env():
     runtime_dir = os.path.join(tempfile.gettempdir(), "ch_certs")
     mapping = {
         "FINDCARE_CERT_PEM":      "findcare.crt",
@@ -58,40 +52,49 @@ def _bootstrap_certs_from_env():
         try:
             pem = base64.b64decode(b64.strip())
         except Exception as e:
-            _log.error("STARTUP: %s not valid base64: %s", env_var, e)
-            raise
+            raise ChatHealthyException(
+                mode="startup_invalid_base64",
+                message=f"STARTUP: {env_var} not valid base64: {e}",
+                component="SharedServices",
+                exception=e,
+            )
         os.makedirs(runtime_dir, exist_ok=True)
         path = os.path.join(runtime_dir, filename)
         with open(path, "wb") as f:
             f.write(pem)
         try:
             os.chmod(path, 0o600)
-        except Exception:
-            pass
+        except Exception as _exc:
+            log.warning("STARTUP: chmod 0600 on %s failed (continuing): %s", path, _exc, exc=ChatHealthyException(
+                                                                                          mode="startup_chmod_failed",
+                                                                                          message=f"STARTUP: chmod 0600 on {path} failed (continuing): {_exc}",
+                                                                                          component="SharedServices",
+                                                                                          exception=_exc,
+                                                                                      ), if_not_debug_log=True)
         wrote.append(filename)
     if wrote:
         os.environ["CERTS_DIR"] = runtime_dir
-        _log.info("startup bootstrap: wrote %s to %s", ",".join(wrote), runtime_dir)
+        log.info("startup bootstrap: wrote %s to %s", ",".join(wrote), runtime_dir)
 
 
-_bootstrap_certs_from_env()
+bootstrap_certs_from_env()
 
 app = FastAPI(title="ChatHealthy.ai Shared Services", version="0.1.5")
 
-import datetime as _dt
+import datetime as dt
 
 
 @app.exception_handler(Exception)
-async def _fatal(request: Request, exc: Exception):
-    _log.exception("fatal on %s", request.url.path)
+async def fatal(request: Request, exc: Exception):
+    log.exception("fatal on %s", request.url.path)
     return JSONResponse(
         status_code=503,
         content={"service": "SharedServices", "source": "unhandled",
-                 "time": _dt.datetime.now(_dt.timezone.utc).isoformat()},
+                 "time": dt.datetime.now(dt.timezone.utc).isoformat()},
     )
 
 
-class _AsgiLogMiddleware:
+class AsgiLogMiddleware:
     """Pure-ASGI request logger. Does NOT buffer the response body, so
     StreamingResponse works through this middleware (the BaseHTTPMiddleware
     pattern used by @app.middleware('http') buffers and breaks streaming)."""
@@ -118,7 +121,7 @@ class _AsgiLogMiddleware:
             client = (scope.get("client") or (None, None))[0] or "unknown"
             headers = dict(scope.get("headers") or [])
             xff = headers.get(b"x-forwarded-for", b"").decode("latin1") or client
-            _log.info(
+            log.info(
                 "%s %s → %d (%dms) from %s",
                 scope.get("method", "?"),
                 scope.get("path", "?"),
@@ -126,7 +129,7 @@ class _AsgiLogMiddleware:
             )
 
 
-app.add_middleware(_AsgiLogMiddleware)
+app.add_middleware(AsgiLogMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -160,15 +163,15 @@ AUTHN_TOOL = authn.TOOL
 UNIVERSAL_NAV_TOOL = nav.TOOL
 
 
-_ORIGIN = "SharedServices"
-_ENV = os.getenv("ENV_PREFIX", "dev")
-_SESSION_COOKIE_NAME = "ch_session"
-_SESSION_COOKIE_MAX_AGE = 300
-_SESSION_COOKIE_DOMAIN = "chathealthy.ai"
-_SESSION_COOKIE_PATH = "/gate"
+ORIGIN = "SharedServices"
+ENV = os.getenv("ENV_PREFIX", "dev")
+SESSION_COOKIE_NAME = "ch_session"
+SESSION_COOKIE_MAX_AGE = 300
+SESSION_COOKIE_DOMAIN = "chathealthy.ai"
+SESSION_COOKIE_PATH = "/gate"
 
 
-def _impl(cls_name, file_subpath):
+def impl(cls_name, file_subpath):
     return {
         "x-implementing-class": cls_name,
         "x-implementing-file": f"sharedServices/Code/{file_subpath}",
@@ -176,7 +179,7 @@ def _impl(cls_name, file_subpath):
 
 
 @app.post("/health", operation_id="HealthEndpoint",
-          openapi_extra=_impl("HealthEndpoint", "healthcheck/health_endpoint.py"))
+          openapi_extra=impl("HealthEndpoint", "healthcheck/health_endpoint.py"))
 def health():
     # v2.2 Part B 7.7 — when the Mongo client is unreachable, return 503
     # (not 200). The Website fetch wrapper at Website/index.html lines
@@ -194,7 +197,7 @@ def health():
 # /gate — the universal entrance. Streams NDJSON.
 # ─────────────────────────────────────────────────────────────────────
 
-def _set_session_cookie(response: Response, cookie_value: str) -> None:
+def set_session_cookie(response: Response, cookie_value: str) -> None:
     """REQ-T-001 + REQ-T-002.
 
     Cookie attributes: Secure, HttpOnly, Max-Age=300, SameSite=None,
@@ -211,19 +214,19 @@ def _set_session_cookie(response: Response, cookie_value: str) -> None:
     where the Domain attribute lines up with the browser-visible host.
     """
     response.set_cookie(
-        key=_SESSION_COOKIE_NAME,
+        key=SESSION_COOKIE_NAME,
         value=cookie_value,
-        max_age=_SESSION_COOKIE_MAX_AGE,
+        max_age=SESSION_COOKIE_MAX_AGE,
         httponly=True,
         secure=True,
         samesite="none",
-        domain=_SESSION_COOKIE_DOMAIN,
-        path=_SESSION_COOKIE_PATH,
+        domain=SESSION_COOKIE_DOMAIN,
+        path=SESSION_COOKIE_PATH,
     )
 
 
 @app.post("/gate", operation_id="UniversalGate",
-          openapi_extra=_impl(
+          openapi_extra=impl(
               "AuthorizationsAndAuthenticationsTool + UniversalNavigationTool",
               "AuthorizationsAndAuthentications/"
               "universal_navigation_tool.py",
@@ -254,7 +257,7 @@ async def gate(
     elif payload.get("prior_guid"):
         prior_guid = payload.get("prior_guid")
         prior_guid_source = "body"
-    _log.debug(
+    log.debug(
         "/gate ENTRY op=%s intent=%r prior_guid=%s source=%s "
         "(cookie_present=%s body_keys=%s)",
         op, intent,
@@ -295,20 +298,18 @@ async def gate(
         else:  # "json"
             resp = JSONResponse(content=gate_resp.body_data)
 
-        _set_session_cookie(resp, gate_resp.cookie_value)
+        set_session_cookie(resp, gate_resp.cookie_value)
         return resp
     except Exception as exc:
         # REQ-T-009: any /gate exception MUST log the full stack with the
         # originating request shape. The browser sees HTTP 500 and renders
         # its hard-fail page.
-        _log.exception(
-            "/gate failed: method=%s path=%s op=%s intent=%r "
-            "had_session_cookie=%s body_keys=%s exc=%s: %s",
-            request.method, request.url.path, op, intent,
-            bool(ch_session), sorted(list(payload.keys())),
-            type(exc).__name__, exc,
+        raise ChatHealthyException(
+            mode="gate_failed",
+            message=f"/gate failed: method={request.method} path={request.url.path} op={op} intent={intent!r}: {type(exc).__name__}: {exc}",
+            component="SharedServices",
+            exception=exc,
         )
-        raise
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -316,49 +317,49 @@ async def gate(
 # ─────────────────────────────────────────────────────────────────────
 
 @app.post("/auth/issue", operation_id="AuthIssue", response_model=SessionToken,
-          openapi_extra=_impl("MintableAuthToken", "authentication/mintable_auth_token.py"))
+          openapi_extra=impl("MintableAuthToken", "authentication/mintable_auth_token.py"))
 def auth_issue():
-    return MintableAuthToken.manufacture(server_env=_ENV).to_wire()
+    return MintableAuthToken.manufacture(server_env=ENV).to_wire()
 
 
 @app.post("/session", operation_id="Session", response_model=SessionToken,
-          openapi_extra=_impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
+          openapi_extra=impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
 def session(body: SessionRestampRequest):
-    return AuthToken.handle_session(body, origin=_ORIGIN, server_env=_ENV)
+    return AuthToken.handle_session(body, origin=ORIGIN, server_env=ENV)
 
 
 @app.post("/verify-token", operation_id="VerifyToken", response_model=VerifyTokenResponse,
-          openapi_extra=_impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
+          openapi_extra=impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
 def verify_token(body: SessionRestampRequest):
-    return AuthToken.handle_verify(body, origin=_ORIGIN, server_env=_ENV)
+    return AuthToken.handle_verify(body, origin=ORIGIN, server_env=ENV)
 
 
 @app.post("/transfer/to-findcare", operation_id="TransferToFindCareEndpoint",
-          openapi_extra=_impl("TransferToFindCareEndpoint", "displayChrome/transfer_to_findcare_endpoint.py"))
+          openapi_extra=impl("TransferToFindCareEndpoint", "displayChrome/transfer_to_findcare_endpoint.py"))
 def transfer_to_findcare():
     return TransferToFindCareEndpoint()()
 
 
 @app.get("/secrets/{key}", operation_id="SecretsEndpoint",
-         openapi_extra=_impl("SecretsEndpoint", "secretsManager/secrets_endpoint.py"))
+         openapi_extra=impl("SecretsEndpoint", "secretsManager/secrets_endpoint.py"))
 def get_secret(key: str):
     return SecretsEndpoint()(key)
 
 
 @app.get("/auth/google/start", operation_id="GoogleOAuthStart",
-         openapi_extra=_impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
+         openapi_extra=impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
 def google_oauth_start(session_guid: str | None = None):
-    return GoogleOAuthEndpoint.start(server_env=_ENV, session_guid=session_guid)
+    return GoogleOAuthEndpoint.start(server_env=ENV, session_guid=session_guid)
 
 
 @app.get("/auth/google/callback", operation_id="GoogleOAuthCallback",
-         openapi_extra=_impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
+         openapi_extra=impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
 def google_oauth_callback(
     code: str = None, state: str = None, error: str = None,
     ch_session: str | None = Cookie(default=None),
 ):
     return GoogleOAuthEndpoint.callback(
-        code=code, state=state, server_env=_ENV,
+        code=code, state=state, server_env=ENV,
         session_guid=(ch_session[:32] if ch_session else None), error=error,
     )
 
@@ -367,7 +368,7 @@ def google_oauth_callback(
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8002"))
-    _log.info("SharedServices starting on port %d", port)
+    log.info("SharedServices starting on port %d", port)
     kwargs = {"host": "0.0.0.0", "port": port}
     ssl_cert = os.getenv("SSL_CERTFILE")
     ssl_key = os.getenv("SSL_KEYFILE")
