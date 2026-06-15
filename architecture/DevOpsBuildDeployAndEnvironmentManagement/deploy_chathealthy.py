@@ -40,9 +40,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _deploy_chain import (  # noqa: E402
     LocalStandUp,
-    _require_local_context,
-    _run_cloud_deploy,
-    _BUILD_ROOT_REL,
+    require_local_context,
+    run_cloud_deploy,
+    BUILD_ROOT_REL,
 )
 
 
@@ -112,7 +112,7 @@ def _staleness_gate(repo_root: Path, env: str, target_ids: list[str]) -> None:
     latest_build = _latest_admin_build() if env != "local" else None
 
     for target_id in target_ids:
-        manifest_path = repo_root / _BUILD_ROOT_REL / target_id / "manifest.json"
+        manifest_path = repo_root / BUILD_ROOT_REL / target_id / "manifest.json"
         if not manifest_path.is_file():
             sys.exit(
                 f"ERROR: no fresh build for {target_id} env {env}; "
@@ -156,8 +156,8 @@ def _collect_target_ids_for_env(repo_root: Path, env: str, target_arg: str) -> l
     from record_loader import RecordLoader
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
-    from _deploy_chain import _select_target_ids
-    selected = _select_target_ids(coll, target_arg)
+    from _deploy_chain import select_target_ids
+    selected = select_target_ids(coll, target_arg)
     out = []
     for tid, _kind in selected:
         target = coll.by_target_id(tid)
@@ -208,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
              "(e.g. 'find_care_smoke,ur_um_regression'). Empty by default.",
     )
     args = parser.parse_args(argv)
-    _require_local_context()
+    require_local_context()
     repo_root = _repo_root()
 
     _enforce_env_branch_check(repo_root, args.env)
@@ -225,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
         if not target_ids:
             sys.exit(f"ERROR: no targets matched --env={args.env} --target={args.target!r}")
         _staleness_gate(repo_root, args.env, target_ids)
-        rc = _run_cloud_deploy(args.env, args.target)
+        rc = run_cloud_deploy(args.env, args.target)
 
     if rc == 0:
         tests = [t.strip() for t in args.tests.split(",") if t.strip()]
