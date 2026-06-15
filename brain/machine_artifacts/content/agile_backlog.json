@@ -15379,6 +15379,26 @@
                             ]
                           },
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-006-REQ-B-035",
+                          "name": "Test Provider Detail",
+                          "requirement": "After clicking on a 'provider detail' link in a list of providers in the center panel, the smoke test shall assert if all requirements of EPIC-006-F-025-S-001 — 'Provider Detail display.' have been satisfied.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-006-REQ-B-035-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
                         }
                       ]
                     }

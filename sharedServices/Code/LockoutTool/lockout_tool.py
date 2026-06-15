@@ -72,7 +72,7 @@ def env_prefix() -> str:
 def safety_collection(deps: AgentDeps):
     if deps.mongo_frontend is None:
         return None
-    return deps.mongo_frontend[f"{_env_prefix()}_Safety"]["emergency_incidents"]
+    return deps.mongo_frontend[f"{env_prefix()}_Safety"]["emergency_incidents"]
 
 
 def latest_person_utterance_text(deps: AgentDeps) -> str:
@@ -219,7 +219,7 @@ class LockoutTool(ChatHealthyTool):
             "attention. This safety lock expires "
             f"{expires_phrase}. If you or someone near you is in danger "
             "right now, please call 911. For non-emergency support, you "
-            f"can also contact {_OPERATOR_NAME} at {_OPERATOR_PHONE}."
+            f"can also contact {OPERATOR_NAME} at {OPERATOR_PHONE}."
         )
         deps.stream({"kind": "prompt", "data": {"text": msg}})
         append_system_utterance(deps.user_object, msg)
@@ -295,8 +295,8 @@ class LockoutTool(ChatHealthyTool):
             "you may need immediate medical attention. You cannot use "
             "this tool for 1 hour. If you or someone near you is in "
             "danger right now, please call 911. For non-emergency "
-            f"support, you can also contact {_OPERATOR_NAME} at "
-            f"{_OPERATOR_PHONE}."
+            f"support, you can also contact {OPERATOR_NAME} at "
+            f"{OPERATOR_PHONE}."
         )
         deps.stream({"kind": "prompt", "data": {"text": msg}})
         append_system_utterance(deps.user_object, msg)

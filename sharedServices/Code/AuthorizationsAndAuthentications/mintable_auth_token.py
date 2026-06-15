@@ -15,7 +15,7 @@ from chathealthy_frontend_lib.authentication.nonce import Nonce
 from chathealthy_frontend_lib.authentication.session_token import (
     CERTS_DIR,
     SessionToken,
-    _cert_basename,
+    cert_basename,
 )
 
 log = ChatHealthyLoggingService()
@@ -33,7 +33,7 @@ class MintableAuthToken(AuthToken):
         original_stamp = Nonce.original_stamp(nonce_field)
 
         sig_b64 = cls._sign(origin=ORIGIN, original_stamp=original_stamp, guid=guid)
-        token_str = f"{_TOKEN_PREFIX}{nonce_field}{guid}"
+        token_str = f"{TOKEN_PREFIX}{nonce_field}{guid}"
 
         st = SessionToken(
             origin=ORIGIN,
@@ -49,7 +49,7 @@ class MintableAuthToken(AuthToken):
     @staticmethod
     def _sign(origin: str, original_stamp: str, guid: str) -> str:
         certs_dir = os.environ.get("CERTS_DIR", CERTS_DIR)
-        key_path = os.path.join(certs_dir, f"{_cert_basename(origin)}.key")
+        key_path = os.path.join(certs_dir, f"{cert_basename(origin)}.key")
         if not os.path.exists(key_path):
             raise FileNotFoundError(f"signing key not found: {key_path}")
         with open(key_path, "rb") as f:

@@ -21,12 +21,12 @@ def read_build_info() -> dict | None:
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception as _exc:
-        _log.warning("build_info read failed (ignored, caller falls back): %s", _exc, exc=ChatHealthyException(
+        log.warning("build_info read failed (ignored, caller falls back): %s", _exc, exc=ChatHealthyException(
                                                                                        mode="build_info_read_failed",
                                                                                        message=f"build_info read failed (ignored, caller falls back): {_exc}",
                                                                                        component="EvaluateCareHealth",
                                                                                        exception=_exc,
-                                                                                   ), if_not_debug_log=True)
+                                                                                   ), if_not_debuglog=True)
         return None
 
 
@@ -64,7 +64,7 @@ class HealthEndpoint:
                                                                       message=f"/health Mongo read failed: {e}",
                                                                       component="EvaluateCareHealth",
                                                                       exception=e,
-                                                                  ), if_not_debug_log=True)
+                                                                  ), if_not_debuglog=True)
                 db_status = "unreachable"
 
         if baked is not None:

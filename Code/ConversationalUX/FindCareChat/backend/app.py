@@ -152,7 +152,7 @@ def commitSignificantActivity(payload=None, **kwargs):
         payload = payload or kwargs
         if isinstance(payload, str):
             payload = json.loads(payload)
-        db_name = f"{_ENV_PREFIX}_{payload['database']}"
+        db_name = f"{ENV_PREFIX}_{payload['database']}"
         coll = client[db_name][payload["collection"]]
         record = dict(payload["record"])
         record["record_number"] = coll.count_documents({}) + 1
@@ -397,7 +397,7 @@ def startup_security_verification():
     cryptography primitives can parse them."""
     bootstrap_certs_from_env()
     try:
-        from chathealthy_frontend_lib.authentication.session_token import _cert_basename
+        from chathealthy_frontend_lib.authentication.session_token import cert_basename
         from cryptography.hazmat.primitives import serialization
         from cryptography.x509 import load_pem_x509_certificate
     except ImportError as _imp:
@@ -409,8 +409,8 @@ def startup_security_verification():
                                                                                         ), if_not_debug_log=True)
         sys.exit(78)
     certs_dir = os.environ.get("CERTS_DIR", "/certs")
-    key_path = os.path.join(certs_dir, f"{_cert_basename('FindCare')}.key")
-    cert_path = os.path.join(certs_dir, f"{_cert_basename('FindCare')}.crt")
+    key_path = os.path.join(certs_dir, f"{cert_basename('FindCare')}.key")
+    cert_path = os.path.join(certs_dir, f"{cert_basename('FindCare')}.crt")
     try:
         with open(key_path, "rb") as _f:
             serialization.load_pem_private_key(_f.read(), password=None)
@@ -1033,7 +1033,7 @@ async def chat_inner(body: ChatRequest, request: Request):
             parts = [f"Found {trial_count} recruiting trial{'s' if trial_count != 1 else ''} for '{user_msg}'."]
             if has_travel:
                 parts.append(" Travel times included.")
-            parts.append(f" [View all on ClinicalTrials.gov](https://clinicaltrials.gov/search?cond={_requests_lib.utils.quote(user_msg)}&aggFilters=status:rec)")
+            parts.append(f" [View all on ClinicalTrials.gov](https://clinicaltrials.gov/search?cond={requests_lib.utils.quote(user_msg)}&aggFilters=status:rec)")
             trials_meta = TrialsMeta(
                 trial_count=trial_count,
                 condition=user_msg,
