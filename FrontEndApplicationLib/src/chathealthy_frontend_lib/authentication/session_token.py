@@ -67,7 +67,7 @@ def cert_basename(origin: str) -> str:
     if origin not in SERVICE_TO_CERT_NAME:
         raise ValueError(
             f"Invalid token origin {origin!r}; "
-            f"must be one of {sorted(_SERVICE_TO_CERT_NAME)}."
+            f"must be one of {sorted(SERVICE_TO_CERT_NAME)}."
         )
     return SERVICE_TO_CERT_NAME[origin]
 
@@ -84,14 +84,14 @@ class SessionToken(BaseModel):
     def get_auth_token(self) -> str:
         if len(self.token) < TOKEN_SIZE:
             raise ValueError(
-                f"token length {len(self.token)} < {_TOKEN_SIZE}; cannot extract GUID"
+                f"token length {len(self.token)} < {TOKEN_SIZE}; cannot extract GUID"
             )
         return self.token[GUID_OFFSET:]
 
     def get_nonce(self) -> str:
         if len(self.token) < GUID_OFFSET:
             raise ValueError(
-                f"token length {len(self.token)} < {_GUID_OFFSET}; cannot extract nonce"
+                f"token length {len(self.token)} < {GUID_OFFSET}; cannot extract nonce"
             )
         return self.token[NONCE_OFFSET:GUID_OFFSET]
 
@@ -103,7 +103,7 @@ class SessionToken(BaseModel):
         original_stamp = Nonce.original_stamp(new_nonce_field)
 
         certs_dir = os.environ.get("CERTS_DIR", CERTS_DIR)
-        key_path = os.path.join(certs_dir, f"{_cert_basename(origin)}.key")
+        key_path = os.path.join(certs_dir, f"{cert_basename(origin)}.key")
         if not os.path.exists(key_path):
             raise FileNotFoundError(
                 f"signing key not found: {key_path}"
@@ -116,7 +116,7 @@ class SessionToken(BaseModel):
 
         now = datetime.now(timezone.utc)
         self.origin = origin
-        self.token = f"{_TOKEN_PREFIX}{new_nonce_field}{guid}"
+        self.token = f"{TOKEN_PREFIX}{new_nonce_field}{guid}"
         self.signature = base64.b64encode(sig_bytes).decode()
         self.created_at = now.isoformat()
         self.signed = True
@@ -131,14 +131,14 @@ class SessionToken(BaseModel):
         if not self.signature:
             raise ValueError("verify: empty signature")
         if len(self.token) < TOKEN_SIZE:
-            raise ValueError(f"verify: token length {len(self.token)} < {_TOKEN_SIZE}")
+            raise ValueError(f"verify: token length {len(self.token)} < {TOKEN_SIZE}")
 
         nonce_field = self.get_nonce()
         original_stamp = Nonce.original_stamp(nonce_field)
         guid = self.get_auth_token()
 
         certs_dir = os.environ.get("CERTS_DIR", CERTS_DIR)
-        cert_path = os.path.join(certs_dir, f"{_cert_basename(self.origin)}.crt")
+        cert_path = os.path.join(certs_dir, f"{cert_basename(self.origin)}.crt")
         if not os.path.exists(cert_path):
             raise TokenInfraError(
                 f"cert file missing at {cert_path} (CERTS_DIR={certs_dir})"

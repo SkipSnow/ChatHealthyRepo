@@ -304,14 +304,14 @@ class GoogleOAuthEndpoint:
             TOOL as AUTHN_TOOL,
             get_mongo_frontend,
             Request as AuthnRequest,
-            _SESSION_DB,
-            _SESSION_COLLECTION,
+            SESSION_DB,
+            SESSION_COLLECTION,
         )
         from authentication.user_object import UserObject, OAuthIdentity
         from authentication.agent_deps import AuthnDeps
 
         mongo = get_mongo_frontend()
-        sessions_coll = mongo[_SESSION_DB][_SESSION_COLLECTION]
+        sessions_coll = mongo[SESSION_DB][SESSION_COLLECTION]
         session_doc = sessions_coll.find_one({"_id": session_guid})
         if not session_doc:
             log.error(

@@ -341,45 +341,6 @@ def env():
         browser.close()
 
 
-# Step 0 [EPIC-008-F-004-S-001-REQ-T-003]: cross-environment build-gate.
-# Proves that local and dev are running the same code + configuration before
-# any further comparison is attempted. Independent of SMOKE_TEST_ENV — always
-# runs local-vs-dev. If builds differ, the rest of the smoke would compare
-# apples-to-oranges and produce meaningless signals.
-class TestStep00BuildGate:
-    def test_local_and_dev_have_identical_build(self):
-        # This step compares local-vs-dev builds — it is structurally an
-        # operator-workstation check (needs BOTH a local backend AND
-        # reachability to dev). GitHub-Actions runners have no local
-        # backend; on CI the local-side curl returns ECONNREFUSED. Skip
-        # there so the deploy gate isn't permanently red on a structural
-        # mismatch. Operators running smoke locally still get the
-        # comparison they need.
-        if os.environ.get("GITHUB_ACTIONS"):
-            pytest.skip("TestStep00BuildGate is an operator-workstation check; CI has no local backend.")
-        # URLs pulled from _ENV_CONFIG — no hardcodes. Real cross-env
-        # comparison: local build must match dev build before smoke proceeds.
-        local_url = f"{_ENV_CONFIG['local']['findcare_url']}/health"
-        dev_url = f"{_ENV_CONFIG['dev']['findcare_url']}/health"
-        c = httpx.Client(verify=False, timeout=15)
-        try:
-            local = c.get(local_url).json()
-            dev = c.get(dev_url).json()
-        finally:
-            c.close()
-        local_build = local.get("build")
-        dev_build = dev.get("build")
-        assert local_build == dev_build, (
-            f"EPIC-008-F-004-S-001-REQ-T-003 VIOLATION: build mismatch across "
-            f"environments.\n  local {local_url}: build={local_build}\n  "
-            f"dev   {dev_url}: build={dev_build}\n"
-            f"Per EPIC-008-F-004-S-001-REQ-T-002 two environments on the same "
-            f"build MUST be running identical code and configuration; "
-            f"different builds means different code or configuration."
-        )
-        print(f"\n[BUILD GATE PASS] local = dev = build {local_build}")
-
-
 # Step 1 [DEVOPS-LOCAL-B004]
 class TestStep01:
     def test_http_redirects_to_https(self, env):

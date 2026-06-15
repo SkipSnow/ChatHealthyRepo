@@ -428,7 +428,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             last_target_action = target_action
         else:
             raise RuntimeError(
-                f"UR dispatch exceeded {_MAX_DISPATCH_HOPS} hops; last "
+                f"UR dispatch exceeded {MAX_DISPATCH_HOPS} hops; last "
                 f"target_action={last_target_action!r}"
             )
 
@@ -772,7 +772,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             return
         if deps.mongo_frontend is None:
             return
-        coll = deps.mongo_frontend[f"{_ENV}_Safety"]["emergency_incidents"]
+        coll = deps.mongo_frontend[f"{ENV}_Safety"]["emergency_incidents"]
         now_iso = datetime.now(timezone.utc).isoformat()
         try:
             record = coll.find_one({
@@ -1104,7 +1104,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         if gate_req.intent is not None and gate_req.intent not in KNOWN_WIRE_INTENTS:
             raise ValueError(
                 f"/gate: unknown intent {gate_req.intent!r}; expected one of "
-                f"{sorted(_KNOWN_WIRE_INTENTS)} or absent"
+                f"{sorted(KNOWN_WIRE_INTENTS)} or absent"
             )
 
         # 2. Mongo handle + AuthnDeps.
@@ -1118,7 +1118,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         # 3. Session load + auth_intent decision.
         loaded_user_object: Optional[UserObject] = None
         if gate_req.prior_guid:
-            sessions_coll = mongo_frontend[authn._SESSION_DB][authn._SESSION_COLLECTION]
+            sessions_coll = mongo_frontend[authn.SESSION_DB][authn.SESSION_COLLECTION]
             session_doc = sessions_coll.find_one({"_id": gate_req.prior_guid})
             if session_doc:
                 try:
@@ -1197,7 +1197,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             shared = ENV_TO_SHARED_URL.get(ENV)
             if not shared:
                 raise RuntimeError(
-                    f"/gate: no SharedServices URL for env {_ENV!r}"
+                    f"/gate: no SharedServices URL for env {ENV!r}"
                 )
             redirect_url = f"{shared}/auth/google/start?session_guid={guid}"
             # v2.2 Part B 7.8 — let PyMongoError propagate. The prior

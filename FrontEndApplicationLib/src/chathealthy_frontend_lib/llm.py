@@ -78,7 +78,7 @@ def raise_unavailable(provider: str, call_site: str, server: str,
     raise ChatHealthyException(
         mode="llm_unavailable",
         message=(f"{provider}/{model_name_str} exhausted after "
-                 f"{_MAX_ATTEMPTS} attempts (raised at server={server} "
+                 f"{MAX_ATTEMPTS} attempts (raised at server={server} "
                  f"component={component})"),
         server=server,
         component=component,
