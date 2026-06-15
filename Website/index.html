@@ -2028,50 +2028,116 @@
         }
 
         // Provider detail — click path. Painted into #rightContent.
-        // EPIC-006-F-025 'Provider Detail' (preliminary implementation).
+        // EPIC-006-F-025 'Provider Detail'. Sections per S-001-REQ-B-002..B-007.
         if (msg.type === 'gui:provider-detail' && msg.detail) {
           window.ensureRightPanelStructure();
           var pdContent = document.getElementById('rightContent');
           if (pdContent) {
             var d = msg.detail;
-            var sites = d.research_sites || {};
-            var siteRows = Object.keys(sites).map(function(k) {
-              var s = sites[k];
-              return '<div style="padding:0.75em 1em;border-bottom:0.125em solid #e5e7eb;">'
-                + '<div style="font-weight:600;color:#0b7a75;font-size:0.95em;">'
-                + '<a href="' + (s.url || '#') + '" target="_blank" rel="noopener noreferrer" style="color:#0b7a75;">'
-                + (s.name || k) + '</a></div>'
-                + '<div style="font-size:0.85em;color:#6b7280;margin-top:0.25em;">' + (s.guidance || '') + '</div>'
+            var esc = function(s) {
+              return String(s == null ? '' : s)
+                .split('&').join('&amp;')
+                .split('<').join('&lt;')
+                .split('>').join('&gt;')
+                .split('"').join('&quot;')
+                .split("'").join('&#39;');
+            };
+            var sectionLabel = function(t) {
+              return '<div style="padding:0.5em 1em;font-size:0.85em;font-weight:600;color:#6b7280;text-transform:uppercase;border-bottom:0.125em solid #e5e7eb;background:#f9fafb;">' + esc(t) + '</div>';
+            };
+            var emptyRow = function(t) {
+              return '<div style="padding:0.5em 1em;font-size:0.85em;color:#9ca3af;font-style:italic;">' + esc(t) + '</div>';
+            };
+
+            // Identity
+            var id = d.identity || {};
+            var fullName = [id.name_prefix, id.first_name, id.middle_name, id.last_name]
+              .filter(function(s) { return s; }).join(' ');
+            var idHtml =
+                '<div style="padding:0.75em 1em;border-bottom:0.125em solid #e5e7eb;background:#f8fffe;">'
+              + '<div style="font-weight:600;color:#1f2937;font-size:1em;">' + esc(fullName) + '</div>'
+              + (id.credentials ? '<div style="font-size:0.85em;color:#6b7280;">' + esc(id.credentials) + '</div>' : '')
+              + (id.primary_taxonomy_display ? '<div style="font-size:0.85em;color:#0b7a75;">' + esc(id.primary_taxonomy_display) + '</div>' : '')
+              + '<div style="font-size:0.85em;color:#9ca3af;margin-top:0.25em;">NPI: ' + esc(id.npi || d.npi || '') + '</div>'
+              + '<div style="font-size:0.85em;color:#6b7280;">Status: ' + (id.status_active ? 'Active' : 'Inactive') + '</div>'
+              + (id.enumeration_date ? '<div style="font-size:0.85em;color:#9ca3af;">Enumerated: ' + esc(id.enumeration_date) + '</div>' : '')
+              + '</div>';
+
+            // Addresses
+            var addresses = d.addresses || [];
+            var addressRows = addresses.map(function(a) {
+              var typeLabel = a.address_type === 'business' ? 'Business'
+                            : a.address_type === 'practice' ? 'Practice'
+                            : esc(a.address_type || '');
+              var lineParts = [a.line1, a.line2].filter(function(s) { return s; });
+              var cityLine = [a.city, a.state, a.zip].filter(function(s) { return s; }).join(', ');
+              var c = a.county || null;
+              var countyText = '';
+              if (c && c.name) {
+                countyText = c.name + (c.urban === true ? ' · Urban' : c.urban === false ? ' · Rural' : '');
+              }
+              return '<div style="padding:0.5em 1em;border-bottom:0.125em solid #f3f4f6;">'
+                + '<div style="font-size:0.75em;font-weight:600;color:#0b7a75;text-transform:uppercase;">' + typeLabel + '</div>'
+                + lineParts.map(function(s) { return '<div style="font-size:0.9em;color:#374151;">' + esc(s) + '</div>'; }).join('')
+                + (cityLine ? '<div style="font-size:0.9em;color:#374151;">' + esc(cityLine) + '</div>' : '')
+                + (a.country && a.country !== 'US' ? '<div style="font-size:0.85em;color:#6b7280;">' + esc(a.country) + '</div>' : '')
+                + (a.phone ? '<div style="font-size:0.85em;color:#6b7280;">Phone: ' + esc(a.phone) + '</div>' : '')
+                + (countyText ? '<div style="font-size:0.85em;color:#6b7280;">County: ' + esc(countyText) + '</div>' : '')
                 + '</div>';
             }).join('');
-            var nd = d.npi_details;
-            var ndHtml;
-            if (nd) {
-              ndHtml =
-                '<div style="padding:0.75em 1em;border-bottom:0.125em solid #e5e7eb;background:#f8fffe;">'
-                + '<div style="font-weight:600;color:#1f2937;">' + (nd.name || '') + '</div>'
-                + (nd.credential ? '<div style="font-size:0.85em;color:#6b7280;">' + nd.credential + '</div>' : '')
-                + (nd.specialty ? '<div style="font-size:0.85em;color:#0b7a75;">' + nd.specialty + '</div>' : '')
-                + (nd.address ? '<div style="font-size:0.85em;color:#374151;">' + nd.address + '</div>' : '')
-                + (nd.phone ? '<div style="font-size:0.85em;color:#6b7280;">Phone: ' + nd.phone + '</div>' : '')
-                + (nd.license ? '<div style="font-size:0.85em;color:#6b7280;">License: ' + nd.license + (nd.license_state ? ' (' + nd.license_state + ')' : '') + '</div>' : '')
-                + (nd.status ? '<div style="font-size:0.85em;color:#6b7280;">Status: ' + nd.status + '</div>' : '')
-                + (nd.enumeration_date ? '<div style="font-size:0.85em;color:#9ca3af;">Enumerated: ' + nd.enumeration_date + '</div>' : '')
-                + '<div style="font-size:0.85em;color:#9ca3af;">NPI: ' + (nd.npi || d.npi || '') + '</div>'
+            var addressesHtml = sectionLabel('Addresses')
+              + (addressRows || emptyRow('No addresses on file.'));
+
+            // Licenses
+            var licenses = d.licenses || [];
+            var licenseRows = licenses.map(function(l) {
+              return '<div style="padding:0.5em 1em;border-bottom:0.125em solid #f3f4f6;font-size:0.9em;color:#374151;">'
+                + esc(l.state || '') + (l.state && l.number ? ' · ' : '') + esc(l.number || '')
                 + '</div>';
-            } else {
-              ndHtml =
-                '<div style="padding:0.75em 1em;border-bottom:0.125em solid #e5e7eb;background:#fffbeb;color:#6b7280;font-size:0.9em;font-style:italic;">'
-                + "No 'external' detail found."
+            }).join('');
+            var licensesHtml = sectionLabel('Licenses')
+              + (licenseRows || emptyRow('No licenses on file.'));
+
+            // Insurance
+            var insurance = d.insurance || [];
+            var insuranceRows = insurance.map(function(ins) {
+              return '<div style="padding:0.5em 1em;border-bottom:0.125em solid #f3f4f6;">'
+                + '<div style="font-size:0.9em;color:#374151;">' + esc(ins.brand || '') + '</div>'
+                + '<div style="font-size:0.85em;color:#6b7280;">'
+                + esc(ins.insurance_type || '')
+                + (ins.state ? ' · ' + esc(ins.state) : '')
+                + (ins.raw_value ? ' · ' + esc(ins.raw_value) : '')
+                + '</div>'
                 + '</div>';
-            }
+            }).join('');
+            var insuranceHtml = sectionLabel('Insurance')
+              + (insuranceRows || emptyRow('No insurance identifiers on file.'));
+
+            // Research sites
+            var sites = d.research_sites || {};
+            var siteKeys = Object.keys(sites);
+            var siteRows = siteKeys.map(function(k) {
+              var s = sites[k] || {};
+              return '<div style="padding:0.75em 1em;border-bottom:0.125em solid #e5e7eb;">'
+                + '<div style="font-weight:600;color:#0b7a75;font-size:0.95em;">'
+                + '<a href="' + esc(s.url || '#') + '" target="_blank" rel="noopener noreferrer" style="color:#0b7a75;">'
+                + esc(s.name || k) + '</a></div>'
+                + '<div style="font-size:0.85em;color:#6b7280;margin-top:0.25em;">' + esc(s.guidance || '') + '</div>'
+                + '</div>';
+            }).join('');
+            var sitesHtml = sectionLabel('Research Sites')
+              + (siteRows || emptyRow('No research sites available.'));
+
             pdContent.innerHTML =
                 '<div style="padding:1em;border-bottom:0.25em solid #0b7a75;background:#f0fffe;">'
               + '<div style="font-size:1em;font-weight:700;color:#0b7a75;text-transform:uppercase;">Provider Detail</div>'
-              + '<div style="font-size:1em;color:#374151;margin-top:0.25em;font-weight:600;">' + (d.provider_name || '') + '</div>'
+              + '<div style="font-size:1em;color:#374151;margin-top:0.25em;font-weight:600;">' + esc(d.provider_name || fullName || '') + '</div>'
               + '</div>'
-              + ndHtml
-              + (siteRows ? '<div style="padding:0.5em 1em;font-size:0.85em;color:#6b7280;text-transform:uppercase;border-bottom:0.125em solid #e5e7eb;">Research Sites</div>' + siteRows : '');
+              + idHtml
+              + addressesHtml
+              + licensesHtml
+              + insuranceHtml
+              + sitesHtml;
           }
         }
 

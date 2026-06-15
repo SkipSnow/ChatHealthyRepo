@@ -15,7 +15,8 @@ Canonical *_tool.py exports: TOOL_NAME, Request, Response, run().
 """
 from __future__ import annotations
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from typing import Optional
 
@@ -25,10 +26,11 @@ from pydantic import BaseModel, Field
 from authentication.agent_deps import AgentDeps
 from authentication.chathealthy_tool import ChatHealthyTool
 
-_log = logging.getLogger("shared_services.specialty_filter")
+log = ChatHealthyLoggingService()
 
-_FINDCARE_INTERNAL_URL_ENV = "FINDCARE_INTERNAL_URL"
-_FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
+
+FINDCARE_INTERNAL_URL_ENV = "FINDCARE_INTERNAL_URL"
+FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
 
 
 class Request(BaseModel):
@@ -55,8 +57,8 @@ class Response(BaseModel):
     error: Optional[str] = None
 
 
-def _findcare_url() -> str:
-    return os.environ.get(_FINDCARE_INTERNAL_URL_ENV) or _FINDCARE_INTERNAL_URL_DEFAULT
+def findcare_url() -> str:
+    return os.environ.get(FINDCARE_INTERNAL_URL_ENV) or FINDCARE_INTERNAL_URL_DEFAULT
 
 
 class SpecialtyFilterTool(ChatHealthyTool):
@@ -76,15 +78,21 @@ class SpecialtyFilterTool(ChatHealthyTool):
                 "must pass the UM-extracted complaint phrase."
             )
 
-        url = _findcare_url() + "/classify"
+        url = findcare_url() + "/classify"
         try:
             async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
                 r = await client.post(url, json={"message": text})
                 r.raise_for_status()
                 raw = r.json()
         except Exception as exc:
-            _log.error("specialty_filter HTTP /classify failed: %s: %s",
-                       type(exc).__name__, exc)
+            log.error("specialty_filter HTTP /classify failed: %s: %s",
+                       type(exc).__name__, exc,
+                       exc=ChatHealthyException(
+                        mode="specialty_filter_classify_unavailable",
+                        message=f"specialty_filter HTTP /classify failed: {type(exc).__name__}: {exc}",
+                        component="SpecialtyFilterTool",
+                        exception=exc,
+                    ), if_not_debug_log=True)
             resp = self.Response(error=f"classify_unavailable: {type(exc).__name__}")
             deps.stream({"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
             return resp

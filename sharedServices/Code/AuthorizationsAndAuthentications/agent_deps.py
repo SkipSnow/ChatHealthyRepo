@@ -29,6 +29,7 @@ from authentication.user_object import (
     UserObject,
     Utterance,
 )
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 from chathealthy_frontend_lib.authentication.session_token import SessionToken
 
 
@@ -64,19 +65,18 @@ class AuthnDeps:
 # ────────────────────────────────────────────────────────────────────
 
 
-_PT = ZoneInfo("America/Los_Angeles")
+PT = ZoneInfo("America/Los_Angeles")
 
 
-def _now_pst() -> str:
+def now_pst() -> str:
     """ISO-8601 local Pacific time + literal ' PST' suffix."""
-    return datetime.now(_PT).isoformat() + " PST"
+    return datetime.now(PT).isoformat() + " PST"
 
 
-import logging as _logging
-_log = _logging.getLogger("shared_services.session_history")
+log = ChatHealthyLoggingService()
 
 
-def _next_session_event_n(user_object: UserObject) -> int:
+def next_session_event_n(user_object: UserObject) -> int:
     """ONE global session-wide event counter shared across both buckets.
     Computed as max(n) over the union of utterances and actions, plus
     one. Per-bucket counters (the prior design) collided on n=1, n=2
@@ -97,14 +97,14 @@ def _next_session_event_n(user_object: UserObject) -> int:
 
 def append_person_utterance(user_object: UserObject, text: str) -> None:
     bucket = user_object.session_conversation_history.utterances
-    n = _next_session_event_n(user_object)
+    n = next_session_event_n(user_object)
     bucket.append(Utterance(
         n=n,
-        at=_now_pst(),
+        at=now_pst(),
         actor="person",
         text=text,
     ))
-    _log.debug(
+    log.debug(
         "append_person_utterance n=%d text=%r total_utterances=%d",
         n, text[:80], len(bucket),
     )
@@ -112,14 +112,14 @@ def append_person_utterance(user_object: UserObject, text: str) -> None:
 
 def append_system_utterance(user_object: UserObject, text: str) -> None:
     bucket = user_object.session_conversation_history.utterances
-    n = _next_session_event_n(user_object)
+    n = next_session_event_n(user_object)
     bucket.append(Utterance(
         n=n,
-        at=_now_pst(),
+        at=now_pst(),
         actor="system",
         text=text,
     ))
-    _log.debug(
+    log.debug(
         "append_system_utterance n=%d text=%r total_utterances=%d",
         n, text[:80], len(bucket),
     )
@@ -138,10 +138,10 @@ def append_action(
     sequence (shared with utterances) so the narrative is reconstructible
     by sorting the union of both buckets by n."""
     bucket = user_object.session_conversation_history.actions
-    n = _next_session_event_n(user_object)
+    n = next_session_event_n(user_object)
     bucket.append(Action(
         n=n,
-        at=at if at is not None else _now_pst(),
+        at=at if at is not None else now_pst(),
         tool_name=tool_name,
         input_json=input_json or {},
         output_json=output_json or {},

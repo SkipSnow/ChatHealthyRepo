@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -35,11 +35,10 @@ from UtteranceManager.intent_document import (
     PendingDisambiguation,
 )
 
-_log = logging.getLogger("shared_services.utterance_manager")
+log = ChatHealthyLoggingService()
 
-
-_LLM_MODEL = "google-gla:gemini-2.5-flash"
-_MAX_USER_UTTERANCE_WINDOW = 10  # EPIC-002-F-010-S-001-REQ-B-006
+LLM_MODEL = "google-gla:gemini-2.5-flash"
+MAX_USER_UTTERANCE_WINDOW = 10  # EPIC-002-F-010-S-001-REQ-B-006
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -47,21 +46,21 @@ _MAX_USER_UTTERANCE_WINDOW = 10  # EPIC-002-F-010-S-001-REQ-B-006
 # ────────────────────────────────────────────────────────────────────
 
 
-class _GeoFacts(BaseModel):
+class GeoFacts(BaseModel):
     state: Optional[str] = None
     city: Optional[str] = None
     county: Optional[str] = None
     zip: Optional[str] = None
 
 
-class _PendingDisambiguationOut(BaseModel):
+class PendingDisambiguationOut(BaseModel):
     """LLM-emitted pending-disambiguation marker. Mirrors the canonical
     PendingDisambiguation shape on the IntentDocument."""
     kind: str
     candidate: dict[str, Any] = Field(default_factory=dict)
 
 
-class _ClassifierOutput(BaseModel):
+class ClassifierOutput(BaseModel):
     """Structured output of the UM classifier LLM. Field names match the
     canonical IntentDocument so downstream Python can copy them through
     with minimal translation."""
@@ -71,9 +70,9 @@ class _ClassifierOutput(BaseModel):
         "safetyLockout",
     ]
     complaint: Optional[str] = None
-    geography: Optional[_GeoFacts] = None
+    geography: Optional[GeoFacts] = None
     user_message: Optional[str] = None
-    pending_disambiguation: Optional[_PendingDisambiguationOut] = None
+    pending_disambiguation: Optional[PendingDisambiguationOut] = None
     # Audit-only label carried on the safetyLockout intent. LockoutTool
     # writes it onto {env}_Safety.emergency_incidents but renders the
     # user-facing prose from the trigger utterance, not from this label.
@@ -84,7 +83,7 @@ class _ClassifierOutput(BaseModel):
 # Embedded canonical schema (kept in sync with Website/schemas/…)
 # ────────────────────────────────────────────────────────────────────
 
-_CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""{
+CANONICAL_INTENT_DOCUMENT_SCHEMA = r"""{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyUtteranceManagerOutputSchema.json",
   "title": "ChatHealthy UtteranceManager Output",
@@ -408,7 +407,7 @@ CATALOG (this deploy's closed set): nonsense, specialtySearch, findAProvider, cl
 """
 
 
-_CLASSIFIER_SYSTEM_PROMPT = """\
+CLASSIFIER_SYSTEM_PROMPT = """\
 You are the utterance classifier for ChatHealthy.ai (the UtteranceManager,
 "UM" in the schema below). Your job: examine the user's recent utterance
 window AND the prior IntentDocument carried on user_object.intent, and
@@ -447,7 +446,7 @@ carries the WHY behind a rule. Read them and let them guide your output.
 Canonical IntentDocument schema (read every description, not just the
 normative type/enum bits):
 
-""" + _CANONICAL_INTENT_DOCUMENT_SCHEMA + """
+""" + CANONICAL_INTENT_DOCUMENT_SCHEMA + """
 
 Your structured output is a JSON object with these fields:
 
@@ -624,7 +623,7 @@ class Response(BaseModel):
 # ────────────────────────────────────────────────────────────────────
 
 
-def _recent_transcript(deps: AgentDeps, max_count: int = _MAX_USER_UTTERANCE_WINDOW) -> list[str]:
+def recent_transcript(deps: AgentDeps, max_count: int = MAX_USER_UTTERANCE_WINDOW) -> list[str]:
     """Return the most recent up-to-max_count dialogue lines (person AND
     system), oldest first, each rendered as 'user: <text>' or
     'system: <text>'. The narrative form lets the LLM resolve follow-up
@@ -648,14 +647,14 @@ def _recent_transcript(deps: AgentDeps, max_count: int = _MAX_USER_UTTERANCE_WIN
 # ────────────────────────────────────────────────────────────────────
 
 
-_classifier_agent = Agent(
-    _LLM_MODEL,
-    output_type=_ClassifierOutput,
-    system_prompt=_CLASSIFIER_SYSTEM_PROMPT,
+classifier_agent = Agent(
+    LLM_MODEL,
+    output_type=ClassifierOutput,
+    system_prompt=CLASSIFIER_SYSTEM_PROMPT,
 )
 
 
-def _summarize_prior(prior: Optional[IntentDocument]) -> str:
+def summarize_prior(prior: Optional[IntentDocument]) -> str:
     if prior is None:
         return "(no prior turns)"
     parts = [
@@ -674,7 +673,7 @@ def _summarize_prior(prior: Optional[IntentDocument]) -> str:
     return " ".join(parts)
 
 
-_MANUFACTURE_SYSTEM_PROMPT = """You are the ChatHealthy Utterance Manager
+MANUFACTURE_SYSTEM_PROMPT = """You are the ChatHealthy Utterance Manager
 running in MANUFACTURE mode (EPIC-002-F-010-S-003).
 
 The user did NOT type a free-text utterance this turn. The user clicked
@@ -735,7 +734,7 @@ Output: a single user_message string. Length: a sentence or two,
 never a wall of text."""
 
 
-class _ManufactureOutput(BaseModel):
+class ManufactureOutput(BaseModel):
     """Structured output of the UM manufacture-path LLM. Narrower than
     the classifier output — no target_action choice (always
     closeConnection200), no intent classification, no geography
@@ -743,18 +742,18 @@ class _ManufactureOutput(BaseModel):
     user_message: str = Field(min_length=1, max_length=4096)
 
 
-_manufacture_agent = Agent(
-    _LLM_MODEL,
-    output_type=_ManufactureOutput,
-    system_prompt=_MANUFACTURE_SYSTEM_PROMPT,
+manufacture_agent = Agent(
+    LLM_MODEL,
+    output_type=ManufactureOutput,
+    system_prompt=MANUFACTURE_SYSTEM_PROMPT,
 )
 
 
-async def _call_manufacture_llm(
+async def call_manufacture_llm(
     transcript: list[str],
     reason: dict[str, Any],
     prior: Optional[IntentDocument],
-) -> _ManufactureOutput:
+) -> ManufactureOutput:
     """Manufacture-path LLM call. Receives the recent dialogue + the
     structured reason facts UR populated. Authors a context-sensitive
     user_message."""
@@ -763,7 +762,7 @@ async def _call_manufacture_llm(
         if transcript else "  (no prior dialogue yet)"
     )
     reason_block = json.dumps(reason, ensure_ascii=False, indent=2)
-    prior_summary = _summarize_prior(prior)
+    prior_summary = summarize_prior(prior)
     user_msg = (
         f"Recent dialogue (last {len(transcript)} lines, oldest first):\n"
         f"{window_block}\n\n"
@@ -773,29 +772,29 @@ async def _call_manufacture_llm(
         "Author the brief user-facing user_message per the system "
         "prompt rules. Return the structured output."
     )
-    _log.debug("UM manufacture input: %s", user_msg)
+    log.debug("UM manufacture input: %s", user_msg)
     result = await run_llm(
-        _manufacture_agent,
+        manufacture_agent,
         user_msg,
         call_site="UM._manufacture_agent",
         provider="gemini",
         server="shared_services",
         component="UM",
     )
-    _log.debug("UM manufacture output: %s", result.output.model_dump_json())
+    log.debug("UM manufacture output: %s", result.output.model_dump_json())
     return result.output
 
 
-async def _call_classifier_llm(
+async def call_classifier_llm(
     transcript: list[str], prior: Optional[IntentDocument],
-) -> _ClassifierOutput:
+) -> ClassifierOutput:
     """Single LLM call. Receives the recent transcript as already-labeled
     lines (each prefixed with 'user: ' or 'system: ') plus the prior
     IntentDocument summary. Classifies the latest 'user: ...' line."""
     if not transcript:
         raise ValueError("UtteranceManager: empty transcript window")
     window_block = "\n".join(f"  {i+1}. {line}" for i, line in enumerate(transcript))
-    prior_summary = _summarize_prior(prior)
+    prior_summary = summarize_prior(prior)
     user_msg = (
         f"Recent dialogue (last {len(transcript)} lines, oldest first):\n"
         f"{window_block}\n\n"
@@ -806,16 +805,16 @@ async def _call_classifier_llm(
         "applies and overrides every other rule. Return the structured "
         "output."
     )
-    _log.debug("UM classifier input: %s", user_msg)
+    log.debug("UM classifier input: %s", user_msg)
     result = await run_llm(
-        _classifier_agent,
+        classifier_agent,
         user_msg,
         call_site="UM._classifier_agent",
         provider="gemini",
         server="shared_services",
         component="UM",
     )
-    _log.debug("UM classifier output: %s", result.output.model_dump_json())
+    log.debug("UM classifier output: %s", result.output.model_dump_json())
     return result.output
 
 
@@ -824,11 +823,11 @@ async def _call_classifier_llm(
 # ────────────────────────────────────────────────────────────────────
 
 
-def _existing_intent(document: IntentDocument, name: str) -> Optional[Any]:
+def existing_intent(document: IntentDocument, name: str) -> Optional[Any]:
     return next((i for i in document.intents if i.name == name), None)
 
 
-def _cached_nucc_codes(entry: Any) -> Optional[str]:
+def cached_nucc_codes(entry: Any) -> Optional[str]:
     """Return the JSON-encoded nucc_codes argument value from an intent
     entry if present, else None."""
     if entry is None:
@@ -839,7 +838,7 @@ def _cached_nucc_codes(entry: Any) -> Optional[str]:
     return None
 
 
-def _build_nonsense_intent(utterance_text: str) -> IntentNonsense:
+def build_nonsense_intent(utterance_text: str) -> IntentNonsense:
     return IntentNonsense(
         name="nonsense",
         arguments=[
@@ -849,7 +848,7 @@ def _build_nonsense_intent(utterance_text: str) -> IntentNonsense:
     )
 
 
-def _build_specialty_search_intent(
+def build_specialty_search_intent(
     complaint: str,
     nucc_codes_json: Optional[str] = None,
 ) -> IntentSpecialtySearch:
@@ -861,7 +860,7 @@ def _build_specialty_search_intent(
     return IntentSpecialtySearch(name="specialtySearch", arguments=args)
 
 
-def _build_find_a_provider_intent(
+def build_find_a_provider_intent(
     complaint: str,
     geography: dict[str, Any],
     nucc_codes_json: Optional[str] = None,
@@ -887,7 +886,7 @@ def _build_find_a_provider_intent(
     )
 
 
-def _build_close_connection_200_intent() -> IntentCloseConnection200:
+def build_close_connection_200_intent() -> IntentCloseConnection200:
     return IntentCloseConnection200(
         name="closeConnection200",
         arguments=[
@@ -896,7 +895,7 @@ def _build_close_connection_200_intent() -> IntentCloseConnection200:
     )
 
 
-def _build_safety_lockout_intent(lockout_reason: str) -> "IntentSafetyLockout":
+def build_safety_lockout_intent(lockout_reason: str) -> "IntentSafetyLockout":
     """UM emits target_action=safetyLockout when the classifier judges the
     latest utterance signals immediate medical attention. The intent
     carries a single lockout_reason audit-label argument (max 256 chars);
@@ -918,7 +917,7 @@ def _build_safety_lockout_intent(lockout_reason: str) -> "IntentSafetyLockout":
     )
 
 
-def _geography_sufficient(geo: Optional[dict[str, Any]]) -> bool:
+def geography_sufficient(geo: Optional[dict[str, Any]]) -> bool:
     if not geo:
         return False
     state = (geo.get("state") or "").strip()
@@ -926,7 +925,7 @@ def _geography_sufficient(geo: Optional[dict[str, Any]]) -> bool:
     return bool(zip_code or state)
 
 
-def _merge_intents(
+def merge_intents(
     document: IntentDocument,
     new_intents: list[Any],
     target_action: str,
@@ -949,7 +948,7 @@ def _merge_intents(
 # ────────────────────────────────────────────────────────────────────
 
 
-def _to_pending(out: Optional[_PendingDisambiguationOut]) -> Optional[PendingDisambiguation]:
+def to_pending(out: Optional[PendingDisambiguationOut]) -> Optional[PendingDisambiguation]:
     if out is None:
         return None
     return PendingDisambiguation(kind=out.kind, candidate=out.candidate)
@@ -975,10 +974,10 @@ class UtteranceManagerTool(ChatHealthyTool):
         authors a context-sensitive user_message via the manufacture
         LLM and morphs the IntentDocument to target_action=
         closeConnection200."""
-        transcript = _recent_transcript(deps)  # may be empty
+        transcript = recent_transcript(deps)  # may be empty
         prior = deps.user_object.intent
 
-        llm_result = await _call_manufacture_llm(
+        llm_result = await call_manufacture_llm(
             transcript, request.manufacture_utterance_reason, prior,
         )
         user_message = (llm_result.user_message or "").strip()
@@ -994,11 +993,11 @@ class UtteranceManagerTool(ChatHealthyTool):
         # is target_action=closeConnection200 + the close intent entry.
         base_doc = prior or IntentDocument(
             target_action="closeConnection200",
-            intents=[_build_close_connection_200_intent()],
+            intents=[build_close_connection_200_intent()],
         )
-        new_doc = _merge_intents(
+        new_doc = merge_intents(
             base_doc,
-            [_build_close_connection_200_intent()],
+            [build_close_connection_200_intent()],
             target_action="closeConnection200",
             user_message=user_message,
         )
@@ -1014,7 +1013,7 @@ class UtteranceManagerTool(ChatHealthyTool):
         return self.Response(target_action=new_doc.target_action)
 
     async def _run_interpret(self, deps: AgentDeps, request: "Request") -> "Response":
-        transcript = _recent_transcript(deps)
+        transcript = recent_transcript(deps)
         if not transcript:
             raise ValueError("UtteranceManager: no utterances on user_object")
         # latest_text must be the LATEST PERSON utterance (raw text, no
@@ -1031,21 +1030,21 @@ class UtteranceManagerTool(ChatHealthyTool):
             raise ValueError("UtteranceManager: no person utterance on user_object")
         prior = deps.user_object.intent
 
-        llm_result = await _call_classifier_llm(transcript, prior)
+        llm_result = await call_classifier_llm(transcript, prior)
         target_action = llm_result.target_action
         complaint = (llm_result.complaint or "").strip()
         geography = llm_result.geography.model_dump() if llm_result.geography else {}
         user_message = (llm_result.user_message or "").strip() or None
-        pending = _to_pending(llm_result.pending_disambiguation)
+        pending = to_pending(llm_result.pending_disambiguation)
 
         base_doc = prior or IntentDocument(
             target_action="closeConnection200",
-            intents=[_build_close_connection_200_intent()],
+            intents=[build_close_connection_200_intent()],
         )
 
         # Cache lookups so we can carry SpecialtyFilter output across turns.
-        cached_specialty = _cached_nucc_codes(_existing_intent(base_doc, "specialtySearch"))
-        cached_findap = _cached_nucc_codes(_existing_intent(base_doc, "findAProvider"))
+        cached_specialty = cached_nucc_codes(existing_intent(base_doc, "specialtySearch"))
+        cached_findap = cached_nucc_codes(existing_intent(base_doc, "findAProvider"))
         cached_nucc = cached_specialty or cached_findap
 
         if target_action == "safetyLockout":
@@ -1053,17 +1052,17 @@ class UtteranceManagerTool(ChatHealthyTool):
             # stays empty (LockoutTool authors the verbatim "when you
             # said '...'" + 911 + operator phone text). Only the
             # lockout_reason audit-label arg lands on the intent entry.
-            new_doc = _merge_intents(
+            new_doc = merge_intents(
                 base_doc,
-                [_build_safety_lockout_intent(llm_result.lockout_reason or "")],
+                [build_safety_lockout_intent(llm_result.lockout_reason or "")],
                 target_action,
                 user_message=None,
             )
 
         elif target_action == "nonsense":
-            new_doc = _merge_intents(
+            new_doc = merge_intents(
                 base_doc,
-                [_build_nonsense_intent(latest_text)],
+                [build_nonsense_intent(latest_text)],
                 target_action,
                 user_message,
             )
@@ -1075,19 +1074,19 @@ class UtteranceManagerTool(ChatHealthyTool):
                     "but produced no complaint"
                 )
             built: list[Any] = [
-                _build_specialty_search_intent(complaint, cached_nucc),
+                build_specialty_search_intent(complaint, cached_nucc),
             ]
             # Ambiguous-but-resolvable: also park a findAProvider entry
             # with the partial geography and the pending disambiguation
             # marker, so a follow-up "yes" can upgrade it cleanly.
             if pending is not None:
-                built.append(_build_find_a_provider_intent(
+                built.append(build_find_a_provider_intent(
                     complaint,
                     geography,  # partial allowed
                     nucc_codes_json=cached_nucc,
                     pending=pending,
                 ))
-            new_doc = _merge_intents(base_doc, built, target_action, user_message)
+            new_doc = merge_intents(base_doc, built, target_action, user_message)
 
         elif target_action == "findAProvider":
             if not complaint:
@@ -1095,19 +1094,19 @@ class UtteranceManagerTool(ChatHealthyTool):
                     "UtteranceManager classifier set target_action=findAProvider "
                     "but produced no complaint"
                 )
-            if not _geography_sufficient(geography):
+            if not geography_sufficient(geography):
                 raise ValueError(
                     "UtteranceManager classifier set target_action=findAProvider "
                     "but geography is insufficient (need zip, state, state+city, "
                     "or state+county)"
                 )
             built = [
-                _build_specialty_search_intent(complaint, cached_nucc),
-                _build_find_a_provider_intent(
+                build_specialty_search_intent(complaint, cached_nucc),
+                build_find_a_provider_intent(
                     complaint, geography, nucc_codes_json=cached_nucc, pending=None,
                 ),
             ]
-            new_doc = _merge_intents(base_doc, built, target_action, user_message)
+            new_doc = merge_intents(base_doc, built, target_action, user_message)
 
         elif target_action == "closeConnection200":
             if not user_message:
@@ -1115,9 +1114,9 @@ class UtteranceManagerTool(ChatHealthyTool):
                     "UtteranceManager classifier set target_action=closeConnection200 "
                     "but produced no user_message"
                 )
-            new_doc = _merge_intents(
+            new_doc = merge_intents(
                 base_doc,
-                [_build_close_connection_200_intent()],
+                [build_close_connection_200_intent()],
                 target_action,
                 user_message,
             )

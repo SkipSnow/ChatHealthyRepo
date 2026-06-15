@@ -8,12 +8,13 @@
 #
 # Design: ARCH-001, business component: EvaluateCareQuality
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 
 import requests
 
-_log = logging.getLogger("findcare.clinical_trials")
+log = ChatHealthyLoggingService()
 
 
 class ClinicalTrialsService:
@@ -64,7 +65,12 @@ class ClinicalTrialsService:
                     "duration": f"{hrs}h {mins}m" if hrs else f"{mins}m",
                 }
             except Exception as exc:
-                _log.debug("Routes API failed for %s: %s", dest, exc)
+                log.debug("Routes API failed for %s: %s", dest, exc, exc=ChatHealthyException(
+                                                                      mode="routes_api_failed",
+                                                                      message=f"Routes API failed for {dest}: {exc}",
+                                                                      component="ClinicalTrialsService",
+                                                                      exception=exc,
+                                                                  ), if_not_debug_log=True)
         return results
 
     def search(self, condition: str, location: str = "", user_location: str = "",
@@ -83,6 +89,12 @@ class ClinicalTrialsService:
             response.raise_for_status()
             studies = response.json().get("studies", [])
         except Exception as exc:
+            log.error("ClinicalTrials.gov search failed: %s", exc, exc=ChatHealthyException(
+                                                                    mode="clinical_trials_search_failed",
+                                                                    message=f"ClinicalTrials.gov search failed: {exc}",
+                                                                    component="ClinicalTrialsService",
+                                                                    exception=exc,
+                                                                ), if_not_debug_log=True)
             return {"error": f"ClinicalTrials.gov search failed: {exc}"}
 
         if not studies:

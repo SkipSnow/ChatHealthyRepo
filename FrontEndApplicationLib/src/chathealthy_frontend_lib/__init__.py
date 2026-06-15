@@ -13,9 +13,11 @@ from .authentication import (
 )
 from .exceptions import ChatHealthyException
 from .llm import run_llm, run_llm_sync
+from .logging_service import ChatHealthyLoggingService
 
 __all__ = [
     "ChatHealthyException",
+    "ChatHealthyLoggingService",
     "SessionToken",
     "SessionTokenVerification",
     "TokenInfraError",

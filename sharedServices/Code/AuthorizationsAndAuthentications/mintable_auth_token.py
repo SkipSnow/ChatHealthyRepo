@@ -2,7 +2,7 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 import base64
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 import os
 import uuid
 from datetime import datetime, timezone
@@ -18,11 +18,11 @@ from chathealthy_frontend_lib.authentication.session_token import (
     _cert_basename,
 )
 
+log = ChatHealthyLoggingService()
 
-_log = logging.getLogger("shared_services.mintable_auth_token")
 
-_TOKEN_PREFIX = "CH"
-_ORIGIN = "SharedServices"
+TOKEN_PREFIX = "CH"
+ORIGIN = "SharedServices"
 
 
 class MintableAuthToken(AuthToken):
@@ -32,19 +32,19 @@ class MintableAuthToken(AuthToken):
         nonce_field = Nonce.fresh()
         original_stamp = Nonce.original_stamp(nonce_field)
 
-        sig_b64 = cls._sign(origin=_ORIGIN, original_stamp=original_stamp, guid=guid)
+        sig_b64 = cls._sign(origin=ORIGIN, original_stamp=original_stamp, guid=guid)
         token_str = f"{_TOKEN_PREFIX}{nonce_field}{guid}"
 
         st = SessionToken(
-            origin=_ORIGIN,
+            origin=ORIGIN,
             token=token_str,
             signature=sig_b64,
             created_at=datetime.now(timezone.utc).isoformat(),
             signed=True,
             server_env=server_env,
         )
-        _log.info("Manufactured AuthToken: env=%s guid_prefix=%s", server_env, guid[:8])
-        return cls(st, origin=_ORIGIN)
+        log.info("Manufactured AuthToken: env=%s guid_prefix=%s", server_env, guid[:8])
+        return cls(st, origin=ORIGIN)
 
     @staticmethod
     def _sign(origin: str, original_stamp: str, guid: str) -> str:

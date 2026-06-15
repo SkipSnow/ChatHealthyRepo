@@ -10,9 +10,10 @@
 # Cardiology first. Same list, different order.
 
 import json
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 import os
 
 from openai import OpenAI
 
-_log = logging.getLogger("findcare.specialty_ranker")
+log = ChatHealthyLoggingService()
+

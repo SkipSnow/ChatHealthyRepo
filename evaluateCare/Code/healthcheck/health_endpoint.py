@@ -2,24 +2,31 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 import json
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from pathlib import Path
 
 
-_BUILD_INFO_PATH = "/app/build_info.json"
+BUILD_INFO_PATH = "/app/build_info.json"
 
 
-def _read_build_info() -> dict | None:
+def read_build_info() -> dict | None:
     """Return the build_info.json baked into the image at build time, or
     None if the file is absent (older image; caller falls back to the
     admin.Versions read for back-compat)."""
-    p = Path(_BUILD_INFO_PATH)
+    p = Path(BUILD_INFO_PATH)
     if not p.is_file():
         return None
     try:
         return json.loads(p.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as _exc:
+        _log.warning("build_info read failed (ignored, caller falls back): %s", _exc, exc=ChatHealthyException(
+                                                                                       mode="build_info_read_failed",
+                                                                                       message=f"build_info read failed (ignored, caller falls back): {_exc}",
+                                                                                       component="EvaluateCareHealth",
+                                                                                       exception=_exc,
+                                                                                   ), if_not_debug_log=True)
         return None
 
 
@@ -35,12 +42,12 @@ class HealthEndpoint:
     """
 
     def __init__(self):
-        self.log = logging.getLogger("evaluate_care.health")
+        self.log = ChatHealthyLoggingService()
         self.env_prefix = os.getenv("ENV_PREFIX", "dev")
         self.uri = os.environ.get("MONGO_FRONTEND_connectionString")
 
     def __call__(self):
-        baked = _read_build_info()
+        baked = read_build_info()
 
         # Db status — independent of where build info comes from.
         db_status = "unconfigured"
@@ -52,7 +59,12 @@ class HealthEndpoint:
                 mongo_doc = client["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
                 db_status = "connected"
             except Exception as e:
-                self.log.warning("/health Mongo read failed: %s", e)
+                self.log.warning("/health Mongo read failed: %s", e, exc=ChatHealthyException(
+                                                                      mode="health_mongo_read_failed",
+                                                                      message=f"/health Mongo read failed: {e}",
+                                                                      component="EvaluateCareHealth",
+                                                                      exception=e,
+                                                                  ), if_not_debug_log=True)
                 db_status = "unreachable"
 
         if baked is not None:

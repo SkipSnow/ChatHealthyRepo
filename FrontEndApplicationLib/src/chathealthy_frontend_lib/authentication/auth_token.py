@@ -1,7 +1,8 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-import logging
+from ..exceptions import ChatHealthyException
+from ..logging_service import ChatHealthyLoggingService
 from typing import Any, Optional
 
 from fastapi import HTTPException
@@ -14,9 +15,7 @@ from .session_token import (
 )
 
 
-_log = logging.getLogger("chathealthy_frontend_lib.auth_token")
-
-
+log = ChatHealthyLoggingService()
 class AuthToken:
     def __init__(self, session_token: SessionToken, origin: str):
         if not isinstance(session_token, SessionToken):
@@ -76,7 +75,7 @@ class AuthToken:
         at.update_nonce()
         wire = at.to_wire()
         wire.server_env = server_env
-        _log.info("%s /session restamp: guid_prefix=%s", origin, at.guid[:8])
+        log.info("%s /session restamp: guid_prefix=%s", origin, at.guid[:8])
         return wire
 
     @classmethod
@@ -88,9 +87,14 @@ class AuthToken:
         try:
             valid = at.verify()
         except ValueError as e:
-            _log.warning("%s verify-token 400: %s", origin, e)
+            log.warning("%s verify-token 400: %s", origin, e, exc=ChatHealthyException(
+                                                               mode="verify_token_value_error",
+                                                               message=f"{origin} verify-token 400: {e}",
+                                                               component="AuthToken",
+                                                               exception=e,
+                                                           ), if_not_debug_log=True)
             raise HTTPException(status_code=400, detail=str(e)) from e
-        _log.info("%s verify-token: prev_origin=%s valid=%s",
+        log.info("%s verify-token: prev_origin=%s valid=%s",
                   origin, at._st.origin, valid)
         return VerifyTokenResponse(
             status="verified" if valid else "failed",

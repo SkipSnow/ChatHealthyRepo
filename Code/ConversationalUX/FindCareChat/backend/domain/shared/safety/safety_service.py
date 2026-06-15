@@ -9,11 +9,13 @@
 # Design: ARCH-001, shared infrastructure
 
 import json
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from datetime import datetime, timedelta, timezone
 
-_log = logging.getLogger("findcare.safety")
+log = ChatHealthyLoggingService()
+
 
 EMERGENCY_RESPONSE = (
     "I'm concerned about your safety. If this is a medical emergency, "
@@ -25,7 +27,7 @@ EMERGENCY_RESPONSE = (
 )
 
 # Safe prefixes — skip AI classifier for obvious non-emergency patterns
-_SAFE_PREFIXES = [
+SAFE_PREFIXES = [
     "can you tell me more about", "tell me about", "more info on",
     "what can you tell me about", "who is", "find me", "search for",
     "look up", "what is", "how do i", "where can i",
@@ -57,7 +59,7 @@ class SafetyService:
         msg_lower = message.lower()
 
         # Fast path: skip for obvious non-emergency
-        if any(msg_lower.startswith(p) for p in _SAFE_PREFIXES):
+        if any(msg_lower.startswith(p) for p in SAFE_PREFIXES):
             return False
 
         # Primary: AI classifier
@@ -88,7 +90,12 @@ class SafetyService:
             confidence = float(result.get("confidence", 0))
             return bool(result.get("emergency", False)) and confidence >= 0.80
         except Exception as exc:
-            _log.error("Safety AI failed (%s) — falling back to keyword detection", exc)
+            log.error("Safety AI failed (%s) — falling back to keyword detection", exc, exc=ChatHealthyException(
+                                                                                         mode="safety_ai_failed",
+                                                                                         message=f"Safety AI failed: {exc}",
+                                                                                         component="SafetyService",
+                                                                                         exception=exc,
+                                                                                     ), if_not_debug_log=True)
             # Fallback: keyword match ONLY when AI is unavailable
             return any(kw in msg_lower for kw in self._keywords)
 
@@ -108,14 +115,20 @@ class SafetyService:
             now_iso = datetime.now(timezone.utc).isoformat()
             record = col.find_one({"ip": ip, "expires_at": {"$gt": now_iso}, "unlocked": {"$ne": True}})
             return record is not None
-        except Exception:
+        except Exception as _exc:
+            log.warning("is_ip_locked find_one failed (treating as not-locked): %s", _exc, exc=ChatHealthyException(
+                                                                                            mode="is_ip_locked_query_failed",
+                                                                                            message=f"is_ip_locked find_one failed (treating as not-locked): {_exc}",
+                                                                                            component="SafetyService",
+                                                                                            exception=_exc,
+                                                                                        ), if_not_debug_log=True)
             return False
 
     def lock_ip(self, ip: str, trigger_message: str = "", history: list = None) -> bool:
         """Lock an IP after emergency detection. Audit trail preserved."""
         col = self._safety_collection()
         if col is None:
-            _log.warning("SAFETY: DB unavailable — incident for %s NOT persisted.", ip)
+            log.warning("SAFETY: DB unavailable — incident for %s NOT persisted.", ip)
             return False
         try:
             now = datetime.now(timezone.utc)
@@ -131,10 +144,15 @@ class SafetyService:
                 }},
                 upsert=True,
             )
-            _log.warning("IP LOCKED: %s (trigger: %s)", ip, trigger_message[:100])
+            log.warning("IP LOCKED: %s (trigger: %s)", ip, trigger_message[:100])
             return True
         except Exception as exc:
-            _log.error("Failed to lock IP %s: %s", ip, exc)
+            log.error("Failed to lock IP %s: %s", ip, exc, exc=ChatHealthyException(
+                                                            mode="lock_ip_failed",
+                                                            message=f"Failed to lock IP {ip}: {exc}",
+                                                            component="SafetyService",
+                                                            exception=exc,
+                                                        ), if_not_debug_log=True)
             return False
 
     def try_admin_unlock(self, message: str, ip: str) -> bool:
@@ -150,8 +168,13 @@ class SafetyService:
                 {"$set": {"unlocked": True, "unlocked_at": datetime.now(timezone.utc).isoformat(), "unlocked_by": "admin"}},
             )
             if result.modified_count > 0:
-                _log.info("IP UNLOCKED by admin: %s", ip)
+                log.info("IP UNLOCKED by admin: %s", ip)
                 return True
         except Exception as exc:
-            _log.error("Admin unlock failed for %s: %s", ip, exc)
+            log.error("Admin unlock failed for %s: %s", ip, exc, exc=ChatHealthyException(
+                                                                  mode="admin_unlock_failed",
+                                                                  message=f"Admin unlock failed for {ip}: {exc}",
+                                                                  component="SafetyService",
+                                                                  exception=exc,
+                                                              ), if_not_debug_log=True)
         return False

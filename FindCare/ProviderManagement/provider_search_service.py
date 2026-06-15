@@ -10,16 +10,17 @@
 # UAT Features: 1 (Provider Search), 2 (Specialty Identification)
 # Design: ARCH-001, business component: FindCare
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from typing import Optional
 
 from chathealthy_frontend_lib.runtime_data_collections import providers_coll, specialty_meta_coll
 
-_log = logging.getLogger("findcare.provider_search")
+log = ChatHealthyLoggingService()
 
 
-def _primary_practice_address(p: dict) -> dict:
+def primary_practice_address(p: dict) -> dict:
     """Return the first entry in addresses[] whose address_type=='practice'."""
     for a in p.get("addresses") or []:
         if isinstance(a, dict) and a.get("address_type") == "practice":
@@ -27,15 +28,15 @@ def _primary_practice_address(p: dict) -> dict:
     return {}
 
 
-def _primary_county(p: dict) -> dict:
+def primary_county(p: dict) -> dict:
     """Return the county sub-doc on the primary practice address."""
-    return _primary_practice_address(p).get("county") or {}
+    return primary_practice_address(p).get("county") or {}
 
 
 DEFAULT_LIMIT = 25  # F-10: raised from 10
 
 # HACK ASN-4AFBDA: static FIPS-to-county seed
-_fips_to_county = {
+fips_to_county = {
     "10001": "Kent", "10003": "New Castle", "10005": "Sussex",
     "28001": "Adams", "28003": "Alcorn", "28005": "Amite", "28007": "Attala",
     "28009": "Benton", "28011": "Bolivar", "28013": "Calhoun",
@@ -64,7 +65,7 @@ class FindCareService:
         self._env = env_prefix
         self._get_embedding = get_embedding_fn
         self._specialty = specialty_service
-        self._fips_to_county = dict(_fips_to_county)
+        self.fips_to_county = dict(fips_to_county)
         self._taxonomy_name_cache = {}  # code -> Display Name
         self._load_fips_county_map()
 
@@ -84,10 +85,15 @@ class FindCareService:
                             "name": {"$first": "$addresses.county.name"}}},
             ]))
             db_map = {p["_id"]: p["name"] for p in agg if p.get("_id")}
-            self._fips_to_county.update(db_map)
-            _log.info("HACK ASN-4AFBDA: loaded %d FIPS mappings (%d from DB)", len(self._fips_to_county), len(db_map))
+            self.fips_to_county.update(db_map)
+            log.info("HACK ASN-4AFBDA: loaded %d FIPS mappings (%d from DB)", len(self.fips_to_county), len(db_map))
         except Exception as exc:
-            _log.warning("HACK ASN-4AFBDA: failed to load FIPS map: %s", exc)
+            log.warning("HACK ASN-4AFBDA: failed to load FIPS map: %s", exc, exc=ChatHealthyException(
+                                                                              mode="fips_map_load_failed",
+                                                                              message=f"HACK ASN-4AFBDA: failed to load FIPS map: {exc}",
+                                                                              component="FindCareService",
+                                                                              exception=exc,
+                                                                          ), if_not_debug_log=True)
 
     def _practice_address_filter(self, state: str = "", city: str = "",
                                   county: str = "", zip: str = "") -> dict:
@@ -137,11 +143,11 @@ class FindCareService:
                 name += f", {p['provider_credential_text']}"
         else:
             name = p.get("provider_organization_name_legal_business_name") or "Unknown Organization"
-        addr = _primary_practice_address(p)
+        addr = primary_practice_address(p)
         address = ", ".join(x for x in [addr.get("line1"), addr.get("city"), addr.get("state"), addr.get("zip")] if x)
         primary = next((t for t in p.get("taxonomies", []) if t.get("primary")), None)
-        county_obj = _primary_county(p)
-        county_name = county_obj.get("name") or self._fips_to_county.get(county_obj.get("fips", ""), "")
+        county_obj = primary_county(p)
+        county_name = county_obj.get("name") or self.fips_to_county.get(county_obj.get("fips", ""), "")
         raw_phone = addr.get("phone", "")
         phone = f"({raw_phone[:3]}) {raw_phone[3:6]}-{raw_phone[6:]}" if len(raw_phone) == 10 else raw_phone
         return {
@@ -251,7 +257,12 @@ class FindCareService:
             raw = list(providers_coll().aggregate(pipeline))
             return [self._format_provider(p) for p in raw]
         except Exception as e:
-            _log.warning("Vector search failed: %s", e)
+            log.warning("Vector search failed: %s", e, exc=ChatHealthyException(
+                                                        mode="vector_search_failed",
+                                                        message=f"Vector search failed: {e}",
+                                                        component="FindCareService",
+                                                        exception=e,
+                                                    ), if_not_debug_log=True)
             return []
 
     @staticmethod
@@ -401,7 +412,7 @@ class FindCareService:
             base_filter.update(self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip))
 
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
-            _log.info("search: specialty_codes returned %d for %d codes in %s",
+            log.info("search: specialty_codes returned %d for %d codes in %s",
                        len(providers), len(specialty_codes), state_upper or "all")
 
             # Look up selected specialty names for the summary
@@ -416,8 +427,13 @@ class FindCareService:
                         "can_prescribe": doc.get("can_prescribe", False),
                         "homeopathic": doc.get("homeopathic", False),
                     })
-            except Exception:
-                pass
+            except Exception as _exc:
+                log.warning("specialty_meta options load failed (ignored): %s", _exc, exc=ChatHealthyException(
+                                                                                       mode="specialty_meta_options_load_failed",
+                                                                                       message=f"specialty_meta options load failed (ignored): {_exc}",
+                                                                                       component="FindCareService",
+                                                                                       exception=_exc,
+                                                                                   ), if_not_debug_log=True)
 
             # EPIC-006-F-002-S-002-REQ-T-012: the AI pipeline (incl. the
             # homeopathic resolver) runs once during /classify; results
@@ -477,14 +493,19 @@ class FindCareService:
                 )
                 specialization_options.extend(homeo_options)
             except Exception as _he:
-                _log.warning("Homeopathic resolver failed: %s", _he)
+                log.warning("Homeopathic resolver failed: %s", _he, exc=ChatHealthyException(
+                                                                     mode="homeopathic_resolver_failed",
+                                                                     message=f"Homeopathic resolver failed: {_he}",
+                                                                     component="FindCareService",
+                                                                     exception=_he,
+                                                                 ), if_not_debug_log=True)
 
             # Step 3: Database answers — deterministic taxonomy query
             base_filter = {"taxonomies.code": {"$in": codes}}
             base_filter.update(self._practice_address_filter(state=state_upper, city=city, county=county, zip=zip))
 
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
-            _log.info("search: specialty '%s' → %d codes → %d/%d providers in %s",
+            log.info("search: specialty '%s' → %d codes → %d/%d providers in %s",
                        specialty_query, len(codes), len(providers), total_count, state_upper or "all")
 
             # Log resolved codes to admin DB for debugging (non-prod only)
@@ -500,8 +521,13 @@ class FindCareService:
                             "state": state_upper,
                             "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
                         })
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    log.warning("specialty_code_log write failed (ignored): %s", _exc, exc=ChatHealthyException(
+                                                                                        mode="specialty_code_log_write_failed",
+                                                                                        message=f"specialty_code_log write failed (ignored): {_exc}",
+                                                                                        component="FindCareService",
+                                                                                        exception=_exc,
+                                                                                    ), if_not_debug_log=True)
 
             # search_params includes resolved codes — /search replays with codes, no AI
             replay_params = {"state": state_upper, "nucc_codes": codes}
@@ -521,7 +547,7 @@ class FindCareService:
             }
             base_filter.update(self._practice_address_filter(state=state_upper, county=county, zip=zip))
             providers, total_count = self._facet_query(collection, base_filter, after_npi, safe_limit)
-            _log.info("search: county fallback returned %d for '%s' in %s", len(providers), county, state_upper)
+            log.info("search: county fallback returned %d for '%s' in %s", len(providers), county, state_upper)
             return self._paginated_result(providers, "county_physicians", safe_limit,
                                           search_params=_search_params, total_count=total_count,
                                           state=state_upper, county_searched=county)

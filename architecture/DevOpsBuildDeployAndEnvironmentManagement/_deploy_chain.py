@@ -64,10 +64,10 @@ from secrets_resolver import SecretsResolver
 from target_record import DeploymentCollection, TargetRecord
 
 
-_BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild")
+BUILD_ROOT_REL = Path("architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild")
 
 
-def _firm_git_identity() -> dict:
+def firm_git_identity() -> dict:
     """Read firm.git_identity{name, email} from
     deployment_architecture.json. Replaces the previously hardcoded
     `user.name=SkipSnow` / `user.email=skip.snow@gmail.com` in git
@@ -84,13 +84,13 @@ def _firm_git_identity() -> dict:
     return git_id
 
 
-_GHCR_OWNER: str = "skipsnow"
-_GHCR_IMAGE_NAME: dict[str, str] = {
+GHCR_OWNER: str = "skipsnow"
+GHCR_IMAGE_NAME: dict[str, str] = {
     "target_hf_space_findcare_backend":     "findcare-backend",
     "target_hf_space_evaluatecare_backend": "evaluatecare-backend",
     "target_hf_space_shared_services":      "sharedservices-backend",
 }
-_HF_APP_PORT: dict[str, int] = {
+HF_APP_PORT: dict[str, int] = {
     "target_hf_space_findcare_backend":     7860,
     "target_hf_space_evaluatecare_backend": 7860,
     "target_hf_space_shared_services":      7860,
@@ -101,20 +101,20 @@ _HF_APP_PORT: dict[str, int] = {
 # deployment_architecture.json. The deploy script is now data-driven; no
 # target-specific knowledge lives here.
 
-_PIPELINE_SOURCE_PREFIX = "pipeline/Code/"
-_AZURE_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
-_AZURE_REQUIREMENTS_ZIP_PATH = "requirements.txt"
+PIPELINE_SOURCE_PREFIX = "pipeline/Code/"
+AZURE_REQUIREMENTS_SRC = "pipeline/Code/requirements-pipeline.txt"
+AZURE_REQUIREMENTS_ZIP_PATH = "requirements.txt"
 
 
-def _step(msg: str) -> None:
+def step(msg: str) -> None:
     print(f"[local_deploy] {msg}", flush=True)
 
 
-def _cflags() -> int:
+def creation_flags() -> int:
     return subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 
-def _require_local_context() -> None:
+def require_local_context() -> None:
     """REQ-T-055 — local_deploy MUST run only on an operator's workstation,
     never on a GitHub Actions runner. For CI deploys use remote_deploy.py."""
     if os.environ.get("GITHUB_ACTIONS") == "true":
@@ -131,7 +131,7 @@ def _require_local_context() -> None:
 # enforced regardless of any per-target env_binding wiring at the cloud
 # dispatch path. local stand-up also enforces it here, before any other
 # work begins.
-_ENV_BRANCH: dict[str, str] = {
+ENV_BRANCH: dict[str, str] = {
     "local": "dev",
     "dev":   "dev",
     "qa":    "qa",
@@ -139,11 +139,11 @@ _ENV_BRANCH: dict[str, str] = {
 }
 
 
-def _require_branch_matches_env(env: str) -> None:
+def require_branch_matches_env(env: str) -> None:
     """Hard-fail unless the local working-tree branch is the one the firm
     promote chain says deploys to `env`. Runs at main() entry so neither
     local nor cloud deploys can ever ship a wrong-branch source set."""
-    expected = _ENV_BRANCH.get(env)
+    expected = ENV_BRANCH.get(env)
     if not expected:
         sys.exit(f"ERROR: unknown env {env!r}; promote-chain guard refuses to proceed.")
     cp = subprocess.run(
@@ -167,7 +167,7 @@ def _require_branch_matches_env(env: str) -> None:
         )
 
 
-def _find_repo_root(start: Path) -> Path:
+def find_repo_root(start: Path) -> Path:
     p = start.resolve()
     while p != p.parent:
         if (p / ".git").exists():
@@ -176,8 +176,8 @@ def _find_repo_root(start: Path) -> Path:
     raise RuntimeError(f"no .git found walking up from {start}")
 
 
-def _load_target_manifest(repo_root: Path, target_id: str, build_root_rel: Path | None = None) -> dict:
-    root = build_root_rel if build_root_rel is not None else _BUILD_ROOT_REL
+def load_target_manifest(repo_root: Path, target_id: str, build_root_rel: Path | None = None) -> dict:
+    root = build_root_rel if build_root_rel is not None else BUILD_ROOT_REL
     path = repo_root / root / target_id / "manifest.json"
     if not path.is_file():
         sys.exit(f"ERROR: target manifest missing: {path}")
@@ -188,7 +188,7 @@ def _load_target_manifest(repo_root: Path, target_id: str, build_root_rel: Path 
 # Cloudflare Pages handler (--env dev|qa|prod, target_kind=cloudflare_pages_project)
 # ═════════════════════════════════════════════════════════════════════════
 
-def _deploy_cloudflare(
+def deploy_cloudflare(
     build_dir: Path,
     env: str,
     resolver: SecretsResolver,
@@ -215,7 +215,7 @@ def _deploy_cloudflare(
             f"deployment_architecture.json. Populate it before deploy."
         )
     branch = env_binding.branch
-    _step(f"=== cloudflare_pages env={env} project={project} branch={branch} dir={build_dir} ===")
+    step(f"=== cloudflare_pages env={env} project={project} branch={branch} dir={build_dir} ===")
     api_token = resolver.resolve("CLOUDFLARE_API_TOKEN", env)
     account_id = resolver.resolve("CLOUDFLARE_ACCOUNT_ID", env)
     env_for_wrangler = dict(os.environ)
@@ -227,7 +227,7 @@ def _deploy_cloudflare(
         f"--branch={branch}",
         "--commit-dirty=true",
     ]
-    _step(f"  {' '.join(cmd)}")
+    step(f"  {' '.join(cmd)}")
     subprocess.run(
         cmd, env=env_for_wrangler, check=True,
         shell=(sys.platform == "win32"),
@@ -239,15 +239,15 @@ def _deploy_cloudflare(
 # HF Space handler (--env dev|qa|prod, target_kind=hf_space)
 # ═════════════════════════════════════════════════════════════════════════
 
-def _ghcr_image_ref(target_id: str, env: str, build_n: int) -> str:
+def ghcr_image_ref(target_id: str, env: str, build_n: int) -> str:
     return f"ghcr.io/{_GHCR_OWNER}/{_GHCR_IMAGE_NAME[target_id]}:{env}-v{build_n}"
 
 
-def _docker_build_then_push(build_dir: Path, image_ref: str) -> None:
-    _step(f"  docker build -t {image_ref} {build_dir}")
+def docker_build_then_push(build_dir: Path, image_ref: str) -> None:
+    step(f"  docker build -t {image_ref} {build_dir}")
     r = subprocess.run(
         ["docker", "build", "-t", image_ref, str(build_dir)],
-        capture_output=True, text=True, creationflags=_cflags(),
+        capture_output=True, text=True, creationflags=creation_flags(),
         encoding="utf-8", errors="replace",
     )
     if r.returncode != 0:
@@ -255,10 +255,10 @@ def _docker_build_then_push(build_dir: Path, image_ref: str) -> None:
             f"ERROR: docker build failed for {image_ref}\n"
             f"{(r.stderr or r.stdout)[-2000:]}"
         )
-    _step(f"  docker push {image_ref}")
+    step(f"  docker push {image_ref}")
     r = subprocess.run(
         ["docker", "push", image_ref],
-        capture_output=True, text=True, creationflags=_cflags(),
+        capture_output=True, text=True, creationflags=creation_flags(),
         encoding="utf-8", errors="replace",
     )
     if r.returncode != 0:
@@ -269,7 +269,7 @@ def _docker_build_then_push(build_dir: Path, image_ref: str) -> None:
         )
 
 
-def _set_hf_config(
+def set_hf_config(
     repo_root: Path,
     target_id: str,
     env: str,
@@ -303,7 +303,7 @@ def _set_hf_config(
             return rd._hf_peer_url(peer_target_id, env)
         if qualifier.startswith("rename_from:"):
             other_name = qualifier.split(":", 1)[1]
-            other_qual = (target.secrets or {}).get(other_name) \
+            other_qual = (target.secrets or {}).get(other_name)\
                 or (target.variables or {}).get(other_name)
             if other_qual is None:
                 raise KeyError(
@@ -326,14 +326,14 @@ def _set_hf_config(
         rd._hf_set_secret(hf_token, space, name, value)
 
 
-def _push_thin_dockerfile_to_hf_space(
+def push_thin_dockerfile_to_hf_space(
     target_id: str, env: str, hf_token: str, image_ref: str, port: int,
 ) -> None:
     org = rd._hf_org(target_id, env)
     space = rd._hf_space_name(target_id, env)
     hf_clone = Path(tempfile.mkdtemp(prefix=f"hf_{space}_"))
     repo_url = f"https://{org}:{hf_token}@huggingface.co/spaces/{org}/{space}"
-    _step(f"  clone https://huggingface.co/spaces/{org}/{space}")
+    step(f"  clone https://huggingface.co/spaces/{org}/{space}")
     subprocess.run(
         ["git", "clone", repo_url, str(hf_clone)],
         check=True, capture_output=True,
@@ -360,19 +360,19 @@ def _push_thin_dockerfile_to_hf_space(
         ["git", "diff", "--staged", "--quiet"], cwd=str(hf_clone),
     )
     if diff.returncode == 0:
-        _step("  no changes vs HF Space — skipping push")
+        step("  no changes vs HF Space — skipping push")
     else:
         subprocess.run(
             ["git", "-c", f"user.email={_firm_git_identity()['email']}", "-c", f"user.name={_firm_git_identity()['name']}",
              "commit", "-m", f"local_deploy {env} -> {image_ref}"],
             cwd=str(hf_clone), check=True,
         )
-        _step(f"  push to {space}")
+        step(f"  push to {space}")
         subprocess.run(["git", "push"], cwd=str(hf_clone), check=True)
     shutil.rmtree(hf_clone, ignore_errors=True)
 
 
-def _deploy_hf_space(
+def deploy_hf_space(
     repo_root: Path,
     build_dir: Path,
     build_n: int,
@@ -381,13 +381,13 @@ def _deploy_hf_space(
     resolver: SecretsResolver,
     target: TargetRecord,
 ) -> str:
-    port = _HF_APP_PORT[target_id]
-    image_ref = _ghcr_image_ref(target_id, env, build_n)
-    _step(f"=== hf_space {target_id} env={env} -> {image_ref} ===")
-    _docker_build_then_push(build_dir, image_ref)
+    port = HF_APP_PORT[target_id]
+    image_ref = ghcr_image_ref(target_id, env, build_n)
+    step(f"=== hf_space {target_id} env={env} -> {image_ref} ===")
+    docker_build_then_push(build_dir, image_ref)
     hf_token = resolver.resolve("HF_TOKEN", env)
-    _set_hf_config(repo_root, target_id, env, hf_token, resolver, target)
-    _push_thin_dockerfile_to_hf_space(target_id, env, hf_token, image_ref, port)
+    set_hf_config(repo_root, target_id, env, hf_token, resolver, target)
+    push_thin_dockerfile_to_hf_space(target_id, env, hf_token, image_ref, port)
     return image_ref
 
 
@@ -395,10 +395,10 @@ def _deploy_hf_space(
 # Azure Function App handler (--env dev|qa|prod, target_kind=azure_function_app)
 # ═════════════════════════════════════════════════════════════════════════
 
-def _az_query(args: list[str], err_label: str) -> str:
+def az_query(args: list[str], err_label: str) -> str:
     r = subprocess.run(
         args, capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -409,11 +409,11 @@ def _az_query(args: list[str], err_label: str) -> str:
     return r.stdout.strip()
 
 
-def _block_if_active_orchestrations(rg: str, app: str, task_hub: str) -> None:
+def block_if_active_orchestrations(rg: str, app: str, task_hub: str) -> None:
     """Reject the deploy if any orchestration is Running or Pending on
     this FA. The pipeline cannot be reloaded mid-run safely."""
-    _step("checking for active orchestrations …")
-    master_key = _az_query(
+    step("checking for active orchestrations …")
+    master_key = az_query(
         ["az", "functionapp", "keys", "list",
          "--resource-group", rg, "--name", app,
          "--query", "masterKey", "-o", "tsv"],
@@ -421,7 +421,7 @@ def _block_if_active_orchestrations(rg: str, app: str, task_hub: str) -> None:
     )
     if not master_key:
         sys.exit("ERROR: empty masterKey from Azure — cannot verify pipeline state.")
-    default_host = _az_query(
+    default_host = az_query(
         ["az", "functionapp", "show",
          "--resource-group", rg, "--name", app,
          "--query", "properties.defaultHostName", "-o", "tsv"],
@@ -458,7 +458,7 @@ def _block_if_active_orchestrations(rg: str, app: str, task_hub: str) -> None:
             except (urllib.error.URLError, urllib.error.HTTPError,
                     TimeoutError, json.JSONDecodeError):
                 pass
-            _step(f"  waiting for warm-up to query {status} …")
+            step(f"  waiting for warm-up to query {status} …")
             time.sleep(10)
         sys.exit(
             f"ERROR: could not query {status} orchestrations within 6 min."
@@ -483,17 +483,17 @@ def _block_if_active_orchestrations(rg: str, app: str, task_hub: str) -> None:
             f"Pending orchestration(s) active on {app}. Terminate them "
             "before deploying."
         )
-    _step(f"  no active orchestrations on {app} — safe to deploy")
+    step(f"  no active orchestrations on {app} — safe to deploy")
 
 
-def _az_push_zip(rg: str, app: str, zip_path: Path) -> None:
-    _step(f"pushing zip to Azure: {app}")
+def az_push_zip(rg: str, app: str, zip_path: Path) -> None:
+    step(f"pushing zip to Azure: {app}")
     r = subprocess.run(
         ["az", "functionapp", "deployment", "source", "config-zip",
          "--resource-group", rg, "--name", app,
          "--src", str(zip_path)],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     # az config-zip emits Bad Request when the host is currently in an
     # error state — but the zip upload + WEBSITE_RUN_FROM_PACKAGE update
@@ -508,50 +508,50 @@ def _az_push_zip(rg: str, app: str, zip_path: Path) -> None:
                 f"  stderr: {stderr_text[:1500]}\n"
                 f"  stdout: {(r.stdout or '').strip()[:500]}"
             )
-        _step(f"  config-zip Bad Request (package uploaded; will force restart)")
+        step(f"  config-zip Bad Request (package uploaded; will force restart)")
     else:
-        _step(f"  config-zip pushed to {app}")
-    _step(f"  restarting {app} so the host re-mounts the new package")
+        step(f"  config-zip pushed to {app}")
+    step(f"  restarting {app} so the host re-mounts the new package")
     r2 = subprocess.run(
         ["az", "functionapp", "restart",
          "--resource-group", rg, "--name", app],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r2.returncode != 0:
         sys.exit(
             f"ERROR: az functionapp restart failed (exit {r2.returncode})\n"
             f"  stderr: {(r2.stderr or '').strip()[:500]}"
         )
-    _step(f"  restart issued to {app}")
+    step(f"  restart issued to {app}")
 
 
-_GATEWAY_STORAGE_ACCOUNT = "findcarestorage"
-_GATEWAY_PLAN_LOCATION = "eastus2"
-_GATEWAY_PYTHON_VERSION = "3.11"
-_GATEWAY_FUNCTIONS_VERSION = "4"
+GATEWAY_STORAGE_ACCOUNT = "findcarestorage"
+GATEWAY_PLAN_LOCATION = "eastus2"
+GATEWAY_PYTHON_VERSION = "3.11"
+GATEWAY_FUNCTIONS_VERSION = "4"
 
 
-def _functionapp_exists(rg: str, app: str) -> bool:
+def functionapp_exists(rg: str, app: str) -> bool:
     r = subprocess.run(
         ["az", "functionapp", "show",
          "--name", app, "--resource-group", rg, "-o", "none"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     return r.returncode == 0
 
 
-def _functionapp_create(rg: str, app: str) -> None:
-    _step(f"  creating Function App {app} (rg={rg}) on Consumption Linux Python {_GATEWAY_PYTHON_VERSION}")
+def functionapp_create(rg: str, app: str) -> None:
+    step(f"  creating Function App {app} (rg={rg}) on Consumption Linux Python {_GATEWAY_PYTHON_VERSION}")
     # Storage account lives in a different RG (FindCareAzureInfrastructure),
     # so pass its full resource ID — az functionapp create only accepts a
     # bare name when the storage account is in the same RG as the FA.
     sid = subprocess.run(
         ["az", "storage", "account", "show",
-         "--name", _GATEWAY_STORAGE_ACCOUNT, "--query", "id", "-o", "tsv"],
+         "--name", GATEWAY_STORAGE_ACCOUNT, "--query", "id", "-o", "tsv"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if sid.returncode != 0 or not sid.stdout.strip():
         sys.exit(
@@ -564,14 +564,14 @@ def _functionapp_create(rg: str, app: str) -> None:
          "--name", app,
          "--resource-group", rg,
          "--storage-account", storage_id,
-         "--consumption-plan-location", _GATEWAY_PLAN_LOCATION,
+         "--consumption-plan-location", GATEWAY_PLAN_LOCATION,
          "--runtime", "python",
-         "--runtime-version", _GATEWAY_PYTHON_VERSION,
-         "--functions-version", _GATEWAY_FUNCTIONS_VERSION,
+         "--runtime-version", GATEWAY_PYTHON_VERSION,
+         "--functions-version", GATEWAY_FUNCTIONS_VERSION,
          "--os-type", "Linux",
          "-o", "none"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -580,17 +580,17 @@ def _functionapp_create(rg: str, app: str) -> None:
         )
 
 
-def _functionapp_set_appsettings(rg: str, app: str, settings: dict[str, str]) -> None:
+def functionapp_set_appsettings(rg: str, app: str, settings: dict[str, str]) -> None:
     if not settings:
         return
     pairs = [f"{k}={v}" for k, v in settings.items()]
-    _step(f"  setting {len(pairs)} app settings on {app}")
+    step(f"  setting {len(pairs)} app settings on {app}")
     r = subprocess.run(
         ["az", "functionapp", "config", "appsettings", "set",
          "--name", app, "--resource-group", rg,
          "--settings", *pairs, "-o", "none"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -599,15 +599,15 @@ def _functionapp_set_appsettings(rg: str, app: str, settings: dict[str, str]) ->
         )
 
 
-_GATEWAY_UPSTREAM_TARGET_ID = "target_azure_container_app_pipeline"
+GATEWAY_UPSTREAM_TARGET_ID = "target_azure_container_app_pipeline"
 
 
-def _resolve_durable_router_url(coll: "DeploymentCollection", env: str) -> str:
+def resolve_durable_router_url(coll: "DeploymentCollection", env: str) -> str:
     """Look up the durable Container App's current FQDN from Azure and
     build the upstream Router URL the gateway forwards to. Fails hard if
     the target is missing, the container app does not exist, or it has
     no FQDN — no fallback, no guessing."""
-    upstream = coll.by_target_id(_GATEWAY_UPSTREAM_TARGET_ID)
+    upstream = coll.by_target_id(GATEWAY_UPSTREAM_TARGET_ID)
     env_binding = next(
         (e for e in upstream.environments if e.env_binding == env), None,
     )
@@ -625,7 +625,7 @@ def _resolve_durable_router_url(coll: "DeploymentCollection", env: str) -> str:
          "--name", container_app, "--resource-group", rg,
          "--query", "properties.configuration.ingress.fqdn", "-o", "tsv"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0 or not r.stdout.strip():
         sys.exit(
@@ -635,7 +635,7 @@ def _resolve_durable_router_url(coll: "DeploymentCollection", env: str) -> str:
     return f"https://{r.stdout.strip()}/api/Router"
 
 
-def _deploy_azure_function_app(
+def deploy_azure_function_app(
     build_dir: Path,
     target: TargetRecord,
     env: str,
@@ -659,16 +659,16 @@ def _deploy_azure_function_app(
     rg = env_binding.azure["resource_group"]
     app = env_binding.azure["function_app"]
     task_hub = env_binding.azure["task_hub"]
-    _step(f"=== azure_function_app {target.target_id} env={env} -> {app} (rg={rg}) ===")
+    step(f"=== azure_function_app {target.target_id} env={env} -> {app} (rg={rg}) ===")
     zip_path = build_dir / "deploy.zip"
     if not zip_path.is_file():
         sys.exit(f"ERROR: deploy.zip missing at {zip_path}")
 
     # Provision the FA resource if it doesn't exist (idempotent).
-    if not _functionapp_exists(rg, app):
-        _functionapp_create(rg, app)
+    if not functionapp_exists(rg, app):
+        functionapp_create(rg, app)
     else:
-        _step(f"  Function App {app} already exists — no-op create")
+        step(f"  Function App {app} already exists — no-op create")
 
     # Resolve secrets and set as Function App app settings. The Gateway
     # reads MONGO_FRONTEND_connectionString (build_id lookup), API_TOKEN_MAP
@@ -687,8 +687,8 @@ def _deploy_azure_function_app(
     # body documents the biz rule for when a durable upstream IS declared)
     # and gateway routes that would have forwarded via this URL fail at
     # runtime, which is the intended consequence of retiring the upstream.
-    if coll is not None and coll.by_target_id(_GATEWAY_UPSTREAM_TARGET_ID) is not None:
-        app_settings["DURABLE_ROUTER_URL"] = _resolve_durable_router_url(coll, env)
+    if coll is not None and coll.by_target_id(GATEWAY_UPSTREAM_TARGET_ID) is not None:
+        app_settings["DURABLE_ROUTER_URL"] = resolve_durable_router_url(coll, env)
     if resolver is not None:
         for name, store_id in (target.secrets or {}).items():
             if store_id == "azure_automation_webhook":
@@ -714,12 +714,12 @@ def _deploy_azure_function_app(
         app_settings["APPLICATIONINSIGHTS_CONNECTION_STRING"] = (
             app_settings.pop("GATEWAY_APPINSIGHTS_CONNECTION_STRING")
         )
-    _functionapp_set_appsettings(rg, app, app_settings)
+    functionapp_set_appsettings(rg, app, app_settings)
 
     # The gateway FA is a pure HTTP facade — no Durable orchestrations live
     # on it, so there is no orchestration-quiescence gate to wait on. The
     # durable function app (the ACA worker) owns that gate.
-    _az_push_zip(rg, app, zip_path)
+    az_push_zip(rg, app, zip_path)
     return f"{app}"
 
 
@@ -739,14 +739,14 @@ def _deploy_azure_function_app(
 # block; we do not touch them — the operator created them once and they
 # survive deploys.
 
-_AUTOMATION_API = "2023-11-01"
+AUTOMATION_API = "2023-11-01"
 
 
-def _az_subscription_id() -> str:
+def az_subscription_id() -> str:
     r = subprocess.run(
         ["az", "account", "show", "--query", "id", "-o", "tsv"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -756,7 +756,7 @@ def _az_subscription_id() -> str:
     return r.stdout.strip()
 
 
-def _az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None:
+def az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None:
     """Idempotent create-or-update of an Automation Variable via REST.
 
     The `az automation variable` command group doesn't exist; the REST API
@@ -766,7 +766,7 @@ def _az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None
     Values never land on disk locally — they live only in `body` until
     `az rest` consumes them via --body @file (stdin-piped here).
     """
-    sub = _az_subscription_id()
+    sub = az_subscription_id()
     base = (
         f"https://management.azure.com/subscriptions/{sub}"
         f"/resourceGroups/{rg}/providers/Microsoft.Automation"
@@ -785,7 +785,7 @@ def _az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None
          "--headers", "Content-Type=application/json",
          "--body", body, "-o", "none"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -794,7 +794,7 @@ def _az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None
         )
 
 
-def _az_automation_runbook_ensure_exists(rg: str, aa: str, runbook: str) -> None:
+def az_automation_runbook_ensure_exists(rg: str, aa: str, runbook: str) -> None:
     """Idempotent runbook ensure. `az automation runbook show` returns
     non-zero if the runbook doesn't exist; we then `az automation runbook
     create` it as a Python 3 runbook so the subsequent replace-content
@@ -804,18 +804,18 @@ def _az_automation_runbook_ensure_exists(rg: str, aa: str, runbook: str) -> None
          "--resource-group", rg, "--automation-account-name", aa,
          "--name", runbook, "-o", "none"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if show.returncode == 0:
-        _step(f"  runbook {runbook} exists on {aa} — no-op")
+        step(f"  runbook {runbook} exists on {aa} — no-op")
         return
-    _step(f"  runbook {runbook} missing on {aa} — creating (Python3)")
+    step(f"  runbook {runbook} missing on {aa} — creating (Python3)")
     loc_show = subprocess.run(
         ["az", "automation", "account", "show",
          "--name", aa, "--resource-group", rg,
          "--query", "location", "-o", "tsv"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if loc_show.returncode != 0 or not loc_show.stdout.strip():
         sys.exit(
@@ -831,18 +831,18 @@ def _az_automation_runbook_ensure_exists(rg: str, aa: str, runbook: str) -> None
          "--location", location,
          "-o", "none"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if create.returncode != 0:
         sys.exit(
             f"ERROR: az automation runbook create failed for {runbook!r} "
             f"(exit {create.returncode})\n  stderr: {(create.stderr or '').strip()[:1500]}"
         )
-    _step(f"  runbook {runbook} created.")
+    step(f"  runbook {runbook} created.")
 
 
-def _az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, content_path: Path) -> None:
-    _step(f"az automation runbook replace-content --name {runbook}")
+def az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, content_path: Path) -> None:
+    step(f"az automation runbook replace-content --name {runbook}")
     args = [
         "az", "automation", "runbook", "replace-content",
         "--resource-group", rg, "--automation-account-name", aa,
@@ -852,7 +852,7 @@ def _az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, conte
     ]
     r = subprocess.run(
         args, capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -861,8 +861,8 @@ def _az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, conte
         )
 
 
-def _az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
-    _step(f"az automation runbook publish --name {runbook}")
+def az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
+    step(f"az automation runbook publish --name {runbook}")
     args = [
         "az", "automation", "runbook", "publish",
         "--resource-group", rg, "--automation-account-name", aa,
@@ -871,7 +871,7 @@ def _az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
     ]
     r = subprocess.run(
         args, capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -880,11 +880,11 @@ def _az_automation_runbook_publish(rg: str, aa: str, runbook: str) -> None:
         )
 
 
-def _az_subscription_id() -> str:
+def az_subscription_id() -> str:
     args = ["az", "account", "show", "--query", "id", "-o", "tsv"]
     r = subprocess.run(
         args, capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(f"ERROR: az account show failed: {(r.stderr or '').strip()[:500]}")
@@ -897,7 +897,7 @@ def _az_subscription_id() -> str:
 # fire: the AA's environment cannot host the runbook. Any other exception
 # (including the runbook raising on its own when fed an empty payload)
 # means the environment is fine and the runbook code ran.
-_AA_PACKAGE_INSTALL_FAILURE_MARKERS = (
+AA_PACKAGE_INSTALL_FAILURE_MARKERS = (
     "could not install",
     "not a supported wheel",
     "Package '",                          # pip "ERROR: Package 'x' requires ..."
@@ -906,10 +906,10 @@ _AA_PACKAGE_INSTALL_FAILURE_MARKERS = (
 )
 
 
-_ORCHESTRATOR_RUNBOOK_NAME = "ChatHealthyDataMigratorOrchestrator"
+ORCHESTRATOR_RUNBOOK_NAME = "ChatHealthyDataMigratorOrchestrator"
 
 
-def _health_check_parameters_b64() -> dict:
+def health_check_parameters_b64() -> dict:
     """Sub-runbook PUT /jobs parameters for the health-check dry-fire.
     Legacy AA strips quotes from raw parameter values; base64 sidesteps
     that. The receiving runbook decodes via base64.b64decode + json.loads."""
@@ -917,13 +917,13 @@ def _health_check_parameters_b64() -> dict:
     return {"payload": base64.b64encode(inner).decode("ascii")}
 
 
-def _az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
+def az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
     """Start the runbook as an AA job WITHOUT runOn (so it runs on the AA
     sandbox, never on the Hybrid Worker - dry-fire must not provision
     anything), with a `health_check: true` payload that each runbook's
     _main short-circuits on (log the health check, return cleanly).
     Polls until terminal status. Returns {status, exception, job_id}."""
-    sub = _az_subscription_id()
+    sub = az_subscription_id()
     aa_job_id = str(uuid.uuid4())
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
@@ -933,15 +933,15 @@ def _az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
     body = json.dumps({
         "properties": {
             "runbook": {"name": runbook},
-            "parameters": _health_check_parameters_b64(),
+            "parameters": health_check_parameters_b64(),
         }
     })
-    _step(f"  health-check dry-fire {runbook} (aa_job_id={aa_job_id})")
+    step(f"  health-check dry-fire {runbook} (aa_job_id={aa_job_id})")
     r = subprocess.run(
         ["az", "rest", "--method", "put", "--url", url,
          "--headers", "Content-Type=application/json", "--body", body, "-o", "none"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -960,7 +960,7 @@ def _az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
         r = subprocess.run(
             ["az", "rest", "--method", "get", "--url", poll_url, "-o", "json"],
             capture_output=True, text=True,
-            creationflags=_cflags(), shell=(sys.platform == "win32"),
+            creationflags=creation_flags(), shell=(sys.platform == "win32"),
         )
         if r.returncode != 0:
             time.sleep(5)
@@ -995,18 +995,18 @@ def _az_automation_runbook_dry_fire(rg: str, aa: str, runbook: str) -> dict:
 # migrator runs on the Hybrid Worker VM, not the AA sandbox, so
 # AA-side dry-fire is meaningless for it - verification is via the
 # real migration test the operator fires post-deploy.
-_HEALTH_CHECK_SUPPORTED_RUNBOOKS = (
+HEALTH_CHECK_SUPPORTED_RUNBOOKS = (
     "ChatHealthyDataMigratorProvisioner",
     "ChatHealthyDataMigratorDeprovisioner",
 )
-_ORCHESTRATOR_WEBHOOK_ENV_KEY = "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL"
+ORCHESTRATOR_WEBHOOK_ENV_KEY = "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL"
 
 
-def _az_automation_poll_job_to_terminal(
+def az_automation_poll_job_to_terminal(
     rg: str, aa: str, aa_job_id: str, timeout_sec: int = 240,
 ) -> dict:
     """Poll an AA job until terminal status. Returns {status, exception}."""
-    sub = _az_subscription_id()
+    sub = az_subscription_id()
     poll_url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
@@ -1018,7 +1018,7 @@ def _az_automation_poll_job_to_terminal(
         r = subprocess.run(
             ["az", "rest", "--method", "get", "--url", poll_url, "-o", "json"],
             capture_output=True, text=True,
-            creationflags=_cflags(), shell=(sys.platform == "win32"),
+            creationflags=creation_flags(), shell=(sys.platform == "win32"),
         )
         if r.returncode != 0:
             time.sleep(5)
@@ -1037,7 +1037,7 @@ def _az_automation_poll_job_to_terminal(
     return {"status": f"Timeout(last={last_status})", "exception": ""}
 
 
-def _az_automation_orchestrator_verify_via_webhook(
+def az_automation_orchestrator_verify_via_webhook(
     rg: str, aa: str, webhook_url: str, runbook: str,
 ) -> None:
     """Fire the orchestrator's health-check path via its operator-minted
@@ -1076,11 +1076,11 @@ def _az_automation_orchestrator_verify_via_webhook(
             f"ERROR: orchestrator webhook response has no JobIds: {resp_text[:500]}"
         )
     aa_job_id = str(job_ids[0])
-    _step(f"  health-check dry-fire {runbook} via webhook (aa_job_id={aa_job_id})")
-    result = _az_automation_poll_job_to_terminal(rg, aa, aa_job_id, timeout_sec=240)
+    step(f"  health-check dry-fire {runbook} via webhook (aa_job_id={aa_job_id})")
+    result = az_automation_poll_job_to_terminal(rg, aa, aa_job_id, timeout_sec=240)
     status = result["status"]
     if status == "Completed":
-        _step(
+        step(
             f"  health-check verified: {runbook} via webhook status=Completed "
             f"(dry-fire job {aa_job_id})"
         )
@@ -1098,7 +1098,7 @@ def _az_automation_orchestrator_verify_via_webhook(
     )
 
 
-def _az_automation_runbook_verify_runnable(rg: str, aa: str, runbook: str) -> None:
+def az_automation_runbook_verify_runnable(rg: str, aa: str, runbook: str) -> None:
     """Post-deploy verification by health-check dry-fire.
 
     Shipping the source bytes is necessary but not sufficient: the AA's
@@ -1117,20 +1117,20 @@ def _az_automation_runbook_verify_runnable(rg: str, aa: str, runbook: str) -> No
     Skipped for runbooks that do not have a health_check path (e.g. the
     ReservationReaper, which existed before this verification was
     introduced and whose health is observable via its own 5-min schedule)."""
-    if runbook not in _HEALTH_CHECK_SUPPORTED_RUNBOOKS:
-        _step(
+    if runbook not in HEALTH_CHECK_SUPPORTED_RUNBOOKS:
+        step(
             f"  skipping health-check dry-fire for {runbook} "
             f"(no health_check path; verify via scheduled execution)"
         )
         return
 
-    result = _az_automation_runbook_dry_fire(rg, aa, runbook)
+    result = az_automation_runbook_dry_fire(rg, aa, runbook)
     status = result["status"]
     exception_text = result["exception"]
     job_id = result["job_id"]
 
     if status == "Completed":
-        _step(
+        step(
             f"  health-check verified: {runbook} status=Completed "
             f"(dry-fire job {job_id})"
         )
@@ -1152,12 +1152,12 @@ def _az_automation_runbook_verify_runnable(rg: str, aa: str, runbook: str) -> No
     )
 
 
-_chdm_persistent_infra_ensured_for: set[str] = set()
-_CHDM_TARGET_PREFIX = "target_azure_automation_runbook_chdm_"
-_CHDM_PROVISIONER_TARGET = "target_azure_automation_runbook_chdm_provisioner"
+chdm_persistent_infra_ensured_for: set[str] = set()
+CHDM_TARGET_PREFIX = "target_azure_automation_runbook_chdm_"
+CHDM_PROVISIONER_TARGET = "target_azure_automation_runbook_chdm_provisioner"
 
 
-def _ensure_chdm_persistent_infrastructure_once(
+def ensure_chdm_persistent_infrastructure_once(
     aa_rg: str, aa: str, vm_rg: str, env_key: str,
     *, repo_root: Path, resolver: SecretsResolver, env: str,
 ) -> str:
@@ -1167,21 +1167,21 @@ def _ensure_chdm_persistent_infrastructure_once(
     same session). Lands the admin SSH private key on the operator's
     workstation as part of the same once-per-session block."""
     cache_key = f"{env_key}|{aa_rg}|{aa}|{vm_rg}"
-    if cache_key in _chdm_persistent_infra_ensured_for:
+    if cache_key in chdm_persistent_infra_ensured_for:
         return chdm_helpers.chdm_ensure_vm_subnet(vm_rg)
     subnet_id = chdm_helpers.chdm_ensure_chdm_persistent_infrastructure(
         vm_rg=vm_rg, aa_rg=aa_rg, aa=aa,
     )
     private_key_b64 = resolver.resolve("AZ_VM_ADMIN_SSH_PRIVATE_KEY_B64", env)
     chdm_helpers.chdm_ensure_admin_private_key_file(repo_root, private_key_b64)
-    _chdm_persistent_infra_ensured_for.add(cache_key)
+    chdm_persistent_infra_ensured_for.add(cache_key)
     return subnet_id
 
 
-def _az_automation_python3_packages_list(rg: str, aa: str) -> dict[str, dict]:
+def az_automation_python3_packages_list(rg: str, aa: str) -> dict[str, dict]:
     """Return a name -> properties map of currently-installed Python3
     packages on the Automation Account. Empty when none installed."""
-    sub = _az_subscription_id()
+    sub = az_subscription_id()
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
@@ -1190,7 +1190,7 @@ def _az_automation_python3_packages_list(rg: str, aa: str) -> dict[str, dict]:
     r = subprocess.run(
         ["az", "rest", "--method", "get", "--url", url, "-o", "json"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -1206,26 +1206,26 @@ def _az_automation_python3_packages_list(rg: str, aa: str) -> dict[str, dict]:
     return out
 
 
-def _az_automation_python3_package_install(
+def az_automation_python3_package_install(
     rg: str, aa: str, name: str, content_url: str,
 ) -> None:
     """PUT a Python3 package on the AA, polling until terminal state.
     Fails loud on terminal Failed; returns on Succeeded."""
     import time as _time
-    sub = _az_subscription_id()
+    sub = az_subscription_id()
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
         f"/python3Packages/{name}?api-version=2018-06-30"
     )
     body = json.dumps({"properties": {"contentLink": {"uri": content_url}}})
-    _step(f"  PUT python3 package {name} <- {content_url}")
+    step(f"  PUT python3 package {name} <- {content_url}")
     r = subprocess.run(
         ["az", "rest", "--method", "put", "--url", url,
          "--headers", "Content-Type=application/json",
          "--body", body, "-o", "none"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -1237,7 +1237,7 @@ def _az_automation_python3_package_install(
         get_r = subprocess.run(
             ["az", "rest", "--method", "get", "--url", url, "-o", "json"],
             capture_output=True, text=True,
-            creationflags=_cflags(), shell=(sys.platform == "win32"),
+            creationflags=creation_flags(), shell=(sys.platform == "win32"),
         )
         if get_r.returncode != 0:
             sys.exit(
@@ -1248,7 +1248,7 @@ def _az_automation_python3_package_install(
         props = st.get("properties", {}) or {}
         provisioning_state = props.get("provisioningState")
         error = (props.get("error") or {}).get("message")
-        _step(f"    {name} provisioningState={provisioning_state}")
+        step(f"    {name} provisioningState={provisioning_state}")
         if provisioning_state == "Succeeded":
             return
         if provisioning_state in ("Failed", "Cancelled"):
@@ -1264,7 +1264,7 @@ def _az_automation_python3_package_install(
     )
 
 
-def _ensure_runbook_python_packages(
+def ensure_runbook_python_packages(
     rg: str, aa: str, packages: list[dict],
 ) -> None:
     """Iterate declared packages; install any that are missing or whose
@@ -1272,7 +1272,7 @@ def _ensure_runbook_python_packages(
     declared package is already at the named URL in Succeeded state."""
     if not packages:
         return
-    existing = _az_automation_python3_packages_list(rg, aa)
+    existing = az_automation_python3_packages_list(rg, aa)
     for pkg in packages:
         name = pkg["name"]
         url = pkg["content_url"]
@@ -1281,20 +1281,20 @@ def _ensure_runbook_python_packages(
             cur_url = (cur.get("contentLink") or {}).get("uri")
             cur_state = cur.get("provisioningState")
             if cur_url == url and cur_state == "Succeeded":
-                _step(f"  python3 package {name} already installed at declared URL")
+                step(f"  python3 package {name} already installed at declared URL")
                 continue
-            _step(
+            step(
                 f"  python3 package {name} drift (state={cur_state}, "
                 f"url match={cur_url == url}); re-installing"
             )
-        _az_automation_python3_package_install(rg, aa, name, url)
+        az_automation_python3_package_install(rg, aa, name, url)
 
 
-def _az_automation_runbook_webhook_list(rg: str, aa: str, runbook: str) -> list[dict]:
+def az_automation_runbook_webhook_list(rg: str, aa: str, runbook: str) -> list[dict]:
     """List webhooks on the Automation Account, filtered to a single
     runbook. Note: the returned objects carry metadata only — Azure
     Automation never re-exposes a webhook's URL after creation."""
-    sub = _az_subscription_id()
+    sub = az_subscription_id()
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
@@ -1303,7 +1303,7 @@ def _az_automation_runbook_webhook_list(rg: str, aa: str, runbook: str) -> list[
     r = subprocess.run(
         ["az", "rest", "--method", "get", "--url", url, "-o", "json"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -1318,8 +1318,8 @@ def _az_automation_runbook_webhook_list(rg: str, aa: str, runbook: str) -> list[
     ]
 
 
-def _az_automation_runbook_webhook_delete(rg: str, aa: str, webhook_name: str) -> None:
-    sub = _az_subscription_id()
+def az_automation_runbook_webhook_delete(rg: str, aa: str, webhook_name: str) -> None:
+    sub = az_subscription_id()
     url = (
         f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
         f"/providers/Microsoft.Automation/automationAccounts/{aa}"
@@ -1328,7 +1328,7 @@ def _az_automation_runbook_webhook_delete(rg: str, aa: str, webhook_name: str) -
     r = subprocess.run(
         ["az", "rest", "--method", "delete", "--url", url, "-o", "none"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -1337,7 +1337,7 @@ def _az_automation_runbook_webhook_delete(rg: str, aa: str, webhook_name: str) -
         )
 
 
-def _az_automation_runbook_webhook_create(
+def az_automation_runbook_webhook_create(
     rg: str, aa: str, runbook: str, webhook_name: str,
 ) -> str:
     """Mint a webhook bound to a runbook. Returns the full URL with
@@ -1345,7 +1345,7 @@ def _az_automation_runbook_webhook_create(
     Automation never re-exposes it after this call returns. Expiry is
     set to ~10 years out, matching the CHDM webhook minted 2026-06-02."""
     from datetime import datetime, timedelta, timezone
-    sub = _az_subscription_id()
+    sub = az_subscription_id()
     expires = (
         datetime.now(timezone.utc) + timedelta(days=365 * 10)
     ).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -1366,7 +1366,7 @@ def _az_automation_runbook_webhook_create(
          "--headers", "Content-Type=application/json",
          "--body", body, "-o", "json"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -1383,14 +1383,14 @@ def _az_automation_runbook_webhook_create(
     return webhook_url
 
 
-def _functionapp_get_appsetting(rg: str, app: str, name: str) -> str:
+def functionapp_get_appsetting(rg: str, app: str, name: str) -> str:
     """Return the current value of a single FA app setting, or empty
     string if it isn't present."""
     r = subprocess.run(
         ["az", "functionapp", "config", "appsettings", "list",
          "--name", app, "--resource-group", rg, "-o", "json"],
         capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
     )
     if r.returncode != 0:
         sys.exit(
@@ -1404,7 +1404,7 @@ def _functionapp_get_appsetting(rg: str, app: str, name: str) -> str:
     return ""
 
 
-def _ensure_runbook_webhook_and_push_to_consumer(
+def ensure_runbook_webhook_and_push_to_consumer(
     rg: str, aa: str, runbook: str,
     webhook_block: dict,
     coll: "DeploymentCollection",
@@ -1444,37 +1444,37 @@ def _ensure_runbook_webhook_and_push_to_consumer(
     consumer_app = consumer_env.azure["function_app"]
     webhook_name = f"{runbook}Webhook"
 
-    existing_value = _functionapp_get_appsetting(
+    existing_value = functionapp_get_appsetting(
         consumer_rg, consumer_app, app_setting_name,
     )
     if existing_value:
-        _step(
+        step(
             f"  webhook URL already present on {consumer_app}/"
             f"{app_setting_name} — idempotent no-op"
         )
         return
 
-    existing_webhooks = _az_automation_runbook_webhook_list(rg, aa, runbook)
+    existing_webhooks = az_automation_runbook_webhook_list(rg, aa, runbook)
     for w in existing_webhooks:
         if w.get("name") == webhook_name:
-            _step(
+            step(
                 f"  deleting stale webhook {webhook_name} (URL was not "
                 f"captured on the consumer; cannot reuse)"
             )
-            _az_automation_runbook_webhook_delete(rg, aa, webhook_name)
+            az_automation_runbook_webhook_delete(rg, aa, webhook_name)
             break
 
-    _step(f"  minting webhook {webhook_name} for runbook {runbook}")
-    url = _az_automation_runbook_webhook_create(rg, aa, runbook, webhook_name)
-    _step(
+    step(f"  minting webhook {webhook_name} for runbook {runbook}")
+    url = az_automation_runbook_webhook_create(rg, aa, runbook, webhook_name)
+    step(
         f"  UPSERT webhook URL onto {consumer_app}/{app_setting_name}"
     )
-    _functionapp_set_appsettings(
+    functionapp_set_appsettings(
         consumer_rg, consumer_app, {app_setting_name: url},
     )
 
 
-def _deploy_azure_automation_runbook(
+def deploy_azure_automation_runbook(
     build_dir: Path,
     target: TargetRecord,
     env: str,
@@ -1500,7 +1500,7 @@ def _deploy_azure_automation_runbook(
     rg = aa_block["resource_group"]
     aa = aa_block["automation_account"]
     runbook = aa_block["runbook_name"]
-    _step(
+    step(
         f"=== azure_automation_runbook {target.target_id} env={env} -> "
         f"{aa}/{runbook} (rg={rg}) ==="
     )
@@ -1514,7 +1514,7 @@ def _deploy_azure_automation_runbook(
     # subnet, Hybrid Worker Group, AA managed-identity role assignments.
     # Idempotent; runs once per local_deploy process.
     chdm_subnet_id: str | None = None
-    if target.target_id.startswith(_CHDM_TARGET_PREFIX):
+    if target.target_id.startswith(CHDM_TARGET_PREFIX):
         vm_rg = resolver.resolve("AZ_VM_RESOURCE_GROUP", env)
         if not vm_rg:
             sys.exit(
@@ -1522,7 +1522,7 @@ def _deploy_azure_automation_runbook(
                 "secret store (Code/.env) — the CHDM persistent-infra ensure "
                 "needs to know which resource group hosts the Hybrid Worker VM."
             )
-        chdm_subnet_id = _ensure_chdm_persistent_infrastructure_once(
+        chdm_subnet_id = ensure_chdm_persistent_infrastructure_once(
             aa_rg=rg, aa=aa, vm_rg=vm_rg, env_key=env,
             repo_root=repo_root, resolver=resolver, env=env,
         )
@@ -1532,7 +1532,7 @@ def _deploy_azure_automation_runbook(
     # (Code/.env for local). Values never land on disk; only the az process
     # sees them in argv.
     secret_names = sorted(target.secrets or {})
-    _step(f"  attempting to publish {len(secret_names)} Automation Variable(s)")
+    step(f"  attempting to publish {len(secret_names)} Automation Variable(s)")
     pushed, skipped = 0, []
     for name in secret_names:
         try:
@@ -1543,39 +1543,39 @@ def _deploy_azure_automation_runbook(
         if value is None or value == "":
             skipped.append(name)
             continue
-        _az_automation_variable_set(rg, aa, name, value)
+        az_automation_variable_set(rg, aa, name, value)
         pushed += 1
     if skipped:
-        _step(
+        step(
             f"  skipped {len(skipped)} variable(s) not in operator's "
             f"resolved store (likely have runbook-side defaults): "
             f"{', '.join(skipped)}"
         )
-    _step(f"  pushed {pushed} Automation Variable(s)")
+    step(f"  pushed {pushed} Automation Variable(s)")
 
     # Inject the deploy-computed AZ_VM_SUBNET_ID for the provisioner runbook.
     # The subnet ARM resource id only exists after the ensure step ran and
     # is therefore not in the operator's secret store.
-    if target.target_id == _CHDM_PROVISIONER_TARGET and chdm_subnet_id:
-        _az_automation_variable_set(rg, aa, "AZ_VM_SUBNET_ID", chdm_subnet_id)
-        _step("  pushed deploy-computed AZ_VM_SUBNET_ID Automation Variable")
+    if target.target_id == CHDM_PROVISIONER_TARGET and chdm_subnet_id:
+        az_automation_variable_set(rg, aa, "AZ_VM_SUBNET_ID", chdm_subnet_id)
+        step("  pushed deploy-computed AZ_VM_SUBNET_ID Automation Variable")
 
     # Ensure declared Python3 packages are installed on the AA before
     # publishing the runbook content. The runbook's first execution can
     # then import them at module load without ModuleNotFoundError.
     declared_packages = aa_block.get("python_packages") or []
     if declared_packages:
-        _step(f"  ensuring {len(declared_packages)} python3 package(s) on {aa}")
-        _ensure_runbook_python_packages(rg, aa, declared_packages)
+        step(f"  ensuring {len(declared_packages)} python3 package(s) on {aa}")
+        ensure_runbook_python_packages(rg, aa, declared_packages)
 
     # Ensure the runbook resource exists on the AA before pushing content.
     # First-time deploys need a Python3 runbook resource created; subsequent
     # deploys see it and no-op.
-    _az_automation_runbook_ensure_exists(rg, aa, runbook)
+    az_automation_runbook_ensure_exists(rg, aa, runbook)
     # Replace runbook bytes + publish (so next scheduled tick uses the new code).
-    _az_automation_runbook_replace_content(rg, aa, runbook, content_path)
-    _az_automation_runbook_publish(rg, aa, runbook)
-    _step(f"  runbook {runbook} published")
+    az_automation_runbook_replace_content(rg, aa, runbook, content_path)
+    az_automation_runbook_publish(rg, aa, runbook)
+    step(f"  runbook {runbook} published")
     # Post-deploy verification. Shipping source bytes is necessary but not
     # sufficient: if the AA's Python3 package state is broken (wrong-
     # platform wheel, install failure), every Python3 job startup aborts
@@ -1584,18 +1584,18 @@ def _deploy_azure_automation_runbook(
     # via its webhook URL (same path as the production gateway uses);
     # other chdm runbooks are verified via PUT /jobs with base64-encoded
     # health_check payload.
-    if runbook == _ORCHESTRATOR_RUNBOOK_NAME:
+    if runbook == ORCHESTRATOR_RUNBOOK_NAME:
         try:
-            webhook_url = resolver.resolve(_ORCHESTRATOR_WEBHOOK_ENV_KEY, env)
+            webhook_url = resolver.resolve(ORCHESTRATOR_WEBHOOK_ENV_KEY, env)
         except KeyError:
             sys.exit(
                 f"ERROR: deploy cannot verify {runbook} - "
                 f"{_ORCHESTRATOR_WEBHOOK_ENV_KEY} is not in the operator's "
                 f"secret store. Set it in Code/.env."
             )
-        _az_automation_orchestrator_verify_via_webhook(rg, aa, webhook_url, runbook)
+        az_automation_orchestrator_verify_via_webhook(rg, aa, webhook_url, runbook)
     else:
-        _az_automation_runbook_verify_runnable(rg, aa, runbook)
+        az_automation_runbook_verify_runnable(rg, aa, runbook)
 
     # Webhook lifecycle for runbooks dispatched via HTTP webhook from a
     # consumer target (e.g. the gateway FA forwarding ChatHealthyTask
@@ -1609,7 +1609,7 @@ def _deploy_azure_automation_runbook(
                 f"webhook block but the deploy handler was invoked without "
                 f"a manifest collection — cannot resolve consumer target."
             )
-        _ensure_runbook_webhook_and_push_to_consumer(
+        ensure_runbook_webhook_and_push_to_consumer(
             rg=rg, aa=aa, runbook=runbook,
             webhook_block=webhook_block, coll=coll, env=env,
         )
@@ -1621,7 +1621,7 @@ def _deploy_azure_automation_runbook(
 # Azure Container App handler (--env dev|qa|prod, target_kind=azure_container_app)
 # ═════════════════════════════════════════════════════════════════════════
 
-def _aca_image_repo(aca_coords: dict, env: str) -> str:
+def aca_image_repo(aca_coords: dict, env: str) -> str:
     """Derive the ACR image repository from the env's ACA coords.
 
     `<registry>.azurecr.io/<container_app>` is the convention: one repo
@@ -1638,7 +1638,7 @@ def _aca_image_repo(aca_coords: dict, env: str) -> str:
     return f"{registry}.azurecr.io/{container_app}"
 
 
-def _deploy_azure_container_app(
+def deploy_azure_container_app(
     build_dir: Path,
     target: TargetRecord,
     env: str,
@@ -1663,10 +1663,10 @@ def _deploy_azure_container_app(
     aca = env_binding.azure_container_app
     rg = aca["resource_group"]
     container_app = aca["container_app"]
-    image_repo = _aca_image_repo(aca, env)
+    image_repo = aca_image_repo(aca, env)
     registry = image_repo.split(".azurecr.io/", 1)[0]
     image_ref = f"{image_repo}:{build_n}"
-    _step(
+    step(
         f"=== azure_container_app {target.target_id} env={env} -> "
         f"{container_app} (rg={rg}) image={image_ref} ==="
     )
@@ -1692,7 +1692,7 @@ def _deploy_azure_container_app(
             f"can verify/provision the Netherite partitions Event Hub."
         )
     partition_count = aca_helpers.aca_read_partition_count_from_host_json(
-        _find_repo_root(Path(__file__)),
+        find_repo_root(Path(__file__)),
     )
     aca_helpers.aca_ensure_partitions_event_hub(
         event_hubs_namespace, rg, partition_count,
@@ -1795,7 +1795,7 @@ def _deploy_azure_container_app(
     )
     aca_helpers.aca_wait_for_revision(container_app, rg)
     fqdn = aca_helpers.aca_query_fqdn(container_app, rg)
-    _step(f"  container app FQDN: https://{fqdn}")
+    step(f"  container app FQDN: https://{fqdn}")
     return f"{container_app} ({fqdn})"
 
 
@@ -1803,7 +1803,7 @@ def _deploy_azure_container_app(
 # Cloud dispatch (--env dev|qa|prod)
 # ═════════════════════════════════════════════════════════════════════════
 
-def _current_git_branch(repo_root: Path) -> str:
+def current_git_branch(repo_root: Path) -> str:
     """Return the local working tree's current branch name. Fails loud
     in detached-HEAD or any other state we cannot pin to a branch."""
     cp = subprocess.run(
@@ -1818,7 +1818,7 @@ def _current_git_branch(repo_root: Path) -> str:
     return cp.stdout.strip()
 
 
-def _require_branch_matches_env_binding(
+def require_branch_matches_env_binding(
     repo_root: Path,
     target,
     env: str,
@@ -1851,7 +1851,7 @@ def _require_branch_matches_env_binding(
             "branch declared in deployment_architecture.json; the deploy refuses "
             "to ship without a manifest-declared expected branch."
         )
-    actual = _current_git_branch(repo_root)
+    actual = current_git_branch(repo_root)
     if actual != expected:
         sys.exit(
             f"ERROR: promote-chain guard — refusing to deploy.\n"
@@ -1864,7 +1864,7 @@ def _require_branch_matches_env_binding(
         )
 
 
-def _deploy_one(
+def deploy_one(
     repo_root: Path,
     target_id: str,
     target_kind: str,
@@ -1872,26 +1872,26 @@ def _deploy_one(
     resolver: SecretsResolver,
     coll: DeploymentCollection,
 ) -> str:
-    build_dir = repo_root / _BUILD_ROOT_REL / target_id
+    build_dir = repo_root / BUILD_ROOT_REL / target_id
     if not build_dir.is_dir():
         sys.exit(f"ERROR: build dir missing: {build_dir}")
-    manifest = _load_target_manifest(repo_root, target_id)
+    manifest = load_target_manifest(repo_root, target_id)
     build_n = int(manifest["build_number"])
     target = coll.by_target_id(target_id)
-    _require_branch_matches_env_binding(repo_root, target, env)
+    require_branch_matches_env_binding(repo_root, target, env)
     if target_kind == "cloudflare_pages_project":
-        return _deploy_cloudflare(build_dir, env, resolver, target)
+        return deploy_cloudflare(build_dir, env, resolver, target)
     if target_kind == "hf_space":
-        return _deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver, target)
+        return deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver, target)
     if target_kind == "azure_function_app":
         target = coll.by_target_id(target_id)
-        return _deploy_azure_function_app(build_dir, target, env, resolver, coll)
+        return deploy_azure_function_app(build_dir, target, env, resolver, coll)
     if target_kind == "azure_container_app":
         target = coll.by_target_id(target_id)
-        return _deploy_azure_container_app(build_dir, target, env, resolver, build_n)
+        return deploy_azure_container_app(build_dir, target, env, resolver, build_n)
     if target_kind == "azure_automation_runbook":
         target = coll.by_target_id(target_id)
-        return _deploy_azure_automation_runbook(
+        return deploy_azure_automation_runbook(
             build_dir, target, env, resolver, repo_root, coll,
         )
     raise RuntimeError(
@@ -1899,7 +1899,7 @@ def _deploy_one(
     )
 
 
-_DEPLOYABLE_KINDS = (
+DEPLOYABLE_KINDS = (
     "cloudflare_pages_project",
     "hf_space",
     "azure_function_app",
@@ -1908,12 +1908,12 @@ _DEPLOYABLE_KINDS = (
 )
 
 
-def _select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tuple[str, str]]:
+def select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tuple[str, str]]:
     """Return [(target_id, target_kind), ...] matching the filter."""
     if target_arg == "all":
         return [
             (t.target_id, t.target_kind) for t in coll
-            if t.target_kind in _DEPLOYABLE_KINDS
+            if t.target_kind in DEPLOYABLE_KINDS
         ]
     if target_arg in ("cloudflare", "cloudflare_pages_project"):
         return [
@@ -1951,7 +1951,7 @@ def _select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tupl
     return []
 
 
-def _run_cloud_deploy(env: str, target_arg: str) -> int:
+def run_cloud_deploy(env: str, target_arg: str) -> int:
     """Deploy every in-scope target independently. A target either deploys
     completely (its handler succeeds) or is skipped entirely with an error
     captured for the final report — a failure in one target never halts
@@ -1959,13 +1959,13 @@ def _run_cloud_deploy(env: str, target_arg: str) -> int:
     fast-fail before any state-changing action so a per-target failure
     leaves the live system unchanged for that target.
     """
-    repo_root = _find_repo_root(Path(__file__))
-    _step(f"repo_root={repo_root} env={env} target={target_arg}")
+    repo_root = find_repo_root(Path(__file__))
+    step(f"repo_root={repo_root} env={env} target={target_arg}")
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     env_file = repo_root / "Code" / ".env"
     coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
     resolver = SecretsResolver.from_collection(coll, env_file=env_file)
-    selected = _select_target_ids(coll, target_arg)
+    selected = select_target_ids(coll, target_arg)
     if not selected:
         sys.exit(f"ERROR: no targets matched --target={target_arg!r}")
     by_id = {t.target_id: t for t in coll}
@@ -1974,34 +1974,34 @@ def _run_cloud_deploy(env: str, target_arg: str) -> int:
     # guard inside _deploy_one is still the authoritative enforcement;
     # this is the fail-fast surface for promote-chain deploys.
     if any(by_id[tid].promote_chain_bound for tid, _ in selected):
-        _require_branch_matches_env(env)
+        require_branch_matches_env(env)
     succeeded: list[str] = []
     failed: list[tuple[str, str]] = []  # (target_id, error_message)
     for target_id, target_kind in selected:
         target = by_id[target_id]
         if env not in target.env_binding_set():
-            _step(f"  skip {target_id}: no env_binding for {env!r}")
+            step(f"  skip {target_id}: no env_binding for {env!r}")
             continue
         try:
-            succeeded.append(_deploy_one(
+            succeeded.append(deploy_one(
                 repo_root, target_id, target_kind, env, resolver, coll,
             ))
         except SystemExit as exc:
             msg = str(exc.code) if exc.code else "sys.exit() with no message"
-            _step(f"  FAILED {target_id}: {msg[:500]}")
+            step(f"  FAILED {target_id}: {msg[:500]}")
             failed.append((target_id, msg))
         except Exception as exc:
             msg = f"{type(exc).__name__}: {exc!s}"
-            _step(f"  FAILED {target_id}: {msg[:500]}")
+            step(f"  FAILED {target_id}: {msg[:500]}")
             failed.append((target_id, msg))
     if succeeded:
-        _step(f"deployed {len(succeeded)} target(s):")
+        step(f"deployed {len(succeeded)} target(s):")
         for d in succeeded:
-            _step(f"  {d}")
+            step(f"  {d}")
     if failed:
-        _step(f"FAILED {len(failed)} target(s):")
+        step(f"FAILED {len(failed)} target(s):")
         for tid, msg in failed:
-            _step(f"  {tid}: {msg[:300]}")
+            step(f"  {tid}: {msg[:300]}")
         return 1
     if not succeeded:
         sys.exit(
@@ -2016,7 +2016,7 @@ def _run_cloud_deploy(env: str, target_arg: str) -> int:
 # Per EPIC-008-F-012-S-001 REQ-T-001..T-008 + REQ-B-001..B-007.
 # ═════════════════════════════════════════════════════════════════════════
 
-_REPO_ROOT_ENV = "CHATHEALTHY_PROJECT_ROOT"
+REPO_ROOT_ENV = "CHATHEALTHY_PROJECT_ROOT"
 
 
 class LocalDeploy:
@@ -2060,10 +2060,10 @@ class LocalDeploy:
     WEBSITE_DOCKERFILE = "architecture/DevOpsBuildDeployAndEnvironmentManagement/WebsiteWrapper/Dockerfile"
 
     def __init__(self) -> None:
-        if _REPO_ROOT_ENV not in os.environ:
+        if REPO_ROOT_ENV not in os.environ:
             sys.exit(f"ERROR: {_REPO_ROOT_ENV} env var not set. Cannot resolve paths.")
         self.env = "local"
-        self.repo_root = Path(os.environ[_REPO_ROOT_ENV]).resolve()
+        self.repo_root = Path(os.environ[REPO_ROOT_ENV]).resolve()
         self.deploy_dir = Path(__file__).resolve().parent
         self.frontend_dir = (self.repo_root / "Code" / "ConversationalUX"
                              / "FindCareChat" / "frontend")
@@ -2121,7 +2121,7 @@ class LocalDeploy:
 
     # REQ-T-005 — atomic teardown precondition
     def _teardown_precondition(self) -> None:
-        cflags = _cflags()
+        cflags = creation_flags()
         # All containers under local_deploy's lifecycle (REQ-T-007): the 3
         # backends + the Website wrapper. Kafka container stays as separate
         # infra for now (its lifecycle migration is a follow-up).
@@ -2182,7 +2182,7 @@ class LocalDeploy:
         """V11 S-002-REQ-T-001 — Docker mandatory; no Python-subprocess fallback."""
         result = subprocess.run(
             ["docker", "version"],
-            capture_output=True, text=True, timeout=15, creationflags=_cflags(),
+            capture_output=True, text=True, timeout=15, creationflags=creation_flags(),
         )
         if result.returncode != 0:
             sys.exit(
@@ -2193,7 +2193,7 @@ class LocalDeploy:
             )
 
     def _write_build_info(self, build_ctx_abs: Path, container_name: str) -> Path:
-        cflags = _cflags()
+        cflags = creation_flags()
         from dotenv import load_dotenv
         from pymongo import MongoClient
         load_dotenv(self.repo_root / "Code" / ".env")
@@ -2282,7 +2282,7 @@ class LocalDeploy:
                     ["docker", "build", "-t", image_tag,
                      "-f", str(dockerfile_abs), str(build_ctx_abs)],
                     cwd=str(self.repo_root),
-                    capture_output=True, text=True, creationflags=_cflags(),
+                    capture_output=True, text=True, creationflags=creation_flags(),
                 )
             finally:
                 if staged_lib is not None and staged_lib.exists():
@@ -2316,7 +2316,7 @@ class LocalDeploy:
              "-t", self.WEBSITE_CONTAINER_NAME,
              "-f", str(dockerfile_abs), str(self.repo_root)],
             cwd=str(self.repo_root),
-            capture_output=True, text=True, creationflags=_cflags(),
+            capture_output=True, text=True, creationflags=creation_flags(),
         )
         if result.returncode != 0:
             sys.exit(
@@ -2396,12 +2396,18 @@ class LocalDeploy:
         # _hf_set_variable per env; the Azure FA gateway deploy sets it
         # to its own env; the local stack does the same here.
         env_dict["ENV_PREFIX"] = self.env
+        # ChatHealthyLoggingService reads CH_LOG_LEVEL (logging_service.py:71),
+        # not the legacy LOG_LEVEL. Bridge the legacy var so existing .env
+        # settings keep working in the new library. If both are set in .env,
+        # CH_LOG_LEVEL wins (only fill when caller hasn't set it explicitly).
+        if env_dict.get("CH_LOG_LEVEL") is None and env_dict.get("LOG_LEVEL"):
+            env_dict["CH_LOG_LEVEL"] = env_dict["LOG_LEVEL"]
         env_args: list[str] = []
         for k, v in env_dict.items():
             if v is None:
                 continue
             env_args.extend(["-e", f"{k}={v}"])
-        cflags = _cflags()
+        cflags = creation_flags()
         for container_name, (label, _src_dir, _build_ctx) in self.BACKEND_CONTAINERS.items():
             host_port = self.PORTS[label]
             subprocess.run(

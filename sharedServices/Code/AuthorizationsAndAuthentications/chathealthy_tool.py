@@ -22,6 +22,11 @@ from typing import ClassVar, Type
 
 from pydantic import BaseModel
 
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
+
+log = ChatHealthyLoggingService()
+
 
 class ChatHealthyTool(ABC):
     TOOL_NAME: ClassVar[str]
@@ -54,13 +59,25 @@ class ChatHealthyTool(ABC):
             args_dump = (
                 request.model_dump(exclude_none=True) if request is not None else {}
             )
-        except Exception:
+        except Exception as _exc:
+            log.warning("tool args model_dump failed (using {}): %s", _exc, exc=ChatHealthyException(
+                                                                             mode="tool_args_dump_failed",
+                                                                             message=f"tool args model_dump failed (using {{}}): {_exc}",
+                                                                             component="ChatHealthyTool",
+                                                                             exception=_exc,
+                                                                         ), if_not_debug_log=True)
             args_dump = {}
         try:
             result_dump = (
                 result.model_dump(exclude_none=True) if result is not None else {}
             )
-        except Exception:
+        except Exception as _exc:
+            log.warning("tool result model_dump failed (using {}): %s", _exc, exc=ChatHealthyException(
+                                                                               mode="tool_result_dump_failed",
+                                                                               message=f"tool result model_dump failed (using {{}}): {_exc}",
+                                                                               component="ChatHealthyTool",
+                                                                               exception=_exc,
+                                                                           ), if_not_debug_log=True)
             result_dump = {}
         append_action(
             deps.user_object,

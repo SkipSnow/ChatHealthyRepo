@@ -10,7 +10,8 @@ import sys
 import time
 import base64
 import tempfile
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,13 +19,12 @@ from fastapi.responses import JSONResponse
 
 # Code/ on sys.path so api/, healthcheck/, externalInterface/, security/
 # all import as top-level packages.
+
+log = ChatHealthyLoggingService()
+
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
-_log = logging.getLogger("evaluate_care")
-
-
-def _bootstrap_certs_from_env():
+def bootstrap_certs_from_env():
     """EPIC-002-F-001-S-012-REQ-T-005: decode PEM certs from HF Space Secrets
     into a runtime directory so SessionToken.verify can find
     them on HF. No-op locally where /certs is bind-mounted and CERTS_DIR is
@@ -44,36 +44,45 @@ def _bootstrap_certs_from_env():
         try:
             pem = base64.b64decode(b64.strip())
         except Exception as e:
-            _log.error("STARTUP: %s not valid base64: %s", env_var, e)
-            raise
+            raise ChatHealthyException(
+                mode="startup_invalid_base64",
+                message=f"STARTUP: {env_var} not valid base64: {e}",
+                component="EvaluateCare",
+                exception=e,
+            )
         os.makedirs(runtime_dir, exist_ok=True)
         path = os.path.join(runtime_dir, filename)
         with open(path, "wb") as f:
             f.write(pem)
         try:
             os.chmod(path, 0o600)
-        except Exception:
-            pass
+        except Exception as _exc:
+            log.warning("STARTUP: chmod 0600 on %s failed (continuing): %s", path, _exc, exc=ChatHealthyException(
+                                                                                          mode="startup_chmod_failed",
+                                                                                          message=f"STARTUP: chmod 0600 on {path} failed (continuing): {_exc}",
+                                                                                          component="EvaluateCare",
+                                                                                          exception=_exc,
+                                                                                      ), if_not_debug_log=True)
         wrote.append(filename)
     if wrote:
         os.environ["CERTS_DIR"] = runtime_dir
-        _log.info("startup bootstrap: wrote %s to %s", ",".join(wrote), runtime_dir)
+        log.info("startup bootstrap: wrote %s to %s", ",".join(wrote), runtime_dir)
 
 
-_bootstrap_certs_from_env()
+bootstrap_certs_from_env()
 
 app = FastAPI(title="ChatHealthy.ai EvaluateCare", version="0.1.4")
 
-import datetime as _dt
+import datetime as dt
 
 
 @app.exception_handler(Exception)
-async def _fatal(request: Request, exc: Exception):
-    _log.exception("fatal on %s", request.url.path)
+async def fatal(request: Request, exc: Exception):
+    log.exception("fatal on %s", request.url.path)
     return JSONResponse(
         status_code=503,
         content={"service": "EvaluateCare", "source": "unhandled",
-                 "time": _dt.datetime.now(_dt.timezone.utc).isoformat()},
+                 "time": dt.datetime.now(dt.timezone.utc).isoformat()},
     )
 
 
@@ -82,7 +91,7 @@ async def log_requests(request: Request, call_next):
     start = time.time()
     response = await call_next(request)
     elapsed = round((time.time() - start) * 1000)
-    _log.info(
+    log.info(
         "%s %s → %d (%dms) from %s",
         request.method, request.url.path, response.status_code, elapsed,
         request.headers.get("x-forwarded-for", request.client.host if request.client else "unknown"),
@@ -118,11 +127,11 @@ from chathealthy_frontend_lib.authentication import (
     AuthToken, SessionRestampRequest, SessionToken, VerifyTokenResponse,
 )
 
-_ORIGIN = "EvaluateCare"
-_ENV = os.getenv("ENV_PREFIX", "dev")
+ORIGIN = "EvaluateCare"
+ENV = os.getenv("ENV_PREFIX", "dev")
 
 
-def _impl(cls_name, file_subpath):
+def impl(cls_name, file_subpath):
     return {
         "x-implementing-class": cls_name,
         "x-implementing-file": f"evaluateCare/Code/{file_subpath}",
@@ -130,7 +139,7 @@ def _impl(cls_name, file_subpath):
 
 
 @app.post("/health", operation_id="HealthEndpoint",
-          openapi_extra=_impl("HealthEndpoint", "healthcheck/health_endpoint.py"))
+          openapi_extra=impl("HealthEndpoint", "healthcheck/health_endpoint.py"))
 def health():
     # v2.2 Part B 7.6/7.7 — return 503 (not 200) when Mongo is
     # unreachable so the Website fetch wrapper triggers chFatalError.
@@ -141,43 +150,43 @@ def health():
 
 
 @app.post("/splash", operation_id="SplashEndpoint",
-          openapi_extra=_impl("SplashEndpoint", "displayChrome/splash_endpoint.py"))
+          openapi_extra=impl("SplashEndpoint", "displayChrome/splash_endpoint.py"))
 def splash():
     return SplashEndpoint()()
 
 
 @app.post("/session", operation_id="Session", response_model=SessionToken,
-          openapi_extra=_impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
+          openapi_extra=impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
 def session(body: SessionRestampRequest):
-    return AuthToken.handle_session(body, origin=_ORIGIN, server_env=_ENV)
+    return AuthToken.handle_session(body, origin=ORIGIN, server_env=ENV)
 
 
 @app.post("/verify-token", operation_id="VerifyToken", response_model=VerifyTokenResponse,
-          openapi_extra=_impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
+          openapi_extra=impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
 def verify_token(body: SessionRestampRequest):
-    return AuthToken.handle_verify(body, origin=_ORIGIN, server_env=_ENV)
+    return AuthToken.handle_verify(body, origin=ORIGIN, server_env=ENV)
 
 
 @app.post("/evaluate/providers", operation_id="EvaluateProvidersEndpoint", response_model=EvaluateProvidersResponse,
-          openapi_extra=_impl("EvaluateProvidersEndpoint", "externalInterface/evaluate_providers_endpoint.py"))
+          openapi_extra=impl("EvaluateProvidersEndpoint", "externalInterface/evaluate_providers_endpoint.py"))
 def evaluate_providers(body: EvaluateProvidersRequest):
     return EvaluateProvidersEndpoint()(body)
 
 
 @app.post("/transfer/to-findcare", operation_id="TransferToFindCareEndpoint",
-          openapi_extra=_impl("TransferToFindCareEndpoint", "displayChrome/transfer_to_findcare_endpoint.py"))
+          openapi_extra=impl("TransferToFindCareEndpoint", "displayChrome/transfer_to_findcare_endpoint.py"))
 def transfer_to_findcare():
     return TransferToFindCareEndpoint()()
 
 
 @app.post("/debug/verify-live", operation_id="DebugVerifyLiveEndpoint",
-          openapi_extra=_impl("DebugVerifyLiveEndpoint", "security/debug_verify_live_endpoint.py"))
+          openapi_extra=impl("DebugVerifyLiveEndpoint", "security/debug_verify_live_endpoint.py"))
 def debug_verify_live(body: SessionToken):
     return DebugVerifyLiveEndpoint()(body)
 
 
 @app.get("/debug/bootstrap", operation_id="DebugBootstrapEndpoint",
-         openapi_extra=_impl("DebugBootstrapEndpoint", "security/debug_bootstrap_endpoint.py"))
+         openapi_extra=impl("DebugBootstrapEndpoint", "security/debug_bootstrap_endpoint.py"))
 def debug_bootstrap():
     return DebugBootstrapEndpoint()()
 
@@ -186,7 +195,7 @@ def debug_bootstrap():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8001"))
-    _log.info("EvaluateCare starting on port %d", port)
+    log.info("EvaluateCare starting on port %d", port)
     kwargs = {"host": "0.0.0.0", "port": port}
     ssl_cert = os.getenv("SSL_CERTFILE")
     ssl_key = os.getenv("SSL_KEYFILE")

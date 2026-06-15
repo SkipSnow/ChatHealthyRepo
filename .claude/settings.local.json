@@ -13,7 +13,8 @@
       "TodoWrite(*)",
       "Skill(*)",
       "ToolSearch(*)",
-      "NotebookEdit(*)"
+      "NotebookEdit(*)",
+      "Workflow(*)"
     ]
   }
 }

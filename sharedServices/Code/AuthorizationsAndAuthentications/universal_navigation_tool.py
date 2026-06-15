@@ -29,8 +29,8 @@ paths.
 from __future__ import annotations
 
 import asyncio
-import json as _json
-import logging
+import json as json
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -52,7 +52,7 @@ from authentication.user_object import UserObject
 from chathealthy_frontend_lib import ChatHealthyException
 from UtteranceManager import manager as utterance_manager
 
-_log = logging.getLogger("shared_services.universal_navigation")
+log = ChatHealthyLoggingService()
 
 TOOL_NAME = "universal_navigation"
 
@@ -61,21 +61,21 @@ TOOL_NAME = "universal_navigation"
 # orchestrator since /gate is now thin HTTP plumbing only.
 # ────────────────────────────────────────────────────────────────────
 
-_ENV = os.getenv("ENV_PREFIX", "dev")
-_SESSION_TTL_SECONDS = 300
+ENV = os.getenv("ENV_PREFIX", "dev")
+SESSION_TTL_SECONDS = 300
 
-_WIRE_INTENT_UTTERANCE = "utterance"
-_WIRE_INTENT_LOGIN_REGISTER = "login_register"
-_KNOWN_WIRE_INTENTS = frozenset({_WIRE_INTENT_UTTERANCE, _WIRE_INTENT_LOGIN_REGISTER})
+WIRE_INTENT_UTTERANCE = "utterance"
+WIRE_INTENT_LOGIN_REGISTER = "login_register"
+KNOWN_WIRE_INTENTS = frozenset({WIRE_INTENT_UTTERANCE, WIRE_INTENT_LOGIN_REGISTER})
 
-_ENV_TO_SHARED_URL = {
+ENV_TO_SHARED_URL = {
     "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space",
     "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space",
     "prod":  "https://skipsnow-sharedservicesspace.hf.space",
     "local": "https://localhost:8002",
 }
 
-_MAX_DISPATCH_HOPS = 3
+MAX_DISPATCH_HOPS = 3
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ class GateResponse:
 # ────────────────────────────────────────────────────────────────────
 
 
-def _assemble_session_token_value(user_object: UserObject) -> str:
+def assemble_session_token_value(user_object: UserObject) -> str:
     """Assemble the 67-byte ch_session cookie value per
     EPIC-002-F-003-S-003-REQ-B-007: GUID(32) + first_stamp(17) + 'X'
     + second_stamp(17).
@@ -154,7 +154,7 @@ def _assemble_session_token_value(user_object: UserObject) -> str:
     return f"{guid}{nonce_field}"           # 67 bytes
 
 
-def _time_remaining_seconds(user_object: UserObject) -> int:
+def time_remaining_seconds(user_object: UserObject) -> int:
     """REQ-T-004: floor((most_recent_restamp + 300s) - now) in seconds.
     Clipped to non-negative integers."""
     nonce_field = user_object.current_session_token.get_nonce()
@@ -163,19 +163,25 @@ def _time_remaining_seconds(user_object: UserObject) -> int:
         secs = datetime.strptime(latest[:14], "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
         ms = int(latest[14:17])
         restamp_ms = int(secs.timestamp() * 1000) + ms
-    except Exception:
+    except Exception as _exc:
+        log.warning("nonce parse failed: %s", _exc, exc=ChatHealthyException(
+                                                     mode="nonce_parse_failed",
+                                                     message=f"nonce parse failed (treating as expired): {_exc}",
+                                                     component="UniversalNavigationTool",
+                                                     exception=_exc,
+                                                 ), if_not_debug_log=True)
         return 0
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
     remaining_ms = (restamp_ms + 300_000) - now_ms
     return max(0, remaining_ms // 1000)
 
 
-def _was_registered(user_object: UserObject) -> bool:
+def was_registered(user_object: UserObject) -> bool:
     """REQ-T-010: tiny derived flag for the browser's timeout copy."""
     return bool(getattr(user_object, "is_registered", False))
 
 
-def _session_token_wire(user_object: UserObject) -> dict:
+def session_token_wire(user_object: UserObject) -> dict:
     """Cryptographic-display projection of the session token.
 
     Surfaces the bare SessionToken — the three display fields the
@@ -189,7 +195,7 @@ def _session_token_wire(user_object: UserObject) -> dict:
     return dict(st)
 
 
-def _splash_data(user_object) -> dict[str, Any]:
+def splash_data(user_object) -> dict[str, Any]:
     """Splash payload shape. Read-only projection of user_object."""
     cst = user_object.current_session_token
     identity = {
@@ -216,7 +222,7 @@ def _splash_data(user_object) -> dict[str, Any]:
     }
 
 
-def _any_pending_disambiguation(document) -> bool:
+def any_pending_disambiguation(document) -> bool:
     """True when any intent entry on the document carries a
     pending_disambiguation marker. UR uses this to suppress closeConnection200
     chaining (REQ-B-004) so the connection remains logically open across the
@@ -227,11 +233,11 @@ def _any_pending_disambiguation(document) -> bool:
     return False
 
 
-def _read_nucc_codes_cache(document) -> Optional[list[dict]]:
+def read_nucc_codes_cache(document) -> Optional[list[dict]]:
     """Return the parsed nucc_codes list cached on any specialty/find
     intent entry, or None if no cache hit. Prefers specialtySearch's
     cache (the first place SpecialtyFilter writes to today)."""
-    import json as _json
+    import json as json
 
     for name in ("specialtySearch", "findAProvider"):
         entry = next((i for i in document.intents if i.name == name), None)
@@ -240,8 +246,14 @@ def _read_nucc_codes_cache(document) -> Optional[list[dict]]:
         for arg in entry.arguments:
             if arg.name == "nucc_codes" and arg.value:
                 try:
-                    parsed = _json.loads(arg.value)
-                except _json.JSONDecodeError:
+                    parsed = json.loads(arg.value)
+                except json.JSONDecodeError as _exc:
+                    log.warning("intent arg JSON decode failed (skipped): %s", _exc, exc=ChatHealthyException(
+                                                                                      mode="intent_arg_json_decode_failed",
+                                                                                      message=f"intent arg JSON decode failed (skipped): {_exc}",
+                                                                                      component="UniversalNavigationTool",
+                                                                                      exception=_exc,
+                                                                                  ), if_not_debug_log=True)
                     continue
                 if isinstance(parsed, list) and parsed:
                     return parsed
@@ -294,7 +306,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         return Response(kind="boot", result={"op": "boot"})
 
     async def _handle_splash(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
-        data = _splash_data(deps.user_object)
+        data = splash_data(deps.user_object)
         append_action(
             deps.user_object,
             tool_name="splash_displayed",
@@ -358,13 +370,14 @@ class UniversalNavigationTool(ChatHealthyTool):
         except ChatHealthyException as exc:
             if exc.mode != "llm_unavailable":
                 raise
-            _log.exception(
+            log.exception(
                 "UR caught ChatHealthyException — raised at server=%s "
                 "component=%s; caught at server=shared_services "
                 "component=UR; mode=%s message=%s context=%s",
                 exc.server, exc.component, exc.mode, exc.message,
                 exc.context,
                 stack_info=True,
+                exc=exc, if_not_debug_log=True,
             )
             await self._dispatch_llm_unavailable_dialogue(deps, exc)
             return Response(
@@ -388,7 +401,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 ]
 
         last_target_action: Optional[str] = None
-        for _hop in range(_MAX_DISPATCH_HOPS):
+        for _hop in range(MAX_DISPATCH_HOPS):
             document = deps.user_object.intent
             if document is None:
                 raise RuntimeError(
@@ -403,8 +416,8 @@ class UniversalNavigationTool(ChatHealthyTool):
             # REQ-B-004: do not chain to closeConnection200 on a turn that
             # carries a pending disambiguation — the connection is logically
             # still open across the user's next turn.
-            if target_action == "closeConnection200" and _any_pending_disambiguation(document):
-                _log.debug(
+            if target_action == "closeConnection200" and any_pending_disambiguation(document):
+                log.debug(
                     "UR: suppressing closeConnection200 chain because at least "
                     "one intent carries pending_disambiguation"
                 )
@@ -456,7 +469,7 @@ class UniversalNavigationTool(ChatHealthyTool):
           IntentDocument to closeConnection200; UR's bounded dispatch
           loop chains to CloseConnection200Tool.
         """
-        import json as _json
+        import json as json
         from UtteranceManager.intent_document import (
             Argument, IntentDocument, IntentSpecialtySearch, IntentFindAProvider,
         )
@@ -475,7 +488,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         # 2026-06-10: complaint did not change, so the filter choices
         # must not change either.
         selected_codes = [c for c in nucc_codes if isinstance(c, str)]
-        selected_codes_json = _json.dumps(selected_codes)
+        selected_codes_json = json.dumps(selected_codes)
 
         prior = deps.user_object.intent
         complaint, geography = self._extract_complaint_and_geography(prior)
@@ -524,13 +537,14 @@ class UniversalNavigationTool(ChatHealthyTool):
         except ChatHealthyException as exc:
             if exc.mode != "llm_unavailable":
                 raise
-            _log.exception(
+            log.exception(
                 "UR caught ChatHealthyException — raised at server=%s "
                 "component=%s; caught at server=shared_services "
                 "component=UR; mode=%s message=%s context=%s",
                 exc.server, exc.component, exc.mode, exc.message,
                 exc.context,
                 stack_info=True,
+                exc=exc, if_not_debug_log=True,
             )
             await self._dispatch_llm_unavailable_dialogue(deps, exc)
             return Response(
@@ -561,7 +575,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         IntentDocument. Looks at findAProvider first (preferred — carries
         both), falls back to specialtySearch for complaint. Returns
         ('', {}) if no useful data is found."""
-        import json as _json
+        import json as json
         if document is None:
             return "", {}
         complaint = ""
@@ -575,11 +589,16 @@ class UniversalNavigationTool(ChatHealthyTool):
                     complaint = arg.value
                 if arg.name == "geography" and arg.value and not geography:
                     try:
-                        parsed = _json.loads(arg.value)
+                        parsed = json.loads(arg.value)
                         if isinstance(parsed, dict):
                             geography = parsed
-                    except _json.JSONDecodeError:
-                        pass
+                    except json.JSONDecodeError as _exc:
+                        log.warning("geography arg JSON decode failed (skipped): %s", _exc, exc=ChatHealthyException(
+                                                                                             mode="geography_arg_json_decode_failed",
+                                                                                             message=f"geography arg JSON decode failed (skipped): {_exc}",
+                                                                                             component="UniversalNavigationTool",
+                                                                                             exception=_exc,
+                                                                                         ), if_not_debug_log=True)
         return complaint, geography
 
     @staticmethod
@@ -612,7 +631,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         carried on nucc_codes is preserved — it is what the FE filter
         panel renders, and the complaint did not change so the universe
         does not change."""
-        import json as _json
+        import json as json
         from UtteranceManager.intent_document import (
             Argument, IntentDocument, IntentFindAProvider, IntentSpecialtySearch,
         )
@@ -649,7 +668,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             name="complaint", value=complaint or "", type="string", required=True,
         ))
         findap_args.append(Argument(
-            name="geography", value=_json.dumps(geo_compact),
+            name="geography", value=json.dumps(geo_compact),
             type="object", required=True,
         ))
         findap_args.append(Argument(
@@ -679,7 +698,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         universe. The complaint did not change, so the universe does not
         change. The next-turn interpret path will see selected_nucc_codes
         and ProviderSearch will use it as its filter."""
-        import json as _json
+        import json as json
         from UtteranceManager.intent_document import (
             Argument, IntentDocument, IntentFindAProvider, IntentSpecialtySearch,
         )
@@ -717,7 +736,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             ))
             if geo_compact:
                 findap_args.append(Argument(
-                    name="geography", value=_json.dumps(geo_compact),
+                    name="geography", value=json.dumps(geo_compact),
                     type="object", required=True,
                 ))
             findap_args.append(Argument(
@@ -762,7 +781,12 @@ class UniversalNavigationTool(ChatHealthyTool):
                 "unlocked": {"$ne": True},
             })
         except Exception as exc:
-            _log.exception("UR: _hydrate_lockout_if_any find_one failed: %s", exc)
+            log.exception("UR: _hydrate_lockout_if_any find_one failed: %s", exc, exc=ChatHealthyException(
+                                                                                   mode="ur_hydrate_lockout_find_failed",
+                                                                                   message=f"UR: _hydrate_lockout_if_any find_one failed: {exc}",
+                                                                                   component="UniversalNavigationTool",
+                                                                                   exception=exc,
+                                                                               ), if_not_debug_log=True)
             return
         if record is None:
             return
@@ -770,10 +794,16 @@ class UniversalNavigationTool(ChatHealthyTool):
         expires_str = record.get("expires_at") or ""
         try:
             expires_at = datetime.fromisoformat(expires_str)
-        except Exception:
-            _log.warning(
+        except Exception as _exc:
+            log.warning(
                 "UR: emergency_incidents row for ip=%s has invalid expires_at=%r; "
                 "treating as inactive", ip[:16] + "...", expires_str,
+                exc=ChatHealthyException(
+                 mode="ur_lockout_expires_at_invalid",
+                 message=f"UR: emergency_incidents row for ip={ip[:16]}... has invalid expires_at={expires_str!r}; treating as inactive",
+                 component="UniversalNavigationTool",
+                 exception=_exc,
+             ), if_not_debug_log=True,
             )
             return
         deps.user_object.is_locked_out = True
@@ -782,7 +812,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             trigger_utterance=str(record.get("trigger_message") or ""),
             history=list(record.get("history") or []),
         )
-        _log.debug(
+        log.debug(
             "UR: hydrated lockout for ip=%s; expires_at=%s",
             ip[:16] + "...", expires_str,
         )
@@ -791,7 +821,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         """UR compliance check on the IntentDocument: target_action enumerated
         by Pydantic; must correspond to a name in intents[]; required arguments
         non-empty and parseable; findAProvider geography sufficiency."""
-        import json as _json
+        import json as json
 
         target_intent_entry = next(
             (i for i in document.intents if i.name == target_action), None,
@@ -814,11 +844,13 @@ class UniversalNavigationTool(ChatHealthyTool):
                 )
             if arg.type in ("object", "array"):
                 try:
-                    _json.loads(arg.value)
-                except _json.JSONDecodeError as exc:
-                    raise RuntimeError(
-                        f"UR compliance: {arg.type} argument {arg.name!r} value is not "
-                        f"valid JSON: {exc}"
+                    json.loads(arg.value)
+                except json.JSONDecodeError as exc:
+                    raise ChatHealthyException(
+                        mode="ur_compliance_arg_invalid_json",
+                        message=f"UR compliance: {arg.type} argument {arg.name!r} value is not valid JSON: {exc}",
+                        component="UniversalNavigationTool",
+                        exception=exc,
                     )
 
         if target_action == "findAProvider":
@@ -829,7 +861,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 raise RuntimeError(
                     "UR compliance: findAProvider missing geography argument"
                 )
-            geo = _json.loads(geo_arg.value)
+            geo = json.loads(geo_arg.value)
             zip_code = (geo.get("zip") or "").strip()
             state = (geo.get("state") or "").strip()
             if not zip_code and not state:
@@ -872,7 +904,7 @@ class UniversalNavigationTool(ChatHealthyTool):
     async def _dispatch_target_action(self, deps: AgentDeps, document, target_action: str) -> None:
         """Dispatch the tool that owns this target_action. Tools may mutate
         user_object.intent before returning; the caller loops and re-dispatches."""
-        import json as _json
+        import json as json
 
         target_intent_entry = next(
             (i for i in document.intents if i.name == target_action), None,
@@ -931,7 +963,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                     (a for a in target_intent_entry.arguments if a.name == "geography"),
                     None,
                 )
-                geo = _json.loads(geo_arg_val.value) if geo_arg_val else {}
+                geo = json.loads(geo_arg_val.value) if geo_arg_val else {}
 
                 # Apply-Filter selection (if any) narrows the search.
                 # Absent selection: search the full universe.
@@ -941,8 +973,14 @@ class UniversalNavigationTool(ChatHealthyTool):
                 )
                 if selected_arg and selected_arg.value:
                     try:
-                        selected_codes = _json.loads(selected_arg.value)
-                    except _json.JSONDecodeError:
+                        selected_codes = json.loads(selected_arg.value)
+                    except json.JSONDecodeError as _exc:
+                        log.warning("selected_nucc_codes JSON decode failed (defaulting to []): %s", _exc, exc=ChatHealthyException(
+                                                                                                            mode="selected_nucc_codes_json_decode_failed",
+                                                                                                            message=f"selected_nucc_codes JSON decode failed (defaulting to []): {_exc}",
+                                                                                                            component="UniversalNavigationTool",
+                                                                                                            exception=_exc,
+                                                                                                        ), if_not_debug_log=True)
                         selected_codes = []
                     if isinstance(selected_codes, list) and selected_codes:
                         specialty_codes = [c for c in selected_codes if isinstance(c, str)]
@@ -982,14 +1020,14 @@ class UniversalNavigationTool(ChatHealthyTool):
 
         Returns the list of {code, name, score, ...} dicts.
         """
-        import json as _json
+        import json as json
         from UtteranceManager.intent_document import Argument
 
         document = deps.user_object.intent
         if document is None:
             return []
 
-        cached = _read_nucc_codes_cache(document)
+        cached = read_nucc_codes_cache(document)
         if cached is not None:
             # Cache hit: the complaint did not change, so the FE
             # specialty panel already reflects this universe. DO NOT
@@ -1021,7 +1059,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             return []
 
         specialties = [s.model_dump(exclude_none=True) for s in fs.specialties]
-        encoded = _json.dumps(specialties)
+        encoded = json.dumps(specialties)
 
         # Write nucc_codes back onto every applicable intent entry so the
         # next turn (after the user resolves a pending disambiguation) sees
@@ -1063,7 +1101,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         event construction — lives here.
         """
         # 1. Wire-intent validation (gateway concern).
-        if gate_req.intent is not None and gate_req.intent not in _KNOWN_WIRE_INTENTS:
+        if gate_req.intent is not None and gate_req.intent not in KNOWN_WIRE_INTENTS:
             raise ValueError(
                 f"/gate: unknown intent {gate_req.intent!r}; expected one of "
                 f"{sorted(_KNOWN_WIRE_INTENTS)} or absent"
@@ -1073,7 +1111,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         mongo_frontend = authn.get_mongo_frontend()
         authn_deps = AuthnDeps(
             prior_guid=gate_req.prior_guid,
-            server_env=_ENV,
+            server_env=ENV,
             mongo_frontend=mongo_frontend,
         )
 
@@ -1093,9 +1131,15 @@ class UniversalNavigationTool(ChatHealthyTool):
                     if expires_at > datetime.now(timezone.utc):
                         loaded_user_object = candidate
                 except Exception as exc:
-                    _log.warning(
+                    log.warning(
                         "could not reconstitute UserObject for %s: %s",
                         gate_req.prior_guid[:8], exc,
+                        exc=ChatHealthyException(
+                         mode="user_object_reconstitute_failed",
+                         message=f"could not reconstitute UserObject for {gate_req.prior_guid[:8]}: {exc}",
+                         component="UniversalNavigationTool",
+                         exception=exc,
+                     ), if_not_debug_log=True,
                     )
 
         if loaded_user_object is not None:
@@ -1106,7 +1150,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 loaded_user_object.intent.model_dump()
                 if loaded_user_object.intent is not None else None
             )
-            _log.debug(
+            log.debug(
                 "handle_gate SESSION LOADED prior_guid=%s utterances=%d actions=%d "
                 "has_intent=%s\nLOADED session_conversation_history=%s\n"
                 "LOADED intent=%s",
@@ -1114,17 +1158,17 @@ class UniversalNavigationTool(ChatHealthyTool):
                 len(loaded_user_object.session_conversation_history.utterances),
                 len(loaded_user_object.session_conversation_history.actions),
                 loaded_user_object.intent is not None,
-                _json.dumps(sch_dump, default=str),
-                _json.dumps(intent_dump, default=str),
+                json.dumps(sch_dump, default=str),
+                json.dumps(intent_dump, default=str),
             )
         else:
             auth_intent = "manufacture_session"
             inbound_user_object = UserObject(
                 current_session_token="NULL",
                 expires_at=datetime.now(timezone.utc)
-                + timedelta(seconds=_SESSION_TTL_SECONDS),
+                + timedelta(seconds=SESSION_TTL_SECONDS),
             )
-            _log.debug(
+            log.debug(
                 "handle_gate FRESH MINT (no prior_guid or session not found) "
                 "prior_guid=%s",
                 gate_req.prior_guid[:8] + "..." if gate_req.prior_guid else None,
@@ -1138,7 +1182,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         user_object = authn_resp.user_object
         fresh_mint = authn_resp.fresh_mint
         guid = user_object.current_session_token.get_auth_token()
-        cookie_value = _assemble_session_token_value(user_object)
+        cookie_value = assemble_session_token_value(user_object)
 
         # Stamp client IP onto user_object at the HTTP boundary so tools
         # (SafetyLockoutTool in particular) never touch the Request. UR's
@@ -1149,8 +1193,8 @@ class UniversalNavigationTool(ChatHealthyTool):
 
         # 5. Login_register short-circuit. The gateway-level OAuth start
         #    URL is built here (HTTP knowledge stays out of the auth tool).
-        if gate_req.intent == _WIRE_INTENT_LOGIN_REGISTER:
-            shared = _ENV_TO_SHARED_URL.get(_ENV)
+        if gate_req.intent == WIRE_INTENT_LOGIN_REGISTER:
+            shared = ENV_TO_SHARED_URL.get(ENV)
             if not shared:
                 raise RuntimeError(
                     f"/gate: no SharedServices URL for env {_ENV!r}"
@@ -1167,13 +1211,13 @@ class UniversalNavigationTool(ChatHealthyTool):
             redirect_event = {
                 "type": "redirect",
                 "url": redirect_url,
-                "time_remaining_seconds": _time_remaining_seconds(user_object),
-                "was_registered": _was_registered(user_object),
-                "session_token": _session_token_wire(user_object),
+                "time_remaining_seconds": time_remaining_seconds(user_object),
+                "was_registered": was_registered(user_object),
+                "session_token": session_token_wire(user_object),
             }
             if gate_req.want_ndjson:
                 body_bytes = (
-                    _json.dumps(redirect_event, default=str) + "\n"
+                    json.dumps(redirect_event, default=str) + "\n"
                 ).encode("utf-8")
                 return GateResponse(
                     cookie_value=cookie_value,
@@ -1197,7 +1241,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             user_object=user_object,
             session_token=user_object.current_session_token,
             mongo_frontend=mongo_frontend,
-            server_env=_ENV,
+            server_env=ENV,
             stream=stream_sink,
         )
         nav_req = self.Request(op=gate_req.op, payload=gate_req.payload)
@@ -1214,19 +1258,25 @@ class UniversalNavigationTool(ChatHealthyTool):
                     res_local = await self.run(agent_deps, nav_req)
                 except Exception as exc:
                     nav_exc_local = exc
-                    _log.exception(
+                    log.exception(
                         "UniversalNavigation run failed for op=%s payload=%r: %s",
                         gate_req.op, gate_req.payload, exc,
+                        exc=ChatHealthyException(
+                         mode="ur_run_failed",
+                         message=f"UniversalNavigation run failed for op={gate_req.op} payload={gate_req.payload!r}: {exc}",
+                         component="UniversalNavigationTool",
+                         exception=exc,
+                     ), if_not_debug_log=True,
                     )
 
-                session_token_proj = _session_token_wire(user_object)
+                session_token_proj = session_token_wire(user_object)
                 if nav_exc_local is not None:
                     final_event_local = {
                         "kind": "final", "ok": False,
                         "error": f"{type(nav_exc_local).__name__}: {nav_exc_local}",
                         "guid": guid,
-                        "time_remaining_seconds": _time_remaining_seconds(user_object),
-                        "was_registered": _was_registered(user_object),
+                        "time_remaining_seconds": time_remaining_seconds(user_object),
+                        "was_registered": was_registered(user_object),
                         "session_token": session_token_proj,
                     }
                 else:
@@ -1235,8 +1285,8 @@ class UniversalNavigationTool(ChatHealthyTool):
                         "guid": guid,
                         "result": res_local.result if res_local else {},
                         "result_kind": res_local.kind if res_local else "unknown",
-                        "time_remaining_seconds": _time_remaining_seconds(user_object),
-                        "was_registered": _was_registered(user_object),
+                        "time_remaining_seconds": time_remaining_seconds(user_object),
+                        "was_registered": was_registered(user_object),
                         "session_token": session_token_proj,
                     }
 
@@ -1246,7 +1296,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                         user_object.intent.model_dump()
                         if user_object.intent is not None else None
                     )
-                    _log.debug(
+                    log.debug(
                         "handle_gate PERSIST guid=%s utterances=%d actions=%d "
                         "has_intent=%s fresh_mint=%s\n"
                         "PERSIST session_conversation_history=%s\n"
@@ -1256,12 +1306,17 @@ class UniversalNavigationTool(ChatHealthyTool):
                         len(user_object.session_conversation_history.actions),
                         user_object.intent is not None,
                         fresh_mint,
-                        _json.dumps(sch_dump, default=str),
-                        _json.dumps(intent_dump, default=str),
+                        json.dumps(sch_dump, default=str),
+                        json.dumps(intent_dump, default=str),
                     )
                     await authn.TOOL.persist(authn_deps, user_object, fresh_mint)
                 except Exception as exc:
-                    _log.exception("AuthN.persist failed: %s", exc)
+                    log.exception("AuthN.persist failed: %s", exc, exc=ChatHealthyException(
+                                                                    mode="authn_persist_failed",
+                                                                    message=f"AuthN.persist failed: {exc}",
+                                                                    component="UniversalNavigationTool",
+                                                                    exception=exc,
+                                                                ), if_not_debug_log=True)
 
                 event_queue.put_nowait(final_event_local)
             finally:
@@ -1278,7 +1333,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                     item = await event_queue.get()
                     if item is _SENTINEL:
                         return
-                    yield (_json.dumps(item, default=str) + "\n").encode("utf-8")
+                    yield (json.dumps(item, default=str) + "\n").encode("utf-8")
 
             return GateResponse(
                 cookie_value=cookie_value,

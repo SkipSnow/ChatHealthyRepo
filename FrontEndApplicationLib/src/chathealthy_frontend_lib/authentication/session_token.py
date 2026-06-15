@@ -2,7 +2,6 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
 import base64
-import logging as _logging
 import os
 from datetime import datetime, timezone
 from typing import Optional
@@ -13,17 +12,19 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.x509 import load_pem_x509_certificate
 from pydantic import BaseModel, Field
 
+from ..exceptions import ChatHealthyException
+from ..logging_service import ChatHealthyLoggingService
 from .nonce import Nonce
 
 
-_log = _logging.getLogger("chathealthy_frontend_lib.session_token")
+log = ChatHealthyLoggingService()
 
 
-_TOKEN_PREFIX = "CH"
-_GUID_SIZE = 32
-_TOKEN_SIZE = len(_TOKEN_PREFIX) + Nonce.SIZE + _GUID_SIZE
-_NONCE_OFFSET = len(_TOKEN_PREFIX)
-_GUID_OFFSET = _NONCE_OFFSET + Nonce.SIZE
+TOKEN_PREFIX = "CH"
+GUID_SIZE = 32
+TOKEN_SIZE = len(TOKEN_PREFIX) + Nonce.SIZE + GUID_SIZE
+NONCE_OFFSET = len(TOKEN_PREFIX)
+GUID_OFFSET = NONCE_OFFSET + Nonce.SIZE
 
 
 class TokenWidgetData(BaseModel):
@@ -55,20 +56,20 @@ class TokenInfraError(RuntimeError):
 CERTS_DIR = os.environ.get("CERTS_DIR", "/certs")
 
 
-_SERVICE_TO_CERT_NAME = {
+SERVICE_TO_CERT_NAME = {
     "FindCare":       "findcare",
     "EvaluateCare":   "evalcare",
     "SharedServices": "shared",
 }
 
 
-def _cert_basename(origin: str) -> str:
-    if origin not in _SERVICE_TO_CERT_NAME:
+def cert_basename(origin: str) -> str:
+    if origin not in SERVICE_TO_CERT_NAME:
         raise ValueError(
             f"Invalid token origin {origin!r}; "
             f"must be one of {sorted(_SERVICE_TO_CERT_NAME)}."
         )
-    return _SERVICE_TO_CERT_NAME[origin]
+    return SERVICE_TO_CERT_NAME[origin]
 
 
 class SessionToken(BaseModel):
@@ -81,21 +82,21 @@ class SessionToken(BaseModel):
     last_used: Optional[str] = None
 
     def get_auth_token(self) -> str:
-        if len(self.token) < _TOKEN_SIZE:
+        if len(self.token) < TOKEN_SIZE:
             raise ValueError(
                 f"token length {len(self.token)} < {_TOKEN_SIZE}; cannot extract GUID"
             )
-        return self.token[_GUID_OFFSET:]
+        return self.token[GUID_OFFSET:]
 
     def get_nonce(self) -> str:
-        if len(self.token) < _GUID_OFFSET:
+        if len(self.token) < GUID_OFFSET:
             raise ValueError(
                 f"token length {len(self.token)} < {_GUID_OFFSET}; cannot extract nonce"
             )
-        return self.token[_NONCE_OFFSET:_GUID_OFFSET]
+        return self.token[NONCE_OFFSET:GUID_OFFSET]
 
     def put_nonce(self, origin: str) -> None:
-        if len(self.token) < _TOKEN_SIZE or not self.token.startswith(_TOKEN_PREFIX):
+        if len(self.token) < TOKEN_SIZE or not self.token.startswith(TOKEN_PREFIX):
             raise ValueError(f"malformed token; cannot restamp: {self.token!r}")
         guid = self.get_auth_token()
         new_nonce_field = Nonce.restamp(self.get_nonce())
@@ -129,7 +130,7 @@ class SessionToken(BaseModel):
             raise ValueError("verify: empty token")
         if not self.signature:
             raise ValueError("verify: empty signature")
-        if len(self.token) < _TOKEN_SIZE:
+        if len(self.token) < TOKEN_SIZE:
             raise ValueError(f"verify: token length {len(self.token)} < {_TOKEN_SIZE}")
 
         nonce_field = self.get_nonce()
@@ -162,8 +163,17 @@ class SessionToken(BaseModel):
 
         try:
             public_key.verify(sig_bytes, payload, padding.PKCS1v15(), hashes.SHA256())
-        except InvalidSignature:
-            _log.warning("verify: InvalidSignature for origin=%s cert=%s", self.origin, cert_path)
+        except InvalidSignature as exc:
+            log.warning(
+                "verify: InvalidSignature for origin=%s cert=%s",
+                self.origin, cert_path,
+                exc=ChatHealthyException(
+                 mode="session_token_invalid_signature",
+                 message=f"verify: InvalidSignature for origin={self.origin} cert={cert_path}",
+                 component="SessionToken",
+                 exception=exc,
+             ), if_not_debug_log=True,
+            )
             return False
         except Exception as exc:
             raise TokenInfraError(

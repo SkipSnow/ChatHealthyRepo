@@ -12,7 +12,7 @@ CloseConnection200Tool on the next dispatch hop.
 from __future__ import annotations
 
 import asyncio
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 
 from pydantic import BaseModel
 
@@ -26,8 +26,7 @@ from UtteranceManager.intent_document import (
     IntentDocument,
 )
 
-_log = logging.getLogger("shared_services.nonsense_tool")
-
+log = ChatHealthyLoggingService()
 
 class Request(BaseModel):
     """No payload — NonsenseTool reads its data off deps.user_object.intent."""

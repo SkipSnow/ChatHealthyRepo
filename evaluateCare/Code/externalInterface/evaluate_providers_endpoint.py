@@ -1,7 +1,8 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
@@ -44,14 +45,18 @@ class EvaluateProvidersEndpoint:
     _ORIGIN = "EvaluateCare"
 
     def __init__(self):
-        self.log = logging.getLogger("evaluate_care.evaluate_providers")
-
+        self.log = ChatHealthyLoggingService()
     def __call__(self, body: EvaluateProvidersRequest) -> EvaluateProvidersResponse:
         at = AuthToken(body.session_token, origin=self._ORIGIN)
         try:
             valid = at.verify()
         except ValueError as e:
-            self.log.warning("evaluate/providers verify 400: %s", e)
+            self.log.warning("evaluate/providers verify 400: %s", e, exc=ChatHealthyException(
+                                                                      mode="evaluate_providers_verify_400",
+                                                                      message=f"evaluate/providers verify 400: {e}",
+                                                                      component="EvaluateProvidersEndpoint",
+                                                                      exception=e,
+                                                                  ), if_not_debug_log=True)
             raise HTTPException(status_code=400, detail=str(e)) from e
 
         # Provider model is extra='allow' with zero declared fields, so any

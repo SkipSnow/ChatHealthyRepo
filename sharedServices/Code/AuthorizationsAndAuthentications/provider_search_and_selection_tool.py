@@ -14,7 +14,8 @@ Canonical *_tool.py exports: TOOL_NAME, Request, Response, run().
 """
 from __future__ import annotations
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from typing import Any, Optional
 
@@ -24,10 +25,11 @@ from pydantic import BaseModel, Field
 from authentication.agent_deps import AgentDeps
 from authentication.chathealthy_tool import ChatHealthyTool
 
-_log = logging.getLogger("shared_services.provider_search")
+log = ChatHealthyLoggingService()
 
-_FINDCARE_INTERNAL_URL_ENV = "FINDCARE_INTERNAL_URL"
-_FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
+
+FINDCARE_INTERNAL_URL_ENV = "FINDCARE_INTERNAL_URL"
+FINDCARE_INTERNAL_URL_DEFAULT = "https://ch-findcare:7860"
 
 
 class Request(BaseModel):
@@ -55,8 +57,8 @@ class Response(BaseModel):
     error: Optional[str] = None
 
 
-def _findcare_url() -> str:
-    return os.environ.get(_FINDCARE_INTERNAL_URL_ENV) or _FINDCARE_INTERNAL_URL_DEFAULT
+def findcare_url() -> str:
+    return os.environ.get(FINDCARE_INTERNAL_URL_ENV) or FINDCARE_INTERNAL_URL_DEFAULT
 
 
 class ProviderSearchAndSelectionTool(ChatHealthyTool):
@@ -89,16 +91,28 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
         if request.after_npi:
             body["after_npi"] = request.after_npi
 
-        url = _findcare_url() + "/search"
+        url = findcare_url() + "/search"
         try:
-            async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
+            async with httpx.AsyncClient(timeout=None, verify=False) as client:
                 r = await client.post(url, json=body)
                 r.raise_for_status()
                 raw = r.json()
-        except Exception as exc:
-            _log.error("provider_search HTTP /search failed: %s: %s",
-                       type(exc).__name__, exc)
-            resp = self.Response(error=f"search_unavailable: {type(exc).__name__}")
+        except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout,
+                httpx.WriteTimeout, httpx.PoolTimeout, httpx.ReadError,
+                httpx.WriteError, httpx.RemoteProtocolError,
+                httpx.HTTPStatusError) as exc:
+            log.error("FindCare /search call failed: %s: %s",
+                       type(exc).__name__, exc,
+                       exc=ChatHealthyException(
+                        mode="search_unavailable",
+                        message=f"FindCare /search call failed: {type(exc).__name__}: {exc}",
+                        component="ProviderSearchAndSelectionTool",
+                        exception=exc,
+                    ), if_not_debug_log=True)
+            resp = self.Response(
+                error="Provider search is taking longer than usual. "
+                      "Please try the same search again in a moment.",
+            )
             deps.stream({"kind": "providers", "data": resp.model_dump(exclude_none=True)})
             return resp
 

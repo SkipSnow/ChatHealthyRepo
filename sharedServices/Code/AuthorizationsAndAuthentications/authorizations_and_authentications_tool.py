@@ -26,7 +26,8 @@ typed Request. The gateway decides the intent; the tool executes it.
 """
 from __future__ import annotations
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -40,16 +41,17 @@ from authentication.mintable_auth_token import MintableAuthToken
 from authentication.user_object import UserObject
 from chathealthy_frontend_lib.authentication.session_token import SessionToken
 
-_log = logging.getLogger("shared_services.authn")
+log = ChatHealthyLoggingService()
 
-_ORIGIN = "SharedServices"
-_SESSION_TTL_SECONDS = 300
-_SESSION_DB = "Users"
-_SESSION_COLLECTION = "sessions"
-_USERS_DB = "Users"
-_USERS_COLLECTION = "users"
 
-_indexes_ensured: bool = False
+ORIGIN = "SharedServices"
+SESSION_TTL_SECONDS = 300
+SESSION_DB = "Users"
+SESSION_COLLECTION = "sessions"
+USERS_DB = "Users"
+USERS_COLLECTION = "users"
+
+indexes_ensured: bool = False
 
 
 class Request(BaseModel):
@@ -74,7 +76,7 @@ class Response(BaseModel):
     fresh_mint: bool
 
 
-def _auth_token_to_session_token(auth_token: Any) -> SessionToken:
+def auth_token_to_session_token(auth_token: Any) -> SessionToken:
     if isinstance(auth_token, SessionToken):
         return auth_token
     to_wire = getattr(auth_token, "to_wire", None)
@@ -88,26 +90,31 @@ def _auth_token_to_session_token(auth_token: Any) -> SessionToken:
     )
 
 
-def _ensure_indexes(coll) -> None:
-    global _indexes_ensured
-    if _indexes_ensured:
+def ensure_indexes(coll) -> None:
+    global indexes_ensured
+    if indexes_ensured:
         return
     coll.create_index("expires_at", expireAfterSeconds=0, name="session_ttl_idx")
-    _indexes_ensured = True
+    indexes_ensured = True
 
 
-def _reload(coll, guid: str) -> Optional[UserObject]:
+def reload(coll, guid: str) -> Optional[UserObject]:
     doc = coll.find_one({"_id": guid})
     if not doc:
         return None
     try:
         return UserObject.model_validate({k: v for k, v in doc.items() if k != "_id"})
     except Exception as exc:
-        _log.warning("could not reconstitute UserObject for %s: %s", guid[:8], exc)
+        log.warning("could not reconstitute UserObject for %s: %s", guid[:8], exc, exc=ChatHealthyException(
+                                                                                    mode="user_object_reload_failed",
+                                                                                    message=f"could not reconstitute UserObject for {guid[:8]}: {exc}",
+                                                                                    component="AuthorizationsAndAuthentications",
+                                                                                    exception=exc,
+                                                                                ), if_not_debug_log=True)
         return None
 
 
-def _manufacture_session(user_object: UserObject, server_env: str) -> UserObject:
+def manufacture_session(user_object: UserObject, server_env: str) -> UserObject:
     """Mint a SessionToken in place. The incoming user_object's
     current_session_token is the sentinel "NULL"; replace it with a
     real SessionToken and set expires_at to NOW + TTL.
@@ -118,8 +125,8 @@ def _manufacture_session(user_object: UserObject, server_env: str) -> UserObject
     from authentication.agent_deps import append_action
     now = datetime.now(timezone.utc)
     minted = MintableAuthToken.manufacture(server_env=server_env)
-    user_object.current_session_token = _auth_token_to_session_token(minted)
-    user_object.expires_at = now + timedelta(seconds=_SESSION_TTL_SECONDS)
+    user_object.current_session_token = auth_token_to_session_token(minted)
+    user_object.expires_at = now + timedelta(seconds=SESSION_TTL_SECONDS)
     append_action(
         user_object,
         tool_name="on_load",
@@ -129,7 +136,7 @@ def _manufacture_session(user_object: UserObject, server_env: str) -> UserObject
     return user_object
 
 
-def _manage_session(user_object: UserObject) -> UserObject:
+def manage_session(user_object: UserObject) -> UserObject:
     """Restamp the nonce on the existing SessionToken, bump expires_at.
     The incoming user_object carries a real SessionToken — the gateway
     loaded it from Users.sessions."""
@@ -139,12 +146,12 @@ def _manage_session(user_object: UserObject) -> UserObject:
             "manage_session requires a real SessionToken on the incoming "
             "user_object; got sentinel/None."
         )
-    user_object.current_session_token.put_nonce(_ORIGIN)
-    user_object.expires_at = now + timedelta(seconds=_SESSION_TTL_SECONDS)
+    user_object.current_session_token.put_nonce(ORIGIN)
+    user_object.expires_at = now + timedelta(seconds=SESSION_TTL_SECONDS)
     return user_object
 
 
-def _login(
+def login(
     sessions_coll, users_coll, user_object: UserObject,
 ) -> UserObject:
     """Register or merge the OAuth identity carried on the incoming
@@ -172,7 +179,7 @@ def _login(
     email = new_identity.email
     session_guid = user_object.current_session_token.get_auth_token()
 
-    existing_user_id = _user_id_for_identity_provider_sub(
+    existing_user_id = user_id_for_identity_provider_sub(
         users_coll,
         identity_provider=identity_provider,
         identity_provider_user_id=identity_provider_user_id,
@@ -193,7 +200,7 @@ def _login(
             {"_id": session_guid, **body},
             upsert=True,
         )
-        _log.info(
+        log.info(
             "OAUTH-LOGIN registered new user user_id=%s session_guid=%s",
             user_id, session_guid[:8] + "...",
         )
@@ -219,9 +226,11 @@ def _login(
     try:
         db_record = UserObject.model_validate(stored_user_object_doc)
     except Exception as exc:
-        raise RuntimeError(
-            f"AuthN.login: could not validate stored UserObject for merge "
-            f"({type(exc).__name__}: {exc})"
+        raise ChatHealthyException(
+            mode="authn_login_stored_user_object_invalid",
+            message=f"AuthN.login: could not validate stored UserObject for merge ({type(exc).__name__}: {exc})",
+            component="AuthorizationsAndAuthentications",
+            exception=exc,
         )
     merged = db_record.merge(user_object)
     merged_body = merged.model_dump(mode="python", exclude_none=True)
@@ -234,14 +243,14 @@ def _login(
         {"user_id": existing_user_id},
         {"$set": {"user_object": merged_body}},
     )
-    _log.info(
+    log.info(
         "OAUTH-LOGIN returning user_id=%s merged session_guid=%s",
         existing_user_id, session_guid[:8] + "...",
     )
     return merged
 
 
-def _user_id_for_guid(users_coll, guid: str) -> Optional[str]:
+def user_id_for_guid(users_coll, guid: str) -> Optional[str]:
     """Return user_id whose stored user_object holds this session's GUID."""
     doc = users_coll.find_one(
         {"user_object.current_session_token.auth_token": guid},
@@ -250,7 +259,7 @@ def _user_id_for_guid(users_coll, guid: str) -> Optional[str]:
     return doc["user_id"] if doc else None
 
 
-def _user_id_for_identity_provider_sub(
+def user_id_for_identity_provider_sub(
     users_coll, identity_provider: str, identity_provider_user_id: str,
 ) -> Optional[str]:
     """Look up a users record by an entry in user_object.OAuthIdentities.
@@ -272,10 +281,10 @@ def _user_id_for_identity_provider_sub(
     return doc["user_id"] if doc else None
 
 
-def _persist(coll, users_coll, user_object: UserObject, fresh_mint: bool) -> None:
+def write_session_record(coll, users_coll, user_object: UserObject, fresh_mint: bool) -> None:
     """Sole writer for Users.sessions (per-session, every persist) and
     Users.users (mirror, only when user_object.is_registered == True)."""
-    _ensure_indexes(coll)
+    ensure_indexes(coll)
     guid = user_object.current_session_token.get_auth_token()
     body = user_object.model_dump(mode="python", exclude_none=True)
     if fresh_mint:
@@ -293,7 +302,7 @@ def _persist(coll, users_coll, user_object: UserObject, fresh_mint: bool) -> Non
 
     # Mirror to users collection when is_registered == True (REQ-T-010).
     if user_object.is_registered is True:
-        user_id = _user_id_for_guid(users_coll, guid)
+        user_id = user_id_for_guid(users_coll, guid)
         if user_id:
             users_coll.update_one(
                 {"user_id": user_id},
@@ -327,21 +336,21 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
 
     async def run(self, deps: AuthnDeps, request: "Request") -> "Response":
         if request.intent == "manufacture_session":
-            user_object = _manufacture_session(request.user_object, deps.server_env)
+            user_object = manufacture_session(request.user_object, deps.server_env)
             return self.Response(user_object=user_object, fresh_mint=True)
         if request.intent == "manage_session":
-            user_object = _manage_session(request.user_object)
+            user_object = manage_session(request.user_object)
             return self.Response(user_object=user_object, fresh_mint=False)
         # intent == "login"
-        sessions_coll = deps.mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
-        users_coll = deps.mongo_frontend[_USERS_DB][_USERS_COLLECTION]
-        user_object = _login(sessions_coll, users_coll, request.user_object)
+        sessions_coll = deps.mongo_frontend[SESSION_DB][SESSION_COLLECTION]
+        users_coll = deps.mongo_frontend[USERS_DB][USERS_COLLECTION]
+        user_object = login(sessions_coll, users_coll, request.user_object)
         return self.Response(user_object=user_object, fresh_mint=False)
 
     async def persist(self, deps: AuthnDeps, user_object, fresh_mint: bool) -> None:
-        coll = deps.mongo_frontend[_SESSION_DB][_SESSION_COLLECTION]
-        users_coll = deps.mongo_frontend[_USERS_DB][_USERS_COLLECTION]
-        _persist(coll, users_coll, user_object, fresh_mint)
+        coll = deps.mongo_frontend[SESSION_DB][SESSION_COLLECTION]
+        users_coll = deps.mongo_frontend[USERS_DB][USERS_COLLECTION]
+        write_session_record(coll, users_coll, user_object, fresh_mint)
 
 
 TOOL = AuthorizationsAndAuthenticationsTool()

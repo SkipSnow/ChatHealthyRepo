@@ -12,11 +12,11 @@
 # Only strictly and loosely compliant specialties are added to the filter.
 # RISK-002 accepted: AI makes contextual classification decision.
 
-import json
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 
-_log = logging.getLogger("findcare.homeopathic_resolver")
+log = ChatHealthyLoggingService()
 
 
 def resolve_homeopathic_specialties(
@@ -87,38 +87,72 @@ IMPORTANT BIAS: The user wants alternative providers. Be INCLUSIVE, not exclusiv
 - A homeopath CAN treat any condition they practice for, regardless of patient demographics
 - Only mark out_of_scope if the specialty is TRULY irrelevant (e.g., a midwife for tennis elbow)
 
-Return ONLY a JSON object (no markdown, no code blocks) with key "specialties" containing an array.
-Each element: {{"code": "...", "relevance": "strictly_compliant|loosely_compliant|out_of_scope", "reason": "..."}}
+Call the submit_specialty_evaluations tool with one entry per specialty.
 
 Specialties:
 {spec_list}"""
+
+    # LLM contract: tool-use only. The model returns its result as a
+    # tool_use block whose input is validated against the tool's
+    # input_schema. No free-text post-processing, no regex.
+    _TOOL = {
+        "name": "submit_specialty_evaluations",
+        "description": (
+            "Submit relevance evaluations for each NUCC specialty for the "
+            "user's homeopathic search. One element per specialty code."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "specialties": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "code": {"type": "string"},
+                            "relevance": {
+                                "type": "string",
+                                "enum": [
+                                    "strictly_compliant",
+                                    "loosely_compliant",
+                                    "out_of_scope",
+                                ],
+                            },
+                            "reason": {"type": "string"},
+                        },
+                        "required": ["code", "relevance", "reason"],
+                    },
+                },
+            },
+            "required": ["specialties"],
+        },
+    }
 
     try:
         resp = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=4000,
-            system="You are a healthcare triage expert specializing in integrative and alternative medicine. The user has opted into homeopathic care — bias toward INCLUSION. Return ONLY valid JSON, no markdown code blocks.",
+            system="You are a healthcare triage expert specializing in integrative and alternative medicine. The user has opted into homeopathic care — bias toward INCLUSION. Return your evaluation by calling the submit_specialty_evaluations tool.",
             messages=[
                 {"role": "user", "content": prompt},
             ],
+            tools=[_TOOL],
+            tool_choice={"type": "tool", "name": "submit_specialty_evaluations"},
         )
-        raw = resp.content[0].text
-        # Extract JSON — Sonnet wraps in ```json``` despite instructions
-        import re
-        cleaned = raw.strip()
-        if cleaned.startswith("```"):
-            cleaned = re.sub(r'^```json?\s*', '', cleaned)
-            cleaned = re.sub(r'```\s*$', '', cleaned)
-            cleaned = cleaned.strip()
-        if cleaned.startswith("{"):
-            result = json.loads(cleaned)
-        else:
-            match = re.search(r'\{.*\}', cleaned, re.DOTALL)
-            result = json.loads(match.group()) if match else {"specialties": []}
+        result = {"specialties": []}
+        for block in resp.content:
+            if getattr(block, "type", None) == "tool_use":
+                result = block.input or {"specialties": []}
+                break
         items = result.get("specialties", [])
-        _log.info("Homeopathic resolver: %d specialties evaluated for '%s'", len(items), query[:40])
+        log.info("Homeopathic resolver: %d specialties evaluated for '%s'", len(items), query[:40])
     except Exception as e:
-        _log.warning("Homeopathic resolver GPT call failed: %s", e)
+        log.warning("Homeopathic resolver GPT call failed: %s", e, exc=ChatHealthyException(
+                                                                    mode="homeopathic_resolver_gpt_failed",
+                                                                    message=f"Homeopathic resolver GPT call failed: {e}",
+                                                                    component="HomeopathicResolver",
+                                                                    exception=e,
+                                                                ), if_not_debug_log=True)
         return []
 
     # Build lookup from GPT results
@@ -142,6 +176,6 @@ Specialties:
                 "homeopathic_reason": gpt_result.get("reason", ""),
             })
 
-    _log.info("Homeopathic resolver: %d of %d specialties relevant for '%s'",
+    log.info("Homeopathic resolver: %d of %d specialties relevant for '%s'",
               len(options), len(plausible), query[:40])
     return options

@@ -13,36 +13,38 @@
 # `specialty_filter_system_prompt`) per S-002-T-001 / T-005.
 
 import json
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
 from pathlib import Path
 from typing import Optional
 
 from chathealthy_frontend_lib.runtime_data_collections import specialty_meta_coll
 
-_log = logging.getLogger("findcare.specialty_filter")
-
-
 # Resolve project root from this file's location:
 #   FindCare/SpecialtyFilter/filter.py
 #   parents: [0]SpecialtyFilter [1]FindCare [2]<project root>
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_PROMPTS_JSON_PATH = _PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "prompts.json"
-_NORMALIZE_RECORD_ID = "specialty_normalize_system_prompt"
-_FILTER_RECORD_ID = "specialty_filter_system_prompt"
+
+log = ChatHealthyLoggingService()
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROMPTS_JSON_PATH = PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "prompts.json"
+NORMALIZE_RECORD_ID = "specialty_normalize_system_prompt"
+FILTER_RECORD_ID = "specialty_filter_system_prompt"
 
 # Cosine candidate floor passed to Stage-2 filter (S-002-T-004; floor
 # value is a design choice, not a REQ). 0.55 picked from Phase A/C/D
 # evidence as the high-recall handoff that gives Stage-2 enough pool
 # to refine without flooding the LLM.
-_CAND_FLOOR = 0.55
+CAND_FLOOR = 0.55
 
-_UNLICENSED_GROUPS = {"Other Service Providers", "Student, Health Care"}
+UNLICENSED_GROUPS = {"Other Service Providers", "Student, Health Care"}
 
 
-def _load_prompt_text(record_id: str) -> str:
+def load_prompt_text(record_id: str) -> str:
     """Read prompts.json once and pull the system_prompt for `record_id`."""
-    with _PROMPTS_JSON_PATH.open(encoding="utf-8") as f:
+    with PROMPTS_JSON_PATH.open(encoding="utf-8") as f:
         d = json.load(f)
     for r in d.get("records", []):
         if r.get("_record_id") == record_id:
@@ -103,9 +105,9 @@ class SpecialtyFilter:
     # ── private prompt loaders ──────────────────────────────────────────────
     def _ensure_prompts_loaded(self) -> None:
         if self._normalize_prompt is None:
-            self._normalize_prompt = _load_prompt_text(_NORMALIZE_RECORD_ID)
+            self._normalize_prompt = load_prompt_text(NORMALIZE_RECORD_ID)
         if self._filter_prompt is None:
-            self._filter_prompt = _load_prompt_text(_FILTER_RECORD_ID)
+            self._filter_prompt = load_prompt_text(FILTER_RECORD_ID)
 
     # ── private pipeline steps ──────────────────────────────────────────────
     # Per EPIC-006-F-002-S-001-REQ-T-001 ("no fallback"), every stage MUST
@@ -130,7 +132,7 @@ class SpecialtyFilter:
                 f"normalize step returned empty text from model "
                 f"{self._normalize_model!r} for query {raw_query!r}"
             )
-        _log.info("normalize: %r -> %r", raw_query, text)
+        log.info("normalize: %r -> %r", raw_query, text)
         return text
 
     def embed_query(self, text: str) -> list[float]:
@@ -170,7 +172,7 @@ class SpecialtyFilter:
         ]))
         return [r for r in rows
                 if not (r.get("Display Name") or "").startswith("Deactivated")
-                and r.get("score", 0) >= _CAND_FLOOR]
+                and r.get("score", 0) >= CAND_FLOOR]
 
     def filter_candidates(self, candidates: list[dict],
                           raw_query: str, normalized: str) -> list[str]:
@@ -235,19 +237,34 @@ class SpecialtyFilter:
         try:
             normalized = self.normalize_query(query_text)
         except Exception as exc:
-            _log.exception("Stage 1 normalize failed for %r", raw_query)
+            log.exception("Stage 1 normalize failed for %r", raw_query, exc=ChatHealthyException(
+                                                                         mode="specialty_filter_stage1_normalize_failed",
+                                                                         message=f"Stage 1 normalize failed for {raw_query!r}: {exc}",
+                                                                         component="SpecialtyFilter",
+                                                                         exception=exc,
+                                                                     ), if_not_debug_log=True)
             return {"error": f"normalize: {type(exc).__name__}: {exc}"}
 
         try:
             qvec = self.embed_query(normalized)
         except Exception as exc:
-            _log.exception("Stage 2 embed failed for normalized=%r", normalized)
+            log.exception("Stage 2 embed failed for normalized=%r", normalized, exc=ChatHealthyException(
+                                                                                 mode="specialty_filter_stage2_embed_failed",
+                                                                                 message=f"Stage 2 embed failed for normalized={normalized!r}: {exc}",
+                                                                                 component="SpecialtyFilter",
+                                                                                 exception=exc,
+                                                                             ), if_not_debug_log=True)
             return {"error": f"embed: {type(exc).__name__}: {exc}"}
 
         try:
             candidates = self.vector_search(qvec)
         except Exception as exc:
-            _log.exception("Stage 3 vector_search failed")
+            log.exception("Stage 3 vector_search failed", exc=ChatHealthyException(
+                                                           mode="specialty_filter_stage3_vector_search_failed",
+                                                           message=f"Stage 3 vector_search failed: {exc}",
+                                                           component="SpecialtyFilter",
+                                                           exception=exc,
+                                                       ), if_not_debug_log=True)
             return {"error": f"vector_search: {type(exc).__name__}: {exc}"}
         if not candidates:
             return {"specialties": [],
@@ -256,7 +273,12 @@ class SpecialtyFilter:
         try:
             kept_codes = self.filter_candidates(candidates, raw_query, normalized)
         except Exception as exc:
-            _log.exception("Stage 4 filter_candidates failed")
+            log.exception("Stage 4 filter_candidates failed", exc=ChatHealthyException(
+                                                               mode="specialty_filter_stage4_filter_candidates_failed",
+                                                               message=f"Stage 4 filter_candidates failed: {exc}",
+                                                               component="SpecialtyFilter",
+                                                               exception=exc,
+                                                           ), if_not_debug_log=True)
             return {"error": f"filter: {type(exc).__name__}: {exc}"}
         if not kept_codes:
             return {"specialties": [],
@@ -276,6 +298,6 @@ class SpecialtyFilter:
                 "homeopathic": doc.get("homeopathic", False),
                 "rank": rank,
             })
-        _log.info("filter: query=%r -> %d kept (from %d candidates)",
+        log.info("filter: query=%r -> %d kept (from %d candidates)",
                   raw_query, len(specialties), len(candidates))
         return {"specialties": specialties}

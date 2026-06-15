@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 
 
 class SplashEndpoint:
@@ -9,8 +9,7 @@ class SplashEndpoint:
     ownership of the page. Wrapper consumes `{html: "..."}`."""
 
     def __init__(self):
-        self.log = logging.getLogger("evaluate_care.splash")
-
+        self.log = ChatHealthyLoggingService()
     def __call__(self):
         self.log.info("CONTROL TRANSFER: EvaluateCare has taken ownership of the page")
         return {

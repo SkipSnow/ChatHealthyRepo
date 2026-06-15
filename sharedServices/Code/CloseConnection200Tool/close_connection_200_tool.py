@@ -11,14 +11,14 @@ terminates cleanly with HTTP 200 OK.
 from __future__ import annotations
 
 import asyncio
-import logging
+from chathealthy_frontend_lib import ChatHealthyLoggingService
 
 from pydantic import BaseModel
 
 from authentication.agent_deps import AgentDeps
 from authentication.chathealthy_tool import ChatHealthyTool
 
-_log = logging.getLogger("shared_services.close_connection_200_tool")
+log = ChatHealthyLoggingService()
 
 
 class Request(BaseModel):
