@@ -240,7 +240,7 @@ def deploy_cloudflare(
 # ═════════════════════════════════════════════════════════════════════════
 
 def ghcr_image_ref(target_id: str, env: str, build_n: int) -> str:
-    return f"ghcr.io/{_GHCR_OWNER}/{_GHCR_IMAGE_NAME[target_id]}:{env}-v{build_n}"
+    return f"ghcr.io/{GHCR_OWNER}/{GHCR_IMAGE_NAME[target_id]}:{env}-v{build_n}"
 
 
 def docker_build_then_push(build_dir: Path, image_ref: str) -> None:
@@ -352,7 +352,7 @@ def push_thin_dockerfile_to_hf_space(
     thin = f"FROM {image_ref}\nEXPOSE {port}\n"
     (hf_clone / "Dockerfile").write_text(thin, encoding="utf-8")
     subprocess.run(
-        ["git", "-c", f"user.email={_firm_git_identity()['email']}", "-c", f"user.name={_firm_git_identity()['name']}",
+        ["git", "-c", f"user.email={firm_git_identity()['email']}", "-c", f"user.name={firm_git_identity()['name']}",
          "add", "."],
         cwd=str(hf_clone), check=True,
     )
@@ -363,7 +363,7 @@ def push_thin_dockerfile_to_hf_space(
         step("  no changes vs HF Space — skipping push")
     else:
         subprocess.run(
-            ["git", "-c", f"user.email={_firm_git_identity()['email']}", "-c", f"user.name={_firm_git_identity()['name']}",
+            ["git", "-c", f"user.email={firm_git_identity()['email']}", "-c", f"user.name={firm_git_identity()['name']}",
              "commit", "-m", f"local_deploy {env} -> {image_ref}"],
             cwd=str(hf_clone), check=True,
         )
