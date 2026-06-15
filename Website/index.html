@@ -1387,6 +1387,7 @@
         var notice = who === 'registered'
           ? 'system timed out: please log back in'
           : 'system timed out: please start again';
+        var btnLabel = who === 'registered' ? 'Log Back In' : 'Start Again';
         var chatFrame = document.getElementById('coreChatFrame');
         if (chatFrame) chatFrame.style.display = 'none';
         var centerArea = chatFrame ? chatFrame.parentElement : document.body;
@@ -1395,175 +1396,125 @@
         var div = document.createElement('div');
         div.id = 'chSystemTimedOut';
         div.setAttribute('data-testid', 'system-timed-out');
-        div.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#fff;color:#dc2626;font-size: 1em;font-weight:600;text-align:center;padding: 1em;';
-        div.textContent = notice;
+        div.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1em;background:#fff;color:#dc2626;font-size: 1em;font-weight:600;text-align:center;padding: 1em;';
+        var msg = document.createElement('div');
+        msg.textContent = notice;
+        var btn = document.createElement('button');
+        btn.id = 'chSystemTimedOutRestart';
+        btn.setAttribute('data-testid', 'system-timed-out-restart');
+        btn.type = 'button';
+        btn.textContent = btnLabel;
+        btn.style.cssText = 'padding:0.6em 1.4em;font-size:1em;font-weight:600;color:#fff;background:#0b7a75;border:none;border-radius:0.4em;cursor:pointer;';
+        btn.onclick = function() {
+          var host = window.location.hostname;
+          var homeUrl;
+          if (host === 'localhost' || host === '127.0.0.1') {
+            homeUrl = window.location.protocol + '//' + host + (window.location.port ? ':' + window.location.port : '');
+          } else if (host.indexOf('dev.') === 0) {
+            homeUrl = 'https://dev.chathealthy.ai';
+          } else if (host.indexOf('qa.') === 0) {
+            homeUrl = 'https://qa.chathealthy.ai';
+          } else {
+            homeUrl = 'https://chathealthy.ai';
+          }
+          window.location.assign(homeUrl + '/');
+        };
+        div.appendChild(msg);
+        div.appendChild(btn);
         centerArea.appendChild(div);
         return true;
       };
-      window.gotoEvaluateCare = function() {
-        // DEVOPS-BANNER-B006: banner-initiated handoff to EvaluateCare.
-        // Mirrors openSharedServices but hits /evaluate/* via FindCare proxy.
-        window._recordUxEvent('evaluatecare_nav_clicked', null);
-        window._pageOwner = 'evaluatecare';
-        // Clear any prior service's content from the right panel content
-        // sub-div so we don't show, e.g., a stale "SHARED SERVICES" header
-        // while the user is now in EvaluateCare. #rightSecurity gets
-        // refreshed by refreshTokenPanels below.
-        window.ensureRightPanelStructure();
-        var _rc = document.getElementById('rightContent');
-        if (_rc) _rc.innerHTML = '';
-        if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
-        // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
-        if (typeof window.refreshBanner === 'function') window.refreshBanner('evaluatecare');
-        var chatFrame = document.getElementById('coreChatFrame');
-        // Splash content comes from the owning service directly (V11
-        // S-005-REQ-B-004 "served by the HuggingFace server that owns
-        // the content"). FindCare is no longer a proxy.
-        var evalcareUrl = (window._envServiceUrls || {}).evaluatecare || '';
-
-        // Hide chatFrame + create evalcareSplash placeholder SYNCHRONOUSLY
-        // (same race fix as openSharedServices — see comment there).
-        chatFrame.style.display = 'none';
-        var shSplash = document.getElementById('sharedSplash');
-        if (shSplash) shSplash.style.display = 'none';
-        var centerArea = chatFrame.parentElement;
-        var splashDiv = document.getElementById('evalcareSplash');
-        if (!splashDiv) {
-          splashDiv = document.createElement('div');
-          splashDiv.id = 'evalcareSplash';
-          splashDiv.style.cssText = 'flex:1;overflow:auto;background:#fff;';
-          centerArea.appendChild(splashDiv);
+      window.renderCoreFrame = function(serviceKey) {
+        serviceKey = serviceKey || 'findcare';
+        if (serviceKey !== 'findcare' && serviceKey !== 'evaluatecare' && serviceKey !== 'sharedservices') {
+          serviceKey = 'findcare';
         }
-        splashDiv.style.display = 'flex';
-
-        fetch(evalcareUrl + '/splash', { method: 'POST' })
-          .then(function(r) { return r.json(); })
-          .then(function(d) {
-            splashDiv.innerHTML = d.html || '';
-          })
-          .catch(function() { window.chFatalError(''); });
-        // SEC-HTTPS-001-REQ-021: token MUST come from page-owning service.
-        // EvaluateCare mints with evalcare.key; FindCare verifies with evalcare.crt.
-        // refreshTokenPanels also rotates the LEFT panel (FC /session) per REQ-022.
-        window.refreshTokenPanels('evaluatecare');
-      };
-
-      // In-iframe Evaluate button uses this for the wrapper-side visual
-      // handoff (banner refresh, splash paint, chatFrame hide). The iframe
-      // still calls EvalCare /evaluate/providers itself.
-      window.startEvaluateCareHandoff = function() {
-        window.gotoEvaluateCare();
-      };
-
-      window.returnToFindCare = function() {
-        window._recordUxEvent('findcare_nav_clicked', null);
-        var chatFrame = document.getElementById('coreChatFrame');
-        var apiBase = window._hfBaseUrl || '';
-        // Always run the return flow so the UI resets even when pageOwner
-        // is already findcare (covers stale-results cleanup).
-        window._pageOwner = 'findcare';
-        // Clear stale prior-service content from #rightContent.
+        try { window._recordUxEvent(serviceKey + '_nav_clicked', null); } catch (_) {}
+        window._pageOwner = serviceKey;
         window.ensureRightPanelStructure();
-        var _rc = document.getElementById('rightContent');
-        if (_rc) _rc.innerHTML = '';
+        var rc = document.getElementById('rightContent');
+        if (rc) rc.innerHTML = '';
         if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
-        // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
-        if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
-        fetch(((window._envServiceUrls || {}).evaluatecare || '') + '/transfer/to-findcare', { method: 'POST' })
-          .then(function(r) { return r.json(); })
-          .catch(function() { window.chFatalError(''); return {}; })
-          .then(function() {
-            var ecSplash = document.getElementById('evalcareSplash');
-            if (ecSplash) ecSplash.style.display = 'none';
-            var shSplash = document.getElementById('sharedSplash');
-            if (shSplash) shSplash.style.display = 'none';
-            chatFrame.style.display = '';
-            chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*');
-            // SEC-HTTPS-001-REQ-021: FindCare mints, SharedServices verifies.
-            // Both panels refresh on every ownership change (REQ-022).
-            window.refreshTokenPanels('findcare');
-          });
-      };
+        if (typeof window.refreshBanner === 'function') window.refreshBanner(serviceKey);
+        if (typeof window.refreshTokenPanels === 'function') window.refreshTokenPanels(serviceKey);
 
-      window.openSharedServices = function() {
-        // Transfer control to SharedServices (mirrors EvaluateCare pattern)
-        window._pageOwner = 'sharedservices';
-        // Clear stale prior-service content (e.g., EvaluateCare's orange
-        // "EVALUATECARE 2 providers" header) from #rightContent so the
-        // right panel reflects the current owner, not the previous one.
-        window.ensureRightPanelStructure();
-        var _rc = document.getElementById('rightContent');
-        if (_rc) _rc.innerHTML = '';
-        if (typeof window.renderBannerButtons === 'function') window.renderBannerButtons();
-        // DEVOPS-BANNER-B007: banner build/version reflect new owner's /health.
-        if (typeof window.refreshBanner === 'function') window.refreshBanner('sharedservices');
         var chatFrame = document.getElementById('coreChatFrame');
+        if (!chatFrame) return;
+        chatFrame.style.display = '';
 
-        // Get session token from left panel for mutual auth verification
-        var sessionEl = document.getElementById('guiSessionId');
-        var sessionToken = sessionEl ? sessionEl.textContent : '';
+        ['evalcareSplash', 'sharedSplash', 'chSystemTimedOut'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.remove();
+        });
 
-        // Splash content via the universal front door (V11 S-005-REQ-B-004).
-        // POST /gate with op="splash". The HttpOnly+Secure ch_session
-        // cookie travels with credentials:'include'; the gate uses its
-        // GUID to resume the session, restamp the nonce, $push the
-        // splash_displayed ux_event, then render. Response:
-        // {user_object: <fresh + session_conversation_history>, result: {html}}.
-        var sharedUrl = (window._envServiceUrls || {}).sharedservices || '';
-        // REQ-T-006 pre-flight on this SharedServices fetch.
-        if (window._isSessionExpired()) { window._handleSessionExpired(); return; }
-
-        // Hide chatFrame + create sharedSplash placeholder SYNCHRONOUSLY (before
-        // the /gate fetch). Previously this lived inside .then(payload) which
-        // raced against the CI smoke: HF Spaces cold-start lag meant chatFrame
-        // stayed visible past TestStep26's assertion. Splash content is filled
-        // in once the fetch resolves; user sees an empty splash for the wait
-        // window, same UX path the wrapper takes for gotoEvaluateCare.
-        chatFrame.style.display = 'none';
-        var ecSplash = document.getElementById('evalcareSplash');
-        if (ecSplash) ecSplash.style.display = 'none';
-        var centerArea = chatFrame.parentElement;
-        var splashDiv = document.getElementById('sharedSplash');
-        if (!splashDiv) {
-          splashDiv = document.createElement('div');
-          splashDiv.id = 'sharedSplash';
-          splashDiv.className = 'ch-splash-mount';
-          centerArea.appendChild(splashDiv);
+        if (serviceKey === 'findcare') {
+          var evalUrl = (window._envServiceUrls || {}).evaluatecare || '';
+          if (evalUrl) {
+            fetch(evalUrl + '/transfer/to-findcare', { method: 'POST' }).catch(function() {});
+          }
+          try { chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*'); } catch (_) {}
+          return;
         }
-        splashDiv.style.display = 'flex';
 
-        fetch(sharedUrl + '/gate', {
+        var centerArea = chatFrame.parentElement;
+        if (centerArea && getComputedStyle(centerArea).position === 'static') {
+          centerArea.style.position = 'relative';
+        }
+        var splashId = serviceKey === 'evaluatecare' ? 'evalcareSplash' : 'sharedSplash';
+        var splashDiv = document.createElement('div');
+        splashDiv.id = splashId;
+        if (serviceKey === 'sharedservices') splashDiv.className = 'ch-splash-mount';
+        splashDiv.style.cssText = 'position:absolute;left:0;right:0;top:0;bottom:0;background:#fff;overflow:auto;z-index:1;display:flex;flex-direction:column;';
+        centerArea.appendChild(splashDiv);
+
+        var serviceUrl = (window._envServiceUrls || {})[serviceKey] || '';
+        if (!serviceUrl) return;
+
+        if (serviceKey === 'evaluatecare') {
+          fetch(serviceUrl + '/splash', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { splashDiv.innerHTML = d.html || ''; })
+            .catch(function() { window.chFatalError(''); });
+          return;
+        }
+
+        if (window._isSessionExpired && window._isSessionExpired()) {
+          window._handleSessionExpired && window._handleSessionExpired();
+          return;
+        }
+        fetch(serviceUrl + '/gate', {
           method: 'POST',
           credentials: 'include',
           headers: {'Content-Type': 'application/json'},
-          body: window._gateBody({op: 'splash'})
+          body: window._gateBody ? window._gateBody({op: 'splash'}) : '{}'
         })
           .then(function(r) {
             if (r.status >= 500 || (r.status >= 400 && r.status !== 401 && r.status !== 403)) {
-              window._gateHardFail();
+              window._gateHardFail && window._gateHardFail();
               throw new Error('SharedServices /gate splash HTTP ' + r.status);
             }
             return r.json().catch(function() {
-              window._gateHardFail();
+              window._gateHardFail && window._gateHardFail();
               throw new Error('SharedServices /gate splash malformed body');
             });
           })
           .then(function(payload) {
-            window._noteGateResponse(payload);
+            if (window._noteGateResponse) window._noteGateResponse(payload);
             if (payload && payload.session_token) {
               window._authBoot = payload.session_token;
-              window._broadcastAuthBoot();
+              if (window._broadcastAuthBoot) window._broadcastAuthBoot();
             }
             var d = (payload && payload.result) ? payload.result : payload;
-            window.renderSplash(d, splashDiv);
+            if (window.renderSplash) window.renderSplash(d, splashDiv);
           })
           .catch(function() { window.chFatalError(''); });
-
-        // SEC-HTTPS-001-REQ-021: token MUST come from page-owning service.
-        // SharedServices mints with shared.key; FindCare verifies with shared.crt.
-        // refreshTokenPanels also rotates the LEFT panel (FC /session) per REQ-022.
-        window.refreshTokenPanels('sharedservices');
       };
+
+      window.gotoEvaluateCare = function() { window.renderCoreFrame('evaluatecare'); };
+      window.startEvaluateCareHandoff = function() { window.renderCoreFrame('evaluatecare'); };
+      window.returnToFindCare = function() { window.renderCoreFrame('findcare'); };
+      window.openSharedServices = function() { window.renderCoreFrame('sharedservices'); };
+
 
       try {
         var resumed = sessionStorage.getItem('_ch_authboot_resume');
