@@ -15,6 +15,7 @@ COPY healthcheck        /app/healthcheck
 COPY displayChrome      /app/displayChrome
 COPY authentication     /app/authentication
 COPY SpecialtyFilter    /app/SpecialtyFilter
+COPY ClinicalTrials  /app/ClinicalTrials
 COPY externalInterface  /app/externalInterface
 COPY secretsManager     /app/secretsManager
 COPY UtteranceManager  /app/UtteranceManager

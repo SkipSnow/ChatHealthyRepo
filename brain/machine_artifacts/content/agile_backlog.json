@@ -9878,6 +9878,20 @@
               "approval": "proposed",
               "due_date": "2026-04-01",
               "priority": "must-have"
+            },
+            {
+              "feature_id": "EPIC-006-F-031",
+              "name": "Find Clinical Trials",
+              "description": "Find recruiting clinical trials by condition. Decomposed into three stories (data retrieval, display, architecture). Stories and requirements pending operator approval of V5 draft in _oneshots/EPIC-006-F-031_FindClinicalTrials_FeatureDraft_V5.docx.",
+              "stories": {
+                "story": []
+              },
+              "orphan": false,
+              "status": "in_progress",
+              "priority": "must-have",
+              "realized_by": [],
+              "approval": "proposed",
+              "due_date": ""
             }
           ]
         },

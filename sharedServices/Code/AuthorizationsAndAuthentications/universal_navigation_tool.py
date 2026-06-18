@@ -50,7 +50,7 @@ from authentication import (
 )
 from authentication.user_object import UserObject
 from chathealthy_frontend_lib import ChatHealthyException
-from UtteranceManager import manager as utterance_manager
+from UtteranceManager import utterance_manager
 
 log = ChatHealthyLoggingService()
 
@@ -362,7 +362,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             await lockout_tool.TOOL.run_and_log(deps, lockout_tool.Request())
             return Response(kind="utterance", result={"target_action": "safetyLockout"})
 
-        from UtteranceManager import manager as utterance_manager_module
+        from UtteranceManager import utterance_manager as utterance_manager_module
         try:
             await utterance_manager_module.TOOL.run_and_log(
                 deps, utterance_manager_module.Request(),
@@ -525,7 +525,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         )
         deps.user_object.intent = seeded_doc
 
-        from UtteranceManager import manager as utterance_manager_module
+        from UtteranceManager import utterance_manager as utterance_manager_module
         try:
             await utterance_manager_module.TOOL.run_and_log(
                 deps,
@@ -882,7 +882,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         ChatHealthyException, it propagates to UR's outermost catch and
         the existing fatal path fires (rung 3).
         """
-        from UtteranceManager import manager as utterance_manager_module
+        from UtteranceManager import utterance_manager as utterance_manager_module
         reason = {
             "gesture": "system_llm_unavailable",
             "raised_at_server": exc.server,
@@ -942,6 +942,32 @@ class UniversalNavigationTool(ChatHealthyTool):
                 })
             else:
                 deps.stream({"kind": "final", "data": {"ok": True}})
+
+        elif target_action == "findClinicalTrials":
+            # EPIC-006-F-031 — dispatch ClinicalTrialsTool.
+            try:
+                from ClinicalTrials import clinical_trials_tool
+            except ImportError:
+                from FindCare.ClinicalTrials import clinical_trials_tool
+            complaint = next(
+                (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
+                "",
+            )
+            user_location = next(
+                (a.value for a in target_intent_entry.arguments if a.name == "user_location"),
+                None,
+            )
+            cursor = next(
+                (a.value for a in target_intent_entry.arguments if a.name == "cursor"),
+                None,
+            )
+            ct_req = clinical_trials_tool.Request(
+                condition=complaint,
+                user_location=user_location,
+                cursor=cursor,
+            )
+            await clinical_trials_tool.TOOL.run_and_log(deps, ct_req)
+            deps.stream({"kind": "final", "data": {"ok": True}})
 
         elif target_action == "findAProvider":
             from authentication import provider_search_and_selection_tool

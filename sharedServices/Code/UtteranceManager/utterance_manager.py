@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import json
 from chathealthy_frontend_lib import ChatHealthyLoggingService
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -75,11 +76,12 @@ class ClassifierOutput(BaseModel):
     with minimal translation."""
 
     target_action: Literal[
-        "nonsense", "specialtySearch", "findAProvider", "closeConnection200",
-        "safetyLockout",
+        "nonsense", "specialtySearch", "findAProvider", "findClinicalTrials",
+        "closeConnection200", "safetyLockout",
     ]
     complaint: Optional[str] = None
     geography: Optional[GeoFacts] = None
+    user_location: Optional[str] = None
     user_message: Optional[str] = None
     pending_disambiguation: Optional[PendingDisambiguationOut] = None
     corrections: list[Correction] = Field(default_factory=list)
@@ -712,6 +714,54 @@ DECISION RULES (apply in this order):
      user_message asking for a location. Do NOT set
      pending_disambiguation (there's nothing to confirm).
 
+  5b. CLINICAL TRIALS. If the user is asking for clinical trials,
+      research studies, "trials", "studies", "experimental treatment",
+      or anything that names a condition and asks about trial/study
+      participation, handle as follows. user_location is OPTIONAL on
+      this action — we'll proceed without it, but if supplied we
+      compute travel time and distance to each trial site.
+
+        - On the FIRST turn where the user expresses clinical-trial
+          interest AND no user_location is present on the prior
+          IntentDocument AND the latest utterance does not itself
+          supply a location: set target_action="closeConnection200"
+          and emit a user_message of the shape "I can search clinical
+          trials for <condition>. If you tell me your location (your
+          own or the patient you're asking on behalf of), I'll add
+          travel time and distance to each site. Or say skip to see
+          results without travel info." Park a pending_disambiguation
+          with kind="user_location_for_clinical_trial".
+
+          RULE 1.5 STILL APPLIES TO THIS user_message AND TO
+          corrections[]. If the user's condition contained a
+          misspelling you corrected, <condition> in the template
+          above MUST be written as
+              <corrected_condition> (corrected from '<original>')
+          using straight single quotes, AND the corrections[] list on
+          your output MUST carry the same {original, corrected}
+          entry. The frontend renders both the ask-first turn and the
+          results turn through the same correction-display path; the
+          marker convention does not change because the action is
+          closeConnection200 on this turn.
+
+        - On the FOLLOW-UP turn after that prompt: if the user supplies
+          a location, populate complaint with the original condition
+          and user_location with the supplied location, set
+          target_action="findClinicalTrials". If the user declines
+          ("skip", "no", "no thanks", "just show me"), populate
+          complaint with the original condition, leave user_location
+          empty, set target_action="findClinicalTrials".
+
+        - When the FIRST utterance ALREADY contains the user's
+          location (e.g. "find clinical trials for diabetes near
+          Wilmington DE"), skip the ask-first and emit
+          target_action="findClinicalTrials" directly with complaint
+          and user_location populated.
+
+      Set complaint to the medical condition the user is asking
+      about, normalized (e.g. "type 2 diabetes", "lung cancer",
+      "depression").
+
   6. If the utterance is a real request but you cannot extract a
      complaint or recognize a healthcare ask, set target_action to
      "closeConnection200" and set user_message to a brief friendly
@@ -925,7 +975,11 @@ async def call_classifier_llm(
     lines (each prefixed with 'user: ' or 'system: ') plus the prior
     IntentDocument summary. Classifies the latest 'user: ...' line."""
     if not transcript:
-        raise ValueError("UtteranceManager: empty transcript window")
+        raise ChatHealthyException(
+            mode="um_empty_transcript_window",
+            message="UtteranceManager: empty transcript window",
+            component="UtteranceManager",
+        )
     window_block = "\n".join(f"  {i+1}. {line}" for i, line in enumerate(transcript))
     prior_summary = summarize_prior(prior)
     user_msg = (
@@ -938,7 +992,6 @@ async def call_classifier_llm(
         "applies and overrides every other rule. Return the structured "
         "output."
     )
-    log.debug("UM classifier input: %s", user_msg)
     result = await run_llm(
         classifier_agent,
         user_msg,
@@ -947,7 +1000,6 @@ async def call_classifier_llm(
         server="shared_services",
         component="UM",
     )
-    log.debug("UM classifier output: %s", result.output.model_dump_json())
     return result.output
 
 
@@ -1016,6 +1068,28 @@ def build_find_a_provider_intent(
         name="findAProvider",
         arguments=args,
         pending_disambiguation=pending,
+    )
+
+
+def build_find_clinical_trials_intent(
+    complaint: str,
+    user_location: Optional[str] = None,
+    cursor: Optional[str] = None,
+) -> "IntentFindClinicalTrials":
+    from UtteranceManager.intent_document import IntentFindClinicalTrials
+    args = [Argument(name="complaint", value=complaint, type="string", required=True)]
+    if user_location:
+        args.append(Argument(
+            name="user_location", value=user_location, type="string", required=False,
+        ))
+    if cursor:
+        args.append(Argument(
+            name="cursor", value=cursor, type="string", required=False,
+        ))
+    return IntentFindClinicalTrials(
+        name="findClinicalTrials",
+        arguments=args,
+        pending_disambiguation=None,
     )
 
 
@@ -1163,8 +1237,10 @@ class UtteranceManagerTool(ChatHealthyTool):
         )
         user_message = (llm_result.user_message or "").strip()
         if not user_message:
-            raise ValueError(
-                "UtteranceManager manufacture-path: LLM returned empty user_message"
+            raise ChatHealthyException(
+                mode="um_manufacture_empty_user_message",
+                message="UtteranceManager manufacture-path: LLM returned empty user_message",
+                component="UtteranceManager",
             )
 
         # Build the resulting IntentDocument. Carry forward any prior
@@ -1196,7 +1272,11 @@ class UtteranceManagerTool(ChatHealthyTool):
     async def _run_interpret(self, deps: AgentDeps, request: "Request") -> "Response":
         transcript = recent_transcript(deps)
         if not transcript:
-            raise ValueError("UtteranceManager: no utterances on user_object")
+            raise ChatHealthyException(
+                mode="um_no_utterances_on_user_object",
+                message="UtteranceManager: no utterances on user_object",
+                component="UtteranceManager",
+            )
         # latest_text must be the LATEST PERSON utterance (raw text, no
         # 'user: ' prefix). Read it directly off the live bucket so the
         # intent-builders get the verbatim string.
@@ -1208,13 +1288,18 @@ class UtteranceManagerTool(ChatHealthyTool):
                 latest_text = str(text).strip()
                 break
         if not latest_text:
-            raise ValueError("UtteranceManager: no person utterance on user_object")
+            raise ChatHealthyException(
+                mode="um_no_person_utterance_on_user_object",
+                message="UtteranceManager: no person utterance on user_object",
+                component="UtteranceManager",
+            )
         prior = deps.user_object.intent
 
         llm_result = await call_classifier_llm(transcript, prior)
         target_action = llm_result.target_action
         complaint = (llm_result.complaint or "").strip()
         geography = llm_result.geography.model_dump() if llm_result.geography else {}
+        user_location = (llm_result.user_location or "").strip() or None
         user_message = (llm_result.user_message or "").strip() or None
         pending = to_pending(llm_result.pending_disambiguation)
 
@@ -1250,9 +1335,13 @@ class UtteranceManagerTool(ChatHealthyTool):
 
         elif target_action == "specialtySearch":
             if not complaint:
-                raise ValueError(
-                    "UtteranceManager classifier set target_action=specialtySearch "
-                    "but produced no complaint"
+                raise ChatHealthyException(
+                    mode="um_classifier_specialtysearch_missing_complaint",
+                    message=(
+                        "UtteranceManager classifier set target_action=specialtySearch "
+                        "but produced no complaint"
+                    ),
+                    component="UtteranceManager",
                 )
             built: list[Any] = [
                 build_specialty_search_intent(complaint, cached_nucc),
@@ -1271,15 +1360,23 @@ class UtteranceManagerTool(ChatHealthyTool):
 
         elif target_action == "findAProvider":
             if not complaint:
-                raise ValueError(
-                    "UtteranceManager classifier set target_action=findAProvider "
-                    "but produced no complaint"
+                raise ChatHealthyException(
+                    mode="um_classifier_findaprovider_missing_complaint",
+                    message=(
+                        "UtteranceManager classifier set target_action=findAProvider "
+                        "but produced no complaint"
+                    ),
+                    component="UtteranceManager",
                 )
             if not geography_sufficient(geography):
-                raise ValueError(
-                    "UtteranceManager classifier set target_action=findAProvider "
-                    "but geography is insufficient (need zip, state, state+city, "
-                    "or state+county)"
+                raise ChatHealthyException(
+                    mode="um_classifier_findaprovider_insufficient_geography",
+                    message=(
+                        "UtteranceManager classifier set target_action=findAProvider "
+                        "but geography is insufficient (need zip, state, state+city, "
+                        "or state+county)"
+                    ),
+                    component="UtteranceManager",
                 )
             built = [
                 build_specialty_search_intent(complaint, cached_nucc),
@@ -1289,11 +1386,32 @@ class UtteranceManagerTool(ChatHealthyTool):
             ]
             new_doc = merge_intents(base_doc, built, target_action, user_message)
 
+        elif target_action == "findClinicalTrials":
+            if not complaint:
+                raise ChatHealthyException(
+                    mode="um_classifier_findclinicaltrials_missing_complaint",
+                    message=(
+                        "UtteranceManager classifier set target_action="
+                        "findClinicalTrials but produced no complaint"
+                    ),
+                    component="UtteranceManager",
+                )
+            new_doc = merge_intents(
+                base_doc,
+                [build_find_clinical_trials_intent(complaint, user_location)],
+                target_action,
+                user_message,
+            )
+
         elif target_action == "closeConnection200":
             if not user_message:
-                raise ValueError(
-                    "UtteranceManager classifier set target_action=closeConnection200 "
-                    "but produced no user_message"
+                raise ChatHealthyException(
+                    mode="um_classifier_closeconnection200_missing_user_message",
+                    message=(
+                        "UtteranceManager classifier set target_action=closeConnection200 "
+                        "but produced no user_message"
+                    ),
+                    component="UtteranceManager",
                 )
             new_doc = merge_intents(
                 base_doc,
@@ -1303,9 +1421,13 @@ class UtteranceManagerTool(ChatHealthyTool):
             )
 
         else:
-            raise ValueError(
-                f"UtteranceManager classifier returned out-of-catalog "
-                f"target_action {target_action!r}"
+            raise ChatHealthyException(
+                mode="um_classifier_out_of_catalog_target_action",
+                message=(
+                    f"UtteranceManager classifier returned out-of-catalog "
+                    f"target_action {target_action!r}"
+                ),
+                component="UtteranceManager",
             )
 
         # Stream the LLM-authored user_message before returning, per
