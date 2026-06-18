@@ -65,21 +65,33 @@ class SecretsResolver:
         with different store ids, that is a hairball — raise.
         """
         bindings: dict[tuple[str, str], str] = {}
+        _STORE_IDS = {
+            _STORE_LOCAL_ENV, _STORE_GHA, _STORE_HF_SPACE, _STORE_CLOUDFLARE,
+            _STORE_AZURE_FA, _STORE_AZURE_AA, _STORE_AZURE_AA_WEBHOOK,
+        }
         for record in coll:
-            if not record.secrets:
-                continue
             envs = [e.env_binding for e in record.environments]
-            for name, store_id in record.secrets.items():
-                for env in envs:
-                    key = (name, env)
-                    existing = bindings.get(key)
-                    if existing is not None and existing != store_id:
-                        raise ValueError(
-                            f"binding conflict for {key!r}: "
-                            f"target {record.target_id!r} declares "
-                            f"{store_id!r}, prior target declared {existing!r}"
-                        )
-                    bindings[key] = store_id
+            # Iterate BOTH secrets and variables: any entry whose qualifier
+            # is a known store_id participates in resolver binding (the
+            # qualifier syntax for variables also supports peer_url:, env_name,
+            # local_cert_file:, rename_from:, literal: — those are resolved
+            # at deploy time without going through this registry).
+            for block in (record.secrets, record.variables):
+                if not block:
+                    continue
+                for name, store_id in block.items():
+                    if store_id not in _STORE_IDS:
+                        continue
+                    for env in envs:
+                        key = (name, env)
+                        existing = bindings.get(key)
+                        if existing is not None and existing != store_id:
+                            raise ValueError(
+                                f"binding conflict for {key!r}: "
+                                f"target {record.target_id!r} declares "
+                                f"{store_id!r}, prior target declared {existing!r}"
+                            )
+                        bindings[key] = store_id
         return cls(bindings=bindings, env_file=env_file)
 
     def resolve(self, name: str, env: str) -> str:

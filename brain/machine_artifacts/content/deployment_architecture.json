@@ -1945,7 +1945,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/authorizations_and_authentications_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "52e5e1e3dd0c1ef6e444b2563632f49f89e94b1cc350a48171bf3f36feee7c34"
+          "content_hash": "44a83bfcab86a7db64c25f00e9fe9176edfe572f13f96990ebfce892efdd6181"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1959,7 +1959,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/google_oauth_endpoint.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "212149820d339a36f24d601ba60b52dfdf2fb12ece7a2b864ebf8f66934c969d"
+          "content_hash": "1032c2472b8c79767535c15066cc01459a8b51a62e67f9a7040b9c22d4ced9fb"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2485,7 +2485,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/secrets_resolver.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f8b6ef56f684b7de5e6616223c8a0568b7d878cdc5e58e8f3025ffb69e0f921a"
+          "content_hash": "2ac708050a7fb1d2970b0014bf1bf8b024baa28d28473b399a45119ba2fe682a"
         },
         {
           "feature_id": "EPIC-008-F-012",
