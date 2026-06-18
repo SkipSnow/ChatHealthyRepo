@@ -295,6 +295,8 @@ def set_hf_config(
             return resolver.resolve(name, env)
         if qualifier == "env_name":
             return env
+        if qualifier.startswith("literal:"):
+            return qualifier.split(":", 1)[1]
         if qualifier.startswith("local_cert_file:"):
             rel = qualifier.split(":", 1)[1]
             return base64.b64encode((repo_root / rel).read_bytes()).decode("ascii")

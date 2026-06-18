@@ -686,7 +686,8 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "EVALCARE_SIGNING_KEY_PEM": "rename_from:EVALCARE_SIGNING_KEY_B64"
+        "EVALCARE_SIGNING_KEY_PEM": "rename_from:EVALCARE_SIGNING_KEY_B64",
+        "CH_LOG_LEVEL": "local_env"
       }
     },
     {
@@ -1744,7 +1745,8 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "FINDCARE_SIGNING_KEY_PEM": "rename_from:FINDCARE_SIGNING_KEY_B64"
+        "FINDCARE_SIGNING_KEY_PEM": "rename_from:FINDCARE_SIGNING_KEY_B64",
+        "CH_LOG_LEVEL": "local_env"
       }
     },
     {
@@ -1957,7 +1959,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/google_oauth_endpoint.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2f79bc4598c8e80360494dd29d0bf9f4aeb4a5c80d4e479d6be170b18e2449ec"
+          "content_hash": "212149820d339a36f24d601ba60b52dfdf2fb12ece7a2b864ebf8f66934c969d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2293,7 +2295,8 @@
         "HF_TOKEN": "local_env",
         "GEMINI_API_KEY": "local_env",
         "MONGO_FRONTEND_connectionString": "local_env",
-        "OPENAI_API_KEY": "local_env"
+        "OPENAI_API_KEY": "local_env",
+        "Anthropic_API_KEY": "local_env"
       },
       "entitlements": [
         {
@@ -2333,7 +2336,8 @@
         "FINDCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/findcare.crt",
         "SHARED_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/shared.crt",
         "EVALCARE_CERT_PEM": "local_cert_file:Code/Shared/ops/certs/evalcare.crt",
-        "SHARED_SIGNING_KEY_PEM": "rename_from:SHARED_SIGNING_KEY_B64"
+        "SHARED_SIGNING_KEY_PEM": "rename_from:SHARED_SIGNING_KEY_B64",
+        "CH_LOG_LEVEL": "local_env"
       }
     },
     {
@@ -2446,7 +2450,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/_deploy_chain.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dc116483c2d0a2433f3870169b9b386f889d129bf6688dfd6aef60697b0b5bad"
+          "content_hash": "3ffc9e3a9f16999f51ad8a3436011353c40ab1b321a3a22e65f9a70fcb4a71a2"
         },
         {
           "feature_id": "EPIC-008-F-012",
