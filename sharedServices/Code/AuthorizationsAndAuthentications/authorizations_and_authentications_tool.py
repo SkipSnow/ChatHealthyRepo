@@ -151,6 +151,37 @@ def manage_session(user_object: UserObject) -> UserObject:
     return user_object
 
 
+def _assert_session_update_matched(update_result, session_guid: str, branch: str) -> None:
+    if update_result.matched_count == 1:
+        return
+    raise ChatHealthyException(
+        mode="authn_login_session_doc_missing_on_write",
+        message=(
+            f"OAUTH-LOGIN {branch}: session_doc not found for "
+            f"_id={session_guid[:8]}... at write time "
+            f"(matched_count={update_result.matched_count}); "
+            "the session expired or the guid does not match. The "
+            "registered fields were NOT persisted; the user remains "
+            "Guest on the next /gate call."
+        ),
+        component="AuthorizationsAndAuthentications",
+    )
+
+
+def _assert_user_insert_acked(insert_result, user_id: str) -> None:
+    if insert_result.acknowledged and insert_result.inserted_id is not None:
+        return
+    raise ChatHealthyException(
+        mode="authn_login_users_insert_not_acked",
+        message=(
+            f"OAUTH-LOGIN new-user: Users.users insert_one not acknowledged "
+            f"for user_id={user_id} (acknowledged={insert_result.acknowledged}); "
+            "the registered user record was not durable."
+        ),
+        component="AuthorizationsAndAuthentications",
+    )
+
+
 def _login_preconditions(user_object: UserObject) -> None:
     if not isinstance(user_object.current_session_token, SessionToken):
         raise ChatHealthyException(
@@ -202,7 +233,10 @@ def login(
         user_object.is_registered = True
         user_object.user_id = user_id
         body = user_object.model_dump(mode="python", exclude_none=True)
-        users_coll.insert_one({"user_id": user_id, "user_object": body})
+        users_insert_result = users_coll.insert_one(
+            {"user_id": user_id, "user_object": body}
+        )
+        _assert_user_insert_acked(users_insert_result, user_id)
         oauth_identities_serialized = [
             ident.model_dump(mode="python", exclude_none=True)
             for ident in user_object.OAuthIdentities
@@ -217,6 +251,7 @@ def login(
                 "OAuthIdentities": oauth_identities_serialized,
             }},
         )
+        _assert_session_update_matched(update_result, session_guid, "new-user")
         log.info(
             "OAUTH-LOGIN registered new user user_id=%s session_guid=%s "
             "session_matched=%d session_modified=%d",

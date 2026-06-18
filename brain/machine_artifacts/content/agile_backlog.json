@@ -1118,7 +1118,7 @@
                           "name": "Business statement (identical to the story)",
                           "requirement": "ChatHealthy.ai MUST support the creation and use of identity-provider IDs (Google, Facebook, Apple, and others as introduced) for logins using each identity provider's OAuth capabilities. The firm and its application rely on identity providers as identity sources. This story specifies all the technical and business requirements for this capability.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -1138,7 +1138,7 @@
                           "name": "Playwright test of the Login & Registration sequence of screens and messages",
                           "requirement": "A Playwright test script MUST execute the full Login & Registration sequence end to end and MUST assert each screen the user sees and each message presented in that sequence.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
@@ -1154,17 +1154,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-001",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-003",
                           "name": "Login & Registration link in the static-site navigation",
                           "requirement": "Every static page on the chathealthy.ai website MUST render a top-level navigation with exactly three links, in this left-to-right order: Home, Login & Registration, Products and Services.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-001-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-003-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1174,17 +1174,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-002",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-004",
                           "name": "Login click signals login_register intent and identity_provider to /gate",
                           "requirement": "On a click of the Login & Registration link, the browser MUST POST to the SharedServices /gate endpoint with the request body carrying intent = \"login_register\" and an identity_provider field set to the operator-selected identity provider.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-002-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-004-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1194,17 +1194,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-003",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-005",
                           "name": "AuthorizationsAndAuthenticationsTool.run() routes to utterance or to a control use case",
                           "requirement": "AuthorizationsAndAuthenticationsTool.run() MUST route each request into exactly one of two top-level paths: (a) the utterance path, or (b) the control path. Requests on the control path MUST identify a single control use case (for example, login_register) and MUST invoke the corresponding tool or process. An unrecognized path or an unknown control use case MUST cause a hard error.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-003-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-005-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1214,17 +1214,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-004",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-006",
                           "name": "login_register intent triggers OAuth at the selected identity provider",
                           "requirement": "When AuthorizationsAndAuthenticationsTool.run() observes intent = \"login_register\", it MUST return a Response whose redirect_url field is the SharedServices /auth/<identity_provider>/start endpoint URL for the identity provider carried in the request.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-004-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-006-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1234,17 +1234,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-005",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-007",
                           "name": "/gate emits redirect event when AuthN returns redirect_url",
                           "requirement": "When the AuthN Response carries a non-null redirect_url, the SharedServices /gate route MUST emit, as the terminal NDJSON event, a record of the shape {\"type\": \"redirect\", \"url\": <redirect_url>} and end the response.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-005-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-007-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1254,17 +1254,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-006",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-008",
                           "name": "Frontend follows redirect events",
                           "requirement": "On any /gate NDJSON event of shape {\"type\": \"redirect\", \"url\": <string>}, the frontend consumer MUST call window.location.assign(<url>).",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-006-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-008-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1274,17 +1274,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-007",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-009",
                           "name": "/auth/<identity_provider>/callback exchanges the authorization code",
                           "requirement": "The SharedServices /auth/<identity_provider>/callback endpoint MUST receive the identity provider's authorization-code redirect, exchange the code with the identity provider's token endpoint, and obtain the identity provider's stable identifier (hereafter the identity-provider user ID) and the verified email claim.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-007-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-009-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1294,17 +1294,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-008",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-010",
                           "name": "Users collection stores user_objects, indexed on lookup keys",
                           "requirement": "Each document in the users collection IS a UserObject conforming to the canonical schema at https://dev.chathealthy.ai/schemas/ChatHealthyUserStateSchema.json. The collection MUST maintain a unique index on user_id and multi-key indexes on OAuthIdentities.identity_provider_user_id and on OAuthIdentities.email so the OAuth callback can perform constant-time lookups.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-008-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-010-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1314,17 +1314,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-009",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-011",
                           "name": "Registration creates the users record",
                           "requirement": "When no existing users record carries { identity_provider: <identity provider>, identity_provider_user_id: <identity-provider user ID> } in its OAuthIdentities AND no existing OAuthIdentities[].email matches the verified email returned by this callback, the SharedServices /auth/<identity_provider>/callback endpoint MUST create a new users record (a UserObject) with: user_id set to a freshly generated random GUID (RFC 4122 UUIDv4); OAuthIdentities set to exactly one entry { identity_provider: <identity provider>, identity_provider_user_id: <identity-provider user ID>, email: <identity-provider email> }; public_username set to the verified email returned by the identity provider (this default value may be changed by the user via a future story); is_registered = True; user_type = \"Prospect\".",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-009-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-011-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1334,17 +1334,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-010",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-012",
                           "name": "Persist mirrors user_object to the users collection when is_registered == True",
                           "requirement": "AuthorizationsAndAuthenticationsTool.persist() MUST, on every invocation, write the current user_object to admin.sessions (keyed by GUID). When the user_object's is_registered == True, persist() MUST ALSO write the same user_object to the users collection (keyed by user_id). The two writes MUST carry the same UserObject value.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-010-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-012-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1354,17 +1354,37 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-012",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-013",
+                          "name": "On successful login notify the user and welcome new pre-alpha users",
+                          "status": "done",
+                          "approval": "approved",
+                          "requirement": "On a successful login notify the user that they are logged in. If they are new users, welcome them and state that ChatHealthy is glad to have them as pre-alpha users.",
+                          "priority": "must-have",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-013-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-014",
                           "name": "Returning OAuth login replaces the guest user_object with the DB user_object",
                           "requirement": "On a successful OAuth callback whose OAuthIdentities lookup matches an existing user's { identity_provider, identity_provider_user_id }, the endpoint MUST reuse that record's existing user_id, MUST refresh that entry's email to the email returned by the identity provider on this callback, MUST re-set ChatHealthyRegisteredUserCookie per EPIC-002-F-003-S-006-REQ-T-004, MUST replace the current session's guest user_object with the stored UserObject, and MUST bind that stored UserObject to the current session.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-012-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-014-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1374,17 +1394,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-013",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-015",
                           "name": "UserObject defines OAuthIdentities, an array of identity-provider identities",
                           "requirement": "The UserObject schema MUST define a field named OAuthIdentities of type array. Each array element MUST be an object with exactly three sub-fields: (a) identity_provider - the identity-provider name; the enum is open and includes each supported identity provider (initially \"Google\", with additional identity providers added as introduced); (b) identity_provider_user_id - the identity provider's stable identifier for the user; (c) email - the verified email returned by the identity provider on its most recent OAuth callback for this user. The array MUST be non-empty whenever is_registered == True.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-013-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-015-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1394,17 +1414,57 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-015",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-016",
+                          "name": "On failed login explain pre-alpha state and how to request access",
+                          "status": "done",
+                          "approval": "approved",
+                          "requirement": "On a failed login explain that in this 'pre-alpha state' Google demands that ChatHealthy registers them as pre-alpha users, and ask them to email skip@chathealthy.ai, or text him at 01 (646) 408-8999.",
+                          "priority": "must-have",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-016-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-017",
+                          "name": "Returning user welcome-back message with last-login timestamp",
+                          "status": "done",
+                          "approval": "approved",
+                          "requirement": "If a returning user logs in give them a 'Welcome back' message and tell them when they last logged in.",
+                          "priority": "must-have",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-017-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-018",
                           "name": "Returning login appends the guest conversation onto the stored user history",
                           "requirement": "On a successful OAuth callback handled by EPIC-002-F-003-S-004-REQ-T-012, before the stored UserObject replaces the current session's guest UserObject, the endpoint MUST append the guest UserObject's session_conversation_history.utterances, session_conversation_history.ux_events, and session_conversation_history.unanswered_questions arrays to the corresponding arrays of the stored UserObject's session_conversation_history. The merged UserObject (stored history first, then the appended guest entries) MUST then be written to the users collection and bound to the current session.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-015-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-018-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
@@ -1414,17 +1474,17 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-004-REQ-T-016",
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-019",
                           "name": "Cross-identity-provider reconciliation via verified email",
                           "requirement": "On every successful OAuth callback, the endpoint MUST first attempt to match (identity_provider, identity_provider_user_id) against any user_object.OAuthIdentities entry across the users collection. When that match succeeds, the returning-login path per EPIC-002-F-003-S-004-REQ-T-012 runs. Otherwise, the endpoint MUST attempt to match the verified email returned by this callback against any user_object.OAuthIdentities[].email. When that match succeeds, the endpoint MUST append { identity_provider, identity_provider_user_id, email } to that user's OAuthIdentities, re-set ChatHealthyRegisteredUserCookie per EPIC-002-F-003-S-006-REQ-T-004 with that user's existing user_id, replace the current session's guest user_object with the stored UserObject, and bind that stored UserObject to the current session. Otherwise, the registration path per EPIC-002-F-003-S-004-REQ-T-009 runs.",
                           "priority": "must-have",
-                          "status": "in_progress",
+                          "status": "done",
                           "orphan": false,
                           "approval": "approved",
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-004-REQ-T-016-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-019-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_login_register.py"
