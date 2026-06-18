@@ -1492,6 +1492,26 @@
                             ]
                           },
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-020",
+                          "name": "Pre-alpha authorized-registrant allow-list is hardcoded in application code",
+                          "requirement": "The pre-alpha allow-list of authorized registrants MUST be 100% hardcoded in the application code. No database collection, no env var, no manifest entry — to add or remove an authorized pre-alpha user the operator edits the code and redeploys.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-020-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
                         }
                       ]
                     },
