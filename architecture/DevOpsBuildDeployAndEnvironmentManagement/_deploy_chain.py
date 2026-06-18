@@ -2233,6 +2233,7 @@ class LocalDeploy:
         frontend_lib_src = self.repo_root / "FrontEndApplicationLib"
         auth_src = self.repo_root / "sharedServices" / "Code" / "AuthorizationsAndAuthentications"
         specialty_filter_src = self.repo_root / "FindCare" / "SpecialtyFilter"
+        clinical_trials_src = self.repo_root / "FindCare" / "ClinicalTrials"
         for container_name, entry in self.BACKEND_CONTAINERS.items():
             _label, src_dir, build_ctx_rel = entry
             image_tag = container_name
@@ -2272,6 +2273,17 @@ class LocalDeploy:
                         "__pycache__", "*.pyc", "*.docx", "*.tsx", "*.ts",
                     ),
                 )
+            staged_clinical_trials = None
+            if container_name == "ch-sharedsvc" and clinical_trials_src.is_dir():
+                staged_clinical_trials = build_ctx_abs / "ClinicalTrials"
+                if staged_clinical_trials.exists():
+                    _shutil.rmtree(staged_clinical_trials)
+                _shutil.copytree(
+                    clinical_trials_src, staged_clinical_trials,
+                    ignore=_shutil.ignore_patterns(
+                        "__pycache__", "*.pyc", "*.docx", "*.tsx", "*.ts",
+                    ),
+                )
             build_info_path = self._write_build_info(build_ctx_abs, container_name)
             self._step_notice(
                 f"building image {image_tag} (-f {src_dir}/Dockerfile, "
@@ -2291,6 +2303,8 @@ class LocalDeploy:
                     _shutil.rmtree(staged_auth)
                 if staged_specialty_filter is not None and staged_specialty_filter.exists():
                     _shutil.rmtree(staged_specialty_filter)
+                if staged_clinical_trials is not None and staged_clinical_trials.exists():
+                    _shutil.rmtree(staged_clinical_trials)
                 if build_info_path.is_file():
                     build_info_path.unlink()
             if result.returncode != 0:

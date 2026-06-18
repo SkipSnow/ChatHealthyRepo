@@ -22,7 +22,7 @@ from authentication.user_object import (
     Utterance,
 )
 
-from UtteranceManager import manager as um
+from UtteranceManager import utterance_manager as um
 from UtteranceManager.intent_document import (
     Argument,
     IntentDocument,

@@ -24,6 +24,8 @@
 //   - phase: 'welcome' | 'searching' | 'results'
 
 import React, { useState, useRef, useCallback, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useSelectionState } from '@providers/useSelectionState'
 import { ProviderCard } from '@providers/ProviderCard'
 import type { Provider } from '@providers/provider'
@@ -163,6 +165,339 @@ function renderSystemMessageWithCorrections(
 }
 
 
+// ── Helper: render the shared "question bar" that sits above any
+// search-result region. EPIC-006-F-031-S-002 / EPIC-006-F-002:
+// reused for both provider results and clinical-trials results so the
+// banner does NOT care which intent ran. Pass an optional rightLabel
+// (e.g. "726 providers found", "12 clinical trials") to show on the
+// right; omit for non-results clarification screens.
+function renderQuestionBanner(
+  question: string,
+  corrections: Array<{original: string; corrected: string}>,
+  rightLabel?: string,
+): React.ReactNode {
+  return (
+    <div style={{
+      padding: '1em', background: '#f0fffe', borderBottom: '0.25em solid #0b7a75',
+      fontSize: '1em', color: '#0b7a75', fontWeight: 600,
+    }}>
+      {renderQuestionWithCorrections(question, corrections)}
+      {rightLabel && (
+        <span style={{ float: 'right', fontWeight: 400, color: '#6b7280', fontSize: '1em' }}>
+          {rightLabel}
+        </span>
+      )}
+    </div>
+  )
+}
+
+
+// ── Helper: format ONE trial as the full center-panel detail view.
+// EPIC-006-F-031 — every V7 in-scope attribute that has a value is
+// surfaced. Top section is a 4-col label/value table; sites are a
+// 3-col table (label + 2 site columns, sites paired 2 per row); the
+// rest are sectioned markdown blocks.
+function _md(v: any): string {
+  if (v === null || v === undefined) return '—'
+  const s = String(v).trim()
+  return s.length === 0 ? '—' : s.replace(/\|/g, '\\|')
+}
+function _yn(v: any): string { return v ? 'yes' : 'no' }
+function _join(arr: any, sep = ', '): string {
+  if (!Array.isArray(arr) || arr.length === 0) return ''
+  return arr.filter(Boolean).join(sep)
+}
+function _kv4(rows: Array<[string, any, string, any]>): string {
+  const header = '| Label | Value | Label | Value |\n|---|---|---|---|'
+  const body = rows.map(r => `| ${_md(r[0])} | ${_md(r[1])} | ${_md(r[2])} | ${_md(r[3])} |`).join('\n')
+  return header + '\n' + body
+}
+function _outcomeTable(outcomes: any[]): string {
+  if (!outcomes || !outcomes.length) return ''
+  const header = '| Measure | Description | Time frame |\n|---|---|---|'
+  const body = outcomes.map((o: any) =>
+    `| ${_md(o.measure)} | ${_md(o.description)} | ${_md(o.time_frame)} |`,
+  ).join('\n')
+  return header + '\n' + body
+}
+function formatTrialDetail(trial: any): string {
+  const title = trial.brief_title || '(no title)'
+  const phases = _join(trial.phases) || '—'
+  const conds  = _join(trial.conditions) || '—'
+  const kw     = _join(trial.keywords)
+
+  // Top — 4-col label/value table (Skip req #3)
+  const topRows: Array<[string, any, string, any]> = [
+    ['National Clinical Trial ID', trial.nct_id,      'Status',         trial.overall_status],
+    ['Phase',       phases,                    'Enrollment',     trial.enrollment_count],
+    ['Study type',  trial.study_type,          'Allocation',     trial.design_info?.allocation],
+    ['Sponsor',     trial.lead_sponsor_name,   'Sponsor type',   trial.lead_sponsor_class],
+    ['Organization',trial.organization?.full_name, 'Org class',  trial.organization?.class],
+    ['Start',       trial.start_date,          'Primary completion', trial.primary_completion_date],
+    ['First submit',trial.study_first_submit_date, 'Last update',trial.last_update_post_date],
+    ['Min age',     trial.minimum_age,         'Max age',        trial.maximum_age],
+    ['Sex',         trial.sex,                 'Healthy vol.',   _yn(trial.healthy_volunteers)],
+    ['DMC oversight', _yn(trial.oversight_has_dmc), 'FDA-regulated drug', _yn(trial.is_fda_regulated_drug)],
+    ['FDA-regulated device', _yn(trial.is_fda_regulated_device), 'Unapproved device', _yn(trial.is_unapproved_device)],
+    ['Pediatric postmarket study (PPSD)', _yn(trial.is_ppsd), 'FDAAA 801 violation', _yn(trial.fdaaa_801_violation)],
+  ]
+
+  // Design block — table form, all the design_info attrs
+  const di = trial.design_info || {}
+  const designRows: Array<[string, any, string, any]> = [
+    ['Allocation',           di.allocation,            'Intervention model',  di.intervention_model],
+    ['Primary purpose',      di.primary_purpose,       'Observational model', di.observational_model],
+    ['Time perspective',     di.time_perspective,      'Masking',             di.masking],
+    ['Who masked',           _join(di.who_masked),     'Target duration',     trial.target_duration],
+    ['Bio-spec retention',   trial.bio_spec?.retention,'Expanded access',     _join(trial.expanded_access_types)],
+  ]
+  const designIntDesc = di.intervention_model_description ? `**Intervention model description:** ${di.intervention_model_description}` : ''
+  const designMaskDesc = di.masking_description ? `**Masking description:** ${di.masking_description}` : ''
+  const bioSpecDesc = trial.bio_spec?.description ? `**Bio-spec description:** ${trial.bio_spec.description}` : ''
+
+  // Responsible party
+  const rp = trial.responsible_party || {}
+  const respPartyRows: Array<[string, any, string, any]> = [
+    ['Type',                 rp.type,                  'Investigator',        rp.investigator_full_name],
+    ['Investigator title',   rp.investigator_title,    'Investigator affil.', rp.investigator_affiliation],
+  ]
+  const hasRespParty = rp.type || rp.investigator_full_name || rp.investigator_title || rp.investigator_affiliation
+
+  // Collaborators
+  const collaborators = (trial.collaborators || []).map((c: any) =>
+    `- **${_md(c.name)}** (${_md(c.class)})`,
+  ).join('\n')
+
+  // Secondary IDs
+  const secIds = (trial.secondary_id_infos || []).map((s: any) =>
+    `- ${_md(s.id)} — ${_md(s.type)}${s.domain ? ' / ' + _md(s.domain) : ''}`,
+  ).join('\n')
+
+  // Arms
+  const arms = (trial.arm_groups || []).map((a: any) => {
+    const ints = _join(a.intervention_names)
+    return [
+      `**${_md(a.label)}** _(${_md(a.type)})_`,
+      a.description ? a.description : '',
+      ints ? `Interventions: ${ints}` : '',
+    ].filter(Boolean).join('  \n')
+  }).join('\n\n')
+
+  // Interventions
+  const interventions = (trial.interventions || []).map((i: any) => {
+    return [
+      `**${_md(i.type)}: ${_md(i.name)}**`,
+      i.description ? i.description : '',
+      i.arm_group_labels?.length ? `Arms: ${_join(i.arm_group_labels)}` : '',
+      i.other_names?.length ? `Other names: ${_join(i.other_names)}` : '',
+    ].filter(Boolean).join('  \n')
+  }).join('\n\n')
+
+  // Outcomes
+  const primaryOutcomes  = _outcomeTable(trial.primary_outcomes || [])
+  const secondaryOutcomes = _outcomeTable(trial.secondary_outcomes || [])
+  const otherOutcomes    = _outcomeTable(trial.other_outcomes || [])
+
+  // Eligibility
+  const eligRows: Array<[string, any, string, any]> = [
+    ['Sex',                  trial.sex,                'Min age',             trial.minimum_age],
+    ['Max age',              trial.maximum_age,        'Healthy volunteers',  _yn(trial.healthy_volunteers)],
+    ['Gender description',   trial.gender_description, 'Std ages',            ''],
+  ]
+  const eligCriteria = trial.eligibility_criteria ? `**Criteria:**\n\n${trial.eligibility_criteria}` : ''
+
+  // Contacts
+  const centralContacts = (trial.central_contacts || []).map((c: any) => {
+    const phone = c.phone ? `📞 ${c.phone}${c.phone_ext ? ' x' + c.phone_ext : ''}` : ''
+    const email = c.email ? `✉ ${c.email}` : ''
+    const npi   = c.npi   ? ` [Provider record](/provider/${c.npi})` : ''
+    return `- **${_md(c.name)}** _(${_md(c.role)})_ — ${[phone, email].filter(Boolean).join(' · ')}${npi}`
+  }).join('\n')
+
+  // Overall officials (includes PI / Study Director / Study Chair)
+  const officials = (trial.overall_officials || []).map((o: any) =>
+    `- **${_md(o.name)}** _(${_md(o.role)})_ — ${_md(o.affiliation)}`,
+  ).join('\n')
+
+  // Sites — 3-col table, all sites, paired 2 per row (Skip req #1+#4)
+  // Column A = label (only first row says "Sites"), B = site 1, C = site 2.
+  const sites = (trial.locations || []).map((l: any) => {
+    const where = [l.facility, [l.city, l.state, l.zip].filter(Boolean).join(', '), l.country]
+      .filter(Boolean).join(' — ')
+    const status = l.status ? ` _(${l.status})_` : ''
+    const travel = (l.distance && l.duration) ? `  · ${l.distance} · ${l.duration}` : ''
+    return `${where}${status}${travel}`
+  })
+  let sitesTable = ''
+  if (sites.length) {
+    const rows: string[] = []
+    for (let i = 0; i < sites.length; i += 2) {
+      const label = i === 0 ? 'Sites' : ''
+      const a = sites[i] || ''
+      const b = sites[i + 1] || ''
+      rows.push(`| ${_md(label)} | ${_md(a)} | ${_md(b)} |`)
+    }
+    sitesTable = '|  |  |  |\n|---|---|---|\n' + rows.join('\n')
+  }
+
+  // References / see-also
+  const references = (trial.references || []).map((r: any) => {
+    const pubmed = r.pmid ? ` [(PubMed)](https://pubmed.ncbi.nlm.nih.gov/${r.pmid}/)` : ''
+    return `- _(${_md(r.type)})_ ${_md(r.citation)}${pubmed}`
+  }).join('\n')
+  const seeAlso = (trial.see_also_links || []).map((s: any) =>
+    `- [${_md(s.label || s.url)}](${s.url})`,
+  ).join('\n')
+
+  // IPD sharing
+  const ipd = trial.ipd_sharing || {}
+  const hasIpd = ipd.ipd_sharing || ipd.description || ipd.access_criteria || ipd.url
+  const ipdRows: Array<[string, any, string, any]> = [
+    ['IPD sharing',          ipd.ipd_sharing,          'Time frame',          ipd.time_frame],
+    ['Info types',           _join(ipd.info_types),    'URL',                 ipd.url],
+  ]
+  const ipdAccess = ipd.access_criteria ? `**Access criteria:** ${ipd.access_criteria}` : ''
+  const ipdDesc   = ipd.description ? `**Description:** ${ipd.description}` : ''
+
+  // MeSH-derived browse leaves
+  const condLeaves = (trial.condition_browse_leaves || []).map((b: any) =>
+    `- ${_md(b.name)}${b.relevance ? ` _(relevance: ${b.relevance.toLowerCase()})_` : ''}`,
+  ).join('\n')
+  const interventionLeaves = (trial.intervention_browse_leaves || []).map((b: any) =>
+    `- ${_md(b.name)}${b.relevance ? ` _(relevance: ${b.relevance.toLowerCase()})_` : ''}`,
+  ).join('\n')
+
+  // Large docs
+  const largeDocs = (trial.large_docs || []).map((d: any) => {
+    const flags = [d.has_protocol && 'Protocol', d.has_sap && 'SAP', d.has_icf && 'ICF'].filter(Boolean).join(', ')
+    return `- **${_md(d.label || d.filename)}**${flags ? ` _(${flags})_` : ''} — ${_md(d.date || d.upload_date)}`
+  }).join('\n')
+
+  // Violations
+  const violations = (trial.violation_annotation?.violation_events || []).map((v: any) =>
+    `- **${_md(v.type)}** — ${_md(v.description)} _(issued ${_md(v.issued_date)})_`,
+  ).join('\n')
+
+  // Compose
+  return [
+    `## ${title}`,
+    trial.official_title && trial.official_title !== title ? `_${trial.official_title}_` : '',
+    trial.acronym ? `**Acronym:** ${trial.acronym}` : '',
+    _kv4(topRows),
+
+    trial.brief_summary ? `### Brief summary\n\n${trial.brief_summary}` : '',
+    trial.detailed_description ? `### Detailed description\n\n${trial.detailed_description}` : '',
+
+    conds ? `### Conditions\n\n${conds}` : '',
+    kw ? `**Keywords:** ${kw}` : '',
+
+    '### Design',
+    _kv4(designRows),
+    designIntDesc, designMaskDesc, bioSpecDesc,
+
+    hasRespParty ? '### Responsible party' : '',
+    hasRespParty ? _kv4(respPartyRows) : '',
+
+    collaborators ? `### Collaborators\n\n${collaborators}` : '',
+    secIds ? `### Secondary IDs\n\n${secIds}` : '',
+
+    arms ? `### Arms\n\n${arms}` : '',
+    interventions ? `### Interventions\n\n${interventions}` : '',
+
+    primaryOutcomes ? `### Primary outcomes\n\n${primaryOutcomes}` : '',
+    secondaryOutcomes ? `### Secondary outcomes\n\n${secondaryOutcomes}` : '',
+    otherOutcomes ? `### Other outcomes\n\n${otherOutcomes}` : '',
+
+    '### Eligibility',
+    _kv4(eligRows),
+    eligCriteria,
+
+    centralContacts ? `### Central contacts\n\n${centralContacts}` : '',
+    officials ? `### Overall officials\n\n${officials}` : '',
+
+    sitesTable ? `### Sites (${sites.length})\n\n${sitesTable}` : '',
+
+    references ? `### References\n\n${references}` : '',
+    seeAlso ? `### See also\n\n${seeAlso}` : '',
+
+    hasIpd ? '### IPD sharing' : '',
+    hasIpd ? _kv4(ipdRows) : '',
+    ipdDesc, ipdAccess,
+
+    condLeaves ? `### MeSH-mapped conditions\n\n${condLeaves}` : '',
+    interventionLeaves ? `### MeSH-mapped interventions\n\n${interventionLeaves}` : '',
+
+    largeDocs ? `### Study documents\n\n${largeDocs}` : '',
+    violations ? `### Compliance violations\n\n${violations}` : '',
+
+    trial.study_url ? `[View on ClinicalTrials.gov](${trial.study_url})` : '',
+  ].filter(Boolean).join('\n\n')
+}
+
+
+// ── Helper: build the leftPanel HTML for the bullet-list of trials.
+// EPIC-006-F-031 — Skip req #2: bullet per trial, NCT ID as the click
+// target, four sub-bullets (conditions, distance to nearest site, age
+// range, gender restrictions). Click semantics handled in the parent
+// (Website/index.html) — each <a data-trial-index="N"> posts back a
+// trial:select message so the iframe can switch its detail view.
+function _escapeHtml(s: any): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+function _nearestDistance(trial: any): string {
+  const locs = trial.locations || []
+  const withDist = locs.filter((l: any) => l.distance && l.duration)
+  if (!withDist.length) return '—'
+  // distance is a string like "236 miles"; pull the numeric prefix.
+  const ranked = withDist.slice().sort((a: any, b: any) => {
+    const na = parseFloat(String(a.distance).replace(/[^0-9.]/g, '')) || 0
+    const nb = parseFloat(String(b.distance).replace(/[^0-9.]/g, '')) || 0
+    return na - nb
+  })
+  return `${ranked[0].distance} · ${ranked[0].duration}`
+}
+function _ageRange(trial: any): string {
+  const a = (trial.minimum_age || '').trim()
+  const b = (trial.maximum_age || '').trim()
+  if (!a && !b) return '—'
+  if (a && b) return `${a} – ${b}`
+  return a || b
+}
+function buildTrialsLeftPanelHtml(trials: any[]): string {
+  const items = trials.map((t: any, i: number) => {
+    const nct = _escapeHtml(t.nct_id || '(no id)')
+    const title = _escapeHtml(t.brief_title || '')
+    const conds = _escapeHtml((t.conditions || []).join(', ') || '—')
+    const dist  = _escapeHtml(_nearestDistance(t))
+    const ages  = _escapeHtml(_ageRange(t))
+    const sex   = _escapeHtml(t.sex || '—')
+    return `
+      <li style="margin-bottom:0.75em;">
+        <a href="#" data-trial-index="${i}"
+           style="color:#0b7a75; font-weight:700; text-decoration:underline; cursor:pointer;">
+          ${nct}
+        </a>
+        <div style="font-size:0.9em; color:#374151; margin:0.15em 0 0.25em 0;">${title}</div>
+        <ul style="margin:0.25em 0 0 1em; padding:0; font-size:0.9em; color:#4b5563;">
+          <li><strong>Conditions:</strong> ${conds}</li>
+          <li><strong>Distance to nearest site:</strong> ${dist}</li>
+          <li><strong>Age range:</strong> ${ages}</li>
+          <li><strong>Sex:</strong> ${sex}</li>
+        </ul>
+      </li>`
+  }).join('')
+  return `
+    <div style="height:100%; overflow-y:auto; padding:1em; box-sizing:border-box;">
+      <div style="font-size:1em; font-weight:700; color:#0b7a75; text-transform:uppercase; margin-bottom:0.5em;">
+        Clinical trials (${trials.length})
+      </div>
+      <ul style="list-style:disc; padding-left:1.25em; margin:0;">${items}</ul>
+    </div>`
+}
+
+
 // ── Helper: render the user's original question with each misspelled
 // word followed by a red "(corrected from '<original>')" annotation.
 // Used in the question-bar header so the header carries the same
@@ -202,6 +537,10 @@ export default function FindCareApp() {
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
   const [systemMessage, setSystemMessage] = useState('')
+  // EPIC-006-F-031 — clinical trials: list lives in state so the left
+  // panel can drive selection and the center panel renders one trial.
+  const [trialsList, setTrialsList] = useState<any[]>([])
+  const [selectedTrialIndex, setSelectedTrialIndex] = useState<number>(0)
   const [systemCorrections, setSystemCorrections] = useState<Array<{original: string; corrected: string}>>([])
   const [welcomeHtml, setWelcomeHtml] = useState('')
   const [thinkSeconds, setThinkSeconds] = useState(0)
@@ -272,6 +611,11 @@ export default function FindCareApp() {
       const msg = event.data
       if (!msg || typeof msg !== 'object') return
 
+      // EPIC-006-F-031 — leftPanel bullet click → switch center detail
+      if (msg.type === 'trial:select' && typeof msg.index === 'number') {
+        setSelectedTrialIndex(msg.index)
+      }
+
       // RestoreState=false — reset to welcome, focus input
       if (msg.type === 'gui:reset') {
         setPhase('welcome')
@@ -340,6 +684,8 @@ export default function FindCareApp() {
     setError('')
     setSystemMessage('')
     setSystemCorrections([])
+    setTrialsList([])
+    setSelectedTrialIndex(0)
     selection.flushGarbage()
 
     const start = Date.now()
@@ -472,6 +818,27 @@ export default function FindCareApp() {
       setPhase('results')
     }
 
+    // EPIC-006-F-031 — Find Clinical Trials.
+    // Store the full trial list in state; push the bullet-list to the
+    // parent's leftPanel; render ONE selected trial in the center.
+    const onTrials = (data: any) => {
+      console.log('[FindCare] stream event kind=trials count=', data?.trials?.length || 0)
+      if (ac.signal.aborted) return
+      if (data.error) {
+        setError(data.error)
+        setPhase('error')
+        sawError = true
+        return
+      }
+      const trials = data?.trials || []
+      setTrialsList(trials)
+      setSelectedTrialIndex(0)
+      setSystemMessage('')
+      sendToParent('gui:trials-left-panel', { html: buildTrialsLeftPanelHtml(trials) })
+      finishTimer()
+      setPhase('clarify')
+    }
+
     try {
       const ssUrl = _sharedServicesUrl(API_URL)
       const body: any = { op: 'utterance', payload: { text } }
@@ -508,6 +875,7 @@ export default function FindCareApp() {
           try { evt = JSON.parse(trimmed) } catch { continue }
           if (evt.kind === 'specialties') { onSpecialties(evt.data || {}); sawTerminalEvent = true }
           else if (evt.kind === 'providers') { onProviders(evt.data || {}); sawTerminalEvent = true }
+          else if (evt.kind === 'trials') { onTrials(evt.data || {}); sawTerminalEvent = true }
           else if (evt.kind === 'prompt') onPrompt(evt.data || {})
           else if (evt.kind === 'final' && !sawError) {
             const okFlag = evt.data?.ok ?? evt.ok
@@ -642,6 +1010,25 @@ export default function FindCareApp() {
       }
     }
 
+    // EPIC-006-F-031 — Find Clinical Trials (apply-filter mirror).
+    const onTrials = (data: any) => {
+      console.log('[FindCare apply_filter] stream event kind=trials count=', data?.trials?.length || 0)
+      if (ac.signal.aborted) return
+      if (data.error) {
+        setError(data.error)
+        setPhase('error')
+        sawError = true
+        return
+      }
+      const trials = data?.trials || []
+      setTrialsList(trials)
+      setSelectedTrialIndex(0)
+      setSystemMessage('')
+      sendToParent('gui:trials-left-panel', { html: buildTrialsLeftPanelHtml(trials) })
+      finishTimer()
+      setPhase('clarify')
+    }
+
     try {
       const ssUrl = _sharedServicesUrl(API_URL)
       const body: any = { op: 'apply_filter', payload: { nucc_codes: nuccCodes } }
@@ -678,6 +1065,7 @@ export default function FindCareApp() {
           try { evt = JSON.parse(trimmed) } catch { continue }
           if (evt.kind === 'specialties') { onSpecialties(evt.data || {}); sawTerminalEvent = true }
           else if (evt.kind === 'providers') { onProviders(evt.data || {}); sawTerminalEvent = true }
+          else if (evt.kind === 'trials') { onTrials(evt.data || {}); sawTerminalEvent = true }
           else if (evt.kind === 'prompt') onPrompt(evt.data || {})
           else if (evt.kind === 'final' && !sawError) {
             const okFlag = evt.data?.ok ?? evt.ok
@@ -1033,13 +1421,35 @@ export default function FindCareApp() {
         </div>
       )}
 
-      {/* CLARIFY PHASE — system clarification message from server */}
+      {/* CLARIFY PHASE — either trial detail (one trial at a time) or
+          a generic clarification bubble from the server. */}
       {phase === 'clarify' && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1em', maxWidth: 800, margin: '1em', width: '100%' }}>
-          <div style={{
-            padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
-            border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6, color: '#0b7a75',
-          }}>{renderSystemMessageWithCorrections(systemMessage, systemCorrections)}</div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {question && renderQuestionBanner(
+            question,
+            systemCorrections,
+            trialsList.length
+              ? `${trialsList.length} clinical trials — viewing ${trialsList[selectedTrialIndex]?.nct_id || trialsList[0]?.nct_id || ''}`
+              : undefined,
+          )}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1em', maxWidth: 1100, margin: '1em', width: '100%' }}>
+            <div style={{
+              padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
+              border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6, color: '#0b7a75',
+            }}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  table: ({node, ...p}) => <table {...p} style={{borderCollapse: 'collapse', width: '100%', margin: '0.5em 0'}} />,
+                  th: ({node, ...p}) => <th {...p} style={{border: '0.0625em solid #d1d5db', padding: '0.5em', background: '#f3f4f6', textAlign: 'left'}} />,
+                  td: ({node, ...p}) => <td {...p} style={{border: '0.0625em solid #d1d5db', padding: '0.5em', verticalAlign: 'top'}} />,
+                  a: ({node, ...p}) => <a {...p} target="_blank" rel="noopener noreferrer" />,
+                }}
+              >{trialsList.length
+                  ? formatTrialDetail(trialsList[selectedTrialIndex] || trialsList[0])
+                  : systemMessage}</ReactMarkdown>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1074,15 +1484,7 @@ export default function FindCareApp() {
       {phase === 'results' && (
         <>
           {/* Question bar */}
-          <div style={{
-            padding: '1em', background: '#f0fffe', borderBottom: '0.25em solid #0b7a75',
-            fontSize: '1em', color: '#0b7a75', fontWeight: 600,
-          }}>
-            {renderQuestionWithCorrections(question, systemCorrections)}
-            <span style={{ float: 'right', fontWeight: 400, color: '#6b7280', fontSize: '1em' }}>
-              {totalCount} providers found
-            </span>
-          </div>
+          {renderQuestionBanner(question, systemCorrections, `${totalCount} providers found`)}
 
           {/* SpecialtyFilter is now hosted in the parent's leftPanel
               (legacy HTML render of the 4-cell grid). React component

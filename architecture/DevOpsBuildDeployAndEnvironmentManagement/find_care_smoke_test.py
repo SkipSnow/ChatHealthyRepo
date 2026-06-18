@@ -810,10 +810,25 @@ class TestStep13:
 # Step 14 [TEST-SIM-001-REQ-012]
 class TestStep14:
     def test_evaluatecare_has_control(self, env):
+        # No path to reach this state in prod — banner suppressed per
+        # S-002-REQ-B-002, no SharedServices/EvaluateCare links to click.
+        if IS_PROD:
+            pytest.skip("S-002-REQ-B-002: EvaluateCare handoff is banner-driven, suppressed in prod")
         page = env["page"]
-        assert not page.locator("#coreChatFrame").is_visible(), "Chat iframe still visible"
+        # Pass criteria (operator 2026-06-18):
+        # (a) EvaluateCare banner link is COLD — rendered as a <span> with
+        #     data-service="evaluatecare" (the renderBannerButtons cold path
+        #     emits a span; hot links are <a>). Presence of the span proves
+        #     ownership transfer.
+        # (b) Main page shows "Evaluate Care\nis still unimplemented" via
+        #     the splash mounted into #evalcareSplash.
+        cold = page.locator('span[data-service="evaluatecare"]')
+        assert cold.count() > 0, "EvaluateCare banner link is not cold (no <span data-service='evaluatecare'>) — ownership did not transfer"
         splash = page.locator("#evalcareSplash")
         assert splash.count() > 0 and splash.is_visible(), "EvaluateCare splash not visible"
+        text = splash.inner_text()
+        assert "EvaluateCare" in text, f"Missing EvaluateCare label in splash: {text[:300]}"
+        assert "is still unimplemented" in text, f"Missing 'is still unimplemented' in splash: {text[:300]}"
         _screenshot(page, "14")
 
 
@@ -1142,9 +1157,18 @@ class TestStep26:
         if IS_PROD:
             pytest.skip("S-002-REQ-B-002: SharedServices handoff is banner-driven, suppressed in prod")
         page = env["page"]
-        assert not page.locator("#coreChatFrame").is_visible(), "Chat iframe still visible"
-        splash = page.locator("#sharedSplash")
-        assert splash.count() > 0 and splash.is_visible(), "SharedServices splash not visible"
+        # Pass criteria (operator 2026-06-18):
+        # (a) SharedServices banner link is COLD — <span data-service="sharedservices">.
+        # (b) The user_object surface (#rightSecurity) is populated — i.e.
+        #     the session GUID is rendered into the security panel proving
+        #     the user_object reached the wrapper. Panel suppressed in prod
+        #     per S-002-REQ-B-002 (the IS_PROD skip above covers that).
+        cold = page.locator('span[data-service="sharedservices"]')
+        assert cold.count() > 0, "SharedServices banner link is not cold (no <span data-service='sharedservices'>) — ownership did not transfer"
+        sec = page.locator("#rightSecurity")
+        assert sec.count() > 0, "#rightSecurity panel missing"
+        sec_text = sec.inner_text()
+        assert "GUID:" in sec_text, f"user_object not present in #rightSecurity (no GUID rendered): {sec_text[:300]}"
         _screenshot(page, "26")
 
 
@@ -1341,50 +1365,31 @@ class TestStep32:
         _screenshot(page, "32")
 
 
-# Step 33 [EPIC-002-F-001-S-012-REQ-T-003] — Handoff 6: SharedServices → EvaluateCare
+# Step 33 [EPIC-002-F-001-S-012-REQ-T-003] — Handoff: return-to-FindCare from SharedServices
 class TestStep33:
     def test_shared_to_evalcare(self, env):
+        # Pass criteria (operator 2026-06-18, "That is all"):
+        # - banner FindCare link is dead (cold) in lower environments
+        # - welcome text "Find care in the US & clinical trials globally,
+        #   Let's talk about it." is present in the main frame
         page = env["page"]
-        frame = env.get("chat_frame", page)
-        # REQ-B-033 + BUG-003 disease — no silent conditional fallbacks.
-        # Each prerequisite step asserts hard. If the prior state is wrong,
-        # this test must fail loudly, not paper over.
-        # Filter-iframe selectors (EPIC-006-F-002 Option B).
-        filt = None
-        for f in page.frames:
-            if "mode=filter" in (f.url or ""):
-                filt = f; break
-        assert filt is not None, "REQ-B-033: filter sub-iframe missing"
-        row = filt.locator(".specialty-filter__row").first
-        assert row.count() > 0, "REQ-B-033: no specialty rows in filter iframe"
-        row.click()
-        page.wait_for_timeout(800)
-        apply_btn = filt.locator("[data-testid='apply-filter-button']")
-        assert apply_btn.count() > 0, "REQ-B-033: Apply Filter button missing for return-to-FindCare"
-        apply_btn.click()
-        page.wait_for_timeout(5000)
-        assert page.locator("#coreChatFrame").is_visible(), \
-            "REQ-B-033: chat iframe not restored after return-to-FindCare"
-        # Re-select providers and evaluate to get to EvaluateCare
-        select_btns = frame.locator("button[title='Select for evaluation']")
-        if select_btns.count() == 0:
-            select_btns = frame.locator("button:has-text('↓')")
-        assert select_btns.count() > 0, "REQ-B-033: no Select-for-Evaluation buttons"
-        select_btns.first.click()
-        page.wait_for_timeout(500)
-        eval_btn = frame.locator("[data-testid='evaluate-button']")
-        assert eval_btn.count() > 0, "REQ-B-033: in-iframe Evaluate button not found for handoff 6"
-        eval_btn.first.click()
-        page.wait_for_timeout(5000)
-        # REQ-B-033: MUST hand control to EvaluateCare — assert directly.
-        assert not page.locator("#coreChatFrame").is_visible(), \
-            "REQ-B-033: chat iframe still visible after Evaluate click in handoff 6"
-        ec_splash = page.locator("#evalcareSplash")
-        assert ec_splash.count() > 0 and ec_splash.is_visible(), \
-            "REQ-B-033: evalcareSplash not visible after handoff 6 (SharedServices→EvaluateCare)"
-        # Handoff 6 of 6: SharedServices → EvaluateCare
-        nonce, guid = _verify_session_identity(page, env, "SharedServices→EvaluateCare")
-        env["sh_to_ec_nonce"] = nonce
+        # Use the FindCare banner link as the return gesture — produces
+        # the welcome state cleanly without triggering a follow-on search.
+        page.evaluate("() => { if (typeof window.gotoFindCare === 'function') window.gotoFindCare(); }")
+        page.wait_for_timeout(3000)
+        if not IS_PROD:
+            cold = page.locator('span[data-service="findcare"]')
+            assert cold.count() > 0, \
+                "REQ-B-033: FindCare banner link is not dead (no <span data-service='findcare'>) after return"
+        # Welcome text in the main frame — specifically the chat iframe
+        # element #coreChatFrame, NOT the filter sub-iframe (which is also
+        # served by FindCare and would match a URL-based search).
+        chat_locator = page.frame_locator("#coreChatFrame")
+        body_text = chat_locator.locator("body").inner_text()
+        assert "Find care in the US & clinical trials globally," in body_text, \
+            f"REQ-B-033: welcome text not present in main frame: {body_text[:400]}"
+        assert "Let's talk about it." in body_text, \
+            f"REQ-B-033: welcome 'Let's talk about it.' line not present in main frame: {body_text[:400]}"
         _screenshot(page, "33")
 
 

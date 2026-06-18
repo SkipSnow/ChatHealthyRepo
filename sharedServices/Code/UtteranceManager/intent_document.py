@@ -113,6 +113,18 @@ class IntentFindAProvider(BaseModel):
     pending_disambiguation: Optional[PendingDisambiguation] = None
 
 
+class IntentFindClinicalTrials(BaseModel):
+    """Intent entry: user is looking for recruiting clinical trials.
+    Carries the complaint (condition), an optional user_location string,
+    and an optional cursor for paged retrieval. EPIC-006-F-031-S-003."""
+
+    model_config = {"extra": "forbid"}
+
+    name: Literal["findClinicalTrials"]
+    arguments: list[Argument] = Field(min_length=1, max_length=3)
+    pending_disambiguation: Optional[PendingDisambiguation] = None
+
+
 class IntentCloseConnection200(BaseModel):
     """Intent entry: UR closes the StreamingResponse with HTTP 200 OK after
     every dispatched tool has flushed its events. Carries a single
@@ -147,6 +159,7 @@ IntentEntry = Annotated[
         IntentNonsense,
         IntentSpecialtySearch,
         IntentFindAProvider,
+        IntentFindClinicalTrials,
         IntentCloseConnection200,
         IntentSafetyLockout,
     ],
@@ -163,6 +176,7 @@ TargetAction = Literal[
     "nonsense",
     "specialtySearch",
     "findAProvider",
+    "findClinicalTrials",
     "closeConnection200",
     "safetyLockout",
 ]

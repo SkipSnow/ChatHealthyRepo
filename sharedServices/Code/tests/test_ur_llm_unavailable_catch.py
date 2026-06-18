@@ -74,7 +74,7 @@ def test_ur_handle_utterance_catches_llm_unavailable_and_dispatches_manufacture(
 
     monkeypatch.setitem(
         __import__("sys").modules,
-        "UtteranceManager.manager",
+        "UtteranceManager.utterance_manager",
         fake_um_module,
     )
     import sys
@@ -122,7 +122,7 @@ def test_ur_handle_utterance_propagates_non_llm_unavailable_modes(
     )
     import sys
     sys.modules["UtteranceManager"] = SimpleNamespace(manager=fake_um_module)
-    sys.modules["UtteranceManager.manager"] = fake_um_module
+    sys.modules["UtteranceManager.utterance_manager"] = fake_um_module
 
     tool = un.UniversalNavigationTool()
     deps = _make_deps()

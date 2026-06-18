@@ -106,7 +106,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "171e738ac17ddd927b4cedf0a45005fba8cee525027cf3304a8102feb58f9ae1"
+          "content_hash": "1d66678342b9c85d5529cee0bd71de272a1e792d762637a78e9ea3e7fc855dd0"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1032,7 +1032,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/static/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "4693460c6dfc2dcada523cb38620cfc55cea7baa3a9bd77b6b220d72772f7b0b"
+          "content_hash": "7208f7b3d20d9313ef40bb75c2ba7fd1f422dd5129877d21aab7bb80592cb71f"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1214,7 +1214,7 @@
           "source_location": "Code/Shared/prompt_system_maker.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "80a9ece21c93c88d66df40a7cb490c94e1cbc6668406c2535f64f23c7d417ac1"
+          "content_hash": "644a650e469b6f94c6c20045a45fab34c0485a924aa52ddefc68bd2d757c4127"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1475,6 +1475,34 @@
           "content_hash": "44b544cfee4f28c633f9845a2cddcf3d57223a3315b05069f7e69f4a7fc70509"
         },
         {
+          "feature_id": "EPIC-006-F-031",
+          "source_location": "FindCare/ClinicalTrials/__init__.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "333007855b58ecd3143d58ec847655d541c6af6783b7fc4f08d38cee4ecf969e"
+        },
+        {
+          "feature_id": "EPIC-006-F-031",
+          "source_location": "FindCare/ClinicalTrials/clinical_trials_models.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "64a9078beb6f2dac22917cf1973c0c29422e64ebc7fbb8400705d72bd15d9aa5"
+        },
+        {
+          "feature_id": "EPIC-006-F-031",
+          "source_location": "FindCare/ClinicalTrials/nucc_llm.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e5b4e1b895880f3586496db0d91b3e9feb11530d7d0d784d8dbc7a6fed20da21"
+        },
+        {
+          "feature_id": "EPIC-006-F-031",
+          "source_location": "FindCare/ClinicalTrials/clinical_trials_tool.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2f9bf550ad5c674806a78f6f46bf06c7d24226ec174fff6d5e421ba60ab97e9c"
+        },
+        {
           "feature_id": "EPIC-008-F-012",
           "source_location": "FrontEndApplicationLib/pyproject.toml",
           "handler_type": "static_asset",
@@ -1542,7 +1570,7 @@
           "source_location": "brain/machine_artifacts/content/agile_backlog.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "6aa9c92e7b659bef91e11435d6fd2a24300ca99eed7ac29c3b3f69765f330dc1"
+          "content_hash": "30b77b1bd9f2711afc4405ac60dd3bd15dbefc7d8892110ae7a066f5c6046932"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1625,7 +1653,7 @@
           "source_location": "brain/machine_artifacts/content/prompts.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "8a4d0a495c542c6c164e1fa386e7d2424982f50050afab18bd074215941a6ce2"
+          "content_hash": "36ebed1ac3247f5f735cf0d1bdf6e4fe0d4a35c6671a07274c07861a4a5e8fff"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1806,6 +1834,34 @@
           "content_hash": "44b544cfee4f28c633f9845a2cddcf3d57223a3315b05069f7e69f4a7fc70509"
         },
         {
+          "feature_id": "EPIC-006-F-031",
+          "source_location": "FindCare/ClinicalTrials/__init__.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "333007855b58ecd3143d58ec847655d541c6af6783b7fc4f08d38cee4ecf969e"
+        },
+        {
+          "feature_id": "EPIC-006-F-031",
+          "source_location": "FindCare/ClinicalTrials/clinical_trials_models.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "64a9078beb6f2dac22917cf1973c0c29422e64ebc7fbb8400705d72bd15d9aa5"
+        },
+        {
+          "feature_id": "EPIC-006-F-031",
+          "source_location": "FindCare/ClinicalTrials/nucc_llm.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e5b4e1b895880f3586496db0d91b3e9feb11530d7d0d784d8dbc7a6fed20da21"
+        },
+        {
+          "feature_id": "EPIC-006-F-031",
+          "source_location": "FindCare/ClinicalTrials/clinical_trials_tool.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2f9bf550ad5c674806a78f6f46bf06c7d24226ec174fff6d5e421ba60ab97e9c"
+        },
+        {
           "feature_id": "EPIC-008-F-012",
           "source_location": "FrontEndApplicationLib/pyproject.toml",
           "handler_type": "static_asset",
@@ -1929,7 +1985,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3cd3440ba671aab6f859b4afa430569d8c14349b3c4790181ce04198f0aaf468"
+          "content_hash": "6b104300c7b5adad44ed7dcde362f4a45c4634658e91b63c0c4d450381545454"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1950,7 +2006,7 @@
           "source_location": "sharedServices/Code/Dockerfile",
           "handler_type": "dockerfile",
           "disposition": "managed",
-          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY NonsenseTool  /app/NonsenseTool\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
+          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY ClinicalTrials  /app/ClinicalTrials\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY NonsenseTool  /app/NonsenseTool\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
           "layout": [
             {
               "instruction": "BLANK",
@@ -2042,6 +2098,12 @@
               "instruction": "COPY",
               "args": [
                 "SpecialtyFilter    /app/SpecialtyFilter"
+              ]
+            },
+            {
+              "instruction": "COPY",
+              "args": [
+                "ClinicalTrials  /app/ClinicalTrials"
               ]
             },
             {
@@ -2151,7 +2213,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/intent_document.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d6a53ccfb8fb4339f053bc6ceab3af171ebc52d4c7a53d860584510bd31f2691"
+          "content_hash": "a87304b7f7d91f555e35c82ca875d63d8c8640b9fba580e02c3a8eeea84d6970"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2169,10 +2231,10 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "sharedServices/Code/UtteranceManager/manager.py",
+          "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "8c75589071fa68a84daff8d9a93599a1d54cb3db23f61545d28994c39dc94639"
+          "content_hash": "54e7cd826368ea6bbba8647074ff4830e279d883222399d1a90d023ff95e6e07"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2207,7 +2269,7 @@
           "source_location": "sharedServices/Code/requirements.txt",
           "handler_type": "python_requirements",
           "disposition": "referenced",
-          "content_hash": "c7be9398a84ed745b74c21323d358a729a567b630b30e21314dc6d10ac042fb2"
+          "content_hash": "b603ca07dc5b1e9bd5cf51597cb013e8c567263a2e1f1d16c12f0f1fdd22b0e8"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2256,6 +2318,10 @@
         {
           "src": "FindCare/SpecialtyFilter",
           "dst": "SpecialtyFilter"
+        },
+        {
+          "src": "FindCare/ClinicalTrials",
+          "dst": "ClinicalTrials"
         }
       ],
       "variables": {
@@ -2359,7 +2425,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py",
           "handler_type": "python_test",
           "disposition": "referenced",
-          "content_hash": "70f26155abbe3f59ba2c27d8b8d438f913887774cce920711f81fe4af8776b69"
+          "content_hash": "7d36f0ba684b7840cf80e01cd38dccd1627174bdb43567af009c5a39d5a3ef0e"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2380,7 +2446,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/_deploy_chain.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "5839a61c4b7d7475566d1412be13c84b705b4816f7fd324da08c847e4db5c7d5"
+          "content_hash": "dc116483c2d0a2433f3870169b9b386f889d129bf6688dfd6aef60697b0b5bad"
         },
         {
           "feature_id": "EPIC-008-F-012",

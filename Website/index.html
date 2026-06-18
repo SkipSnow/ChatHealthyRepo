@@ -1590,6 +1590,37 @@
         }
       });
 
+      // EPIC-006-F-031 — Clinical-trials bullet list in left panel.
+      // Dedicated listener (no event.source filter) so it fires regardless
+      // of which iframe posted. Renders the iframe-built bullet HTML into
+      // leftPanel and binds clicks back to the iframe via trial:select.
+      window.addEventListener('message', function(event) {
+        var msg = event.data;
+        if (!msg || typeof msg !== 'object' || msg.type !== 'gui:trials-left-panel') return;
+        console.log('[Wrapper] gui:trials-left-panel received, html len=', (msg.html || '').length);
+        var leftPanelEl = document.getElementById('leftPanel');
+        if (!leftPanelEl) { console.warn('[Wrapper] leftPanel not found'); return; }
+        leftPanelEl.style.alignItems = 'stretch';
+        leftPanelEl.style.justifyContent = 'stretch';
+        leftPanelEl.classList.add('filter-active');
+        document.body.classList.add('has-filter-results');
+        leftPanelEl.innerHTML = msg.html || '';
+        var cframe = document.getElementById('coreChatFrame');
+        var trialLinks = leftPanelEl.querySelectorAll('[data-trial-index]');
+        console.log('[Wrapper] leftPanel innerHTML set, bullet count=', trialLinks.length);
+        for (var ti = 0; ti < trialLinks.length; ti++) {
+          (function(el) {
+            el.addEventListener('click', function(ev) {
+              ev.preventDefault();
+              var idx = parseInt(el.getAttribute('data-trial-index') || '0', 10);
+              if (cframe && cframe.contentWindow) {
+                cframe.contentWindow.postMessage({ type: 'trial:select', index: idx }, '*');
+              }
+            });
+          })(trialLinks[ti]);
+        }
+      });
+
       window.addEventListener('message', function(event) {
         if (!chatFrame || !chatFrame.contentWindow) return;
         if (event.source !== chatFrame.contentWindow) return;
@@ -1631,6 +1662,7 @@
 
         // Filter panel — renders in left panel
         var leftPanel = document.getElementById('leftPanel');
+
         if (msg.type === 'gui:filter') {
           // Reset centering styles so filter content can flex and scroll
           leftPanel.style.alignItems = 'stretch';
