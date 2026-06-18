@@ -151,6 +151,24 @@ def manage_session(user_object: UserObject) -> UserObject:
     return user_object
 
 
+def _login_preconditions(user_object: UserObject) -> None:
+    if not isinstance(user_object.current_session_token, SessionToken):
+        raise ChatHealthyException(
+            mode="authn_login_missing_session_token",
+            message="login requires a real SessionToken on the incoming user_object.",
+            component="AuthorizationsAndAuthentications",
+        )
+    if not user_object.OAuthIdentities:
+        raise ChatHealthyException(
+            mode="authn_login_missing_oauth_identity",
+            message=(
+                "login requires user_object.OAuthIdentities[0] populated with "
+                "the newly asserted identity."
+            ),
+            component="AuthorizationsAndAuthentications",
+        )
+
+
 def login(
     sessions_coll, users_coll, user_object: UserObject,
 ) -> UserObject:
@@ -164,15 +182,7 @@ def login(
         asserted identity {identity_provider, identity_provider_user_id,
         email} from the OAuth callback.
     """
-    if not isinstance(user_object.current_session_token, SessionToken):
-        raise ValueError(
-            "login requires a real SessionToken on the incoming user_object."
-        )
-    if not user_object.OAuthIdentities:
-        raise ValueError(
-            "login requires user_object.OAuthIdentities[0] populated with "
-            "the newly asserted identity."
-        )
+    _login_preconditions(user_object)
     new_identity = user_object.OAuthIdentities[0]
     identity_provider = new_identity.identity_provider
     identity_provider_user_id = new_identity.identity_provider_user_id
@@ -186,8 +196,6 @@ def login(
     )
 
     if existing_user_id is None:
-        # First-time: register a fresh users record. user_object becomes
-        # the registered record; mirror it into Users.users.
         user_id = "u-" + secrets.token_urlsafe(16)
         user_object.public_username = email
         user_object.user_type = "Prospect"
@@ -195,14 +203,25 @@ def login(
         user_object.user_id = user_id
         body = user_object.model_dump(mode="python", exclude_none=True)
         users_coll.insert_one({"user_id": user_id, "user_object": body})
-        sessions_coll.replace_one(
+        oauth_identities_serialized = [
+            ident.model_dump(mode="python", exclude_none=True)
+            for ident in user_object.OAuthIdentities
+        ]
+        update_result = sessions_coll.update_one(
             {"_id": session_guid},
-            {"_id": session_guid, **body},
-            upsert=True,
+            {"$set": {
+                "public_username": email,
+                "user_type": "Prospect",
+                "is_registered": True,
+                "user_id": user_id,
+                "OAuthIdentities": oauth_identities_serialized,
+            }},
         )
         log.info(
-            "OAUTH-LOGIN registered new user user_id=%s session_guid=%s",
+            "OAUTH-LOGIN registered new user user_id=%s session_guid=%s "
+            "session_matched=%d session_modified=%d",
             user_id, session_guid[:8] + "...",
+            update_result.matched_count, update_result.modified_count,
         )
         return user_object
 

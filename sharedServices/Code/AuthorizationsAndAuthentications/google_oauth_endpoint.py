@@ -384,32 +384,6 @@ class GoogleOAuthEndpoint:
             log.error("OAUTH-CALLBACK login returned user_object with no user_id")
             return _error_redirect("login_no_user_id")
 
-        # Restore the pre-314446b7 behavior: persist the merged, registered
-        # user_object returned by AUTHN_TOOL.run(login) back into
-        # Users.sessions keyed by the same session_guid the user's
-        # ch_session cookie will carry on the next /gate call. login()
-        # writes internally, but the explicit replace here mirrors the
-        # pre-refactor handle_oauth_login contract and is the single
-        # authoritative post-OAuth session-doc write — idempotent if
-        # login() already wrote.
-        post_login_body = authn_resp.user_object.model_dump(
-            mode="python", exclude_none=True,
-        )
-        sessions_coll.replace_one(
-            {"_id": session_guid},
-            {"_id": session_guid, **post_login_body},
-            upsert=True,
-        )
-        log.info(
-            "OAUTH-CALLBACK post-login session_doc replaced for session_guid=%s "
-            "user_id=%s is_registered=%s user_type=%s public_username=%s",
-            session_guid[:8] + "...",
-            user_id,
-            post_login_body.get("is_registered"),
-            post_login_body.get("user_type"),
-            post_login_body.get("public_username"),
-        )
-
         log.info(
             "OAUTH-CALLBACK login OK user_id=%s; setting "
             "ChatHealthyRegisteredUserCookie and redirecting to wrapper",
