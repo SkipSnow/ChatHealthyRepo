@@ -86,32 +86,68 @@ def _promote_local_to_dev(repo_root: Path) -> int:
 
 
 def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str) -> int:
-    """Fast-forward merge source branch into target branch, push target."""
+    """Fully automated: fetch, checkout target, ff-merge source, push,
+    return to the original branch. The operator does not have to switch
+    branches at any point."""
     source_branch = _ENV_TO_BRANCH[source_env]
     target_branch = _ENV_TO_BRANCH[target_env]
+    original_branch = _current_branch(repo_root)
 
-    current = _current_branch(repo_root)
-    if current != target_branch:
+    status = _run_git(["status", "--porcelain"], repo_root).stdout.strip()
+    if status:
         sys.exit(
-            f"ERROR: --from {source_env} --to {target_env} requires current "
-            f"branch {target_branch} (the target branch); current is "
-            f"{current!r}. Check out {target_branch} first."
+            f"ERROR: working tree is not clean. Commit or stash changes "
+            f"on branch {original_branch!r} before promoting.\n{status}"
         )
 
-    print(f"[promote] fetching {source_branch} from origin")
-    _run_git(["fetch", "origin", source_branch], repo_root)
-    print(f"[promote] merging origin/{source_branch} into {target_branch}")
-    result = subprocess.run(
-        ["git", "merge", "--ff-only", f"origin/{source_branch}"],
-        cwd=str(repo_root),
-    )
-    if result.returncode != 0:
-        print(f"[promote] merge FAILED — {target_branch} is not a fast-forward of "
-              f"{source_branch}. Resolve manually before re-running.")
-        return result.returncode
-    print(f"[promote] push origin {target_branch}")
-    result = subprocess.run(["git", "push", "origin", target_branch], cwd=str(repo_root))
-    return result.returncode
+    print("[promote] fetch origin")
+    _run_git(["fetch", "origin"], repo_root)
+
+    if original_branch != target_branch:
+        print(f"[promote] checkout {target_branch}")
+        result = subprocess.run(
+            ["git", "checkout", target_branch],
+            cwd=str(repo_root),
+        )
+        if result.returncode != 0:
+            print(f"[promote] checkout {target_branch} FAILED")
+            return result.returncode
+
+    try:
+        print(f"[promote] pull origin {target_branch} (ff-only)")
+        result = subprocess.run(
+            ["git", "pull", "--ff-only", "origin", target_branch],
+            cwd=str(repo_root),
+        )
+        if result.returncode != 0:
+            print(f"[promote] pull {target_branch} FAILED")
+            return result.returncode
+
+        print(f"[promote] merge origin/{source_branch} into {target_branch} (ff-only)")
+        result = subprocess.run(
+            ["git", "merge", "--ff-only", f"origin/{source_branch}"],
+            cwd=str(repo_root),
+        )
+        if result.returncode != 0:
+            print(f"[promote] merge FAILED — {target_branch} is not a fast-forward "
+                  f"of {source_branch}. Resolve manually before re-running.")
+            return result.returncode
+
+        print(f"[promote] push origin {target_branch}")
+        result = subprocess.run(
+            ["git", "push", "origin", target_branch],
+            cwd=str(repo_root),
+        )
+        if result.returncode != 0:
+            return result.returncode
+    finally:
+        if original_branch != target_branch:
+            print(f"[promote] checkout back to {original_branch}")
+            subprocess.run(
+                ["git", "checkout", original_branch],
+                cwd=str(repo_root),
+            )
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
