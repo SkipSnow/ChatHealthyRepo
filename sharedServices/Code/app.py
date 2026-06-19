@@ -348,11 +348,11 @@ def get_secret(key: str):
 
 @app.post("/auth/google/start", operation_id="GoogleOAuthStart",
           openapi_extra=impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
-def google_oauth_start(
+async def google_oauth_start(
     session_guid: str | None = FormBody(default=None),
     flow: str = FormBody(default="login"),
 ):
-    return GoogleOAuthEndpoint.start(
+    return await GoogleOAuthEndpoint.start(
         server_env=ENV, session_guid=session_guid, flow=flow,
     )
 
@@ -396,11 +396,11 @@ def fake_google_token(
 
 @app.get("/auth/google/callback", operation_id="GoogleOAuthCallback",
          openapi_extra=impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
-def google_oauth_callback(
+async def google_oauth_callback(
     code: str = None, state: str = None, error: str = None,
     ch_session: str | None = Cookie(default=None),
 ):
-    return GoogleOAuthEndpoint.callback(
+    return await GoogleOAuthEndpoint.callback(
         code=code, state=state, server_env=ENV,
         session_guid=(ch_session[:32] if ch_session else None), error=error,
     )

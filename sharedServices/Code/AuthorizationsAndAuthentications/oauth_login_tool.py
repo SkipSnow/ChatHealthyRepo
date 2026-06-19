@@ -45,18 +45,58 @@ TRUSTED_ISSUERS = ("https://accounts.google.com",)
 _google_jwks_client = PyJWKClient(GOOGLE_JWKS_URL, cache_keys=True)
 
 
+class _KidResolver(dict):
+    def __missing__(self, kid):
+        try:
+            key = _google_jwks_client.get_signing_key(kid).key
+        except PyJWKClientError as exc:
+            raise ChatHealthyException(
+                mode="oauth_login_unknown_signing_kid",
+                message=f"OAuthLoginTool: unknown signing kid {kid!r}: {exc}",
+                component="OAuthLoginTool",
+                exception=exc,
+            ) from exc
+        val = (key, "RS256")
+        self[kid] = val
+        return val
+
+
+_KID_TABLE = _KidResolver()
+
+
+def _real_google_authz_url(state: str, flow: str) -> str:
+    params = {
+        "client_id":     _google_client_id(),
+        "redirect_uri":  _google_redirect_uri(os.getenv("ENV_PREFIX", "dev")),
+        "response_type": "code",
+        "scope":         "openid email",
+        "state":         state,
+        "prompt":        "select_account" if flow == "register" else "none",
+        "access_type":   "online",
+    }
+    return GOOGLE_AUTHZ_URL + "?" + urlencode(params)
+
+
 _LOCAL_EXTRA_KEYS: dict = {}
 TOKEN_ENDPOINT_URL = GOOGLE_TOKEN_URL
 TLS_VERIFY = True
-_LOCAL_TEST_IDENTITIES = ()
+_LOCAL_TEST_IDENTITIES: tuple = ()
+AUTHZ_URL_BUILDER = _real_google_authz_url
+
 if os.getenv("ENV_PREFIX") == "local":
     from authentication.fake_google_endpoint import (
         LOCAL_FAKE_KID, LOCAL_FAKE_SHARED_SECRET,
     )
     _LOCAL_EXTRA_KEYS[LOCAL_FAKE_KID] = LOCAL_FAKE_SHARED_SECRET
-    TOKEN_ENDPOINT_URL = "http://127.0.0.1:7860/fake_google/token"
+    _KID_TABLE[LOCAL_FAKE_KID] = (LOCAL_FAKE_SHARED_SECRET, "HS256")
+    TOKEN_ENDPOINT_URL = "https://127.0.0.1:7860/fake_google/token"
     TLS_VERIFY = False
     _LOCAL_TEST_IDENTITIES = ("Claude@anthropic.ai",)
+    def _local_fake_authz_url(state: str, flow: str) -> str:
+        return (
+            f"https://localhost:8002/fake_google/auth?state={state}&flow={flow}"
+        )
+    AUTHZ_URL_BUILDER = _local_fake_authz_url
 
 
 PRE_ALPHA_ALLOW_LIST = frozenset(
@@ -140,29 +180,15 @@ def _is_allowed_prealpha(email: str) -> bool:
 
 
 def _verify_id_token(token: str, audience: str) -> dict:
-    unverified_header = jwt.get_unverified_header(token)
-    kid = unverified_header.get("kid")
-    if kid in _LOCAL_EXTRA_KEYS:
-        key = _LOCAL_EXTRA_KEYS[kid]
-        algos = ["HS256"]
-    else:
-        try:
-            key = _google_jwks_client.get_signing_key(kid).key
-        except PyJWKClientError as exc:
-            raise ChatHealthyException(
-                mode="oauth_login_unknown_signing_kid",
-                message=f"OAuthLoginTool: unknown signing kid {kid!r}: {exc}",
-                component="OAuthLoginTool",
-                exception=exc,
-            ) from exc
-        algos = ["RS256"]
+    kid = jwt.get_unverified_header(token).get("kid")
+    key, algo = _KID_TABLE[kid]
     try:
         return jwt.decode(
             token,
             key=key,
             audience=audience,
             issuer=list(TRUSTED_ISSUERS),
-            algorithms=algos,
+            algorithms=[algo],
             options={"require": ["iss", "sub", "aud", "exp", "iat"]},
         )
     except jwt.PyJWTError as exc:
@@ -302,18 +328,7 @@ def _persist_login(
 
 def _build_authz_url(server_env: str, session_guid: str, flow: str) -> str:
     state = build_state(server_env, session_guid=session_guid)
-    if server_env == "local":
-        return f"https://localhost:8002/fake_google/auth?state={state}&flow={flow}"
-    params = {
-        "client_id":     _google_client_id(),
-        "redirect_uri":  _google_redirect_uri(server_env),
-        "response_type": "code",
-        "scope":         "openid email",
-        "state":         state,
-        "prompt":        "select_account" if flow == "register" else "none",
-        "access_type":   "online",
-    }
-    return GOOGLE_AUTHZ_URL + "?" + urlencode(params)
+    return AUTHZ_URL_BUILDER(state, flow)
 
 
 class OAuthLoginTool(ChatHealthyTool):
