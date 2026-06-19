@@ -27,7 +27,7 @@ import sys
 import tempfile
 import time
 
-from fastapi import Body, Cookie, FastAPI, Request, Response
+from fastapi import Body, Cookie, FastAPI, Form as FormBody, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -346,10 +346,38 @@ def get_secret(key: str):
     return SecretsEndpoint()(key)
 
 
-@app.get("/auth/google/start", operation_id="GoogleOAuthStart",
-         openapi_extra=impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
-def google_oauth_start(session_guid: str | None = None):
-    return GoogleOAuthEndpoint.start(server_env=ENV, session_guid=session_guid)
+@app.post("/auth/google/start", operation_id="GoogleOAuthStart",
+          openapi_extra=impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
+def google_oauth_start(
+    session_guid: str | None = FormBody(default=None),
+    flow: str = FormBody(default="login"),
+):
+    return GoogleOAuthEndpoint.start(
+        server_env=ENV, session_guid=session_guid, flow=flow,
+    )
+
+
+@app.get("/fake_google/auth", operation_id="FakeGoogleAuth")
+def fake_google_auth(state: str = "", flow: str = "login"):
+    from authentication.fake_google_endpoint import serve_auth_page
+    return serve_auth_page(state=state, flow=flow)
+
+
+@app.post("/fake_google/submit", operation_id="FakeGoogleSubmit")
+def fake_google_submit(
+    email: str = FormBody(...),
+    password: str = FormBody(...),
+    state: str = FormBody(...),
+    flow: str = FormBody("login"),
+    create_account: str | None = FormBody(default=None),
+    confirm: str | None = FormBody(default=None),
+):
+    from authentication.fake_google_endpoint import submit_credentials
+    final_flow = "register" if create_account == "on" else flow
+    return submit_credentials(
+        email=email, password=password, state=state,
+        flow=final_flow, server_env=ENV,
+    )
 
 
 @app.get("/auth/google/callback", operation_id="GoogleOAuthCallback",

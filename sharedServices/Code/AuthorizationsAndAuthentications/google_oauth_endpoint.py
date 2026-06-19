@@ -170,33 +170,119 @@ def set_chathealthy_user_cookie(response: RedirectResponse, user_id: str) -> Non
     )
 
 
+def _invoke_oauth_login_tool(
+    server_env: str,
+    session_guid: str,
+    *,
+    phase: str,
+    oauth_code: Optional[str] = None,
+    oauth_state: Optional[str] = None,
+    flow: str = "login",
+):
+    from authentication.oauth_login_tool import (
+        TOOL as OAUTH_LOGIN_TOOL,
+        Request as OAuthLoginRequest,
+    )
+    from authentication.authorizations_and_authentications_tool import (
+        get_mongo_frontend,
+    )
+    from authentication.agent_deps import AgentDeps
+    from authentication.user_object import UserObject
+    from datetime import datetime, timezone, timedelta
+    import asyncio
+
+    deps = AgentDeps(
+        user_object=UserObject(
+            current_session_token="NULL",
+            expires_at=datetime.now(timezone.utc) + timedelta(seconds=300),
+        ),
+        session_token=None,
+        mongo_frontend=get_mongo_frontend(),
+        server_env=server_env,
+        stream=lambda _evt: None,
+    )
+    req = OAuthLoginRequest(
+        phase=phase,
+        identity_provider="Google",
+        server_env=server_env,
+        session_guid=session_guid,
+        oauth_code=oauth_code,
+        oauth_state=oauth_state,
+        flow=flow,
+    )
+    return asyncio.run(OAUTH_LOGIN_TOOL.run(deps, req))
+
+
+def _build_popup_close_html(
+    *, outcome: str, message: str, email: Optional[str], user_id: Optional[str],
+) -> "HTMLResponse":
+    """Return an HTML page that posts the outcome back to the opener
+    window and closes the popup. Used to land OAuth callback results into
+    the wrapper while keeping the popup pattern symmetrical with how real
+    Google OAuth popup flows return control to the parent window."""
+    from fastapi.responses import HTMLResponse
+    import json as _json
+    body = _json.dumps({
+        "type": "oauth_login_result",
+        "outcome": outcome,
+        "message": message,
+        "email": email,
+        "user_id": user_id,
+    })
+    safe_message = (message or "").replace("<", "&lt;").replace(">", "&gt;")
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>Signing in...</title>
+<style>body{{font-family:Roboto,Arial,sans-serif;text-align:center;padding:3em;color:#202124;}}</style>
+</head><body>
+<p data-testid="oauth-popup-message">{safe_message}</p>
+<p style="color:#5f6368;">This window will close in a moment.</p>
+<script>
+(function() {{
+  var payload = {body};
+  try {{
+    if (window.opener && !window.opener.closed) {{
+      window.opener.postMessage(payload, '*');
+    }}
+  }} catch (e) {{ /* swallow */ }}
+  setTimeout(function() {{ window.close(); }}, 500);
+}})();
+</script>
+</body></html>"""
+    return HTMLResponse(html)
+
+
+def _wrap_invoke_into_html(
+    landing_url: str, user_id: Optional[str],
+    *, outcome: str, message: str, email: Optional[str],
+):
+    response = _build_popup_close_html(
+        outcome=outcome, message=message, email=email, user_id=user_id,
+    )
+    if user_id:
+        set_chathealthy_user_cookie(response, user_id)
+    return response
+
+
 class GoogleOAuthEndpoint:
-    """Stateless handler for the Google OAuth handshake."""
+    """FastAPI shell. All OAuth logic routes through OAuthLoginTool."""
 
     @staticmethod
-    def start(server_env: str, session_guid: Optional[str] = None) -> RedirectResponse:
-        """302 the browser to Google's consent screen.
-
-        `session_guid` is the caller's 32-char guest-session GUID, supplied
-        by the /gate redirect when the user clicks Login & Registration.
-        It is baked into the signed `state` parameter so the callback can
-        recover it even though the ch_session cookie (Domain=chathealthy.ai;
-        Path=/gate) does not ride to the HF Space callback host.
-        """
-        state = build_state(server_env, session_guid=session_guid)
-        params = {
-            "client_id":     client_id(),
-            "redirect_uri":  redirect_uri(server_env),
-            "response_type": "code",
-            "scope":         "openid email",
-            "state":         state,
-            "prompt":        "select_account",
-            "access_type":   "online",
-        }
-        return RedirectResponse(
-            GOOGLE_AUTHZ_URL + "?" + urlencode(params),
-            status_code=302,
+    def start(
+        server_env: str,
+        session_guid: Optional[str] = None,
+        flow: str = "login",
+    ) -> RedirectResponse:
+        if not session_guid:
+            session_guid = secrets.token_hex(16)
+        resp = _invoke_oauth_login_tool(
+            server_env, session_guid, phase="start", flow=flow,
         )
+        if resp.outcome != "redirect" or not resp.authz_url:
+            return _build_popup_close_html(
+                outcome="fail",
+                message="OAuth start failed",
+                email=None, user_id=None,
+            )
+        return RedirectResponse(resp.authz_url, status_code=302)
 
     @staticmethod
     def callback(
@@ -206,192 +292,56 @@ class GoogleOAuthEndpoint:
         server_env: str,
         session_guid: Optional[str],
         error: Optional[str] = None,
-    ) -> RedirectResponse:
-        """Receive Google's redirect, exchange code, register-or-find the
-        users record, set ChatHealthyUserCookie, then 302 back to the
-        wrapper origin."""
-        wrapper = wrapper_origin(server_env)
-        log.info(
-            "OAUTH-CALLBACK entry env=%s cookie_session_guid=%s state_present=%s code_present=%s error=%s",
-            server_env, (session_guid[:8] + "..." if session_guid else None),
-            bool(state), bool(code), error,
-        )
-
-        def _error_redirect(tag: str) -> RedirectResponse:
-            log.warning("OAUTH-CALLBACK error_redirect tag=%s", tag)
-            return RedirectResponse(f"{wrapper}/?auth_error={tag}", status_code=302)
+    ):
+        def _fail_popup(tag: str, message: str):
+            log.warning("OAUTH-CALLBACK fail tag=%s", tag)
+            return _build_popup_close_html(
+                outcome="fail", message=message, email=None, user_id=None,
+            )
 
         if error:
-            return _error_redirect(error)
+            return _fail_popup(error, f"Google returned error: {error}")
         if not code or not state:
-            return _error_redirect("missing_code_or_state")
+            return _fail_popup(
+                "missing_code_or_state",
+                "OAuth callback missing code or state parameter",
+            )
 
         try:
             state_payload = verify_state(state)
         except HTTPException as e:
-            log.warning("OAuth state verification failed: %s", e.detail, exc=ChatHealthyException(
-                                                                          mode="oauth_state_verification_failed",
-                                                                          message=f"OAuth state verification failed: {e.detail}",
-                                                                          component="GoogleOAuthEndpoint",
-                                                                          exception=e,
-                                                                      ), if_not_debug_log=True)
-            return _error_redirect(f"state_{e.detail.split()[-1]}")
+            log.warning(
+                "OAUTH-CALLBACK state_invalid detail=%s",
+                e.detail,
+                exc=ChatHealthyException(
+                    mode="oauth_state_verification_failed",
+                    message=f"OAuth state verification failed: {e.detail}",
+                    component="GoogleOAuthEndpoint",
+                    exception=e,
+                ),
+                if_not_debug_log=True,
+            )
+            return _fail_popup(
+                "state_invalid", "OAuth state verification failed",
+            )
 
         state_session_guid = state_payload.get("session_guid")
         if state_session_guid:
             session_guid = state_session_guid
-        log.info(
-            "OAUTH-CALLBACK state_verified state_session_guid=%s effective_session_guid=%s",
-            (state_session_guid[:8] + "..." if state_session_guid else None),
-            (session_guid[:8] + "..." if session_guid else None),
-        )
         if not session_guid:
-            return _error_redirect("missing_session_cookie")
-
-        try:
-            with httpx.Client(timeout=10.0) as client:
-                r = client.post(GOOGLE_TOKEN_URL, data={
-                    "code":          code,
-                    "client_id":     client_id(),
-                    "client_secret": client_secret(),
-                    "redirect_uri":  redirect_uri(server_env),
-                    "grant_type":    "authorization_code",
-                })
-            if r.status_code != 200:
-                return _error_redirect(f"token_exchange_{r.status_code}")
-            tokens = r.json()
-        except Exception as _exc:
-            log.error("OAuth token exchange network failed: %s", _exc, exc=ChatHealthyException(
-                                                                        mode="oauth_token_exchange_network_failed",
-                                                                        message=f"OAuth token exchange network failed: {_exc}",
-                                                                        component="GoogleOAuthEndpoint",
-                                                                        exception=_exc,
-                                                                    ), if_not_debug_log=True)
-            return _error_redirect("token_exchange_network")
-
-        id_token_str = tokens.get("id_token")
-        if not id_token_str:
-            return _error_redirect("missing_id_token")
-
-        try:
-            claims = id_token.verify_oauth2_token(
-                id_token_str,
-                google_requests.Request(),
-                audience=client_id(),
+            return _fail_popup(
+                "missing_session_cookie",
+                "OAuth callback missing session identifier",
             )
-        except Exception as _exc:
-            log.warning("OAuth id_token validation failed: %s", _exc, exc=ChatHealthyException(
-                                                                       mode="oauth_id_token_invalid",
-                                                                       message=f"OAuth id_token validation failed: {_exc}",
-                                                                       component="GoogleOAuthEndpoint",
-                                                                       exception=_exc,
-                                                                   ), if_not_debug_log=True)
-            return _error_redirect("id_token_invalid")
 
-        google_sub = claims.get("sub")
-        email = claims.get("email")
-        if not google_sub:
-            return _error_redirect("missing_sub")
-        if not email or not claims.get("email_verified"):
-            return _error_redirect("email_not_verified")
-
-        # Construct the user_object for the login Request:
-        #   * load the live session record by session_guid -> hydrate UserObject
-        #   * set OAuthIdentities[0] to the newly-asserted identity
-        # The auth tool's login branch does the Users.users register/merge
-        # and mirrors the result back into Users.sessions.
-        from authentication.authorizations_and_authentications_tool import (
-            TOOL as AUTHN_TOOL,
-            get_mongo_frontend,
-            Request as AuthnRequest,
-            SESSION_DB,
-            SESSION_COLLECTION,
+        resp = _invoke_oauth_login_tool(
+            server_env, session_guid,
+            phase="callback", oauth_code=code, oauth_state=state,
         )
-        from authentication.user_object import UserObject, OAuthIdentity
-        from authentication.agent_deps import AuthnDeps
-
-        mongo = get_mongo_frontend()
-        sessions_coll = mongo[SESSION_DB][SESSION_COLLECTION]
-        session_doc = sessions_coll.find_one({"_id": session_guid})
-        if not session_doc:
-            log.error(
-                "OAUTH-CALLBACK no session record for guid=%s; OAuth arrived "
-                "without prior /gate visit", session_guid[:8],
-            )
-            return _error_redirect("no_session_record")
-        try:
-            session_user_object = UserObject.model_validate(
-                {k: v for k, v in session_doc.items() if k != "_id"}
-            )
-        except Exception as exc:
-            log.exception("OAUTH-CALLBACK could not validate session UserObject: %s", exc, exc=ChatHealthyException(
-                                                                                            mode="oauth_session_user_object_invalid",
-                                                                                            message=f"OAUTH-CALLBACK could not validate session UserObject: {exc}",
-                                                                                            component="GoogleOAuthEndpoint",
-                                                                                            exception=exc,
-                                                                                        ), if_not_debug_log=True)
-            return _error_redirect(f"session_invalid_{type(exc).__name__}")
-
-        session_user_object.OAuthIdentities = [
-            OAuthIdentity(
-                identity_provider="Google",
-                identity_provider_user_id=google_sub,
-                email=email,
-            )
-        ]
-
-        log.debug(
-            "OAUTH-CALLBACK Google claims raw: %s",
-            {k: claims.get(k) for k in ("sub", "email", "email_verified", "name", "iss", "aud", "exp", "iat")},
+        return _wrap_invoke_into_html(
+            landing_url=wrapper_origin(server_env),
+            user_id=(resp.user_id if resp.outcome == "success" else None),
+            outcome=resp.outcome,
+            message=resp.user_facing_message,
+            email=resp.public_username,
         )
-        log.debug(
-            "OAUTH-CALLBACK pre-login session_user_object: %s",
-            session_user_object.model_dump(mode="json"),
-        )
-        log.info(
-            "OAUTH-CALLBACK handing off to AUTHN_TOOL.run(intent='login') "
-            "email=%s google_sub_prefix=%s session_guid=%s",
-            email, google_sub[:8], session_guid[:8] + "...",
-        )
-        try:
-            import asyncio
-            authn_deps = AuthnDeps(
-                prior_guid=session_guid,
-                server_env=server_env,
-                mongo_frontend=mongo,
-            )
-            authn_resp = asyncio.run(
-                AUTHN_TOOL.run(
-                    authn_deps,
-                    AuthnRequest(intent="login", user_object=session_user_object),
-                )
-            )
-        except Exception as exc:
-            log.exception("OAUTH-CALLBACK AUTHN_TOOL.run(login) raised: %s", exc, exc=ChatHealthyException(
-                                                                                   mode="oauth_authn_login_raised",
-                                                                                   message=f"OAUTH-CALLBACK AUTHN_TOOL.run(login) raised: {exc}",
-                                                                                   component="GoogleOAuthEndpoint",
-                                                                                   exception=exc,
-                                                                               ), if_not_debug_log=True)
-            return _error_redirect(f"register_failed_{type(exc).__name__}")
-
-        user_id = authn_resp.user_object.user_id
-        log.info(
-            "OAUTH-CALLBACK AUTHN_TOOL.run(login) returned post-login user_object: %s",
-            authn_resp.user_object.model_dump(mode="json"),
-        )
-        if not user_id:
-            log.error("OAUTH-CALLBACK login returned user_object with no user_id")
-            return _error_redirect("login_no_user_id")
-
-        log.info(
-            "OAUTH-CALLBACK login OK user_id=%s; setting "
-            "ChatHealthyRegisteredUserCookie and redirecting to wrapper",
-            user_id,
-        )
-        redirect = RedirectResponse(
-            f"{wrapper}/?auth_email={email}",
-            status_code=302,
-        )
-        set_chathealthy_user_cookie(redirect, user_id)
-        return redirect

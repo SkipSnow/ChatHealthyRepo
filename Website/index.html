@@ -1013,53 +1013,31 @@
           }).catch(function() {});
         } catch (_) { /* never block a UX transition on recording */ }
       };
-      // EPIC-002-F-003-S-004 — Login & Registration nav button hits /gate
-      // with intent=login_register; A&A tool answers with a redirect_url
-      // NDJSON event pointing at the SharedServices /auth/google/start
-      // endpoint; here we navigate the browser there.
-      window._startLoginRegister = function() {
+      window._startLoginRegister = function(flow) {
         try {
-          // REQ-T-006 pre-flight.
           if (window._isSessionExpired()) { window._handleSessionExpired(); return; }
           var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
-          fetch(sharedUrl + '/gate', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/x-ndjson'
-            },
-            body: window._gateBody({intent: 'login_register'})
-          }).then(function(r) {
-            if (r.status >= 500 || (r.status >= 400 && r.status !== 401 && r.status !== 403)) {
-              window._gateHardFail();
-              throw new Error('login_register HTTP ' + r.status);
-            }
-            return r.text();
-          })
-            .then(function(text) {
-              var lines = (text || '').split('\n');
-              for (var i = 0; i < lines.length; i++) {
-                var line = lines[i].trim();
-                if (!line) continue;
-                var evt;
-                try { evt = JSON.parse(line); } catch (e) { continue; }
-                // REQ-T-005: keep the pair fresh on every /gate response.
-                window._noteGateResponse(evt);
-                if (evt && evt.type === 'redirect' && evt.url) {
-                  try {
-                    if (window._authBoot) sessionStorage.setItem(
-                      '_ch_authboot_resume', JSON.stringify(window._authBoot)
-                    );
-                  } catch (_) {}
-                  window.location.assign(evt.url);
-                  return;
-                }
-              }
-            })
-            .catch(function(err) {
-              console.warn('login_register start failed:', err);
-            });
+          var sessionGuid = '';
+          var tok = window._authBoot && window._authBoot.token;
+          if (tok && tok.length >= 32) sessionGuid = tok.slice(-32);
+          var popupName = 'chathealthy-oauth';
+          window.open('about:blank', popupName,
+            'width=520,height=680,resizable=yes,scrollbars=yes');
+          var f = document.createElement('form');
+          f.method = 'POST';
+          f.action = sharedUrl + '/auth/google/start';
+          f.target = popupName;
+          f.style.display = 'none';
+          var i1 = document.createElement('input');
+          i1.type = 'hidden'; i1.name = 'session_guid'; i1.value = sessionGuid;
+          f.appendChild(i1);
+          var i2 = document.createElement('input');
+          i2.type = 'hidden'; i2.name = 'flow';
+          i2.value = (flow === 'register') ? 'register' : 'login';
+          f.appendChild(i2);
+          document.body.appendChild(f);
+          f.submit();
+          document.body.removeChild(f);
         } catch (_) { /* button must never throw */ }
       };
       // EPIC-002-F-003-S-005-REQ-T-005/T-006: pair-tracker for the most
@@ -1334,51 +1312,25 @@
       window.gotoFindCare = function() { window.returnToFindCare(); };
       window.gotoSharedServices = function() { window.openSharedServices(); };
 
-      // ── Google OAuth — EPIC-002-F-003-S-004 ────────────────────
-      // window.startGoogleOAuth(): fetches the Google authz URL from
-      // SharedServices (proxied via Cloudflare Pages Function so the HF
-      // Space URL stays out of client HTML), then navigates the browser
-      // there. SS callback (also proxied) 302s back here with
-      // ?auth_email=… on success or ?auth_error=… on failure.
-      window.startGoogleOAuth = function() {
-        fetch('/auth/google/start', { method: 'GET' })
-          .then(function(r) {
-            if (!r.ok) throw new Error('start ' + r.status);
-            return r.json();
-          })
-          .then(function(d) {
-            if (!d || !d.authz_url) throw new Error('start missing authz_url');
-            window.location = d.authz_url;
-          })
-          .catch(function(e) {
-            window.chFatalError('Google sign-in could not be initiated: ' + (e && e.message ? e.message : e));
-          });
-      };
-
-      // On wrapper init: surface OAuth round-trip result if the URL
-      // carries one. Email lands in window._authEmail; error in
-      // window._authError. Both removed from the address bar so a
-      // refresh doesn't replay them.
-      (function _hydrateAuthFromUrl() {
-        try {
-          var params = new URLSearchParams(window.location.search);
-          var email = params.get('auth_email');
-          var err = params.get('auth_error');
-          var timedOut = params.get('system_timed_out');
-          if (email || err || timedOut) {
-            console.log('[OAUTH-CLIENT] return-from-redirect email=' + email + ' err=' + err + ' timedOut=' + timedOut);
-            console.log('[OAUTH-CLIENT] document.cookie at return: ' + document.cookie);
-            if (email) window._authEmail = email;
-            if (err) window._authError = err;
-            if (timedOut) window._systemTimedOut = timedOut;
-            params.delete('auth_email');
-            params.delete('auth_error');
-            params.delete('system_timed_out');
-            var clean = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
-            history.replaceState(null, '', clean);
-          }
-        } catch (e) { /* defensive — never block load on URL parsing */ }
-      })();
+      // ── OAuth Login — EPIC-002-F-003-S-004 ────────────────────
+      // Listener for the popup-close postMessage from /auth/google/callback.
+      // The callback HTML posts {type:'oauth_login_result', outcome, message, email}.
+      window.addEventListener('message', function(event) {
+        var msg = event && event.data;
+        if (!msg || msg.type !== 'oauth_login_result') return;
+        window._authOutcome = msg.outcome;
+        window._authMessage = msg.message;
+        window._authEmail = msg.email;
+        var existing = document.getElementById('chAuthBanner');
+        if (existing) existing.remove();
+        var banner = document.createElement('div');
+        banner.id = 'chAuthBanner';
+        var bg = msg.outcome === 'success' ? '#0b7a75' : '#dc2626';
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:' + bg + ';color:#fff;padding:1em 2em;font-size:1em;text-align:center;font-weight:600;box-shadow:0 0.125em 0.25em rgba(0,0,0,0.2);';
+        banner.innerHTML = (msg.message || '')
+          + ' <button onclick="document.getElementById(\'chAuthBanner\').remove();" style="margin-left:1em;background:rgba(255,255,255,0.2);color:#fff;border:0.0625em solid #fff;border-radius:0.25em;padding:0.25em 0.75em;cursor:pointer;font-size:0.9em;">close</button>';
+        document.body.insertBefore(banner, document.body.firstChild);
+      });
       // REQ-T-010: render the system-timed-out notice in place of the
       // initial splash when arriving via _handleSessionExpired().
       window._renderSystemTimedOut = function() {

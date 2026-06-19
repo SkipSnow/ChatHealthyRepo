@@ -65,8 +65,11 @@ ENV = os.getenv("ENV_PREFIX", "dev")
 SESSION_TTL_SECONDS = 300
 
 WIRE_INTENT_UTTERANCE = "utterance"
-WIRE_INTENT_LOGIN_REGISTER = "login_register"
-KNOWN_WIRE_INTENTS = frozenset({WIRE_INTENT_UTTERANCE, WIRE_INTENT_LOGIN_REGISTER})
+KNOWN_WIRE_INTENTS = frozenset({WIRE_INTENT_UTTERANCE})
+# login_register removed from /gate per S-004 rewire: the Login &
+# Registration nav button is now a form-target popup posting directly
+# to /auth/google/start, which routes through OAuthLoginTool (start
+# phase). /gate is for utterance traffic only.
 
 ENV_TO_SHARED_URL = {
     "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space",
@@ -198,11 +201,15 @@ def session_token_wire(user_object: UserObject) -> dict:
 def splash_data(user_object) -> dict[str, Any]:
     """Splash payload shape. Read-only projection of user_object."""
     cst = user_object.current_session_token
+    oauth_idents = [
+        oi.model_dump(mode="json") if hasattr(oi, "model_dump") else oi
+        for oi in (getattr(user_object, "OAuthIdentities", []) or [])
+    ]
     identity = {
         "user_type": getattr(user_object, "user_type", None) or "Guest",
         "is_registered": bool(getattr(user_object, "is_registered", False)),
         "public_username": getattr(user_object, "public_username", None) or "",
-        "OAuthIdentities": getattr(user_object, "OAuthIdentities", []) or [],
+        "OAuthIdentities": oauth_idents,
         "guid": cst.get_auth_token(),
         "origin": cst.origin,
         "server_env": cst.server_env,
@@ -1217,44 +1224,10 @@ class UniversalNavigationTool(ChatHealthyTool):
         if gate_req.client_ip:
             user_object.ip_address = gate_req.client_ip
 
-        # 5. Login_register short-circuit. The gateway-level OAuth start
-        #    URL is built here (HTTP knowledge stays out of the auth tool).
-        if gate_req.intent == WIRE_INTENT_LOGIN_REGISTER:
-            shared = ENV_TO_SHARED_URL.get(ENV)
-            if not shared:
-                raise RuntimeError(
-                    f"/gate: no SharedServices URL for env {ENV!r}"
-                )
-            redirect_url = f"{shared}/auth/google/start?session_guid={guid}"
-            # v2.2 Part B 7.8 — let PyMongoError propagate. The prior
-            # try/except swallowed Mongo failures during OAuth-start
-            # session persistence: the redirect to Google would proceed
-            # with a missing or stale session, and the OAuth callback
-            # would later silently fail to find it (indistinguishable
-            # from attack noise). Re-raising lets the global 503 handler
-            # at app.py lines 84-91 fire chFatalError on the wrapper.
-            await authn.TOOL.persist(authn_deps, user_object, fresh_mint)
-            redirect_event = {
-                "type": "redirect",
-                "url": redirect_url,
-                "time_remaining_seconds": time_remaining_seconds(user_object),
-                "was_registered": was_registered(user_object),
-                "session_token": session_token_wire(user_object),
-            }
-            if gate_req.want_ndjson:
-                body_bytes = (
-                    json.dumps(redirect_event, default=str) + "\n"
-                ).encode("utf-8")
-                return GateResponse(
-                    cookie_value=cookie_value,
-                    body_kind="ndjson_bytes",
-                    body_data=body_bytes,
-                )
-            return GateResponse(
-                cookie_value=cookie_value,
-                body_kind="json",
-                body_data=redirect_event,
-            )
+        # 5. (login_register short-circuit removed — that flow now goes
+        #    direct to /auth/google/start as a form-target popup post
+        #    which routes through OAuthLoginTool start phase. /gate's
+        #    only client-facing intent is utterance traffic.)
 
         # 6. Build event queue + stream sink + AgentDeps + nav.Request.
         event_queue: asyncio.Queue = asyncio.Queue()

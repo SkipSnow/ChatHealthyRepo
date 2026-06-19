@@ -29,7 +29,6 @@ from __future__ import annotations
 from chathealthy_frontend_lib import ChatHealthyLoggingService
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 import os
-import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, Optional
 
@@ -67,7 +66,7 @@ class Request(BaseModel):
         AND user_object.OAuthIdentities[0] is the newly asserted
         identity from the OAuth callback.
     """
-    intent: Literal["manufacture_session", "manage_session", "login"]
+    intent: Literal["manufacture_session", "manage_session"]
     user_object: UserObject
 
 
@@ -151,185 +150,10 @@ def manage_session(user_object: UserObject) -> UserObject:
     return user_object
 
 
-def _assert_session_update_matched(update_result, session_guid: str, branch: str) -> None:
-    if update_result.matched_count == 1:
-        return
-    raise ChatHealthyException(
-        mode="authn_login_session_doc_missing_on_write",
-        message=(
-            f"OAUTH-LOGIN {branch}: session_doc not found for "
-            f"_id={session_guid[:8]}... at write time "
-            f"(matched_count={update_result.matched_count}); "
-            "the session expired or the guid does not match. The "
-            "registered fields were NOT persisted; the user remains "
-            "Guest on the next /gate call."
-        ),
-        component="AuthorizationsAndAuthentications",
-    )
-
-
-def _assert_user_insert_acked(insert_result, user_id: str) -> None:
-    if insert_result.acknowledged and insert_result.inserted_id is not None:
-        return
-    raise ChatHealthyException(
-        mode="authn_login_users_insert_not_acked",
-        message=(
-            f"OAUTH-LOGIN new-user: Users.users insert_one not acknowledged "
-            f"for user_id={user_id} (acknowledged={insert_result.acknowledged}); "
-            "the registered user record was not durable."
-        ),
-        component="AuthorizationsAndAuthentications",
-    )
-
-
-def _login_preconditions(user_object: UserObject) -> None:
-    if not isinstance(user_object.current_session_token, SessionToken):
-        raise ChatHealthyException(
-            mode="authn_login_missing_session_token",
-            message="login requires a real SessionToken on the incoming user_object.",
-            component="AuthorizationsAndAuthentications",
-        )
-    if not user_object.OAuthIdentities:
-        raise ChatHealthyException(
-            mode="authn_login_missing_oauth_identity",
-            message=(
-                "login requires user_object.OAuthIdentities[0] populated with "
-                "the newly asserted identity."
-            ),
-            component="AuthorizationsAndAuthentications",
-        )
-
-
-def login(
-    sessions_coll, users_coll, user_object: UserObject,
-) -> UserObject:
-    """Register or merge the OAuth identity carried on the incoming
-    user_object's OAuthIdentities[0]. Mirror the resulting user_object
-    into BOTH Users.sessions and Users.users.
-
-    Pre-conditions (gateway must hold):
-      * user_object.current_session_token is a real SessionToken.
-      * user_object.OAuthIdentities[0] is populated with the newly
-        asserted identity {identity_provider, identity_provider_user_id,
-        email} from the OAuth callback.
-    """
-    _login_preconditions(user_object)
-    new_identity = user_object.OAuthIdentities[0]
-    identity_provider = new_identity.identity_provider
-    identity_provider_user_id = new_identity.identity_provider_user_id
-    email = new_identity.email
-    session_guid = user_object.current_session_token.get_auth_token()
-
-    existing_user_id = user_id_for_identity_provider_sub(
-        users_coll,
-        identity_provider=identity_provider,
-        identity_provider_user_id=identity_provider_user_id,
-    )
-
-    if existing_user_id is None:
-        user_id = "u-" + secrets.token_urlsafe(16)
-        user_object.public_username = email
-        user_object.user_type = "Prospect"
-        user_object.is_registered = True
-        user_object.user_id = user_id
-        body = user_object.model_dump(mode="python", exclude_none=True)
-        users_insert_result = users_coll.insert_one(
-            {"user_id": user_id, "user_object": body}
-        )
-        _assert_user_insert_acked(users_insert_result, user_id)
-        oauth_identities_serialized = [
-            ident.model_dump(mode="python", exclude_none=True)
-            for ident in user_object.OAuthIdentities
-        ]
-        update_result = sessions_coll.update_one(
-            {"_id": session_guid},
-            {"$set": {
-                "public_username": email,
-                "user_type": "Prospect",
-                "is_registered": True,
-                "user_id": user_id,
-                "OAuthIdentities": oauth_identities_serialized,
-            }},
-        )
-        _assert_session_update_matched(update_result, session_guid, "new-user")
-        log.info(
-            "OAUTH-LOGIN registered new user user_id=%s session_guid=%s "
-            "session_matched=%d session_modified=%d",
-            user_id, session_guid[:8] + "...",
-            update_result.matched_count, update_result.modified_count,
-        )
-        return user_object
-
-    # Returning: refresh email on the matching identity entry, load the
-    # stored UserObject, merge stored.merge(guest), write the merged
-    # record back to both collections.
-    users_coll.update_one(
-        {
-            "user_id": existing_user_id,
-            "user_object.OAuthIdentities": {
-                "$elemMatch": {
-                    "identity_provider": identity_provider,
-                    "identity_provider_user_id": identity_provider_user_id,
-                },
-            },
-        },
-        {"$set": {"user_object.OAuthIdentities.$.email": email}},
-    )
-    existing = users_coll.find_one({"user_id": existing_user_id})
-    stored_user_object_doc = (existing or {}).get("user_object", {}) or {}
-    try:
-        db_record = UserObject.model_validate(stored_user_object_doc)
-    except Exception as exc:
-        raise ChatHealthyException(
-            mode="authn_login_stored_user_object_invalid",
-            message=f"AuthN.login: could not validate stored UserObject for merge ({type(exc).__name__}: {exc})",
-            component="AuthorizationsAndAuthentications",
-            exception=exc,
-        )
-    merged = db_record.merge(user_object)
-    merged_body = merged.model_dump(mode="python", exclude_none=True)
-    sessions_coll.replace_one(
-        {"_id": session_guid},
-        {"_id": session_guid, **merged_body},
-        upsert=True,
-    )
-    users_coll.update_one(
-        {"user_id": existing_user_id},
-        {"$set": {"user_object": merged_body}},
-    )
-    log.info(
-        "OAUTH-LOGIN returning user_id=%s merged session_guid=%s",
-        existing_user_id, session_guid[:8] + "...",
-    )
-    return merged
-
-
 def user_id_for_guid(users_coll, guid: str) -> Optional[str]:
     """Return user_id whose stored user_object holds this session's GUID."""
     doc = users_coll.find_one(
         {"user_object.current_session_token.auth_token": guid},
-        {"user_id": 1},
-    )
-    return doc["user_id"] if doc else None
-
-
-def user_id_for_identity_provider_sub(
-    users_coll, identity_provider: str, identity_provider_user_id: str,
-) -> Optional[str]:
-    """Look up a users record by an entry in user_object.OAuthIdentities.
-
-    Both the Mongo query keys AND the in-memory dict keys are the canonical
-    schema names (identity_provider, identity_provider_user_id) per
-    ChatHealthyUserStateSchema.json. The legacy ('provider' /
-    'provider_user_id') names are no longer used.
-    """
-    doc = users_coll.find_one(
-        {"user_object.OAuthIdentities": {
-            "$elemMatch": {
-                "identity_provider": identity_provider,
-                "identity_provider_user_id": identity_provider_user_id,
-            },
-        }},
         {"user_id": 1},
     )
     return doc["user_id"] if doc else None
@@ -392,13 +216,8 @@ class AuthorizationsAndAuthenticationsTool(ChatHealthyTool):
         if request.intent == "manufacture_session":
             user_object = manufacture_session(request.user_object, deps.server_env)
             return self.Response(user_object=user_object, fresh_mint=True)
-        if request.intent == "manage_session":
-            user_object = manage_session(request.user_object)
-            return self.Response(user_object=user_object, fresh_mint=False)
-        # intent == "login"
-        sessions_coll = deps.mongo_frontend[SESSION_DB][SESSION_COLLECTION]
-        users_coll = deps.mongo_frontend[USERS_DB][USERS_COLLECTION]
-        user_object = login(sessions_coll, users_coll, request.user_object)
+        # intent == "manage_session"
+        user_object = manage_session(request.user_object)
         return self.Response(user_object=user_object, fresh_mint=False)
 
     async def persist(self, deps: AuthnDeps, user_object, fresh_mint: bool) -> None:

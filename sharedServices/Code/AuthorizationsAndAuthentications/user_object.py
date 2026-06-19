@@ -23,13 +23,60 @@ UserObject field at the top level alongside `_id`.
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from typing import Literal, Optional, Union
+from enum import Enum, auto
+from typing import Annotated, Literal, Optional, Union, get_origin
 
 from pydantic import BaseModel, Field
 
 from chathealthy_frontend_lib.authentication.session_token import SessionToken
 
 from UtteranceManager.intent_document import IntentDocument
+
+
+class MergeRole(Enum):
+    STORED_WINS = auto()
+    GUEST_WINS = auto()
+    CUMULATIVE_NESTED = auto()
+    CUMULATIVE_COUNTER = auto()
+
+
+def _field_role(field_info) -> MergeRole:
+    for m in field_info.metadata:
+        if isinstance(m, MergeRole):
+            return m
+    return MergeRole.STORED_WINS
+
+
+def _merge_nested(stored, guest):
+    if stored is None and guest is None:
+        return None
+    cls = type(stored if stored is not None else guest)
+    s = stored if stored is not None else cls()
+    g = guest if guest is not None else cls()
+    out: dict = {}
+    for name, fi in cls.model_fields.items():
+        if get_origin(fi.annotation) is list:
+            out[name] = list(getattr(s, name) or []) + list(getattr(g, name) or [])
+        else:
+            out[name] = getattr(s, name)
+    return cls.model_validate(out)
+
+
+def _merge_counter(stored, guest):
+    if stored is None and guest is None:
+        return None
+    cls = type(stored if stored is not None else guest)
+    s = stored if stored is not None else cls()
+    g = guest if guest is not None else cls()
+    out: dict = {}
+    for name, fi in cls.model_fields.items():
+        sv = getattr(s, name)
+        gv = getattr(g, name)
+        if isinstance(sv, int) and isinstance(gv, int):
+            out[name] = sv + gv
+        else:
+            out[name] = sv
+    return cls.model_validate(out)
 
 
 class Utterance(BaseModel):
@@ -152,120 +199,56 @@ class Lockout(BaseModel):
 
 
 class UserObject(BaseModel):
-    """The complete session-bound user state.
-
-    Required fields (always present from the moment the gate mints):
-      current_session_token, expires_at, session_conversation_history.
-    Every other field is Optional and absent until its fact is known.
-    """
-    # current_session_token is the SessionToken envelope for the live
-    # session. Sentinel value "NULL" signals "no session yet" — the
-    # gateway uses this on a manufacture_session call so the auth tool
-    # can mint a fresh token in place. The sentinel never appears on a
-    # response: the manufacture_session branch replaces it with a real
-    # SessionToken before returning.
-    current_session_token: Union[SessionToken, Literal["NULL"]]
-    expires_at: datetime
-
-    # ── Existing User Schema ─────────────────────────────────
-    session_conversation_history: SessionConversationHistory = Field(
-        default_factory=SessionConversationHistory
-    )
-    is_locked_out: Optional[bool] = None
-    lockout: Optional[Lockout] = None
-    silly_question_counts: Optional[SillyQuestionCounts] = None
-    ip_address: Optional[str] = None
-    is_registered: Optional[bool] = None
-    user_id: Optional[str] = None
-    user_type: Optional[Literal["Guest", "Owner", "Customer", "Prospect"]] = None
-    public_username: Optional[str] = None
-    OAuthIdentities: list[OAuthIdentity] = Field(default_factory=list)
-    registered_profile: Optional[RegisteredProfile] = None
-    not_registered_followup: Optional[NotRegisteredFollowup] = None
-
-    # IntentDocument carried across turns; populated and updated by
-    # UtteranceManager, read and dispatched by UniversalNavigationTool.
-    # Per https://dev.chathealthy.ai/schemas/ChatHealthyUtteranceManagerOutputSchema.json
-    intent: Optional["IntentDocument"] = None
+    """Session-bound user state. Field roles declared via Annotated[..., MergeRole.X]
+    drive merge() at runtime; no per-field merge code anywhere in this class."""
+    current_session_token: Annotated[
+        Union[SessionToken, Literal["NULL"]], MergeRole.GUEST_WINS,
+    ]
+    expires_at: Annotated[datetime, MergeRole.GUEST_WINS]
+    session_conversation_history: Annotated[
+        SessionConversationHistory, MergeRole.CUMULATIVE_NESTED,
+    ] = Field(default_factory=SessionConversationHistory)
+    is_locked_out: Annotated[Optional[bool], MergeRole.STORED_WINS] = None
+    lockout: Annotated[Optional[Lockout], MergeRole.STORED_WINS] = None
+    silly_question_counts: Annotated[
+        Optional[SillyQuestionCounts], MergeRole.CUMULATIVE_COUNTER,
+    ] = None
+    ip_address: Annotated[Optional[str], MergeRole.GUEST_WINS] = None
+    is_registered: Annotated[Optional[bool], MergeRole.STORED_WINS] = None
+    user_id: Annotated[Optional[str], MergeRole.STORED_WINS] = None
+    user_type: Annotated[
+        Optional[Literal["Guest", "Owner", "Customer", "Prospect"]],
+        MergeRole.STORED_WINS,
+    ] = None
+    public_username: Annotated[Optional[str], MergeRole.STORED_WINS] = None
+    OAuthIdentities: Annotated[
+        list[OAuthIdentity], MergeRole.STORED_WINS,
+    ] = Field(default_factory=list)
+    registered_profile: Annotated[
+        Optional[RegisteredProfile], MergeRole.STORED_WINS,
+    ] = None
+    not_registered_followup: Annotated[
+        Optional[NotRegisteredFollowup], MergeRole.STORED_WINS,
+    ] = None
+    intent: Annotated[
+        Optional["IntentDocument"], MergeRole.GUEST_WINS,
+    ] = None
 
     def merge(self, guest: "UserObject") -> "UserObject":
-        """Merge a guest UserObject INTO this stored UserObject.
-
-        Per-field rules (EPIC-002-F-003-S-004-REQ-T-012 + REQ-T-015):
-
-          current_session_token         guest
-          expires_at                    guest
-          session_conversation_history  stored arrays first, guest appended
-          OAuthIdentities               stored
-          is_registered                 bool(OAuthIdentities)
-          user_type                     stored
-          public_username               stored
-          ip_address                    guest
-          is_locked_out                 stored
-          silly_question_counts         stored + guest
-          registered_profile            stored
-          not_registered_followup       stored
-        """
-        # Concatenate stored arrays first, guest appended. The merged
-        # session uses a single global event counter (utterances and
-        # actions share one sequence so the narrative is reconstructible
-        # by sort-by-n). The merge pass sorts the union of both buckets
-        # by their `at` timestamp and assigns 1..N in chronological
-        # order; entries then live in their respective buckets but with
-        # globally-unique, time-ordered n.
-        all_events = []
-        for u in (
-            list(self.session_conversation_history.utterances)
-            + list(guest.session_conversation_history.utterances)
-        ):
-            d = u.model_dump() if hasattr(u, "model_dump") else dict(u)
-            all_events.append(("u", d))
-        for a in (
-            list(self.session_conversation_history.actions)
-            + list(guest.session_conversation_history.actions)
-        ):
-            d = a.model_dump() if hasattr(a, "model_dump") else dict(a)
-            all_events.append(("a", d))
-        all_events.sort(key=lambda kv: str(kv[1].get("at", "")))
-
-        merged_utterances: list[Utterance] = []
-        merged_actions: list[Action] = []
-        for i, (kind, d) in enumerate(all_events, start=1):
-            d["n"] = i
-            if kind == "u":
-                merged_utterances.append(Utterance.model_validate(d))
-            else:
-                merged_actions.append(Action.model_validate(d))
-
-        merged_hist = SessionConversationHistory(
-            utterances=merged_utterances,
-            actions=merged_actions,
-        )
-
-        # silly_question_counts: lifetime accumulator.
-        stored_sqc = self.silly_question_counts
-        guest_sqc = guest.silly_question_counts
-        if stored_sqc is None and guest_sqc is None:
-            merged_sqc = None
-        else:
-            s = stored_sqc or SillyQuestionCounts()
-            g = guest_sqc or SillyQuestionCounts()
-            merged_sqc = SillyQuestionCounts(
-                session_total=s.session_total + g.session_total,
-                current_sequence_total=s.current_sequence_total + g.current_sequence_total,
-            )
-
-        # is_registered: derived from OAuthIdentities membership.
-        derived_is_registered = len(self.OAuthIdentities) >= 1
-
-        return self.model_copy(update={
-            "current_session_token": guest.current_session_token,
-            "expires_at": guest.expires_at,
-            "session_conversation_history": merged_hist,
-            "silly_question_counts": merged_sqc,
-            "is_registered": derived_is_registered,
-            "ip_address": guest.ip_address if guest.ip_address is not None else self.ip_address,
-        })
+        merged: dict = {}
+        for name, fi in type(self).model_fields.items():
+            role = _field_role(fi)
+            stored_val = getattr(self, name)
+            guest_val = getattr(guest, name)
+            if role is MergeRole.STORED_WINS:
+                merged[name] = stored_val
+            elif role is MergeRole.GUEST_WINS:
+                merged[name] = guest_val
+            elif role is MergeRole.CUMULATIVE_NESTED:
+                merged[name] = _merge_nested(stored_val, guest_val)
+            elif role is MergeRole.CUMULATIVE_COUNTER:
+                merged[name] = _merge_counter(stored_val, guest_val)
+        return type(self).model_validate(merged)
 
     def persist_user_state(self, text: str) -> None:
         """Append the typed user text to the session conversation history
