@@ -106,7 +106,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "a2bb99b5c68346b5e11683397d4b5d672d2ef57df2a95b6779eb06cf35eacea4"
+          "content_hash": "fb7883426a0609bc4bee1fff9170eed4ada02e301e9ba6a281edebec6c37f985"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1033,7 +1033,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/static/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "7208f7b3d20d9313ef40bb75c2ba7fd1f422dd5129877d21aab7bb80592cb71f"
+          "content_hash": "d6b5b0526945da405aeee29594b37e6d86768db2bea7822017cab7c516b4e66d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2554,7 +2554,7 @@
           "source_location": "pipeline/ChatHealthyDataPipelinesGatewayFunctionApp.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "975d3147fcb62cb792c88aa99c329cf9fa568528ed7923769cf00eb03a57be2d"
+          "content_hash": "b6233a1be8501ca0b6ce0a64961eb2183097e2aae0105a45a581a597e085d1d7"
         }
       ],
       "secrets": {

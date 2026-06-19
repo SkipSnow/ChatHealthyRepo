@@ -881,7 +881,7 @@
       <!-- Center column — chat + provider selection + controls -->
       <div class="center-column">
         <!-- Chat iframe -->
-        <div class="chat-frame-wrapper" id="chatFrameWrapper">
+        <div class="chat-frame-wrapper">
           <div class="frame-loading" id="frameLoading">
             <div class="spinner"></div>
             <p>Loading Find Care AI…</p>
@@ -894,32 +894,6 @@
             loading="lazy"
             onload="document.getElementById('frameLoading').classList.add('hidden')"
           ></iframe>
-        </div>
-
-        <!-- Provider Selection Panel — hidden until providers arrive (FC-SELECT-001) -->
-        <div id="providerSelectionPanel" style="display:none;flex-direction:column;border:0.125em solid #d8e2e1;border-radius:0.75em;background:#fff;overflow:hidden;margin-top: 1em;">
-          <!-- Available providers — top -->
-          <div style="display:flex;align-items:center;justify-content:space-between;padding: 1em;background:#f0fffe;border-bottom:0.125em solid #d8e2e1;">
-            <span style="font-size: 1em;font-weight:700;color:#0b7a75;text-transform:uppercase;">Available Providers</span>
-            <div style="display:flex;align-items:center;gap:0.75em;">
-              <span id="availableCount" style="font-size: 1em;color:#6b7280;">0</span>
-              <button id="garbageBtn" title="Dismissed providers" style="background:none;border:none;cursor:pointer;font-size: 1em;position:relative;">🗑️<span id="garbageCount" style="position:absolute;top:-0.75em;right:-1em;background:#dc2626;color:#fff;font-size: 1em;font-weight:700;border-radius:50%;width:1.75em;height:1.75em;display:none;align-items:center;justify-content:center;">0</span></button>
-            </div>
-          </div>
-          <div id="availableList" style="max-height:25em;overflow-y:auto;overflow-x:hidden;"></div>
-
-          <!-- Drop zone divider -->
-          <div id="dropZoneDivider" style="padding: 1em;background:#fffbeb;border-top:0.125em solid #d8e2e1;border-bottom:0.125em solid #d8e2e1;display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-size: 1em;font-weight:600;color:#d97706;text-transform:uppercase;">Selected for Evaluation</span>
-            <span id="selectedCount" style="font-size: 1em;color:#6b7280;">0 / 5</span>
-          </div>
-
-          <!-- Selected providers — bottom -->
-          <div id="selectedList" style="min-height:5em;max-height:22.5em;overflow-y:auto;overflow-x:hidden;background:#fffdf7;">
-            <div id="selectedEmpty" style="padding: 1em;text-align:center;color:#9ca3af;font-size: 1em;">
-              Drag providers here or click ↓ to select (max 5)
-            </div>
-          </div>
         </div>
 
       </div> <!-- /center-column -->
@@ -1468,14 +1442,6 @@
       window.openSharedServices = function() { window.renderCoreFrame('sharedservices'); };
 
 
-      try {
-        var resumed = sessionStorage.getItem('_ch_authboot_resume');
-        if (resumed) {
-          window._authBoot = JSON.parse(resumed);
-          sessionStorage.removeItem('_ch_authboot_resume');
-          console.log('[OAUTH-CLIENT] sessionStorage restore: _authBoot guid=' + (window._authBoot && window._authBoot.token ? window._authBoot.token.slice(-32) : 'none'));
-        }
-      } catch (_) {}
       try { window._getAuthBoot().then(function(t){ console.log('[OAUTH-CLIENT] /gate(boot) resolved: token_tail=' + (t && t.token ? t.token.slice(-32) : 'none')); }); } catch (_) {}
       // REQ-T-010: a returning ?system_timed_out=… URL means the user
       // was just bounced home by the pre-flight check. Skip the iframe
@@ -2076,37 +2042,6 @@
           }
         }
 
-        // SharedServices result — render in #rightContent so it coexists
-        // with the security panel in #rightSecurity owned by refreshTokenPanels.
-        if (msg.type === 'gui:shared-result') {
-          window.ensureRightPanelStructure();
-          var content = document.getElementById('rightContent');
-          if (content) {
-            content.innerHTML =
-                '<div style="padding: 1em;border-bottom:0.25em solid #0b7a75;background:#f0fffe;">'
-              + '<div style="font-size: 1em;font-weight:700;color:#0b7a75;text-transform:uppercase;">Shared Services</div>'
-              + '<div style="font-size: 1em;color:#6b7280;margin-top: 1em;">Mutual authentication test</div>'
-              + '</div>';
-          }
-        }
-
-        // Session token display in left panel — in table cell below specialties
-        // Must be below specialties, not beside
-        // Must use identical display as right panel — buildTokenDisplayHtml
-        if (msg.type === 'gui:session-display') {
-          if (!(msg.session_token && typeof msg.session_token === 'object')) {
-            window.chFatalError('gui:session-display message missing session_token object');
-            return;
-          }
-          var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
-          if (!sessionEl) {
-            leftPanel.insertAdjacentHTML('beforeend',
-              '<div id="guiSessionId" style="padding: 1em;border-top:0.125em solid #e5e7eb;"></div>');
-            sessionEl = document.getElementById('guiSessionId');
-          }
-          sessionEl.innerHTML = window.buildTokenDisplayHtml(msg.session_token);
-        }
-
         if (msg.type === 'gui:event' && msg.action === 'highlight-filter') {
           // Flash the filter panel to draw attention
           leftPanel.style.transition = 'background 0.3s';
@@ -2148,18 +2083,6 @@
             }, '*');
           }
         }
-        if (msg.type === 'gui:filter-selection-change') {
-          // User toggled rows; forward the current checked-codes to chat
-          // iframe so its checkedCodesRef is in sync for filter-apply.
-          var chatFrame = document.getElementById('coreChatFrame');
-          if (chatFrame && chatFrame.contentWindow) {
-            chatFrame.contentWindow.postMessage({
-              type: 'gui:event',
-              action: 'filter-selection-change',
-              codes: msg.codes || [],
-            }, '*');
-          }
-        }
         if (msg.type === 'gui:filter-apply-click') {
           // EPIC-006-F-002-S-003-REQ-T-009 (filter persists across service
           // transfer) + Skip 2026-05-11: Apply Filter fired while another
@@ -2193,13 +2116,6 @@
           if (leftPanelMobile) {
             leftPanelMobile.classList.remove('mobile-filter-open');
           }
-          document.body.classList.remove('filter-overlay-open');
-        }
-        if (msg.type === 'gui:filter-close-request') {
-          // In-header Providers button: leave the filter overlay without
-          // submitting changes. Mirror of mobile-filter-open removal.
-          var leftPanel2 = document.getElementById('leftPanel');
-          if (leftPanel2) leftPanel2.classList.remove('mobile-filter-open');
           document.body.classList.remove('filter-overlay-open');
         }
       });

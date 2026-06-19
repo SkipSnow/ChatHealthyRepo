@@ -779,9 +779,12 @@ export default function FindCareApp() {
       }
     }
 
-    const onProviders = (data: any) => {
-      console.log('[FindCare] stream event kind=providers count=', data?.providers?.length || 0, 'total=', data?.total_count)
-      sawProviders = true
+    // ONE results handler for both providers and trials. Always lands in
+    // phase='results' so the iframe paints from a single code path and
+    // the prompt row stays visible regardless of result type.
+    const onResults = (data: any) => {
+      console.log('[FindCare] stream event kind=results providers=', data?.providers?.length || 0,
+                  'trials=', data?.trials?.length || 0)
       if (ac.signal.aborted) return
       if (data.error) {
         finishTimer()
@@ -791,14 +794,9 @@ export default function FindCareApp() {
         sawError = true
         return
       }
+      setSystemMessage('')
       if (data.providers) {
-        // Providers arrived — clear the mid-stream system prompt text so
-        // it doesn't linger over the provider list once phase moves to
-        // 'results'. systemCorrections is deliberately NOT cleared here:
-        // the results-phase question header needs it to render the
-        // (corrected from '...') red annotation per REQ-B-011. It is
-        // cleared at the start of the next /gate call.
-        setSystemMessage('')
+        sawProviders = true
         const enriched = data.providers.map((p: any) => ({
           ...p,
           specialty: specialtyMapRef.current[p.taxonomy_code] || '',
@@ -808,35 +806,17 @@ export default function FindCareApp() {
         if (data.last_npi) setLastNpi(data.last_npi)
         setHasMore((data.providers.length || 0) < (data.total_count || 0))
       }
-      // The provider response echoes search_params back (state/city/county/
-      // zip/nucc_codes). Merge into searchParams so subsequent pagination
-      // and filter-apply calls re-issue the same scope without an LLM hop.
       if (data.search_params) {
         setSearchParams((prev: any) => ({ ...(prev || {}), ...data.search_params }))
       }
+      if (data.trials) {
+        const trials = data.trials || []
+        setTrialsList(trials)
+        setSelectedTrialIndex(0)
+        sendToParent('gui:trials-left-panel', { html: buildTrialsLeftPanelHtml(trials) })
+      }
       finishTimer()
       setPhase('results')
-    }
-
-    // EPIC-006-F-031 — Find Clinical Trials.
-    // Store the full trial list in state; push the bullet-list to the
-    // parent's leftPanel; render ONE selected trial in the center.
-    const onTrials = (data: any) => {
-      console.log('[FindCare] stream event kind=trials count=', data?.trials?.length || 0)
-      if (ac.signal.aborted) return
-      if (data.error) {
-        setError(data.error)
-        setPhase('error')
-        sawError = true
-        return
-      }
-      const trials = data?.trials || []
-      setTrialsList(trials)
-      setSelectedTrialIndex(0)
-      setSystemMessage('')
-      sendToParent('gui:trials-left-panel', { html: buildTrialsLeftPanelHtml(trials) })
-      finishTimer()
-      setPhase('clarify')
     }
 
     try {
@@ -874,8 +854,7 @@ export default function FindCareApp() {
           let evt: any
           try { evt = JSON.parse(trimmed) } catch { continue }
           if (evt.kind === 'specialties') { onSpecialties(evt.data || {}); sawTerminalEvent = true }
-          else if (evt.kind === 'providers') { onProviders(evt.data || {}); sawTerminalEvent = true }
-          else if (evt.kind === 'trials') { onTrials(evt.data || {}); sawTerminalEvent = true }
+          else if (evt.kind === 'providers' || evt.kind === 'trials') { onResults(evt.data || {}); sawTerminalEvent = true }
           else if (evt.kind === 'prompt') onPrompt(evt.data || {})
           else if (evt.kind === 'final' && !sawError) {
             const okFlag = evt.data?.ok ?? evt.ok
@@ -891,11 +870,9 @@ export default function FindCareApp() {
               setPhase('error')
               sawError = true
             } else if (sawProviders) {
-              // ProviderSearch ran and onProviders already setPhase('results').
-              // Do not clobber that with 'clarify' even if a prompt was
-              // streamed earlier in the same turn (findAProvider with
-              // user_message acknowledgement does both).
-              // Nothing to do here — leave phase as set by onProviders.
+              // Provider/trial results already setPhase('results') via
+              // onResults; do not clobber with 'clarify' even if a prompt
+              // was streamed earlier this turn.
             } else if (sawPrompt) {
               // Mid-stream prompt was shown; no providers/specialties
               // terminal arrived. Move to 'clarify' so Send re-enables
@@ -977,9 +954,11 @@ export default function FindCareApp() {
       specialtyMapRef.current = specMap
       setSearchParams((prev: any) => ({ ...(prev || {}), nucc_codes: data.specialties.map((s: any) => s.code), limit: 25 }))
     }
-    const onProviders = (data: any) => {
-      console.log('[FindCare apply_filter] stream event kind=providers count=', data?.providers?.length || 0)
-      sawProviders = true
+    // Same single results handler as doSearch — providers + trials both
+    // land in phase='results'.
+    const onResults = (data: any) => {
+      console.log('[FindCare apply_filter] stream event kind=results providers=',
+                  data?.providers?.length || 0, 'trials=', data?.trials?.length || 0)
       if (ac.signal.aborted) return
       if (data.error) {
         finishTimer()
@@ -989,11 +968,9 @@ export default function FindCareApp() {
         sawError = true
         return
       }
+      setSystemMessage('')
       if (data.providers) {
-        // systemCorrections deliberately preserved through results phase
-        // so the question header can render the (corrected from '...')
-        // annotation. Cleared at the start of the next /gate call.
-        setSystemMessage('')
+        sawProviders = true
         const enriched = data.providers.map((p: any) => ({
           ...p,
           specialty: specialtyMapRef.current[p.taxonomy_code] || '',
@@ -1002,31 +979,18 @@ export default function FindCareApp() {
         if (data.total_count) setTotalCount(data.total_count)
         if (data.last_npi) setLastNpi(data.last_npi)
         setHasMore((data.providers.length || 0) < (data.total_count || 0))
-        if (data.search_params) {
-          setSearchParams((prev: any) => ({ ...(prev || {}), ...data.search_params }))
-        }
-        finishTimer()
-        setPhase('results')
       }
-    }
-
-    // EPIC-006-F-031 — Find Clinical Trials (apply-filter mirror).
-    const onTrials = (data: any) => {
-      console.log('[FindCare apply_filter] stream event kind=trials count=', data?.trials?.length || 0)
-      if (ac.signal.aborted) return
-      if (data.error) {
-        setError(data.error)
-        setPhase('error')
-        sawError = true
-        return
+      if (data.search_params) {
+        setSearchParams((prev: any) => ({ ...(prev || {}), ...data.search_params }))
       }
-      const trials = data?.trials || []
-      setTrialsList(trials)
-      setSelectedTrialIndex(0)
-      setSystemMessage('')
-      sendToParent('gui:trials-left-panel', { html: buildTrialsLeftPanelHtml(trials) })
+      if (data.trials) {
+        const trials = data.trials || []
+        setTrialsList(trials)
+        setSelectedTrialIndex(0)
+        sendToParent('gui:trials-left-panel', { html: buildTrialsLeftPanelHtml(trials) })
+      }
       finishTimer()
-      setPhase('clarify')
+      setPhase('results')
     }
 
     try {
@@ -1064,8 +1028,7 @@ export default function FindCareApp() {
           let evt: any
           try { evt = JSON.parse(trimmed) } catch { continue }
           if (evt.kind === 'specialties') { onSpecialties(evt.data || {}); sawTerminalEvent = true }
-          else if (evt.kind === 'providers') { onProviders(evt.data || {}); sawTerminalEvent = true }
-          else if (evt.kind === 'trials') { onTrials(evt.data || {}); sawTerminalEvent = true }
+          else if (evt.kind === 'providers' || evt.kind === 'trials') { onResults(evt.data || {}); sawTerminalEvent = true }
           else if (evt.kind === 'prompt') onPrompt(evt.data || {})
           else if (evt.kind === 'final' && !sawError) {
             const okFlag = evt.data?.ok ?? evt.ok
@@ -1081,8 +1044,7 @@ export default function FindCareApp() {
               setPhase('error')
               sawError = true
             } else if (sawProviders) {
-              // ProviderSearch ran (geography sufficient path). Phase
-              // already set by onProviders.
+              // Provider/trial results already setPhase('results') via onResults.
             } else if (sawPrompt) {
               // Manufacture-trigger path: UM authored a prompt. Move
               // to 'clarify' so Send re-enables and the user can
@@ -1421,17 +1383,11 @@ export default function FindCareApp() {
         </div>
       )}
 
-      {/* CLARIFY PHASE — either trial detail (one trial at a time) or
-          a generic clarification bubble from the server. */}
+      {/* CLARIFY PHASE — generic clarification bubble from the server.
+          Trial detail is rendered by the unified 'results' block. */}
       {phase === 'clarify' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {question && renderQuestionBanner(
-            question,
-            systemCorrections,
-            trialsList.length
-              ? `${trialsList.length} clinical trials — viewing ${trialsList[selectedTrialIndex]?.nct_id || trialsList[0]?.nct_id || ''}`
-              : undefined,
-          )}
+          {question && renderQuestionBanner(question, systemCorrections)}
           <div style={{ flex: 1, overflowY: 'auto', padding: '1em', maxWidth: 1100, margin: '1em', width: '100%' }}>
             <div style={{
               padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
@@ -1445,9 +1401,7 @@ export default function FindCareApp() {
                   td: ({node, ...p}) => <td {...p} style={{border: '0.0625em solid #d1d5db', padding: '0.5em', verticalAlign: 'top'}} />,
                   a: ({node, ...p}) => <a {...p} target="_blank" rel="noopener noreferrer" />,
                 }}
-              >{trialsList.length
-                  ? formatTrialDetail(trialsList[selectedTrialIndex] || trialsList[0])
-                  : systemMessage}</ReactMarkdown>
+              >{systemMessage}</ReactMarkdown>
             </div>
           </div>
         </div>
@@ -1480,8 +1434,34 @@ export default function FindCareApp() {
         </div>
       )}
 
-      {/* RESULTS PHASE */}
-      {phase === 'results' && (
+      {/* RESULTS PHASE — single paint path for both providers AND
+          clinical trials. Trial detail and provider list both live here. */}
+      {phase === 'results' && trialsList.length > 0 && (
+        <>
+          {renderQuestionBanner(
+            question,
+            systemCorrections,
+            `${trialsList.length} clinical trials — viewing ${trialsList[selectedTrialIndex]?.nct_id || trialsList[0]?.nct_id || ''}`,
+          )}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1em', maxWidth: 1100, margin: '1em', width: '100%' }}>
+            <div style={{
+              padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
+              border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6, color: '#0b7a75',
+            }}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  table: ({node, ...p}) => <table {...p} style={{borderCollapse: 'collapse', width: '100%', margin: '0.5em 0'}} />,
+                  th: ({node, ...p}) => <th {...p} style={{border: '0.0625em solid #d1d5db', padding: '0.5em', background: '#f3f4f6', textAlign: 'left'}} />,
+                  td: ({node, ...p}) => <td {...p} style={{border: '0.0625em solid #d1d5db', padding: '0.5em', verticalAlign: 'top'}} />,
+                  a: ({node, ...p}) => <a {...p} target="_blank" rel="noopener noreferrer" />,
+                }}
+              >{formatTrialDetail(trialsList[selectedTrialIndex] || trialsList[0])}</ReactMarkdown>
+            </div>
+          </div>
+        </>
+      )}
+      {phase === 'results' && trialsList.length === 0 && (
         <>
           {/* Question bar */}
           {renderQuestionBanner(question, systemCorrections, `${totalCount} providers found`)}
