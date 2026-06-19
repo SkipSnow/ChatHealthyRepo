@@ -114,28 +114,18 @@ def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str)
             return result.returncode
 
     try:
-        print(f"[promote] pull origin {target_branch} (ff-only)")
+        print(f"[promote] reset --hard origin/{source_branch} (wipe out any divergence on {target_branch})")
         result = subprocess.run(
-            ["git", "pull", "--ff-only", "origin", target_branch],
+            ["git", "reset", "--hard", f"origin/{source_branch}"],
             cwd=str(repo_root),
         )
         if result.returncode != 0:
-            print(f"[promote] pull {target_branch} FAILED")
+            print(f"[promote] reset FAILED on {target_branch}")
             return result.returncode
 
-        print(f"[promote] merge origin/{source_branch} into {target_branch} (ff-only)")
+        print(f"[promote] push --force-with-lease origin {target_branch}")
         result = subprocess.run(
-            ["git", "merge", "--ff-only", f"origin/{source_branch}"],
-            cwd=str(repo_root),
-        )
-        if result.returncode != 0:
-            print(f"[promote] merge FAILED — {target_branch} is not a fast-forward "
-                  f"of {source_branch}. Resolve manually before re-running.")
-            return result.returncode
-
-        print(f"[promote] push origin {target_branch}")
-        result = subprocess.run(
-            ["git", "push", "origin", target_branch],
+            ["git", "push", "--force-with-lease", "origin", target_branch],
             cwd=str(repo_root),
         )
         if result.returncode != 0:
