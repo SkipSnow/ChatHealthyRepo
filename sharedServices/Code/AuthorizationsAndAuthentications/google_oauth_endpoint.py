@@ -170,7 +170,7 @@ def set_chathealthy_user_cookie(response: RedirectResponse, user_id: str) -> Non
     )
 
 
-def _invoke_oauth_login_tool(
+async def _invoke_oauth_login_tool(
     server_env: str,
     session_guid: str,
     *,
@@ -189,7 +189,6 @@ def _invoke_oauth_login_tool(
     from authentication.agent_deps import AgentDeps
     from authentication.user_object import UserObject
     from datetime import datetime, timezone, timedelta
-    import asyncio
 
     deps = AgentDeps(
         user_object=UserObject(
@@ -210,7 +209,7 @@ def _invoke_oauth_login_tool(
         oauth_state=oauth_state,
         flow=flow,
     )
-    return asyncio.run(OAUTH_LOGIN_TOOL.run(deps, req))
+    return await OAUTH_LOGIN_TOOL.run(deps, req)
 
 
 def _build_popup_close_html(
@@ -266,14 +265,14 @@ class GoogleOAuthEndpoint:
     """FastAPI shell. All OAuth logic routes through OAuthLoginTool."""
 
     @staticmethod
-    def start(
+    async def start(
         server_env: str,
         session_guid: Optional[str] = None,
         flow: str = "login",
     ) -> RedirectResponse:
         if not session_guid:
             session_guid = secrets.token_hex(16)
-        resp = _invoke_oauth_login_tool(
+        resp = await _invoke_oauth_login_tool(
             server_env, session_guid, phase="start", flow=flow,
         )
         if resp.outcome != "redirect" or not resp.authz_url:
@@ -285,7 +284,7 @@ class GoogleOAuthEndpoint:
         return RedirectResponse(resp.authz_url, status_code=302)
 
     @staticmethod
-    def callback(
+    async def callback(
         *,
         code: Optional[str],
         state: Optional[str],
@@ -334,7 +333,7 @@ class GoogleOAuthEndpoint:
                 "OAuth callback missing session identifier",
             )
 
-        resp = _invoke_oauth_login_tool(
+        resp = await _invoke_oauth_login_tool(
             server_env, session_guid,
             phase="callback", oauth_code=code, oauth_state=state,
         )
