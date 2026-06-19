@@ -238,6 +238,7 @@ def _persist_login(
     sessions_coll, users_coll, claims: dict, session_guid: str,
 ) -> tuple[str, Optional[str]]:
     from authentication.user_object import UserObject, OAuthIdentity
+    from authentication.agent_deps import append_action
     email = claims["email"]
     sub = claims["sub"]
     identity_provider = "Google"
@@ -290,6 +291,20 @@ def _persist_login(
                 ident.email = email
 
     merged = stored.merge(guest)
+    append_action(
+        merged,
+        tool_name="oauth_login",
+        input_json={
+            "identity_provider": identity_provider,
+            "email": email,
+            "session_guid_prefix": session_guid[:8] + "...",
+        },
+        output_json={
+            "user_id": user_id,
+            "outcome": "success",
+            "new_user": prior_last_login is None,
+        },
+    )
     merged_dump = merged.model_dump(mode="json", exclude_none=True)
 
     users_result = users_coll.update_one(
