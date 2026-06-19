@@ -372,15 +372,34 @@ class OAuthLoginTool(ChatHealthyTool):
         self, deps: AgentDeps, request: "Request",
     ) -> "Response":
         if not request.oauth_code:
+            log.debug(
+                "OAUTH-CB missing_oauth_code session_guid_prefix=%s",
+                (request.session_guid or "")[:8] + "...",
+            )
             return Response(
                 outcome="fail",
                 user_facing_message=message_login_failed(None),
                 fail_reason="missing_oauth_code",
             )
+        log.debug(
+            "OAUTH-CB exchange begin token_endpoint=%s code_prefix=%s",
+            TOKEN_ENDPOINT_URL, request.oauth_code[:12] + "...",
+        )
         claims = await _exchange_and_verify(request.oauth_code, deps.server_env)
+        log.debug(
+            "OAUTH-CB exchange ok iss=%s aud=%s sub=%s email=%s email_verified=%s "
+            "iat=%s exp=%s",
+            claims.get("iss"), claims.get("aud"), claims.get("sub"),
+            claims.get("email"), claims.get("email_verified"),
+            claims.get("iat"), claims.get("exp"),
+        )
 
         email = claims.get("email", "")
         if not email or not claims.get("email_verified"):
+            log.debug(
+                "OAUTH-CB email_not_verified email=%r email_verified=%s",
+                email, claims.get("email_verified"),
+            )
             return Response(
                 outcome="fail",
                 user_facing_message=message_login_failed(email or None),
@@ -388,7 +407,12 @@ class OAuthLoginTool(ChatHealthyTool):
                 google_claims=claims,
             )
 
-        if not _is_allowed_prealpha(email):
+        on_list = _is_allowed_prealpha(email)
+        log.debug(
+            "OAUTH-CB allow_list_check email_lower=%s on_list=%s list_size=%d",
+            email.lower(), on_list, len(PRE_ALPHA_ALLOW_LIST),
+        )
+        if not on_list:
             return Response(
                 outcome="fail",
                 user_facing_message=message_login_failed(email),
@@ -401,11 +425,21 @@ class OAuthLoginTool(ChatHealthyTool):
         user_id, prior_last_login = _persist_login(
             sessions_coll, users_coll, claims, request.session_guid,
         )
+        log.debug(
+            "OAUTH-CB persist ok user_id=%s new_user=%s prior_last_login=%s "
+            "session_guid_prefix=%s",
+            user_id, prior_last_login is None, prior_last_login,
+            (request.session_guid or "")[:8] + "...",
+        )
 
         if prior_last_login is None:
             user_facing = message_new_user_success(email)
         else:
             user_facing = message_returning_user_success(email, prior_last_login)
+        log.debug(
+            "OAUTH-CB success email=%s user_id=%s message_preview=%r",
+            email, user_id, user_facing[:80],
+        )
 
         return Response(
             outcome="success",
