@@ -1571,7 +1571,7 @@
           "source_location": "brain/machine_artifacts/content/agile_backlog.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "e5d2f2c2c39ae943f3ea55f61a296a58ed78f045f783983c592e45133ba2ec6a"
+          "content_hash": "fab77e40ef4d88229cae74d3fd51f8458907b4a79b829a6e42473bbbbe609d01"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2478,7 +2478,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/promote_chathealthy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ed64bd294169ff7f12b006736f03dc296fe63e7f5bf5cc2e1efcb2ce854af86f"
+          "content_hash": "1e1ec124c29d89d47b2a019fb3ce4fd8b636478424a8d0f9e31a472dad9f5b0d"
         },
         {
           "feature_id": "EPIC-008-F-012",
