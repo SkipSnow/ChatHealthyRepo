@@ -106,7 +106,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "1d66678342b9c85d5529cee0bd71de272a1e792d762637a78e9ea3e7fc855dd0"
+          "content_hash": "a2bb99b5c68346b5e11683397d4b5d672d2ef57df2a95b6779eb06cf35eacea4"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1571,7 +1571,7 @@
           "source_location": "brain/machine_artifacts/content/agile_backlog.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "c256b11be4f2dc3e0b8212c3a427e86958796be32da38fc08599dd5f3b0b1b0c"
+          "content_hash": "e5d2f2c2c39ae943f3ea55f61a296a58ed78f045f783983c592e45133ba2ec6a"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1945,7 +1945,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/authorizations_and_authentications_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "8a8ca3c63e32ceabfd90d4cbb00e8b614e5429aa97e007465627f2f0bde544d9"
+          "content_hash": "ed2b005c0b56f758c9662aabe03724f815c01853ffcf7008b8cb348d2b7352dc"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1959,7 +1959,21 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/google_oauth_endpoint.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1032c2472b8c79767535c15066cc01459a8b51a62e67f9a7040b9c22d4ced9fb"
+          "content_hash": "d8fc44cb208f36a2731e05031bdc3984be53960e787df23c46330f5ab132f8f3"
+        },
+        {
+          "feature_id": "EPIC-002-F-003",
+          "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/oauth_login_tool.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "5ada276a8d50a735bf917e9395a5e65aef1541d8e86c8df0de2d549179a5efb2"
+        },
+        {
+          "feature_id": "EPIC-002-F-003",
+          "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/fake_google_endpoint.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "095f9e529334dfd4503d3e5807c2d04dadff010dd6e5cbd19cd968b8abdd0f08"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1987,14 +2001,14 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "6b104300c7b5adad44ed7dcde362f4a45c4634658e91b63c0c4d450381545454"
+          "content_hash": "ec3c92be15c5e939745cb54f8f76e7d122ab6cac68af68720af8e6f707341b4c"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/user_object.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "19c5bf9e2c9cf3093c56ef414ca016ba18c62bc9c2b60a8dd137c851591a9b90"
+          "content_hash": "cd9093b2053ef87aa23ed41d829c335c0069cc6c3967a51eed67f027ec83ba35"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2243,7 +2257,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "20a15405f943828b569421ed133cfbad3b61f9197644fef38db4bae5e3bcdf7f"
+          "content_hash": "4c4cda27fc2dba66fcbfcf5ffb742d68d46a504be29cbf7434f2b14c65e35606"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2271,7 +2285,7 @@
           "source_location": "sharedServices/Code/requirements.txt",
           "handler_type": "python_requirements",
           "disposition": "referenced",
-          "content_hash": "b603ca07dc5b1e9bd5cf51597cb013e8c567263a2e1f1d16c12f0f1fdd22b0e8"
+          "content_hash": "b3c1510fdfa10f5425752a40e0562c611d33add7b80598f526ef216ed4fd374b"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2279,13 +2293,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "9d14c021298654180f28f993c1fa338ae182ab7e77ca7e6a7c6a45e2d6d0c69b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "sharedServices/Code/utterance_tool.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "61d3cc4c1c416380c826edd50992e98ea42e7e5bb2b7b09b53a4c74d3c1c7eb2"
         }
       ],
       "secrets": {

@@ -1512,6 +1512,46 @@
                             ]
                           },
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-021",
+                          "name": "OAuth Login Tool audits every attempted login and its result",
+                          "requirement": "The OAuth Login Tool must audit each attempted login and each result in the Shared Service application log. The gateway must not own this audit.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-021-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-004-REQ-B-022",
+                          "name": "Failed authentication keeps user as guest without destroying or disclosing prior identity state",
+                          "requirement": "On a failed authentication, the system MUST keep the user as a guest, MUST tell the user that the authentication failed, and MUST NOT delete the user_object or the user's ChatHealthyRegisteredUserCookie. The user-facing message MUST NOT disclose that a cookie exists or any aspect of prior identity state.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-003-S-004-REQ-B-022-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
                         }
                       ]
                     },
@@ -2047,6 +2087,26 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-004-S-001-REQ-B-005",
+                          "name": "Universal Router handles authentication by calling OAuthLoginTool directly",
+                          "requirement": "In order to support testing in the localhost environment, the Universal Router MUST handle the authentication flow by calling OAuthLoginTool directly. The Universal Router MUST NOT route the authentication flow through the UtteranceManager. This is the natural flow in all other environments.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-004-S-001-REQ-B-005-TEST-1",
+                                "test_type": "playwright",
+                                "orphan": false,
+                                "file": "test_login_register.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
                         }
                       ]
                     },
@@ -3896,6 +3956,31 @@
                                 "orphan": false,
                                 "test_type": "integration",
                                 "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-002-F-010-S-001-REQ-B-013",
+                          "orphan": false,
+                          "name": "UtteranceManager does not handle the authentication flow",
+                          "requirement": "The UtteranceManager MUST NOT handle the authentication flow. This is an explicit exception per EPIC-002-F-004-S-001-REQ-B-005.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-002-F-004-S-001",
+                              "reason": "Anchors the explicit exception cited by this requirement."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-002-F-010-S-001-REQ-B-013-TEST-1",
+                                "orphan": false,
+                                "test_type": "playwright",
+                                "file": "test_login_register.py"
                               }
                             ]
                           }
