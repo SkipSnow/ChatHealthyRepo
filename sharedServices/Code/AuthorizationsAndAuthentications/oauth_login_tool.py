@@ -71,7 +71,7 @@ def _real_google_authz_url(state: str, flow: str) -> str:
         "response_type": "code",
         "scope":         "openid email",
         "state":         state,
-        "prompt":        "select_account" if flow == "register" else "none",
+        "prompt":        "select_account",
         "access_type":   "online",
     }
     return GOOGLE_AUTHZ_URL + "?" + urlencode(params)
