@@ -205,17 +205,13 @@ def _status_collection():
 
 
 def _current_build_id() -> int:
-    """Read the canonical build number for ENV_PREFIX from admin.Versions.
-    Raises on any failure — the build_id is part of every log correlation
-    and request envelope; we never want to ship a null build_id."""
-    env = os.environ["ENV_PREFIX"]
+    """Read the canonical build number from admin.Versions. One build
+    number per build, deployed unchanged to every environment — no per-env
+    partition. Used to stamp the gateway's log envelope."""
     latest = _versions_collection().find_one(sort=[("from", -1)])
     if latest is None:
         raise RuntimeError("admin.Versions has no records")
-    for entry in latest.get("builds", []):
-        if entry.get("env") == env:
-            return int(entry["build"])
-    raise RuntimeError(f"admin.Versions latest record missing env={env!r}")
+    return int(latest["build"])
 
 
 def _respond(
