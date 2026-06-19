@@ -380,6 +380,20 @@ def fake_google_submit(
     )
 
 
+@app.post("/fake_google/token", operation_id="FakeGoogleToken")
+def fake_google_token(
+    code: str = FormBody(...),
+    client_id: str = FormBody(...),
+    client_secret: str | None = FormBody(default=None),
+    redirect_uri: str | None = FormBody(default=None),
+    grant_type: str | None = FormBody(default=None),
+):
+    from authentication.fake_google_endpoint import exchange_code_for_token
+    return exchange_code_for_token(
+        code=code, client_id=client_id, server_env=ENV,
+    )
+
+
 @app.get("/auth/google/callback", operation_id="GoogleOAuthCallback",
          openapi_extra=impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
 def google_oauth_callback(

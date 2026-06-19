@@ -2,33 +2,27 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 """OAuth Login Tool — EPIC-002-F-003-S-004.
 
-ChatHealthyTool that owns the full OAuth login flow: validate state,
-exchange code for tokens (or short-circuit on local for the canned test
-identities), verify id_token, gate on the hardcoded pre-alpha allow-list,
-write Users.users + Users.sessions, build the user-facing welcome/fail
-message.
+ChatHealthyTool that owns the OAuth login flow. The verify path is one
+code path regardless of env: POST to TOKEN_ENDPOINT_URL, extract id_token,
+verify signature against TRUSTED_KEYS. The fake IdP signs real JWTs;
+no claim-fabrication code exists in the verification path.
 
-Architectural notes:
-- Single async run() method as required by ChatHealthyTool base.
-- Pydantic Request + Response.
-- env_check is `deps.server_env == "local"` AND `request.fake_email_override`
-  in the canned-fixture set; ANY OTHER email on local falls through to the
-  real Google call (proving the dev path executes on local under Test 4).
-- Allow-list is 100% hardcoded per REQ-B-020.
+Env conditionals are module-load constants only (TOKEN_ENDPOINT_URL,
+_LOCAL_EXTRA_KEYS, TLS_VERIFY, PRE_ALPHA_ALLOW_LIST). Runtime code is
+one path.
 """
 from __future__ import annotations
 
 import os
-import time
 import secrets as _secrets
 from datetime import datetime, timezone
 from typing import Literal, Optional
 from urllib.parse import urlencode
 
 import httpx
+import jwt
+from jwt import PyJWKClient, PyJWKClientError
 from pydantic import BaseModel, Field
-from google.oauth2 import id_token as google_id_token
-from google.auth.transport import requests as google_requests
 
 from chathealthy_frontend_lib import ChatHealthyLoggingService
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
@@ -45,30 +39,32 @@ from authentication.google_oauth_endpoint import (
 log = ChatHealthyLoggingService()
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Hardcoded pre-alpha allow-list — REQ-B-020.
-# Operator edits this list + redeploys to authorize a new pre-alpha user.
-# Case-insensitive comparison.
-# ──────────────────────────────────────────────────────────────────────
-PRE_ALPHA_ALLOW_LIST = frozenset(
-    e.lower() for e in (
-        "Claude@anthropic.ai",
+GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+TRUSTED_ISSUERS = ("https://accounts.google.com",)
+_google_jwks_client = PyJWKClient(GOOGLE_JWKS_URL, cache_keys=True)
+
+
+_LOCAL_EXTRA_KEYS: dict = {}
+TOKEN_ENDPOINT_URL = GOOGLE_TOKEN_URL
+TLS_VERIFY = True
+_LOCAL_TEST_IDENTITIES = ()
+if os.getenv("ENV_PREFIX") == "local":
+    from authentication.fake_google_endpoint import (
+        LOCAL_FAKE_KID, LOCAL_FAKE_SHARED_SECRET,
     )
+    _LOCAL_EXTRA_KEYS[LOCAL_FAKE_KID] = LOCAL_FAKE_SHARED_SECRET
+    TOKEN_ENDPOINT_URL = "http://127.0.0.1:7860/fake_google/token"
+    TLS_VERIFY = False
+    _LOCAL_TEST_IDENTITIES = ("Claude@anthropic.ai",)
+
+
+PRE_ALPHA_ALLOW_LIST = frozenset(
+    e.lower() for e in (("skip.snow@gmail.com",) + _LOCAL_TEST_IDENTITIES)
 )
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Canned local-fixture identities — REQ-B-013 success + REQ-B-016 fail.
-# These two emails are the ONLY values that trigger the local short-circuit.
-# ──────────────────────────────────────────────────────────────────────
-FAKE_CODE_PREFIX = "fake_local_"
-
-
-# ──────────────────────────────────────────────────────────────────────
-# User-facing messages — REQ-B-013, B-016, B-017.
-# ──────────────────────────────────────────────────────────────────────
 def message_new_user_success(email: str) -> str:
-    """REQ-B-013."""
     return (
         f"You're logged in, {email}. ChatHealthy is glad to have you as a "
         "pre-alpha user. Welcome aboard."
@@ -76,14 +72,10 @@ def message_new_user_success(email: str) -> str:
 
 
 def message_returning_user_success(email: str, last_login_iso: str) -> str:
-    """REQ-B-017."""
-    return (
-        f"Welcome back, {email}. You last logged in at {last_login_iso}."
-    )
+    return f"Welcome back, {email}. You last logged in at {last_login_iso}."
 
 
 def message_login_failed(email: Optional[str]) -> str:
-    """REQ-B-016."""
     who = f" for {email}" if email else ""
     return (
         f"Login failed{who}. In this pre-alpha state Google demands that "
@@ -93,40 +85,6 @@ def message_login_failed(email: Optional[str]) -> str:
     )
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Canonical Google id_token claims fixture builder (used by local fake).
-# Field shape MUST match what Google's real id_token verification returns.
-# Refined per Google OIDC docs (research agent confirms the field set).
-# ──────────────────────────────────────────────────────────────────────
-def build_fake_google_claims(email: str, audience: str) -> dict:
-    now = int(time.time())
-    # Synthesize a stable 21-character numeric `sub` from the email so the
-    # same fake email always yields the same Google account id across runs.
-    sub_int = abs(hash("google-sub-fixture::" + email.lower())) % (10**21)
-    sub = str(sub_int).zfill(21)
-    return {
-        "iss": "https://accounts.google.com",
-        "azp": audience,
-        "aud": audience,
-        "sub": sub,
-        "email": email,
-        "email_verified": True,
-        "at_hash": _secrets.token_urlsafe(11)[:11],
-        "name": email.split("@", 1)[0],
-        "picture": "https://lh3.googleusercontent.com/a/default-user=s96-c",
-        "given_name": email.split("@", 1)[0],
-        "family_name": "",
-        "locale": "en",
-        "iat": now,
-        "exp": now + 3600,
-    }
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Pydantic Request / Response — REQ for proper-tool framework conformance.
-# Single Request shape covers both phases (start, callback) per
-# EPIC-008-F-010-S-001-REQ-B-001 (single graph orchestrator entry).
-# ──────────────────────────────────────────────────────────────────────
 class Request(BaseModel):
     model_config = {"extra": "ignore"}
     phase: Literal["start", "callback"]
@@ -149,10 +107,6 @@ class Response(BaseModel):
     fail_reason: Optional[str] = None
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Internal helpers — kept free of `log.` calls so the helper bodies can
-# raise ChatHealthyException without violating Rule-005 statement 3.
-# ──────────────────────────────────────────────────────────────────────
 def _client_id() -> str:
     cid = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
     if not cid:
@@ -162,17 +116,6 @@ def _client_id() -> str:
             component="OAuthLoginTool",
         )
     return cid
-
-
-def _client_secret() -> str:
-    sec = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
-    if not sec:
-        raise ChatHealthyException(
-            mode="oauth_login_missing_google_client_secret",
-            message="GOOGLE_OAUTH_CLIENT_SECRET not configured on this Space.",
-            component="OAuthLoginTool",
-        )
-    return sec
 
 
 def _env_to_redirect_uri(server_env: str) -> str:
@@ -196,33 +139,51 @@ def _is_allowed_prealpha(email: str) -> bool:
     return email.lower() in PRE_ALPHA_ALLOW_LIST
 
 
-def _decode_fake_code(oauth_code: str) -> Optional[str]:
-    """If oauth_code is a synthetic fake code minted by the local
-    /fake_google/submit flow, return the email it carries. Otherwise None."""
-    if not oauth_code or not oauth_code.startswith(FAKE_CODE_PREFIX):
-        return None
-    import base64
-    payload = oauth_code[len(FAKE_CODE_PREFIX):]
+def _verify_id_token(token: str, audience: str) -> dict:
+    unverified_header = jwt.get_unverified_header(token)
+    kid = unverified_header.get("kid")
+    if kid in _LOCAL_EXTRA_KEYS:
+        key = _LOCAL_EXTRA_KEYS[kid]
+        algos = ["HS256"]
+    else:
+        try:
+            key = _google_jwks_client.get_signing_key(kid).key
+        except PyJWKClientError as exc:
+            raise ChatHealthyException(
+                mode="oauth_login_unknown_signing_kid",
+                message=f"OAuthLoginTool: unknown signing kid {kid!r}: {exc}",
+                component="OAuthLoginTool",
+                exception=exc,
+            ) from exc
+        algos = ["RS256"]
     try:
-        pad = "=" * (-len(payload) % 4)
-        return base64.urlsafe_b64decode(payload + pad).decode("utf-8")
-    except Exception:
-        return None
+        return jwt.decode(
+            token,
+            key=key,
+            audience=audience,
+            issuer=list(TRUSTED_ISSUERS),
+            algorithms=algos,
+            options={"require": ["iss", "sub", "aud", "exp", "iat"]},
+        )
+    except jwt.PyJWTError as exc:
+        raise ChatHealthyException(
+            mode="oauth_login_id_token_verification_failed",
+            message=f"OAuthLoginTool: id_token verification failed: {exc}",
+            component="OAuthLoginTool",
+            exception=exc,
+        ) from exc
 
 
-async def _real_google_exchange_and_verify(
-    code: str, server_env: str,
-) -> dict:
-    """Exchange the auth code for tokens, verify the id_token, return
-    the validated claims dict. Raises ChatHealthyException on any failure.
-    """
-    async with httpx.AsyncClient(timeout=10.0) as client:
+async def _exchange_and_verify(code: str, server_env: str) -> dict:
+    audience = _client_id()
+    client_secret = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
+    async with httpx.AsyncClient(timeout=10.0, verify=TLS_VERIFY) as client:
         r = await client.post(
-            "https://oauth2.googleapis.com/token",
+            TOKEN_ENDPOINT_URL,
             data={
                 "code":          code,
-                "client_id":     _client_id(),
-                "client_secret": _client_secret(),
+                "client_id":     audience,
+                "client_secret": client_secret,
                 "redirect_uri":  _env_to_redirect_uri(server_env),
                 "grant_type":    "authorization_code",
             },
@@ -231,7 +192,7 @@ async def _real_google_exchange_and_verify(
         raise ChatHealthyException(
             mode="oauth_login_token_exchange_failed",
             message=(
-                f"OAuthLoginTool: Google token exchange returned HTTP "
+                f"OAuthLoginTool: token exchange returned HTTP "
                 f"{r.status_code}: {r.text[:300]}"
             ),
             component="OAuthLoginTool",
@@ -241,16 +202,10 @@ async def _real_google_exchange_and_verify(
     if not id_token_str:
         raise ChatHealthyException(
             mode="oauth_login_missing_id_token",
-            message="OAuthLoginTool: Google token response had no id_token.",
+            message="OAuthLoginTool: token response had no id_token.",
             component="OAuthLoginTool",
         )
-    # Synchronous Google library; safe to call inside the async function.
-    claims = google_id_token.verify_oauth2_token(
-        id_token_str,
-        google_requests.Request(),
-        audience=_client_id(),
-    )
-    return claims
+    return _verify_id_token(id_token_str, audience)
 
 
 def _persist_login(
@@ -407,14 +362,7 @@ class OAuthLoginTool(ChatHealthyTool):
                 user_facing_message=message_login_failed(None),
                 fail_reason="missing_oauth_code",
             )
-        fake_email = _decode_fake_code(request.oauth_code)
-        if fake_email is not None and deps.server_env == "local":
-            audience = os.getenv("GOOGLE_OAUTH_CLIENT_ID") or "local-fake-audience"
-            claims = build_fake_google_claims(fake_email, audience)
-        else:
-            claims = await _real_google_exchange_and_verify(
-                request.oauth_code, deps.server_env,
-            )
+        claims = await _exchange_and_verify(request.oauth_code, deps.server_env)
 
         email = claims.get("email", "")
         if not email or not claims.get("email_verified"):
