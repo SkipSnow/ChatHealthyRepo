@@ -22,7 +22,7 @@ from playwright.sync_api import sync_playwright, expect
 
 BASE_URL = os.getenv("LOGIN_TEST_URL", "https://localhost")
 TEST_EMAILS = [
-    "Claude@anthropic.ai", "ClaudeCode@anthropic.ai", "skip.snow@gmail.com",
+    "Claude@anthropic.ai", "ClaudeCode@anthropic.ai", "rejected.test@example.com",
 ]
 COOKIE_TEST_USER_ID = "u-test-b022-prealpha-returner"
 COOKIE_TEST_EMAIL = "returner.b022@example.com"
@@ -130,12 +130,12 @@ class TestStep03OAuthClaudeReturning:
         page.close()
 
 
-class TestStep04OAuthSkipSnowFail:
-    """REQ-B-020 + B-016: skip.snow@gmail.com not on allow-list -> fail."""
+class TestStep04OAuthThirdRejectionFail:
+    """REQ-B-020 + B-016: a third non-allow-listed email fails the same way."""
 
-    def test_skip_snow_fail(self, browser_context):
+    def test_third_rejection_fail(self, browser_context):
         page, text = _drive_login_via_nav_button(
-            browser_context, "skip.snow@gmail.com",
+            browser_context, "rejected.test@example.com",
         )
         assert "pre-alpha" in text.lower(), f"missing explainer: {text[:300]}"
         assert "skip@chathealthy.ai" in text.lower(), f"missing email: {text[:300]}"

@@ -1,22 +1,34 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""Local-only fake Google sign-in page. Single endpoint, no IdP mimicry."""
+"""Local-only fake Google IdP.
+
+Two endpoints together replace Google's authorization + token endpoints
+on local. The fake mints REAL signed JWTs (HS256 with a process-local
+secret) so the callback path uses the same id_token verification flow
+as production. No claim-fabrication logic in the auth tool — the fake
+IS the IdP."""
 from __future__ import annotations
 
 import base64
-from typing import Optional
+import secrets
+import time
 
-from fastapi.responses import HTMLResponse, RedirectResponse
+import jwt
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 
 FAKE_CODE_PREFIX = "fake_local_"
+LOCAL_FAKE_KID = "local-fake-key-1"
+LOCAL_FAKE_SHARED_SECRET = secrets.token_urlsafe(32)
+LOCAL_FAKE_ISSUER = "https://accounts.google.com"
+ID_TOKEN_TTL_SECONDS = 3600
 
 
 def auth_page_html(state: str, flow: str) -> str:
     register_checked = "checked" if flow == "register" else ""
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<title>LOCAL FAKE — ChatHealthy stand-in for Google sign-in</title>
+<title>LOCAL FAKE - ChatHealthy stand-in for Google sign-in</title>
 <style>
  body {{ font-family: Arial, sans-serif; padding: 2em; max-width: 30em; margin: 0 auto; color: #202124; }}
  .badge {{ background: #fef7e0; border: 0.0625em solid #f9ab00; padding: 0.5em 1em; border-radius: 0.25em; font-size: 0.85em; margin-bottom: 1.5em; }}
@@ -26,7 +38,7 @@ def auth_page_html(state: str, flow: str) -> str:
  .check-row {{ margin: 1em 0; }}
  button {{ background: #0b7a75; color: #fff; border: none; border-radius: 0.25em; padding: 0.625em 1.25em; font-size: 0.95em; cursor: pointer; margin-top: 1em; }}
 </style></head><body>
- <div class="badge"><strong>LOCAL FAKE</strong> — not Google. Served by SharedServices on localhost only.</div>
+ <div class="badge"><strong>LOCAL FAKE</strong> - not Google. Served by SharedServices on localhost only.</div>
  <h1>Sign in as a ChatHealthy user</h1>
  <form method="POST" action="/fake_google/submit" data-testid="fake-google-form">
   <input type="hidden" name="state" value="{state}">
@@ -64,3 +76,56 @@ def submit_credentials(
         f"?code={fake_code}&state={state}"
     )
     return RedirectResponse(callback_url, status_code=302)
+
+
+def _decode_fake_code(code: str) -> str:
+    if not code or not code.startswith(FAKE_CODE_PREFIX):
+        return ""
+    payload = code[len(FAKE_CODE_PREFIX):]
+    pad = "=" * (-len(payload) % 4)
+    try:
+        return base64.urlsafe_b64decode(payload + pad).decode("utf-8")
+    except Exception:
+        return ""
+
+
+def _stable_sub(email: str) -> str:
+    sub_int = abs(hash("google-sub-fixture::" + email.lower())) % (10**21)
+    return str(sub_int).zfill(21)
+
+
+def exchange_code_for_token(
+    *,
+    code: str,
+    client_id: str,
+    server_env: str,
+) -> JSONResponse:
+    if server_env != "local":
+        return JSONResponse({"error": "fake_only_on_local"}, status_code=404)
+    email = _decode_fake_code(code)
+    if not email:
+        return JSONResponse({"error": "invalid_code"}, status_code=400)
+    now = int(time.time())
+    payload = {
+        "iss": LOCAL_FAKE_ISSUER,
+        "azp": client_id,
+        "aud": client_id,
+        "sub": _stable_sub(email),
+        "email": email,
+        "email_verified": True,
+        "iat": now,
+        "exp": now + ID_TOKEN_TTL_SECONDS,
+    }
+    id_token = jwt.encode(
+        payload,
+        LOCAL_FAKE_SHARED_SECRET,
+        algorithm="HS256",
+        headers={"kid": LOCAL_FAKE_KID},
+    )
+    return JSONResponse({
+        "id_token": id_token,
+        "access_token": secrets.token_urlsafe(32),
+        "token_type": "Bearer",
+        "expires_in": ID_TOKEN_TTL_SECONDS,
+        "scope": "openid email",
+    })
