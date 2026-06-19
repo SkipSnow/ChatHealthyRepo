@@ -14652,8 +14652,8 @@
                         },
                         {
                           "req_id": "EPIC-008-F-012-S-003-REQ-T-004",
-                          "name": "promote-build.yml invokes Crosswalk on the source-branch tip before merging; each step is an explicit operator action",
-                          "requirement": "`promote-build.yml` MUST invoke Crosswalk (full check: schema-validation of both brain JSONs; REQ-to-artifact coverage; artifact-to-REQ orphan check; byte-equality of every `files[i].embedded_content` against its on-disk `source_location`; no `.env` value anywhere in the collection) on the source-branch tip before any merge into the target branch. Both branches of the alt block MUST be explicit: on PASS the workflow proceeds to merge; on REJECT the workflow MUST exit 1 with the bare-reject form `REJECT - crosswalk failure on <tip>` and halt; no merge MAY occur, no Mongo write MAY occur. Each promotion step (dev to qa, qa to main) MUST be an independently triggered explicit operator action; the chain MUST NOT auto-progress past one step into the next.",
+                          "name": "promote-build.yml invokes Crosswalk on the source-branch tip before resetting the target; each step is an explicit operator action",
+                          "requirement": "`promote-build.yml` MUST invoke Crosswalk (full check: schema-validation of both brain JSONs; REQ-to-artifact coverage; artifact-to-REQ orphan check; byte-equality of every `files[i].embedded_content` against its on-disk `source_location`; no `.env` value anywhere in the collection) on the source-branch tip before any promotion of the target branch. Both branches of the alt block MUST be explicit: on PASS the workflow proceeds to reset the target branch to the source-branch tip via `git reset --hard origin/<source>` followed by `git push --force-with-lease origin <target>`; on REJECT the workflow MUST exit 1 with the bare-reject form `REJECT - crosswalk failure on <tip>` and halt; no reset MAY occur, no Mongo write MAY occur. Each promotion step (dev to qa, qa to main) MUST be an independently triggered explicit operator action; the chain MUST NOT auto-progress past one step into the next.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -14672,7 +14672,7 @@
                         {
                           "req_id": "EPIC-008-F-012-S-003-REQ-T-005",
                           "name": "promote-build.yml writes admin.Versions builds[<env>].build only after Crosswalk PASS",
-                          "requirement": "On the dev-to-qa step, after Crosswalk on the dev tip terminates as PASS, `promote-build.yml` MUST merge dev into qa and write `builds[qa].build = builds[dev].build` into `admin.Versions`. On the qa-to-main step, after Crosswalk on the qa tip terminates as PASS, the workflow MUST merge qa into main and write `builds[prod].build = builds[dev].build` per the existing per-env build-counter semantic. On REJECT at either step, the workflow MUST NOT merge and MUST NOT write to `admin.Versions`.",
+                          "requirement": "On the dev-to-qa step, after Crosswalk on the dev tip terminates as PASS, `promote-build.yml` MUST reset qa to the dev tip via `git reset --hard origin/dev` + `git push --force-with-lease origin qa` and write `builds[qa].build = builds[dev].build` into `admin.Versions`. On the qa-to-main step, after Crosswalk on the qa tip terminates as PASS, the workflow MUST reset main to the qa tip via `git reset --hard origin/qa` + `git push --force-with-lease origin main` and write `builds[prod].build = builds[dev].build` per the existing per-env build-counter semantic. On REJECT at either step, the workflow MUST NOT reset and MUST NOT write to `admin.Versions`.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
