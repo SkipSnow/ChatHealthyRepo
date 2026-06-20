@@ -1,7 +1,7 @@
 """promote_chathealthy.py — the unified promote entry point.
 
 Advances the substrate by one environment in the promote chain. Does NOT
-rebuild. Does NOT have special git privileges — the commit/merge it creates
+rebuild. Does NOT have special git privileges — the commit/push it creates
 passes through every normal pre-commit and post-commit gate (Rule-008,
 Rule-065, etc.) exactly like a hand-authored commit.
 
@@ -13,10 +13,14 @@ The (from, to) pair MUST be adjacent in the promote chain:
                   Stages every modified + untracked file, commits with a
                   generated message, pushes. Solves the operator's named
                   partial-commit forensic-recovery-point pain.
-  dev   -> qa    fast-forward merge of dev into qa, push.
-  qa    -> prod  fast-forward merge of qa into main, push.
+  dev   -> qa    qa branch overwritten to byte-identical to dev tip via
+                  `git reset --hard origin/dev` + `git push --force-with-lease
+                  origin qa`. See REQ-B-004 for the overwrite-not-otherwise rule.
+  qa    -> prod  main branch overwritten to byte-identical to qa tip via
+                  `git reset --hard origin/qa` + `git push --force-with-lease
+                  origin main`. See REQ-B-004.
 
-Any non-adjacent pair is rejected.
+Any non-adjacent pair is rejected per REQ-B-003.
 
 Reference: build_deploy_promote_plan v3 §C.3 (promote responsibilities),
 §INV-5 (promote is the only path between envs), §INV-7 (code is authored
@@ -86,9 +90,10 @@ def _promote_local_to_dev(repo_root: Path) -> int:
 
 
 def _promote_branch_to_branch(repo_root: Path, source_env: str, target_env: str) -> int:
-    """Fully automated: fetch, checkout target, ff-merge source, push,
-    return to the original branch. The operator does not have to switch
-    branches at any point."""
+    """Fully automated: fetch, checkout target, reset target to source tip,
+    force-push, return to the original branch. The operator does not have
+    to switch branches at any point. Implements REQ-B-004 (byte-identical
+    overwrite)."""
     source_branch = _ENV_TO_BRANCH[source_env]
     target_branch = _ENV_TO_BRANCH[target_env]
     original_branch = _current_branch(repo_root)
