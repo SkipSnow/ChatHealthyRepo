@@ -419,7 +419,7 @@
           "env_binding": "dev",
           "node_address": "dev.chathealthy.ai/evaluatecare",
           "huggingface_space": {
-            "space": "SkipSnow/dev_EvaluateCareSpace"
+            "space": "SkipSnow/dev_EvaluateCareSpace2"
           },
           "branch": "dev"
         },
