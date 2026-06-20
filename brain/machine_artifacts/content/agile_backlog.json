@@ -14725,6 +14725,46 @@
                             ]
                           },
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-B-003",
+                          "name": "Promote chain pairs are invariant; only (local→dev), (dev→qa), (qa→prod) are valid",
+                          "requirement": "The promote chain is invariant. The ONLY valid (source, destination) pairs the promote workflow MUST accept are exactly three: (local, dev), (dev, qa), (qa, prod). Any other pair — including (local, qa), (local, prod), (dev, prod), (qa, dev), (prod, qa), (dev, local), or any self-pair — MUST be rejected at the input layer before any git, build, or filesystem action runs. The rejection MUST fail loud with a message naming the invalid pair and citing this requirement.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-003-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "ordinary",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/test_promote_chathealthy_invariants.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-012-S-003-REQ-B-004",
+                          "name": "Promote destination becomes byte-identical to source; merge semantics forbidden",
+                          "requirement": "For every promote step, the destination branch MUST become byte-identical to the source branch tip at the moment promote runs. The promote workflow MUST achieve this via 'git reset --hard origin/<source>' + 'git push --force-with-lease origin <target>'. The promote workflow MUST NOT use 'git merge', 'git merge --ff-only', 'git rebase', 'git cherry-pick', or any other operation whose post-condition leaves the destination's tree differing from source by even one byte. Any commit, docstring, comment, or related artifact that describes promote as a 'merge' or 'fast-forward merge' is forbidden and MUST be corrected.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "approval": "approved",
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-012-S-003-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "ordinary",
+                                "file": "architecture/DevOpsBuildDeployAndEnvironmentManagement/test_promote_chathealthy_invariants.py"
+                              }
+                            ]
+                          },
+                          "depends_on": []
                         }
                       ]
                     }
