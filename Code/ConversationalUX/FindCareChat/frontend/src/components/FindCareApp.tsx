@@ -451,11 +451,7 @@ export default function FindCareApp() {
         selection.deselect(msg.npi)
       }
       if (msg.type === 'load_more_providers') {
-        if (hasMore && !isLoadingMore) {
-          setIsLoadingMore(true)
-          // Trigger next-page through the same search pipeline.
-          doSearch(question)
-        }
+        loadMore()
       }
     }
     window.addEventListener('message', handleMessage)
