@@ -106,7 +106,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "fb7883426a0609bc4bee1fff9170eed4ada02e301e9ba6a281edebec6c37f985"
+          "content_hash": "688d39d1c6fe7e0b09741de3d668886452c6bc3a01768198a12ddf36dd862f64"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -359,6 +359,41 @@
           "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "7018cd20bc72d0341bd35a2e9cb343f97324177ce6fcc7066b26653fcbc7f57b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/ProviderDetailRenderer.js",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "4e93b80af4a9908ba82d213471cdde66ba4de0ad06f05b930500b910a5b4d578"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/ClinicalTrialRenderer.js",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "c17feaf6f19804b5d83cc2722aedf71235675411f23535763752419452ab9800"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/EvaluateCareSplashRenderer.js",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "2d2844c8ecbe9005fee7b3f3f2850b1d849989169023ebd19f2126d73374d5c1"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/CorrectionsRenderer.js",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "8a95e08305c4ead1467a679a6dc43741777dab9c93a4d9399902d04048a77c6a"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "Website/ScrollableFrame.js",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "7cccb6a7363c9d9c337cb7dc66f3c4fb5fd7c2039a0335f35274bfe7da8f8e27"
         }
       ],
       "secrets": {
@@ -1033,7 +1068,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/static/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "d6b5b0526945da405aeee29594b37e6d86768db2bea7822017cab7c516b4e66d"
+          "content_hash": "c5f51e3a994923eab59984c1e4445ff8f1d010dae6cd5573243f4858bae0d6b0"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2436,7 +2471,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py",
           "handler_type": "python_test",
           "disposition": "referenced",
-          "content_hash": "7d36f0ba684b7840cf80e01cd38dccd1627174bdb43567af009c5a39d5a3ef0e"
+          "content_hash": "e00c08344420c528a96e2cfb1264c599b26067223524deba3f43e7312702e95f"
         },
         {
           "feature_id": "EPIC-008-F-012",

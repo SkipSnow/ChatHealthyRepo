@@ -192,248 +192,9 @@ function renderQuestionBanner(
 }
 
 
-// ── Helper: format ONE trial as the full center-panel detail view.
-// EPIC-006-F-031 — every V7 in-scope attribute that has a value is
-// surfaced. Top section is a 4-col label/value table; sites are a
-// 3-col table (label + 2 site columns, sites paired 2 per row); the
-// rest are sectioned markdown blocks.
-function _md(v: any): string {
-  if (v === null || v === undefined) return '—'
-  const s = String(v).trim()
-  return s.length === 0 ? '—' : s.replace(/\|/g, '\\|')
-}
-function _yn(v: any): string { return v ? 'yes' : 'no' }
-function _join(arr: any, sep = ', '): string {
-  if (!Array.isArray(arr) || arr.length === 0) return ''
-  return arr.filter(Boolean).join(sep)
-}
-function _kv4(rows: Array<[string, any, string, any]>): string {
-  const header = '| Label | Value | Label | Value |\n|---|---|---|---|'
-  const body = rows.map(r => `| ${_md(r[0])} | ${_md(r[1])} | ${_md(r[2])} | ${_md(r[3])} |`).join('\n')
-  return header + '\n' + body
-}
-function _outcomeTable(outcomes: any[]): string {
-  if (!outcomes || !outcomes.length) return ''
-  const header = '| Measure | Description | Time frame |\n|---|---|---|'
-  const body = outcomes.map((o: any) =>
-    `| ${_md(o.measure)} | ${_md(o.description)} | ${_md(o.time_frame)} |`,
-  ).join('\n')
-  return header + '\n' + body
-}
-function formatTrialDetail(trial: any): string {
-  const title = trial.brief_title || '(no title)'
-  const phases = _join(trial.phases) || '—'
-  const conds  = _join(trial.conditions) || '—'
-  const kw     = _join(trial.keywords)
-
-  // Top — 4-col label/value table (Skip req #3)
-  const topRows: Array<[string, any, string, any]> = [
-    ['National Clinical Trial ID', trial.nct_id,      'Status',         trial.overall_status],
-    ['Phase',       phases,                    'Enrollment',     trial.enrollment_count],
-    ['Study type',  trial.study_type,          'Allocation',     trial.design_info?.allocation],
-    ['Sponsor',     trial.lead_sponsor_name,   'Sponsor type',   trial.lead_sponsor_class],
-    ['Organization',trial.organization?.full_name, 'Org class',  trial.organization?.class],
-    ['Start',       trial.start_date,          'Primary completion', trial.primary_completion_date],
-    ['First submit',trial.study_first_submit_date, 'Last update',trial.last_update_post_date],
-    ['Min age',     trial.minimum_age,         'Max age',        trial.maximum_age],
-    ['Sex',         trial.sex,                 'Healthy vol.',   _yn(trial.healthy_volunteers)],
-    ['DMC oversight', _yn(trial.oversight_has_dmc), 'FDA-regulated drug', _yn(trial.is_fda_regulated_drug)],
-    ['FDA-regulated device', _yn(trial.is_fda_regulated_device), 'Unapproved device', _yn(trial.is_unapproved_device)],
-    ['Pediatric postmarket study (PPSD)', _yn(trial.is_ppsd), 'FDAAA 801 violation', _yn(trial.fdaaa_801_violation)],
-  ]
-
-  // Design block — table form, all the design_info attrs
-  const di = trial.design_info || {}
-  const designRows: Array<[string, any, string, any]> = [
-    ['Allocation',           di.allocation,            'Intervention model',  di.intervention_model],
-    ['Primary purpose',      di.primary_purpose,       'Observational model', di.observational_model],
-    ['Time perspective',     di.time_perspective,      'Masking',             di.masking],
-    ['Who masked',           _join(di.who_masked),     'Target duration',     trial.target_duration],
-    ['Bio-spec retention',   trial.bio_spec?.retention,'Expanded access',     _join(trial.expanded_access_types)],
-  ]
-  const designIntDesc = di.intervention_model_description ? `**Intervention model description:** ${di.intervention_model_description}` : ''
-  const designMaskDesc = di.masking_description ? `**Masking description:** ${di.masking_description}` : ''
-  const bioSpecDesc = trial.bio_spec?.description ? `**Bio-spec description:** ${trial.bio_spec.description}` : ''
-
-  // Responsible party
-  const rp = trial.responsible_party || {}
-  const respPartyRows: Array<[string, any, string, any]> = [
-    ['Type',                 rp.type,                  'Investigator',        rp.investigator_full_name],
-    ['Investigator title',   rp.investigator_title,    'Investigator affil.', rp.investigator_affiliation],
-  ]
-  const hasRespParty = rp.type || rp.investigator_full_name || rp.investigator_title || rp.investigator_affiliation
-
-  // Collaborators
-  const collaborators = (trial.collaborators || []).map((c: any) =>
-    `- **${_md(c.name)}** (${_md(c.class)})`,
-  ).join('\n')
-
-  // Secondary IDs
-  const secIds = (trial.secondary_id_infos || []).map((s: any) =>
-    `- ${_md(s.id)} — ${_md(s.type)}${s.domain ? ' / ' + _md(s.domain) : ''}`,
-  ).join('\n')
-
-  // Arms
-  const arms = (trial.arm_groups || []).map((a: any) => {
-    const ints = _join(a.intervention_names)
-    return [
-      `**${_md(a.label)}** _(${_md(a.type)})_`,
-      a.description ? a.description : '',
-      ints ? `Interventions: ${ints}` : '',
-    ].filter(Boolean).join('  \n')
-  }).join('\n\n')
-
-  // Interventions
-  const interventions = (trial.interventions || []).map((i: any) => {
-    return [
-      `**${_md(i.type)}: ${_md(i.name)}**`,
-      i.description ? i.description : '',
-      i.arm_group_labels?.length ? `Arms: ${_join(i.arm_group_labels)}` : '',
-      i.other_names?.length ? `Other names: ${_join(i.other_names)}` : '',
-    ].filter(Boolean).join('  \n')
-  }).join('\n\n')
-
-  // Outcomes
-  const primaryOutcomes  = _outcomeTable(trial.primary_outcomes || [])
-  const secondaryOutcomes = _outcomeTable(trial.secondary_outcomes || [])
-  const otherOutcomes    = _outcomeTable(trial.other_outcomes || [])
-
-  // Eligibility
-  const eligRows: Array<[string, any, string, any]> = [
-    ['Sex',                  trial.sex,                'Min age',             trial.minimum_age],
-    ['Max age',              trial.maximum_age,        'Healthy volunteers',  _yn(trial.healthy_volunteers)],
-    ['Gender description',   trial.gender_description, 'Std ages',            ''],
-  ]
-  const eligCriteria = trial.eligibility_criteria ? `**Criteria:**\n\n${trial.eligibility_criteria}` : ''
-
-  // Contacts
-  const centralContacts = (trial.central_contacts || []).map((c: any) => {
-    const phone = c.phone ? `📞 ${c.phone}${c.phone_ext ? ' x' + c.phone_ext : ''}` : ''
-    const email = c.email ? `✉ ${c.email}` : ''
-    const npi   = c.npi   ? ` [Provider record](/provider/${c.npi})` : ''
-    return `- **${_md(c.name)}** _(${_md(c.role)})_ — ${[phone, email].filter(Boolean).join(' · ')}${npi}`
-  }).join('\n')
-
-  // Overall officials (includes PI / Study Director / Study Chair)
-  const officials = (trial.overall_officials || []).map((o: any) =>
-    `- **${_md(o.name)}** _(${_md(o.role)})_ — ${_md(o.affiliation)}`,
-  ).join('\n')
-
-  // Sites — 3-col table, all sites, paired 2 per row (Skip req #1+#4)
-  // Column A = label (only first row says "Sites"), B = site 1, C = site 2.
-  const sites = (trial.locations || []).map((l: any) => {
-    const where = [l.facility, [l.city, l.state, l.zip].filter(Boolean).join(', '), l.country]
-      .filter(Boolean).join(' — ')
-    const status = l.status ? ` _(${l.status})_` : ''
-    const travel = (l.distance && l.duration) ? `  · ${l.distance} · ${l.duration}` : ''
-    return `${where}${status}${travel}`
-  })
-  let sitesTable = ''
-  if (sites.length) {
-    const rows: string[] = []
-    for (let i = 0; i < sites.length; i += 2) {
-      const label = i === 0 ? 'Sites' : ''
-      const a = sites[i] || ''
-      const b = sites[i + 1] || ''
-      rows.push(`| ${_md(label)} | ${_md(a)} | ${_md(b)} |`)
-    }
-    sitesTable = '|  |  |  |\n|---|---|---|\n' + rows.join('\n')
-  }
-
-  // References / see-also
-  const references = (trial.references || []).map((r: any) => {
-    const pubmed = r.pmid ? ` [(PubMed)](https://pubmed.ncbi.nlm.nih.gov/${r.pmid}/)` : ''
-    return `- _(${_md(r.type)})_ ${_md(r.citation)}${pubmed}`
-  }).join('\n')
-  const seeAlso = (trial.see_also_links || []).map((s: any) =>
-    `- [${_md(s.label || s.url)}](${s.url})`,
-  ).join('\n')
-
-  // IPD sharing
-  const ipd = trial.ipd_sharing || {}
-  const hasIpd = ipd.ipd_sharing || ipd.description || ipd.access_criteria || ipd.url
-  const ipdRows: Array<[string, any, string, any]> = [
-    ['IPD sharing',          ipd.ipd_sharing,          'Time frame',          ipd.time_frame],
-    ['Info types',           _join(ipd.info_types),    'URL',                 ipd.url],
-  ]
-  const ipdAccess = ipd.access_criteria ? `**Access criteria:** ${ipd.access_criteria}` : ''
-  const ipdDesc   = ipd.description ? `**Description:** ${ipd.description}` : ''
-
-  // MeSH-derived browse leaves
-  const condLeaves = (trial.condition_browse_leaves || []).map((b: any) =>
-    `- ${_md(b.name)}${b.relevance ? ` _(relevance: ${b.relevance.toLowerCase()})_` : ''}`,
-  ).join('\n')
-  const interventionLeaves = (trial.intervention_browse_leaves || []).map((b: any) =>
-    `- ${_md(b.name)}${b.relevance ? ` _(relevance: ${b.relevance.toLowerCase()})_` : ''}`,
-  ).join('\n')
-
-  // Large docs
-  const largeDocs = (trial.large_docs || []).map((d: any) => {
-    const flags = [d.has_protocol && 'Protocol', d.has_sap && 'SAP', d.has_icf && 'ICF'].filter(Boolean).join(', ')
-    return `- **${_md(d.label || d.filename)}**${flags ? ` _(${flags})_` : ''} — ${_md(d.date || d.upload_date)}`
-  }).join('\n')
-
-  // Violations
-  const violations = (trial.violation_annotation?.violation_events || []).map((v: any) =>
-    `- **${_md(v.type)}** — ${_md(v.description)} _(issued ${_md(v.issued_date)})_`,
-  ).join('\n')
-
-  // Compose
-  return [
-    `## ${title}`,
-    trial.official_title && trial.official_title !== title ? `_${trial.official_title}_` : '',
-    trial.acronym ? `**Acronym:** ${trial.acronym}` : '',
-    _kv4(topRows),
-
-    trial.brief_summary ? `### Brief summary\n\n${trial.brief_summary}` : '',
-    trial.detailed_description ? `### Detailed description\n\n${trial.detailed_description}` : '',
-
-    conds ? `### Conditions\n\n${conds}` : '',
-    kw ? `**Keywords:** ${kw}` : '',
-
-    '### Design',
-    _kv4(designRows),
-    designIntDesc, designMaskDesc, bioSpecDesc,
-
-    hasRespParty ? '### Responsible party' : '',
-    hasRespParty ? _kv4(respPartyRows) : '',
-
-    collaborators ? `### Collaborators\n\n${collaborators}` : '',
-    secIds ? `### Secondary IDs\n\n${secIds}` : '',
-
-    arms ? `### Arms\n\n${arms}` : '',
-    interventions ? `### Interventions\n\n${interventions}` : '',
-
-    primaryOutcomes ? `### Primary outcomes\n\n${primaryOutcomes}` : '',
-    secondaryOutcomes ? `### Secondary outcomes\n\n${secondaryOutcomes}` : '',
-    otherOutcomes ? `### Other outcomes\n\n${otherOutcomes}` : '',
-
-    '### Eligibility',
-    _kv4(eligRows),
-    eligCriteria,
-
-    centralContacts ? `### Central contacts\n\n${centralContacts}` : '',
-    officials ? `### Overall officials\n\n${officials}` : '',
-
-    sitesTable ? `### Sites (${sites.length})\n\n${sitesTable}` : '',
-
-    references ? `### References\n\n${references}` : '',
-    seeAlso ? `### See also\n\n${seeAlso}` : '',
-
-    hasIpd ? '### IPD sharing' : '',
-    hasIpd ? _kv4(ipdRows) : '',
-    ipdDesc, ipdAccess,
-
-    condLeaves ? `### MeSH-mapped conditions\n\n${condLeaves}` : '',
-    interventionLeaves ? `### MeSH-mapped interventions\n\n${interventionLeaves}` : '',
-
-    largeDocs ? `### Study documents\n\n${largeDocs}` : '',
-    violations ? `### Compliance violations\n\n${violations}` : '',
-
-    trial.study_url ? `[View on ClinicalTrials.gov](${trial.study_url})` : '',
-  ].filter(Boolean).join('\n\n')
-}
-
+// Trial presentation moved to Website/index.html as ClinicalTrialRenderer.
+// The tool returns structured data; the parent owns rendering. Nothing
+// here transforms trial data.
 
 // ── Helper: build the leftPanel HTML for the bullet-list of trials.
 // EPIC-006-F-031 — Skip req #2: bullet per trial, NCT ID as the click
@@ -662,10 +423,100 @@ export default function FindCareApp() {
           handleEvaluate()
         }
       }
+
+      // Phase B — parent owns the input form. Parent posts the typed text
+      // here; we run it through the same handleSend pipeline that the
+      // in-React form used before.
+      if (msg.type === 'user_input' && typeof msg.text === 'string') {
+        setInput(msg.text)
+        doSearch(msg.text)
+      }
+
+      // Phase B — parent's Stop button cancels in-flight searches.
+      if (msg.type === 'user_stop') {
+        if (searchAbortRef.current) searchAbortRef.current.abort()
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+        setReclassifying(false)
+        if (phase === 'searching') setPhase(question ? 'results' : 'welcome')
+      }
+
+      // Phase B — parent forwards selection-list interactions.
+      if (msg.type === 'provider_select' && typeof msg.npi === 'string') {
+        selection.select(msg.npi)
+      }
+      if (msg.type === 'provider_dismiss' && typeof msg.npi === 'string') {
+        selection.dismiss(msg.npi)
+      }
+      if (msg.type === 'provider_unselect' && typeof msg.npi === 'string') {
+        selection.deselect(msg.npi)
+      }
+      if (msg.type === 'load_more_providers') {
+        if (hasMore && !isLoadingMore) {
+          setIsLoadingMore(true)
+          // Trigger next-page through the same search pipeline.
+          doSearch(question)
+        }
+      }
     }
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [])
+  }, [phase, question, hasMore, isLoadingMore])
+
+  // Phase B — Parent owns frame painting. Broadcast renderable state on
+  // every change; index.html's gui:findcare-state handler paints centerPanel
+  // and the input form based on what arrives. React renders no DOM.
+  useEffect(() => {
+    sendToParent('gui:findcare-state', {
+      ready: tokenReady,
+      loadingSeconds,
+      phase,
+      welcomeHtml,
+      question,
+      systemMessage,
+      systemCorrections,
+      thinkSeconds,
+      error,
+      // Architecture: the FindClinicalTrials tool returns structured trial
+      // objects. React broadcasts the raw object — the parent owns trial
+      // presentation. No markdown rendering or HTML formatting here.
+      trial: trialsList.length
+        ? (trialsList[selectedTrialIndex] || trialsList[0])
+        : null,
+      trialCount: trialsList.length,
+      trialNctId: trialsList[selectedTrialIndex]?.nct_id || trialsList[0]?.nct_id || '',
+      available: selection.state.available.map((p: any) => ({
+        npi: p.npi,
+        name: p.name,
+        specialty: p.specialty || p.primary_specialty || '',
+        address: p.address,
+        city: p.city,
+        state: p.state,
+        zip: p.zip,
+        county: p.county,
+        phone: p.phone,
+      })),
+      selected: selection.state.selected.map((p: any) => ({
+        npi: p.npi,
+        name: p.name,
+        specialty: p.specialty || p.primary_specialty || '',
+        address: p.address,
+        city: p.city,
+        state: p.state,
+        zip: p.zip,
+        county: p.county,
+        phone: p.phone,
+      })),
+      garbageCount: selection.state.garbage.length,
+      totalCount,
+      hasMore,
+      isLoadingMore,
+      searchPromptUp,
+      reclassifying,
+    })
+  }, [tokenReady, loadingSeconds, phase, welcomeHtml, question, systemMessage,
+      systemCorrections, thinkSeconds, error, trialsList, selectedTrialIndex,
+      selection.state.available, selection.state.selected, selection.state.garbage.length,
+      totalCount, hasMore, isLoadingMore, searchPromptUp, reclassifying])
 
   // ── Search ─────────────────────────────────────────────────────
   // ── Search: one /gate stream, NDJSON consumer ───────────────────
@@ -1358,305 +1209,7 @@ export default function FindCareApp() {
     doSearch(text)
   }
 
-  if (!tokenReady) {
-    return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        height: '100vh', fontFamily: 'system-ui, sans-serif', color: '#0b7a75', gap: '1em',
-      }}>
-        <div style={{ fontSize: '1em', fontWeight: 700 }}>Loading</div>
-        <div style={{ fontSize: '1em' }}>{loadingSeconds}s</div>
-      </div>
-    )
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
-
-      {/* WELCOME PHASE */}
-      {phase === 'welcome' && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1em', maxWidth: 800, margin: '1em', width: '100%' }}>
-          <div style={{
-            padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
-            border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6,
-          }} dangerouslySetInnerHTML={{ __html: welcomeHtml }} />
-        </div>
-      )}
-
-      {/* CLARIFY PHASE — generic clarification bubble from the server.
-          Trial detail is rendered by the unified 'results' block. */}
-      {phase === 'clarify' && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {question && renderQuestionBanner(question, systemCorrections)}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '1em', maxWidth: 1100, margin: '1em', width: '100%' }}>
-            <div style={{
-              padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
-              border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6, color: '#0b7a75',
-            }}>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  table: ({node, ...p}) => <table {...p} style={{borderCollapse: 'collapse', width: '100%', margin: '0.5em 0'}} />,
-                  th: ({node, ...p}) => <th {...p} style={{border: '0.0625em solid #d1d5db', padding: '0.5em', background: '#f3f4f6', textAlign: 'left'}} />,
-                  td: ({node, ...p}) => <td {...p} style={{border: '0.0625em solid #d1d5db', padding: '0.5em', verticalAlign: 'top'}} />,
-                  a: ({node, ...p}) => <a {...p} target="_blank" rel="noopener noreferrer" />,
-                }}
-              >{systemMessage}</ReactMarkdown>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* SEARCHING PHASE */}
-      {phase === 'searching' && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '1em' }}>
-          {searchPromptUp && systemMessage ? (
-            <div style={{
-              padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
-              border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6, color: '#0b7a75', maxWidth: 800,
-            }}>{renderSystemMessageWithCorrections(systemMessage, systemCorrections)}</div>
-          ) : (
-            <div style={{ fontSize: '1em', color: '#6b7280' }}>Searching for: <strong>{question}</strong></div>
-          )}
-          <div style={{ fontSize: '1em', color: '#0b7a75', fontWeight: 700 }}>{thinkSeconds}s</div>
-          <div style={{ fontSize: '1em', color: '#9ca3af' }}>
-            {searchPromptUp ? 'Server still working — Send unlocks when the response completes.' : 'Waiting for response...'}
-          </div>
-        </div>
-      )}
-
-      {/* ERROR PHASE */}
-      {phase === 'error' && (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1em' }}>
-          <div style={{ padding: '1em', background: '#fef2f2', border: '0.125em solid #fecaca', borderRadius: 8, color: '#dc2626', maxWidth: 500 }}>
-            <strong>Error:</strong> {error}
-          </div>
-        </div>
-      )}
-
-      {/* RESULTS PHASE — single paint path for both providers AND
-          clinical trials. Trial detail and provider list both live here. */}
-      {phase === 'results' && trialsList.length > 0 && (
-        <>
-          {renderQuestionBanner(
-            question,
-            systemCorrections,
-            `${trialsList.length} clinical trials — viewing ${trialsList[selectedTrialIndex]?.nct_id || trialsList[0]?.nct_id || ''}`,
-          )}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '1em', maxWidth: 1100, margin: '1em', width: '100%' }}>
-            <div style={{
-              padding: '1em', borderRadius: '2.25em 2.25em 2.25em 0.5em', background: '#fff',
-              border: '0.125em solid #e5e7eb', fontSize: '1em', lineHeight: 1.6, color: '#0b7a75',
-            }}>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  table: ({node, ...p}) => <table {...p} style={{borderCollapse: 'collapse', width: '100%', margin: '0.5em 0'}} />,
-                  th: ({node, ...p}) => <th {...p} style={{border: '0.0625em solid #d1d5db', padding: '0.5em', background: '#f3f4f6', textAlign: 'left'}} />,
-                  td: ({node, ...p}) => <td {...p} style={{border: '0.0625em solid #d1d5db', padding: '0.5em', verticalAlign: 'top'}} />,
-                  a: ({node, ...p}) => <a {...p} target="_blank" rel="noopener noreferrer" />,
-                }}
-              >{formatTrialDetail(trialsList[selectedTrialIndex] || trialsList[0])}</ReactMarkdown>
-            </div>
-          </div>
-        </>
-      )}
-      {phase === 'results' && trialsList.length === 0 && (
-        <>
-          {/* Question bar */}
-          {renderQuestionBanner(question, systemCorrections, `${totalCount} providers found`)}
-
-          {/* SpecialtyFilter is now hosted in the parent's leftPanel
-              (legacy HTML render of the 4-cell grid). React component
-              version disabled inside the iframe until placement is
-              resolved at the architecture layer. */}
-
-          {/* Available providers — scrollable top half */}
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} data-testid="available-providers">
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '1em', background: '#fafafa', borderBottom: '0.125em solid #eee',
-            }}>
-              <span style={{ fontSize: '1em', fontWeight: 600, color: '#0b7a75', textTransform: 'uppercase' }}>
-                Available Providers
-              </span>
-              <span style={{ fontSize: '1em', color: '#6b7280' }}>
-                {selection.state.available.length} available
-                {selection.state.garbage.length > 0 && (
-                  <span style={{ color: '#dc2626', marginLeft: '1em' }}>🗑 {selection.state.garbage.length}</span>
-                )}
-              </span>
-            </div>
-
-            {/* EPIC-006-F-002-S-001-REQ-B-001: during Apply-Filter re-classify,
-                the unpicked-providers list is turned 'white' and the main-screen
-                timer is shown in its place. */}
-            {reclassifying && (
-              <div
-                data-testid="reclassify-timer"
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1em', gap: 12 }}
-              >
-                <div style={{ fontSize: '1em', color: '#6b7280' }}>Re-querying providers…</div>
-                <div style={{ fontSize: '1em', color: '#0b7a75', fontWeight: 700 }}>{thinkSeconds}s</div>
-                <div style={{ fontSize: '1em', color: '#9ca3af' }}>Waiting for response...</div>
-              </div>
-            )}
-
-            {!reclassifying && selection.state.available.map((p: Provider) => (
-              <ProviderCard
-                key={p.npi}
-                provider={p}
-                mode="available"
-                onSelect={selection.select}
-                onDismiss={selection.dismiss}
-                onDetail={openProviderDetail}
-                selectionFull={selection.isFull}
-              />
-            ))}
-
-            {!reclassifying && hasMore && (
-              <div style={{ padding: '1em', textAlign: 'center' }}>
-                <button
-                  onClick={loadMore}
-                  disabled={isLoadingMore}
-                  style={{
-                    padding: '1em', borderRadius: 4, border: '0.125em solid #0b7a75',
-                    background: '#f0fffe', color: '#0b7a75', fontSize: '1em', fontWeight: 600,
-                    cursor: isLoadingMore ? 'wait' : 'pointer',
-                  }}
-                >
-                  {isLoadingMore ? 'Loading...' : `Load more (${totalCount - selection.state.available.length - selection.state.selected.length} remaining)`}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Selected providers — sticky bottom half (EPIC-006-F-001-S-002-REQ-B-002: drop target) */}
-          <div
-            style={{
-              borderTop: '0.25em solid #d97706', background: '#fffdf7',
-              minHeight: 60, maxHeight: '35%', overflowY: 'auto', flexShrink: 0,
-            }}
-            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move' }}
-            onDrop={(e) => { e.preventDefault(); const npi = e.dataTransfer.getData('text/plain'); if (npi) selection.select(npi) }}
-          >
-            <div style={{
-              padding: '0.5em 1em', background: '#fffbeb',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1em',
-            }}>
-              <span style={{ fontSize: '1em', fontWeight: 600, color: '#d97706', textTransform: 'uppercase' }}>
-                Selected for Evaluation
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1em' }}>
-                <span style={{ fontSize: '1em', color: '#6b7280' }}>
-                  {selection.state.selected.length} / {selection.state.maxSelected}
-                </span>
-                {selection.state.selected.length > 0 && (
-                  <button
-                    data-testid="evaluate-button"
-                    onClick={() => {
-                      sendToParent('gui:start-evaluate')
-                      handleEvaluate()
-                    }}
-                    style={{
-                      padding: '0.4em 1em', borderRadius: '0.5em', border: 'none',
-                      background: 'linear-gradient(180deg,#d97706,#b45309)', color: '#fff',
-                      fontSize: '1em', fontWeight: 700, cursor: 'pointer',
-                    }}
-                  >
-                    Evaluate {selection.state.selected.length} Provider{selection.state.selected.length > 1 ? 's' : ''}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {selection.state.selected.length === 0 ? (
-              <div style={{ padding: '0.5em 1em', textAlign: 'center', color: '#9ca3af', fontSize: '1em' }}>
-                Click ↓ to select providers (max {selection.state.maxSelected})
-              </div>
-            ) : (
-              selection.state.selected.map((p: Provider) => (
-                <ProviderCard
-                  key={p.npi}
-                  provider={p}
-                  mode="selected"
-                  compact={true}
-                  onDeselect={selection.deselect}
-                  draggable={false}
-                />
-              ))
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Input bar — always visible. Send button doubles as Stop while a
-          search or filter-reclassify is in flight (click aborts the
-          pending fetch). The redundant prompt-row timer was removed
-          along with the wrapper-side control frame. */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (phase === 'searching' || reclassifying) {
-            // Stream still open. If the server has emitted a mid-stream
-            // prompt (searchPromptUp), the input is unlocked so the user
-            // can pre-type the answer — but Send is gated until the
-            // stream actually closes. No-op the submit so the answer
-            // stays in the input; we'll fire it for real on Send after
-            // phase moves to 'clarify'.
-            if (searchPromptUp) return
-            // No prompt up — Stop button behavior: abort the in-flight
-            // fetch.
-            if (searchAbortRef.current) searchAbortRef.current.abort()
-            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
-            setReclassifying(false)
-            if (phase === 'searching') setPhase(question ? 'results' : 'welcome')
-            return
-          }
-          handleSend()
-        }}
-        style={{
-          padding: '0.67em 1em', borderTop: '0.125em solid #e5e7eb',
-          display: 'flex', gap: 8, alignItems: 'center', background: '#fff',
-        }}
-      >
-        {(phase === 'searching' || reclassifying) && (
-          <div
-            data-testid="prompt-row-timer"
-            style={{
-              flex: '0 0 auto', minWidth: 44, padding: '0.67em 1em', borderRadius: 6,
-              background: '#f0fffe', border: '0.125em solid #0b7a75',
-              fontSize: '1em', fontWeight: 700, color: '#0b7a75', textAlign: 'center',
-            }}
-          >{thinkSeconds}s</div>
-        )}
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Type a message..."
-          // Input is unlocked when a mid-stream prompt arrives, so the
-          // user can compose the answer while the server finishes.
-          disabled={(phase === 'searching' && !searchPromptUp) || reclassifying}
-          style={{
-            flex: 1, padding: '0.67em 1em', borderRadius: 8,
-            border: '0.125em solid #d1d5db', fontSize: '1em', outline: 'none',
-            minHeight: 44,
-          }}
-        />
-        <button
-          type="submit"
-          style={{
-            padding: '0.67em 1em', borderRadius: 8, border: 'none',
-            background: searchPromptUp
-              ? '#9ca3af'  // gray: waiting for stream close
-              : (phase === 'searching' || reclassifying) ? '#b91c1c' : '#0b7a75',
-            color: '#fff', fontSize: '1em', fontWeight: 600,
-            cursor: searchPromptUp ? 'not-allowed' : 'pointer',
-            minHeight: 44, minWidth: 44,
-          }}
-        >{searchPromptUp ? 'Wait…' : (phase === 'searching' || reclassifying) ? 'Stop' : 'Send'}</button>
-      </form>
-    </div>
-  )
+  // Phase B — parent owns all rendering. React broadcasts state via
+  // useEffect above; this component returns no DOM.
+  return null
 }
