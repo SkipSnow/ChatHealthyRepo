@@ -9,7 +9,9 @@
 # Prerequisites: deploy_localhost.sh must be running (all servers up).
 # Run: python -m pytest Code/deploy/localSmokeTestPyTest.py -v
 #
-# DR-019: Tests run against the full parent page, not individual components.
+# DR-019: Tests emulate end users on the parent page panels (#centerContent,
+# #userInputForm, #rightContent). The hidden #coreChatFrame React iframe is
+# a data layer only — smoke must NOT scrape it or treat page.body as the chat.
 
 import os
 import re
@@ -96,6 +98,58 @@ CERTS_DIR = os.path.join(_PROJECT_ROOT, "Code", "Shared", "ops", "certs")
 SCREENSHOT_DIR = os.path.join(_PROJECT_ROOT, "_oneshots", "test_output", "smoke_test")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 CHAT_TIMEOUT = 120_000
+
+
+# ── User-visible surfaces (Phase B parent paint) ─────────────────────────
+# End users see and click elements in these panels. #coreChatFrame is hidden
+# off-screen; only the left-panel filter sub-iframe is a user-facing iframe.
+
+def _center(page):
+    """#centerContent — welcome, search progress, provider list."""
+    return page.locator("#centerContent")
+
+
+def _utterance_form(page):
+    return page.locator("#userInputForm")
+
+
+def _chat_input(page):
+    return page.locator("#userInput")
+
+
+def _send_button(page):
+    return page.locator("#userInputSubmit")
+
+
+def _right_content(page):
+    """#rightContent — EvaluateCare results + provider detail."""
+    return page.locator("#rightContent")
+
+
+def _filter_frame(page):
+    return page.frame_locator("iframe[data-filter-frame]")
+
+
+def _wait_center_ready(page, timeout=CHAT_TIMEOUT):
+    """Initial frame ready: loading spinner cleared, welcome painted."""
+    _center(page).wait_for(state="attached", timeout=timeout)
+    page.wait_for_function(
+        """() => {
+            const c = document.getElementById('centerContent');
+            if (!c) return false;
+            const fl = document.getElementById('frameLoading');
+            if (fl && fl.offsetParent !== null && !fl.classList.contains('hidden')) return false;
+            const t = (c.innerText || '').trim();
+            if (t.length < 10) return false;
+            if (/^Loading\\s*\\d*s?$/i.test(t)) return false;
+            return true;
+        }""",
+        timeout=timeout,
+    )
+
+
+def _center_text(page):
+    return _center(page).inner_text()
 
 
 def _screenshot(page, name):
@@ -592,23 +646,20 @@ class TestStep04:
     def test_splash_first_25_words(self, env):
         page = env["page"]
         page.goto(BASE_URL, wait_until="networkidle")
-        page.wait_for_timeout(10000)
-        # Phase B: layout moved from the React iframe to the parent's
-        # centerContent. All UI assertions now run against the parent
-        # page, not the iframe. chat_frame is aliased to page so the
-        # 19 downstream tests that still reference it keep working.
-        env["chat_frame"] = page
-        body_text = page.locator("#centerContent").inner_text()
+        _wait_center_ready(page)
+        body_text = _center(page).inner_text()
         for word in _get_welcome_words()[:10]:
             assert word in body_text, f"Welcome word '{word}' missing: {body_text[:300]}"
+        expect(_utterance_form(page)).to_be_visible()
+        expect(_chat_input(page)).to_be_visible()
         _screenshot(page, "04")
 
 
 # Step 5 [EPIC-005-F-001-S-001-REQ-B-004]
 class TestStep05:
     def test_input_focused(self, env):
-        frame = env.get("chat_frame", env["page"])
-        chat_input = frame.locator("input[placeholder*='Type a message'], textarea").first
+        page = env["page"]
+        chat_input = env.get("chat_input") or _chat_input(page)
         expect(chat_input).to_be_visible()
         assert chat_input.get_attribute("disabled") is None, "Input disabled"
         # Click to ensure focus then verify
@@ -658,22 +709,22 @@ class TestStep05b:
 # Step 6 [EPIC-005-F-001-S-001-REQ-B-005]
 class TestStep06:
     def test_search(self, env):
-        frame = env.get("chat_frame", env["page"])
-        chat_input = env.get("chat_input") or frame.locator("input[placeholder*='Type a message'], textarea").first
+        page = env["page"]
+        chat_input = env.get("chat_input") or _chat_input(page)
         chat_input.fill("Find me a bone doctor in Delaware")
-        frame.locator("button", has_text="Send").first.click()
+        _send_button(page).click()
         # "Yes, keep waiting" button appears only on slow searches as a
         # confirmation prompt. Explicit conditional handling — no try/except
         # swallow (BUG-003 item #11). Brief presence-check window then
         # decide deterministically whether the button is part of THIS run.
-        env["page"].wait_for_timeout(2000)  # let UI settle
-        keep_btns = frame.locator("button", has_text="Yes, keep waiting")
+        page.wait_for_timeout(2000)  # let UI settle
+        keep_btns = _center(page).locator("button", has_text="Yes, keep waiting")
         if keep_btns.count() > 0:
             keep_btns.first.click()
         # else: search completed without prompting; nothing to confirm
-        frame.locator("text=/NPI|Phone|County/i").first.wait_for(state="visible", timeout=CHAT_TIMEOUT)
-        env["page"].wait_for_timeout(12000)
-        assert re.findall(r"NPI[:\s]+\d{10}", frame.locator("body").inner_text()), "No NPI numbers found"
+        _center(page).locator("text=/NPI|Phone|County/i").first.wait_for(state="visible", timeout=CHAT_TIMEOUT)
+        page.wait_for_timeout(12000)
+        assert re.findall(r"NPI[:\s]+\d{10}", _center(page).inner_text()), "No NPI numbers in center panel"
         # Store original token for nonce comparison
         env["original_token"] = _get_fresh_token()
         _screenshot(env["page"], "06")
@@ -745,8 +796,9 @@ class TestStep08:
 # Step 9 [EPIC-006-F-001-S-001-REQ-B-006 — providers present in center]
 class TestStep09:
     def test_providers_in_center(self, env):
-        frame = env.get("chat_frame", env["page"])
-        assert re.findall(r"NPI[:\s]+\d{10}", frame.locator("body").inner_text()), "No providers"
+        page = env["page"]
+        center_text = _center(page).inner_text()
+        assert re.findall(r"NPI[:\s]+\d{10}", center_text), "No providers in #centerContent"
 
 
 # Step 9a [EPIC-006-F-025 — Provider Detail click-through]
@@ -759,18 +811,16 @@ class TestStep09:
 class TestStep09aProviderDetail:
     def test_provider_detail_link_paints_right_panel(self, env):
         page = env["page"]
-        # Locate the small-font "provider detail" link on the first row.
-        links = page.locator("[data-provider-detail]")
-        assert links.count() > 0, "no provider-detail links present on the row"
+        # End-user path: click the visible link in #centerContent provider rows.
+        links = _center(page).locator("[data-provider-detail]")
+        assert links.count() > 0, "no provider-detail links in center panel"
         first = links.first
         assert first.is_visible(), "provider-detail link not visible to the user"
         first.click()
-        # ProviderDetailRenderer writes a [data-testid='provider-detail'] block
-        # into #rightContent. Allow up to 10s for the /gate stream to land.
-        target = page.locator("#rightContent [data-testid='provider-detail']")
+        # ProviderDetailRenderer writes into #rightContent (same panel as EvaluateCare).
+        target = _right_content(page).locator("[data-testid='provider-detail']")
         target.wait_for(state="visible", timeout=10000)
-        # Required sections per EPIC-006-F-025-S-001-REQ-B-002..B-006.
-        body_text_upper = page.locator("#rightContent").inner_text().upper()
+        body_text_upper = _right_content(page).inner_text().upper()
         for section in ("PROVIDER DETAIL", "NPI:", "ADDRESSES", "LICENSES", "INSURANCE", "RESEARCH SITES"):
             assert section in body_text_upper, (
                 f"provider-detail panel missing section {section!r}; got: {body_text_upper[:400]}"
@@ -784,28 +834,27 @@ class TestStep09aProviderDetail:
 # Step 10 [UX-CTRL-003-REQ-006]
 class TestStep10:
     def test_bottom_panel_zero(self, env):
-        frame = env.get("chat_frame", env["page"])
-        body = frame.locator("body").inner_text()
+        page = env["page"]
+        body = _center_text(page)
         assert "0 / 5" in body or "0/5" in body, f"Expected 0 selected: {body[-200:]}"
-        _screenshot(env["page"], "10")
+        _screenshot(page, "10")
 
 
 # Step 11 [UX-CTRL-003-REQ-007]
 class TestStep11:
     def test_select_providers(self, env):
         page = env["page"]
-        frame = env.get("chat_frame", page)
+        center = _center(page)
         for loc in [
-            frame.locator("button[title='Select for evaluation']"),
-            page.locator("button[title='Select for evaluation']"),
-            frame.locator("button:has-text('↓')"),
-            page.locator("button:has-text('↓')"),
+            center.locator("button[title='Select for evaluation']"),
+            center.locator("button:has-text('↓')"),
+            center.locator("[data-provider-action='provider_select']"),
         ]:
             if loc.count() > 0:
                 select_btns = loc
                 break
         else:
-            assert False, "No provider select buttons found"
+            assert False, "No provider select buttons found in #centerContent"
         to_select = min(select_btns.count(), 3)
         for i in range(to_select):
             select_btns.nth(i).click()
@@ -817,22 +866,19 @@ class TestStep11:
 # Step 12 [UX-CTRL-003-REQ-008]
 class TestStep12:
     def test_selected_in_bottom_panel(self, env):
-        frame = env.get("chat_frame", env["page"])
-        body = frame.locator("body").inner_text().upper()
-        assert "SELECTED" in body and "EVALUATION" in body, "Bottom panel missing"
-        assert re.search(r'[1-5]\s*/\s*5', frame.locator("body").inner_text()), "Count still 0"
-        _screenshot(env["page"], "12")
+        page = env["page"]
+        body = _center_text(page).upper()
+        assert "SELECTED" in body and "EVALUATION" in body, "Bottom panel missing in #centerContent"
+        assert re.search(r'[1-5]\s*/\s*5', _center_text(page)), "Count still 0"
+        _screenshot(page, "12")
 
 
 # Step 13 [EPIC-006-F-024-S-003-REQ-T-002]
 class TestStep13:
     def test_click_evaluate(self, env):
         page = env["page"]
-        # Control frame removed: Evaluate button now lives inside the
-        # chat iframe on the Selected-for-Evaluation band.
-        chat_frame = env.get("chat_frame", page)
-        eval_btn = chat_frame.locator("[data-testid='evaluate-button']")
-        assert eval_btn.count() > 0, "in-iframe Evaluate button not found"
+        eval_btn = _center(page).locator("[data-testid='evaluate-button']")
+        assert eval_btn.count() > 0, "Evaluate button not found in #centerContent selected band"
         eval_btn.first.click()
         page.wait_for_timeout(5000)
         _screenshot(page, "13")
@@ -860,6 +906,11 @@ class TestStep14:
         text = splash.inner_text()
         assert "EvaluateCare" in text, f"Missing EvaluateCare label in splash: {text[:300]}"
         assert "is still unimplemented" in text, f"Missing 'is still unimplemented' in splash: {text[:300]}"
+        # EPIC-002-F-011: utterance frame is independent + permanent across
+        # service ownership transitions — the user must always be able to type.
+        inp = page.locator("#userInputForm")
+        assert inp.count() > 0 and inp.is_visible(), \
+            "Utterance frame (#userInputForm) must remain visible after FindCare→EvaluateCare transition"
         _screenshot(page, "14")
 
 
@@ -892,9 +943,9 @@ class TestStep15:
 class TestStep16:
     def test_right_panel_providers(self, env):
         page = env["page"]
-        right = page.locator("#rightPanel").inner_text()
-        assert "EVALUATECARE" in right.upper(), f"Missing EvaluateCare header: {right[:400]}"
-        assert re.findall(r"\d{10}", right), f"No NPI in right panel: {right[:400]}"
+        right = _right_content(page).inner_text()
+        assert "EVALUATECARE" in right.upper(), f"Missing EvaluateCare header in #rightContent: {right[:400]}"
+        assert re.findall(r"\d{10}", right), f"No NPI in #rightContent: {right[:400]}"
         _screenshot(page, "16")
 
 
@@ -1027,16 +1078,16 @@ class TestStep22:
         if sh_splash.count() > 0:
             assert not sh_splash.is_visible(), "SharedServices splash still visible after return"
 
-        env["chat_frame"] = page
+        env.pop("chat_frame", None)
 
-        # NPIs present in centerContent after the new query lands.
+        # NPIs present in #centerContent after the new query lands.
         def _check_npis_after_apply():
-            body_text = page.locator("#centerContent").inner_text()
+            body_text = _center_text(page)
             npis = re.findall(r"NPI[:\s]+\d{10}", body_text)
             if not npis:
                 raise AssertionError(
                     "Apply Filter must re-query providers: no NPI strings present after Apply Filter. "
-                    f"centerContent (first 400 chars): {body_text[:400]}"
+                    f"#centerContent (first 400 chars): {body_text[:400]}"
                 )
             return len(npis)
         _retry("test22_npis_after_apply", 20, 750, _check_npis_after_apply)
@@ -1090,11 +1141,11 @@ class TestStep23:
         assertion contradicted this rule (residual from the old gui:reset
         path) and is removed.
         """
-        frame = env.get("chat_frame", env["page"])
-        chat_input = frame.locator("input[placeholder*='Type a message'], textarea").first
+        page = env["page"]
+        chat_input = _chat_input(page)
         _retry("test23_input_visible", 15, 1000,
                lambda: expect(chat_input).to_be_visible(timeout=800))
-        _screenshot(env["page"], "23")
+        _screenshot(page, "23")
 
 
 # Step 24 [EPIC-002-F-001-S-012-REQ-T-003]
@@ -1199,6 +1250,11 @@ class TestStep26:
         assert sec.count() > 0, "#rightSecurity panel missing"
         sec_text = sec.inner_text()
         assert "GUID:" in sec_text, f"user_object not present in #rightSecurity (no GUID rendered): {sec_text[:300]}"
+        # EPIC-002-F-011: utterance frame is independent + permanent across
+        # service ownership transitions — the user must always be able to type.
+        inp = page.locator("#userInputForm")
+        assert inp.count() > 0 and inp.is_visible(), \
+            "Utterance frame (#userInputForm) must remain visible after FindCare→SharedServices transition"
         _screenshot(page, "26")
 
 
@@ -1357,6 +1413,11 @@ class TestStep31:
         page.wait_for_timeout(5000)
         # Phase B: parent's #centerContent is the FindCare display surface.
         assert page.locator("#centerContent").count() > 0, "centerContent surface missing after SharedServices→FindCare"
+        # EPIC-002-F-011: utterance frame independent + permanent across
+        # cross-service transitions — must stay visible on SS→FC as well.
+        inp = page.locator("#userInputForm")
+        assert inp.count() > 0 and inp.is_visible(), \
+            "Utterance frame (#userInputForm) must remain visible after SharedServices→FindCare transition"
         # Handoff 4 of 6: SharedServices → FindCare
         nonce, guid = _verify_session_identity(page, env, "SharedServices→FindCare")
         env["sh_to_fc_nonce"] = nonce
@@ -1369,16 +1430,15 @@ class TestStep32:
         if IS_PROD:
             pytest.skip("S-002-REQ-B-002: SharedServices handoff path is banner-driven, suppressed in prod")
         page = env["page"]
-        frame = env.get("chat_frame", page)
-        # Re-select providers and evaluate to get to EvaluateCare
-        select_btns = frame.locator("button[title='Select for evaluation']")
+        center = _center(page)
+        select_btns = center.locator("button[title='Select for evaluation']")
         if select_btns.count() == 0:
-            select_btns = frame.locator("button:has-text('↓')")
+            select_btns = center.locator("button:has-text('↓')")
         if select_btns.count() > 0:
             select_btns.first.click()
             page.wait_for_timeout(500)
-        eval_btn = frame.locator("[data-testid='evaluate-button']")
-        assert eval_btn.count() > 0, "in-iframe Evaluate button not found for handoff 5"
+        eval_btn = center.locator("[data-testid='evaluate-button']")
+        assert eval_btn.count() > 0, "Evaluate button not found in #centerContent for handoff 5"
         eval_btn.first.click()
         page.wait_for_timeout(5000)
         # Now in EvaluateCare — click SharedServices banner button.
@@ -1390,6 +1450,11 @@ class TestStep32:
         _retry("test32_rightPanel_SS", 15, 1000,
                lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=800))
         page.wait_for_timeout(3000)
+        # EPIC-002-F-011: utterance frame independent + permanent across
+        # cross-service transitions — must stay visible on EC→SS as well.
+        inp = page.locator("#userInputForm")
+        assert inp.count() > 0 and inp.is_visible(), \
+            "Utterance frame (#userInputForm) must remain visible after EvaluateCare→SharedServices transition"
         # Handoff 5 of 6: EvaluateCare → SharedServices
         nonce, guid = _verify_session_identity(page, env, "EvaluateCare→SharedServices")
         env["ec_to_sh_nonce"] = nonce
@@ -1402,23 +1467,22 @@ class TestStep33:
         # Pass criteria (operator 2026-06-18, "That is all"):
         # - banner FindCare link is dead (cold) in lower environments
         # - welcome text "Find care in the US & clinical trials globally,
-        #   Let's talk about it." is present in the main frame
+        #   Let's talk about it." is present in #centerContent
         page = env["page"]
         # Use the FindCare banner link as the return gesture — produces
         # the welcome state cleanly without triggering a follow-on search.
         page.evaluate("() => { if (typeof window.gotoFindCare === 'function') window.gotoFindCare(); }")
-        page.wait_for_timeout(3000)
+        _wait_center_ready(page, timeout=30000)
         if not IS_PROD:
             cold = page.locator('span[data-service="findcare"]')
             assert cold.count() > 0, \
                 "REQ-B-033: FindCare banner link is not dead (no <span data-service='findcare'>) after return"
-        # Phase B: welcome text is rendered by the parent into #centerContent,
-        # not into the React iframe body.
-        body_text = page.locator("#centerContent").inner_text()
+        body_text = _center_text(page)
         assert "Find care in the US & clinical trials globally," in body_text, \
-            f"REQ-B-033: welcome text not present in centerContent: {body_text[:400]}"
+            f"REQ-B-033: welcome text not present in #centerContent: {body_text[:400]}"
         assert "Let's talk about it." in body_text, \
-            f"REQ-B-033: welcome 'Let's talk about it.' line not present in centerContent: {body_text[:400]}"
+            f"REQ-B-033: welcome 'Let's talk about it.' line not present in #centerContent: {body_text[:400]}"
+        expect(_utterance_form(page)).to_be_visible()
         _screenshot(page, "33")
 
 
@@ -1567,14 +1631,14 @@ class TestStep99FiddlesticksNoFatal:
         # not inside the React iframe. The iframe persists as a hidden data layer
         # carrying the React component that drives the search; the user-facing
         # surface — including the prompt row — is in #centerContent on the parent.
-        inp = page.locator("#userInput")
+        inp = _chat_input(page)
         inp.wait_for(state="visible", timeout=15000)
-        # Capture the welcome text so we can subtract it from centerContent and
+        # Capture the welcome text so we can subtract it from #centerContent and
         # isolate the system's response to 'fiddlesticks'.
-        center = page.locator("#centerContent")
-        baseline_text = center.inner_text().strip()
+        center = _center(page)
+        baseline_text = _center_text(page).strip()
         inp.fill("fiddlesticks")
-        page.locator("#userInputSubmit").click()
+        _send_button(page).click()
         deadline = 45_000
         overlay = page.locator("#chFatalErrorOverlay")
         response_text = ""
@@ -1930,3 +1994,52 @@ class TestStep99eHighConfidenceSpellingCorrected:
             f"If the classifier picked closeConnection200 it is asking "
             f"the user to clarify when it should have substituted."
         )
+
+
+# Step 99f [EPIC-006-F-031 — clinical trials end-to-end via the
+# user-visible frame (NOT the React iframe internals). Regression catcher
+# for "first trial in main window missing" — wrapper's #centerContent must
+# show the first trial detail and #leftPanel must show the trial list.]
+class TestStep99fClinicalTrialFirstTrialVisible:
+    def test_clinical_trial_first_trial_visible_in_centerContent(self, env):
+        if IS_PROD:
+            pytest.skip("S-002-REQ-B-002: chrome suppressed in prod by design")
+        page = env["page"]
+        page.goto(BASE_URL, wait_until="networkidle")
+        page.wait_for_timeout(3000)
+        inp = _chat_input(page)
+        inp.wait_for(state="visible", timeout=15000)
+        inp.fill("find me a clinical trial for breast cancer in Boise Idaho")
+        _send_button(page).click()
+        # CT responses take longer than provider responses (multi-stage tool).
+        deadline_ms = 60_000
+        center = _center(page)
+        last_text = ""
+        while deadline_ms > 0:
+            page.wait_for_timeout(2000)
+            deadline_ms -= 2000
+            text = (center.inner_text() or "").strip()
+            last_text = text
+            if "NCT" in text and "clinical trials" in text:
+                break
+        # User-visible wrapper frame: must contain the first trial's NCT id
+        # and trial detail. The React iframe's own internals are out of scope.
+        assert "NCT" in last_text, (
+            f"Clinical-trials regression: #centerContent has no NCT id "
+            f"after CT query. Got centerContent[:400]={last_text[:400]!r}"
+        )
+        assert "clinical trials" in last_text.lower(), (
+            f"Clinical-trials regression: #centerContent has no 'clinical "
+            f"trials' summary banner after CT query. centerContent[:400]={last_text[:400]!r}"
+        )
+        # Left panel must carry the trial list (the bullet list of NCT entries).
+        left_text = page.locator("#leftPanel").inner_text() or ""
+        assert "NCT" in left_text, (
+            f"Clinical-trials regression: #leftPanel has no NCT entries "
+            f"after CT query. leftPanel[:400]={left_text[:400]!r}"
+        )
+        # EPIC-002-F-011: utterance frame stays visible across CT results too.
+        ut = page.locator("#userInputForm")
+        assert ut.count() > 0 and ut.is_visible(), \
+            "Utterance frame (#userInputForm) must remain visible during clinical-trials results"
+        _screenshot(page, "99f")

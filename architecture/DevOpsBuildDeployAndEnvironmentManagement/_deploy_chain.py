@@ -2434,6 +2434,7 @@ class LocalDeploy:
             if container_name == "ch-sharedsvc":
                 extra_env.extend([
                     "-e", f"FINDCARE_INTERNAL_URL=https://host.docker.internal:{self.PORTS['findcare']}",
+                    "-e", f"EVALCARE_INTERNAL_URL=https://host.docker.internal:{self.PORTS['evalcare']}",
                 ])
             run_cmd = (
                 ["docker", "run", "-d",

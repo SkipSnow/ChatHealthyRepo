@@ -115,6 +115,16 @@
     if (!mountEl) return;
     while (mountEl.firstChild) mountEl.removeChild(mountEl.firstChild);
     var root = el("div", "ch-splash");
+    // Frame discipline (EPIC-002-F-011): the splash occupies the whole
+    // centerContent as cells, mirroring FindCare's renderProviderResults
+    // shape — so SharedServices is using "the one and only frame"
+    // rather than floating content with whitespace around it.
+    root.style.display = "flex";
+    root.style.flexDirection = "column";
+    root.style.height = "100%";
+    root.style.minHeight = "0";
+    root.style.padding = "1em";
+    root.style.boxSizing = "border-box";
     root.appendChild(el("h2", "ch-splash__title", "Shared Services — User Object"));
     var intro = el("p", "ch-splash__intro");
     intro.appendChild(document.createTextNode(
