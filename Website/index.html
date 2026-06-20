@@ -55,10 +55,14 @@
       }
     }
 
+    html, body {
+      height: 100%;
+    }
     body {
       display: flex;
       flex-direction: column;
-      min-height: 100%;
+      height: 100vh;
+      overflow: hidden;
     }
 
     /* ── Content area with side panels ────────────── */
@@ -290,6 +294,7 @@
     /* ── Main / chat embed ─────────────────────────── */
     main {
       flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       max-width: var(--max-w);
@@ -615,6 +620,11 @@
   </style>
   <link rel="stylesheet" href="/splash.css">
   <script src="/splash_render.js"></script>
+  <script src="/ProviderDetailRenderer.js"></script>
+  <script src="/ClinicalTrialRenderer.js"></script>
+  <script src="/EvaluateCareSplashRenderer.js"></script>
+  <script src="/CorrectionsRenderer.js"></script>
+  <script src="/ScrollableFrame.js"></script>
   <!-- CH_FONTS -->
 </head>
 
@@ -878,24 +888,26 @@
         <span class="frame-label" style="color:#8888cc;font-size: 1em;writing-mode:vertical-rl;text-orientation:mixed;">LEFT PANEL</span>
       </div>
 
-      <!-- Center column — chat + provider selection + controls -->
-      <div class="center-column">
-        <!-- Chat iframe -->
-        <div class="chat-frame-wrapper">
+      <div class="center-column" style="display:flex;flex-direction:column;height:100%;font-family:system-ui,sans-serif;">
+        <div id="centerContent" style="flex:1;overflow:hidden;min-height:0;display:flex;flex-direction:column;">
           <div class="frame-loading" id="frameLoading">
             <div class="spinner"></div>
             <p>Loading Find Care AI…</p>
           </div>
-          <iframe
-            id="coreChatFrame"
-            src=""
-            title="Find Care — CoreChatUX"
-            allow="microphone; clipboard-write"
-            loading="lazy"
-            onload="document.getElementById('frameLoading').classList.add('hidden')"
-          ></iframe>
         </div>
-
+        <form id="userInputForm" style="padding:0.67em 1em;border-top:0.125em solid #e5e7eb;display:none;gap:8px;align-items:center;background:#fff;">
+          <span id="userInputTimer" data-testid="prompt-row-timer" style="display:none;flex:0 0 auto;min-width:44px;padding:0.67em 1em;border-radius:6px;background:#f0fffe;border:0.125em solid #0b7a75;font-size:1em;font-weight:700;color:#0b7a75;text-align:center;">0s</span>
+          <input id="userInput" type="text" placeholder="Type a message..." autocomplete="off" style="flex:1;padding:0.67em 1em;border-radius:8px;border:0.125em solid #d1d5db;font-size:1em;outline:none;min-height:44px;" />
+          <button id="userInputSubmit" type="submit" style="padding:0.67em 1em;border-radius:8px;border:none;background:#0b7a75;color:#fff;font-size:1em;font-weight:600;cursor:pointer;min-height:44px;min-width:44px;">Send</button>
+        </form>
+        <iframe
+          id="coreChatFrame"
+          src=""
+          title="Find Care — CoreChatUX (data layer)"
+          allow="microphone; clipboard-write"
+          style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;border:0;visibility:hidden;"
+          onload="document.getElementById('frameLoading')?.classList.add('hidden')"
+        ></iframe>
       </div> <!-- /center-column -->
 
       <!-- Right panel — 1%, expands for leaf pages -->
@@ -1092,6 +1104,71 @@
         }
         return JSON.stringify(body);
       };
+      window._renderProviderDetail = function(detail, displayName) {
+        if (!detail) return;
+        window.ensureRightPanelStructure();
+        var pdContent = document.getElementById("rightContent");
+        if (!pdContent || typeof window.ProviderDetailRenderer !== "function") return;
+        var rightPanel = document.getElementById("rightPanel");
+        if (rightPanel && !rightPanel.classList.contains("expanded")) {
+          rightPanel.classList.add("expanded");
+        }
+        window.ProviderDetailRenderer(detail, pdContent, "full-detail");
+      };
+
+      window._fetchAndShowProviderDetail = function(p) {
+        if (!p || !p.npi) return;
+        var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
+        var body = window._gateBody({
+          op: 'provider-detail',
+          payload: {
+            name: p.name,
+            npi: p.npi,
+            specialty: p.specialty || p.primary_specialty || null,
+            address: p.address || null,
+            county: p.county || null,
+            phone: p.phone || null,
+            state: p.state || null,
+          },
+        });
+        fetch(sharedUrl + '/gate', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/x-ndjson' },
+          body: body,
+        }).then(function(resp) {
+          if (!resp.ok || !resp.body) {
+            throw new Error('SharedServices /gate provider-detail HTTP ' + resp.status);
+          }
+          var reader = resp.body.getReader();
+          var decoder = new TextDecoder('utf-8');
+          var buffer = '';
+          var detail = null;
+          function pump() {
+            return reader.read().then(function(chunk) {
+              if (chunk.done) return detail;
+              buffer += decoder.decode(chunk.value, { stream: true });
+              var lines = buffer.split('\n');
+              buffer = lines.pop() || '';
+              for (var i = 0; i < lines.length; i++) {
+                var line = lines[i].trim();
+                if (!line) continue;
+                try {
+                  var evt = JSON.parse(line);
+                  if (evt.kind === 'provider-detail') detail = evt.data;
+                } catch (_) {}
+              }
+              return pump();
+            });
+          }
+          return pump();
+        }).then(function(detail) {
+          if (detail) window._renderProviderDetail(detail, p.name || '');
+        }).catch(function(err) {
+          try { window.chFatalError('[provider-detail] ' + (err && err.message ? err.message : 'fetch failed') + ' for NPI ' + p.npi); } catch (_) {}
+        });
+      };
+
       window._getAuthBoot = function() {
         // REQ-T-008: every page load posts /gate with op="boot" as the
         // FIRST SharedServices call. The cached _authBoot short-circuit
@@ -1356,6 +1433,7 @@
           serviceKey = 'findcare';
         }
         try { window._recordUxEvent(serviceKey + '_nav_clicked', null); } catch (_) {}
+        var prevOwner = window._pageOwner;
         window._pageOwner = serviceKey;
         window.ensureRightPanelStructure();
         var rc = document.getElementById('rightContent');
@@ -1368,30 +1446,32 @@
         if (!chatFrame) return;
         chatFrame.style.display = '';
 
-        ['evalcareSplash', 'sharedSplash', 'chSystemTimedOut'].forEach(function(id) {
-          var el = document.getElementById(id);
-          if (el) el.remove();
-        });
+        var centerContent = document.getElementById('centerContent');
+        var inputForm = document.getElementById('userInputForm');
 
         if (serviceKey === 'findcare') {
           var evalUrl = (window._envServiceUrls || {}).evaluatecare || '';
           if (evalUrl) {
             fetch(evalUrl + '/transfer/to-findcare', { method: 'POST' }).catch(function() {});
           }
+          // Clear centerContent and re-run FindCare's last broadcast.
+          if (centerContent) centerContent.innerHTML = '';
+          if (inputForm) inputForm.style.display = '';
+          if (typeof window._lastStateJson !== 'undefined') window._lastStateJson = '';
+          if (window._lastFindcareState && typeof window.paintCenter === 'function') {
+            try { window.paintCenter(window._lastFindcareState); } catch (_) {}
+            try { window.paintForm(window._lastFindcareState); } catch (_) {}
+          }
           try { chatFrame.contentWindow.postMessage({type: 'gui:reset'}, '*'); } catch (_) {}
           return;
         }
 
-        var centerArea = chatFrame.parentElement;
-        if (centerArea && getComputedStyle(centerArea).position === 'static') {
-          centerArea.style.position = 'relative';
-        }
-        var splashId = serviceKey === 'evaluatecare' ? 'evalcareSplash' : 'sharedSplash';
-        var splashDiv = document.createElement('div');
-        splashDiv.id = splashId;
-        if (serviceKey === 'sharedservices') splashDiv.className = 'ch-splash-mount';
-        splashDiv.style.cssText = 'position:absolute;left:0;right:0;top:0;bottom:0;background:#fff;overflow:auto;z-index:1;display:flex;flex-direction:column;';
-        centerArea.appendChild(splashDiv);
+        if (inputForm) inputForm.style.display = 'none';
+        if (!centerContent) return;
+
+        var mountId = serviceKey === 'evaluatecare' ? 'evalcareSplash' : 'sharedSplash';
+        centerContent.innerHTML = window.ScrollableFrame.wrap('', { id: mountId, background: '#fff' });
+        var mountEl = document.getElementById(mountId);
 
         var serviceUrl = (window._envServiceUrls || {})[serviceKey] || '';
         if (!serviceUrl) return;
@@ -1399,7 +1479,13 @@
         if (serviceKey === 'evaluatecare') {
           fetch(serviceUrl + '/splash', { method: 'POST' })
             .then(function(r) { return r.json(); })
-            .then(function(d) { splashDiv.innerHTML = d.html || ''; })
+            .then(function(d) {
+              if (typeof window.EvaluateCareSplashRenderer === 'function') {
+                window.EvaluateCareSplashRenderer(d, mountEl, 'splash');
+              } else if (mountEl) {
+                mountEl.innerHTML = (d && d.html) || '';
+              }
+            })
             .catch(function() { window.chFatalError(''); });
           return;
         }
@@ -1431,7 +1517,7 @@
               if (window._broadcastAuthBoot) window._broadcastAuthBoot();
             }
             var d = (payload && payload.result) ? payload.result : payload;
-            if (window.renderSplash) window.renderSplash(d, splashDiv);
+            if (window.renderSplash) window.renderSplash(d, mountEl);
           })
           .catch(function() { window.chFatalError(''); });
       };
@@ -1538,6 +1624,248 @@
           })(trialLinks[ti]);
         }
       });
+
+      (function() {
+        var centerContent = function() { return document.getElementById('centerContent'); };
+        var inputForm = function() { return document.getElementById('userInputForm'); };
+        var inputEl = function() { return document.getElementById('userInput'); };
+        var sendBtn = function() { return document.getElementById('userInputSubmit'); };
+        var timerEl = function() { return document.getElementById('userInputTimer'); };
+        var cframe = function() { return document.getElementById('coreChatFrame'); };
+
+        function escHtml(s) {
+          return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+          });
+        }
+
+        function renderQuestionBanner(question, sub, corrections) {
+          if (!question) return '';
+          var qHtml = window.CorrectionsRenderer(question, corrections);
+          var subHtml = sub ? '<div style="font-size:1em;color:#0b7a75;font-weight:600;margin-top:0.25em;">' + escHtml(sub) + '</div>' : '';
+          return ''
+            + '<div style="padding:0.67em 1em;background:#f0fffe;border-bottom:0.125em solid #d8e2e1;flex-shrink:0;">'
+            + '<div style="font-size:1em;color:#374151;">' + qHtml + '</div>'
+            + subHtml + '</div>';
+        }
+
+        function renderWelcome(s) {
+          return '<div style="padding:1em;max-width:50em;margin:1em auto;">'
+            + '<div style="padding:1em;border-radius:2.25em 2.25em 2.25em 0.5em;background:#fff;border:0.125em solid #e5e7eb;font-size:1em;line-height:1.6;">'
+            + (s.welcomeHtml || 'Welcome to ChatHealthy FindCare')
+            + '</div></div>';
+        }
+
+        function renderClarify(s) {
+          return renderQuestionBanner(s.question, null, s.systemCorrections)
+            + '<div style="padding:1em;max-width:70em;margin:1em auto;">'
+            + '<div style="padding:1em;border-radius:2.25em 2.25em 2.25em 0.5em;background:#fff;border:0.125em solid #e5e7eb;font-size:1em;line-height:1.6;color:#0b7a75;">'
+            + window.CorrectionsRenderer(s.systemMessage || '', s.systemCorrections)
+            + '</div></div>';
+        }
+
+        function renderSearching(s) {
+          var literalEcho = '<div style="font-size:1em;color:#6b7280;">Searching for: <strong style="color:#374151;font-weight:600;">' + escHtml(s.question) + '</strong></div>';
+          var sanitizedBubble = '<div style="padding:1em;border-radius:2.25em 2.25em 2.25em 0.5em;background:#fff;border:0.125em solid #e5e7eb;font-size:1em;line-height:1.6;color:#0b7a75;max-width:50em;">'
+            + window.CorrectionsRenderer(s.systemMessage || '', s.systemCorrections)
+            + '</div>';
+          return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:1em;height:100%;">'
+            + (s.searchPromptUp && s.systemMessage ? sanitizedBubble : literalEcho)
+            + '<div style="font-size:1em;color:#0b7a75;font-weight:700;">' + (s.thinkSeconds || 0) + 's</div>'
+            + '<div style="font-size:1em;color:#9ca3af;">' + (s.searchPromptUp ? 'Server still working — Send unlocks when the response completes.' : 'Waiting for response...') + '</div>'
+            + '</div>';
+        }
+
+        function renderError(s) {
+          return '<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:1em;height:100%;">'
+            + '<div style="padding:1em;background:#fef2f2;border:0.125em solid #fecaca;border-radius:8px;color:#dc2626;max-width:30em;">'
+            + '<strong>Error:</strong> ' + escHtml(s.error) + '</div></div>';
+        }
+
+        function renderTrialResults(s) {
+          var inner = '<div style="max-width:70em;margin:0 auto;padding:1em;background:#fff;border:0.125em solid #e5e7eb;border-radius:0.5em;font-size:1em;line-height:1.6;color:#1f2937;">'
+            + (s.trial ? ClinicalTrialRenderer(s.trial) : '')
+            + '</div>';
+          return '<div style="display:flex;flex-direction:column;height:100%;min-height:0;">'
+            + renderQuestionBanner(s.question, s.trialCount + ' clinical trials — viewing ' + s.trialNctId, s.systemCorrections)
+            + window.ScrollableFrame.wrap(inner, { padding: '1em' })
+            + '</div>';
+        }
+
+        function renderProviderRow(p, action) {
+          var name = escHtml(p.name || '');
+          var addrLine = escHtml([p.address, p.city, p.state, p.zip].filter(function(x){return x;}).join(', '));
+          var btnLabel = action === 'select' ? '↓ Select' : action === 'unselect' ? '↑ Remove' : '× Dismiss';
+          var dataAction = action === 'select' ? 'provider_select' : action === 'unselect' ? 'provider_unselect' : 'provider_dismiss';
+          return '<div data-testid="provider-card" data-npi="' + escHtml(p.npi || '') + '" style="padding:0.5em 1em;border-bottom:0.0625em solid #eee;display:flex;justify-content:space-between;align-items:center;gap:1em;">'
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-weight:600;color:#0b7a75;">' + name + '</div>'
+            + '<div style="font-size:0.9em;color:#6b7280;">' + escHtml(p.specialty || '') + '</div>'
+            + '<div style="font-size:0.9em;color:#9ca3af;">' + addrLine + '</div>'
+            + '<div style="font-size:0.85em;color:#6b7280;">NPI: ' + escHtml(p.npi || '') + (p.phone ? ' · Phone: ' + escHtml(p.phone) : '') + (p.county ? ' · County: ' + escHtml(p.county) : '') + '</div>'
+            + '<div style="font-size:0.66em;margin-top:0.25em;"><a href="#" data-provider-detail="' + escHtml(p.npi || '') + '" style="color:#0b7a75;text-decoration:underline;">provider detail</a></div>'
+            + '</div>'
+            + '<button data-provider-action="' + dataAction + '" data-npi="' + escHtml(p.npi) + '" style="padding:0.4em 0.75em;border-radius:6px;border:0.0625em solid #0b7a75;background:#fff;color:#0b7a75;cursor:pointer;flex-shrink:0;">'
+            + btnLabel + '</button></div>';
+        }
+
+        function renderProviderResults(s) {
+          var available = (s.available || []).map(function(p) { return renderProviderRow(p, 'select'); }).join('');
+          var selected = (s.selected || []).map(function(p) { return renderProviderRow(p, 'unselect'); }).join('');
+          var selCount = (s.selected || []).length;
+          var loadMore = s.hasMore
+            ? '<div style="padding:1em;text-align:center;"><button data-action="load_more_providers" style="padding:0.5em 1em;border-radius:6px;border:0.0625em solid #0b7a75;background:#fff;color:#0b7a75;cursor:pointer;">' + (s.isLoadingMore ? 'Loading…' : 'Load more') + '</button></div>'
+            : '';
+          var evalBtn = selCount > 0
+            ? '<button data-testid="evaluate-button" data-action="evaluate_providers" style="padding:0.5em 1em;border-radius:6px;border:0.0625em solid #d97706;background:#d97706;color:#fff;cursor:pointer;font-weight:600;">Evaluate These Providers</button>'
+            : '';
+          var selectedInner = (selected || '<div style="padding:1em;text-align:center;color:#9ca3af;">Click ↓ to select providers</div>');
+          return '<div style="display:flex;flex-direction:column;height:100%;min-height:0;">'
+            + renderQuestionBanner(s.question, s.totalCount + ' providers found', s.systemCorrections)
+            + '<div style="display:flex;align-items:center;justify-content:space-between;padding:1em;background:#fafafa;border-bottom:0.125em solid #eee;flex-shrink:0;">'
+            + '<span style="font-size:1em;font-weight:600;color:#0b7a75;text-transform:uppercase;">Available Providers</span>'
+            + '<span style="font-size:1em;color:#6b7280;">' + (s.available || []).length + ' available' + (s.garbageCount > 0 ? ' · 🗑 ' + s.garbageCount : '') + '</span>'
+            + '</div>'
+            + window.ScrollableFrame.wrap(available + loadMore, { dataTestId: 'available-providers' })
+            + '<div style="border-top:0.25em solid #d97706;background:#fffbeb;padding:0.5em 1em;display:flex;justify-content:space-between;align-items:center;gap:1em;flex-shrink:0;">'
+            + '<span style="font-size:1em;font-weight:600;color:#d97706;">Selected for Evaluation ' + selCount + ' / 5</span>'
+            + evalBtn + '</div>'
+            + '<div data-testid="selected-providers" style="max-height:30%;overflow-y:auto;background:#fffdf7;flex-shrink:0;">' + selectedInner + '</div>'
+            + '</div>';
+        }
+
+        function paintCenter(s) {
+          var el = centerContent(); if (!el) return;
+          var inner = '';
+          var resultsPhase = false;
+          if (!s.ready) {
+            inner = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#0b7a75;gap:1em;"><div style="font-size:1em;font-weight:700;">Loading</div><div>' + (s.loadingSeconds || 0) + 's</div></div>';
+          } else if (s.phase === 'welcome') {
+            inner = renderWelcome(s);
+          } else if (s.phase === 'clarify') {
+            inner = renderClarify(s);
+          } else if (s.phase === 'searching') {
+            inner = renderSearching(s);
+          } else if (s.phase === 'error') {
+            inner = renderError(s);
+          } else if (s.phase === 'results') {
+            inner = s.trialCount > 0 ? renderTrialResults(s) : renderProviderResults(s);
+            resultsPhase = true;
+          }
+          el.innerHTML = resultsPhase ? inner : window.ScrollableFrame.wrap(inner);
+          var btns = el.querySelectorAll('[data-provider-action]');
+          var btns = el.querySelectorAll('[data-provider-action]');
+          for (var i = 0; i < btns.length; i++) {
+            (function(b) {
+              b.addEventListener('click', function() {
+                var f = cframe();
+                if (f && f.contentWindow) {
+                  f.contentWindow.postMessage({ type: b.getAttribute('data-provider-action'), npi: b.getAttribute('data-npi') }, '*');
+                }
+              });
+            })(btns[i]);
+          }
+          var loadMoreBtn = el.querySelector('[data-action="load_more_providers"]');
+          if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', function() {
+              var f = cframe();
+              if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'load_more_providers' }, '*');
+            });
+          }
+          var evalBtnEl = el.querySelector('[data-testid="evaluate-button"]');
+          if (evalBtnEl) {
+            evalBtnEl.addEventListener('click', function() {
+              if (typeof window.startEvaluateCareHandoff === 'function') {
+                window.startEvaluateCareHandoff();
+              }
+              var f = cframe();
+              if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'gui:event', action: 'evaluate-providers' }, '*');
+            });
+          }
+          var detailLinks = el.querySelectorAll('[data-provider-detail]');
+          for (var d = 0; d < detailLinks.length; d++) {
+            (function(a) {
+              a.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var npi = a.getAttribute('data-provider-detail');
+                var prov = _findProviderByNpi(npi);
+                if (prov && typeof window._fetchAndShowProviderDetail === 'function') {
+                  window._fetchAndShowProviderDetail(prov);
+                }
+              });
+            })(detailLinks[d]);
+          }
+        }
+
+        function paintForm(s) {
+          var form = inputForm(); var inp = inputEl(); var btn = sendBtn(); var t = timerEl();
+          if (!form || !inp || !btn || !t) return;
+          form.style.display = s.ready ? 'flex' : 'none';
+          var searching = s.phase === 'searching' || s.reclassifying;
+          inp.disabled = (searching && !s.searchPromptUp);
+          btn.style.background = s.searchPromptUp ? '#9ca3af' : searching ? '#b91c1c' : '#0b7a75';
+          btn.style.cursor = s.searchPromptUp ? 'not-allowed' : 'pointer';
+          btn.textContent = s.searchPromptUp ? 'Wait…' : searching ? 'Stop' : 'Send';
+          if (searching) {
+            t.style.display = 'inline-block';
+            t.textContent = (s.thinkSeconds || 0) + 's';
+          } else {
+            t.style.display = 'none';
+          }
+        }
+
+        window.paintCenter = paintCenter;
+        window.paintForm = paintForm;
+        window._lastStateJson = '';
+        window._lastFindcareState = null;
+        window.addEventListener('message', function(event) {
+          var msg = event.data;
+          if (!msg || typeof msg !== 'object' || msg.type !== 'gui:findcare-state') return;
+          var j;
+          try { j = JSON.stringify(msg); } catch (_) { j = ''; }
+          if (j && j === window._lastStateJson) return;
+          window._lastStateJson = j;
+          window._lastFindcareState = msg;
+          if (window._pageOwner && window._pageOwner !== 'findcare') return;
+          paintCenter(msg);
+          paintForm(msg);
+        });
+
+        function _findProviderByNpi(npi) {
+          var s = _lastFindcareState;
+          if (!s) return null;
+          var all = (s.available || []).concat(s.selected || []);
+          for (var i = 0; i < all.length; i++) {
+            if (all[i] && all[i].npi === npi) return all[i];
+          }
+          return null;
+        }
+
+        function wireForm() {
+          var form = inputForm(); var inp = inputEl(); var btn = sendBtn();
+          if (!form || !inp || !btn) return;
+          form.addEventListener('submit', function(ev) {
+            ev.preventDefault();
+            var f = cframe();
+            if (!f || !f.contentWindow) return;
+            // Stop button (red Stop label) → user_stop.
+            if (btn.textContent === 'Stop') {
+              f.contentWindow.postMessage({ type: 'user_stop' }, '*');
+              return;
+            }
+            var text = inp.value.trim();
+            if (!text) return;
+            inp.value = '';
+            f.contentWindow.postMessage({ type: 'user_input', text: text }, '*');
+          });
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', wireForm);
+        } else {
+          wireForm();
+        }
+      })();
 
       window.addEventListener('message', function(event) {
         if (!chatFrame || !chatFrame.contentWindow) return;
@@ -1917,7 +2245,7 @@
               + '<div style="font-size: 1em;font-weight:700;color:#d97706;text-transform:uppercase;">EvaluateCare</div>'
               + '<div style="font-size: 1em;color:#6b7280;margin-top: 1em;">' + msg.providers.length + ' providers · ' + (msg.question || '') + '</div>'
               + '</div>'
-              + '<div style="overflow-y:auto;flex:1;">' + rows + '</div>';
+              + window.ScrollableFrame.wrap(rows);
             // Update left panel with identical session verification
             if (msg.session_token) {
               var sessionEl = document.getElementById('guiSessionCell') || document.getElementById('guiSessionId');
@@ -1928,118 +2256,8 @@
           }
         }
 
-        // Provider detail — click path. Painted into #rightContent.
-        // EPIC-006-F-025 'Provider Detail'. Sections per S-001-REQ-B-002..B-007.
         if (msg.type === 'gui:provider-detail' && msg.detail) {
-          window.ensureRightPanelStructure();
-          var pdContent = document.getElementById('rightContent');
-          if (pdContent) {
-            var d = msg.detail;
-            var esc = function(s) {
-              return String(s == null ? '' : s)
-                .split('&').join('&amp;')
-                .split('<').join('&lt;')
-                .split('>').join('&gt;')
-                .split('"').join('&quot;')
-                .split("'").join('&#39;');
-            };
-            var sectionLabel = function(t) {
-              return '<div style="padding:0.5em 1em;font-size:0.85em;font-weight:600;color:#6b7280;text-transform:uppercase;border-bottom:0.125em solid #e5e7eb;background:#f9fafb;">' + esc(t) + '</div>';
-            };
-            var emptyRow = function(t) {
-              return '<div style="padding:0.5em 1em;font-size:0.85em;color:#9ca3af;font-style:italic;">' + esc(t) + '</div>';
-            };
-
-            // Identity
-            var id = d.identity || {};
-            var fullName = [id.name_prefix, id.first_name, id.middle_name, id.last_name]
-              .filter(function(s) { return s; }).join(' ');
-            var idHtml =
-                '<div style="padding:0.75em 1em;border-bottom:0.125em solid #e5e7eb;background:#f8fffe;">'
-              + '<div style="font-weight:600;color:#1f2937;font-size:1em;">' + esc(fullName) + '</div>'
-              + (id.credentials ? '<div style="font-size:0.85em;color:#6b7280;">' + esc(id.credentials) + '</div>' : '')
-              + (id.primary_taxonomy_display ? '<div style="font-size:0.85em;color:#0b7a75;">' + esc(id.primary_taxonomy_display) + '</div>' : '')
-              + '<div style="font-size:0.85em;color:#9ca3af;margin-top:0.25em;">NPI: ' + esc(id.npi || d.npi || '') + '</div>'
-              + '<div style="font-size:0.85em;color:#6b7280;">Status: ' + (id.status_active ? 'Active' : 'Inactive') + '</div>'
-              + (id.enumeration_date ? '<div style="font-size:0.85em;color:#9ca3af;">Enumerated: ' + esc(id.enumeration_date) + '</div>' : '')
-              + '</div>';
-
-            // Addresses
-            var addresses = d.addresses || [];
-            var addressRows = addresses.map(function(a) {
-              var typeLabel = a.address_type === 'business' ? 'Business'
-                            : a.address_type === 'practice' ? 'Practice'
-                            : esc(a.address_type || '');
-              var lineParts = [a.line1, a.line2].filter(function(s) { return s; });
-              var cityLine = [a.city, a.state, a.zip].filter(function(s) { return s; }).join(', ');
-              var c = a.county || null;
-              var countyText = '';
-              if (c && c.name) {
-                countyText = c.name + (c.urban === true ? ' · Urban' : c.urban === false ? ' · Rural' : '');
-              }
-              return '<div style="padding:0.5em 1em;border-bottom:0.125em solid #f3f4f6;">'
-                + '<div style="font-size:0.75em;font-weight:600;color:#0b7a75;text-transform:uppercase;">' + typeLabel + '</div>'
-                + lineParts.map(function(s) { return '<div style="font-size:0.9em;color:#374151;">' + esc(s) + '</div>'; }).join('')
-                + (cityLine ? '<div style="font-size:0.9em;color:#374151;">' + esc(cityLine) + '</div>' : '')
-                + (a.country && a.country !== 'US' ? '<div style="font-size:0.85em;color:#6b7280;">' + esc(a.country) + '</div>' : '')
-                + (a.phone ? '<div style="font-size:0.85em;color:#6b7280;">Phone: ' + esc(a.phone) + '</div>' : '')
-                + (countyText ? '<div style="font-size:0.85em;color:#6b7280;">County: ' + esc(countyText) + '</div>' : '')
-                + '</div>';
-            }).join('');
-            var addressesHtml = sectionLabel('Addresses')
-              + (addressRows || emptyRow('No addresses on file.'));
-
-            // Licenses
-            var licenses = d.licenses || [];
-            var licenseRows = licenses.map(function(l) {
-              return '<div style="padding:0.5em 1em;border-bottom:0.125em solid #f3f4f6;font-size:0.9em;color:#374151;">'
-                + esc(l.state || '') + (l.state && l.number ? ' · ' : '') + esc(l.number || '')
-                + '</div>';
-            }).join('');
-            var licensesHtml = sectionLabel('Licenses')
-              + (licenseRows || emptyRow('No licenses on file.'));
-
-            // Insurance
-            var insurance = d.insurance || [];
-            var insuranceRows = insurance.map(function(ins) {
-              return '<div style="padding:0.5em 1em;border-bottom:0.125em solid #f3f4f6;">'
-                + '<div style="font-size:0.9em;color:#374151;">' + esc(ins.brand || '') + '</div>'
-                + '<div style="font-size:0.85em;color:#6b7280;">'
-                + esc(ins.insurance_type || '')
-                + (ins.state ? ' · ' + esc(ins.state) : '')
-                + (ins.raw_value ? ' · ' + esc(ins.raw_value) : '')
-                + '</div>'
-                + '</div>';
-            }).join('');
-            var insuranceHtml = sectionLabel('Insurance')
-              + (insuranceRows || emptyRow('No insurance identifiers on file.'));
-
-            // Research sites
-            var sites = d.research_sites || {};
-            var siteKeys = Object.keys(sites);
-            var siteRows = siteKeys.map(function(k) {
-              var s = sites[k] || {};
-              return '<div style="padding:0.75em 1em;border-bottom:0.125em solid #e5e7eb;">'
-                + '<div style="font-weight:600;color:#0b7a75;font-size:0.95em;">'
-                + '<a href="' + esc(s.url || '#') + '" target="_blank" rel="noopener noreferrer" style="color:#0b7a75;">'
-                + esc(s.name || k) + '</a></div>'
-                + '<div style="font-size:0.85em;color:#6b7280;margin-top:0.25em;">' + esc(s.guidance || '') + '</div>'
-                + '</div>';
-            }).join('');
-            var sitesHtml = sectionLabel('Research Sites')
-              + (siteRows || emptyRow('No research sites available.'));
-
-            pdContent.innerHTML =
-                '<div style="padding:1em;border-bottom:0.25em solid #0b7a75;background:#f0fffe;">'
-              + '<div style="font-size:1em;font-weight:700;color:#0b7a75;text-transform:uppercase;">Provider Detail</div>'
-              + '<div style="font-size:1em;color:#374151;margin-top:0.25em;font-weight:600;">' + esc(d.provider_name || fullName || '') + '</div>'
-              + '</div>'
-              + idHtml
-              + addressesHtml
-              + licensesHtml
-              + insuranceHtml
-              + sitesHtml;
-          }
+          window._renderProviderDetail(msg.detail, msg.detail.provider_name || '');
         }
 
         if (msg.type === 'gui:event' && msg.action === 'highlight-filter') {

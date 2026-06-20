@@ -591,15 +591,14 @@ class TestStep03:
 class TestStep04:
     def test_splash_first_25_words(self, env):
         page = env["page"]
+        page.goto(BASE_URL, wait_until="networkidle")
         page.wait_for_timeout(10000)
-        chat_frame = None
-        for frame in page.frames:
-            if ":7860" in frame.url or "hf.space" in frame.url:
-                chat_frame = frame
-                break
-        assert chat_frame is not None, "Chat iframe not found"
-        env["chat_frame"] = chat_frame
-        body_text = chat_frame.locator("body").inner_text()
+        # Phase B: layout moved from the React iframe to the parent's
+        # centerContent. All UI assertions now run against the parent
+        # page, not the iframe. chat_frame is aliased to page so the
+        # 19 downstream tests that still reference it keep working.
+        env["chat_frame"] = page
+        body_text = page.locator("#centerContent").inner_text()
         for word in _get_welcome_words()[:10]:
             assert word in body_text, f"Welcome word '{word}' missing: {body_text[:300]}"
         _screenshot(page, "04")
@@ -748,6 +747,38 @@ class TestStep09:
     def test_providers_in_center(self, env):
         frame = env.get("chat_frame", env["page"])
         assert re.findall(r"NPI[:\s]+\d{10}", frame.locator("body").inner_text()), "No providers"
+
+
+# Step 9a [EPIC-006-F-025 — Provider Detail click-through]
+# The "provider detail" link below each provider row MUST: (a) POST to
+# SharedServices /gate op="provider-detail" via the parent's
+# _fetchAndShowProviderDetail orchestrator, (b) the provider_detail_tool
+# return a ProviderDetailOutput Pydantic JSON, (c) the parent's
+# ProviderDetailRenderer widget paint into #rightContent, (d) the
+# right-side panel expand so the paint is visible.
+class TestStep09aProviderDetail:
+    def test_provider_detail_link_paints_right_panel(self, env):
+        page = env["page"]
+        # Locate the small-font "provider detail" link on the first row.
+        links = page.locator("[data-provider-detail]")
+        assert links.count() > 0, "no provider-detail links present on the row"
+        first = links.first
+        assert first.is_visible(), "provider-detail link not visible to the user"
+        first.click()
+        # ProviderDetailRenderer writes a [data-testid='provider-detail'] block
+        # into #rightContent. Allow up to 10s for the /gate stream to land.
+        target = page.locator("#rightContent [data-testid='provider-detail']")
+        target.wait_for(state="visible", timeout=10000)
+        # Required sections per EPIC-006-F-025-S-001-REQ-B-002..B-006.
+        body_text_upper = page.locator("#rightContent").inner_text().upper()
+        for section in ("PROVIDER DETAIL", "NPI:", "ADDRESSES", "LICENSES", "INSURANCE", "RESEARCH SITES"):
+            assert section in body_text_upper, (
+                f"provider-detail panel missing section {section!r}; got: {body_text_upper[:400]}"
+            )
+        # Right panel must be expanded so the paint is actually visible.
+        expanded = page.evaluate("document.getElementById('rightPanel').classList.contains('expanded')")
+        assert expanded, "rightPanel did not expand on provider-detail click"
+        _screenshot(page, "09a")
 
 
 # Step 10 [UX-CTRL-003-REQ-006]
@@ -986,8 +1017,9 @@ class TestStep22:
         apply_btn.click()
         page.wait_for_timeout(5000)
 
-        # FindCare display surface restored.
-        assert page.locator("#coreChatFrame").is_visible(), "Chat iframe not restored"
+        # Phase B: FindCare display surface is the parent's #centerContent.
+        # The React iframe is hidden off-screen as a data layer.
+        assert page.locator("#centerContent").count() > 0, "centerContent surface not restored"
         ec_splash = page.locator("#evalcareSplash")
         if ec_splash.count() > 0:
             assert not ec_splash.is_visible(), "EvaluateCare splash still visible after return"
@@ -995,18 +1027,16 @@ class TestStep22:
         if sh_splash.count() > 0:
             assert not sh_splash.is_visible(), "SharedServices splash still visible after return"
 
-        chat_frame = page.locator("#coreChatFrame").content_frame
-        assert chat_frame is not None, "Chat iframe not found at TestStep22"
-        env["chat_frame"] = chat_frame
+        env["chat_frame"] = page
 
-        # NPIs present in chat iframe after the new query lands.
+        # NPIs present in centerContent after the new query lands.
         def _check_npis_after_apply():
-            body_text = chat_frame.locator("body").inner_text()
+            body_text = page.locator("#centerContent").inner_text()
             npis = re.findall(r"NPI[:\s]+\d{10}", body_text)
             if not npis:
                 raise AssertionError(
                     "Apply Filter must re-query providers: no NPI strings present after Apply Filter. "
-                    f"body (first 400 chars): {body_text[:400]}"
+                    f"centerContent (first 400 chars): {body_text[:400]}"
                 )
             return len(npis)
         _retry("test22_npis_after_apply", 20, 750, _check_npis_after_apply)
@@ -1325,7 +1355,8 @@ class TestStep31:
         assert apply_btn.count() > 0, "REQ-B-031: Apply Filter button (sub-iframe) not found"
         apply_btn.click()
         page.wait_for_timeout(5000)
-        assert page.locator("#coreChatFrame").is_visible(), "Chat iframe not restored after SharedServices→FindCare"
+        # Phase B: parent's #centerContent is the FindCare display surface.
+        assert page.locator("#centerContent").count() > 0, "centerContent surface missing after SharedServices→FindCare"
         # Handoff 4 of 6: SharedServices → FindCare
         nonce, guid = _verify_session_identity(page, env, "SharedServices→FindCare")
         env["sh_to_fc_nonce"] = nonce
@@ -1381,15 +1412,13 @@ class TestStep33:
             cold = page.locator('span[data-service="findcare"]')
             assert cold.count() > 0, \
                 "REQ-B-033: FindCare banner link is not dead (no <span data-service='findcare'>) after return"
-        # Welcome text in the main frame — specifically the chat iframe
-        # element #coreChatFrame, NOT the filter sub-iframe (which is also
-        # served by FindCare and would match a URL-based search).
-        chat_locator = page.frame_locator("#coreChatFrame")
-        body_text = chat_locator.locator("body").inner_text()
+        # Phase B: welcome text is rendered by the parent into #centerContent,
+        # not into the React iframe body.
+        body_text = page.locator("#centerContent").inner_text()
         assert "Find care in the US & clinical trials globally," in body_text, \
-            f"REQ-B-033: welcome text not present in main frame: {body_text[:400]}"
+            f"REQ-B-033: welcome text not present in centerContent: {body_text[:400]}"
         assert "Let's talk about it." in body_text, \
-            f"REQ-B-033: welcome 'Let's talk about it.' line not present in main frame: {body_text[:400]}"
+            f"REQ-B-033: welcome 'Let's talk about it.' line not present in centerContent: {body_text[:400]}"
         _screenshot(page, "33")
 
 
@@ -1534,26 +1563,21 @@ class TestStep99FiddlesticksNoFatal:
         page = env["page"]
         page.goto(BASE_URL, wait_until="networkidle")
         page.wait_for_timeout(3000)
-        # Same iframe-discovery pattern Step04 uses (canonical): match the
-        # local FindCare port OR any *.hf.space URL — covers local/dev/qa/prod.
-        # Prior 'findcare' substring match always missed dev/qa whose iframe
-        # is skipsnow-{env}-chathealthyspace.hf.space.
-        chat = None
-        for f in page.frames:
-            if ":7860" in (f.url or "") or "hf.space" in (f.url or ""):
-                chat = f; break
-        assert chat is not None, "FindCare chat iframe not found for nonsense-query regression check"
-        try:
-            inp = chat.locator(
-                "input[placeholder*='Type a message'], textarea"
-            ).first
-            inp.wait_for(state="visible", timeout=15000)
-            inp.fill("fiddlesticks")
-            chat.locator("button", has_text="Send").first.click()
-        except Exception:
-            pytest.skip("could not submit nonsense query in chat iframe")
-        deadline = 40_000
+        # Phase B: input + Send live on the parent page (#userInput / #userInputSubmit),
+        # not inside the React iframe. The iframe persists as a hidden data layer
+        # carrying the React component that drives the search; the user-facing
+        # surface — including the prompt row — is in #centerContent on the parent.
+        inp = page.locator("#userInput")
+        inp.wait_for(state="visible", timeout=15000)
+        # Capture the welcome text so we can subtract it from centerContent and
+        # isolate the system's response to 'fiddlesticks'.
+        center = page.locator("#centerContent")
+        baseline_text = center.inner_text().strip()
+        inp.fill("fiddlesticks")
+        page.locator("#userInputSubmit").click()
+        deadline = 45_000
         overlay = page.locator("#chFatalErrorOverlay")
+        response_text = ""
         while deadline > 0:
             assert not overlay.is_visible(), (
                 "REGRESSION: nonsense query 'fiddlesticks' triggered the "
@@ -1561,15 +1585,96 @@ class TestStep99FiddlesticksNoFatal:
                 "the chat phase; the wrapper overlay is reserved for "
                 "real infrastructure failures."
             )
-            try:
-                body_text = chat.locator("body").inner_text().lower()
-                if "couldn't" in body_text or "no providers" in body_text \
-                        or "results" in body_text or "available providers" in body_text:
-                    break
-            except Exception:
-                pass
+            current = center.inner_text().strip()
+            # Strip the welcome baseline; what remains is the system's reply.
+            delta = current.replace(baseline_text, "").strip() if baseline_text else current
+            # A non-trivial reply (> a token row) means the assistant responded.
+            if len(delta) > 30 and delta.lower() != "0s":
+                response_text = delta
+                # Let any trailing streamed chunks settle.
+                page.wait_for_timeout(2000)
+                response_text = center.inner_text().replace(baseline_text, "").strip()
+                break
             page.wait_for_timeout(1000); deadline -= 1000
         _screenshot(page, "99")
+        assert response_text, (
+            "Nonsense query produced no user-visible response in centerContent "
+            "within 45s. The system MUST surface a clarification prose; silent "
+            "drops are a UAT failure."
+        )
+        # LLM-as-judge: a healthcare-finding assistant given the word
+        # 'fiddlesticks' should respond with a non-crashy clarification that
+        # acknowledges it did not understand and invites the user to restate
+        # what care they're looking for. Anything else fails the UAT.
+        reasonable = _judge_fiddlesticks_response(response_text)
+        assert reasonable, (
+            f"UAT failure: response to 'fiddlesticks' is not a reasonable "
+            f"clarification.\n  response: {response_text[:500]!r}"
+        )
+
+
+def _judge_fiddlesticks_response(response_text: str) -> bool:
+    """Ask Gemini 2.5 Flash Lite (fast, cheap, non-reasoning) whether the
+    assistant's response to 'fiddlesticks' is a reasonable clarification for
+    a healthcare-finding chatbot. Returns a boolean. Raises if the API call
+    fails — silent fallback would hide UAT regressions."""
+    from pathlib import Path as _Path
+    from dotenv import load_dotenv
+    _repo_root = _Path(__file__).resolve().parents[2]
+    load_dotenv(_repo_root / "Code" / ".env", override=False)
+    api_key = os.getenv("GEMINI_API_KEY")
+    assert api_key, "GEMINI_API_KEY missing — cannot run UAT judge for Step99"
+    prompt = (
+        "You are evaluating a healthcare-finding chatbot. The user typed the "
+        "nonsense word 'fiddlesticks'. Below is what appears on the screen "
+        "after the user's submission — this may include the echoed user "
+        "prompt (the literal word 'fiddlesticks') at the top of the chat "
+        "history as part of normal chat-UI behavior; that echo is EXPECTED "
+        "and is NOT a failure. Judge only the assistant's reply below it.\n\n"
+        "A REASONABLE assistant reply either (a) acknowledges it didn't "
+        "understand the query and invites the user to describe what kind of "
+        "care or provider they're looking for, or (b) gracefully offers a "
+        "non-crashy fallback such as restating what the assistant can help "
+        "with. The reply is UNREASONABLE if it is empty, contains a stack "
+        "trace, raw JSON, an HTTP error code, debug output, gibberish, an "
+        "off-topic answer (e.g. pretends to know what fiddlesticks means and "
+        "returns providers), or otherwise reads as a system failure rather "
+        "than a coherent clarification.\n\n"
+        f"Screen content after submit:\n```\n{response_text}\n```\n\n"
+        "Reply with the single word YES if reasonable, NO if not. No other "
+        "text."
+    )
+    body = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0,
+            "maxOutputTokens": 5,
+        },
+    }
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.5-flash-lite:generateContent?key={api_key}"
+    )
+    import time as _time
+    last_err = None
+    for attempt in range(5):
+        r = httpx.post(
+            url, headers={"content-type": "application/json"},
+            json=body, timeout=30,
+        )
+        if r.status_code == 429 or r.status_code >= 500:
+            _time.sleep(5 + attempt * 5)
+            last_err = f"{r.status_code} (attempt {attempt + 1})"
+            continue
+        r.raise_for_status()
+        text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+        verdict = text.strip().upper()
+        if verdict.startswith("YES"):
+            return True
+        if verdict.startswith("NO"):
+            return False
+        raise RuntimeError(f"Gemini judge returned non-boolean: {text!r}")
+    raise RuntimeError(f"Gemini judge failed 5x: {last_err}")
 
 
 # Step 99b — UM regression: a nonsense word arriving after a findAProvider
