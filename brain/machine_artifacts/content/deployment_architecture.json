@@ -106,7 +106,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "688d39d1c6fe7e0b09741de3d668886452c6bc3a01768198a12ddf36dd862f64"
+          "content_hash": "65c0ee49c0bad5c63b70a9d5b593c1ea4c5855eb9905372a98cf27797173b2d5"
         },
         {
           "feature_id": "EPIC-008-F-012",

@@ -1713,8 +1713,9 @@
           var available = (s.available || []).map(function(p) { return renderProviderRow(p, 'select'); }).join('');
           var selected = (s.selected || []).map(function(p) { return renderProviderRow(p, 'unselect'); }).join('');
           var selCount = (s.selected || []).length;
+          var remaining = Math.max(0, (s.totalCount || 0) - (s.available || []).length - (s.selected || []).length);
           var loadMore = s.hasMore
-            ? '<div style="padding:1em;text-align:center;"><button data-action="load_more_providers" style="padding:0.5em 1em;border-radius:6px;border:0.0625em solid #0b7a75;background:#fff;color:#0b7a75;cursor:pointer;">' + (s.isLoadingMore ? 'Loading…' : 'Load more') + '</button></div>'
+            ? '<div style="padding:0.5em 1em;background:#f0fffe;border-top:0.125em solid #d8e2e1;flex-shrink:0;display:flex;justify-content:center;"><button data-action="load_more_providers" style="padding:0.5em 1em;border-radius:6px;border:0.125em solid #0b7a75;background:#fff;color:#0b7a75;cursor:' + (s.isLoadingMore ? 'wait' : 'pointer') + ';font-weight:600;">' + (s.isLoadingMore ? 'Loading…' : 'Load more (' + remaining + ' remaining)') + '</button></div>'
             : '';
           var evalBtn = selCount > 0
             ? '<button data-testid="evaluate-button" data-action="evaluate_providers" style="padding:0.5em 1em;border-radius:6px;border:0.0625em solid #d97706;background:#d97706;color:#fff;cursor:pointer;font-weight:600;">Evaluate These Providers</button>'
@@ -1726,7 +1727,8 @@
             + '<span style="font-size:1em;font-weight:600;color:#0b7a75;text-transform:uppercase;">Available Providers</span>'
             + '<span style="font-size:1em;color:#6b7280;">' + (s.available || []).length + ' available' + (s.garbageCount > 0 ? ' · 🗑 ' + s.garbageCount : '') + '</span>'
             + '</div>'
-            + window.ScrollableFrame.wrap(available + loadMore, { dataTestId: 'available-providers' })
+            + window.ScrollableFrame.wrap(available, { dataTestId: 'available-providers' })
+            + loadMore
             + '<div style="border-top:0.25em solid #d97706;background:#fffbeb;padding:0.5em 1em;display:flex;justify-content:space-between;align-items:center;gap:1em;flex-shrink:0;">'
             + '<span style="font-size:1em;font-weight:600;color:#d97706;">Selected for Evaluation ' + selCount + ' / 5</span>'
             + evalBtn + '</div>'
