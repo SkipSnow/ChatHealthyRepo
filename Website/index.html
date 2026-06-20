@@ -889,7 +889,7 @@
       </div>
 
       <div class="center-column" style="display:flex;flex-direction:column;height:100%;font-family:system-ui,sans-serif;">
-        <div id="centerContent" style="flex:1;overflow:hidden;min-height:0;display:flex;flex-direction:column;">
+        <div id="centerContent" style="position:relative;flex:1;overflow:hidden;min-height:0;display:flex;flex-direction:column;">
           <div class="frame-loading" id="frameLoading">
             <div class="spinner"></div>
             <p>Loading Find Care AI…</p>
@@ -906,7 +906,6 @@
           title="Find Care — CoreChatUX (data layer)"
           allow="microphone; clipboard-write"
           style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;border:0;visibility:hidden;"
-          onload="document.getElementById('frameLoading')?.classList.add('hidden')"
         ></iframe>
       </div> <!-- /center-column -->
 
@@ -1137,8 +1136,18 @@
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/x-ndjson' },
           body: body,
         }).then(function(resp) {
-          if (!resp.ok || !resp.body) {
+          if (!resp.ok) {
             throw new Error('SharedServices /gate provider-detail HTTP ' + resp.status);
+          }
+          var ct = (resp.headers.get('content-type') || '').toLowerCase();
+          if (ct.indexOf('application/json') >= 0 && ct.indexOf('ndjson') < 0) {
+            return resp.json().then(function(payload) {
+              if (window._noteGateResponse) window._noteGateResponse(payload);
+              return (payload && payload.result) ? payload.result : payload;
+            });
+          }
+          if (!resp.body) {
+            throw new Error('SharedServices /gate provider-detail empty body');
           }
           var reader = resp.body.getReader();
           var decoder = new TextDecoder('utf-8');
@@ -1466,7 +1475,12 @@
           return;
         }
 
-        if (inputForm) inputForm.style.display = 'none';
+        // EPIC-002-F-011 — utterance frame (#userInputForm) is an
+        // independent and permanent frame in the presentation
+        // infrastructure. It MUST stay visible across every service
+        // ownership transition (FindCare ↔ EvaluateCare ↔ SharedServices),
+        // not be hidden when a non-FindCare service takes the page.
+        if (inputForm) inputForm.style.display = '';
         if (!centerContent) return;
 
         var mountId = serviceKey === 'evaluatecare' ? 'evalcareSplash' : 'sharedSplash';
@@ -1477,9 +1491,34 @@
         if (!serviceUrl) return;
 
         if (serviceKey === 'evaluatecare') {
-          fetch(serviceUrl + '/splash', { method: 'POST' })
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
+          // EPIC-002-F-004-S-001 universal-gateway rule: all client-to-server
+          // calls route through SharedServices /gate. SharedServices does the
+          // server-to-server hop to EvaluateCare on mTLS via _handle_evalcare_splash.
+          var ssUrl = (window._envServiceUrls || {}).sharedservices || '';
+          if (!ssUrl) return;
+          fetch(ssUrl + '/gate', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: window._gateBody ? window._gateBody({op: 'evalcare-splash'}) : '{"op":"evalcare-splash"}'
+          })
+            .then(function(r) {
+              if (r.status >= 500 || (r.status >= 400 && r.status !== 401 && r.status !== 403)) {
+                window._gateHardFail && window._gateHardFail();
+                throw new Error('SharedServices /gate evalcare-splash HTTP ' + r.status);
+              }
+              return r.json().catch(function() {
+                window._gateHardFail && window._gateHardFail();
+                throw new Error('SharedServices /gate evalcare-splash malformed body');
+              });
+            })
+            .then(function(payload) {
+              if (window._noteGateResponse) window._noteGateResponse(payload);
+              if (payload && payload.session_token) {
+                window._authBoot = payload.session_token;
+                if (window._broadcastAuthBoot) window._broadcastAuthBoot();
+              }
+              var d = (payload && payload.result) ? payload.result : payload;
               if (typeof window.EvaluateCareSplashRenderer === 'function') {
                 window.EvaluateCareSplashRenderer(d, mountEl, 'splash');
               } else if (mountEl) {
@@ -1529,20 +1568,22 @@
 
 
       try { window._getAuthBoot().then(function(t){ console.log('[OAUTH-CLIENT] /gate(boot) resolved: token_tail=' + (t && t.token ? t.token.slice(-32) : 'none')); }); } catch (_) {}
-      // REQ-T-010: a returning ?system_timed_out=… URL means the user
-      // was just bounced home by the pre-flight check. Skip the iframe
-      // boot, render the notice in place of the splash, and let the
-      // user click Login & Registration / Home from chrome to restart.
-      var iframe = document.getElementById('coreChatFrame');
-      if (typeof window._renderSystemTimedOut === 'function' && window._renderSystemTimedOut()) {
-        // No iframe boot on the timeout splash path.
-      } else {
-        // Retry loading iframe — wait 3s between attempts, max 10 tries
-        var maxRetries = 60;  // 60 × 10s = 10 min — HF Space can take 2-3 min to restart
+      // Defer #coreChatFrame src assignment until paintCenter listeners are
+      // registered (second script block). Otherwise a fast/cached iframe load
+      // can post gui:findcare-state before the parent is listening.
+      window._coreChatFrameSrc = src;
+      window._bootCoreChatFrame = function() {
+        if (window._coreChatFrameBooted) return;
+        if (typeof window._renderSystemTimedOut === 'function' && window._renderSystemTimedOut()) return;
+        var iframe = document.getElementById('coreChatFrame');
+        var bootSrc = window._coreChatFrameSrc;
+        if (!iframe || !bootSrc) return;
+        window._coreChatFrameBooted = true;
+        var maxRetries = 60;
         var attempt = 0;
         function tryLoad() {
           attempt++;
-          iframe.src = src;
+          iframe.src = bootSrc;
           iframe.onerror = function() {
             if (attempt < maxRetries) {
               console.log('[iframe] Load attempt ' + attempt + ' failed, retrying in 10s...');
@@ -1553,7 +1594,7 @@
           };
         }
         tryLoad();
-      }
+      };
     })();
 
     (function() {
@@ -1697,7 +1738,9 @@
           var addrLine = escHtml([p.address, p.city, p.state, p.zip].filter(function(x){return x;}).join(', '));
           var btnLabel = action === 'select' ? '↓ Select' : action === 'unselect' ? '↑ Remove' : '× Dismiss';
           var dataAction = action === 'select' ? 'provider_select' : action === 'unselect' ? 'provider_unselect' : 'provider_dismiss';
-          return '<div data-testid="provider-card" data-npi="' + escHtml(p.npi || '') + '" style="padding:0.5em 1em;border-bottom:0.0625em solid #eee;display:flex;justify-content:space-between;align-items:center;gap:1em;">'
+          var draggableAttr = action === 'select' ? ' draggable="true"' : '';
+          var cursorStyle = action === 'select' ? 'cursor:grab;' : '';
+          return '<div data-testid="provider-card" data-row-action="' + (action || '') + '" data-npi="' + escHtml(p.npi || '') + '"' + draggableAttr + ' style="padding:0.5em 1em;border-bottom:0.0625em solid #eee;display:flex;justify-content:space-between;align-items:center;gap:1em;' + cursorStyle + '">'
             + '<div style="flex:1;min-width:0;">'
             + '<div style="font-weight:600;color:#0b7a75;">' + name + '</div>'
             + '<div style="font-size:0.9em;color:#6b7280;">' + escHtml(p.specialty || '') + '</div>'
@@ -1736,6 +1779,11 @@
             + '</div>';
         }
 
+        function _hideFrameLoading() {
+          var fl = document.getElementById('frameLoading');
+          if (fl) fl.classList.add('hidden');
+        }
+
         function paintCenter(s) {
           var el = centerContent(); if (!el) return;
           var inner = '';
@@ -1767,6 +1815,28 @@
               });
             })(btns[i]);
           }
+          var dragCards = el.querySelectorAll('[data-row-action="select"]');
+          for (var di = 0; di < dragCards.length; di++) {
+            (function(card) {
+              card.addEventListener('dragstart', function(ev) {
+                ev.dataTransfer.setData('text/plain', card.getAttribute('data-npi') || '');
+                ev.dataTransfer.effectAllowed = 'move';
+                card.style.opacity = '0.5';
+              });
+              card.addEventListener('dragend', function() { card.style.opacity = ''; });
+            })(dragCards[di]);
+          }
+          var dropZone = el.querySelector('[data-testid="selected-providers"]');
+          if (dropZone) {
+            dropZone.addEventListener('dragover', function(ev) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; });
+            dropZone.addEventListener('drop', function(ev) {
+              ev.preventDefault();
+              var npi = ev.dataTransfer.getData('text/plain');
+              if (!npi) return;
+              var f = cframe();
+              if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'provider_select', npi: npi }, '*');
+            });
+          }
           var loadMoreBtn = el.querySelector('[data-action="load_more_providers"]');
           if (loadMoreBtn) {
             loadMoreBtn.addEventListener('click', function() {
@@ -1791,13 +1861,20 @@
                 e.preventDefault();
                 e.stopPropagation();
                 var npi = a.getAttribute('data-provider-detail');
+                if (!npi) return;
                 var prov = _findProviderByNpi(npi);
-                if (prov && typeof window._fetchAndShowProviderDetail === 'function') {
+                if (!prov) {
+                  var card = a.closest('[data-testid="provider-card"]');
+                  var nameEl = card ? card.querySelector('div[style*="font-weight:600"]') : null;
+                  prov = { npi: npi, name: nameEl ? nameEl.textContent.trim() : '' };
+                }
+                if (typeof window._fetchAndShowProviderDetail === 'function') {
                   window._fetchAndShowProviderDetail(prov);
                 }
               });
             })(detailLinks[d]);
           }
+          _hideFrameLoading();
         }
 
         function paintForm(s) {
@@ -1835,11 +1912,11 @@
         });
 
         function _findProviderByNpi(npi) {
-          var s = _lastFindcareState;
+          var s = window._lastFindcareState;
           if (!s) return null;
           var all = (s.available || []).concat(s.selected || []);
           for (var i = 0; i < all.length; i++) {
-            if (all[i] && all[i].npi === npi) return all[i];
+            if (all[i] && String(all[i].npi) === String(npi)) return all[i];
           }
           return null;
         }
@@ -1867,6 +1944,7 @@
         } else {
           wireForm();
         }
+        if (typeof window._bootCoreChatFrame === 'function') window._bootCoreChatFrame();
       })();
 
       window.addEventListener('message', function(event) {

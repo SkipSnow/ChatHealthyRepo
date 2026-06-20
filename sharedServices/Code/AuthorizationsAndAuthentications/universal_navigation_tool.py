@@ -46,6 +46,7 @@ from authentication.agent_deps import (
 from authentication.chathealthy_tool import ChatHealthyTool
 from authentication import (
     authorizations_and_authentications_tool as authn,
+    evalcare_splash_tool,
     provider_detail_tool,
 )
 from authentication.user_object import UserObject
@@ -294,6 +295,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         "utterance":       "_handle_utterance",
         "provider-detail": "_handle_provider_detail",
         "apply_filter":    "_handle_apply_filter",
+        "evalcare-splash": "_handle_evalcare_splash",
     }
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
@@ -453,6 +455,16 @@ class UniversalNavigationTool(ChatHealthyTool):
         resp = await provider_detail_tool.TOOL.run_and_log(deps, req)
         deps.stream({"kind": "final", "data": {"ok": not resp.error}})
         return Response(kind="provider-detail", result=resp.model_dump(exclude_none=True))
+
+    async def _handle_evalcare_splash(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """Click path: a user clicked the EvaluateCare banner button. This
+        is NOT an utterance — no LLM hop. Server-to-server HTTPS-hops to
+        EvaluateCare's /splash and streams {kind: 'evalcare-splash', ...}
+        back to the FE. Mirror of _handle_provider_detail."""
+        req = evalcare_splash_tool.Request(**payload)
+        resp = await evalcare_splash_tool.TOOL.run_and_log(deps, req)
+        deps.stream({"kind": "final", "data": {"ok": not resp.error}})
+        return Response(kind="evalcare-splash", result=resp.model_dump(exclude_none=True))
 
     async def _handle_apply_filter(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         """UR dispatch for op == 'apply_filter' per
