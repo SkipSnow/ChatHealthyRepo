@@ -114,16 +114,6 @@ def creation_flags() -> int:
     return subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 
-def require_local_context() -> None:
-    """REQ-T-055 — local_deploy MUST run only on an operator's workstation,
-    never on a GitHub Actions runner. For CI deploys use remote_deploy.py."""
-    if os.environ.get("GITHUB_ACTIONS") == "true":
-        sys.exit(
-            "ERROR: local_deploy.py MUST NOT run on a GitHub Actions runner. "
-            "Use remote_deploy.py instead (REQ-T-055)."
-        )
-
-
 # Firm-level promote-chain rule. local + dev deploy from the dev branch;
 # qa deploys from the qa branch; prod deploys from main. Every cloud
 # target in deployment_architecture.json carries the same env_binding.branch
@@ -318,6 +308,12 @@ def set_hf_config(
     for name, qualifier in (target.variables or {}).items():
         value = _resolve_qualifier(name, qualifier)
         rd._hf_set_variable(hf_token, space, name, value)
+
+    # Logging tag — the per-build Space name lands on every Mongo log
+    # document (admin.HuggingFaceLogs_{env}). Without this, logs from
+    # multiple Spaces in the same env are indistinguishable in the
+    # collection. The logging library reads CH_SPACE_NAME at startup.
+    rd._hf_set_variable(hf_token, space, "CH_SPACE_NAME", space)
 
     for name, qualifier in (target.secrets or {}).items():
         value = _resolve_qualifier(name, qualifier)
@@ -2464,11 +2460,21 @@ class LocalDeploy:
                 ["docker", "rm", "-f", container_name],
                 capture_output=True, text=True, creationflags=cflags,
             )
-            extra_env: list[str] = []
+            extra_env: list[str] = [
+                # Logging identity for admin.HuggingFaceLogs_local.
+                # Container name doubles as the "Space name" locally so
+                # the schema is uniform across local/dev/qa/prod.
+                "-e", f"CH_SPACE_NAME={container_name}",
+            ]
             if container_name == "ch-sharedsvc":
                 extra_env.extend([
                     "-e", f"FINDCARE_INTERNAL_URL=https://host.docker.internal:{self.PORTS['findcare']}",
                     "-e", f"EVALCARE_INTERNAL_URL=https://host.docker.internal:{self.PORTS['evalcare']}",
+                    # Browser-facing peer URLs returned by /gate op=peer_urls
+                    # (EPIC-002-F-004-S-001). The wrapper uses these to set
+                    # iframe.src; never build-substituted into the wrapper.
+                    "-e", f"CH_BROWSER_PEER_URL_FINDCARE=https://localhost:{self.PORTS['findcare']}",
+                    "-e", f"CH_BROWSER_PEER_URL_EVALCARE=https://localhost:{self.PORTS['evalcare']}",
                 ])
             run_cmd = (
                 ["docker", "run", "-d",

@@ -15,9 +15,10 @@
 #            record_ux_event, utterance, ...). Emits stream events as it
 #            runs; final result is the last NDJSON line on the wire.
 #
-# Auxiliary endpoints (/session, /verify-token, /auth/issue, /auth/google/*,
-# /transfer/to-findcare, /secrets/{key}, /health) are out of scope of this
-# refactor and stay direct.
+# Trivial ops (peer_urls, peer_health, session, verify_token,
+# transfer_to_findcare) are dispatched inline by /gate without invoking
+# the heavy nav-tool graph. They satisfy EPIC-002-F-004-S-001 (universal
+# entrance) by keeping all client traffic on /gate.
 
 import base64
 from chathealthy_frontend_lib import ChatHealthyLoggingService
@@ -170,6 +171,15 @@ SESSION_COOKIE_MAX_AGE = 300
 SESSION_COOKIE_DOMAIN = "chathealthy.ai"
 SESSION_COOKIE_PATH = "/gate"
 
+# Browser-facing peer URLs the wrapper consumes from /gate (op=peer_urls
+# or /gate boot response) so iframe.src and peer-health lookups never
+# need build-time substitution into the wrapper bytes. Set by deploy.
+CH_BROWSER_PEER_URL_FINDCARE = os.getenv("CH_BROWSER_PEER_URL_FINDCARE", "https://localhost:7860")
+CH_BROWSER_PEER_URL_EVALCARE = os.getenv("CH_BROWSER_PEER_URL_EVALCARE", "https://localhost:8001")
+# Server-to-server peer URLs SS uses to proxy peer_health.
+FINDCARE_INTERNAL_URL_FOR_HEALTH = os.getenv("FINDCARE_INTERNAL_URL", "https://ch-findcare:7860")
+EVALCARE_INTERNAL_URL_FOR_HEALTH = os.getenv("EVALCARE_INTERNAL_URL", "https://ch-evalcare:7860")
+
 
 def impl(cls_name, file_subpath):
     return {
@@ -225,6 +235,62 @@ def set_session_cookie(response: Response, cookie_value: str) -> None:
     )
 
 
+_TRIVIAL_GATE_OPS = frozenset({
+    "peer_urls", "peer_health", "session", "verify_token", "transfer_to_findcare",
+})
+
+
+async def _dispatch_trivial_gate_op(op: str, payload: dict) -> dict:
+    """Inline op handlers for /gate trivial ops.
+
+    Returns a plain dict that /gate wraps in JSONResponse. These ops do
+    NOT pass through universal_navigation_tool — they are the gateway's
+    own short-circuit branches for client work that has no LLM/graph
+    component (peer URL lookup, peer health proxy, AuthToken stamping,
+    ownership-transfer ack).
+    """
+    if op == "peer_urls":
+        return {
+            "findcare":       CH_BROWSER_PEER_URL_FINDCARE,
+            "evaluatecare":   CH_BROWSER_PEER_URL_EVALCARE,
+            "sharedservices": "",   # the wrapper already knows its own /gate origin
+        }
+    if op == "peer_health":
+        peer = (payload or {}).get("peer", "").lower()
+        target_url = {
+            "findcare":       FINDCARE_INTERNAL_URL_FOR_HEALTH,
+            "evaluatecare":   EVALCARE_INTERNAL_URL_FOR_HEALTH,
+            "sharedservices": "self",
+        }.get(peer)
+        if target_url is None:
+            raise ChatHealthyException(
+                mode="gate_peer_health_unknown_peer",
+                message=f"/gate peer_health: unknown peer {peer!r}",
+                component="SharedServices",
+            )
+        if target_url == "self":
+            payload_out = HealthEndpoint()()
+            return payload_out
+        import httpx
+        async with httpx.AsyncClient(verify=False, timeout=5.0) as client:
+            r = await client.post(target_url + "/health")
+            r.raise_for_status()
+            return r.json()
+    if op == "session":
+        body_obj = SessionRestampRequest.model_validate(payload or {})
+        return AuthToken.handle_session(body_obj, origin=ORIGIN, server_env=ENV).model_dump()
+    if op == "verify_token":
+        body_obj = SessionRestampRequest.model_validate(payload or {})
+        return AuthToken.handle_verify(body_obj, origin=ORIGIN, server_env=ENV).model_dump()
+    if op == "transfer_to_findcare":
+        return TransferToFindCareEndpoint()()
+    raise ChatHealthyException(
+        mode="gate_trivial_op_unregistered",
+        message=f"_dispatch_trivial_gate_op: op {op!r} is in _TRIVIAL_GATE_OPS but has no handler branch",
+        component="SharedServices",
+    )
+
+
 @app.post("/gate", operation_id="UniversalGate",
           openapi_extra=impl(
               "AuthorizationsAndAuthenticationsTool + UniversalNavigationTool",
@@ -276,6 +342,22 @@ async def gate(
     xff = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
     client_ip = xff or (request.client.host if request.client else "")
 
+    # Trivial ops dispatched inline (EPIC-002-F-004-S-001): no graph
+    # invocation, no nonce machinery. peer_urls + peer_health + session +
+    # verify_token + transfer_to_findcare all return immediately. Cookie
+    # pass-through preserves whatever ch_session the wrapper already holds.
+    if op in _TRIVIAL_GATE_OPS:
+        body_dict = await _dispatch_trivial_gate_op(op, op_payload)
+        resp = JSONResponse(content=body_dict)
+        if ch_session:
+            resp.set_cookie(
+                key=SESSION_COOKIE_NAME, value=ch_session,
+                max_age=SESSION_COOKIE_MAX_AGE,
+                httponly=True, secure=True, samesite="none",
+                domain=SESSION_COOKIE_DOMAIN, path=SESSION_COOKIE_PATH,
+            )
+        return resp
+
     try:
         gate_req = nav.GateRequest(
             op=op,
@@ -313,31 +395,15 @@ async def gate(
 
 
 # ─────────────────────────────────────────────────────────────────────
-# Auxiliary routes (out of scope of this refactor — stay direct)
+# Auxiliary routes (OAuth + secrets — out of scope of /gate; OAuth needs
+# top-level navigation; secrets are admin-only). Everything else is on
+# /gate per EPIC-002-F-004-S-001.
 # ─────────────────────────────────────────────────────────────────────
 
 @app.post("/auth/issue", operation_id="AuthIssue", response_model=SessionToken,
           openapi_extra=impl("MintableAuthToken", "authentication/mintable_auth_token.py"))
 def auth_issue():
     return MintableAuthToken.manufacture(server_env=ENV).to_wire()
-
-
-@app.post("/session", operation_id="Session", response_model=SessionToken,
-          openapi_extra=impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
-def session(body: SessionRestampRequest):
-    return AuthToken.handle_session(body, origin=ORIGIN, server_env=ENV)
-
-
-@app.post("/verify-token", operation_id="VerifyToken", response_model=VerifyTokenResponse,
-          openapi_extra=impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
-def verify_token(body: SessionRestampRequest):
-    return AuthToken.handle_verify(body, origin=ORIGIN, server_env=ENV)
-
-
-@app.post("/transfer/to-findcare", operation_id="TransferToFindCareEndpoint",
-          openapi_extra=impl("TransferToFindCareEndpoint", "displayChrome/transfer_to_findcare_endpoint.py"))
-def transfer_to_findcare():
-    return TransferToFindCareEndpoint()()
 
 
 @app.get("/secrets/{key}", operation_id="SecretsEndpoint",

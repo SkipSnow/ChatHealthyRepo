@@ -799,9 +799,12 @@
       // to Cloudflare Pages. The source file holds placeholders so an engineer
       // can read it; the published bytes always have real URLs.
       window._envServiceUrls = (function() {
+        // Only the SharedServices /gate URL is build-substituted. FindCare
+        // and EvaluateCare browser URLs come from /gate op=peer_urls at
+        // runtime (EPIC-002-F-004-S-001). Populated by _peerUrlsPromise.
         return {
-          findcare:        '__HF_URL_FINDCARE__',
-          evaluatecare:    '__HF_URL_EVALCARE__',
+          findcare:        '',
+          evaluatecare:    '',
           sharedservices:  '__HF_URL_SHAREDSERVICES__',
         };
       })();
@@ -839,8 +842,7 @@
           if (rp) rp.classList.add('mobile-rightpanel-open');
           document.body.classList.add('right-overlay-open');
         }
-        var root = (window._envServiceUrls || {})[key] || '';
-        var healthUrl = root + '/health';
+        var sharedGateUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
         function paintBanner(version, build, gitNumber) {
           // All banner text routed through chFont so font-size is governed by
           // the canonical font registry, not hand-tuned per element. Inline
@@ -863,7 +865,15 @@
         // buttons stay atomically aligned, then overlay real values when
         // /health resolves.
         paintBanner('?', '?', '?');
-        fetch(healthUrl, { method: 'POST' }).then(function(r) { return r.json(); }).then(function(d) {
+        fetch(sharedGateUrl + '/gate', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({op: 'peer_health', payload: {peer: key}})
+        }).then(function(r) {
+          if (!r.ok) throw new Error('/gate peer_health HTTP ' + r.status);
+          return r.json();
+        }).then(function(d) {
           paintBanner(d.version, d.build, d.git_number);
         }).catch(function() { window.chFatalError(''); });
       };
@@ -922,12 +932,30 @@
         : 'prod';
       document.body.classList.add('env-' + env);
 
-      // Build iframe URL from environment — read from window._envServiceUrls
-      // which the build chain populated with the per-build HF Space URL
-      // (or localhost:7860 in local). Single source of truth — never
-      // re-derive the URL from a hardcoded base name.
-      var src = (window._envServiceUrls || {}).findcare || '';
-      window._hfBaseUrl = src;
+      // Peer URLs for iframe.src come from SharedServices /gate op=peer_urls
+      // (EPIC-002-F-004-S-001 universal entrance). Only the SS gateway URL
+      // is build-substituted into the wrapper; FindCare/EvalCare URLs are
+      // learned at runtime via /gate. window._peerUrlsPromise resolves when
+      // _envServiceUrls.findcare and .evaluatecare are populated.
+      var sharedGateUrl0 = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
+      window._peerUrlsPromise = fetch(sharedGateUrl0 + '/gate', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({op: 'peer_urls'})
+      }).then(function(r) {
+        if (!r.ok) throw new Error('/gate peer_urls HTTP ' + r.status);
+        return r.json();
+      }).then(function(d) {
+        if (!window._envServiceUrls) window._envServiceUrls = {};
+        window._envServiceUrls.findcare       = d.findcare       || window._envServiceUrls.findcare       || '';
+        window._envServiceUrls.evaluatecare   = d.evaluatecare   || window._envServiceUrls.evaluatecare   || '';
+        window._hfBaseUrl = window._envServiceUrls.findcare;
+        return d;
+      });
+      // Synchronous default so legacy reads don't NPE before the promise lands.
+      var src = '';
+      window._hfBaseUrl = '';
 
       // rightPanel hosts two persistent sub-divs so providers/splash content
       // (written by gui:evaluate-result, gui:shared-result, etc.) and the
@@ -1236,26 +1264,18 @@
         // boundary. _envLabel is set unconditionally at IIFE start (line 705)
         // so this guard is safe on every env including prod.
         if (window._envLabel === 'PROD') return;
-        var apiBase = window._hfBaseUrl || '';
-        var urls = window._envServiceUrls || {};
-        var sharedUrl = urls.sharedservices || 'https://localhost:8002';
-        var evalUrl   = urls.evaluatecare   || 'https://localhost:8001';
+        var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
 
-        // Stamping service = the owner of the panel being rendered.
-        // Verifying service:
-        //   • Right panel (owner = EC or SS — page has been handed off): the
-        //     cold service directly per S-012-REQ-T-007.
-        //   • Left panel  (owner = FC — FC owns the page, no cold service):
-        //     FC itself, so the displayed token data comes from the server
-        //     that actually stamped it. Otherwise the panel's "Server,
-        //     serving security token" label would read the wrong service.
-        var stampUrl, verifyUrl, color, label, bg;
+        // Token stamping + verification both flow through SharedServices /gate
+        // per EPIC-002-F-004-S-001. The owner label/color affects only the
+        // panel display chrome — it does not select a different backend URL.
+        var color, label, bg;
         if (owner === 'sharedservices') {
-          stampUrl = sharedUrl; verifyUrl = sharedUrl; color = '#0b7a75'; label = 'Shared Services'; bg = '#f0fffe';
+          color = '#0b7a75'; label = 'Shared Services'; bg = '#f0fffe';
         } else if (owner === 'evaluatecare') {
-          stampUrl = evalUrl;   verifyUrl = evalUrl;   color = '#d97706'; label = 'EvaluateCare';    bg = '#fff7ed';
+          color = '#d97706'; label = 'EvaluateCare';    bg = '#fff7ed';
         } else {
-          stampUrl = apiBase;   verifyUrl = apiBase;   color = '#0b7a75'; label = 'FindCare';        bg = '#f0fffe';
+          color = '#0b7a75'; label = 'FindCare';        bg = '#f0fffe';
         }
 
         window._getAuthBoot()
@@ -1268,22 +1288,24 @@
             if (!t0) {
               throw new Error('refreshTokenPanels: no session_token from /gate boot');
             }
-            return fetch(stampUrl + '/session', {
+            return fetch(sharedUrl + '/gate', {
               method: 'POST',
+              credentials: 'include',
               headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({session_token: t0})
+              body: JSON.stringify({op: 'session', payload: {session_token: t0}})
             }).then(function(r) {
-              if (!r.ok) throw new Error(stampUrl + ' /session HTTP ' + r.status);
+              if (!r.ok) throw new Error('/gate session HTTP ' + r.status);
               return r.json();
             });
           })
           .then(function(stamped) {
-            return fetch(verifyUrl + '/verify-token', {
+            return fetch(sharedUrl + '/gate', {
               method: 'POST',
+              credentials: 'include',
               headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({session_token: stamped})
+              body: JSON.stringify({op: 'verify_token', payload: {session_token: stamped}})
             }).then(function(r) {
-              if (!r.ok) throw new Error(verifyUrl + ' /verify-token HTTP ' + r.status);
+              if (!r.ok) throw new Error('/gate verify_token HTTP ' + r.status);
               return r.json();
             });
           })
@@ -1448,10 +1470,13 @@
         var inputForm = document.getElementById('userInputForm');
 
         if (serviceKey === 'findcare') {
-          var evalUrl = (window._envServiceUrls || {}).evaluatecare || '';
-          if (evalUrl) {
-            fetch(evalUrl + '/transfer/to-findcare', { method: 'POST' }).catch(function() {});
-          }
+          var sharedUrl_transfer = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
+          fetch(sharedUrl_transfer + '/gate', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({op: 'transfer_to_findcare'})
+          }).catch(function() {});
           // Clear centerContent and re-run FindCare's last broadcast.
           if (centerContent) centerContent.innerHTML = '';
           if (inputForm) inputForm.style.display = '';
@@ -1564,25 +1589,29 @@
       window._bootCoreChatFrame = function() {
         if (window._coreChatFrameBooted) return;
         if (typeof window._renderSystemTimedOut === 'function' && window._renderSystemTimedOut()) return;
-        var iframe = document.getElementById('coreChatFrame');
-        var bootSrc = window._coreChatFrameSrc;
-        if (!iframe || !bootSrc) return;
-        window._coreChatFrameBooted = true;
-        var maxRetries = 60;
-        var attempt = 0;
-        function tryLoad() {
-          attempt++;
-          iframe.src = bootSrc;
-          iframe.onerror = function() {
-            if (attempt < maxRetries) {
-              console.log('[iframe] Load attempt ' + attempt + ' failed, retrying in 10s...');
-              setTimeout(tryLoad, 10000);
-            } else {
-              console.error('[iframe] Failed to load after ' + maxRetries + ' attempts');
-            }
-          };
-        }
-        tryLoad();
+        // Defer until peer_urls resolves so FindCare's browser URL is known.
+        window._peerUrlsPromise.then(function() {
+          window._coreChatFrameSrc = (window._envServiceUrls || {}).findcare || '';
+          if (window._coreChatFrameBooted) return;
+          var iframe = document.getElementById('coreChatFrame');
+          var bootSrc = window._coreChatFrameSrc;
+          if (!iframe || !bootSrc) return;
+          window._coreChatFrameBooted = true;
+          var maxRetries = 60;
+          var attempt = 0;
+          (function tryLoad() {
+            attempt++;
+            iframe.src = bootSrc;
+            iframe.onerror = function() {
+              if (attempt < maxRetries) {
+                console.log('[iframe] Load attempt ' + attempt + ' failed, retrying in 10s...');
+                setTimeout(tryLoad, 10000);
+              } else {
+                console.error('[iframe] Failed to load after ' + maxRetries + ' attempts');
+              }
+            };
+          })();
+        }).catch(function(e) { console.error('[bootCoreChatFrame] peer_urls failed:', e); });
       };
     })();
 
@@ -1998,10 +2027,14 @@
           leftPanel.dataset.searchParams = msg.searchParams || '{}';
           var filterFrame = leftPanel.querySelector('iframe[data-filter-frame]');
           if (!filterFrame) {
-            var baseUrl = window._hfBaseUrl || 'https://localhost:7860';
-            leftPanel.innerHTML = '<iframe data-filter-frame src="' + baseUrl + '/?mode=filter" style="width:100%;height:100%;border:none;display:block;" title="Specialty Filter"></iframe>';
-            // gui:filter-data will be pushed by the filter-iframe message
-            // listener below once the iframe sends gui:filter-ready.
+            // FindCare browser URL learned at runtime via /gate peer_urls
+            // (EPIC-002-F-004-S-001). _peerUrlsPromise resolves before any
+            // iframe needs its src; window._hfBaseUrl is set in its .then().
+            window._peerUrlsPromise.then(function() {
+              var baseUrl = window._hfBaseUrl || '';
+              if (!baseUrl) return;
+              leftPanel.innerHTML = '<iframe data-filter-frame src="' + baseUrl + '/?mode=filter" style="width:100%;height:100%;border:none;display:block;" title="Specialty Filter"></iframe>';
+            });
           } else if (filterFrame.contentWindow) {
             // Iframe already mounted — push fresh data
             filterFrame.contentWindow.postMessage({
@@ -2049,10 +2082,13 @@
                     window._pageOwner = 'findcare';
                     // DEVOPS-BANNER-B007: banner reflects new owner's /health.
                     if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
-                    var chatSrc2 = chatFrame.src || '';
-                    var apiBase2 = chatSrc2.replace(/\/static\/.*$/, '').replace(/\/$/, '');
-                    if (!apiBase2) apiBase2 = '';
-                    fetch(apiBase2 + '/transfer/to-findcare', { method: 'POST' })
+                    var sharedUrl_xfer2 = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
+                    fetch(sharedUrl_xfer2 + '/gate', {
+                      method: 'POST',
+                      credentials: 'include',
+                      headers: {'Content-Type': 'application/json'},
+                      body: JSON.stringify({op: 'transfer_to_findcare'})
+                    })
                       .then(function(r) { return r.json(); })
                       .then(function(d) {
                         // Hide EvaluateCare and SharedServices splash divs
@@ -2173,10 +2209,13 @@
                     window._pageOwner = 'findcare';
                     // DEVOPS-BANNER-B007: banner reflects new owner's /health.
                     if (typeof window.refreshBanner === 'function') window.refreshBanner('findcare');
-                    var chatSrc3 = chatFrame.src || '';
-                    var apiBase3 = chatSrc3.replace(/\/static\/.*$/, '').replace(/\/$/, '');
-                    if (!apiBase3) apiBase3 = '';
-                    fetch(apiBase3 + '/transfer/to-findcare', { method: 'POST' })
+                    var sharedUrl_xfer3 = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
+                    fetch(sharedUrl_xfer3 + '/gate', {
+                      method: 'POST',
+                      credentials: 'include',
+                      headers: {'Content-Type': 'application/json'},
+                      body: JSON.stringify({op: 'transfer_to_findcare'})
+                    })
                       .then(function(r) { return r.json(); })
                       .then(function(d) {
                         var ecSplash = document.getElementById('evalcareSplash');

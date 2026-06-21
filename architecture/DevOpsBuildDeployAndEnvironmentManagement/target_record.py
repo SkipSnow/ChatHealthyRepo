@@ -48,8 +48,7 @@ class EnvironmentBinding:
                                 # keys: project_name
     branch: str | None = None   # source git branch this env deploys from;
                                  # required for git-branch-bound target_kinds
-                                 # (cloudflare_pages_project, github_actions_workflow_runner)
-                                 # per REQ-T-050
+                                 # (cloudflare_pages_project) per REQ-T-050
 
     def to_dict(self) -> dict:
         out: dict = {"env_binding": self.env_binding, "node_address": self.node_address}
@@ -103,8 +102,7 @@ class FileComposition:
     embedded_content: str | None = None  # present iff disposition='managed'
     # layout: structured spec from which the Builder generates the
     # file's embedded_content. Required when disposition='managed' AND
-    # handler_type in {'dockerfile','workflow_yaml'}. Polymorphic:
-    # array for dockerfile (instruction list), object for workflow_yaml.
+    # handler_type == 'dockerfile' (instruction list).
     layout: object | None = None
     # content_hash: sha256 hex digest of the file's bytes at deploy
     # time. Builder populates for disposition='referenced' (managed
@@ -127,7 +125,7 @@ class FileComposition:
                     f"'managed' requires embedded_content"
                 )
             out["embedded_content"] = self.embedded_content
-            if self.handler_type in ("dockerfile", "workflow_yaml"):
+            if self.handler_type == "dockerfile":
                 if self.layout is None:
                     raise ValueError(
                         f"FileComposition {self.source_location!r}: "

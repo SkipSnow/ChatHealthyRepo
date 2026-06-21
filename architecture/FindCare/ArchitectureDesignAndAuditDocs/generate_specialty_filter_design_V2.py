@@ -205,26 +205,6 @@ INVENTORY_ROWS = [
         "Procedural Playwright test() declarations.",
     ),
     (
-        "deploy-findcare-backend.yml",
-        ".github/workflows/deploy-findcare-backend.yml",
-        ".github/workflows/deploy-findcare-backend.yml",
-        "GitHub Actions workflow that builds and deploys the FindCare HF Space. "
-        "Path triggers shift to findCare/** post-Code/-removal; rsync stages "
-        "findCare/ + findCare/specialty_filter/specialty_filter.css; FastAPI "
-        "app gains StaticFiles mount for /styles. Engineering owns YAML edits.",
-        "GitHub Actions YAML.",
-    ),
-    (
-        "deploy-shared-services.yml",
-        ".github/workflows/deploy-shared-services.yml",
-        ".github/workflows/deploy-shared-services.yml",
-        "GitHub Actions workflow for SharedServices HF Space. Adds an npm build "
-        "step in sharedServices/widgets/specialty_filter/, stages dist/ into the "
-        "HF build context, FastAPI app gains StaticFiles mount for /widgets. "
-        "Engineering work.",
-        "GitHub Actions YAML.",
-    ),
-    (
         "Dockerfile",
         "findCare/backend/Dockerfile",
         "Code/ConversationalUX/FindCareChat/backend/Dockerfile",

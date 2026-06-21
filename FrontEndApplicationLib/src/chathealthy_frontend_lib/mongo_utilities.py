@@ -319,3 +319,12 @@ class ChatHealthyMongoUtilities:
 
     def getConnection(self) -> TimedClient:
         return TimedClient(cached_client)
+
+    def getRawClient(self) -> MongoClient:
+        """Return the raw MongoClient singleton, bypassing the TimedClient
+        instrumentation wrapper. ONLY for callers that must avoid the
+        per-op log emissions TimedClient produces — the Mongo log handler
+        in particular, where wrapped writes would recurse infinitely
+        through the logging framework. All other call sites MUST use
+        getConnection()."""
+        return cached_client

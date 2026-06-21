@@ -41,7 +41,6 @@ from _build_chain import (  # noqa: E402
     _build_one,
     _find_repo_root,
     _read_dev_build_number,
-    _require_local_context,
     _resolve_build_sha,
     _select_targets,
     _step,
@@ -130,7 +129,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    _require_local_context()
     repo_root = _find_repo_root(Path(__file__))
     _step(f"repo_root={repo_root} env={args.env} target={args.target}")
 

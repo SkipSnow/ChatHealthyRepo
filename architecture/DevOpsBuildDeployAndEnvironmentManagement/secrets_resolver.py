@@ -3,8 +3,8 @@
 Single value-fetching code path per binding: a name is bound to one store
 and only that store is consulted. No cross-store fallback. Unavailable
 store raises hard. Today only the local `.env` store is wired; the
-remote stores (GitHub Actions secrets, Hugging Face Space secrets,
-Cloudflare environment variables) are intentional stubs raising
+remote stores (Hugging Face Space secrets, Cloudflare environment
+variables) are intentional stubs raising
 NotImplementedError so the architectural shape is in place without
 exposing fetch logic for the remote stores.
 
@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 
 
 _STORE_LOCAL_ENV: str = "local_env"
-_STORE_GHA: str = "gha_secret"
 _STORE_HF_SPACE: str = "hf_space_secret"
 _STORE_CLOUDFLARE: str = "cloudflare_env"
 _STORE_AZURE_FA: str = "azure_function_app_setting"
@@ -66,7 +65,7 @@ class SecretsResolver:
         """
         bindings: dict[tuple[str, str], str] = {}
         _STORE_IDS = {
-            _STORE_LOCAL_ENV, _STORE_GHA, _STORE_HF_SPACE, _STORE_CLOUDFLARE,
+            _STORE_LOCAL_ENV, _STORE_HF_SPACE, _STORE_CLOUDFLARE,
             _STORE_AZURE_FA, _STORE_AZURE_AA, _STORE_AZURE_AA_WEBHOOK,
         }
         for record in coll:
@@ -114,8 +113,6 @@ class SecretsResolver:
                     f"secret {name!r} not present in {self._env_file}"
                 )
             return self._env_cache[name]
-        if store == _STORE_GHA:
-            self._read_gha_secret_store(env)
         if store == _STORE_HF_SPACE:
             self._read_hf_space_secrets(env)
         if store == _STORE_CLOUDFLARE:
@@ -233,12 +230,6 @@ class SecretsResolver:
                     val = val.split("#", 1)[0].rstrip()
                 result[key] = val
         return result
-
-    @staticmethod
-    def _read_gha_secret_store(env: str) -> dict[str, str]:
-        raise NotImplementedError(
-            "authored separately; only local .env is wired today"
-        )
 
     @staticmethod
     def _read_hf_space_secrets(env: str) -> dict[str, str]:

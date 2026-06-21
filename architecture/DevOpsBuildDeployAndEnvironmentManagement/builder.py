@@ -5,8 +5,7 @@ Scans the live on-disk tree and produces a `DeploymentCollection` whose
 `disposition` of either:
 
   - 'managed'    — JSON owns the bytes verbatim in embedded_content.
-                   Dockerfiles and GitHub Actions workflow YAMLs only,
-                   per the operator compromise.
+                   Dockerfiles only, per the operator compromise.
   - 'referenced' — only source_location is captured; embedded_content
                    is None. Deploy machinery copies bytes from
                    origin/<branch>'s tree at deploy time.
@@ -47,8 +46,8 @@ _FEATURE_ID: str = "EPIC-008-F-012"
 _BASE64_PREFIX: str = "__base64__:"
 
 # disposition is 'managed' only for files whose bytes the JSON owns
-# verbatim per the operator compromise: Dockerfile + workflow YAML.
-_MANAGED_HANDLER_TYPES: frozenset[str] = frozenset({"dockerfile", "workflow_yaml"})
+# verbatim per the operator compromise: Dockerfile.
+_MANAGED_HANDLER_TYPES: frozenset[str] = frozenset({"dockerfile"})
 
 # Standard exclude set applied to every directory walk. Workflow rsync
 # uses the same skip set (__pycache__, *.pyc, .env). Build outputs and
@@ -103,10 +102,6 @@ def _classify_handler(rel_posix: str, name: str) -> str:
     """Map a file to one of the schema's closed handler_type enums."""
     if name == "Dockerfile":
         return "dockerfile"
-    if rel_posix.startswith(".github/workflows/") and (
-        name.endswith(".yml") or name.endswith(".yaml")
-    ):
-        return "workflow_yaml"
     if name == "requirements.txt":
         return "python_requirements"
     suffix = Path(name).suffix.lower()
@@ -156,69 +151,6 @@ def _render_dockerfile(layout: list) -> str:
             continue
         lines.append(f"{inst} {' '.join(str(a) for a in args)}".rstrip())
     return "\n".join(lines) + "\n"
-
-
-def _yaml_loader_no_bool_on() -> type:
-    """Custom YAML loader that does NOT convert YAML 1.1 boolean literals
-    ('on'/'off'/'yes'/'no'/'true'/'false') to Python booleans.
-
-    GHA workflows use `on:` as a string key; PyYAML's default loader (YAML
-    1.1) maps that key to Python True. We deep-copy the implicit-resolver
-    table and strip the bool tag from every first-letter bucket, then
-    re-register a bool resolver restricted to 'true'/'false' so genuine
-    booleans still parse. 'on'/'off'/'yes'/'no' round-trip as strings.
-    """
-    import re as _re_local
-    import yaml as _yaml
-
-    class _NoBoolOn(_yaml.SafeLoader):
-        pass
-
-    new_resolvers: dict = {}
-    for ch, lst in _NoBoolOn.yaml_implicit_resolvers.items():
-        new_resolvers[ch] = [r for r in lst if r[0] != 'tag:yaml.org,2002:bool']
-    _NoBoolOn.yaml_implicit_resolvers = new_resolvers
-
-    _NoBoolOn.add_implicit_resolver(
-        'tag:yaml.org,2002:bool',
-        _re_local.compile(r'^(?:true|True|TRUE|false|False|FALSE)$'),
-        list('tTfF'),
-    )
-    return _NoBoolOn
-
-
-def _yaml_dumper_quote_gha() -> type:
-    """Custom YAML dumper that double-quotes GHA expressions so they
-    survive a round-trip without being interpreted as booleans/etc."""
-    import yaml as _yaml
-    class _QuoteGHADumper(_yaml.SafeDumper):
-        pass
-    return _QuoteGHADumper
-
-
-def _render_workflow_yaml(layout: dict) -> str:
-    """Render a GHA-workflow JSON object into YAML text.
-
-    Uses block style, preserves dict key order, wide-line (no wrapping),
-    and a custom Loader/Dumper pair so 'on:' stays a string. Comments
-    are not preserved; layout is the spec.
-    """
-    if not isinstance(layout, dict):
-        raise TypeError(f"workflow_yaml layout must be a dict, got {type(layout).__name__}")
-    import yaml as _yaml
-    text = _yaml.dump(
-        layout,
-        Dumper=_yaml_dumper_quote_gha(),
-        default_flow_style=False,
-        sort_keys=False,
-        width=10000,
-        allow_unicode=True,
-    )
-    # PyYAML 5+ writes the empty key True as 'true:' even with our
-    # custom loader if a stray bool slipped in. Defensive replace.
-    if text.startswith("true:"):
-        text = "'on':" + text[len("true:"):]
-    return text
 
 
 def _read_managed_content(abs_path: Path) -> str:
@@ -288,10 +220,10 @@ class Builder:
     """Builds a `DeploymentCollection` by scanning the live tree.
 
     For files whose handler_type is in `_MANAGED_HANDLER_TYPES`
-    (dockerfile, workflow_yaml), the Builder DOES NOT read bytes
+    (dockerfile), the Builder DOES NOT read bytes
     from disk. Instead, it loads the prior brain artifact and looks
     up the file's `layout` spec, then renders it via the canonical
-    renderer (`_render_dockerfile` / `_render_workflow_yaml`). The
+    renderer (`_render_dockerfile`). The
     rendered string becomes embedded_content. The disk file is
     treated as a downstream materialization, not a source.
 
@@ -352,10 +284,7 @@ class Builder:
                         f"authored source of truth; run _oneshots/encode_layouts.py "
                         f"to bootstrap a layout from the current disk file."
                     )
-                if handler == "dockerfile":
-                    embedded = _render_dockerfile(layout)  # type: ignore[arg-type]
-                else:
-                    embedded = _render_workflow_yaml(layout)  # type: ignore[arg-type]
+                embedded = _render_dockerfile(layout)  # type: ignore[arg-type]
             else:
                 embedded = _read_managed_content(abs_path)
         else:
