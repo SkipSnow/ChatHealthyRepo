@@ -171,7 +171,7 @@ def main(argv: list[str] | None = None) -> int:
 
     built: list[Path] = []
     for t in targets:
-        package_dir = _build_one(repo_root, t, build_n, build_sha)
+        package_dir = _build_one(repo_root, t, build_n, build_sha, env=args.env)
         _stamp_env_on_manifest(package_dir, args.env, build_sha, build_n)
         built.append(package_dir)
 

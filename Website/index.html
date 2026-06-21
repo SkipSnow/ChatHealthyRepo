@@ -793,21 +793,16 @@
       // Fix: derive prefix from host directly (independent of env), set
       // _envServiceUrls before any env-gated branch.
       window._envLabel = env;
+      // Build-numbered HF Spaces (EPIC-008-F-012-S-003 — per-build Space names
+      // sidestep HF runtime wedges). The build chain (_build_cloudflare) writes
+      // the per-env, per-build URLs into the placeholders below before pushing
+      // to Cloudflare Pages. The source file holds placeholders so an engineer
+      // can read it; the published bytes always have real URLs.
       window._envServiceUrls = (function() {
-        if (isLocal) {
-          return {
-            findcare:     'https://localhost:7860',
-            evaluatecare: 'https://localhost:8001',
-            sharedservices: 'https://localhost:8002',
-          };
-        }
-        var prefix = host.indexOf('dev.') === 0 ? 'dev-'
-                   : host.indexOf('qa.') === 0 ? 'qa-'
-                   : '';   // prod or unknown host -> no prefix
         return {
-          findcare:        'https://skipsnow-' + prefix + 'chathealthyspace.hf.space',
-          evaluatecare:    'https://skipsnow-' + prefix + 'evaluatecarespace.hf.space',
-          sharedservices:  'https://skipsnow-' + prefix + 'sharedservicesspace.hf.space',
+          findcare:        '__HF_URL_FINDCARE__',
+          evaluatecare:    '__HF_URL_EVALCARE__',
+          sharedservices:  '__HF_URL_SHAREDSERVICES__',
         };
       })();
 

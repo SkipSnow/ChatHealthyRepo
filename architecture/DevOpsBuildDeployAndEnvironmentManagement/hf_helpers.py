@@ -95,12 +95,18 @@ def _hf_default_org() -> str:
 
 
 def _hf_peer_url(target_id: str, env: str) -> str:
-    """Derived from the manifest's qualified 'org/space' identifier. HF
-    publishes Space frontends at https://{org}-{space}.hf.space with
-    underscores in the Space name converted to hyphens and the whole
-    thing lowercased.
-    """
+    """Stable-base-name URL. Retained for callers that still want the
+    manifest-stored Space (no build_n suffix). New per-build code should
+    use _hf_peer_url_for_build."""
     org, space = _hf_space_qualified(target_id, env).split("/", 1)
+    return f"https://{org.lower()}-{space.replace('_', '-').lower()}.hf.space"
+
+
+def _hf_peer_url_for_build(target_id: str, env: str, build_n: int) -> str:
+    """Per-build peer URL — pointing at <org>/<base>_<build_n>. All HF
+    targets in one deploy cycle share the same build_n, so peer URLs
+    resolve to the right co-deployed Spaces."""
+    org, space = _hf_space_per_build_qualified(target_id, env, build_n).split("/", 1)
     return f"https://{org.lower()}-{space.replace('_', '-').lower()}.hf.space"
 
 
@@ -217,6 +223,162 @@ def _hf_set_secret(token: str, space: str, key: str, value: str) -> None:
         },
     )
     urllib.request.urlopen(req, timeout=30).read()
+
+
+# ── HF API: Space lifecycle (create / delete / list / wait) ─────────────
+def _hf_space_per_build_qualified(target_id: str, env: str, build_n: int) -> str:
+    """org/<base>_<build_n> — the per-build Space identifier this build/deploy
+    cycle targets. Manifest holds the STABLE BASE name; the suffix is built
+    fresh every time so an HF runtime wedge can never repeat on the same name."""
+    qualified = _hf_space_qualified(target_id, env)
+    org, base = qualified.split("/", 1)
+    return f"{org}/{base}_{build_n}"
+
+
+def _hf_space_per_build_name(target_id: str, env: str, build_n: int) -> str:
+    return _hf_space_per_build_qualified(target_id, env, build_n).split("/", 1)[1]
+
+
+def _hf_space_exists(token: str, qualified: str) -> bool:
+    import urllib.error
+    import urllib.request
+    url = f"https://huggingface.co/api/spaces/{qualified}"
+    req = urllib.request.Request(
+        url, method="GET",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    try:
+        urllib.request.urlopen(req, timeout=15).read()
+        return True
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False
+        raise
+
+
+def _hf_create_space(token: str, qualified: str, sdk: str = "docker") -> None:
+    """Create a new HF Space. Idempotent — if it already exists, no-op."""
+    if _hf_space_exists(token, qualified):
+        _step(f"  hf-create skip {qualified} (already exists)")
+        return
+    import json as _json
+    import urllib.request
+    org, name = qualified.split("/", 1)
+    url = "https://huggingface.co/api/repos/create"
+    payload = _json.dumps({
+        "type": "space",
+        "name": name,
+        "organization": org,
+        "private": False,
+        "sdk": sdk,
+    }).encode()
+    req = urllib.request.Request(
+        url, data=payload, method="POST",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+    )
+    urllib.request.urlopen(req, timeout=30).read()
+    _step(f"  hf-create OK {qualified} (sdk={sdk})")
+
+
+def _hf_delete_space(token: str, qualified: str) -> None:
+    """Delete an HF Space. Idempotent — 404 fine."""
+    import json as _json
+    import urllib.error
+    import urllib.request
+    org, name = qualified.split("/", 1)
+    url = "https://huggingface.co/api/repos/delete"
+    payload = _json.dumps({
+        "type": "space",
+        "name": name,
+        "organization": org,
+    }).encode()
+    req = urllib.request.Request(
+        url, data=payload, method="DELETE",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        urllib.request.urlopen(req, timeout=30).read()
+        _step(f"  hf-delete OK {qualified}")
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            _step(f"  hf-delete skip {qualified} (already gone)")
+            return
+        raise
+
+
+def _hf_list_per_build_spaces(token: str, target_id: str, env: str) -> list[tuple[str, int]]:
+    """Return [(qualified_name, build_n)] for every existing HF Space that
+    matches the per-build naming pattern <base>_<int> for this target/env.
+    Used to find the previous build's Space so we can delete it after the
+    new one converges."""
+    import urllib.error
+    import urllib.request
+    qualified_base = _hf_space_qualified(target_id, env)
+    org, base = qualified_base.split("/", 1)
+    out: list[tuple[str, int]] = []
+    # HF /api/spaces?author=<org> lists all Spaces under the org; filter client-side.
+    url = f"https://huggingface.co/api/spaces?author={org}&limit=1000"
+    req = urllib.request.Request(
+        url, method="GET",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    try:
+        raw = urllib.request.urlopen(req, timeout=30).read()
+    except urllib.error.HTTPError:
+        return out
+    import json as _json
+    spaces = _json.loads(raw)
+    prefix = f"{base}_"
+    for s in spaces:
+        sid = s.get("id") or ""
+        # sid is "org/name". strip org/.
+        if "/" not in sid:
+            continue
+        name = sid.split("/", 1)[1]
+        if not name.startswith(prefix):
+            continue
+        suffix = name[len(prefix):]
+        if not suffix.isdigit():
+            continue
+        out.append((sid, int(suffix)))
+    return out
+
+
+def _hf_wait_for_build_convergence(qualified: str, build_n: int,
+                                    timeout_s: int = 600,
+                                    poll_interval_s: int = 10) -> bool:
+    """Poll the Space's public /health endpoint until it reports the expected
+    build_n, or until timeout. Returns True on convergence, False on timeout."""
+    import time
+    import urllib.error
+    import urllib.request
+    org, name = qualified.split("/", 1)
+    health_url = (
+        f"https://{org.lower()}-{name.replace('_', '-').lower()}.hf.space/health"
+    )
+    deadline = time.monotonic() + timeout_s
+    last_build = None
+    while time.monotonic() < deadline:
+        try:
+            req = urllib.request.Request(health_url, method="POST")
+            raw = urllib.request.urlopen(req, timeout=15).read()
+            import json as _json
+            data = _json.loads(raw)
+            last_build = data.get("build")
+            if last_build == build_n:
+                _step(f"  hf-wait OK {qualified}: build={build_n}")
+                return True
+        except (urllib.error.URLError, ValueError, KeyError):
+            pass
+        time.sleep(poll_interval_s)
+    _step(f"  hf-wait TIMEOUT {qualified}: last build={last_build} expected={build_n}")
+    return False
 
 
 # ── Source-set conventions per target_id ───────────────────────────────

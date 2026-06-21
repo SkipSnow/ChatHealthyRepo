@@ -202,8 +202,69 @@ def _apply_dependency_pins(repo_root: Path, build_dir: Path) -> None:
             req_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
-    """Stage Website/ into build_dir, inline fonts, materialize managed bytes."""
+_HF_URL_PLACEHOLDERS = {
+    "__HF_URL_FINDCARE__":       "target_hf_space_findcare_backend",
+    "__HF_URL_EVALCARE__":       "target_hf_space_evaluatecare_backend",
+    "__HF_URL_SHAREDSERVICES__": "target_hf_space_shared_services",
+}
+
+
+def _compute_hf_space_url_for_build(repo_root: Path, hf_target_id: str, env: str, build_n: int) -> str:
+    """Build-numbered HF Space URL — base name from manifest, '_<build_n>' suffix.
+    HF publishes Spaces at https://{org}-{name_lower_hyphenated}.hf.space."""
+    if env == "local":
+        local_map = {
+            "target_hf_space_findcare_backend":     "https://localhost:7860",
+            "target_hf_space_evaluatecare_backend": "https://localhost:8001",
+            "target_hf_space_shared_services":      "https://localhost:8002",
+        }
+        return local_map[hf_target_id]
+    qualified = rd._hf_space_qualified(hf_target_id, env)
+    org, base = qualified.split("/", 1)
+    full = f"{base}_{build_n}"
+    return f"https://{org.lower()}-{full.replace('_', '-').lower()}.hf.space"
+
+
+def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str, build_n: int) -> None:
+    """Substitute __HF_URL_*__ placeholders in every index.html under
+    build_dir with the per-build HF Space URLs computed for this env/build_n.
+
+    Per the no-fallbacks rule: every index.html under the Cloudflare Pages
+    build_dir MUST contain ALL placeholders. Missing a placeholder fails
+    loud — catches the accident of someone committing substituted output
+    back into source.
+    """
+    targets_for_placeholder = {
+        ph: _compute_hf_space_url_for_build(repo_root, tid, env, build_n)
+        for ph, tid in _HF_URL_PLACEHOLDERS.items()
+    }
+    indexes = list(build_dir.rglob("index.html"))
+    if not indexes:
+        raise RuntimeError(
+            f"_substitute_hf_urls_in_index_html: no index.html found under "
+            f"{build_dir}; Cloudflare Pages target must ship at least one."
+        )
+    for idx in indexes:
+        text = idx.read_text(encoding="utf-8")
+        for placeholder in _HF_URL_PLACEHOLDERS:
+            if placeholder not in text:
+                raise RuntimeError(
+                    f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
+                    f"is missing placeholder {placeholder!r}. Every index.html in the "
+                    f"Cloudflare Pages target MUST contain every __HF_URL_*__ "
+                    f"placeholder verbatim. If a substituted URL was committed back "
+                    f"into source, restore the placeholder."
+                )
+        for placeholder, url in targets_for_placeholder.items():
+            text = text.replace(placeholder, url)
+            _step(f"  hf-url {idx.name}: {placeholder} -> {url}")
+        idx.write_text(text, encoding="utf-8")
+
+
+def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,
+                     env: str, build_n: int) -> None:
+    """Stage Website/ into build_dir, inline fonts, substitute per-build HF
+    Space URLs, materialize managed bytes."""
     if build_dir.exists():
         shutil.rmtree(build_dir, ignore_errors=True)
     build_dir.mkdir(parents=True)
@@ -214,6 +275,7 @@ def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path) ->
         if ch_fonts_inliner.inline_into(html, snippet):
             inlined += 1
     _step(f"  CH_FONTS inlined in {inlined} pages")
+    _substitute_hf_urls_in_index_html(repo_root, build_dir, env, build_n)
     Extractor().materialize(target, build_dir)
 
 
@@ -606,11 +668,11 @@ def _augment_manifest_for_aca(
     )
 
 
-def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str, build_root_rel: Path | None = None) -> Path:
+def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: str, build_root_rel: Path | None = None, env: str = "local") -> Path:
     build_dir = _target_build_dir(repo_root, build_n, target.target_id, build_root_rel)
     _step(f"=== {target.target_kind} {target.target_id} -> {build_dir} ===")
     if target.target_kind == "cloudflare_pages_project":
-        _build_cloudflare(repo_root, target, build_dir)
+        _build_cloudflare(repo_root, target, build_dir, env, build_n)
     elif target.target_kind == "hf_space":
         _build_hf_space(repo_root, target, build_dir)
     elif target.target_kind == "azure_function_app":

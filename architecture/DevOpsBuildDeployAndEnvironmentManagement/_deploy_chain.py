@@ -276,19 +276,15 @@ def set_hf_config(
     hf_token: str,
     resolver: SecretsResolver,
     target: TargetRecord,
+    build_n: int,
 ) -> None:
     """Push the HF Space's variables and secrets, entirely data-driven from
     the target record. Zero target-specific knowledge lives in this function.
 
-    The `variables` block holds entries pushed as HF Space VARIABLES (visible
-    config). Each value is a source-qualifier string; see the docstring on
-    TargetRecord.variables for the supported qualifier syntax.
-
-    The `secrets` block holds entries pushed as HF Space SECRETS (hidden
-    credentials). Same qualifier dispatch — but most entries are simply
-    `local_env`-resolved.
+    Per-build naming: writes config to <base>_<build_n>. Peer URLs resolve
+    to the co-deployed peer Spaces at the same build_n.
     """
-    space = rd._hf_space_name(target_id, env)
+    space = rd._hf_space_per_build_name(target_id, env, build_n)
 
     def _resolve_qualifier(name: str, qualifier: str) -> str:
         if qualifier == "local_env":
@@ -302,7 +298,7 @@ def set_hf_config(
             return base64.b64encode((repo_root / rel).read_bytes()).decode("ascii")
         if qualifier.startswith("peer_url:"):
             peer_target_id = qualifier.split(":", 1)[1]
-            return rd._hf_peer_url(peer_target_id, env)
+            return rd._hf_peer_url_for_build(peer_target_id, env, build_n)
         if qualifier.startswith("rename_from:"):
             other_name = qualifier.split(":", 1)[1]
             other_qual = (target.secrets or {}).get(other_name)\
@@ -330,9 +326,10 @@ def set_hf_config(
 
 def push_thin_dockerfile_to_hf_space(
     target_id: str, env: str, hf_token: str, image_ref: str, port: int,
+    build_n: int,
 ) -> None:
     org = rd._hf_org(target_id, env)
-    space = rd._hf_space_name(target_id, env)
+    space = rd._hf_space_per_build_name(target_id, env, build_n)
     hf_clone = Path(tempfile.mkdtemp(prefix=f"hf_{space}_"))
     repo_url = f"https://{org}:{hf_token}@huggingface.co/spaces/{org}/{space}"
     step(f"  clone https://huggingface.co/spaces/{org}/{space}")
@@ -383,13 +380,35 @@ def deploy_hf_space(
     resolver: SecretsResolver,
     target: TargetRecord,
 ) -> str:
+    """Per-build Space deploy. Each build creates a NEW HF Space named
+    <manifest_base>_<build_n>, deploys to it, waits for /health convergence,
+    then deletes the prior build's Space. Sidesteps the HF runtime wedge
+    pattern entirely — a wedge can only happen on a Space we abandon next
+    build anyway."""
     port = HF_APP_PORT[target_id]
     image_ref = ghcr_image_ref(target_id, env, build_n)
-    step(f"=== hf_space {target_id} env={env} -> {image_ref} ===")
+    per_build_qualified = rd._hf_space_per_build_qualified(target_id, env, build_n)
+    step(f"=== hf_space {target_id} env={env} -> {image_ref} (Space {per_build_qualified}) ===")
     docker_build_then_push(build_dir, image_ref)
     hf_token = resolver.resolve("HF_TOKEN", env)
-    set_hf_config(repo_root, target_id, env, hf_token, resolver, target)
-    push_thin_dockerfile_to_hf_space(target_id, env, hf_token, image_ref, port)
+    rd._hf_create_space(hf_token, per_build_qualified, sdk="docker")
+    set_hf_config(repo_root, target_id, env, hf_token, resolver, target, build_n)
+    push_thin_dockerfile_to_hf_space(target_id, env, hf_token, image_ref, port, build_n)
+    # Wait for the new Space to converge to this build_n before retiring the prior.
+    converged = rd._hf_wait_for_build_convergence(per_build_qualified, build_n,
+                                                   timeout_s=600, poll_interval_s=10)
+    if not converged:
+        raise RuntimeError(
+            f"deploy_hf_space: {per_build_qualified} did not converge to "
+            f"build={build_n} within 600s. Prior Space(s) NOT deleted so the "
+            f"environment keeps serving on the last known-good build. Investigate "
+            f"the HF runtime state, then either rerun deploy or recover the Space."
+        )
+    # Delete every prior <base>_<n> with n != build_n. Keeps the org tidy.
+    prior = [(qid, n) for (qid, n) in rd._hf_list_per_build_spaces(hf_token, target_id, env)
+             if n != build_n]
+    for qid, _n in prior:
+        rd._hf_delete_space(hf_token, qid)
     return image_ref
 
 
