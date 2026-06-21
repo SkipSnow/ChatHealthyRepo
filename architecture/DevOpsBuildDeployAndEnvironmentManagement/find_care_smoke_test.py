@@ -825,9 +825,10 @@ class TestStep09aProviderDetail:
             assert section in body_text_upper, (
                 f"provider-detail panel missing section {section!r}; got: {body_text_upper[:400]}"
             )
-        # Right panel must be expanded so the paint is actually visible.
+        # Bug 19: provider detail MUST NOT alter the right-panel dimensions.
+        # Default width is preserved; the detail must fit inside it.
         expanded = page.evaluate("document.getElementById('rightPanel').classList.contains('expanded')")
-        assert expanded, "rightPanel did not expand on provider-detail click"
+        assert not expanded, "Bug 19: rightPanel must NOT receive the .expanded class on provider-detail click"
         _screenshot(page, "09a")
 
 
@@ -911,6 +912,25 @@ class TestStep14:
         inp = page.locator("#userInputForm")
         assert inp.count() > 0 and inp.is_visible(), \
             "Utterance frame (#userInputForm) must remain visible after FindCare→EvaluateCare transition"
+        # Bug 12: EvaluateCare splash MUST occupy the whole #centerContent
+        # frame as cells (flex column, full height), not float as minimal
+        # centered text. Measure rendered box.
+        cc_box = page.locator("#centerContent").bounding_box()
+        sp_box = splash.bounding_box()
+        assert cc_box and sp_box, "centerContent or splash bounding_box unavailable"
+        # Splash must occupy >= 95% of centerContent's height AND width.
+        h_ratio = sp_box["height"] / max(cc_box["height"], 1)
+        w_ratio = sp_box["width"] / max(cc_box["width"], 1)
+        assert h_ratio >= 0.95, (
+            f"Bug 12: EvaluateCare splash does NOT fill #centerContent height. "
+            f"splash.height={sp_box['height']:.1f}px center.height={cc_box['height']:.1f}px "
+            f"ratio={h_ratio:.3f} (must be >= 0.95)"
+        )
+        assert w_ratio >= 0.95, (
+            f"Bug 12: EvaluateCare splash does NOT fill #centerContent width. "
+            f"splash.width={sp_box['width']:.1f}px center.width={cc_box['width']:.1f}px "
+            f"ratio={w_ratio:.3f} (must be >= 0.95)"
+        )
         _screenshot(page, "14")
 
 
