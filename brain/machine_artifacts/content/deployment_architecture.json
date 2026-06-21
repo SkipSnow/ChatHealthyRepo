@@ -2472,7 +2472,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py",
           "handler_type": "python_test",
           "disposition": "referenced",
-          "content_hash": "a5ad8e233e07c6c0b62c18fb3de57ba7e68eaa54e69e46d56371c9674d4151e6"
+          "content_hash": "2935f7a6b7c4ea5cf2bb6785e77dbb15647fec8ed6a962e29b33931c2fbbe937"
         },
         {
           "feature_id": "EPIC-008-F-012",
