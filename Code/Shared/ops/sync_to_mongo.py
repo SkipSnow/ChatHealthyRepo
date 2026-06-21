@@ -58,7 +58,6 @@ ARTIFACT_TYPE_MAP = {
     "Code/DataPipelines/": "SourceCode",
     "Code/Shared/": "SourceCode",
     "Code/Shared/ops/": "DevOps",
-    ".github/workflows/": "DevOps",
     "Website/": "SourceCode",
     "docs/": "Documentation",
     "Legal/": "Legal",
@@ -71,7 +70,6 @@ DEPLOYMENT_MAP = {
     "Code/ConversationalUX/ChatHealthyWhoAmIChat/me/": "Chat App -> HuggingFace",
     "Code/Shared/ChatHealthyMongoUtilities.py": "Chat App -> HuggingFace",
     "Code/DataPipelines/": "Pipelines -> Azure",
-    ".github/workflows/": "CI/CD -> GitHub Actions",
 }
 
 # R29: Lifecycle state

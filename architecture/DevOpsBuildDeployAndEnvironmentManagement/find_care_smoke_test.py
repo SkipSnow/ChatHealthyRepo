@@ -1219,12 +1219,13 @@ class TestStep25:
         _retry("test25_btn_visible", 10, 500,
                lambda: expect(btn).to_be_visible(timeout=400))
 
-        # EPIC-002-F-001-S-012-REQ-T-007 — capture network calls during the SS push to
-        # verify /verify-token is sent DIRECTLY to the cold-button service
-        # (SharedServices), NOT proxied through FindCare's /shared/verify-token.
+        # EPIC-002-F-004-S-001 universal-gateway: capture network calls
+        # during the SS push to verify token traffic flows through
+        # SharedServices /gate (op=verify_token) and NOT through direct
+        # backend /verify-token endpoints which no longer exist.
         seen_posts = []
         def _on_request(req):
-            if req.method == "POST" and "verify-token" in req.url:
+            if req.method == "POST" and ("verify-token" in req.url or "/gate" in req.url):
                 seen_posts.append(req.url)
         page.on("request", _on_request)
         try:
@@ -1236,16 +1237,16 @@ class TestStep25:
         finally:
             page.remove_listener("request", _on_request)
 
-        expected_direct = SHARED_URL + "/verify-token"
-        direct = [u for u in seen_posts if u == expected_direct]
-        proxied = [u for u in seen_posts if u.endswith("/shared/verify-token")]
-        assert direct, \
-            f"REQ-019: expected direct POST to {expected_direct}; saw posts: {seen_posts}"
-        assert not proxied, \
-            f"REQ-019: /verify-token MUST NOT be proxied through FindCare; proxied calls: {proxied}"
+        expected_gate = SHARED_URL + "/gate"
+        gate_posts = [u for u in seen_posts if u == expected_gate]
+        direct_legacy = [u for u in seen_posts if u.endswith("/verify-token")]
+        assert gate_posts, \
+            f"universal-gateway: expected POSTs to {expected_gate}; saw: {seen_posts}"
+        assert not direct_legacy, \
+            f"universal-gateway: /verify-token MUST NOT be hit directly; legacy calls: {direct_legacy}"
 
-        # EPIC-002-F-001-S-012-REQ-B-010: right panel origin field MUST self-identify the
-        # responding service ("SharedServices"), not the token signer (FindCare).
+        # EPIC-002-F-003-S-003-REQ-B-001: token-bearing response self-identifies its sender;
+        # browser-facing origin is always SharedServices via /gate.
         right_text = page.locator("#rightPanel").inner_text()
         assert "Server, serving security token: SharedServices" in right_text, \
             f"REQ-020: right panel must show 'Server, serving security token: SharedServices' (responding service self-identification, not the token signer). Got: {right_text[:400]}"

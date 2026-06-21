@@ -155,28 +155,10 @@ def splash():
     return SplashEndpoint()()
 
 
-@app.post("/session", operation_id="Session", response_model=SessionToken,
-          openapi_extra=impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
-def session(body: SessionRestampRequest):
-    return AuthToken.handle_session(body, origin=ORIGIN, server_env=ENV)
-
-
-@app.post("/verify-token", operation_id="VerifyToken", response_model=VerifyTokenResponse,
-          openapi_extra=impl("AuthToken", "chathealthy_frontend_lib/authentication/auth_token.py"))
-def verify_token(body: SessionRestampRequest):
-    return AuthToken.handle_verify(body, origin=ORIGIN, server_env=ENV)
-
-
 @app.post("/evaluate/providers", operation_id="EvaluateProvidersEndpoint", response_model=EvaluateProvidersResponse,
           openapi_extra=impl("EvaluateProvidersEndpoint", "externalInterface/evaluate_providers_endpoint.py"))
 def evaluate_providers(body: EvaluateProvidersRequest):
     return EvaluateProvidersEndpoint()(body)
-
-
-@app.post("/transfer/to-findcare", operation_id="TransferToFindCareEndpoint",
-          openapi_extra=impl("TransferToFindCareEndpoint", "displayChrome/transfer_to_findcare_endpoint.py"))
-def transfer_to_findcare():
-    return TransferToFindCareEndpoint()()
 
 
 @app.post("/debug/verify-live", operation_id="DebugVerifyLiveEndpoint",

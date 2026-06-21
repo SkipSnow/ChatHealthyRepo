@@ -14,6 +14,7 @@ import logging
 import os
 import sys
 import threading
+from datetime import datetime, timezone
 from typing import Optional
 
 from .exceptions import ChatHealthyException
@@ -25,6 +26,69 @@ _DATEFMT = "%Y-%m-%d %H:%M:%S"
 _lock = threading.Lock()
 _bound_destination: Optional[str] = None
 _bound_level: Optional[int] = None
+_mongo_handler_bound: bool = False
+
+
+# ── Mongo handler (admin.HuggingFaceLogs_{env}) ──────────────────────────
+class _MongoLogHandler(logging.Handler):
+    """Synchronous writer to admin.HuggingFaceLogs_{env}. Each log record
+    becomes one document tagged with env + space_name. Any failure crashes
+    the process via os._exit(1) (operator directive 2026-06-21)."""
+
+    def __init__(self, conn_str: str, env: str, space_name: str) -> None:
+        super().__init__()
+        self._conn_str = conn_str
+        self._env = env
+        self._space_name = space_name
+        self._coll = None  # lazy — connect on first emit
+        self._lock = threading.Lock()
+        # Drop pymongo's own records here only — they would recurse back
+        # into the Mongo writer via the monitor thread and deadlock. The
+        # file handler still receives them so DEBUG mode is preserved.
+        self.addFilter(lambda r: not r.name.startswith("pymongo."))
+
+    def _get_coll(self):
+        if self._coll is None:
+            with self._lock:
+                if self._coll is None:
+                    # Lazy import resolves the circular dependency with
+                    # mongo_utilities (which imports this module for its
+                    # own logger). getRawClient() returns the bare
+                    # MongoClient — the TimedClient wrapper would log
+                    # every insert through this very handler and recurse.
+                    from .mongo_utilities import ChatHealthyMongoUtilities
+                    client = ChatHealthyMongoUtilities().getRawClient()
+                    self._coll = client["admin"][f"HuggingFaceLogs_{self._env}"]
+        return self._coll
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            self._get_coll().insert_one({
+                "ts": datetime.now(timezone.utc),
+                "level": record.levelname,
+                "logger": record.name,
+                "message": record.getMessage(),
+                "env": self._env,
+                "space_name": self._space_name,
+            })
+        except Exception as exc:
+            sys.stderr.write(
+                f"\n*** FATAL: ChatHealthyLoggingService write to "
+                f"admin.HuggingFaceLogs_{self._env} failed: "
+                f"{type(exc).__name__}: {exc}\n"
+            )
+            sys.stderr.flush()
+            os._exit(1)
+
+
+def _maybe_build_mongo_handler() -> Optional[logging.Handler]:
+    """Build the Mongo handler when env supplies the needed bindings."""
+    conn = os.environ.get("MONGO_FRONTEND_connectionString")
+    space_name = os.environ.get("CH_SPACE_NAME", "").strip()
+    env = os.environ.get("ENV_PREFIX", "").strip()
+    if not (conn and space_name and env):
+        return None
+    return _MongoLogHandler(conn_str=conn, env=env, space_name=space_name)
 
 
 class _Formatter(logging.Formatter):
@@ -91,16 +155,20 @@ def _build_handler(destination: str) -> logging.Handler:
 
 def _ensure_configured() -> None:
     """Re-read env vars; rebind if anything changed (REQ-B-003 + REQ-B-006)."""
-    global _bound_destination, _bound_level
+    global _bound_destination, _bound_level, _mongo_handler_bound
     dest = _compute_destination()
     level = _compute_level()
-    if dest == _bound_destination and level == _bound_level:
+    if dest == _bound_destination and level == _bound_level and _mongo_handler_bound:
         return
     with _lock:
-        if dest == _bound_destination and level == _bound_level:
+        if dest == _bound_destination and level == _bound_level and _mongo_handler_bound:
             return
-        handler = _build_handler(dest)
-        logging.basicConfig(level=level, handlers=[handler], force=True)
+        handlers: list[logging.Handler] = [_build_handler(dest)]
+        mongo = _maybe_build_mongo_handler()
+        if mongo is not None:
+            handlers.append(mongo)
+            _mongo_handler_bound = True
+        logging.basicConfig(level=level, handlers=handlers, force=True)
         _bound_destination = dest
         _bound_level = level
 

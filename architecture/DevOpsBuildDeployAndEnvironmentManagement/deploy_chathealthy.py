@@ -40,7 +40,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _deploy_chain import (  # noqa: E402
     LocalStandUp,
-    require_local_context,
     run_cloud_deploy,
     BUILD_ROOT_REL,
 )
@@ -208,7 +207,6 @@ def main(argv: list[str] | None = None) -> int:
              "(e.g. 'find_care_smoke,ur_um_regression'). Empty by default.",
     )
     args = parser.parse_args(argv)
-    require_local_context()
     repo_root = _repo_root()
 
     _enforce_env_branch_check(repo_root, args.env)

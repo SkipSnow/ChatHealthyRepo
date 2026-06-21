@@ -769,15 +769,6 @@ from chathealthy_frontend_lib.authentication import (
 ORIGIN = "FindCare"
 
 
-@app.post("/session", response_model=SessionToken)
-def post_session(body: SessionRestampRequest):
-    return AuthToken.handle_session(body, origin=ORIGIN, server_env=ENV_PREFIX)
-
-
-@app.post("/verify-token", response_model=VerifyTokenResponse)
-def verify_token(body: SessionRestampRequest):
-    return AuthToken.handle_verify(body, origin=ORIGIN, server_env=ENV_PREFIX)
-
 @app.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, request: Request):
     ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (

@@ -70,16 +70,6 @@ def _find_repo_root(start: Path) -> Path:
     raise RuntimeError(f"no .git found walking up from {start}")
 
 
-def _require_local_context() -> None:
-    """REQ-T-055 — local_build MUST run only on an operator's workstation,
-    never on a GitHub Actions runner. For CI builds use remote_build.py."""
-    if os.environ.get("GITHUB_ACTIONS") == "true":
-        sys.exit(
-            "ERROR: local_build.py MUST NOT run on a GitHub Actions runner. "
-            "Use remote_build.py instead (REQ-T-055)."
-        )
-
-
 def _resolve_build_sha(repo_root: Path) -> str:
     """Return the short HEAD SHA. Local builds MUST work without a
     commit, so this never rejects on uncommitted changes."""
@@ -203,8 +193,6 @@ def _apply_dependency_pins(repo_root: Path, build_dir: Path) -> None:
 
 
 _HF_URL_PLACEHOLDERS = {
-    "__HF_URL_FINDCARE__":       "target_hf_space_findcare_backend",
-    "__HF_URL_EVALCARE__":       "target_hf_space_evaluatecare_backend",
     "__HF_URL_SHAREDSERVICES__": "target_hf_space_shared_services",
 }
 
@@ -259,6 +247,19 @@ def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str
             text = text.replace(placeholder, url)
             _step(f"  hf-url {idx.name}: {placeholder} -> {url}")
         idx.write_text(text, encoding="utf-8")
+        final = idx.read_text(encoding="utf-8")
+        for placeholder in _HF_URL_PLACEHOLDERS:
+            if placeholder in final:
+                raise RuntimeError(
+                    f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
+                    f"still contains {placeholder!r} after substitution; build aborted."
+                )
+        for url in targets_for_placeholder.values():
+            if url not in final:
+                raise RuntimeError(
+                    f"_substitute_hf_urls_in_index_html: {idx.relative_to(build_dir)} "
+                    f"missing expected URL {url!r} after substitution; build aborted."
+                )
 
 
 def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path,
