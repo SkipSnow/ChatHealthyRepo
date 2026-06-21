@@ -1108,10 +1108,10 @@
         window.ensureRightPanelStructure();
         var pdContent = document.getElementById("rightContent");
         if (!pdContent || typeof window.ProviderDetailRenderer !== "function") return;
-        var rightPanel = document.getElementById("rightPanel");
-        if (rightPanel && !rightPanel.classList.contains("expanded")) {
-          rightPanel.classList.add("expanded");
-        }
+        // Bug 18: do NOT expand #rightPanel. Provider detail must fit inside
+        // the default right-panel width. Expansion-on-detail is deferred
+        // until the new display architecture (this weekend) — the operator
+        // explicitly scoped it out for now.
         window.ProviderDetailRenderer(detail, pdContent, "full-detail");
       };
 
