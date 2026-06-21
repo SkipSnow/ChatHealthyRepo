@@ -374,7 +374,7 @@ def _hf_wait_for_build_convergence(qualified: str, build_n: int,
             if last_build == build_n:
                 _step(f"  hf-wait OK {qualified}: build={build_n}")
                 return True
-        except (urllib.error.URLError, ValueError, KeyError):
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError, KeyError):
             pass
         time.sleep(poll_interval_s)
     _step(f"  hf-wait TIMEOUT {qualified}: last build={last_build} expected={build_n}")
