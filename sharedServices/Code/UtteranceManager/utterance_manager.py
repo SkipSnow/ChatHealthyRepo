@@ -38,7 +38,7 @@ from UtteranceManager.intent_document import (
 
 log = ChatHealthyLoggingService()
 
-LLM_MODEL = "google-gla:gemini-2.5-flash"
+LLM_MODEL = "google:gemini-2.5-flash"
 MAX_USER_UTTERANCE_WINDOW = 10  # EPIC-002-F-010-S-001-REQ-B-006
 
 

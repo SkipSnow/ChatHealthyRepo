@@ -246,7 +246,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "b7c5bf996ce6b5ab945c7aa16c5354b543eb7184c3f209f5363ce94bbea412a5"
+          "content_hash": "33e87921dcdee2cfb4479d547ac0062c7f8bdf41816ff43a335ddfa03d945ad4"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1494,7 +1494,7 @@
           "source_location": "FindCare/SpecialtyFilter/find_specialists.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "245becfd7791088424300052f9d8496baf277bf9cf577cf979d7db9425568dd5"
+          "content_hash": "538b3cfd45b23615d9a99791e7444fe6666724b324edb9dd9abd1226c5ef7dbd"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1731,6 +1731,7 @@
         "API_TOKEN_MAP": "local_env",
         "FINDCARE_SIGNING_KEY_B64": "local_env",
         "GEMINI_API_KEY": "local_env",
+        "GOOGLE_API_KEY": "local_env",
         "HF_TOKEN": "local_env",
         "ADMIN_UNLOCK_KEY": "local_env",
         "Anthropic_API_KEY": "local_env",
@@ -1854,7 +1855,7 @@
           "source_location": "FindCare/SpecialtyFilter/find_specialists.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "245becfd7791088424300052f9d8496baf277bf9cf577cf979d7db9425568dd5"
+          "content_hash": "538b3cfd45b23615d9a99791e7444fe6666724b324edb9dd9abd1226c5ef7dbd"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2285,7 +2286,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "54e7cd826368ea6bbba8647074ff4830e279d883222399d1a90d023ff95e6e07"
+          "content_hash": "7a70313fc0e1599539e1ed0c8c431489c7f1d699906fcf6accb06aee099871aa"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2320,7 +2321,7 @@
           "source_location": "sharedServices/Code/requirements.txt",
           "handler_type": "python_requirements",
           "disposition": "referenced",
-          "content_hash": "1a42e6fa51e48f9428178a3de6669934e7d79b59ced03bb57bb4e7373dd88756"
+          "content_hash": "f40d6c83584199cede559cdc862b23557e4be93cd36e6214e3d4c23fa4252cae"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2336,6 +2337,7 @@
         "GOOGLE_OAUTH_CLIENT_SECRET": "local_env",
         "HF_TOKEN": "local_env",
         "GEMINI_API_KEY": "local_env",
+        "GOOGLE_API_KEY": "local_env",
         "MONGO_FRONTEND_connectionString": "local_env",
         "OPENAI_API_KEY": "local_env",
         "Anthropic_API_KEY": "local_env"
@@ -2486,7 +2488,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/_build_chain.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "8f8bda3882a0129e5b73b580d8cb4e9b78b540d6a1d908fa989394b84b9dc68e"
+          "content_hash": "3034cdbbfc96f9f9b1fa3827acf4e76c4c7f9cd133e022a2df199ef71be0d470"
         },
         {
           "feature_id": "EPIC-008-F-012",

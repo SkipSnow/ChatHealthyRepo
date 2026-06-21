@@ -151,6 +151,57 @@ def _write_manifest_snapshot(
     )
 
 
+def _apply_dependency_pins(repo_root: Path, build_dir: Path) -> None:
+    """Pin Python dependency versions in any requirements.txt staged into
+    build_dir, using the single-source-of-truth `firm.dependency_pins`
+    block in deployment_architecture.json. This keeps requirements.txt in
+    the source tree readable with `>=` floors while the deployed container
+    installs the exact pinned version, so an HF rebuild can never silently
+    pick up a new pydantic_ai (or other pinned dep) and break startup.
+
+    Operator's framing: the pin must come from deployment_architecture.json
+    and flow through to the per-target build. This function is the
+    'flow through' step.
+    """
+    brain_path = (repo_root / "brain" / "machine_artifacts" / "content"
+                  / "deployment_architecture.json")
+    if not brain_path.is_file():
+        return
+    raw = json.loads(brain_path.read_text(encoding="utf-8"))
+    pins = (raw.get("firm") or {}).get("dependency_pins") or {}
+    if not pins:
+        return
+    # Map JSON key (underscored) → pip package name (dashed).
+    pkg_map = {key: key.replace("_", "-") for key in pins}
+    for req_path in build_dir.rglob("requirements.txt"):
+        try:
+            text = req_path.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        lines = text.splitlines()
+        changed = False
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            for json_key, pkg in pkg_map.items():
+                if stripped.startswith(pkg):
+                    extras = ""
+                    rest = stripped[len(pkg):]
+                    if rest.startswith("["):
+                        close = rest.find("]")
+                        if close >= 0:
+                            extras = rest[:close + 1]
+                    new_line = f"{pkg}{extras}=={pins[json_key]}"
+                    if line != new_line:
+                        _step(f"  pin    {req_path.name}: {stripped} -> {new_line}")
+                        lines[i] = new_line
+                        changed = True
+                    break
+        if changed:
+            req_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def _build_cloudflare(repo_root: Path, target: TargetRecord, build_dir: Path) -> None:
     """Stage Website/ into build_dir, inline fonts, materialize managed bytes."""
     if build_dir.exists():
@@ -195,6 +246,8 @@ def _build_hf_space(repo_root: Path, target: TargetRecord, build_dir: Path) -> N
     for src_rel, dst_rel in source_set:
         _step(f"  stage  {src_rel} -> {dst_rel}")
         rd._copy_tree(repo_root, build_dir, src_rel, dst_rel or src_rel)
+
+    _apply_dependency_pins(repo_root, build_dir)
 
     rd._write_hf_build_info(build_dir, target_id, "dev")
 
