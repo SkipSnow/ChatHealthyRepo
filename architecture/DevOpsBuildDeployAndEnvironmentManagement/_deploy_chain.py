@@ -2090,7 +2090,22 @@ class LocalDeploy:
                              / "FindCareChat" / "frontend")
         self.backend_dir = (self.repo_root / "Code" / "ConversationalUX"
                             / "FindCareChat" / "backend")
-        self.website_dir = self.repo_root / "Website"
+        # Local deploy reads from the per-target build_dir produced by
+        # build_chathealthy.py — that's where build-time substitutions
+        # (placeholders for per-build HF Space URLs etc.) have been applied.
+        # Reading from repo_root/Website would ship the unsubstituted source
+        # and crash the browser when JS tries to fetch '__HF_URL_FINDCARE__'.
+        # No fallback — if build_dir is missing, run build_chathealthy.py first.
+        self.website_dir = (
+            self.repo_root / "architecture"
+            / "DevOpsBuildDeployAndEnvironmentManagement"
+            / "localBuild" / "target_cloudflare_pages_website"
+        )
+        if not self.website_dir.is_dir():
+            sys.exit(
+                f"ERROR: local website build_dir missing at {self.website_dir}. "
+                f"Run `python build_chathealthy.py --env local` first."
+            )
         self.certs_dir = self.repo_root / "Code" / "Shared" / "ops" / "certs"
         self.output_dir = self.repo_root / "_oneshots/test_output" / "deploy"
         self.output_dir.mkdir(parents=True, exist_ok=True)

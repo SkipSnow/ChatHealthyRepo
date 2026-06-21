@@ -1072,15 +1072,17 @@ class UniversalNavigationTool(ChatHealthyTool):
         if document is None:
             return []
 
-        cached = read_nucc_codes_cache(document)
-        if cached is not None:
-            # Cache hit: the complaint did not change, so the FE
-            # specialty panel already reflects this universe. DO NOT
-            # stream kind:"specialties" — repainting the panel wipes
-            # the user's checked state (see 2026-06-10 Apply Filter
-            # bug). The cached value is still used internally for
-            # downstream dispatch (e.g., ProviderSearch fallback).
-            return cached
+        # Caching nucc_codes across utterances is a bug, not an
+        # optimization. The original cache key was the IntentDocument
+        # (not the complaint), so a prior dental query's nucc_codes would
+        # be returned verbatim for a new orthopedic query and the FE
+        # would show dental specialties for "find me a bone doctor"
+        # (operator-reported 2026-06-21). SpecialtyFilter is cheap; the
+        # right behavior is to run it on every new utterance.
+        # read_nucc_codes_cache() is retained for code that legitimately
+        # needs the prior turn's codes (e.g., ProviderSearch fallback
+        # when Apply Filter sends an empty selection), but it is NOT
+        # called here.
 
         # Restore prior behavior: SpecialtyFilter sees the VERBATIM latest
         # person utterance, not UM's narrow `complaint` extraction. The
