@@ -922,17 +922,11 @@
         : 'prod';
       document.body.classList.add('env-' + env);
 
-      // Build iframe URL from environment — single source of truth
-      var src;
-      if (isLocal) {
-        src = 'https://localhost:7860';  // FindCare backend serves React static files
-      } else {
-        var org = 'skipsnow';
-        var base = 'chathealthyspace';
-        var spaceName = env === 'prod' ? base : env + '-' + base;
-        src = 'https://' + org + '-' + spaceName + '.hf.space';
-      }
-
+      // Build iframe URL from environment — read from window._envServiceUrls
+      // which the build chain populated with the per-build HF Space URL
+      // (or localhost:7860 in local). Single source of truth — never
+      // re-derive the URL from a hardcoded base name.
+      var src = (window._envServiceUrls || {}).findcare || '';
       window._hfBaseUrl = src;
 
       // rightPanel hosts two persistent sub-divs so providers/splash content
