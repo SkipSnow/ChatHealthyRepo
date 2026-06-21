@@ -94,7 +94,7 @@ _EXCLUDED_SET: frozenset[str] = frozenset(EXCLUDED_CODES)
 
 
 # ── Model wiring ──────────────────────────────────────────────────────
-PICK_MODEL_ID = "google-gla:gemini-3.1-flash-lite-preview"
+PICK_MODEL_ID = "google:gemini-3.1-flash-lite-preview"
 
 
 # ── Prompt ────────────────────────────────────────────────────────────

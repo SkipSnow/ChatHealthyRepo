@@ -28,6 +28,11 @@
             "name": { "type": "string", "minLength": 1, "maxLength": 256 },
             "email": { "type": "string", "minLength": 1, "maxLength": 256 }
           }
+        },
+        "dependency_pins": {
+          "type": "object",
+          "description": "Single-source-of-truth Python dependency version pins. Keys are pip package names with underscores (e.g., 'pydantic_ai_slim'); the build chain converts to dashed form ('pydantic-ai-slim') and substitutes the exact version into per-target requirements.txt at build time so an HF rebuild can never silently pick up a breaking minor version. In-tree requirements.txt can remain readable with '>=' floors; deployed container installs the exact pinned version.",
+          "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 64 }
         }
       }
     },
