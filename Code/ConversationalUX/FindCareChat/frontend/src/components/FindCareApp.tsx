@@ -550,6 +550,7 @@ export default function FindCareApp() {
     let sawTerminalEvent = false
     let sawPrompt = false
     let sawProviders = false
+    let sawTrials = false
     let sawSpecialties = false
 
     const onPrompt = (data: any) => {
@@ -657,6 +658,7 @@ export default function FindCareApp() {
         setSearchParams((prev: any) => ({ ...(prev || {}), ...data.search_params }))
       }
       if (data.trials) {
+        sawTrials = true
         const trials = data.trials || []
         setTrialsList(trials)
         setSelectedTrialIndex(0)
@@ -716,7 +718,7 @@ export default function FindCareApp() {
               setError(msg)
               setPhase('error')
               sawError = true
-            } else if (sawProviders) {
+            } else if (sawProviders || sawTrials) {
               // Provider/trial results already setPhase('results') via
               // onResults; do not clobber with 'clarify' even if a prompt
               // was streamed earlier this turn.
@@ -781,6 +783,7 @@ export default function FindCareApp() {
     let sawTerminalEvent = false
     let sawPrompt = false
     let sawProviders = false
+    let sawTrials = false
     let sawSpecialties = false
 
     const onPrompt = (data: any) => {
@@ -831,6 +834,7 @@ export default function FindCareApp() {
         setSearchParams((prev: any) => ({ ...(prev || {}), ...data.search_params }))
       }
       if (data.trials) {
+        sawTrials = true
         const trials = data.trials || []
         setTrialsList(trials)
         setSelectedTrialIndex(0)
@@ -890,7 +894,7 @@ export default function FindCareApp() {
               setError(msg)
               setPhase('error')
               sawError = true
-            } else if (sawProviders) {
+            } else if (sawProviders || sawTrials) {
               // Provider/trial results already setPhase('results') via onResults.
             } else if (sawPrompt) {
               // Manufacture-trigger path: UM authored a prompt. Move

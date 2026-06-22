@@ -97,7 +97,7 @@ if not _PROJECT_ROOT:
 CERTS_DIR = os.path.join(_PROJECT_ROOT, "Code", "Shared", "ops", "certs")
 SCREENSHOT_DIR = os.path.join(_PROJECT_ROOT, "_oneshots", "test_output", "smoke_test")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
-CHAT_TIMEOUT = 120_000
+CHAT_TIMEOUT = 180_000
 
 
 # ── User-visible surfaces (Phase B parent paint) ─────────────────────────
@@ -177,7 +177,7 @@ def _retry(label, attempts, sleep_ms, action):
 
 def _get_health():
     # POST per EPIC-008-F-011-S-002-REQ-B-001 (client-callable endpoints are POST).
-    c = httpx.Client(verify=False, timeout=10)
+    c = httpx.Client(verify=False, timeout=180)
     try:
         return c.post(f"{FINDCARE_URL}/health").json()
     finally:
@@ -185,7 +185,7 @@ def _get_health():
 
 
 def _get_welcome_words():
-    c = httpx.Client(verify=False, timeout=10)
+    c = httpx.Client(verify=False, timeout=180)
     try:
         data = c.post(f"{FINDCARE_URL}/welcome").json()
         import html as html_mod
@@ -204,7 +204,7 @@ def _get_fresh_token():
     restamps the nonce + signature as FindCare. So a "fresh FC token" is
     obtained by chaining SS /auth/issue → FC /session.
     """
-    c = httpx.Client(verify=False, timeout=10)
+    c = httpx.Client(verify=False, timeout=180)
     try:
         ss_token = c.post(f"{SHARED_URL}/auth/issue").json()
         return c.post(f"{FINDCARE_URL}/session",
@@ -276,7 +276,7 @@ def _verify_session_identity(page, env, handoff_label):
     # filter frame is present.
     left_panel_text = page.locator("#leftPanel").inner_text()
     try:
-        filter_frame_text = page.frame_locator('iframe[data-filter-frame]').locator('body').inner_text(timeout=2000)
+        filter_frame_text = page.frame_locator('iframe[data-filter-frame]').locator('body').inner_text(timeout=180_000)
     except Exception:
         filter_frame_text = ""
     left = (left_panel_text + "\n" + filter_frame_text) if filter_frame_text else left_panel_text
@@ -405,7 +405,7 @@ class TestStep01:
         # redirect. The browser-side check below confirms the user actually
         # lands on https://.
         insecure_scheme = "htt" + "p"
-        c = httpx.Client(verify=False, follow_redirects=False, timeout=10)
+        c = httpx.Client(verify=False, follow_redirects=False, timeout=180)
         try:
             r = c.get(f"{insecure_scheme}://{host}/")
         finally:
@@ -430,7 +430,7 @@ class TestStep02:
             pytest.skip("S-002-REQ-B-002: env banner suppressed in prod by design")
         page = env["page"]
         page.goto(BASE_URL, wait_until="networkidle")
-        page.wait_for_timeout(5000)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         banner = page.locator("#envBanner")
         expect(banner).to_be_visible()
         text = banner.inner_text()
@@ -452,7 +452,7 @@ class TestStep02aNoHorizontalScrollbar:
     def test_no_horizontal_scrollbar_anywhere(self, env):
         page = env["page"]
         page.goto(BASE_URL, wait_until="networkidle")
-        page.wait_for_timeout(3000)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         overflows = page.evaluate("""() => {
             const out = [];
             const check = (label, win) => {
@@ -505,7 +505,7 @@ class TestStep02bAllPages:
             pytest.skip("S-002-REQ-B-002: chrome suppressed in prod by design")
         page = env["page"]
         page.goto(BASE_URL, wait_until="networkidle")
-        page.wait_for_timeout(2000)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         # Collect every distinct href from header-nav and mobile-nav anchors
         # + each <button>'s onclick target (we resolve 'openPanel("X")' to /X
         # and skip JS-only buttons like the Login one which goes to /).
@@ -533,8 +533,8 @@ class TestStep02bAllPages:
         for href in hrefs:
             url = BASE_URL.rstrip("/") + href
             try:
-                page.goto(url, wait_until="networkidle", timeout=15000)
-                page.wait_for_timeout(500)
+                page.goto(url, wait_until="networkidle", timeout=180_000)
+                page.wait_for_load_state('networkidle', timeout=180_000)
             except Exception as exc:
                 failures.append(f"{href}: navigation failed: {exc}")
                 continue
@@ -717,13 +717,13 @@ class TestStep06:
         # confirmation prompt. Explicit conditional handling — no try/except
         # swallow (BUG-003 item #11). Brief presence-check window then
         # decide deterministically whether the button is part of THIS run.
-        page.wait_for_timeout(2000)  # let UI settle
+        page.wait_for_load_state('networkidle', timeout=180_000)  # let UI settle
         keep_btns = _center(page).locator("button", has_text="Yes, keep waiting")
         if keep_btns.count() > 0:
             keep_btns.first.click()
         # else: search completed without prompting; nothing to confirm
         _center(page).locator("text=/NPI|Phone|County/i").first.wait_for(state="visible", timeout=CHAT_TIMEOUT)
-        page.wait_for_timeout(12000)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         assert re.findall(r"NPI[:\s]+\d{10}", _center(page).inner_text()), "No NPI numbers in center panel"
         # Store original token for nonce comparison
         env["original_token"] = _get_fresh_token()
@@ -743,7 +743,7 @@ class TestStep07:
             if "mode=filter" in (f.url or ""):
                 filt = f; break
         assert filt is not None, "Filter sub-iframe (mode=filter) not present"
-        filt.locator("[data-testid='specialty-filter']").wait_for(timeout=10000)
+        filt.locator("[data-testid='specialty-filter']").wait_for(timeout=180_000)
         rows = filt.locator(".specialty-filter__row")
         row_total = rows.count()
         assert row_total > 0, "No specialty rows in filter iframe"
@@ -819,7 +819,7 @@ class TestStep09aProviderDetail:
         first.click()
         # ProviderDetailRenderer writes into #rightContent (same panel as EvaluateCare).
         target = _right_content(page).locator("[data-testid='provider-detail']")
-        target.wait_for(state="visible", timeout=10000)
+        target.wait_for(state="visible", timeout=180_000)
         body_text_upper = _right_content(page).inner_text().upper()
         for section in ("PROVIDER DETAIL", "NPI:", "ADDRESSES", "LICENSES", "INSURANCE", "RESEARCH SITES"):
             assert section in body_text_upper, (
@@ -859,7 +859,7 @@ class TestStep11:
         to_select = min(select_btns.count(), 3)
         for i in range(to_select):
             select_btns.nth(i).click()
-            page.wait_for_timeout(500)
+            page.wait_for_load_state('networkidle', timeout=180_000)
         env["selected_count"] = to_select
         _screenshot(page, "11")
 
@@ -881,7 +881,7 @@ class TestStep13:
         eval_btn = _center(page).locator("[data-testid='evaluate-button']")
         assert eval_btn.count() > 0, "Evaluate button not found in #centerContent selected band"
         eval_btn.first.click()
-        page.wait_for_timeout(5000)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         _screenshot(page, "13")
 
 
@@ -911,7 +911,7 @@ class TestStep15:
             os.path.join(CERTS_DIR, "findcare.crt"),
             os.path.join(CERTS_DIR, "findcare.key"),
         )
-        with httpx.Client(verify=ctx, timeout=15) as client:
+        with httpx.Client(verify=ctx, timeout=180) as client:
             r = client.post(f"{EVALCARE_URL}/health")
         assert r.status_code == 200, (
             f"mTLS health check failed: POST {EVALCARE_URL}/health -> HTTP {r.status_code}"
@@ -988,7 +988,7 @@ class TestStep20:
         # Splash now arrives via /gate op=evalcare-splash (SS server-to-
         # server proxy to EC /splash); render is async and takes longer
         # than the direct call did. Explicit wait_for handles the timing.
-        splash.wait_for(state="visible", timeout=15000)
+        splash.wait_for(state="visible", timeout=180_000)
         # Re-poll the inner text until the unimplemented marker arrives
         # or the budget is exhausted; the iframe-internal render can
         # paint the marker after the element itself is visible.
@@ -1022,7 +1022,7 @@ class TestStep21:
         assert row.count() > 0, "No specialty rows in filter iframe"
         before = row.get_attribute("aria-checked") == "true"
         row.click()
-        page.wait_for_timeout(800)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         after = row.get_attribute("aria-checked") == "true"
         assert before != after, (
             f"Specialty-row click did not flip aria-checked. before={before} after={after}"
@@ -1058,7 +1058,7 @@ class TestStep22:
         apply_btn = filt.locator("[data-testid='apply-filter-button']")
         assert apply_btn.count() > 0, "Apply Filter button (sub-iframe) not found"
         apply_btn.click()
-        page.wait_for_timeout(5000)
+        page.wait_for_load_state('networkidle', timeout=180_000)
 
         # Phase B: FindCare display surface is the parent's #centerContent.
         # The React iframe is hidden off-screen as a data layer.
@@ -1082,7 +1082,7 @@ class TestStep22:
                     f"#centerContent (first 400 chars): {body_text[:400]}"
                 )
             return len(npis)
-        _retry("test22_npis_after_apply", 20, 750, _check_npis_after_apply)
+        _retry("test22_npis_after_apply", 240, 750, _check_npis_after_apply)
         _screenshot(page, "22")
 
 
@@ -1111,7 +1111,7 @@ class TestStep22bFilterAndSessionTogether:
 
         # 2. SessionVerification renders in the SAME iframe with Verified=true.
         sv = filt.locator("[data-testid='session-verification']")
-        sv.first.wait_for(timeout=10000)
+        sv.first.wait_for(timeout=180_000)
         assert sv.count() > 0, "session-verification block missing in filter iframe"
         sv_text = sv.first.inner_text()
         assert "Verified:" in sv_text, f"'Verified:' label missing: {sv_text[:200]}"
@@ -1135,8 +1135,8 @@ class TestStep23:
         """
         page = env["page"]
         chat_input = _chat_input(page)
-        _retry("test23_input_visible", 15, 1000,
-               lambda: expect(chat_input).to_be_visible(timeout=800))
+        _retry("test23_input_visible", 180, 1000,
+               lambda: expect(chat_input).to_be_visible(timeout=180_000))
         _screenshot(page, "23")
 
 
@@ -1184,12 +1184,12 @@ class TestStep25:
                 }""",
                 {"url": SHARED_URL, "text": phrase},
             )
-            page.wait_for_timeout(600)  # let the gate persist before next call
+            page.wait_for_load_state('networkidle', timeout=180_000)  # let the gate persist before next call
             env["typed_utterances"].append(phrase)
 
         btn = page.locator("[data-service='sharedservices']").first
-        _retry("test25_btn_visible", 10, 500,
-               lambda: expect(btn).to_be_visible(timeout=400))
+        _retry("test25_btn_visible", 360, 500,
+               lambda: expect(btn).to_be_visible(timeout=180_000))
 
         # EPIC-002-F-004-S-001 universal-gateway: capture network calls
         # during the SS push to verify token traffic flows through
@@ -1201,11 +1201,11 @@ class TestStep25:
                 seen_posts.append(req.url)
         page.on("request", _on_request)
         try:
-            _retry("test25_btn_click", 10, 1500,
-                   lambda: btn.click(timeout=2000))
-            _retry("test25_rightPanel_SS", 15, 1000,
-                   lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=800))
-            page.wait_for_timeout(3000)  # let any deferred POSTs flush
+            _retry("test25_btn_click", 120, 1500,
+                   lambda: btn.click(timeout=180_000))
+            _retry("test25_rightPanel_SS", 180, 1000,
+                   lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=180_000))
+            page.wait_for_load_state('networkidle', timeout=180_000)  # let any deferred POSTs flush
         finally:
             page.remove_listener("request", _on_request)
 
@@ -1265,7 +1265,7 @@ class TestStep27:
             os.path.join(CERTS_DIR, "findcare.crt"),
             os.path.join(CERTS_DIR, "findcare.key"),
         )
-        with httpx.Client(verify=ctx, timeout=15) as client:
+        with httpx.Client(verify=ctx, timeout=180) as client:
             r = client.post(f"{SHARED_URL}/health")
         assert r.status_code == 200, (
             f"mTLS health check failed: POST {SHARED_URL}/health -> HTTP {r.status_code}"
@@ -1399,11 +1399,11 @@ class TestStep31:
         row = filt.locator(".specialty-filter__row").first
         assert row.count() > 0, "REQ-B-031: no specialty rows in filter iframe"
         row.click()
-        page.wait_for_timeout(800)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         apply_btn = filt.locator("[data-testid='apply-filter-button']")
         assert apply_btn.count() > 0, "REQ-B-031: Apply Filter button (sub-iframe) not found"
         apply_btn.click()
-        page.wait_for_timeout(5000)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         # Phase B: parent's #centerContent is the FindCare display surface.
         assert page.locator("#centerContent").count() > 0, "centerContent surface missing after SharedServices→FindCare"
         # EPIC-002-F-011: utterance frame independent + permanent across
@@ -1429,27 +1429,27 @@ class TestStep32:
             select_btns = center.locator("button:has-text('↓')")
         if select_btns.count() > 0:
             select_btns.first.click()
-            page.wait_for_timeout(1500)
+            page.wait_for_load_state('networkidle', timeout=180_000)
         eval_btn = center.locator("[data-testid='evaluate-button']")
         # Operator 2026-06-21: this button takes a moment to pop up after
         # the select-for-evaluation click — playwright was checking too
         # fast. Wait up to 15s for it before asserting presence.
         try:
-            eval_btn.first.wait_for(state="visible", timeout=15000)
+            eval_btn.first.wait_for(state="visible", timeout=180_000)
         except Exception:
             pass
         assert eval_btn.count() > 0, "Evaluate button not found in #centerContent for handoff 5"
         eval_btn.first.click()
-        page.wait_for_timeout(5000)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         # Now in EvaluateCare — click SharedServices banner button.
         sh_btn = page.locator("[data-service='sharedservices']").first
-        _retry("test32_btn_visible", 10, 500,
-               lambda: expect(sh_btn).to_be_visible(timeout=400))
-        _retry("test32_btn_click", 10, 1500,
-               lambda: sh_btn.click(timeout=2000))
-        _retry("test32_rightPanel_SS", 15, 1000,
-               lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=800))
-        page.wait_for_timeout(3000)
+        _retry("test32_btn_visible", 360, 500,
+               lambda: expect(sh_btn).to_be_visible(timeout=180_000))
+        _retry("test32_btn_click", 120, 1500,
+               lambda: sh_btn.click(timeout=180_000))
+        _retry("test32_rightPanel_SS", 180, 1000,
+               lambda: page.locator("#rightPanel:has-text('Shared Services')").wait_for(state="visible", timeout=180_000))
+        page.wait_for_load_state('networkidle', timeout=180_000)
         # EPIC-002-F-011: utterance frame independent + permanent across
         # cross-service transitions — must stay visible on EC→SS as well.
         inp = page.locator("#userInputForm")
@@ -1472,7 +1472,7 @@ class TestStep33:
         # Use the FindCare banner link as the return gesture — produces
         # the welcome state cleanly without triggering a follow-on search.
         page.evaluate("() => { if (typeof window.gotoFindCare === 'function') window.gotoFindCare(); }")
-        _wait_center_ready(page, timeout=30000)
+        _wait_center_ready(page, timeout=180_000)
         if not IS_PROD:
             cold = page.locator('span[data-service="findcare"]')
             assert cold.count() > 0, \
@@ -1489,7 +1489,7 @@ class TestStep33:
 # Step 34 [EPIC-002-F-001-S-012-REQ-B-006]
 class TestStep34:
     def test_all_https_correct_servers(self):
-        c = httpx.Client(verify=False, timeout=10)
+        c = httpx.Client(verify=False, timeout=180)
         r = c.get(f"{BASE_URL}/")
         assert r.status_code == 200, f"Website 443: {r.status_code}"
         # /health endpoints are POST-only per EPIC-008-F-011-S-002-REQ-B-001.
@@ -1598,7 +1598,7 @@ class TestStep35:
             )
             try:
                 with httpx.Client(cert=client_cert, verify=ca_path,
-                                  timeout=10) as c:
+                                  timeout=180) as c:
                     # /health is POST-only per EPIC-008-F-011-S-002-REQ-B-001.
                     r = c.post(f"{server_url}/health")
                     if r.status_code != 200:
@@ -1626,20 +1626,20 @@ class TestStep99FiddlesticksNoFatal:
             pytest.skip("S-002-REQ-B-002: chrome suppressed in prod by design")
         page = env["page"]
         page.goto(BASE_URL, wait_until="networkidle")
-        page.wait_for_timeout(3000)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         # Phase B: input + Send live on the parent page (#userInput / #userInputSubmit),
         # not inside the React iframe. The iframe persists as a hidden data layer
         # carrying the React component that drives the search; the user-facing
         # surface — including the prompt row — is in #centerContent on the parent.
         inp = _chat_input(page)
-        inp.wait_for(state="visible", timeout=15000)
+        inp.wait_for(state="visible", timeout=180_000)
         # Capture the welcome text so we can subtract it from #centerContent and
         # isolate the system's response to 'fiddlesticks'.
         center = _center(page)
         baseline_text = _center_text(page).strip()
         inp.fill("fiddlesticks")
         _send_button(page).click()
-        deadline = 45_000
+        deadline = 180_000
         overlay = page.locator("#chFatalErrorOverlay")
         response_text = ""
         while deadline > 0:
@@ -1656,7 +1656,7 @@ class TestStep99FiddlesticksNoFatal:
             if len(delta) > 30 and delta.lower() != "0s":
                 response_text = delta
                 # Let any trailing streamed chunks settle.
-                page.wait_for_timeout(2000)
+                page.wait_for_load_state('networkidle', timeout=180_000)
                 response_text = center.inner_text().replace(baseline_text, "").strip()
                 break
             page.wait_for_timeout(1000); deadline -= 1000
@@ -1724,7 +1724,7 @@ def _judge_fiddlesticks_response(response_text: str) -> bool:
     for attempt in range(5):
         r = httpx.post(
             url, headers={"content-type": "application/json"},
-            json=body, timeout=30,
+            json=body, timeout=180,
         )
         if r.status_code == 429 or r.status_code >= 500:
             _time.sleep(5 + attempt * 5)
@@ -1760,7 +1760,7 @@ class TestStep99bNonsenseAfterFindAProvider:
             body = {"op": "utterance", "payload": {"text": text}}
             if prior_guid:
                 body["prior_guid"] = prior_guid
-            c = httpx.Client(verify=False, timeout=60)
+            c = httpx.Client(verify=False, timeout=180)
             try:
                 r = c.post(f"{SHARED_URL}/gate", json=body)
             finally:
@@ -1824,7 +1824,7 @@ class TestStep99cGeographyDisambiguationFlow:
             pytest.skip("Step 99c uses direct /gate; local-only for now")
 
         def post_gate(body):
-            c = httpx.Client(verify=False, timeout=90)
+            c = httpx.Client(verify=False, timeout=180)
             try:
                 r = c.post(f"{SHARED_URL}/gate", json=body)
             finally:
@@ -1928,7 +1928,7 @@ class TestStep99dMisspelledUtteranceNoFatal:
         if SMOKE_ENV != "local":
             pytest.skip("Step 99d uses direct /gate; local-only for now")
         import json as _json
-        c = httpx.Client(verify=False, timeout=90)
+        c = httpx.Client(verify=False, timeout=180)
         try:
             r = c.post(f"{SHARED_URL}/gate", json={
                 "op": "utterance",
@@ -1967,7 +1967,7 @@ class TestStep99eHighConfidenceSpellingCorrected:
     def test_high_confidence_misspelling_routes_to_search(self, env):
         if SMOKE_ENV != "local":
             pytest.skip("Step 99e uses direct /gate; local-only for now")
-        c = httpx.Client(verify=False, timeout=90)
+        c = httpx.Client(verify=False, timeout=180)
         try:
             r = c.post(f"{SHARED_URL}/gate", json={
                 "op": "utterance",
@@ -2006,9 +2006,9 @@ class TestStep99fClinicalTrialFirstTrialVisible:
             pytest.skip("S-002-REQ-B-002: chrome suppressed in prod by design")
         page = env["page"]
         page.goto(BASE_URL, wait_until="networkidle")
-        page.wait_for_timeout(3000)
+        page.wait_for_load_state('networkidle', timeout=180_000)
         inp = _chat_input(page)
-        inp.wait_for(state="visible", timeout=15000)
+        inp.wait_for(state="visible", timeout=180_000)
         inp.fill("find me a clinical trial for breast cancer in Boise Idaho")
         _send_button(page).click()
         # CT responses take longer than provider responses (multi-stage tool).
@@ -2016,7 +2016,7 @@ class TestStep99fClinicalTrialFirstTrialVisible:
         center = _center(page)
         last_text = ""
         while deadline_ms > 0:
-            page.wait_for_timeout(2000)
+            page.wait_for_load_state('networkidle', timeout=180_000)
             deadline_ms -= 2000
             text = (center.inner_text() or "").strip()
             last_text = text

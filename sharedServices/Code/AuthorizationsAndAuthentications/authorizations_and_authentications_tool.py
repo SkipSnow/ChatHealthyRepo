@@ -164,7 +164,7 @@ def write_session_record(coll, users_coll, user_object: UserObject, fresh_mint: 
     Users.users (mirror, only when user_object.is_registered == True)."""
     ensure_indexes(coll)
     guid = user_object.current_session_token.get_auth_token()
-    body = user_object.model_dump(mode="python", exclude_none=True)
+    body = user_object.model_dump(mode="json", exclude_none=True)
     if fresh_mint:
         coll.replace_one(
             {"_id": guid},

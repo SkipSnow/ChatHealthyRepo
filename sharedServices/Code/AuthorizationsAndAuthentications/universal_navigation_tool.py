@@ -1281,7 +1281,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                          message=f"UniversalNavigation run failed for op={gate_req.op} payload={gate_req.payload!r}: {exc}",
                          component="UniversalNavigationTool",
                          exception=exc,
-                     ), if_not_debug_log=True,
+                     ), if_not_debug_log=True, extra={"fatal_error": True},
                     )
 
                 session_token_proj = session_token_wire(user_object)

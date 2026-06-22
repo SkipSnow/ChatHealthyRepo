@@ -65,7 +65,7 @@ class EvalCareSplashTool(ChatHealthyTool):
                         message=f"evalcare_splash HTTP /splash failed: {type(exc).__name__}: {exc}",
                         component="EvalCareSplashTool",
                         exception=exc,
-                    ), if_not_debug_log=True)
+                    ), if_not_debug_log=True, extra={"fatal_error": True})
             resp = self.Response(error=f"splash_unavailable: {type(exc).__name__}")
             deps.stream({"kind": "evalcare-splash", "data": resp.model_dump(exclude_none=True)})
             return resp

@@ -92,7 +92,7 @@ class SpecialtyFilterTool(ChatHealthyTool):
                         message=f"specialty_filter HTTP /classify failed: {type(exc).__name__}: {exc}",
                         component="SpecialtyFilterTool",
                         exception=exc,
-                    ), if_not_debug_log=True)
+                    ), if_not_debug_log=True, extra={"fatal_error": True})
             resp = self.Response(error=f"classify_unavailable: {type(exc).__name__}")
             deps.stream({"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
             return resp

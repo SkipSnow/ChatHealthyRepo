@@ -61,6 +61,12 @@ class GeoExtractorTool(ChatHealthyTool):
     async def run(self, deps: AgentDeps, request: Optional["Request"] = None) -> "Response":
         text = latest_utterance_text(deps)
         if not text:
+            log.error("geo_extractor precondition failed: no utterance text",
+                      exc=ChatHealthyException(
+                          mode="geo_extractor_no_utterance_text",
+                          message="geo_extractor precondition failed: no utterance text",
+                          component="GeoExtractorTool",
+                      ), if_not_debug_log=True, extra={"fatal_error": True})
             return self.Response(error="No utterance text on user_object.")
         try:
             out = await asyncio.to_thread(extract_location, text)
@@ -70,7 +76,7 @@ class GeoExtractorTool(ChatHealthyTool):
                                                                                 message=f"geo_extractor failed: {type(exc).__name__}: {exc}",
                                                                                 component="GeoExtractorTool",
                                                                                 exception=exc,
-                                                                            ), if_not_debug_log=True)
+                                                                            ), if_not_debug_log=True, extra={"fatal_error": True})
             return self.Response(error=f"geo_unavailable: {type(exc).__name__}")
         return self.Response(
             state=out.state,

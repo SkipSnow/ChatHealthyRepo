@@ -131,7 +131,7 @@ class ProviderDetailTool(ChatHealthyTool):
                         message=f"provider_detail HTTP /provider-detail failed: {type(exc).__name__}: {exc}",
                         component="ProviderDetailTool",
                         exception=exc,
-                    ), if_not_debug_log=True)
+                    ), if_not_debug_log=True, extra={"fatal_error": True})
             resp = self.Response(error=f"detail_unavailable: {type(exc).__name__}")
             deps.stream({"kind": "provider-detail", "data": resp.model_dump(exclude_none=True)})
             return resp
