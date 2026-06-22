@@ -2474,9 +2474,11 @@ class LocalDeploy:
         self._step_notice("building React frontend (high-miss step)")
         api_url = ""
         evalcare_url = f"https://localhost:{self.PORTS['evalcare']}"
+        sharedservices_url = f"https://localhost:{self.PORTS['shared']}"
         env = os.environ.copy()
         env["VITE_API_URL"] = api_url
         env["VITE_EVALCARE_URL"] = evalcare_url
+        env["VITE_SHAREDSERVICES_URL"] = sharedservices_url
         canonical_vite = self.deploy_dir / "vite.config.ts"
         vite_copy = self.frontend_dir / "vite.config.ts"
         if not canonical_vite.is_file():

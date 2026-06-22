@@ -33,6 +33,7 @@ import type { SpecialtyRecord } from '@findcare/SpecialtyFilter/useSpecialtyFilt
 
 const API_URL = import.meta.env.VITE_API_URL ?? ''
 const EVALCARE_URL = import.meta.env.VITE_EVALCARE_URL ?? ''
+const SHAREDSERVICES_URL = import.meta.env.VITE_SHAREDSERVICES_URL ?? ''
 
 type Phase = 'welcome' | 'searching' | 'results' | 'error' | 'clarify'
 
@@ -59,22 +60,19 @@ function checkSecurityViolation(resp: Response, url: string): void {
 // cross-component calls. No client-side fallback: a failed /auth/issue
 // MUST surface as an error, never a placeholder.
 function _sharedServicesUrl(apiUrl: string): string {
-  // When VITE_API_URL is unset, apiUrl is '' and a relative fetch would hit
-  // the iframe's own origin (FindCare). Fall back to window.location.origin
-  // to derive a usable base, then point at SharedServices' port/host.
+  // Preferred path: build-time-injected URL (VITE_SHAREDSERVICES_URL).
+  // Works uniformly across local / dev / qa / prod because HF Space names
+  // carry per-env numeric suffixes that defeat substring-based rewriting.
+  if (SHAREDSERVICES_URL) return SHAREDSERVICES_URL
+  // Fallback: derive from the iframe's origin. Kept for back-compat with
+  // builds that predate VITE_SHAREDSERVICES_URL injection.
   const base = apiUrl || (typeof window !== 'undefined' ? window.location.origin : '')
-  // Legacy old-style HF Space naming (kept for back-compat).
   if (base.includes('find-care-chat')) {
     return base.replace('find-care-chat', 'shared-services')
   }
-  // Current HF Space naming: skipsnow-{prefix}chathealthyspace.hf.space ->
-  // skipsnow-{prefix}sharedservicesspace.hf.space. Prefix is "", "dev-",
-  // or "qa-". Hostname-only replace so we don't accidentally collide
-  // with a path segment.
   if (base.includes('chathealthyspace.hf.space')) {
     return base.replace('chathealthyspace.hf.space', 'sharedservicesspace.hf.space')
   }
-  // Local: SS on :8002 regardless of incoming port (FC :7860, Caddy :443).
   if (base.includes('localhost')) {
     return base.replace(/(\/\/localhost)(:\d+)?/, '$1:8002')
   }

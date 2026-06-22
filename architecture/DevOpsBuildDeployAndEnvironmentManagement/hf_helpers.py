@@ -462,16 +462,18 @@ def _build_react_frontend(repo_root: Path, env: str) -> None:
     vite_copy = frontend / "vite.config.ts"
     shutil.copy2(canonical_vite, vite_copy)
     evalcare_peer = _hf_peer_url("target_hf_space_evaluatecare_backend", env)
+    sharedservices_peer = _hf_peer_url("target_hf_space_shared_services", env)
     env_for_build = dict(os.environ)
     env_for_build["VITE_API_URL"] = ""
     env_for_build["VITE_EVALCARE_URL"] = evalcare_peer
+    env_for_build["VITE_SHAREDSERVICES_URL"] = sharedservices_peer
     try:
         _step(f"npm ci in {frontend}")
         subprocess.run(
             ["npm", "ci"], cwd=str(frontend), env=env_for_build,
             check=True, shell=(sys.platform == "win32"),
         )
-        _step(f"npm run build (VITE_EVALCARE_URL={evalcare_peer})")
+        _step(f"npm run build (VITE_EVALCARE_URL={evalcare_peer} VITE_SHAREDSERVICES_URL={sharedservices_peer})")
         subprocess.run(
             ["npm", "run", "build"], cwd=str(frontend), env=env_for_build,
             check=True, shell=(sys.platform == "win32"),
