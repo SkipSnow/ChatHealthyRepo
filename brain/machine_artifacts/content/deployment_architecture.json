@@ -106,7 +106,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "2ea0a319d537ef3d6553d2d22d6d189be0c7eafe3253c11a5cd9ea22b5ec8c05"
+          "content_hash": "0a4ae6374e44ac2db5705a807659b06d54a2686b1750c8f935b99142d79268db"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2476,7 +2476,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_smoke_test.py",
           "handler_type": "python_test",
           "disposition": "referenced",
-          "content_hash": "ff3343461c8b982ffafdc5d77a01c00e3d1497a41cd501d8210c3ab6407b65a4"
+          "content_hash": "fcbaffff9f46eb7e4f42e2b1514539b8e644655f7887ed346acde12911d9dc6f"
         },
         {
           "feature_id": "EPIC-008-F-012",
