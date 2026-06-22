@@ -818,6 +818,12 @@
       banner.style.display = 'block';
       if (env !== 'LOCAL') banner.style.background = '#dc2626';
 
+      // Banner cache: version/build/git are STATIC per build, so cache the
+      // first successful /gate op=peer_health response per service key.
+      // Subsequent refreshBanner calls paint immediately from cache (no "?"
+      // flash) and still re-fetch in the background to refresh the cache.
+      var _bannerCache = {};
+
       // Banner refresh: switches build/version/framework display to whichever
       // service currently owns the page (directive 2026-04-20 — fixes
       // banner-only-from-FindCare bug). Service argument is one of:
@@ -864,7 +870,12 @@
         // ownership transfer. Paint synchronously first so bracket and
         // buttons stay atomically aligned, then overlay real values when
         // /health resolves.
-        paintBanner('?', '?', '?');
+        var cached = _bannerCache[key];
+        if (cached) {
+          paintBanner(cached.version, cached.build, cached.gitNumber);
+        } else {
+          paintBanner('?', '?', '?');
+        }
         fetch(sharedGateUrl + '/gate', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
@@ -873,6 +884,7 @@
           if (!r.ok) throw new Error('/gate peer_health HTTP ' + r.status);
           return r.json();
         }).then(function(d) {
+          _bannerCache[key] = {version: d.version, build: d.build, gitNumber: d.git_number};
           paintBanner(d.version, d.build, d.git_number);
         }).catch(function() { window.chFatalError(''); });
       };
