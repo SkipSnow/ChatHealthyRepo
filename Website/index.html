@@ -867,7 +867,6 @@
         paintBanner('?', '?', '?');
         fetch(sharedGateUrl + '/gate', {
           method: 'POST',
-          credentials: 'include',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({op: 'peer_health', payload: {peer: key}})
         }).then(function(r) {
@@ -940,7 +939,6 @@
       var sharedGateUrl0 = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
       window._peerUrlsPromise = fetch(sharedGateUrl0 + '/gate', {
         method: 'POST',
-        credentials: 'include',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({op: 'peer_urls'})
       }).then(function(r) {
@@ -1000,7 +998,6 @@
           var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
           fetch(sharedUrl + '/gate', {
             method: 'POST',
-            credentials: 'include',
             headers: {'Content-Type': 'application/json'},
             body: window._gateBody({
               op: 'record_ux_event',
@@ -1149,7 +1146,6 @@
         });
         fetch(sharedUrl + '/gate', {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/x-ndjson' },
           body: body,
         }).then(function(resp) {
@@ -1205,7 +1201,6 @@
         var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
         return fetch(sharedUrl + '/gate', {
             method: 'POST',
-            credentials: 'include',
             headers: {'Content-Type': 'application/json'},
             body: window._gateBody({op: 'boot'})
           })
@@ -1290,7 +1285,6 @@
             }
             return fetch(sharedUrl + '/gate', {
               method: 'POST',
-              credentials: 'include',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({op: 'session', payload: {session_token: t0}})
             }).then(function(r) {
@@ -1301,7 +1295,6 @@
           .then(function(stamped) {
             return fetch(sharedUrl + '/gate', {
               method: 'POST',
-              credentials: 'include',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({op: 'verify_token', payload: {session_token: stamped}})
             }).then(function(r) {
@@ -1473,7 +1466,6 @@
           var sharedUrl_transfer = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
           fetch(sharedUrl_transfer + '/gate', {
             method: 'POST',
-            credentials: 'include',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({op: 'transfer_to_findcare'})
           }).catch(function() {});
@@ -1512,7 +1504,6 @@
           if (!ssUrl) return;
           fetch(ssUrl + '/gate', {
             method: 'POST',
-            credentials: 'include',
             headers: {'Content-Type': 'application/json'},
             body: window._gateBody ? window._gateBody({op: 'evalcare-splash'}) : '{"op":"evalcare-splash"}'
           })
@@ -1549,7 +1540,6 @@
         }
         fetch(serviceUrl + '/gate', {
           method: 'POST',
-          credentials: 'include',
           headers: {'Content-Type': 'application/json'},
           body: window._gateBody ? window._gateBody({op: 'splash'}) : '{}'
         })
@@ -2085,7 +2075,6 @@
                     var sharedUrl_xfer2 = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
                     fetch(sharedUrl_xfer2 + '/gate', {
                       method: 'POST',
-                      credentials: 'include',
                       headers: {'Content-Type': 'application/json'},
                       body: JSON.stringify({op: 'transfer_to_findcare'})
                     })
@@ -2212,7 +2201,6 @@
                     var sharedUrl_xfer3 = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
                     fetch(sharedUrl_xfer3 + '/gate', {
                       method: 'POST',
-                      credentials: 'include',
                       headers: {'Content-Type': 'application/json'},
                       body: JSON.stringify({op: 'transfer_to_findcare'})
                     })
