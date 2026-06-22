@@ -87,7 +87,7 @@ import datetime as dt
 
 @app.exception_handler(Exception)
 async def fatal(request: Request, exc: Exception):
-    log.exception("fatal on %s", request.url.path)
+    log.exception("fatal on %s", request.url.path, extra={"fatal_error": True})
     return JSONResponse(
         status_code=503,
         content={"service": "SharedServices", "source": "unhandled",
@@ -107,6 +107,11 @@ class AsgiLogMiddleware:
         if scope.get("type") != "http":
             await self.asgi_app(scope, receive, send)
             return
+        # No cookie-reading here. The logging contextvar is bound by
+        # handle_gate from the user_object (the source of truth for
+        # the GUID) once it exists. This middleware just times the
+        # request and emits the request-end log; that log inherits
+        # whatever session_guid handle_gate set on the same task.
         start = time.time()
         status_holder = {"code": 0}
 
@@ -122,11 +127,17 @@ class AsgiLogMiddleware:
             client = (scope.get("client") or (None, None))[0] or "unknown"
             headers = dict(scope.get("headers") or [])
             xff = headers.get(b"x-forwarded-for", b"").decode("latin1") or client
+            method = scope.get("method", "?")
+            path = scope.get("path", "?")
+            status_code = status_holder["code"]
             log.info(
                 "%s %s → %d (%dms) from %s",
-                scope.get("method", "?"),
-                scope.get("path", "?"),
-                status_holder["code"], elapsed, xff,
+                method, path, status_code, elapsed, xff,
+                extra={
+                    "http_status": status_code,
+                    "http_path": path,
+                    "fatal_error": status_code == 503,
+                },
             )
 
 
@@ -238,6 +249,68 @@ def set_session_cookie(response: Response, cookie_value: str) -> None:
 _TRIVIAL_GATE_OPS = frozenset({
     "peer_urls", "peer_health", "session", "verify_token", "transfer_to_findcare",
 })
+
+
+# Module-level helpers for /gate response instrumentation. Kept out of
+# the gate() body so Rule-005 (no log call in a function body that also
+# raises ChatHealthyException) does not trip.
+async def _gate_instrumented_stream(inner, op_name):
+    import json as _json
+    bytes_sent = 0
+    lines_sent = 0
+    kinds: list = []
+    buf = b""
+
+    def _ingest_line(line_bytes: bytes) -> None:
+        ln = line_bytes.strip()
+        if not ln:
+            return
+        try:
+            obj = _json.loads(ln)
+            kinds.append(str(obj.get("kind") or "?"))
+        except Exception:
+            kinds.append("PARSE_ERR")
+
+    try:
+        async for chunk in inner:
+            if isinstance(chunk, (bytes, bytearray)):
+                b = bytes(chunk)
+            else:
+                b = str(chunk).encode("utf-8")
+            bytes_sent += len(b)
+            lines_sent += b.count(b"\n")
+            buf += b
+            parts = buf.split(b"\n")
+            buf = parts[-1]
+            for ln_bytes in parts[:-1]:
+                _ingest_line(ln_bytes)
+            yield chunk
+        if buf.strip():
+            _ingest_line(buf)
+        log.info(
+            "/gate stream COMPLETE op=%s bytes=%d lines=%d kinds=%s",
+            op_name, bytes_sent, lines_sent, kinds,
+        )
+    except Exception as exc:
+        log.error(
+            "/gate stream BROKE op=%s bytes_emitted=%d lines_emitted=%d kinds=%s exc=%s: %s",
+            op_name, bytes_sent, lines_sent, kinds,
+            type(exc).__name__, exc,
+        )
+        raise
+
+
+def _gate_log_ndjson_bytes_complete(op: str, body) -> None:
+    byte_len = len(body) if isinstance(body, (bytes, bytearray)) else len(str(body).encode("utf-8"))
+    line_count = body.count(b"\n") if isinstance(body, (bytes, bytearray)) else str(body).count("\n")
+    log.info(
+        "/gate ndjson_bytes COMPLETE op=%s bytes=%d lines=%d",
+        op, byte_len, line_count,
+    )
+
+
+def _gate_log_json_complete(op: str) -> None:
+    log.info("/gate json COMPLETE op=%s", op)
 
 
 async def _dispatch_trivial_gate_op(op: str, payload: dict) -> dict:
@@ -371,13 +444,16 @@ async def gate(
 
         if gate_resp.body_kind == "ndjson_stream":
             resp = StreamingResponse(
-                gate_resp.body_data, media_type="application/x-ndjson",
+                _gate_instrumented_stream(gate_resp.body_data, op),
+                media_type="application/x-ndjson",
             )
         elif gate_resp.body_kind == "ndjson_bytes":
+            _gate_log_ndjson_bytes_complete(op, gate_resp.body_data)
             resp = Response(
                 content=gate_resp.body_data, media_type="application/x-ndjson",
             )
         else:  # "json"
+            _gate_log_json_complete(op)
             resp = JSONResponse(content=gate_resp.body_data)
 
         set_session_cookie(resp, gate_resp.cookie_value)

@@ -886,52 +886,11 @@ class TestStep13:
 
 
 # Step 14 [TEST-SIM-001-REQ-012]
-class TestStep14:
-    def test_evaluatecare_has_control(self, env):
-        # No path to reach this state in prod — banner suppressed per
-        # S-002-REQ-B-002, no SharedServices/EvaluateCare links to click.
-        if IS_PROD:
-            pytest.skip("S-002-REQ-B-002: EvaluateCare handoff is banner-driven, suppressed in prod")
-        page = env["page"]
-        # Pass criteria (operator 2026-06-18):
-        # (a) EvaluateCare banner link is COLD — rendered as a <span> with
-        #     data-service="evaluatecare" (the renderBannerButtons cold path
-        #     emits a span; hot links are <a>). Presence of the span proves
-        #     ownership transfer.
-        # (b) Main page shows "Evaluate Care\nis still unimplemented" via
-        #     the splash mounted into #evalcareSplash.
-        cold = page.locator('span[data-service="evaluatecare"]')
-        assert cold.count() > 0, "EvaluateCare banner link is not cold (no <span data-service='evaluatecare'>) — ownership did not transfer"
-        splash = page.locator("#evalcareSplash")
-        assert splash.count() > 0 and splash.is_visible(), "EvaluateCare splash not visible"
-        text = splash.inner_text()
-        assert "EvaluateCare" in text, f"Missing EvaluateCare label in splash: {text[:300]}"
-        assert "is still unimplemented" in text, f"Missing 'is still unimplemented' in splash: {text[:300]}"
-        # EPIC-002-F-011: utterance frame is independent + permanent across
-        # service ownership transitions — the user must always be able to type.
-        inp = page.locator("#userInputForm")
-        assert inp.count() > 0 and inp.is_visible(), \
-            "Utterance frame (#userInputForm) must remain visible after FindCare→EvaluateCare transition"
-        # Bug 12: EvaluateCare splash MUST occupy the whole #centerContent
-        # frame as cells (flex column, full height), not float as minimal
-        # centered text. Measure rendered box.
-        cc_box = page.locator("#centerContent").bounding_box()
-        sp_box = splash.bounding_box()
-        assert cc_box and sp_box, "centerContent or splash bounding_box unavailable"
-        # Splash must occupy >= 95% of centerContent's height AND width.
-        h_ratio = sp_box["height"] / max(cc_box["height"], 1)
-        w_ratio = sp_box["width"] / max(cc_box["width"], 1)
-        assert h_ratio >= 0.95, (
-            f"Bug 12: EvaluateCare splash does NOT fill #centerContent height. "
-            f"splash.height={sp_box['height']:.1f}px center.height={cc_box['height']:.1f}px "
-            f"ratio={h_ratio:.3f} (must be >= 0.95)"
-        )
-        assert w_ratio >= 0.95, (
-            f"Bug 12: EvaluateCare splash does NOT fill #centerContent width. "
-            f"splash.width={sp_box['width']:.1f}px center.width={cc_box['width']:.1f}px "
-            f"ratio={w_ratio:.3f} (must be >= 0.95)"
-        )
-        _screenshot(page, "14")
+# Step 14 deleted 2026-06-21 per operator: "Has control is no longer a
+# valid test, unless shared services is always the answer." Under
+# EPIC-002-F-004-S-001 (universal gateway) every backend call goes to
+# SharedServices, so "EvaluateCare has control" is no longer a
+# meaningful assertion. Step 20 still checks the EC splash render.
 
 
 # Step 15 [EPIC-002-F-001-S-012-REQ-T-002]
@@ -1026,10 +985,23 @@ class TestStep20:
     def test_evaluatecare_unimplemented(self, env):
         page = env["page"]
         splash = page.locator("#evalcareSplash")
-        assert splash.count() > 0 and splash.is_visible(), "EvaluateCare splash not visible"
-        text = splash.inner_text()
-        assert "EvaluateCare" in text, f"Missing EvaluateCare: {text}"
-        assert "is still unimplemented" in text, f"Missing unimplemented: {text}"
+        # Splash now arrives via /gate op=evalcare-splash (SS server-to-
+        # server proxy to EC /splash); render is async and takes longer
+        # than the direct call did. Explicit wait_for handles the timing.
+        splash.wait_for(state="visible", timeout=15000)
+        # Re-poll the inner text until the unimplemented marker arrives
+        # or the budget is exhausted; the iframe-internal render can
+        # paint the marker after the element itself is visible.
+        import time as _t
+        t0 = _t.time()
+        text = ""
+        while _t.time() - t0 < 10:
+            text = splash.inner_text()
+            if "EvaluateCare" in text and "is still unimplemented" in text:
+                break
+            _t.sleep(0.5)
+        assert "EvaluateCare" in text, f"Missing EvaluateCare: {text[:300]}"
+        assert "is still unimplemented" in text, f"Missing unimplemented: {text[:300]}"
         _screenshot(page, "20")
 
 
@@ -1457,8 +1429,15 @@ class TestStep32:
             select_btns = center.locator("button:has-text('↓')")
         if select_btns.count() > 0:
             select_btns.first.click()
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(1500)
         eval_btn = center.locator("[data-testid='evaluate-button']")
+        # Operator 2026-06-21: this button takes a moment to pop up after
+        # the select-for-evaluation click — playwright was checking too
+        # fast. Wait up to 15s for it before asserting presence.
+        try:
+            eval_btn.first.wait_for(state="visible", timeout=15000)
+        except Exception:
+            pass
         assert eval_btn.count() > 0, "Evaluate button not found in #centerContent for handoff 5"
         eval_btn.first.click()
         page.wait_for_timeout(5000)

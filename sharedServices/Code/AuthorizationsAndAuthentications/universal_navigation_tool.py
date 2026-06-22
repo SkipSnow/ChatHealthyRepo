@@ -453,7 +453,8 @@ class UniversalNavigationTool(ChatHealthyTool):
         {kind: 'provider-detail', data: ...} back to the FE."""
         req = provider_detail_tool.Request(**payload)
         resp = await provider_detail_tool.TOOL.run_and_log(deps, req)
-        deps.stream({"kind": "final", "data": {"ok": not resp.error}})
+        # No inner "final" emission — _run_pipeline_then_finalize emits
+        # the single canonical final event with full payload.
         return Response(kind="provider-detail", result=resp.model_dump(exclude_none=True))
 
     async def _handle_evalcare_splash(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
@@ -463,7 +464,8 @@ class UniversalNavigationTool(ChatHealthyTool):
         back to the FE. Mirror of _handle_provider_detail."""
         req = evalcare_splash_tool.Request(**payload)
         resp = await evalcare_splash_tool.TOOL.run_and_log(deps, req)
-        deps.stream({"kind": "final", "data": {"ok": not resp.error}})
+        # No inner "final" emission — _run_pipeline_then_finalize emits
+        # the single canonical final event with full payload.
         return Response(kind="evalcare-splash", result=resp.model_dump(exclude_none=True))
 
     async def _handle_apply_filter(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
@@ -953,14 +955,9 @@ class UniversalNavigationTool(ChatHealthyTool):
                 (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
                 "",
             )
-            specialties = await self._run_or_cache_specialty_filter(deps, complaint)
-            if not specialties:
-                deps.stream({
-                    "kind": "final",
-                    "data": {"ok": False, "error": "no_specialties"},
-                })
-            else:
-                deps.stream({"kind": "final", "data": {"ok": True}})
+            await self._run_or_cache_specialty_filter(deps, complaint)
+            # No inner "final" emission — _run_pipeline_then_finalize
+            # emits the single canonical final event with full payload.
 
         elif target_action == "findClinicalTrials":
             # EPIC-006-F-031 — dispatch ClinicalTrialsTool.
@@ -986,7 +983,8 @@ class UniversalNavigationTool(ChatHealthyTool):
                 cursor=cursor,
             )
             await clinical_trials_tool.TOOL.run_and_log(deps, ct_req)
-            deps.stream({"kind": "final", "data": {"ok": True}})
+            # No inner "final" emission — outer pipeline emits the
+            # canonical final event with full payload.
 
         elif target_action == "findAProvider":
             from authentication import provider_search_and_selection_tool
@@ -996,12 +994,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 "",
             )
             specialties = await self._run_or_cache_specialty_filter(deps, complaint)
-            if not specialties:
-                deps.stream({
-                    "kind": "final",
-                    "data": {"ok": False, "error": "no_specialties"},
-                })
-            else:
+            if specialties:
                 # FindCare-UR REQ-B-002: ProviderSearch fires only when
                 # geography is sufficient.
                 geo_arg_val = next(
@@ -1045,7 +1038,8 @@ class UniversalNavigationTool(ChatHealthyTool):
                 await provider_search_and_selection_tool.TOOL.run_and_log(
                     deps, ps_req,
                 )
-                deps.stream({"kind": "final", "data": {"ok": True}})
+                # No inner "final" emission — outer pipeline emits the
+                # canonical final event with full payload.
 
         else:
             raise RuntimeError(
@@ -1230,6 +1224,14 @@ class UniversalNavigationTool(ChatHealthyTool):
         fresh_mint = authn_resp.fresh_mint
         guid = user_object.current_session_token.get_auth_token()
         cookie_value = assemble_session_token_value(user_object)
+
+        # Bind the user_object's GUID to the logging context for this
+        # async task. Every log emitted from here on (handle_gate +
+        # downstream tools + middleware request-end log) carries
+        # session_guid + user_action=true automatically. The developer
+        # never harvests the GUID.
+        from chathealthy_frontend_lib.logging_service import bind_user_object_to_log
+        bind_user_object_to_log(user_object)
 
         # Stamp client IP onto user_object at the HTTP boundary so tools
         # (SafetyLockoutTool in particular) never touch the Request. UR's
