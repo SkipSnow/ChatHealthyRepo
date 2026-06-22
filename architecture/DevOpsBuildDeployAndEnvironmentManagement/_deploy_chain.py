@@ -1962,13 +1962,86 @@ def select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tuple
     return []
 
 
+def _dependency_sort_targets(selected: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Order selected targets so the wrapper (cloudflare_pages_project)
+    always deploys LAST, after the HF backends it points at. The wrapper
+    must never publish URLs pointing at backends that didn't deploy.
+
+    Order: hf_space -> azure_* -> cloudflare_pages_project -> everything else.
+    """
+    rank = {
+        "hf_space": 0,
+        "azure_function_app": 1,
+        "azure_container_app": 1,
+        "azure_automation_runbook": 1,
+        "cloudflare_pages_project": 2,
+    }
+    return sorted(selected, key=lambda tk: (rank.get(tk[1], 3), tk[0]))
+
+
+def _hf_space_live_url_for_target(coll: DeploymentCollection, env: str, target_id: str) -> Optional[str]:
+    """Return the public HF Space URL for the given target+env, or None
+    if the target isn't an hf_space or has no env_binding."""
+    target = coll.by_target_id(target_id)
+    if target is None or target.target_kind != "hf_space":
+        return None
+    binding = next((e for e in target.environments if e.env_binding == env), None)
+    if binding is None:
+        return None
+    hf = getattr(binding, "huggingface_space", None) or {}
+    qualified = hf.get("space") if isinstance(hf, dict) else None
+    if not qualified or "/" not in qualified:
+        return None
+    org, name = qualified.split("/", 1)
+    return f"https://{org.lower()}-{name.replace('_', '-').lower()}.hf.space"
+
+
+def _verify_hf_space_live(coll: DeploymentCollection, env: str, target_id: str, build_n: int,
+                            timeout_s: int = 120) -> tuple[bool, str]:
+    """End-to-end probe: curl the Space's public /health endpoint and
+    confirm HTTP 200 AND `build` field equals `build_n`. Polls every 5
+    seconds up to timeout_s. Returns (ok, detail)."""
+    import json as _json
+    import time as _time
+    import urllib.error
+    import urllib.request
+    import ssl
+    url = _hf_space_live_url_for_target(coll, env, target_id)
+    if url is None:
+        return (False, f"{target_id}: no resolvable HF Space URL for env={env}")
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    t0 = _time.time()
+    last_detail = ""
+    while _time.time() - t0 < timeout_s:
+        try:
+            req = urllib.request.Request(url + "/health", method="POST")
+            with urllib.request.urlopen(req, context=ctx, timeout=10) as r:
+                body = r.read().decode("utf-8", errors="replace")
+                if r.status == 200:
+                    try:
+                        d = _json.loads(body)
+                        served = d.get("build")
+                        if int(served) == int(build_n):
+                            return (True, f"{url}/health build={served}")
+                        last_detail = f"{url}/health build={served} (waiting for {build_n})"
+                    except Exception:
+                        last_detail = f"{url}/health 200 but unparseable body"
+                else:
+                    last_detail = f"{url}/health HTTP {r.status}"
+        except Exception as exc:
+            last_detail = f"{url}/health {type(exc).__name__}: {exc}"
+        _time.sleep(5)
+    return (False, f"timeout after {timeout_s}s; last: {last_detail}")
+
+
 def run_cloud_deploy(env: str, target_arg: str) -> int:
-    """Deploy every in-scope target independently. A target either deploys
-    completely (its handler succeeds) or is skipped entirely with an error
-    captured for the final report — a failure in one target never halts
-    another target's deploy. Each handler is responsible for its own
-    fast-fail before any state-changing action so a per-target failure
-    leaves the live system unchanged for that target.
+    """Deploy in dependency order: HF backends FIRST, Cloudflare wrapper
+    LAST. The wrapper publishes ONLY if every selected backend deploy
+    succeeded AND its public /health endpoint converged to the new
+    build_n. A backend failure aborts the wrapper publish so the live
+    wrapper bytes can never drift from the actual backend URLs.
     """
     repo_root = find_repo_root(Path(__file__))
     step(f"repo_root={repo_root} env={env} target={target_arg}")
@@ -1976,35 +2049,59 @@ def run_cloud_deploy(env: str, target_arg: str) -> int:
     env_file = repo_root / "Code" / ".env"
     coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
     resolver = SecretsResolver.from_collection(coll, env_file=env_file)
-    selected = select_target_ids(coll, target_arg)
+    selected = _dependency_sort_targets(select_target_ids(coll, target_arg))
     if not selected:
         sys.exit(f"ERROR: no targets matched --target={target_arg!r}")
     by_id = {t.target_id: t for t in coll}
-    # Firm-level branch guard. Skipped only when EVERY selected target is
-    # promote-chain exempt (the pipeline-only carve-out). The per-target
-    # guard inside _deploy_one is still the authoritative enforcement;
-    # this is the fail-fast surface for promote-chain deploys.
     if any(by_id[tid].promote_chain_bound for tid, _ in selected):
         require_branch_matches_env(env)
     succeeded: list[str] = []
     failed: list[tuple[str, str]] = []  # (target_id, error_message)
+    any_hf_failed = False
     for target_id, target_kind in selected:
+        # Wrapper gate: if any HF backend failed in this same run, refuse
+        # to publish the wrapper. Live wrapper bytes are the contract
+        # against the live backends; we never let them disagree.
+        if target_kind == "cloudflare_pages_project" and any_hf_failed:
+            msg = (f"SKIPPED to protect the contract: one or more HF backends "
+                   f"failed in this run; publishing the wrapper would point "
+                   f"users at broken backends.")
+            step(f"  SKIPPED {target_id}: {msg}")
+            failed.append((target_id, msg))
+            continue
         target = by_id[target_id]
         if env not in target.env_binding_set():
             step(f"  skip {target_id}: no env_binding for {env!r}")
             continue
         try:
-            succeeded.append(deploy_one(
+            result = deploy_one(
                 repo_root, target_id, target_kind, env, resolver, coll,
-            ))
+            )
+            # Programmatic end-to-end verification for HF Spaces: curl the
+            # public /health and confirm build_n match before declaring
+            # success. No human checkpoint — the script proves the Space
+            # is serving the new build.
+            if target_kind == "hf_space":
+                manifest = load_target_manifest(repo_root, target_id)
+                build_n = int(manifest["build_number"])
+                ok, detail = _verify_hf_space_live(coll, env, target_id, build_n,
+                                                     timeout_s=180)
+                if not ok:
+                    raise RuntimeError(f"post-deploy verify failed: {detail}")
+                step(f"  verified {target_id}: {detail}")
+            succeeded.append(result)
         except SystemExit as exc:
             msg = str(exc.code) if exc.code else "sys.exit() with no message"
             step(f"  FAILED {target_id}: {msg[:500]}")
             failed.append((target_id, msg))
+            if target_kind == "hf_space":
+                any_hf_failed = True
         except Exception as exc:
             msg = f"{type(exc).__name__}: {exc!s}"
             step(f"  FAILED {target_id}: {msg[:500]}")
             failed.append((target_id, msg))
+            if target_kind == "hf_space":
+                any_hf_failed = True
     if succeeded:
         step(f"deployed {len(succeeded)} target(s):")
         for d in succeeded:
