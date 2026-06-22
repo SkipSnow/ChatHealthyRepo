@@ -72,6 +72,12 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         if not request.specialty_codes:
+            log.error("provider_search precondition failed: no specialty codes",
+                      exc=ChatHealthyException(
+                          mode="provider_search_no_specialty_codes",
+                          message="provider_search precondition failed: no specialty codes",
+                          component="ProviderSearchAndSelectionTool",
+                      ), if_not_debug_log=True, extra={"fatal_error": True})
             resp = self.Response(error="No specialty codes; cannot search providers.")
             deps.stream({"kind": "providers", "data": resp.model_dump(exclude_none=True)})
             return resp
@@ -108,7 +114,7 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
                         message=f"FindCare /search call failed: {type(exc).__name__}: {exc}",
                         component="ProviderSearchAndSelectionTool",
                         exception=exc,
-                    ), if_not_debug_log=True)
+                    ), if_not_debug_log=True, extra={"fatal_error": True})
             resp = self.Response(
                 error="Provider search is taking longer than usual. "
                       "Please try the same search again in a moment.",

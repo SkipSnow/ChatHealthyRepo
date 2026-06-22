@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -23,6 +24,7 @@ from pydantic_ai import Agent
 from pymongo.collection import Collection
 
 from chathealthy_frontend_lib import run_llm_sync
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 
 # ── Pydantic I/O contracts ────────────────────────────────────────────
@@ -184,28 +186,34 @@ Emit ONLY the JSON object described in the system prompt.
 """.strip()
 
 
-# ── Module-level agent singleton ──────────────────────────────────────
-_pick_agent: Agent | None = None
+_thread_local = threading.local()
 
 
 def _get_pick_agent() -> Agent:
-    global _pick_agent
-    if _pick_agent is None:
-        if not os.getenv("GEMINI_API_KEY"):
-            raise RuntimeError(
-                "GEMINI_API_KEY not set; required for find_specialists.")
-        _pick_agent = Agent(
-            PICK_MODEL_ID,
-            output_type=FindSpecialistsOutput,
-            system_prompt=_PICK_SYSTEM_PROMPT,
-            model_settings={"temperature": 0.3},
-            # V5 needs retries=5: at retries=1 one of the 38 runs in the
-            # benchmark exceeded the max output-retries limit. Bump to 5
-            # to absorb the same class of transient schema-validation
-            # retry that benchmark-grade runs require.
-            retries=5,
+    # Thread-local Agent cache. pydantic-ai's Agent.run_sync wraps
+    # asyncio.run, which creates a new event loop per call. The Agent's
+    # internal asyncio.Event becomes bound to the first call's loop;
+    # subsequent calls from a different worker thread bind to a different
+    # loop and raise "Event is bound to a different event loop".
+    # asyncio.to_thread uses a bounded ThreadPoolExecutor (≈cpu_count+4),
+    # so each thread caches its own Agent constructed-once-then-reused.
+    cached = getattr(_thread_local, "agent", None)
+    if cached is not None:
+        return cached
+    if not os.getenv("GEMINI_API_KEY"):
+        raise ChatHealthyException(
+            mode="gemini_api_key_missing",
+            message="GEMINI_API_KEY not set; required for find_specialists.",
+            component="SpecialtyFilter",
         )
-    return _pick_agent
+    _thread_local.agent = Agent(
+        PICK_MODEL_ID,
+        output_type=FindSpecialistsOutput,
+        system_prompt=_PICK_SYSTEM_PROMPT,
+        model_settings={"temperature": 0.3},
+        retries=5,
+    )
+    return _thread_local.agent
 
 
 # ── Corpus load ───────────────────────────────────────────────────────

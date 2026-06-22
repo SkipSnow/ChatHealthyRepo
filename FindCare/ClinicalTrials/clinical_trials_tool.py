@@ -470,7 +470,7 @@ class ClinicalTrialsTool(ChatHealthyTool):
         try:
             return await self._run_inner(deps, request)
         except Exception as exc:
-            log.warning(
+            log.error(
                 "ClinicalTrialsTool caught exception; returning empty response: %s",
                 exc,
                 exc=ChatHealthyException(
@@ -480,6 +480,7 @@ class ClinicalTrialsTool(ChatHealthyTool):
                     exception=exc,
                 ),
                 if_not_debug_log=True,
+                extra={"fatal_error": True},
             )
             return Response(
                 trials=[],
@@ -492,6 +493,12 @@ class ClinicalTrialsTool(ChatHealthyTool):
     async def _run_inner(self, deps: AgentDeps, request: "Request") -> "Response":
         condition = (request.condition or "").strip()
         if not condition:
+            log.error("clinical_trials precondition failed: no condition provided",
+                      exc=ChatHealthyException(
+                          mode="clinical_trials_no_condition",
+                          message="clinical_trials precondition failed: no condition provided",
+                          component="ClinicalTrialsTool",
+                      ), if_not_debug_log=True, extra={"fatal_error": True})
             return Response(trials=[], error="No condition provided.")
         trials, next_cursor = await _fetch_ct_gov(
             condition, request.page_size, request.cursor,

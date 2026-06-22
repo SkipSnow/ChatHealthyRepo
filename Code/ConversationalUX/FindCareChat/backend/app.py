@@ -560,7 +560,7 @@ async def classify(body: ClassifyRequest, request: Request):
                                                                       message=f"classify req_id={req_id} ip={ip} stage={stage} detail={repr(exc)[:300]} message={body.message!r}",
                                                                       component="FindCareBackend",
                                                                       exception=exc,
-                                                                  ), if_not_debug_log=True)
+                                                                  ), if_not_debug_log=True, extra={"fatal_error": True})
         sanitized = (
             f"FindCare /classify temporarily unavailable "
             f"(stage: {stage}) at {ts}. Ref: {req_id}"
@@ -784,7 +784,7 @@ async def chat(body: ChatRequest, request: Request):
                                                 message=f"CHAT ERROR: {e}",
                                                 component="FindCareBackend",
                                                 exception=e,
-                                            ), if_not_debug_log=True)
+                                            ), if_not_debug_log=True, extra={"fatal_error": True})
         err_str = str(e)
         if "429" in err_str or "rate_limit" in err_str.lower():
             err_type, err_msg = "rate_limit", f"Rate limit hit — {err_str}"
