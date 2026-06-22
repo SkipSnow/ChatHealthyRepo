@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyLogsSchema.json",
+  "title": "ChatHealthy Logs Record",
+  "description": "One log document in admin.ChatHealthyLogs_{env}. Schema is closed (no extra fields). The canonical operational finds: db.find({fatal_error: true}) returns every 503; db.find({session_guid: <guid>}) returns every log of one user's session. user_action=true logs MUST carry session_guid. The full message bytes - including ChatHealthyException rendering, thrower traceback, and catcher stack - live in the `formatted` field; engineers grep there.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "timeStamp",
+    "level",
+    "env",
+    "target",
+    "formatted",
+    "pathname",
+    "fatal_error",
+    "user_action",
+    "session_guid"
+  ],
+  "properties": {
+    "timeStamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC datetime of the log emit. ISO 8601."
+    },
+    "level": {
+      "type": "string",
+      "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    },
+    "env": {
+      "type": "string",
+      "enum": ["local", "dev", "qa", "prod"]
+    },
+    "target": {
+      "type": "string",
+      "description": "Per-build HF Space name (e.g. dev_SharedServicesSpace_1605) for HF deploys; container name (e.g. ch-sharedsvc) for local docker deploys."
+    },
+    "formatted": {
+      "type": "string",
+      "description": "Canonical byte stream identical to the file log line, including ChatHealthyException rendering and BOTH the thrower's and catcher's stack tracebacks when an exception is captured. Mongo IS the log; this field is the log line. Grep here for traceback content."
+    },
+    "pathname": {
+      "type": "string",
+      "description": "Absolute path of the Python source file where the log was emitted."
+    },
+    "fatal_error": {
+      "type": "boolean",
+      "description": "True iff this log represents a fatal 503 outcome (HTTP 503 response from the asgi middleware OR an unhandled exception). Always present; default false. Canonical query: db.find({fatal_error: true})."
+    },
+    "user_action": {
+      "type": "boolean",
+      "description": "True iff this log was produced while handling a user-driven request. When true, session_guid is required."
+    },
+    "session_guid": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{32}$",
+      "description": "Browser session GUID, 32 lowercase hex characters, or null when no user session is in flight (system / startup / background). Always present on every doc — never omitted. Canonical session-trace query: db.find({session_guid: <guid>}).sort({timeStamp: 1}). Indexed."
+    },
+    "exc_type": {
+      "type": "string",
+      "description": "Exception class name when an exception is captured. Indexed - db.find({exc_type: 'KeyError'}) buckets errors by class. The full thrower + catcher tracebacks are inside `formatted`."
+    },
+    "http_status": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 599,
+      "description": "HTTP response status code from the asgi middleware. Indexed for 5xx queries."
+    },
+    "http_path": {
+      "type": "string",
+      "description": "Request URL path from the asgi middleware. Indexed for per-endpoint traces."
+    },
+    "lineno": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Source line number where the log was emitted. Dev-debugging context, not indexed."
+    },
+    "funcName": {
+      "type": "string",
+      "description": "Source function name where the log was emitted. Dev-debugging context, not indexed."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "user_action": { "const": true } },
+        "required": ["user_action"]
+      },
+      "then": {
+        "properties": {
+          "session_guid": { "type": "string", "pattern": "^[0-9a-f]{32}$" }
+        }
+      }
+    }
+  ]
+}
