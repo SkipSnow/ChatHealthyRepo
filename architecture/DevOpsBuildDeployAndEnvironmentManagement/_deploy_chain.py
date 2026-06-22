@@ -376,35 +376,29 @@ def deploy_hf_space(
     resolver: SecretsResolver,
     target: TargetRecord,
 ) -> str:
-    """Per-build Space deploy. Each build creates a NEW HF Space named
-    <manifest_base>_<build_n>, deploys to it, waits for /health convergence,
-    then deletes the prior build's Space. Sidesteps the HF runtime wedge
-    pattern entirely — a wedge can only happen on a Space we abandon next
-    build anyway."""
+    """Reverted 2026-06-22: re-deploys to the same stable-base-name HF
+    Space. The per-build (`_<n>`) scheme is retired because HF
+    rate-limits Space CREATE and orphan Spaces accumulate. The Space
+    is created once (idempotent no-op on existing); every build pushes
+    a new image + thin Dockerfile to that one Space and waits for the
+    Space runtime to roll over to the new build_n."""
     port = HF_APP_PORT[target_id]
     image_ref = ghcr_image_ref(target_id, env, build_n)
-    per_build_qualified = rd._hf_space_per_build_qualified(target_id, env, build_n)
-    step(f"=== hf_space {target_id} env={env} -> {image_ref} (Space {per_build_qualified}) ===")
+    qualified = rd._hf_space_qualified(target_id, env)
+    step(f"=== hf_space {target_id} env={env} -> {image_ref} (Space {qualified}) ===")
     docker_build_then_push(build_dir, image_ref)
     hf_token = resolver.resolve("HF_TOKEN", env)
-    rd._hf_create_space(hf_token, per_build_qualified, sdk="docker")
+    rd._hf_create_space(hf_token, qualified, sdk="docker")
     set_hf_config(repo_root, target_id, env, hf_token, resolver, target, build_n)
     push_thin_dockerfile_to_hf_space(target_id, env, hf_token, image_ref, port, build_n)
-    # Wait for the new Space to converge to this build_n before retiring the prior.
-    converged = rd._hf_wait_for_build_convergence(per_build_qualified, build_n,
+    converged = rd._hf_wait_for_build_convergence(qualified, build_n,
                                                    timeout_s=600, poll_interval_s=10)
     if not converged:
         raise RuntimeError(
-            f"deploy_hf_space: {per_build_qualified} did not converge to "
-            f"build={build_n} within 600s. Prior Space(s) NOT deleted so the "
-            f"environment keeps serving on the last known-good build. Investigate "
-            f"the HF runtime state, then either rerun deploy or recover the Space."
+            f"deploy_hf_space: {qualified} did not converge to build="
+            f"{build_n} within 600s. Investigate the HF runtime state, "
+            f"then either rerun deploy or recover the Space."
         )
-    # Delete every prior <base>_<n> with n != build_n. Keeps the org tidy.
-    prior = [(qid, n) for (qid, n) in rd._hf_list_per_build_spaces(hf_token, target_id, env)
-             if n != build_n]
-    for qid, _n in prior:
-        rd._hf_delete_space(hf_token, qid)
     return image_ref
 
 

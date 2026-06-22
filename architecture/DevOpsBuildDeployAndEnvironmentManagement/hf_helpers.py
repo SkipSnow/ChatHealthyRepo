@@ -103,11 +103,12 @@ def _hf_peer_url(target_id: str, env: str) -> str:
 
 
 def _hf_peer_url_for_build(target_id: str, env: str, build_n: int) -> str:
-    """Per-build peer URL — pointing at <org>/<base>_<build_n>. All HF
-    targets in one deploy cycle share the same build_n, so peer URLs
-    resolve to the right co-deployed Spaces."""
-    org, space = _hf_space_per_build_qualified(target_id, env, build_n).split("/", 1)
-    return f"https://{org.lower()}-{space.replace('_', '-').lower()}.hf.space"
+    """Reverted 2026-06-22: returns the stable-base-name URL. The
+    per-build (`_<n>`) Space-naming scheme is retired — HF rate-limits
+    Space CREATE calls, and re-deploying to the same Space is the
+    standard pattern. `build_n` is accepted for caller compatibility
+    but unused."""
+    return _hf_peer_url(target_id, env)
 
 
 # ── Step notice helper ─────────────────────────────────────────────────
@@ -227,12 +228,11 @@ def _hf_set_secret(token: str, space: str, key: str, value: str) -> None:
 
 # ── HF API: Space lifecycle (create / delete / list / wait) ─────────────
 def _hf_space_per_build_qualified(target_id: str, env: str, build_n: int) -> str:
-    """org/<base>_<build_n> — the per-build Space identifier this build/deploy
-    cycle targets. Manifest holds the STABLE BASE name; the suffix is built
-    fresh every time so an HF runtime wedge can never repeat on the same name."""
-    qualified = _hf_space_qualified(target_id, env)
-    org, base = qualified.split("/", 1)
-    return f"{org}/{base}_{build_n}"
+    """Reverted 2026-06-22: returns the STABLE BASE qualified name. The
+    per-build (`_<n>`) Space-naming scheme is retired — HF rate-limits
+    Space CREATE calls and orphan Spaces accumulate. `build_n` is
+    accepted for caller compatibility but unused."""
+    return _hf_space_qualified(target_id, env)
 
 
 def _hf_space_per_build_name(target_id: str, env: str, build_n: int) -> str:

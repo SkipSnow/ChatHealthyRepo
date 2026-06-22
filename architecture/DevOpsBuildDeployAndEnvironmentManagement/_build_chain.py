@@ -198,7 +198,9 @@ _HF_URL_PLACEHOLDERS = {
 
 
 def _compute_hf_space_url_for_build(repo_root: Path, hf_target_id: str, env: str, build_n: int) -> str:
-    """Build-numbered HF Space URL — base name from manifest, '_<build_n>' suffix.
+    """Stable-base-name HF Space URL. Reverted 2026-06-22: per-build
+    suffix `_<build_n>` is retired — re-deploys go to the same Space.
+    `build_n` is accepted for caller compatibility but unused.
     HF publishes Spaces at https://{org}-{name_lower_hyphenated}.hf.space."""
     if env == "local":
         local_map = {
@@ -209,8 +211,7 @@ def _compute_hf_space_url_for_build(repo_root: Path, hf_target_id: str, env: str
         return local_map[hf_target_id]
     qualified = rd._hf_space_qualified(hf_target_id, env)
     org, base = qualified.split("/", 1)
-    full = f"{base}_{build_n}"
-    return f"https://{org.lower()}-{full.replace('_', '-').lower()}.hf.space"
+    return f"https://{org.lower()}-{base.replace('_', '-').lower()}.hf.space"
 
 
 def _substitute_hf_urls_in_index_html(repo_root: Path, build_dir: Path, env: str, build_n: int) -> None:
