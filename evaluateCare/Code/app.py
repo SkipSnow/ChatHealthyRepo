@@ -78,7 +78,7 @@ import datetime as dt
 
 @app.exception_handler(Exception)
 async def fatal(request: Request, exc: Exception):
-    log.exception("fatal on %s", request.url.path)
+    log.exception("fatal on %s", request.url.path, extra={"fatal_error": True})
     return JSONResponse(
         status_code=503,
         content={"service": "EvaluateCare", "source": "unhandled",
@@ -145,6 +145,8 @@ def health():
     # unreachable so the Website fetch wrapper triggers chFatalError.
     payload = HealthEndpoint()()
     if payload.get("db") != "connected":
+        log.error("/health returning 503 — db not connected; payload=%s",
+                  payload, extra={"fatal_error": True})
         return JSONResponse(status_code=503, content=payload)
     return payload
 

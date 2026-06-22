@@ -95,54 +95,6 @@ async def fatal(request: Request, exc: Exception):
     )
 
 
-class AsgiLogMiddleware:
-    """Pure-ASGI request logger. Does NOT buffer the response body, so
-    StreamingResponse works through this middleware (the BaseHTTPMiddleware
-    pattern used by @app.middleware('http') buffers and breaks streaming)."""
-
-    def __init__(self, asgi_app):
-        self.asgi_app = asgi_app
-
-    async def __call__(self, scope, receive, send):
-        if scope.get("type") != "http":
-            await self.asgi_app(scope, receive, send)
-            return
-        # No cookie-reading here. The logging contextvar is bound by
-        # handle_gate from the user_object (the source of truth for
-        # the GUID) once it exists. This middleware just times the
-        # request and emits the request-end log; that log inherits
-        # whatever session_guid handle_gate set on the same task.
-        start = time.time()
-        status_holder = {"code": 0}
-
-        async def send_wrapper(message):
-            if message["type"] == "http.response.start":
-                status_holder["code"] = message["status"]
-            await send(message)
-
-        try:
-            await self.asgi_app(scope, receive, send_wrapper)
-        finally:
-            elapsed = round((time.time() - start) * 1000)
-            client = (scope.get("client") or (None, None))[0] or "unknown"
-            headers = dict(scope.get("headers") or [])
-            xff = headers.get(b"x-forwarded-for", b"").decode("latin1") or client
-            method = scope.get("method", "?")
-            path = scope.get("path", "?")
-            status_code = status_holder["code"]
-            log.info(
-                "%s %s → %d (%dms) from %s",
-                method, path, status_code, elapsed, xff,
-                extra={
-                    "http_status": status_code,
-                    "http_path": path,
-                    "fatal_error": status_code == 503,
-                },
-            )
-
-
-app.add_middleware(AsgiLogMiddleware)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://localhost", "https://localhost:443", "https://localhost:3000",
@@ -210,6 +162,8 @@ def health():
     # non-prod banner still renders degraded state.
     payload = HealthEndpoint()()
     if payload.get("db") != "connected":
+        log.error("/health returning 503 — db not connected; payload=%s",
+                  payload, extra={"fatal_error": True})
         return JSONResponse(status_code=503, content=payload)
     return payload
 
@@ -345,10 +299,18 @@ async def _dispatch_trivial_gate_op(op: str, payload: dict) -> dict:
             payload_out = HealthEndpoint()()
             return payload_out
         import httpx
-        async with httpx.AsyncClient(verify=False, timeout=5.0) as client:
-            r = await client.post(target_url + "/health")
-            r.raise_for_status()
-            return r.json()
+        try:
+            async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+                r = await client.post(target_url + "/health")
+                r.raise_for_status()
+                return r.json()
+        except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.ConnectError,
+                httpx.HTTPStatusError) as exc:
+            return {
+                "status": "unreachable",
+                "service": peer,
+                "error": f"{type(exc).__name__}: {exc}",
+            }
     if op == "session":
         body_obj = SessionRestampRequest.model_validate(payload or {})
         return AuthToken.handle_session(body_obj, origin=ORIGIN, server_env=ENV).model_dump()

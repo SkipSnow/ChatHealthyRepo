@@ -268,7 +268,7 @@ from fastapi.responses import JSONResponse as JSONResponse
 
 @app.exception_handler(Exception)
 async def fatal(request: Request, exc: Exception):
-    log.exception("fatal on %s", request.url.path)
+    log.exception("fatal on %s", request.url.path, extra={"fatal_error": True})
     return JSONResponse(
         status_code=503,
         content={"service": "FindCare", "source": "unhandled",
@@ -759,6 +759,8 @@ def health():
     # turning /health into the visible operator surface that the
     # rotation-as-operational-response model depends on.
     if db_status != "connected":
+        log.error("/health returning 503 — db not connected; result=%s",
+                  result, extra={"fatal_error": True})
         return JSONResponse(status_code=503, content=result)
     return result
 
