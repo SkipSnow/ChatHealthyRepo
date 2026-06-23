@@ -1672,6 +1672,17 @@
       // Dedicated listener (no event.source filter) so it fires regardless
       // of which iframe posted. Renders the iframe-built bullet HTML into
       // leftPanel and binds clicks back to the iframe via trial:select.
+      // Immediate clear of the trial detail (center) + section list (right)
+      // when the user clicks "more trials" / "back" in the left panel. The
+      // React iframe posts this BEFORE issuing the /gate fetch so the user
+      // sees the loading timer instead of stale data.
+      window.addEventListener('message', function(event) {
+        var msg = event.data;
+        if (!msg || typeof msg !== 'object' || msg.type !== 'gui:trials-clear') return;
+        var rc = document.getElementById('rightContent');
+        if (rc) rc.innerHTML = '';
+      });
+
       window.addEventListener('message', function(event) {
         var msg = event.data;
         if (!msg || typeof msg !== 'object' || msg.type !== 'gui:trials-left-panel') return;
@@ -1696,6 +1707,18 @@
               }
             });
           })(trialLinks[ti]);
+        }
+        var pageLinks = leftPanelEl.querySelectorAll('[data-trial-page]');
+        for (var pi = 0; pi < pageLinks.length; pi++) {
+          (function(el) {
+            el.addEventListener('click', function(ev) {
+              ev.preventDefault();
+              var dir = el.getAttribute('data-trial-page') || '';
+              if (cframe && cframe.contentWindow) {
+                cframe.contentWindow.postMessage({ type: 'trial:page', direction: dir }, '*');
+              }
+            });
+          })(pageLinks[pi]);
         }
       });
 
@@ -1836,6 +1859,26 @@
             resultsPhase = true;
           }
           el.innerHTML = resultsPhase ? inner : window.ScrollableFrame.wrap(inner);
+          if (s.phase === 'results' && s.trialCount > 0 && s.trial && window.ensureRightPanelStructure && window.ClinicalTrialBuildSectionList) {
+            try {
+              window.ensureRightPanelStructure();
+              var rcSec = document.getElementById('rightContent');
+              if (rcSec) {
+                rcSec.innerHTML = window.ClinicalTrialBuildSectionList(el);
+                var jumpLinks = rcSec.querySelectorAll('a[data-trial-section]');
+                for (var jli = 0; jli < jumpLinks.length; jli++) {
+                  (function(a) {
+                    a.addEventListener('click', function(ev) {
+                      ev.preventDefault();
+                      var sid = a.getAttribute('data-trial-section') || '';
+                      var anchor = document.getElementById(sid);
+                      if (anchor && anchor.scrollIntoView) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                  })(jumpLinks[jli]);
+                }
+              }
+            } catch (_) {}
+          }
           var btns = el.querySelectorAll('[data-provider-action]');
           var btns = el.querySelectorAll('[data-provider-action]');
           for (var i = 0; i < btns.length; i++) {

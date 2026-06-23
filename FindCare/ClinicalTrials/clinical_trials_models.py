@@ -272,11 +272,28 @@ class Request(BaseModel):
     model_config = {"extra": "ignore"}
     condition: str
     user_location: Optional[str] = None
-    page_size: int = 25
+    page_size: int = 10
     cursor: Optional[str] = None
+    age_years: Optional[int] = None
+    sex: Optional[str] = None
+    gender: Optional[str] = None
+
+
+class SearchContext(BaseModel):
+    """Echoes the actual query parameters the tool used to fetch this page.
+    The iframe stores this and re-issues it verbatim on pagination so the
+    user's natural-language utterance doesn't leak into the CT.gov call."""
+    condition: str = ""
+    user_location: Optional[str] = None
+    age_years: Optional[int] = None
+    sex: Optional[str] = None
+    gender: Optional[str] = None
 
 
 class Response(BaseModel):
     trials: list[Trial] = Field(default_factory=list)
     cursor: Optional[str] = None
+    total_count: Optional[int] = None
+    page_size: Optional[int] = None
     error: Optional[str] = None
+    search_context: SearchContext = Field(default_factory=SearchContext)

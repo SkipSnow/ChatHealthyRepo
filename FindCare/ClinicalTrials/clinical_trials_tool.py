@@ -31,9 +31,9 @@ try:
         ArmGroup, BioSpec, BrowseBranch, BrowseLeaf, CentralContact,
         Collaborator, DesignInfo, Intervention, IpdSharing, LargeDoc,
         Location, Organization, Outcome, OverallOfficial, Reference,
-        Request, Response, ResponsibleParty, SecondaryId, SeeAlsoLink,
-        Trial, UnpostedAnnotation, UnpostedEvent, ViolationAnnotation,
-        ViolationEvent,
+        Request, Response, ResponsibleParty, SearchContext, SecondaryId,
+        SeeAlsoLink, Trial, UnpostedAnnotation, UnpostedEvent,
+        ViolationAnnotation, ViolationEvent,
     )
     from ClinicalTrials.nucc_llm import derive_nucc_codes_for_page
 except ImportError:
@@ -41,9 +41,9 @@ except ImportError:
         ArmGroup, BioSpec, BrowseBranch, BrowseLeaf, CentralContact,
         Collaborator, DesignInfo, Intervention, IpdSharing, LargeDoc,
         Location, Organization, Outcome, OverallOfficial, Reference,
-        Request, Response, ResponsibleParty, SecondaryId, SeeAlsoLink,
-        Trial, UnpostedAnnotation, UnpostedEvent, ViolationAnnotation,
-        ViolationEvent,
+        Request, Response, ResponsibleParty, SearchContext, SecondaryId,
+        SeeAlsoLink, Trial, UnpostedAnnotation, UnpostedEvent,
+        ViolationAnnotation, ViolationEvent,
     )
     from FindCare.ClinicalTrials.nucc_llm import derive_nucc_codes_for_page
 
@@ -351,13 +351,41 @@ def _parse_trial(study: dict) -> Trial:
     )
 
 
-async def _fetch_ct_gov(condition: str, page_size: int, cursor: Optional[str]) -> tuple[list[Trial], Optional[str]]:
+async def _fetch_ct_gov(
+    condition: str,
+    page_size: int,
+    cursor: Optional[str],
+    age_years: Optional[int] = None,
+    sex: Optional[str] = None,
+) -> tuple[list[Trial], Optional[str], Optional[int]]:
     params: dict[str, Any] = {
         "query.cond": condition,
         "filter.overallStatus": "RECRUITING",
         "pageSize": page_size,
         "format": "json",
+        # countTotal returns the total recruiting count alongside the
+        # paged studies so the wrapper can show "Showing X to Y of Z".
+        "countTotal": "true",
     }
+    # CT.gov v2 supports demographic refinement via aggFilters when the
+    # participant's age and sex are known. Both are optional; condition
+    # remains the only minimum required by the tool contract.
+    agg_parts: list[str] = []
+    if isinstance(age_years, int):
+        if age_years < 18:
+            agg_parts.append("ages:child")
+        elif age_years < 65:
+            agg_parts.append("ages:adult")
+        else:
+            agg_parts.append("ages:older")
+    if sex:
+        s_lower = sex.strip().lower()
+        if s_lower in ("male", "m"):
+            agg_parts.append("sex:m")
+        elif s_lower in ("female", "f"):
+            agg_parts.append("sex:f")
+    if agg_parts:
+        params["aggFilters"] = ",".join(agg_parts)
     if cursor:
         params["pageToken"] = cursor
     async with httpx.AsyncClient(timeout=20.0) as client:
@@ -366,7 +394,9 @@ async def _fetch_ct_gov(condition: str, page_size: int, cursor: Optional[str]) -
         payload = r.json()
     studies = payload.get("studies") or []
     next_token = payload.get("nextPageToken")
-    return [_parse_trial(s) for s in studies], next_token
+    total_count_raw = payload.get("totalCount")
+    total_count = int(total_count_raw) if isinstance(total_count_raw, int) else None
+    return [_parse_trial(s) for s in studies], next_token, total_count
 
 
 async def _routes_api_one(client: httpx.AsyncClient, api_key: str, origin: str, dest: str) -> Optional[tuple[str, str]]:
@@ -384,22 +414,72 @@ async def _routes_api_one(client: httpx.AsyncClient, api_key: str, origin: str, 
     try:
         r = await client.post(ROUTES_API_URL, json=body, headers=headers, timeout=10.0)
         if r.status_code != 200:
+            # Mode 2 (REQ-B-008): Routes API non-200 means distance/duration
+            # WILL BE MISSING for this destination — user-visible degradation.
+            # Operator MUST know so we don't silently lose travel info.
+            log.error(
+                "Routes API non-200 for dest=%r status=%d body=%s",
+                dest, r.status_code, (r.text or "")[:200],
+                exc=ChatHealthyException(
+                    mode="routes_api_non_200",
+                    message=f"Routes API non-200 for dest={dest!r} status={r.status_code}",
+                    component="ClinicalTrialsTool",
+                ),
+                if_not_debug_log=True,
+            )
             return None
         routes = (r.json() or {}).get("routes") or []
         if not routes:
+            log.error(
+                "Routes API returned empty routes[] for dest=%r origin=%r",
+                dest, origin,
+                exc=ChatHealthyException(
+                    mode="routes_api_empty",
+                    message=f"Routes API returned empty routes[] for dest={dest!r}",
+                    component="ClinicalTrialsTool",
+                ),
+                if_not_debug_log=True,
+            )
             return None
         meters = routes[0].get("distanceMeters", 0)
         secs = int(str(routes[0].get("duration", "0s")).rstrip("s") or "0")
         miles = meters / 1609.34
         hrs, mins = secs // 3600, (secs % 3600) // 60
         return (f"{miles:.0f} miles", f"{hrs}h {mins}m" if hrs else f"{mins}m")
-    except Exception:
+    except Exception as exc:
+        # Mode 2 (REQ-B-008): network/JSON failure on Routes API; distance
+        # missing for this destination.
+        log.error(
+            "Routes API call raised for dest=%r: %s", dest, exc,
+            exc=ChatHealthyException(
+                mode="routes_api_failed",
+                message=f"Routes API call raised for dest={dest!r}: {exc}",
+                component="ClinicalTrialsTool",
+                exception=exc,
+            ),
+            if_not_debug_log=True,
+        )
         return None
 
 
 async def _enrich_locations_with_travel(trials: list[Trial], user_location: str) -> None:
     api_key = os.environ.get(GOOGLE_MAPS_API_KEY_ENV, "")
-    if not api_key or not user_location:
+    if not api_key:
+        # Mode 2 (REQ-B-008): GOOGLE_MAPS_API_KEY missing in env — every
+        # trial's distance/duration WILL BE MISSING. Operator MUST know
+        # because there is no other surface to detect this misconfig.
+        log.error(
+            "%s not set in env — clinical-trials distance/duration disabled",
+            GOOGLE_MAPS_API_KEY_ENV,
+            exc=ChatHealthyException(
+                mode="routes_api_key_missing",
+                message=f"{GOOGLE_MAPS_API_KEY_ENV} not set in env",
+                component="ClinicalTrialsTool",
+            ),
+            if_not_debug_log=True,
+        )
+        return
+    if not user_location:
         return
     unique: dict[str, list[Location]] = {}
     for t in trials:
@@ -493,7 +573,16 @@ class ClinicalTrialsTool(ChatHealthyTool):
             )
 
     async def _run_inner(self, deps: AgentDeps, request: "Request") -> "Response":
-        condition = (request.condition or "").strip()
+        # Echo the actual params we'll use so the client can re-issue
+        # pagination requests against the same context.
+        search_context = SearchContext(
+            condition=(request.condition or "").strip(),
+            user_location=request.user_location,
+            age_years=request.age_years,
+            sex=request.sex,
+            gender=request.gender,
+        )
+        condition = search_context.condition
         if not condition:
             # Mode 2 (REQ-B-008): precondition failure surfaced inline as
             # Response.error. NOT 503; no fatal_error tag.
@@ -503,12 +592,30 @@ class ClinicalTrialsTool(ChatHealthyTool):
                           message="clinical_trials precondition failed: no condition provided",
                           component="ClinicalTrialsTool",
                       ), if_not_debug_log=True)
-            return Response(trials=[], error="No condition provided.")
-        trials, next_cursor = await _fetch_ct_gov(
-            condition, request.page_size, request.cursor,
+            result = Response(
+                trials=[],
+                error="No condition provided.",
+                search_context=search_context,
+            )
+            deps.stream({"kind": "trials", "data": result.model_dump(exclude_none=True)})
+            return result
+        trials, next_cursor, total_count = await _fetch_ct_gov(
+            condition,
+            request.page_size,
+            request.cursor,
+            age_years=request.age_years,
+            sex=request.sex,
         )
         if not trials:
-            return Response(trials=[], cursor=None)
+            result = Response(
+                trials=[],
+                cursor=None,
+                total_count=total_count,
+                page_size=request.page_size,
+                search_context=search_context,
+            )
+            deps.stream({"kind": "trials", "data": result.model_dump(exclude_none=True)})
+            return result
 
         trial_dicts = [
             {
@@ -530,7 +637,13 @@ class ClinicalTrialsTool(ChatHealthyTool):
         _, code_map = await asyncio.gather(routes_branch(), nucc_branch())
         _enrich_npis(trials, code_map)
 
-        result = Response(trials=trials, cursor=next_cursor)
+        result = Response(
+            trials=trials,
+            cursor=next_cursor,
+            total_count=total_count,
+            page_size=request.page_size,
+            search_context=search_context,
+        )
         deps.stream({"kind": "trials", "data": result.model_dump(exclude_none=True)})
         return result
 
