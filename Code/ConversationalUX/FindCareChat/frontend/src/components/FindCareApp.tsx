@@ -675,7 +675,6 @@ export default function FindCareApp() {
       }
       const resp = await fetch(`${ssUrl}/gate`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/x-ndjson',
@@ -851,7 +850,6 @@ export default function FindCareApp() {
       }
       const resp = await fetch(`${ssUrl}/gate`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/x-ndjson',
@@ -1155,7 +1153,6 @@ export default function FindCareApp() {
     try {
       const resp = await fetch(`${ssUrl}/gate`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/x-ndjson',

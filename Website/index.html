@@ -685,21 +685,28 @@
       });
       var _origFetch = window.fetch;
       window.fetch = function() {
+        // Capture the URL of THIS fetch so any failure (network reject
+        // or 503 response) reaches chFatalError with the FastAPI URL
+        // identified — per Skip's directive: client error MUST list the
+        // FastAPI URL, not the body that was attempted.
+        var _url = '';
+        try {
+          var _arg0 = arguments[0];
+          _url = (_arg0 && typeof _arg0 === 'object' && _arg0.url) ? _arg0.url : String(_arg0 || '');
+        } catch (_) { _url = ''; }
         return _origFetch.apply(this, arguments).then(function(resp) {
           if (resp && resp.status === 503) {
-            resp.clone().text().then(function(body) {
-              var msg;
-              try {
-                var parsed = JSON.parse(body);
-                var detail = parsed && parsed.detail;
-                if (detail && typeof detail === 'object' && detail.message) msg = detail.message;
-                else if (typeof detail === 'string') msg = detail;
-                else msg = body;
-              } catch (_) { msg = body; }
-              window.chFatalError(String(msg || ''));
-            }).catch(function(err) { var m=err&&err.message?err.message:''; window.chFatalError(m, /HTTP \d+/.test(m)?503:null); });
+            window.chFatalError('Failed to fetch ' + _url, 503);
           }
           return resp;
+        }, function(err) {
+          // Network-layer reject (CORS, DNS, TLS, connection refused,
+          // offline). Re-throw with URL attached so downstream .catch
+          // sites — and chFatalError — surface the FastAPI URL.
+          var wrapped = new Error('Failed to fetch ' + _url);
+          wrapped.url = _url;
+          wrapped.cause = err;
+          throw wrapped;
         });
       };
     })();
