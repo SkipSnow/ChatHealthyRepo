@@ -64,17 +64,29 @@ def _current_branch(repo_root: Path) -> str:
 
 
 def _enforce_env_branch_check(repo_root: Path, env: str) -> None:
-    """INV-2: --env dev|qa|prod require the matching branch. --env local
-    has no branch requirement (INV-1: working-tree source)."""
+    """INV-2: --env dev|qa|prod build from the matching branch. --env local
+    has no branch requirement (INV-1: working-tree source). If the current
+    branch differs from the expected one, switch to it — never require the
+    operator to do a manual checkout. If the checkout fails, abend with a
+    clean error (do NOT plow forward on the wrong branch)."""
     if env == "local":
         return
     expected = _ENV_BRANCH[env]
     actual = _current_branch(repo_root)
-    if actual != expected:
+    if actual == expected:
+        return
+    print(
+        f"[build] current branch is {actual!r}; --env {env} requires "
+        f"{expected!r}; checking out {expected!r}"
+    )
+    result = subprocess.run(
+        ["git", "checkout", expected],
+        cwd=str(repo_root), capture_output=True, text=True,
+    )
+    if result.returncode != 0:
         sys.exit(
-            f"ERROR: --env {env} requires branch {expected}, but current "
-            f"branch is {actual}; check out the right branch or use the "
-            f"promote workflow"
+            f"ERROR: git checkout {expected} failed (rc={result.returncode}). "
+            f"stderr: {result.stderr.strip()}"
         )
 
 
