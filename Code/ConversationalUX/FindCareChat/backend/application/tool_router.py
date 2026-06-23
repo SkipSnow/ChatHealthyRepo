@@ -63,7 +63,11 @@ class ToolRouter:
                 validated = model(**arguments)
                 arguments = validated.model_dump()
             except Exception as exc:
-                log.warning("VALIDATION FAILED for '%s': %s", tool_name, exc, exc=ChatHealthyException(
+                # Mode 2 (REQ-B-008): the LLM produced tool arguments that
+                # didn't match the Pydantic schema; user gets a graceful
+                # error dict. LLM/schema drift — operator MUST know so the
+                # prompt or model can be re-tuned.
+                log.error("VALIDATION FAILED for '%s': %s", tool_name, exc, exc=ChatHealthyException(
                                                                                mode="tool_input_validation_failed",
                                                                                message=f"VALIDATION FAILED for {tool_name!r}: {exc}",
                                                                                component="ToolRouter",
@@ -76,7 +80,12 @@ class ToolRouter:
         try:
             return handler(**arguments)
         except Exception as exc:
-            log.error("Tool '%s' failed: %s", tool_name, exc, exc_info=True, exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): a tool handler raised an unhandled
+            # library exception that didn't translate to ChatHealthyException
+            # locally; we return graceful error dict to caller (no 503)
+            # but operator MUST know — this catch site exists exactly so
+            # the tool doesn't bubble unhandled exceptions to the catch-all.
+            log.error("Tool '%s' failed: %s", tool_name, exc, exc=ChatHealthyException(
                                                                               mode="tool_handler_failed",
                                                                               message=f"Tool {tool_name!r} failed: {exc}",
                                                                               component="ToolRouter",

@@ -61,22 +61,29 @@ class GeoExtractorTool(ChatHealthyTool):
     async def run(self, deps: AgentDeps, request: Optional["Request"] = None) -> "Response":
         text = latest_utterance_text(deps)
         if not text:
-            log.error("geo_extractor precondition failed: no utterance text",
-                      exc=ChatHealthyException(
-                          mode="geo_extractor_no_utterance_text",
-                          message="geo_extractor precondition failed: no utterance text",
-                          component="GeoExtractorTool",
-                      ), if_not_debug_log=True, extra={"fatal_error": True})
+            # Mode 1 (REQ-B-008): recoverable — UM/UR can re-prompt the
+            # user. log.info with default if_not_debug_log=False so this
+            # only emits when the env is in DEBUG mode. Returns
+            # Response.error so caller proceeds without geo.
+            log.info("geo_extractor precondition: no utterance text",
+                     exc=ChatHealthyException(
+                         mode="geo_extractor_no_utterance_text",
+                         message="geo_extractor precondition: no utterance text",
+                         component="GeoExtractorTool",
+                     ))
             return self.Response(error="No utterance text on user_object.")
         try:
             out = await asyncio.to_thread(extract_location, text)
         except Exception as exc:
-            log.error("geo_extractor failed: %s: %s", type(exc).__name__, exc, exc=ChatHealthyException(
+            # Mode 1 (REQ-B-008): recoverable — geography is one slot, UM/UR
+            # can re-ask the user. log.info with default if_not_debug_log
+            # gating (debug-only).
+            log.info("geo_extractor failed: %s: %s", type(exc).__name__, exc, exc=ChatHealthyException(
                                                                                 mode="geo_extractor_failed",
                                                                                 message=f"geo_extractor failed: {type(exc).__name__}: {exc}",
                                                                                 component="GeoExtractorTool",
                                                                                 exception=exc,
-                                                                            ), if_not_debug_log=True, extra={"fatal_error": True})
+                                                                            ))
             return self.Response(error=f"geo_unavailable: {type(exc).__name__}")
         return self.Response(
             state=out.state,

@@ -244,12 +244,13 @@ def geocode_new_address(address: dict) -> dict:
         )
         data = resp.json()
     except Exception as exc:
-        log.warning("Google Maps lookup failed for %s: %s", q, exc, exc=ChatHealthyException(
+        # Mode 1 (REQ-B-008): Google Maps lookup is best-effort enrichment.
+        log.info("Google Maps lookup failed for %s: %s", q, exc, exc=ChatHealthyException(
                                                                      mode="google_maps_lookup_failed",
                                                                      message=f"Google Maps lookup failed for {q}: {exc}",
                                                                      component="ProviderRecordSync",
                                                                      exception=exc,
-                                                                 ), if_not_debug_log=True)
+                                                                 ))
         return out
     results = (data or {}).get("results") or []
     if not results:
@@ -502,7 +503,8 @@ def embed_after_response(coll, npi: str) -> None:
     try:
         from infrastructure.embeddings.embedding_client import EmbeddingClient
     except ImportError as _imp:
-        log.warning(
+        # Mode 1 (REQ-B-008): EmbeddingClient not importable; skip re-embed.
+        log.info(
             "EmbeddingClient unavailable; skipping re-embed for NPI %s",
             npi,
             exc=ChatHealthyException(
@@ -510,7 +512,7 @@ def embed_after_response(coll, npi: str) -> None:
              message=f"EmbeddingClient unavailable; skipping re-embed for NPI {npi}: {_imp}",
              component="ProviderRecordSync",
              exception=_imp,
-         ), if_not_debug_log=True,
+         ),
         )
         return
     try:
@@ -531,7 +533,9 @@ def embed_after_response(coll, npi: str) -> None:
             }},
         )
     except Exception as exc:
-        log.warning(
+        # Mode 1 (REQ-B-008): main record write succeeded; only the
+        # embedding refresh failed — will retry on next sync.
+        log.info(
             "Embedding call failed after write-back for NPI %s: %s",
             npi, exc,
             exc=ChatHealthyException(
@@ -539,5 +543,5 @@ def embed_after_response(coll, npi: str) -> None:
              message=f"Embedding call failed after write-back for NPI {npi}: {exc}",
              component="ProviderRecordSync",
              exception=exc,
-         ), if_not_debug_log=True,
+         ),
         )

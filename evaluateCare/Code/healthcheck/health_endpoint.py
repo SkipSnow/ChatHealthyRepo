@@ -21,12 +21,15 @@ def read_build_info() -> dict | None:
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception as _exc:
-        log.warning("build_info read failed (ignored, caller falls back): %s", _exc, exc=ChatHealthyException(
+        # Mode 1 (REQ-B-008): caller falls back to placeholder build info.
+        # (Also fixes pre-existing typo `if_not_debuglog` — kwarg dropped
+        # entirely; default if_not_debug_log=False is exactly Mode 1.)
+        log.info("build_info read failed (ignored, caller falls back): %s", _exc, exc=ChatHealthyException(
                                                                                        mode="build_info_read_failed",
                                                                                        message=f"build_info read failed (ignored, caller falls back): {_exc}",
                                                                                        component="EvaluateCareHealth",
                                                                                        exception=_exc,
-                                                                                   ), if_not_debuglog=True)
+                                                                                   ))
         return None
 
 
@@ -59,12 +62,15 @@ class HealthEndpoint:
                 mongo_doc = client["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
                 db_status = "connected"
             except Exception as e:
-                self.log.warning("/health Mongo read failed: %s", e, exc=ChatHealthyException(
+                # Mode 2 (REQ-B-008): Mongo read failed during /health
+                # probe → db_status reported as "unreachable". Operator
+                # must know. (Also fixes typo `if_not_debuglog`.)
+                self.log.error("/health Mongo read failed: %s", e, exc=ChatHealthyException(
                                                                       mode="health_mongo_read_failed",
                                                                       message=f"/health Mongo read failed: {e}",
                                                                       component="EvaluateCareHealth",
                                                                       exception=e,
-                                                                  ), if_not_debuglog=True)
+                                                                  ), if_not_debug_log=True)
                 db_status = "unreachable"
 
         if baked is not None:

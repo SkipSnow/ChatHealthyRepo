@@ -47,6 +47,8 @@ class ConsentService:
             )
             return response.content[0].text.strip()
         except Exception as exc:
+            # Mode 2 (REQ-B-008): consent-summary LLM call failed; returns
+            # empty summary. User feature degraded — operator MUST know.
             log.error("summarize_conversation failed: %s", exc, exc=ChatHealthyException(
                                                                  mode="summarize_conversation_failed",
                                                                  message=f"summarize_conversation failed: {exc}",
@@ -94,7 +96,10 @@ class ConsentService:
                 if i < len(chat_history):
                     chat_history[i]["content"] = content
         except Exception as exc:
-            log.warning("de_identify failed: %s — keeping original", exc, exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): de-identification failed; chat history
+            # KEPT WITH ORIGINAL PII. Potential privacy issue downstream —
+            # operator MUST know.
+            log.error("de_identify failed: %s — keeping original", exc, exc=ChatHealthyException(
                                                                            mode="de_identify_failed",
                                                                            message=f"de_identify failed (keeping original): {exc}",
                                                                            component="ConsentService",

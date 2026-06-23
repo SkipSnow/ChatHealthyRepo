@@ -85,6 +85,9 @@ class SpecialtyFilterTool(ChatHealthyTool):
                 r.raise_for_status()
                 raw = r.json()
         except Exception as exc:
+            # Mode 2 (REQ-B-008): LLM /classify temporarily unavailable; the
+            # tool returns a graceful Response.error to the user inline. NOT
+            # a 503; do NOT tag fatal_error=True.
             log.error("specialty_filter HTTP /classify failed: %s: %s",
                        type(exc).__name__, exc,
                        exc=ChatHealthyException(
@@ -92,7 +95,7 @@ class SpecialtyFilterTool(ChatHealthyTool):
                         message=f"specialty_filter HTTP /classify failed: {type(exc).__name__}: {exc}",
                         component="SpecialtyFilterTool",
                         exception=exc,
-                    ), if_not_debug_log=True, extra={"fatal_error": True})
+                    ), if_not_debug_log=True)
             resp = self.Response(error=f"classify_unavailable: {type(exc).__name__}")
             deps.stream({"kind": "specialties", "data": resp.model_dump(exclude_none=True)})
             return resp

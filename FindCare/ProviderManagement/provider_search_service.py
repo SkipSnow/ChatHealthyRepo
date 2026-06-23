@@ -88,12 +88,15 @@ class FindCareService:
             self.fips_to_county.update(db_map)
             log.info("HACK ASN-4AFBDA: loaded %d FIPS mappings (%d from DB)", len(self.fips_to_county), len(db_map))
         except Exception as exc:
-            log.warning("HACK ASN-4AFBDA: failed to load FIPS map: %s", exc, exc=ChatHealthyException(
+            # Mode 1 (REQ-B-008): FIPS map enrichment falls back to the
+            # static seed dict (10 entries). County names may be missing
+            # for some providers but search still works.
+            log.info("HACK ASN-4AFBDA: failed to load FIPS map: %s", exc, exc=ChatHealthyException(
                                                                               mode="fips_map_load_failed",
                                                                               message=f"HACK ASN-4AFBDA: failed to load FIPS map: {exc}",
                                                                               component="FindCareService",
                                                                               exception=exc,
-                                                                          ), if_not_debug_log=True)
+                                                                          ))
 
     def _practice_address_filter(self, state: str = "", city: str = "",
                                   county: str = "", zip: str = "") -> dict:
@@ -257,7 +260,10 @@ class FindCareService:
             raw = list(providers_coll().aggregate(pipeline))
             return [self._format_provider(p) for p in raw]
         except Exception as e:
-            log.warning("Vector search failed: %s", e, exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): provider vector search failed; user gets
+            # empty results despite valid query. Search infrastructure
+            # issue — operator MUST know.
+            log.error("Vector search failed: %s", e, exc=ChatHealthyException(
                                                         mode="vector_search_failed",
                                                         message=f"Vector search failed: {e}",
                                                         component="FindCareService",
@@ -428,12 +434,16 @@ class FindCareService:
                         "homeopathic": doc.get("homeopathic", False),
                     })
             except Exception as _exc:
-                log.warning("specialty_meta options load failed (ignored): %s", _exc, exc=ChatHealthyException(
+                # Mode 1 (REQ-B-008): specialty Display Names for the
+                # summary are nice-to-have decoration; falls back to
+                # specialization_options=[] and the summary message
+                # degrades gracefully without names.
+                log.info("specialty_meta options load failed (ignored): %s", _exc, exc=ChatHealthyException(
                                                                                        mode="specialty_meta_options_load_failed",
                                                                                        message=f"specialty_meta options load failed (ignored): {_exc}",
                                                                                        component="FindCareService",
                                                                                        exception=_exc,
-                                                                                   ), if_not_debug_log=True)
+                                                                                   ))
 
             # EPIC-006-F-002-S-002-REQ-T-012: the AI pipeline (incl. the
             # homeopathic resolver) runs once during /classify; results
@@ -493,12 +503,16 @@ class FindCareService:
                 )
                 specialization_options.extend(homeo_options)
             except Exception as _he:
-                log.warning("Homeopathic resolver failed: %s", _he, exc=ChatHealthyException(
+                # Mode 1 (REQ-B-008): homeopathic-specialty enrichment is
+                # optional augmentation; without it, the base allopathic
+                # specialization_options still surface. Result quality
+                # degrades silently — no user-visible failure.
+                log.info("Homeopathic resolver failed: %s", _he, exc=ChatHealthyException(
                                                                      mode="homeopathic_resolver_failed",
                                                                      message=f"Homeopathic resolver failed: {_he}",
                                                                      component="FindCareService",
                                                                      exception=_he,
-                                                                 ), if_not_debug_log=True)
+                                                                 ))
 
             # Step 3: Database answers — deterministic taxonomy query
             base_filter = {"taxonomies.code": {"$in": codes}}
@@ -522,12 +536,14 @@ class FindCareService:
                             "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
                         })
                 except Exception as _exc:
-                    log.warning("specialty_code_log write failed (ignored): %s", _exc, exc=ChatHealthyException(
+                    # Mode 1 (REQ-B-008): admin debug log write; non-prod
+                    # only, no user impact. Failure is silently ignored.
+                    log.info("specialty_code_log write failed (ignored): %s", _exc, exc=ChatHealthyException(
                                                                                         mode="specialty_code_log_write_failed",
                                                                                         message=f"specialty_code_log write failed (ignored): {_exc}",
                                                                                         component="FindCareService",
                                                                                         exception=_exc,
-                                                                                    ), if_not_debug_log=True)
+                                                                                    ))
 
             # search_params includes resolved codes — /search replays with codes, no AI
             replay_params = {"state": state_upper, "nucc_codes": codes}

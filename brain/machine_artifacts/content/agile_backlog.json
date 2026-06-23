@@ -4673,6 +4673,41 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "req_id": "EPIC-003-F-003-S-001-REQ-B-008",
+                          "orphan": false,
+                          "name": "Exception Management Modes",
+                          "requirement": "Every catch site that catches a ChatHealthyException MUST classify the caught exception into exactly one of three modes and act accordingly. Mode 1 — expected and easily handled (retry, fallback, alternate path): catcher logs at INFO with the if_debug flag set so the record is emitted only when in debug; caller continues via the recovery mechanism; user sees nothing. Mode 2 — expected and probably attributable to user error OR to a resource temporarily unavailable: catcher logs at ERROR (always emitted, no debug gate), surfaces an appropriate user-facing message describing the problem, and does NOT return HTTP 503. Mode 3 — unhandled, NOT expected (a bug): the safety-net @app.exception_handler returns HTTP 503 to the user and logs the unhandled exception so we can track it down and fix it; Mode 3 is the ONLY case where the user sees an HTTP 503; the architectural goal is for Mode 3 occurrences to be RARE — every observed Mode 3 instance MUST become a local catch with Mode 1 or Mode 2 handling. Throw-side rule: when a catch site converts a library exception (httpx, pymongo, etc.) into a ChatHealthyException, that site MUST clean up the underlying resource (close the connection / cursor / file handle, abort the request, release the pool slot, etc.) before raising the ChatHealthyException, so a leaked resource does not produce a delayed second failure (e.g., a 100-second-later timeout from a connection that was never closed).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
+                            },
+                            {
+                              "story_id": "EPIC-003-F-003-S-001",
+                              "reason": "EPIC-003-F-003-S-001-REQ-B-004"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-008-TEST-1",
+                                "test_type": "unit",
+                                "orphan": false,
+                                "file": "FrontEndApplicationLib/tests/test_llm_facade.py"
+                              },
+                              {
+                                "test_id": "EPIC-003-F-003-S-001-REQ-B-008-TEST-2",
+                                "test_type": "unit",
+                                "orphan": false,
+                                "file": "FrontEndApplicationLib/tests/test_logging_service_levels.py"
+                              }
+                            ]
+                          }
                         }
                       ]
                     }

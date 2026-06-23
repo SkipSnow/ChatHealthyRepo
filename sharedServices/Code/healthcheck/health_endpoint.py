@@ -24,7 +24,8 @@ def read_build_info() -> dict | None:
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception as exc:
-        log.warning(
+        # Mode 1 (REQ-B-008): caller falls back to placeholder build info.
+        log.info(
             "build_info read failed (ignored, caller falls back): %s", exc,
             exc=ChatHealthyException(
                 mode="build_info_read_failed",
@@ -32,7 +33,6 @@ def read_build_info() -> dict | None:
                 component="SharedServicesHealth",
                 exception=exc,
             ),
-            if_not_debug_log=True,
         )
         return None
 
@@ -64,7 +64,10 @@ class HealthEndpoint:
                 mongo_doc = client["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
                 db_status = "connected"
             except Exception as exc:
-                log.warning(
+                # Mode 2 (REQ-B-008): Mongo read failed during /health
+                # probe → db_status reported as "unreachable" upstream.
+                # Operator must know.
+                log.error(
                     "/health Mongo read failed: %s", exc,
                     exc=ChatHealthyException(
                         mode="health_mongo_read_failed",

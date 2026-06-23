@@ -66,7 +66,9 @@ def bootstrap_certs_from_env():
         try:
             os.chmod(path, 0o600)
         except Exception as _exc:
-            log.warning("STARTUP: chmod 0600 on %s failed (continuing): %s", path, _exc, exc=ChatHealthyException(
+            # Mode 1 (REQ-B-008): best-effort startup chmod; system continues.
+            # log.info + default debug-gated.
+            log.info("STARTUP: chmod 0600 on %s failed (continuing): %s", path, _exc, exc=ChatHealthyException(
                                                                                           mode="startup_chmod_failed",
                                                                                           message=f"STARTUP: chmod 0600 on {path} failed (continuing): {_exc}",
                                                                                           component="SharedServices",
@@ -87,7 +89,14 @@ import datetime as dt
 
 @app.exception_handler(Exception)
 async def fatal(request: Request, exc: Exception):
-    log.exception("fatal on %s", request.url.path, extra={"fatal_error": True})
+    # Safety net for UNHANDLED exceptions per EPIC-003-F-003-S-001-REQ-B-008
+    # Mode 3 (unhandled, not expected). Reaching here is always user-fatal
+    # (503 to the user) — that IS the Mode 3 definition — so tag fatal_error
+    # True. The architectural goal is for Mode 3 occurrences to be RARE; each
+    # one observed in the log MUST be moved to a local catch with Mode 1 or
+    # Mode 2 handling.
+    log.exception("unhandled exception on %s", request.url.path,
+                  extra={"fatal_error": True})
     return JSONResponse(
         status_code=503,
         content={"service": "SharedServices", "source": "unhandled",
@@ -223,6 +232,10 @@ async def _gate_instrumented_stream(inner, op_name):
             obj = _json.loads(ln)
             kinds.append(str(obj.get("kind") or "?"))
         except Exception:
+            # Mode 1 (REQ-B-008): instrumentation-only parse; on failure
+            # we tag the kind as "PARSE_ERR" and the stream continues.
+            # Deliberately silent (no log) — this is forensic kind-list
+            # accounting, not the canonical error channel for the stream.
             kinds.append("PARSE_ERR")
 
     try:
@@ -246,6 +259,16 @@ async def _gate_instrumented_stream(inner, op_name):
             op_name, bytes_sent, lines_sent, kinds,
         )
     except Exception as exc:
+        # Mode 2 (REQ-B-008): instrumentation catch — records the partial
+        # stream state (op + bytes/lines emitted + kinds seen) for forensic
+        # context, then re-raises so the actual exception continues to
+        # whatever handles it upstream (a local catch, or the catch-all
+        # safety net). The user-affecting outcome is owned by the upstream
+        # handler; this catch only adds observability.
+        # Pre-existing Rule-005 deviation: no exc=ChatHealthyException
+        # wrapping here. Left as-is per scope of REQ-B-008 catch pass —
+        # converting this to the canonical exc= shape would change the
+        # exception object propagating upstream.
         log.error(
             "/gate stream BROKE op=%s bytes_emitted=%d lines_emitted=%d kinds=%s exc=%s: %s",
             op_name, bytes_sent, lines_sent, kinds,

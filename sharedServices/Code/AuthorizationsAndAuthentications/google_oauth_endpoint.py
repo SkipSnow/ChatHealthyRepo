@@ -132,7 +132,10 @@ def verify_state(state: str) -> dict:
     try:
         body_b64, sig_b64 = state.split(".", 1)
     except ValueError as _exc:
-        log.warning("OAuth state malformed: %s", _exc, exc=ChatHealthyException(
+        # Mode 2 (REQ-B-008): malformed OAuth state → user can't auth.
+        # log.error always; the HTTPException(400) below surfaces the
+        # failure to the caller for user-facing handling.
+        log.error("OAuth state malformed: %s", _exc, exc=ChatHealthyException(
                                                         mode="oauth_state_malformed",
                                                         message="OAuth state parameter malformed (missing '.' separator)",
                                                         component="GoogleOAuthEndpoint",
@@ -145,7 +148,8 @@ def verify_state(state: str) -> dict:
     try:
         payload = json.loads(b64url_decode(body_b64).decode("utf-8"))
     except Exception as _exc:
-        log.warning("OAuth state body invalid: %s", _exc, exc=ChatHealthyException(
+        # Mode 2 (REQ-B-008): OAuth state body invalid → user can't auth.
+        log.error("OAuth state body invalid: %s", _exc, exc=ChatHealthyException(
                                                            mode="oauth_state_body_invalid",
                                                            message=f"OAuth state body invalid: {_exc}",
                                                            component="GoogleOAuthEndpoint",
@@ -309,7 +313,9 @@ class GoogleOAuthEndpoint:
         try:
             state_payload = verify_state(state)
         except HTTPException as e:
-            log.warning(
+            # Mode 2 (REQ-B-008): state-verification failure during OAuth
+            # callback → user can't complete auth. log.error always.
+            log.error(
                 "OAUTH-CALLBACK state_invalid detail=%s",
                 e.detail,
                 exc=ChatHealthyException(

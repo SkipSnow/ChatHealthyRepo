@@ -1190,7 +1190,11 @@ class UtteranceManagerTool(ChatHealthyTool):
         exception arrives here and is converted to a closeConnection200
         with one clarification message. No branching on exception type,
         no per-cause prose — one path, one outcome."""
-        log.warning(
+        # Mode 2 (REQ-B-008): UM's one-catch-all-rule: ANY exception is
+        # downgraded to a graceful clarification message to the user.
+        # Operator MUST know — these are real failures masked by graceful
+        # handling. log.error + always-log.
+        log.error(
             "UM caught unhandled exception; downgrading to clarification: %s",
             exc,
             exc=ChatHealthyException(

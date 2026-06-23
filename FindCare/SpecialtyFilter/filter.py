@@ -237,7 +237,10 @@ class SpecialtyFilter:
         try:
             normalized = self.normalize_query(query_text)
         except Exception as exc:
-            log.exception("Stage 1 normalize failed for %r", raw_query, exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): Stage-1 LLM normalize failed; user gets
+            # graceful error dict that the tool surfaces back to the user.
+            # No 503. Operator MUST know.
+            log.error("Stage 1 normalize failed for %r", raw_query, exc=ChatHealthyException(
                                                                          mode="specialty_filter_stage1_normalize_failed",
                                                                          message=f"Stage 1 normalize failed for {raw_query!r}: {exc}",
                                                                          component="SpecialtyFilter",
@@ -248,7 +251,9 @@ class SpecialtyFilter:
         try:
             qvec = self.embed_query(normalized)
         except Exception as exc:
-            log.exception("Stage 2 embed failed for normalized=%r", normalized, exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): Stage-2 embed failed; user gets graceful
+            # error dict. Embedding infrastructure issue — operator MUST know.
+            log.error("Stage 2 embed failed for normalized=%r", normalized, exc=ChatHealthyException(
                                                                                  mode="specialty_filter_stage2_embed_failed",
                                                                                  message=f"Stage 2 embed failed for normalized={normalized!r}: {exc}",
                                                                                  component="SpecialtyFilter",
@@ -259,7 +264,10 @@ class SpecialtyFilter:
         try:
             candidates = self.vector_search(qvec)
         except Exception as exc:
-            log.exception("Stage 3 vector_search failed", exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): Stage-3 vector search failed; user gets
+            # graceful error dict. Atlas $vectorSearch infra issue —
+            # operator MUST know.
+            log.error("Stage 3 vector_search failed", exc=ChatHealthyException(
                                                            mode="specialty_filter_stage3_vector_search_failed",
                                                            message=f"Stage 3 vector_search failed: {exc}",
                                                            component="SpecialtyFilter",
@@ -273,7 +281,9 @@ class SpecialtyFilter:
         try:
             kept_codes = self.filter_candidates(candidates, raw_query, normalized)
         except Exception as exc:
-            log.exception("Stage 4 filter_candidates failed", exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): Stage-4 LLM filter failed; user gets
+            # graceful error dict. LLM provider issue — operator MUST know.
+            log.error("Stage 4 filter_candidates failed", exc=ChatHealthyException(
                                                                mode="specialty_filter_stage4_filter_candidates_failed",
                                                                message=f"Stage 4 filter_candidates failed: {exc}",
                                                                component="SpecialtyFilter",
