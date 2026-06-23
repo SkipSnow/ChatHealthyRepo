@@ -65,12 +65,16 @@ class ClinicalTrialsService:
                     "duration": f"{hrs}h {mins}m" if hrs else f"{mins}m",
                 }
             except Exception as exc:
-                log.debug("Routes API failed for %s: %s", dest, exc, exc=ChatHealthyException(
+                # Mode 1 (REQ-B-008): travel info for one destination is
+                # optional decoration on a trial; continue with the remaining
+                # destinations and degrade silently (trial card still shows
+                # without travel info).
+                log.info("Routes API failed for %s: %s", dest, exc, exc=ChatHealthyException(
                                                                       mode="routes_api_failed",
                                                                       message=f"Routes API failed for {dest}: {exc}",
                                                                       component="ClinicalTrialsService",
                                                                       exception=exc,
-                                                                  ), if_not_debug_log=True)
+                                                                  ))
         return results
 
     def search(self, condition: str, location: str = "", user_location: str = "",
@@ -89,6 +93,10 @@ class ClinicalTrialsService:
             response.raise_for_status()
             studies = response.json().get("studies", [])
         except Exception as exc:
+            # Mode 2 (REQ-B-008): the entire trials API call failed; user
+            # asked for trials and gets back an error dict the tool renders
+            # as a graceful "couldn't reach ClinicalTrials.gov" message.
+            # Resource temporarily unavailable — operator MUST know.
             log.error("ClinicalTrials.gov search failed: %s", exc, exc=ChatHealthyException(
                                                                     mode="clinical_trials_search_failed",
                                                                     message=f"ClinicalTrials.gov search failed: {exc}",

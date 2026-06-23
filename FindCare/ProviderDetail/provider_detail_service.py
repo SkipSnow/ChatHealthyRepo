@@ -100,7 +100,10 @@ def resolve_taxonomy_display_names(
             for d in docs
         }
     except Exception as exc:
-        log.warning(
+        # Mode 1 (REQ-B-008): taxonomy display name lookup; if it fails,
+        # the detail panel renders without specialty display names (codes
+        # still show). Graceful, non-blocking degradation.
+        log.info(
             "taxonomy display name lookup failed: %s", exc,
             exc=ChatHealthyException(
                 mode="taxonomy_display_name_lookup_failed",
@@ -108,7 +111,6 @@ def resolve_taxonomy_display_names(
                 component="ProviderDetailService",
                 exception=exc,
             ),
-            if_not_debug_log=True,
         )
         return {}
 
@@ -133,7 +135,12 @@ class ProviderDetailService:
             try:
                 stored, sync_summary = self.sync_cycle(npi, provider_coll)
             except Exception as exc:
-                log.warning(
+                # Mode 2 (REQ-B-008): the live-vs-stored sync cycle (the
+                # F-025-S-002 reconciliation) failed; stored stays None and
+                # the user sees an empty detail panel. Operator MUST know —
+                # the live-refresh contract is the headline feature of
+                # provider detail.
+                log.error(
                     "provider_detail sync cycle failed for NPI %s: %s",
                     npi, exc,
                     exc=ChatHealthyException(
@@ -262,7 +269,11 @@ class ProviderDetailService:
                 timeout=10,
             )
         except Exception as exc:
-            log.warning(
+            # Mode 2 (REQ-B-008): NPPES live fetch failed (network/timeout);
+            # we fall back to the stored record without a reconciliation
+            # pass — user sees potentially stale data. NPPES is a critical
+            # data source; operator MUST know about any outage.
+            log.error(
                 "NPPES live fetch failed for NPI %s: %s", npi, exc,
                 exc=ChatHealthyException(
                     mode="nppes_fetch_failed",
@@ -282,7 +293,10 @@ class ProviderDetailService:
         try:
             data = resp.json()
         except Exception as exc:
-            log.warning(
+            # Mode 2 (REQ-B-008): NPPES returned non-JSON; we fall back to
+            # the stored record without reconciliation. NPPES API contract
+            # break — operator MUST know.
+            log.error(
                 "NPPES live fetch malformed JSON for NPI %s: %s",
                 npi, exc,
                 exc=ChatHealthyException(

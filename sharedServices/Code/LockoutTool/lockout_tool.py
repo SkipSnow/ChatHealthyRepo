@@ -183,6 +183,12 @@ class LockoutTool(ChatHealthyTool):
                     }},
                 )
             except Exception as exc:
+                # Mode 2 (REQ-B-008): unlock DB write failed. In-memory
+                # clear below proceeds, so user sees "you have been
+                # unlocked" — but next turn rehydrates the still-locked
+                # row and the user is silently re-locked. (This is the
+                # unlock-trust bug Skip flagged 2026-06-22.) Operator MUST
+                # know. log.exception (ERROR+traceback) + always-log.
                 log.exception("LockoutTool Task A update_one failed: %s", exc, exc=ChatHealthyException(
                                                                                 mode="lockout_task_a_update_failed",
                                                                                 message=f"LockoutTool Task A update_one failed: {exc}",
@@ -241,12 +247,14 @@ class LockoutTool(ChatHealthyTool):
                 for u in deps.user_object.session_conversation_history.utterances
             ]
         except Exception as _exc:
-            log.warning("LockoutTool history dump failed (using []): %s", _exc, exc=ChatHealthyException(
+            # Mode 1 (REQ-B-008): conversation history dump failed; defaults
+            # to []; lockout row still gets written. log.info + default debug.
+            log.info("LockoutTool history dump failed (using []): %s", _exc, exc=ChatHealthyException(
                                                                                  mode="lockout_history_dump_failed",
                                                                                  message=f"LockoutTool history dump failed (using []): {_exc}",
                                                                                  component="LockoutTool",
                                                                                  exception=_exc,
-                                                                             ), if_not_debug_log=True)
+                                                                             ))
             history_dump = []
 
         # Audit label from UM's IntentSafetyLockout arg, if present.
@@ -276,6 +284,11 @@ class LockoutTool(ChatHealthyTool):
                     "unlocked": False,
                 })
             except Exception as exc:
+                # Mode 2 (REQ-B-008): lockout-incident insert failed.
+                # In-memory locked-out flag below still gets set, so the
+                # current turn surfaces the lockout — but the row isn't
+                # persisted, so next-turn hydration finds nothing and the
+                # user is silently unlocked. Operator MUST know.
                 log.exception("LockoutTool Task C insert_one failed: %s", exc, exc=ChatHealthyException(
                                                                                 mode="lockout_task_c_insert_failed",
                                                                                 message=f"LockoutTool Task C insert_one failed: {exc}",

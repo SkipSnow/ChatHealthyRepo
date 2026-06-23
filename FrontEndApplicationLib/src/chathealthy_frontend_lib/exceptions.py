@@ -8,6 +8,8 @@ BaseException) so standard `except Exception:` blocks catch it.
 """
 from __future__ import annotations
 
+import traceback as _traceback
+
 
 class ChatHealthyException(Exception):
     def __init__(self, mode: str, message: str, **context):
@@ -23,6 +25,11 @@ class ChatHealthyException(Exception):
         self.component: str | None = context.pop("component", None)
         self.exception: Exception | None = context.pop("exception", None)
         self.context: dict = dict(context)
+        # Caller's stack captured at construction time, excluding this
+        # __init__ frame. Used by ChatHealthyLoggingService to render the
+        # destination's traceback when the exception is logged-only (never
+        # raised — so Python has not attached its own __traceback__).
+        self.construction_stack: str = "".join(_traceback.format_stack()[:-1])
 
     def __repr__(self) -> str:
         head = (f"ChatHealthyException(mode={self.mode!r}, "

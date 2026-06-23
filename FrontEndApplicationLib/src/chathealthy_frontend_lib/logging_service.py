@@ -98,7 +98,21 @@ class _Formatter(logging.Formatter):
         for k, v in (exc_value.context or {}).items():
             attrs.append(f"context.{k}={v!r}")
         head = "ChatHealthyException(" + ", ".join(attrs) + ")"
-        own_tb = super().formatException(ei)
+        # Destination (ChatHealthyException) traceback: when the exception
+        # was constructed-only (log.error(exc=ChatHealthyException(...))
+        # with no `raise`), Python attached no __traceback__, so
+        # formatException returns just "NoneType: None". Fall back to the
+        # stack we captured at construction time so the destination always
+        # has a real traceback in the formatted log document.
+        if exc_value.__traceback__ is not None:
+            own_tb = super().formatException(ei)
+        else:
+            construction_stack = getattr(exc_value, "construction_stack", "") or ""
+            own_tb = (
+                "Traceback (most recent call last):\n"
+                + construction_stack
+                + type(exc_value).__name__ + ": " + str(exc_value)
+            )
         wrapped = exc_value.exception
         if wrapped is None:
             return head + "\n" + own_tb

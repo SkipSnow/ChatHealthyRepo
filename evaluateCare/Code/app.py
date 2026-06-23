@@ -57,7 +57,8 @@ def bootstrap_certs_from_env():
         try:
             os.chmod(path, 0o600)
         except Exception as _exc:
-            log.warning("STARTUP: chmod 0600 on %s failed (continuing): %s", path, _exc, exc=ChatHealthyException(
+            # Mode 1 (REQ-B-008): best-effort startup chmod; system continues.
+            log.info("STARTUP: chmod 0600 on %s failed (continuing): %s", path, _exc, exc=ChatHealthyException(
                                                                                           mode="startup_chmod_failed",
                                                                                           message=f"STARTUP: chmod 0600 on {path} failed (continuing): {_exc}",
                                                                                           component="EvaluateCare",
@@ -78,7 +79,14 @@ import datetime as dt
 
 @app.exception_handler(Exception)
 async def fatal(request: Request, exc: Exception):
-    log.exception("fatal on %s", request.url.path, extra={"fatal_error": True})
+    # Safety net for UNHANDLED exceptions per EPIC-003-F-003-S-001-REQ-B-008
+    # Mode 3 (unhandled, not expected). Reaching here is always user-fatal
+    # (503 to the user) — that IS the Mode 3 definition — so tag fatal_error
+    # True. The architectural goal is for Mode 3 occurrences to be RARE; each
+    # one observed in the log MUST be moved to a local catch with Mode 1 or
+    # Mode 2 handling.
+    log.exception("unhandled exception on %s", request.url.path,
+                  extra={"fatal_error": True})
     return JSONResponse(
         status_code=503,
         content={"service": "EvaluateCare", "source": "unhandled",

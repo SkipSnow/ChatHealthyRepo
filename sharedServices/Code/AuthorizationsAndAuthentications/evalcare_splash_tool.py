@@ -58,6 +58,8 @@ class EvalCareSplashTool(ChatHealthyTool):
                 r.raise_for_status()
                 raw = r.json()
         except Exception as exc:
+            # Mode 2 (REQ-B-008): EC /splash temporarily unavailable; tool
+            # returns graceful Response.error inline. NOT 503; no fatal_error.
             log.error("evalcare_splash HTTP /splash failed: %s: %s",
                        type(exc).__name__, exc,
                        exc=ChatHealthyException(
@@ -65,7 +67,7 @@ class EvalCareSplashTool(ChatHealthyTool):
                         message=f"evalcare_splash HTTP /splash failed: {type(exc).__name__}: {exc}",
                         component="EvalCareSplashTool",
                         exception=exc,
-                    ), if_not_debug_log=True, extra={"fatal_error": True})
+                    ), if_not_debug_log=True)
             resp = self.Response(error=f"splash_unavailable: {type(exc).__name__}")
             deps.stream({"kind": "evalcare-splash", "data": resp.model_dump(exclude_none=True)})
             return resp

@@ -90,12 +90,15 @@ def get_db():
             db_manager = ChatHealthyMongoUtilities()
         return db_manager.getConnection()
     except Exception as e:
-        log.warning("MongoDB unavailable (will retry next call): %s", e, exc=ChatHealthyException(
+        # Mode 1 (REQ-B-008): recoverable — caller's next call will retry
+        # via the same lazy-init path. log.info + default if_not_debug_log
+        # so this only emits in debug mode.
+        log.info("MongoDB unavailable (will retry next call): %s", e, exc=ChatHealthyException(
                                                                           mode="mongo_unavailable",
                                                                           message=f"MongoDB unavailable (will retry next call): {e}",
                                                                           component="FindCareBackend",
                                                                           exception=e,
-                                                                      ), if_not_debug_log=True)
+                                                                      ))
         db_manager = None
         return None
 
@@ -127,12 +130,15 @@ def push(message):
         )
         return {"sent": True}
     except Exception as exc:
-        log.warning("SparkPost send failed: %s", exc, exc=ChatHealthyException(
+        # Mode 1 (REQ-B-008): SparkPost push notification is best-effort;
+        # caller proceeds with the operation regardless. log.info + default
+        # debug-gated.
+        log.info("SparkPost send failed: %s", exc, exc=ChatHealthyException(
                                                        mode="sparkpost_send_failed",
                                                        message=f"SparkPost send failed: {exc}",
                                                        component="FindCareBackend",
                                                        exception=exc,
-                                                   ), if_not_debug_log=True)
+                                                   ))
         return {"sent": False, "error": f"{type(exc).__name__}: {exc}"}
 
 def commitSignificantActivity(payload=None, **kwargs):
@@ -160,6 +166,9 @@ def commitSignificantActivity(payload=None, **kwargs):
         coll.insert_one(record)
         return {"recorded": "ok"}
     except Exception as exc:
+        # Mode 2 (REQ-B-008): audit-trail write failed; we return an
+        # error dict to the caller (no 503) but operator MUST know — the
+        # audit trail is the regulatory artifact, not optional.
         log.error("commitSignificantActivity failed: %s", exc, exc=ChatHealthyException(
                                                                 mode="commit_significant_activity_failed",
                                                                 message=f"commitSignificantActivity failed: {exc}",
@@ -268,7 +277,14 @@ from fastapi.responses import JSONResponse as JSONResponse
 
 @app.exception_handler(Exception)
 async def fatal(request: Request, exc: Exception):
-    log.exception("fatal on %s", request.url.path, extra={"fatal_error": True})
+    # Safety net for UNHANDLED exceptions per EPIC-003-F-003-S-001-REQ-B-008
+    # Mode 3 (unhandled, not expected). Reaching here is always user-fatal
+    # (503 to the user) — that IS the Mode 3 definition — so tag fatal_error
+    # True. The architectural goal is for Mode 3 occurrences to be RARE; each
+    # one observed in the log MUST be moved to a local catch with Mode 1 or
+    # Mode 2 handling.
+    log.exception("unhandled exception on %s", request.url.path,
+                  extra={"fatal_error": True})
     return JSONResponse(
         status_code=503,
         content={"service": "FindCare", "source": "unhandled",
@@ -329,7 +345,9 @@ def try_chmod_0600(path: str) -> None:
     try:
         os.chmod(path, 0o600)
     except Exception as exc:
-        log.warning(
+        # Mode 1 (REQ-B-008): best-effort startup chmod; system continues
+        # without the restriction. log.info + default debug-gated.
+        log.info(
             "STARTUP: chmod 0600 on %s failed (continuing): %s", path, exc,
             exc=ChatHealthyException(
                 mode="startup_chmod_failed",
@@ -337,7 +355,6 @@ def try_chmod_0600(path: str) -> None:
                 component="FindCareBackend",
                 exception=exc,
             ),
-            if_not_debug_log=True,
         )
 
 
@@ -401,6 +418,11 @@ def startup_security_verification():
         from cryptography.hazmat.primitives import serialization
         from cryptography.x509 import load_pem_x509_certificate
     except ImportError as _imp:
+        # Mode 2 (REQ-B-008): startup-time fatal — handled locally by
+        # logging + sys.exit(78). The process abends cleanly with a named
+        # exit code so the operator can diagnose; the user never sees the
+        # service since it never bound a port. Not Mode 3 because the
+        # exception IS caught and handled with explicit abend semantics.
         log.error("STARTUP ABEND exit=78 primitive=crypto reason=import_failed: %s", _imp, exc=ChatHealthyException(
                                                                                             mode="startup_abend_crypto_import_failed",
                                                                                             message=f"STARTUP ABEND exit=78 primitive=crypto reason=import_failed: {_imp}",
@@ -417,6 +439,8 @@ def startup_security_verification():
         with open(cert_path, "rb") as _f:
             load_pem_x509_certificate(_f.read())
     except FileNotFoundError as _fnf:
+        # Mode 2 (REQ-B-008): startup-time fatal — handled locally with
+        # named exit code 78 (EX_CONFIG, missing cert/key file).
         log.error("STARTUP ABEND exit=78 primitive=session_token reason=missing_cert_or_key: %s", _fnf, exc=ChatHealthyException(
                                                                                                          mode="startup_abend_session_token_missing",
                                                                                                          message=f"STARTUP ABEND exit=78 primitive=session_token reason=missing_cert_or_key: {_fnf}",
@@ -425,6 +449,8 @@ def startup_security_verification():
                                                                                                      ), if_not_debug_log=True)
         sys.exit(78)
     except PermissionError as _perm:
+        # Mode 2 (REQ-B-008): startup-time fatal — handled locally with
+        # named exit code 77 (EX_NOPERM, permission denied on cert/key).
         log.error("STARTUP ABEND exit=77 primitive=session_token reason=permission: %s", _perm, exc=ChatHealthyException(
                                                                                                  mode="startup_abend_session_token_permission",
                                                                                                  message=f"STARTUP ABEND exit=77 primitive=session_token reason=permission: {_perm}",
@@ -433,6 +459,9 @@ def startup_security_verification():
                                                                                              ), if_not_debug_log=True)
         sys.exit(77)
     except Exception as _exc:
+        # Mode 2 (REQ-B-008): startup-time fatal — handled locally with
+        # named exit code 70 (EX_SOFTWARE, key/cert unreadable for other
+        # reasons). Process abends cleanly; user never sees the service.
         log.error("STARTUP ABEND exit=70 primitive=session_token reason=key_or_cert_unreadable: %s", _exc, exc=ChatHealthyException(
                                                                                                             mode="startup_abend_session_token_unreadable",
                                                                                                             message=f"STARTUP ABEND exit=70 primitive=session_token reason=key_or_cert_unreadable: {_exc}",
@@ -513,10 +542,35 @@ class SearchRequest(BaseModel):
 
 @app.post("/search")
 async def search(body: SearchRequest):
-    """Direct provider search — for pagination. No LLM involved."""
+    """Direct provider search — for pagination. No LLM involved.
+
+    Local catch with mode discrimination per EPIC-003-F-003-S-001-REQ-B-008.
+    Catcher classifies caught ChatHealthyException by mode and acts per the
+    three-mode taxonomy."""
     params = body.model_dump(exclude_none=True)
-    result = find_care.search_providers(**params)
-    return result
+    try:
+        return find_care.search_providers(**params)
+    except ChatHealthyException as exc:
+        if exc.mode == "mongo_query_timeout":
+            # Mode 2 (REQ-B-008): resource temporarily unavailable (Mongo
+            # aggregate exceeded its timeout budget). Surface a graceful
+            # user-facing 200 response carrying an error string; NOT 503;
+            # no fatal_error tag.
+            log.error("search Mode 2: mongo_query_timeout on %s.%s",
+                      exc.context.get("db"), exc.context.get("coll"),
+                      exc=exc, if_not_debug_log=True)
+            return {
+                "providers": [],
+                "total_count": 0,
+                "error": "Provider search is taking longer than usual. "
+                         "Please try the same search again in a moment.",
+                "error_mode": exc.mode,
+            }
+        # Unknown ChatHealthyException mode at this site → re-raise so the
+        # Mode 3 safety net handles it. Adding a known mode here with its
+        # Mode 1 / Mode 2 / Mode 3 classification is the way to bring it
+        # under local control.
+        raise
 
 
 class ClassifyRequest(BaseModel):
@@ -554,13 +608,16 @@ async def classify(body: ClassifyRequest, request: Request):
         req_id = _uuid.uuid4().hex[:8]
         ts = dt.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         stage = type(exc).__name__
+        # Mode 2 (REQ-B-008): /classify failed (LLM/library); endpoint returns
+        # graceful {"specialties": [], "error": sanitized}. NOT 503; no
+        # fatal_error tag.
         log.error("classify req_id=%s ip=%s stage=%s detail=%r message=%r",
                    req_id, ip, stage, repr(exc)[:300], body.message, exc=ChatHealthyException(
                                                                       mode="classify_failed",
                                                                       message=f"classify req_id={req_id} ip={ip} stage={stage} detail={repr(exc)[:300]} message={body.message!r}",
                                                                       component="FindCareBackend",
                                                                       exception=exc,
-                                                                  ), if_not_debug_log=True, extra={"fatal_error": True})
+                                                                  ), if_not_debug_log=True)
         sanitized = (
             f"FindCare /classify temporarily unavailable "
             f"(stage: {stage}) at {ts}. Ref: {req_id}"
@@ -652,6 +709,10 @@ def check_indexes() -> dict:
         try:
             existing = [idx.get("name") for idx in coll_fn().list_search_indexes()]
         except Exception as exc:
+            # Mode 2 (REQ-B-008): the index check failed for this
+            # collection; the error is surfaced into the errors[] list
+            # and /health reports status="fail". Operator MUST know —
+            # missing vector indexes mean search is broken.
             log.error("index check on %s failed: %s", coll_label, exc, exc=ChatHealthyException(
                                                                         mode="index_check_failed",
                                                                         message=f"index check on {coll_label} failed: {exc}",
@@ -680,12 +741,14 @@ def read_build_info():
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception as _exc:
-        log.warning("build_info read failed (ignored, caller falls back): %s", _exc, exc=ChatHealthyException(
+        # Mode 1 (REQ-B-008): caller falls back to placeholder build info;
+        # operation continues. log.info + default debug-gated.
+        log.info("build_info read failed (ignored, caller falls back): %s", _exc, exc=ChatHealthyException(
                                                                                       mode="build_info_read_failed",
                                                                                       message=f"build_info read failed (ignored, caller falls back): {_exc}",
                                                                                       component="FindCareBackend",
                                                                                       exception=_exc,
-                                                                                  ), if_not_debug_log=True)
+                                                                                  ))
         return None
 
 
@@ -714,7 +777,10 @@ def health():
         try:
             mongo_doc = db["admin"]["Versions"].find_one(sort=[("from", -1)]) or {}
         except Exception as _exc:
-            log.warning("/health: MongoDB read for build/version/framework failed: %s", _exc, exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): Mongo read for /health version info failed;
+            # endpoint still returns a body but version fields are empty.
+            # Operator MUST know about Mongo unreachability.
+            log.error("/health: MongoDB read for build/version/framework failed: %s", _exc, exc=ChatHealthyException(
                                                                                                mode="health_mongo_read_failed",
                                                                                                message=f"/health: MongoDB read for build/version/framework failed: {_exc}",
                                                                                                component="FindCareBackend",
@@ -779,12 +845,15 @@ async def chat(body: ChatRequest, request: Request):
         return await chat_inner(body, request)
     except Exception as e:
         tb = traceback.format_exc()
+        # Mode 2 (REQ-B-008): /chat failed; endpoint returns ChatResponse with
+        # an error/error_type for the iframe to render gracefully. NOT 503;
+        # no fatal_error tag.
         log.error("CHAT ERROR: %s\n%s", e, tb, exc=ChatHealthyException(
                                                 mode="chat_endpoint_failed",
                                                 message=f"CHAT ERROR: {e}",
                                                 component="FindCareBackend",
                                                 exception=e,
-                                            ), if_not_debug_log=True, extra={"fatal_error": True})
+                                            ), if_not_debug_log=True)
         err_str = str(e)
         if "429" in err_str or "rate_limit" in err_str.lower():
             err_type, err_msg = "rate_limit", f"Rate limit hit — {err_str}"
@@ -930,22 +999,28 @@ async def chat_inner(body: ChatRequest, request: Request):
                 try:
                     last_provider_result = json.loads(tool_results[i]["content"])
                 except (json.JSONDecodeError, KeyError, IndexError) as _exc:
-                    log.warning("tool_result parse for find_providers failed (ignored): %s", _exc, exc=ChatHealthyException(
+                    # Mode 1 (REQ-B-008): the per-iteration cache of the
+                    # provider tool result stays None; the chat loop still
+                    # continues. No user-facing failure.
+                    log.info("tool_result parse for find_providers failed (ignored): %s", _exc, exc=ChatHealthyException(
                                                                                                     mode="tool_result_parse_failed",
                                                                                                     message=f"tool_result parse for find_providers failed (ignored): {_exc}",
                                                                                                     component="FindCareBackend",
                                                                                                     exception=_exc,
-                                                                                                ), if_not_debug_log=True)
+                                                                                                ))
             elif tc_name == "search_clinical_trials":
                 try:
                     last_trials_result = json.loads(tool_results[i]["content"])
                 except (json.JSONDecodeError, KeyError, IndexError) as _exc:
-                    log.warning("tool_result parse for search_clinical_trials failed (ignored): %s", _exc, exc=ChatHealthyException(
+                    # Mode 1 (REQ-B-008): the per-iteration cache of the
+                    # clinical-trials result stays None; the chat loop
+                    # still continues. No user-facing failure.
+                    log.info("tool_result parse for search_clinical_trials failed (ignored): %s", _exc, exc=ChatHealthyException(
                                                                                                             mode="tool_result_parse_failed",
                                                                                                             message=f"tool_result parse for search_clinical_trials failed (ignored): {_exc}",
                                                                                                             component="FindCareBackend",
                                                                                                             exception=_exc,
-                                                                                                        ), if_not_debug_log=True)
+                                                                                                        ))
 
         assistant_msg = {"role": "assistant", "content": response.get("content", "")}
         if tool_calls:

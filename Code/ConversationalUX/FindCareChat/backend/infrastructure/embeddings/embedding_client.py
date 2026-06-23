@@ -35,7 +35,10 @@ class EmbeddingClient:
         try:
             return self._get_oai().embeddings.create(model="text-embedding-3-large", input=text).data[0].embedding
         except Exception as e:
-            log.warning("Embedding (large) failed: %s", e, exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): provider vector search cannot proceed
+            # without the query embedding; caller returns no results to user.
+            # User-affecting failure — operator MUST know.
+            log.error("Embedding (large) failed: %s", e, exc=ChatHealthyException(
                                                             mode="embedding_large_failed",
                                                             message=f"Embedding (large) failed: {e}",
                                                             component="EmbeddingClient",
@@ -75,10 +78,13 @@ class EmbeddingClient:
             raw = response.content[0].text.strip() if response.content else ""
             return json.loads(raw) if raw else []
         except Exception as exc:
-            log.warning("expand_query_terms failed for %r: %s", query, exc, exc=ChatHealthyException(
+            # Mode 1 (REQ-B-008): query expansion is OPTIONAL — caller
+            # falls back to the raw query verbatim. Result quality may
+            # degrade but search still runs; debug-only log.
+            log.info("expand_query_terms failed for %r: %s", query, exc, exc=ChatHealthyException(
                                                                              mode="expand_query_terms_failed",
                                                                              message=f"expand_query_terms failed for {query!r}: {exc}",
                                                                              component="EmbeddingClient",
                                                                              exception=exc,
-                                                                         ), if_not_debug_log=True)
+                                                                         ))
             return []

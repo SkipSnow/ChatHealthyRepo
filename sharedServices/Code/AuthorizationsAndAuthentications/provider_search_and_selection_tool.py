@@ -72,12 +72,14 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
         if not request.specialty_codes:
+            # Mode 2 (REQ-B-008): precondition failure surfaced inline as
+            # Response.error. NOT 503; no fatal_error tag.
             log.error("provider_search precondition failed: no specialty codes",
                       exc=ChatHealthyException(
                           mode="provider_search_no_specialty_codes",
                           message="provider_search precondition failed: no specialty codes",
                           component="ProviderSearchAndSelectionTool",
-                      ), if_not_debug_log=True, extra={"fatal_error": True})
+                      ), if_not_debug_log=True)
             resp = self.Response(error="No specialty codes; cannot search providers.")
             deps.stream({"kind": "providers", "data": resp.model_dump(exclude_none=True)})
             return resp
@@ -107,6 +109,9 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
                 httpx.WriteTimeout, httpx.PoolTimeout, httpx.ReadError,
                 httpx.WriteError, httpx.RemoteProtocolError,
                 httpx.HTTPStatusError) as exc:
+            # Mode 2 (REQ-B-008): FC /search temporarily unavailable
+            # (network/HTTP-status failure). Tool returns graceful
+            # Response.error inline. NOT 503; no fatal_error tag.
             log.error("FindCare /search call failed: %s: %s",
                        type(exc).__name__, exc,
                        exc=ChatHealthyException(
@@ -114,7 +119,7 @@ class ProviderSearchAndSelectionTool(ChatHealthyTool):
                         message=f"FindCare /search call failed: {type(exc).__name__}: {exc}",
                         component="ProviderSearchAndSelectionTool",
                         exception=exc,
-                    ), if_not_debug_log=True, extra={"fatal_error": True})
+                    ), if_not_debug_log=True)
             resp = self.Response(
                 error="Provider search is taking longer than usual. "
                       "Please try the same search again in a moment.",

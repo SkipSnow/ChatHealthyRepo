@@ -632,7 +632,7 @@
 
   <div id="chFatalErrorOverlay" style="display:none;position:fixed;inset:0;z-index:2147483647;background:#fff;overflow:auto;padding: 1em;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;">
     <div style="max-width:85em;margin: 1em;text-align:center;color:#111;">
-      <div style="font-size: 1em;font-weight:700;color:#dc2626;margin: 1em;line-height:1.25;">Fatal error: this service is not available right now.</div>
+      <div id="chFatalErrorHeading" style="font-size: 1em;font-weight:700;color:#dc2626;margin: 1em;line-height:1.25;">Client error: unable to reach service.</div>
       <div style="font-size: 1em;line-height:1.7;color:#374151;">
         <div style="margin: 1em;"><a id="chFatalHomeLink" href="" style="color:#0b7a75;text-decoration:underline;"></a></div>
         <div style="margin: 1em;">If you get this error repeatedly and wish to call our team, please call Skip Snow @ <a href="tel:+16464088999" style="color:#0b7a75;">646 408 8999</a></div>
@@ -644,7 +644,7 @@
   </div>
   <script>
     (function() {
-      window.chFatalError = function(message) {
+      window.chFatalError = function(message, httpStatus) {
         try {
           var overlay = document.getElementById('chFatalErrorOverlay');
           if (!overlay) return;
@@ -661,6 +661,12 @@
           }
           var link = document.getElementById('chFatalHomeLink');
           if (link) { link.href = homeUrl; link.textContent = homeUrl; }
+          var headingEl = document.getElementById('chFatalErrorHeading');
+          if (headingEl) {
+            headingEl.textContent = httpStatus
+              ? ('Server error: HTTP ' + httpStatus + '. This service is not available.')
+              : 'Client error: unable to reach service.';
+          }
           var msgEl = document.getElementById('chFatalErrorMessage');
           if (msgEl) msgEl.textContent = String(message == null ? '' : message);
           overlay.style.display = 'block';
@@ -691,7 +697,7 @@
                 else msg = body;
               } catch (_) { msg = body; }
               window.chFatalError(String(msg || ''));
-            }).catch(function() { window.chFatalError(''); });
+            }).catch(function(err) { var m=err&&err.message?err.message:''; window.chFatalError(m, /HTTP \d+/.test(m)?503:null); });
           }
           return resp;
         });
@@ -886,7 +892,7 @@
         }).then(function(d) {
           _bannerCache[key] = {version: d.version, build: d.build, gitNumber: d.git_number};
           paintBanner(d.version, d.build, d.git_number);
-        }).catch(function() { window.chFatalError(''); });
+        }).catch(function(err) { var m=err&&err.message?err.message:''; window.chFatalError(m, /HTTP \d+/.test(m)?503:null); });
       };
 
       // Initial paint: FindCare owns the page on first load.
@@ -1199,7 +1205,7 @@
         }).then(function(detail) {
           if (detail) window._renderProviderDetail(detail, p.name || '');
         }).catch(function(err) {
-          try { window.chFatalError('[provider-detail] ' + (err && err.message ? err.message : 'fetch failed') + ' for NPI ' + p.npi); } catch (_) {}
+          try { window.chFatalError('[provider-detail] ' + (err && err.message ? err.message : 'fetch failed') + ' for NPI ' + p.npi, err && err.httpStatus); } catch (_) {}
         });
       };
 
@@ -1341,7 +1347,7 @@
               }
             }
           })
-          .catch(function() { window.chFatalError(''); });
+          .catch(function(err) { var m=err&&err.message?err.message:''; window.chFatalError(m, /HTTP \d+/.test(m)?503:null); });
       };
       // DEVOPS-BANNER-B006: 3-button banner with hot/cold states.
       // The service that owns the page renders cold (disabled + tooltip).
@@ -1542,7 +1548,7 @@
                 mountEl.innerHTML = (d && d.html) || '';
               }
             })
-            .catch(function() { window.chFatalError(''); });
+            .catch(function(err) { var m=err&&err.message?err.message:''; window.chFatalError(m, /HTTP \d+/.test(m)?503:null); });
           return;
         }
 
@@ -1574,7 +1580,7 @@
             var d = (payload && payload.result) ? payload.result : payload;
             if (window.renderSplash) window.renderSplash(d, mountEl);
           })
-          .catch(function() { window.chFatalError(''); });
+          .catch(function(err) { var m=err&&err.message?err.message:''; window.chFatalError(m, /HTTP \d+/.test(m)?503:null); });
       };
 
       window.gotoEvaluateCare = function() { window.renderCoreFrame('evaluatecare'); };
@@ -1981,7 +1987,7 @@
         // display the following"). The chFatalError() helper above renders
         // the spec-mandated 5-line layout including the error text from the API.
         if (msg.type === 'gui:fatal-error') {
-          window.chFatalError(String(msg.message == null ? '' : msg.message));
+          window.chFatalError(String(msg.message == null ? '' : msg.message), msg.httpStatus);
           return;
         }
         // EPIC-002-F-003-S-004: chat iframe asks the wrapper to begin

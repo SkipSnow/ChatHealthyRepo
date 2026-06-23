@@ -168,13 +168,20 @@ def time_remaining_seconds(user_object: UserObject) -> int:
         ms = int(latest[14:17])
         restamp_ms = int(secs.timestamp() * 1000) + ms
     except Exception as _exc:
-        log.warning("nonce parse failed: %s", _exc, exc=ChatHealthyException(
+        # Mode 2 (REQ-B-008): nonce parse failure. Per operator (Skip 2026-
+        # 06-22): set time remaining back to FULL (300s) AND demote the
+        # user to guest if currently registered — corrupt nonce must not
+        # silently expire a logged-in user. Mode 2 because demoting a
+        # registered user is user-affecting; operator must always see it.
+        log.error("nonce parse failed: %s", _exc, exc=ChatHealthyException(
                                                      mode="nonce_parse_failed",
-                                                     message=f"nonce parse failed (treating as expired): {_exc}",
+                                                     message=f"nonce parse failed (resetting to full guest session): {_exc}",
                                                      component="UniversalNavigationTool",
                                                      exception=_exc,
                                                  ), if_not_debug_log=True)
-        return 0
+        if getattr(user_object, "is_registered", False):
+            user_object.is_registered = False
+        return 300
     now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
     remaining_ms = (restamp_ms + 300_000) - now_ms
     return max(0, remaining_ms // 1000)
@@ -256,7 +263,9 @@ def read_nucc_codes_cache(document) -> Optional[list[dict]]:
                 try:
                     parsed = json.loads(arg.value)
                 except json.JSONDecodeError as _exc:
-                    log.warning("intent arg JSON decode failed (skipped): %s", _exc, exc=ChatHealthyException(
+                    # Mode 1 (REQ-B-008): intent arg JSON malformed; UR skips
+                    # the arg and continues. log.info + default debug-gated.
+                    log.info("intent arg JSON decode failed (skipped): %s", _exc, exc=ChatHealthyException(
                                                                                       mode="intent_arg_json_decode_failed",
                                                                                       message=f"intent arg JSON decode failed (skipped): {_exc}",
                                                                                       component="UniversalNavigationTool",
@@ -614,7 +623,9 @@ class UniversalNavigationTool(ChatHealthyTool):
                         if isinstance(parsed, dict):
                             geography = parsed
                     except json.JSONDecodeError as _exc:
-                        log.warning("geography arg JSON decode failed (skipped): %s", _exc, exc=ChatHealthyException(
+                        # Mode 1 (REQ-B-008): geography arg JSON malformed;
+                        # UR skips and continues. log.info + default debug-gated.
+                        log.info("geography arg JSON decode failed (skipped): %s", _exc, exc=ChatHealthyException(
                                                                                              mode="geography_arg_json_decode_failed",
                                                                                              message=f"geography arg JSON decode failed (skipped): {_exc}",
                                                                                              component="UniversalNavigationTool",
@@ -802,7 +813,10 @@ class UniversalNavigationTool(ChatHealthyTool):
                 "unlocked": {"$ne": True},
             })
         except Exception as exc:
-            log.exception("UR: _hydrate_lockout_if_any find_one failed: %s", exc, exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): Mongo lockout-table query failed; UR
+            # proceeds as if not locked (operator must know). log.error +
+            # if_not_debug_log=True.
+            log.error("UR: _hydrate_lockout_if_any find_one failed: %s", exc, exc=ChatHealthyException(
                                                                                    mode="ur_hydrate_lockout_find_failed",
                                                                                    message=f"UR: _hydrate_lockout_if_any find_one failed: {exc}",
                                                                                    component="UniversalNavigationTool",
@@ -816,7 +830,10 @@ class UniversalNavigationTool(ChatHealthyTool):
         try:
             expires_at = datetime.fromisoformat(expires_str)
         except Exception as _exc:
-            log.warning(
+            # Mode 1 (REQ-B-008): bad data in emergency_incidents row;
+            # treated as inactive and UR continues. log.info + default
+            # debug-gated.
+            log.info(
                 "UR: emergency_incidents row for ip=%s has invalid expires_at=%r; "
                 "treating as inactive", ip[:16] + "...", expires_str,
                 exc=ChatHealthyException(
@@ -1013,7 +1030,9 @@ class UniversalNavigationTool(ChatHealthyTool):
                     try:
                         selected_codes = json.loads(selected_arg.value)
                     except json.JSONDecodeError as _exc:
-                        log.warning("selected_nucc_codes JSON decode failed (defaulting to []): %s", _exc, exc=ChatHealthyException(
+                        # Mode 1 (REQ-B-008): malformed JSON defaults to [];
+                        # UR continues. log.info + default debug-gated.
+                        log.info("selected_nucc_codes JSON decode failed (defaulting to []): %s", _exc, exc=ChatHealthyException(
                                                                                                             mode="selected_nucc_codes_json_decode_failed",
                                                                                                             message=f"selected_nucc_codes JSON decode failed (defaulting to []): {_exc}",
                                                                                                             component="UniversalNavigationTool",
@@ -1172,7 +1191,11 @@ class UniversalNavigationTool(ChatHealthyTool):
                     if expires_at > datetime.now(timezone.utc):
                         loaded_user_object = candidate
                 except Exception as exc:
-                    log.warning(
+                    # Mode 2 (REQ-B-008): persisted session doc can't be
+                    # deserialized into a UserObject — user loses their
+                    # state and gets fresh-minted as guest on this turn.
+                    # User-affecting → log.error + always-log.
+                    log.error(
                         "could not reconstitute UserObject for %s: %s",
                         gate_req.prior_guid[:8], exc,
                         exc=ChatHealthyException(
@@ -1273,6 +1296,14 @@ class UniversalNavigationTool(ChatHealthyTool):
                     res_local = await self.run(agent_deps, nav_req)
                 except Exception as exc:
                     nav_exc_local = exc
+                    # Mode 2 (REQ-B-008): UR's broad Exception catch surfaces
+                    # the failure to the user via the final ok:false stream
+                    # event (NOT a 503). Per the taxonomy, only the catch-
+                    # all @app.exception_handler does Mode 3 fatal_error.
+                    # This catch needs follow-on work: discriminate on
+                    # exc.mode for known ChatHealthyException modes (Mode 1
+                    # or Mode 2 per mode); for non-ChatHealthyException,
+                    # re-raise so the safety net handles it as Mode 3.
                     log.exception(
                         "UniversalNavigation run failed for op=%s payload=%r: %s",
                         gate_req.op, gate_req.payload, exc,
@@ -1281,7 +1312,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                          message=f"UniversalNavigation run failed for op={gate_req.op} payload={gate_req.payload!r}: {exc}",
                          component="UniversalNavigationTool",
                          exception=exc,
-                     ), if_not_debug_log=True, extra={"fatal_error": True},
+                     ), if_not_debug_log=True,
                     )
 
                 session_token_proj = session_token_wire(user_object)
@@ -1326,6 +1357,10 @@ class UniversalNavigationTool(ChatHealthyTool):
                     )
                     await authn.TOOL.persist(authn_deps, user_object, fresh_mint)
                 except Exception as exc:
+                    # Mode 2 (REQ-B-008): session persist to Mongo failed.
+                    # Stream continues so the user sees this turn's result,
+                    # but next turn will rehydrate stale state. Operator
+                    # must know. log.exception (ERROR+traceback) + always-log.
                     log.exception("AuthN.persist failed: %s", exc, exc=ChatHealthyException(
                                                                     mode="authn_persist_failed",
                                                                     message=f"AuthN.persist failed: {exc}",

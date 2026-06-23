@@ -735,7 +735,7 @@ export default function FindCareApp() {
       if (err && (err.name === 'AbortError' || ac.signal.aborted)) return
       finishTimer()
       const msg = err.message || 'Search failed'
-      sendToParent('gui:fatal-error', { message: msg })
+      sendToParent('gui:fatal-error', { message: msg, httpStatus: err && err.httpStatus })
       setError(msg)
       setPhase('error')
     }
@@ -909,7 +909,7 @@ export default function FindCareApp() {
       if (err && (err.name === 'AbortError' || ac.signal.aborted)) return
       finishTimer()
       const msg = err.message || 'Apply Filter failed'
-      sendToParent('gui:fatal-error', { message: msg })
+      sendToParent('gui:fatal-error', { message: msg, httpStatus: err && err.httpStatus })
       setError(msg)
       setPhase('error')
     }
@@ -951,7 +951,7 @@ export default function FindCareApp() {
     } catch (err: any) {
       if (err && (err.name === 'AbortError' || (ac && ac.signal.aborted))) return
       const msg = 'Failed to fetch providers'
-      sendToParent('gui:fatal-error', { message: msg })
+      sendToParent('gui:fatal-error', { message: msg, httpStatus: err && err.httpStatus })
       setPhase('error')
       setError(msg)
     }
@@ -1125,7 +1125,7 @@ export default function FindCareApp() {
         `Stack:`,
         err?.stack || '  (no stack)',
       ]
-      sendToParent('gui:fatal-error', { message: lines.join('\n') })
+      sendToParent('gui:fatal-error', { message: lines.join('\n'), httpStatus: err && err.httpStatus })
     }
   }, [question])
 
@@ -1189,6 +1189,7 @@ export default function FindCareApp() {
     } catch (err: any) {
       sendToParent('gui:fatal-error', {
         message: `[provider-detail] ${err?.message || 'fetch failed'} for NPI ${p.npi}`,
+        httpStatus: err && err.httpStatus,
       })
     }
   }, [])

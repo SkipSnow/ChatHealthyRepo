@@ -90,6 +90,8 @@ class SafetyService:
             confidence = float(result.get("confidence", 0))
             return bool(result.get("emergency", False)) and confidence >= 0.80
         except Exception as exc:
+            # Mode 2 (REQ-B-008): Safety AI down; falls back to keyword
+            # detection. Safety degradation — operator MUST know.
             log.error("Safety AI failed (%s) — falling back to keyword detection", exc, exc=ChatHealthyException(
                                                                                          mode="safety_ai_failed",
                                                                                          message=f"Safety AI failed: {exc}",
@@ -116,7 +118,10 @@ class SafetyService:
             record = col.find_one({"ip": ip, "expires_at": {"$gt": now_iso}, "unlocked": {"$ne": True}})
             return record is not None
         except Exception as _exc:
-            log.warning("is_ip_locked find_one failed (treating as not-locked): %s", _exc, exc=ChatHealthyException(
+            # Mode 2 (REQ-B-008): lockout query failed; we fail-open (treat
+            # as not locked). This means a previously-locked user could
+            # bypass safety lock if the query is broken — operator MUST know.
+            log.error("is_ip_locked find_one failed (treating as not-locked): %s", _exc, exc=ChatHealthyException(
                                                                                             mode="is_ip_locked_query_failed",
                                                                                             message=f"is_ip_locked find_one failed (treating as not-locked): {_exc}",
                                                                                             component="SafetyService",
@@ -147,6 +152,9 @@ class SafetyService:
             log.warning("IP LOCKED: %s (trigger: %s)", ip, trigger_message[:100])
             return True
         except Exception as exc:
+            # Mode 2 (REQ-B-008): lock-write failed; in-memory may be set
+            # but DB row isn't — next-turn rehydration sees unlocked.
+            # Safety system divergence — operator MUST know.
             log.error("Failed to lock IP %s: %s", ip, exc, exc=ChatHealthyException(
                                                             mode="lock_ip_failed",
                                                             message=f"Failed to lock IP {ip}: {exc}",
@@ -171,6 +179,8 @@ class SafetyService:
                 log.info("IP UNLOCKED by admin: %s", ip)
                 return True
         except Exception as exc:
+            # Mode 2 (REQ-B-008): admin unlock DB write failed; user
+            # remains locked. Operator MUST know.
             log.error("Admin unlock failed for %s: %s", ip, exc, exc=ChatHealthyException(
                                                                   mode="admin_unlock_failed",
                                                                   message=f"Admin unlock failed for {ip}: {exc}",
