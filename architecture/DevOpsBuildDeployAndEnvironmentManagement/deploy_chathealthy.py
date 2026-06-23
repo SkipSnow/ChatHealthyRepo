@@ -69,11 +69,20 @@ def _enforce_env_branch_check(repo_root: Path, env: str) -> None:
         return
     expected = _ENV_BRANCH[env]
     actual = _current_branch(repo_root)
-    if actual != expected:
+    if actual == expected:
+        return
+    print(
+        f"[deploy] current branch is {actual!r}; --env {env} requires "
+        f"{expected!r}; checking out {expected!r}"
+    )
+    result = subprocess.run(
+        ["git", "checkout", expected],
+        cwd=str(repo_root), capture_output=True, text=True,
+    )
+    if result.returncode != 0:
         sys.exit(
-            f"ERROR: --env {env} requires branch {expected}, but current "
-            f"branch is {actual}; check out the right branch or use the "
-            f"promote workflow"
+            f"ERROR: git checkout {expected} failed (rc={result.returncode}). "
+            f"stderr: {result.stderr.strip()}"
         )
 
 
@@ -198,8 +207,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--env", required=True, choices=VALID_ENVS)
     parser.add_argument(
         "--target", default="all",
-        help="'all' | 'cloudflare' | 'hf' | 'azure' | 'aca' | a specific target_id. "
-             "Defaults to 'all'.",
+        help="'all' (front-end stack: Cloudflare Pages + HF Spaces) | "
+             "'pipeline' (every Azure target, alone) | "
+             "'cloudflare' | 'hf' | 'azure' | 'aca' | a specific target_id. "
+             "Defaults to 'all'. EPIC-008-F-012-S-001-REQ-B-012: 'pipeline' "
+             "and any other target value MUST NOT be combined.",
     )
     parser.add_argument(
         "--tests", default="",
@@ -208,6 +220,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     repo_root = _repo_root()
+
+    # EPIC-008-F-012-S-001-REQ-B-012: reject any attempt to combine the
+    # 'pipeline' selector with another target value. --target is a single
+    # string today; the only way to express a combination is to include
+    # the literal 'pipeline' token alongside another token. If that token
+    # appears as a substring of a non-exact value, abend.
+    if args.target != "pipeline" and "pipeline" in args.target:
+        sys.exit(
+            "ERROR: --target=pipeline MUST be the sole target. Pipeline "
+            "deploys are independent of front-end deploys "
+            "(EPIC-008-F-012-S-001-REQ-B-012)."
+        )
 
     _enforce_env_branch_check(repo_root, args.env)
 

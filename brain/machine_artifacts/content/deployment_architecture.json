@@ -1606,7 +1606,7 @@
           "source_location": "brain/machine_artifacts/content/agile_backlog.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "5a5c8a3d44a1217ee122c13a5f4b80f9427bf2c9d383f6a1f23a46ca5c53ecc7"
+          "content_hash": "551aad83c5c7c4394ec58ad74b5c6eda225bc048d9e4196c6ee60ad2253ddacd"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2497,21 +2497,21 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/_deploy_chain.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "0d65e5221aa3f50e6d9c4da533b4f2a91264b6c34f7fd7c1eeea37b1c5315338"
+          "content_hash": "e631f8e375598dd25537f7b250f535f13c08de765ed5f48b6fa57c94d0382d08"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/build_chathealthy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c25edac42aeb4ca764cf5a32b006ea4f59397843e04b9aa40ff7ba5cb6fcb5d2"
+          "content_hash": "b1ffa6e866d32f6da365270da9dae8639249e0b29ffda3d69f6437913d9d7d0c"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/deploy_chathealthy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "a82eab0e885f3294c1542b8b4eb74a5abbf2ec0c015874bf3abb9ab260d03d63"
+          "content_hash": "f78522b50ab905ed6715d5e98a3720582bf402d6729fa0daf744c4236e6f3c22"
         },
         {
           "feature_id": "EPIC-008-F-012",

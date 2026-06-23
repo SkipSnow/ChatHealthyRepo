@@ -1918,13 +1918,31 @@ DEPLOYABLE_KINDS = (
     "azure_automation_runbook",
 )
 
+# EPIC-008-F-012-S-001-REQ-B-012: the data pipeline tier is operated on its
+# own cadence and is never co-deployed with the front-end app stack.
+FRONTEND_KINDS = ("cloudflare_pages_project", "hf_space")
+PIPELINE_KINDS = (
+    "azure_function_app",
+    "azure_automation_runbook",
+    "azure_container_app",
+)
+
 
 def select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tuple[str, str]]:
-    """Return [(target_id, target_kind), ...] matching the filter."""
+    """Return [(target_id, target_kind), ...] matching the filter.
+
+    EPIC-008-F-012-S-001-REQ-B-012: --target=all returns front-end targets
+    only (Cloudflare Pages + HF Spaces); pipeline targets ship only on
+    explicit --target=pipeline."""
     if target_arg == "all":
         return [
             (t.target_id, t.target_kind) for t in coll
-            if t.target_kind in DEPLOYABLE_KINDS
+            if t.target_kind in FRONTEND_KINDS
+        ]
+    if target_arg == "pipeline":
+        return [
+            (t.target_id, t.target_kind) for t in coll
+            if t.target_kind in PIPELINE_KINDS
         ]
     if target_arg in ("cloudflare", "cloudflare_pages_project"):
         return [
