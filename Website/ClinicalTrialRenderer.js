@@ -24,8 +24,15 @@
     return arr.filter(function (x) { return x; }).join(sep);
   }
   function yn(v) { return v ? 'yes' : 'no'; }
+  function _slug(s) {
+    return String(s || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
   function sectionTitle(title) {
-    return '<h3 style="font-size:1em;color:#0b7a75;font-weight:700;border-bottom:0.125em solid #d8e2e1;margin:1em 0 0.5em;padding-bottom:0.25em;">' + esc(title) + '</h3>';
+    var sid = 'ct-sec-' + _slug(title);
+    return '<h3 id="' + sid + '" style="font-size:1em;color:#0b7a75;font-weight:700;border-bottom:0.125em solid #d8e2e1;margin:1em 0 0.5em;padding-bottom:0.25em;">' + esc(title) + '</h3>';
   }
   function kv4(rows) {
     if (!rows || rows.length === 0) return '';
@@ -275,5 +282,33 @@
     return html;
   }
 
+  function ClinicalTrialBuildSectionList(containerOrHtml) {
+    var temp;
+    if (typeof containerOrHtml === 'string') {
+      temp = document.createElement('div');
+      temp.innerHTML = containerOrHtml;
+    } else if (containerOrHtml && containerOrHtml.querySelectorAll) {
+      temp = containerOrHtml;
+    } else {
+      return '';
+    }
+    var hs = temp.querySelectorAll('h3[id^="ct-sec-"]');
+    if (!hs.length) return '';
+    var items = '';
+    for (var i = 0; i < hs.length; i++) {
+      var h = hs[i];
+      items += '<li style="margin:0.25em 0;">'
+        + '<a href="#' + h.id + '" data-trial-section="' + h.id
+        + '" style="color:#0b7a75; text-decoration:underline; cursor:pointer;">'
+        + esc(h.textContent || '') + '</a></li>';
+    }
+    return '<div style="padding:1em; box-sizing:border-box;">'
+      + '<div style="font-size:1em; font-weight:700; color:#0b7a75; text-transform:uppercase; margin-bottom:0.5em;">'
+      + 'Trial sections</div>'
+      + '<ul style="list-style:none; padding:0; margin:0; font-size:0.9em;">' + items + '</ul>'
+      + '</div>';
+  }
+
   window.ClinicalTrialRenderer = ClinicalTrialRenderer;
+  window.ClinicalTrialBuildSectionList = ClinicalTrialBuildSectionList;
 })();

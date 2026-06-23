@@ -224,10 +224,27 @@ function _ageRange(trial: any): string {
   if (a && b) return `${a} – ${b}`
   return a || b
 }
-function buildTrialsLeftPanelHtml(trials: any[]): string {
+function _firstSentence(text: string): string {
+  const s = String(text || '').trim()
+  if (!s) return ''
+  const match = s.match(/^[\s\S]*?[.!?](?=\s|$)/)
+  if (!match) return s
+  const firstSentence = match[0]
+  return firstSentence.length < s.length ? firstSentence + '...' : firstSentence
+}
+function buildTrialsLeftPanelHtml(
+  trials: any[],
+  totalCount?: number | null,
+  pageSize?: number | null,
+  hasPrev?: boolean,
+  hasMore?: boolean,
+  pageStart?: number,
+  searchContext?: any,
+): string {
   const items = trials.map((t: any, i: number) => {
     const nct = _escapeHtml(t.nct_id || '(no id)')
     const title = _escapeHtml(t.brief_title || '')
+    const summary = _escapeHtml(_firstSentence(t.brief_summary || ''))
     const conds = _escapeHtml((t.conditions || []).join(', ') || '—')
     const dist  = _escapeHtml(_nearestDistance(t))
     const ages  = _escapeHtml(_ageRange(t))
@@ -239,6 +256,7 @@ function buildTrialsLeftPanelHtml(trials: any[]): string {
           ${nct}
         </a>
         <div style="font-size:0.9em; color:#374151; margin:0.15em 0 0.25em 0;">${title}</div>
+        ${summary ? `<div style="font-size:0.85em; color:#4b5563; margin:0.15em 0 0.35em 0; font-style:italic;">${summary}</div>` : ''}
         <ul style="margin:0.25em 0 0 1em; padding:0; font-size:0.9em; color:#4b5563;">
           <li><strong>Conditions:</strong> ${conds}</li>
           <li><strong>Distance to nearest site:</strong> ${dist}</li>
@@ -247,12 +265,44 @@ function buildTrialsLeftPanelHtml(trials: any[]): string {
         </ul>
       </li>`
   }).join('')
+
+  const total = (typeof totalCount === 'number' && totalCount > 0) ? totalCount : null
+  const start = Math.max(1, pageStart || 1)
+  const end = start + trials.length - 1
+  // Header band shows what was actually queried (echoed by the tool in
+  // search_context). When we know the real total, append "showing X to Y
+  // of Z"; otherwise just the query terms (we never lie about the count).
+  const qc: any = searchContext || {}
+  const queryParts: string[] = []
+  if (qc.condition) queryParts.push(`condition: ${qc.condition}`)
+  if (qc.age_years != null) queryParts.push(`subject age: ${qc.age_years}`)
+  if (qc.sex) queryParts.push(`subject sex: ${qc.sex}`)
+  if (qc.gender) queryParts.push(`subject gender: ${qc.gender}`)
+  const queryStr = queryParts.join(', ')
+  const countStr = total ? ` — showing ${start} to ${end} of ${total}` : ''
+  const headerText = queryStr
+    ? `Clinical trials — ${queryStr}${countStr}`
+    : `Clinical trials${countStr}`
+  const moreLink = hasMore
+    ? `<a href="#" data-trial-page="next" style="color:#0b7a75; text-decoration:underline; cursor:pointer; font-weight:700;">more trials</a>`
+    : ''
+  const backLink = hasPrev
+    ? `<a href="#" data-trial-page="prev" style="color:#0b7a75; text-decoration:underline; cursor:pointer; font-weight:700;">back</a>`
+    : ''
+  const ctrlSep = (moreLink && backLink) ? ' &nbsp;|&nbsp; ' : ''
+  const ctrlRow = (moreLink || backLink)
+    ? `<div style="margin-top:0.75em; font-size:0.95em; color:#374151;">
+         ${backLink}${ctrlSep}${moreLink}
+       </div>`
+    : ''
+
   return `
     <div style="height:100%; overflow-y:auto; padding:1em; box-sizing:border-box;">
       <div style="font-size:1em; font-weight:700; color:#0b7a75; text-transform:uppercase; margin-bottom:0.5em;">
-        Clinical trials (${trials.length})
+        ${_escapeHtml(headerText)}
       </div>
       <ul style="list-style:disc; padding-left:1.25em; margin:0;">${items}</ul>
+      ${ctrlRow}
     </div>`
 }
 
@@ -300,6 +350,18 @@ export default function FindCareApp() {
   // panel can drive selection and the center panel renders one trial.
   const [trialsList, setTrialsList] = useState<any[]>([])
   const [selectedTrialIndex, setSelectedTrialIndex] = useState<number>(0)
+  const [trialsTotalCount, setTrialsTotalCount] = useState<number | null>(null)
+  const [trialsPageSize, setTrialsPageSize] = useState<number>(10)
+  const [trialsPageStart, setTrialsPageStart] = useState<number>(1)
+  const trialsNextCursorRef = useRef<string | null>(null)
+  const trialsPrevCursorsRef = useRef<string[]>([])
+  const trialsLastQueryRef = useRef<{
+    condition: string;
+    user_location: string | null;
+    age_years: number | null;
+    sex: string | null;
+    gender: string | null;
+  } | null>(null)
   const [systemCorrections, setSystemCorrections] = useState<Array<{original: string; corrected: string}>>([])
   const [welcomeHtml, setWelcomeHtml] = useState('')
   const [thinkSeconds, setThinkSeconds] = useState(0)
@@ -373,6 +435,143 @@ export default function FindCareApp() {
       // EPIC-006-F-031 — leftPanel bullet click → switch center detail
       if (msg.type === 'trial:select' && typeof msg.index === 'number') {
         setSelectedTrialIndex(msg.index)
+      }
+
+      if (msg.type === 'trial:page' && (msg.direction === 'next' || msg.direction === 'prev')) {
+        const last = trialsLastQueryRef.current
+        if (!last) return
+        let cursor: string | null = null
+        let newPageStart = trialsPageStart
+        if (msg.direction === 'next') {
+          cursor = trialsNextCursorRef.current
+          if (!cursor) return
+          trialsPrevCursorsRef.current.push(cursor)
+          newPageStart = trialsPageStart + trialsList.length
+        } else {
+          trialsPrevCursorsRef.current.pop()
+          cursor = trialsPrevCursorsRef.current.length
+            ? trialsPrevCursorsRef.current[trialsPrevCursorsRef.current.length - 1]
+            : null
+          newPageStart = Math.max(1, trialsPageStart - trialsPageSize)
+        }
+
+        // Immediate UX feedback before the network round-trip:
+        //   - center detail panel cleared (phase=searching renders the
+        //     timer/loading screen instead of the trial detail)
+        //   - right panel cleared (wrapper listens for trials:clear)
+        //   - left panel header shows the loading state
+        //   - timer starts ticking from 0
+        // The searching banner shows the CANONICAL criteria (condition +
+        // demographics) plus the record range being retrieved so the user
+        // sees exactly what the system is doing — not just a raw verb.
+        const _critParts: string[] = []
+        if (last.condition) _critParts.push(last.condition)
+        if (last.age_years != null) _critParts.push(`age ${last.age_years}`)
+        if (last.sex) _critParts.push(`sex ${last.sex}`)
+        if (last.gender) _critParts.push(`gender ${last.gender}`)
+        if (last.user_location) _critParts.push(last.user_location)
+        const _crit = _critParts.join(', ')
+        const _endRange = newPageStart + trialsPageSize - 1
+        const _ofTotal = trialsTotalCount ? ` of ${trialsTotalCount}` : ''
+        setQuestion(`${_crit} — retrieving records ${newPageStart}–${_endRange}${_ofTotal}`)
+        setPhase('searching')
+        setThinkSeconds(0)
+        setTrialsList([])
+        setSelectedTrialIndex(0)
+        sendToParent('gui:trials-clear', {})
+        const _pageStart = Date.now()
+        if (timerRef.current) clearInterval(timerRef.current)
+        timerRef.current = setInterval(() => {
+          setThinkSeconds(Math.round((Date.now() - _pageStart) / 1000))
+        }, 1000)
+        const _finishPageTimer = () => {
+          if (timerRef.current) clearInterval(timerRef.current)
+          timerRef.current = null
+        }
+
+        const gateBody: any = {
+          op: 'clinical_trials_page',
+          payload: {
+            condition: last.condition,
+            user_location: last.user_location || null,
+            page_size: trialsPageSize,
+            cursor,
+            age_years: last.age_years,
+            sex: last.sex,
+            gender: last.gender,
+          },
+        }
+        const tokForPage = _sessionToken && _sessionToken.token
+        if (tokForPage && typeof tokForPage === 'string' && tokForPage.length >= 32) {
+          gateBody.prior_guid = tokForPage.slice(-32)
+        }
+        const ssUrlForPage = _sharedServicesUrl(API_URL)
+        fetch(`${ssUrlForPage}/gate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/x-ndjson',
+          },
+          body: JSON.stringify(gateBody),
+        })
+          .then(async resp => {
+            if (!resp.ok || !resp.body) {
+              throw new Error(`Gate stream failed: HTTP ${resp.status}`)
+            }
+            const reader = resp.body.getReader()
+            const decoder = new TextDecoder()
+            let buffer = ''
+            let trialsData: any = null
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              buffer += decoder.decode(value, { stream: true })
+              let nl
+              while ((nl = buffer.indexOf('\n')) >= 0) {
+                const line = buffer.substring(0, nl).trim()
+                buffer = buffer.substring(nl + 1)
+                if (!line) continue
+                try {
+                  const evt = JSON.parse(line)
+                  if (evt && evt.kind === 'trials') {
+                    trialsData = evt.data || {}
+                  }
+                } catch { /* ignore non-JSON */ }
+              }
+            }
+            if (!trialsData) throw new Error('no trials event in stream')
+            const trials = trialsData.trials || []
+            setTrialsList(trials)
+            setSelectedTrialIndex(0)
+            trialsNextCursorRef.current = trialsData.cursor || null
+            if (typeof trialsData.total_count === 'number') setTrialsTotalCount(trialsData.total_count)
+            setTrialsPageStart(newPageStart)
+            const ctx2 = trialsData.search_context || trialsLastQueryRef.current || {}
+            const hasPrev = trialsPrevCursorsRef.current.length > 0
+            const hasMore = !!trialsData.cursor
+            sendToParent('gui:trials-left-panel', {
+              html: buildTrialsLeftPanelHtml(
+                trials,
+                trialsData.total_count ?? trialsTotalCount,
+                trialsData.page_size ?? trialsPageSize,
+                hasPrev,
+                hasMore,
+                newPageStart,
+                ctx2,
+              ),
+            })
+            _finishPageTimer()
+            setPhase('results')
+          })
+          .catch(err => {
+            _finishPageTimer()
+            setPhase('results')
+            const m = err && err.message ? err.message : 'trials page /gate stream failed'
+            const verb = msg.direction === 'next' ? 'load more clinical trials' : 'go back to the previous page of clinical trials'
+            sendToParent('gui:fatal-error', {
+              message: `While trying to ${verb}: ${m}`,
+            })
+          })
       }
 
       // RestoreState=false — reset to welcome, focus input
@@ -660,7 +859,28 @@ export default function FindCareApp() {
         const trials = data.trials || []
         setTrialsList(trials)
         setSelectedTrialIndex(0)
-        sendToParent('gui:trials-left-panel', { html: buildTrialsLeftPanelHtml(trials) })
+        const tc = typeof data.total_count === 'number' ? data.total_count : null
+        const ps = typeof data.page_size === 'number' ? data.page_size : 10
+        setTrialsTotalCount(tc)
+        setTrialsPageSize(ps)
+        setTrialsPageStart(1)
+        trialsNextCursorRef.current = data.cursor || null
+        trialsPrevCursorsRef.current = []
+        // Authoritative search context echoed by the tool — use this to
+        // re-issue pagination so the raw user utterance never leaks into
+        // the CT.gov call.
+        const ctx = data.search_context || {}
+        trialsLastQueryRef.current = {
+          condition: ctx.condition || '',
+          user_location: ctx.user_location || null,
+          age_years: typeof ctx.age_years === 'number' ? ctx.age_years : null,
+          sex: ctx.sex || null,
+          gender: ctx.gender || null,
+        }
+        const hasMore = !!data.cursor
+        sendToParent('gui:trials-left-panel', {
+          html: buildTrialsLeftPanelHtml(trials, tc, ps, false, hasMore, 1, ctx),
+        })
       }
       finishTimer()
       setPhase('results')
@@ -702,6 +922,18 @@ export default function FindCareApp() {
           if (evt.kind === 'specialties') { onSpecialties(evt.data || {}); sawTerminalEvent = true }
           else if (evt.kind === 'providers' || evt.kind === 'trials') { onResults(evt.data || {}); sawTerminalEvent = true }
           else if (evt.kind === 'prompt') onPrompt(evt.data || {})
+          else if (evt.kind === 'intent_classified') {
+            const d = evt.data || {}
+            if (d.action === 'findClinicalTrials') {
+              const _p: string[] = []
+              if (d.condition) _p.push(d.condition)
+              if (d.age_years != null) _p.push(`age ${d.age_years}`)
+              if (d.sex) _p.push(`sex ${d.sex}`)
+              if (d.gender) _p.push(`gender ${d.gender}`)
+              if (d.user_location) _p.push(d.user_location)
+              if (_p.length) setQuestion(_p.join(', '))
+            }
+          }
           else if (evt.kind === 'final' && !sawError) {
             const okFlag = evt.data?.ok ?? evt.ok
             console.log('[FindCare] stream event kind=final ok=', okFlag,
@@ -835,7 +1067,28 @@ export default function FindCareApp() {
         const trials = data.trials || []
         setTrialsList(trials)
         setSelectedTrialIndex(0)
-        sendToParent('gui:trials-left-panel', { html: buildTrialsLeftPanelHtml(trials) })
+        const tc = typeof data.total_count === 'number' ? data.total_count : null
+        const ps = typeof data.page_size === 'number' ? data.page_size : 10
+        setTrialsTotalCount(tc)
+        setTrialsPageSize(ps)
+        setTrialsPageStart(1)
+        trialsNextCursorRef.current = data.cursor || null
+        trialsPrevCursorsRef.current = []
+        // Authoritative search context echoed by the tool — use this to
+        // re-issue pagination so the raw user utterance never leaks into
+        // the CT.gov call.
+        const ctx = data.search_context || {}
+        trialsLastQueryRef.current = {
+          condition: ctx.condition || '',
+          user_location: ctx.user_location || null,
+          age_years: typeof ctx.age_years === 'number' ? ctx.age_years : null,
+          sex: ctx.sex || null,
+          gender: ctx.gender || null,
+        }
+        const hasMore = !!data.cursor
+        sendToParent('gui:trials-left-panel', {
+          html: buildTrialsLeftPanelHtml(trials, tc, ps, false, hasMore, 1, ctx),
+        })
       }
       finishTimer()
       setPhase('results')
@@ -877,6 +1130,18 @@ export default function FindCareApp() {
           if (evt.kind === 'specialties') { onSpecialties(evt.data || {}); sawTerminalEvent = true }
           else if (evt.kind === 'providers' || evt.kind === 'trials') { onResults(evt.data || {}); sawTerminalEvent = true }
           else if (evt.kind === 'prompt') onPrompt(evt.data || {})
+          else if (evt.kind === 'intent_classified') {
+            const d = evt.data || {}
+            if (d.action === 'findClinicalTrials') {
+              const _p: string[] = []
+              if (d.condition) _p.push(d.condition)
+              if (d.age_years != null) _p.push(`age ${d.age_years}`)
+              if (d.sex) _p.push(`sex ${d.sex}`)
+              if (d.gender) _p.push(`gender ${d.gender}`)
+              if (d.user_location) _p.push(d.user_location)
+              if (_p.length) setQuestion(_p.join(', '))
+            }
+          }
           else if (evt.kind === 'final' && !sawError) {
             const okFlag = evt.data?.ok ?? evt.ok
             console.log('[FindCare apply_filter] stream event kind=final ok=', okFlag,

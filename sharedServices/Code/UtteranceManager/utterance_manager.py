@@ -721,16 +721,32 @@ DECISION RULES (apply in this order):
       this action — we'll proceed without it, but if supplied we
       compute travel time and distance to each trial site.
 
-        - On the FIRST turn where the user expresses clinical-trial
-          interest AND no user_location is present on the prior
-          IntentDocument AND the latest utterance does not itself
-          supply a location: set target_action="closeConnection200"
-          and emit a user_message of the shape "I can search clinical
-          trials for <condition>. If you tell me your location (your
-          own or the patient you're asking on behalf of), I'll add
-          travel time and distance to each site. Or say skip to see
-          results without travel info." Park a pending_disambiguation
-          with kind="user_location_for_clinical_trial".
+      The participant's age, sex, and gender are also OPTIONAL inputs
+      that refine the CT.gov search when present. Encourage the user
+      to supply them, but condition remains the only required minimum
+      — never block the search waiting for age/sex/gender if the user
+      has already given location (or explicitly skipped it).
+
+        - The four refinement fields are: age, sex, gender, and
+          user_location. NONE of these is required by the system;
+          condition is the only required field. Each refinement is
+          treated equally — none is "bonus", none is "primary".
+
+          On the FIRST turn where the user expresses clinical-trial
+          interest, you MUST ASK for every refinement field that is
+          NOT already known — either from the current utterance OR
+          from the prior IntentDocument. Set
+          target_action="closeConnection200" and emit a user_message
+          that names each missing field by its literal word ("age",
+          "sex", "gender", "location"). Acknowledge any field the
+          user already supplied. Tell the user that condition alone
+          is enough — they can answer "skip" for any field. Park a
+          pending_disambiguation with
+          kind="clinical_trial_demographics".
+
+          You may skip the ask and proceed directly to
+          target_action="findClinicalTrials" ONLY when all four
+          refinements are already known.
 
           RULE 1.5 STILL APPLIES TO THIS user_message AND TO
           corrections[]. If the user's condition contained a
@@ -744,23 +760,35 @@ DECISION RULES (apply in this order):
           marker convention does not change because the action is
           closeConnection200 on this turn.
 
-        - On the FOLLOW-UP turn after that prompt: if the user supplies
-          a location, populate complaint with the original condition
-          and user_location with the supplied location, set
-          target_action="findClinicalTrials". If the user declines
-          ("skip", "no", "no thanks", "just show me"), populate
-          complaint with the original condition, leave user_location
-          empty, set target_action="findClinicalTrials".
-
-        - When the FIRST utterance ALREADY contains the user's
-          location (e.g. "find clinical trials for diabetes near
-          Wilmington DE"), skip the ask-first and emit
-          target_action="findClinicalTrials" directly with complaint
-          and user_location populated.
+        - On the FOLLOW-UP turn after that prompt: capture EVERY
+          refinement the user supplied. You MUST extract:
+            * age_years (integer) — any of "I'm 28", "I am 28
+              years old", "28", "age 28", "28yo", etc. → 28
+            * sex (lowercase string, "male" or "female") — any of
+              "I'm Male", "Male", "M", "boy", "man" → "male";
+              "Female", "F", "girl", "woman" → "female". An unqualified
+              "Male" or "Female" is SEX, not gender — do NOT also
+              populate gender unless the user explicitly qualified
+              their gender identity (e.g., "cis male", "trans
+              woman", "non-binary", "they/them").
+            * gender (free-text string) — populate ONLY when the
+              user explicitly volunteered a gender identity distinct
+              from their sex. If the user gave only "Male" or
+              "Female", leave gender unset.
+            * user_location (free-text string) — any location ("Los
+              Angeles", "30605", "near Boston", etc.).
+          Populate ALL extracted fields as Arguments on the
+          findClinicalTrials intent. If the user declines ("skip",
+          "no", "no thanks", "just show me"), proceed with whatever
+          fields are populated. Always populate complaint with the
+          original condition and set
+          target_action="findClinicalTrials".
 
       Set complaint to the medical condition the user is asking
       about, normalized (e.g. "type 2 diabetes", "lung cancer",
-      "depression").
+      "depression"). Condition is the ONLY required field for
+      findClinicalTrials; age, sex, gender, and user_location are
+      all optional refinements per the rules above.
 
   6. If the utterance is a real request but you cannot extract a
      complaint or recognize a healthcare ask, set target_action to

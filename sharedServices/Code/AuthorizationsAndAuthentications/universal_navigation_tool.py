@@ -298,13 +298,14 @@ class UniversalNavigationTool(ChatHealthyTool):
     # Map ops to method names. run() looks up by op and dispatches via
     # getattr(self, name). Adding a new op = new method + new dict entry.
     _OP_HANDLERS = {
-        "boot":            "_handle_boot",
-        "splash":          "_handle_splash",
-        "record_ux_event": "_handle_record_ux_event",
-        "utterance":       "_handle_utterance",
-        "provider-detail": "_handle_provider_detail",
-        "apply_filter":    "_handle_apply_filter",
-        "evalcare-splash": "_handle_evalcare_splash",
+        "boot":                 "_handle_boot",
+        "splash":               "_handle_splash",
+        "record_ux_event":      "_handle_record_ux_event",
+        "utterance":            "_handle_utterance",
+        "provider-detail":      "_handle_provider_detail",
+        "apply_filter":         "_handle_apply_filter",
+        "evalcare-splash":      "_handle_evalcare_splash",
+        "clinical_trials_page": "_handle_clinical_trials_page",
     }
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
@@ -586,6 +587,18 @@ class UniversalNavigationTool(ChatHealthyTool):
             kind="apply_filter",
             result={"target_action": "closeConnection200"},
         )
+
+    async def _handle_clinical_trials_page(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """UR dispatch for op == 'clinical_trials_page'. Thin pass-through
+        — biz logic lives in ClinicalTrialsTool. Pydantic validates the
+        payload via Request. The tool streams the `trials` event."""
+        try:
+            from ClinicalTrials import clinical_trials_tool
+        except ImportError:
+            from FindCare.ClinicalTrials import clinical_trials_tool
+        ct_req = clinical_trials_tool.Request(**(payload or {}))
+        await clinical_trials_tool.TOOL.run_and_log(deps, ct_req)
+        return Response(kind="clinical_trials_page", result={"ok": True})
 
     # ── Orchestration helpers ─────────────────────────────────────
 
@@ -994,10 +1007,43 @@ class UniversalNavigationTool(ChatHealthyTool):
                 (a.value for a in target_intent_entry.arguments if a.name == "cursor"),
                 None,
             )
+            age_years_raw = next(
+                (a.value for a in target_intent_entry.arguments if a.name == "age_years"),
+                None,
+            )
+            try:
+                age_years = int(age_years_raw) if age_years_raw is not None else None
+            except (TypeError, ValueError):
+                age_years = None
+            sex_filter = next(
+                (a.value for a in target_intent_entry.arguments if a.name == "sex"),
+                None,
+            )
+            gender_filter = next(
+                (a.value for a in target_intent_entry.arguments if a.name == "gender"),
+                None,
+            )
+            # Emit the canonical criteria the moment classification is done
+            # so the client's searching banner can replace the raw utterance
+            # with what the system is actually about to fetch.
+            deps.stream({
+                "kind": "intent_classified",
+                "data": {
+                    "action": "findClinicalTrials",
+                    "condition": complaint,
+                    "user_location": user_location,
+                    "age_years": age_years,
+                    "sex": sex_filter,
+                    "gender": gender_filter,
+                },
+            })
             ct_req = clinical_trials_tool.Request(
                 condition=complaint,
                 user_location=user_location,
                 cursor=cursor,
+                age_years=age_years,
+                sex=sex_filter,
+                gender=gender_filter,
             )
             await clinical_trials_tool.TOOL.run_and_log(deps, ct_req)
             # No inner "final" emission — outer pipeline emits the

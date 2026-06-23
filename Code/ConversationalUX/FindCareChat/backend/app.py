@@ -684,6 +684,8 @@ def provider_detail(
         schedule_background_task=background_tasks.add_task,
     )
 
+
+
 REQUIRED_INDEXES = [
     ("providers", providers_coll, ["provider_vector_index"]),
     ("SpecialtyMetaData", specialty_meta_coll, ["specialty_vector_index"]),
