@@ -160,7 +160,7 @@ def _client_id() -> str:
 
 def _env_to_redirect_uri(server_env: str) -> str:
     table = {
-        "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space/auth/google/callback",
+        "dev":   "https://dev-hf.chathealthy.ai/auth/google/callback",
         "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space/auth/google/callback",
         "prod":  "https://skipsnow-sharedservicesspace.hf.space/auth/google/callback",
         "local": "https://localhost:8002/auth/google/callback",

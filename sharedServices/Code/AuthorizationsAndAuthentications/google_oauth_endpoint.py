@@ -45,7 +45,7 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 # The Google Cloud OAuth client must list these URLs in its Authorized
 # Redirect URIs.
 ENV_TO_REDIRECT_URI = {
-    "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space/auth/google/callback",
+    "dev":   "https://dev-hf.chathealthy.ai/auth/google/callback",
     "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space/auth/google/callback",
     "prod":  "https://skipsnow-sharedservicesspace.hf.space/auth/google/callback",
     "local": "https://localhost:8002/auth/google/callback",
