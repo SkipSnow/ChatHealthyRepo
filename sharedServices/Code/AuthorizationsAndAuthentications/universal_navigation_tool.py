@@ -73,7 +73,7 @@ KNOWN_WIRE_INTENTS = frozenset({WIRE_INTENT_UTTERANCE})
 # phase). /gate is for utterance traffic only.
 
 ENV_TO_SHARED_URL = {
-    "dev":   "https://skipsnow-dev-sharedservicesspace.hf.space",
+    "dev":   "https://dev-hf.chathealthy.ai",
     "qa":    "https://skipsnow-qa-sharedservicesspace.hf.space",
     "prod":  "https://skipsnow-sharedservicesspace.hf.space",
     "local": "https://localhost:8002",
