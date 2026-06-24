@@ -136,11 +136,11 @@ class ProviderDetailTool(ChatHealthyTool):
                         exception=exc,
                     ), if_not_debug_log=True)
             resp = self.Response(error=f"detail_unavailable: {type(exc).__name__}")
-            deps.stream({"kind": "provider-detail", "data": resp.model_dump(exclude_none=True)})
+            deps.stream({"kind": "provider-detail", "data": resp.model_dump(exclude_none=True, mode='json')})
             return resp
 
         resp = self.Response(**raw)
-        deps.stream({"kind": "provider-detail", "data": resp.model_dump(exclude_none=True)})
+        deps.stream({"kind": "provider-detail", "data": resp.model_dump(exclude_none=True, mode='json')})
         return resp
 
 

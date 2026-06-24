@@ -1,0 +1,267 @@
+// Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+// Licensed under the FindCare Evaluation License (FEL-1.0).
+//
+// SpecialtyFilterWidget — owns frame_LeftPanel.
+//
+// On kind:'specialties' broadcast: paints the full filter panel into
+// frame_LeftPanel via router:render. Layout, colors, and control surface
+// ported verbatim from FindCare/SpecialtyFilter/SpecialtyFilter.tsx
+// (lines 87-435) — same TEAL palette, same three-row header table
+// (title / counts / controls), same scrollable rows, same Apply button.
+//
+// State (specialties + checked map + pristine baseline for dirty detection)
+// lives in widget closure. Each interactive control carries a
+// data-router-action attribute; ClientRouter._bindActions binds clicks
+// and posts router:action back. Widget mutates state and re-renders.
+
+import { useEffect } from 'react'
+
+const TARGET = 'LeftPanel'
+
+const TEAL = '#0b7a75'
+const TEAL_LIGHT_BG = '#e6f5ec'
+const TEAL_LIGHT_BORDER = '#c9e0d3'
+const ROW_DIVIDER = '#f0f0f0'
+
+interface Specialty {
+  code: string
+  name: string
+  can_prescribe?: boolean
+  homeopathic?: boolean
+  homeopathic_general?: boolean
+}
+
+function _esc(s: any): string {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
+function buildFilterHtml(
+  specs: Specialty[],
+  checked: Record<string, boolean>,
+  isDirty: boolean,
+): string {
+  const allPossible    = specs.length
+  const allPrescribers = specs.filter(s => s.can_prescribe).length
+  const yourChoices    = specs.filter(s => checked[s.code]).length
+
+  const prescriberCodes  = specs.filter(s => s.can_prescribe).map(s => s.code)
+  const homeopathicCodes = specs.filter(s => s.homeopathic).map(s => s.code)
+  const prescribersChecked  = prescriberCodes.length > 0 &&
+    prescriberCodes.every(c => checked[c])
+  const homeopathicChecked  = homeopathicCodes.length > 0 &&
+    homeopathicCodes.every(c => checked[c])
+
+  // Label per prod: "Check All" when not every row is checked (clicking
+  // checks the remainder); "Uncheck All" only when every row is checked.
+  // Disabled when nothing is checked (no Uncheck target).
+  const allChecked = specs.length > 0 && specs.every(s => checked[s.code])
+  const anyChecked = yourChoices > 0
+  const labelIsCheckAll = !allChecked
+  const toggleAllLabel = labelIsCheckAll ? 'Check All' : 'Uncheck All'
+  const toggleAllDisabled = !anyChecked && !labelIsCheckAll
+
+  const countCell = (testid: string, label: string, value: number, color: string, i: number) => `
+    <td data-testid="${testid}"
+        style="padding:0.35em 0.3em;text-align:center;vertical-align:middle;width:33.333%;
+               border-left:${i === 0 ? '0.5em' : '0.25em'} solid ${TEAL_LIGHT_BG};
+               border-right:${i === 2 ? '0.5em' : '0.25em'} solid ${TEAL_LIGHT_BG};">
+      <div style="background:#ffffff;border:0.125em solid ${TEAL_LIGHT_BORDER};border-radius:0.4em;padding:0.35em 0.2em;">
+        <div style="font-size:0.9em;color:#4a5568;text-transform:uppercase;letter-spacing:0.02em;line-height:1.1;word-spacing:100vw;">${_esc(label)}</div>
+        <div style="font-size:1.1em;font-weight:700;color:${color};line-height:1.1;margin-top:0.2em;">${value}</div>
+      </div>
+    </td>`
+
+  const rows = specs.map(s => {
+    const c = _esc(s.code || '')
+    const isChecked = !!checked[s.code]
+    return `
+      <tr data-router-action="filter:toggle-row" data-code="${c}"
+          data-spec-code="${c}"
+          style="cursor:pointer;">
+        <td style="padding:0.1em 0.8em;border-bottom:0.125em solid ${ROW_DIVIDER};color:#1f2937;font-size:0.8em;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          ${_esc(s.name || s.code || '')}
+        </td>
+        <td style="padding:0.1em 0.8em;border-bottom:0.125em solid ${ROW_DIVIDER};text-align:right;width:2.4em;">
+          <input type="checkbox" ${isChecked ? 'checked' : ''} readonly tabindex="-1"
+                 style="width:1.2em;height:1.2em;accent-color:${TEAL};margin:0;pointer-events:none;" />
+        </td>
+      </tr>`
+  }).join('')
+
+  const applyBtnBg = isDirty
+    ? `linear-gradient(180deg, #0b9a94, ${TEAL})`
+    : '#e5e7eb'
+  const applyBtnColor  = isDirty ? '#fff' : '#6b7280'
+  const applyBtnBorder = isDirty ? 'none' : '0.125em solid #cbd5d5'
+  const applyBtnCursor = isDirty ? 'pointer' : 'not-allowed'
+  const applyDisabled  = isDirty ? '' : 'disabled'
+
+  return `
+    <div style="display:flex;flex-direction:column;height:100%;width:100%;background:#fff;box-sizing:border-box;">
+      <table style="width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;background:${TEAL_LIGHT_BG};border-bottom:0.25em solid ${TEAL};">
+        <tbody>
+          <tr>
+            <td colspan="3" style="padding:0.6em 0.8em;">
+              <span style="font-size:1.2em;font-weight:700;color:${TEAL};">Choose Specialties</span>
+            </td>
+          </tr>
+          <tr>
+            ${countCell('count-all-possible',    'All possible',    allPossible,    '#1f2937', 0)}
+            ${countCell('count-all-prescribers', 'All prescribers', allPrescribers, '#1f2937', 1)}
+            ${countCell('count-your-choices',    'Your choices',    yourChoices,    TEAL,      2)}
+          </tr>
+          <tr>
+            <td style="padding:0.5em 0.4em 0.6em 0.8em;vertical-align:middle;width:33.333%;">
+              <button type="button" data-router-action="filter:toggle-all" data-testid="toggle-all-button"
+                      ${toggleAllDisabled ? 'disabled' : ''}
+                      style="width:100%;background:#ffffff;border:0.125em solid ${TEAL};border-radius:0.4em;font-size:0.9em;font-weight:700;color:${TEAL};cursor:${toggleAllDisabled ? 'not-allowed' : 'pointer'};padding:0.5em 0.4em;opacity:${toggleAllDisabled ? 0.45 : 1};">
+                ${toggleAllLabel}
+              </button>
+            </td>
+            <td style="padding:0.5em 0.4em 0.6em 0.4em;vertical-align:middle;width:33.333%;">
+              <label data-router-action="filter:macro-prescribers"
+                     style="display:flex;align-items:center;gap:0.4em;color:#1f2937;cursor:pointer;user-select:none;font-size:0.9em;">
+                <input type="checkbox" ${prescribersChecked ? 'checked' : ''} data-testid="macro-prescribers"
+                       style="width:1.2em;height:1.2em;accent-color:${TEAL};margin:0;pointer-events:none;" />
+                Prescribers
+              </label>
+            </td>
+            <td style="padding:0.5em 0.8em 0.6em 0.4em;vertical-align:middle;width:33.333%;">
+              <label data-router-action="filter:macro-homeopathic"
+                     style="display:flex;align-items:center;gap:0.4em;color:#1f2937;cursor:pointer;user-select:none;font-size:0.9em;">
+                <input type="checkbox" ${homeopathicChecked ? 'checked' : ''} data-testid="macro-homeopathic"
+                       style="width:1.2em;height:1.2em;accent-color:${TEAL};margin:0;pointer-events:none;" />
+                Homeopathic
+              </label>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div data-testid="specialty-list"
+           style="flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;">
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+
+      <div style="flex:0 0 auto;padding:0.5em 0.8em;border-top:0.25em solid ${TEAL};box-sizing:border-box;">
+        <button type="button" data-router-action="filter:apply" data-testid="apply-filter-button"
+                ${applyDisabled}
+                style="width:100%;padding:0.4em 0.6em;border-radius:0.5em;border:${applyBtnBorder};
+                       background:${applyBtnBg};color:${applyBtnColor};font-size:1em;font-weight:700;
+                       cursor:${applyBtnCursor};min-height:2.4em;">
+          Apply Filter
+        </button>
+      </div>
+    </div>
+  `
+}
+
+export default function SpecialtyFilterWidget() {
+  useEffect(() => {
+    let specialties: Specialty[] = []
+    let checked: Record<string, boolean> = {}
+    let pristine: Record<string, boolean> = {}
+
+    function isDirty(): boolean {
+      const keys = new Set([...Object.keys(checked), ...Object.keys(pristine)])
+      for (const k of keys) {
+        if (!!checked[k] !== !!pristine[k]) return true
+      }
+      return false
+    }
+
+    function repaint() {
+      window.parent.postMessage({
+        type: 'router:render',
+        target: TARGET,
+        append: false,
+        popup: false,
+        content: buildFilterHtml(specialties, checked, isDirty()),
+      }, '*')
+    }
+
+    function toggleCodes(codes: string[], desired: boolean) {
+      const next = { ...checked }
+      for (const c of codes) next[c] = desired
+      checked = next
+    }
+
+    window.parent.postMessage({
+      type: 'router:subscribe-broadcast',
+      kind: 'specialties',
+    }, '*')
+
+    function onMessage(ev: MessageEvent) {
+      const msg = ev.data
+      if (!msg || typeof msg !== 'object') return
+
+      if (msg.type === 'router:event-broadcast' && msg.kind === 'specialties') {
+        const data = msg.data || {}
+        specialties = Array.isArray(data.specialties) ? data.specialties as Specialty[] : []
+        checked  = {}
+        pristine = {}
+        for (const s of specialties) {
+          const seed = s.can_prescribe ? true : false
+          checked[s.code]  = seed
+          pristine[s.code] = seed
+        }
+        repaint()
+        return
+      }
+
+      if (msg.type !== 'router:action') return
+
+      if (msg.action === 'filter:toggle-row') {
+        const code = String((msg.data && msg.data.code) || '')
+        if (!code) return
+        checked = { ...checked, [code]: !checked[code] }
+        repaint()
+        return
+      }
+
+      if (msg.action === 'filter:toggle-all') {
+        const allChecked = specialties.length > 0 && specialties.every(s => checked[s.code])
+        toggleCodes(specialties.map(s => s.code), !allChecked)
+        repaint()
+        return
+      }
+
+      if (msg.action === 'filter:macro-prescribers') {
+        const codes = specialties.filter(s => s.can_prescribe).map(s => s.code)
+        const allOn = codes.length > 0 && codes.every(c => checked[c])
+        toggleCodes(codes, !allOn)
+        repaint()
+        return
+      }
+
+      if (msg.action === 'filter:macro-homeopathic') {
+        const codes = specialties.filter(s => s.homeopathic).map(s => s.code)
+        const allOn = codes.length > 0 && codes.every(c => checked[c])
+        toggleCodes(codes, !allOn)
+        repaint()
+        return
+      }
+
+      if (msg.action === 'filter:apply') {
+        const chosen = specialties.filter(s => checked[s.code]).map(s => s.code)
+        window.parent.postMessage({
+          type: 'router:makeCall',
+          op: 'apply_filter',
+          payload: { codes: chosen },
+          call_id: 'filter-apply-' + Date.now(),
+        }, '*')
+        pristine = { ...checked }
+        repaint()
+        return
+      }
+    }
+
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+  return null
+}

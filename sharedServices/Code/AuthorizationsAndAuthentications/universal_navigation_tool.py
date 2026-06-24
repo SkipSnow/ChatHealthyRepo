@@ -306,6 +306,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         "apply_filter":         "_handle_apply_filter",
         "evalcare-splash":      "_handle_evalcare_splash",
         "clinical_trials_page": "_handle_clinical_trials_page",
+        "about_chathealthy":    "_handle_about_chathealthy",
     }
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
@@ -465,7 +466,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         resp = await provider_detail_tool.TOOL.run_and_log(deps, req)
         # No inner "final" emission — _run_pipeline_then_finalize emits
         # the single canonical final event with full payload.
-        return Response(kind="provider-detail", result=resp.model_dump(exclude_none=True))
+        return Response(kind="provider-detail", result=resp.model_dump(exclude_none=True, mode='json'))
 
     async def _handle_evalcare_splash(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         """Click path: a user clicked the EvaluateCare banner button. This
@@ -599,6 +600,15 @@ class UniversalNavigationTool(ChatHealthyTool):
         ct_req = clinical_trials_tool.Request(**(payload or {}))
         await clinical_trials_tool.TOOL.run_and_log(deps, ct_req)
         return Response(kind="clinical_trials_page", result={"ok": True})
+
+    async def _handle_about_chathealthy(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """Thin pass-through to AboutChatHealthyTool. Tool streams
+        `kind:about_chathealthy` with structured data; React widget
+        renders HTML and calls ClientRouter.render."""
+        from AboutChatHealthy import about_chathealthy_tool
+        req = about_chathealthy_tool.Request(**(payload or {}))
+        await about_chathealthy_tool.TOOL.run_and_log(deps, req)
+        return Response(kind="about_chathealthy", result={"ok": True})
 
     # ── Orchestration helpers ─────────────────────────────────────
 
