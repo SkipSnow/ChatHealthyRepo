@@ -34,6 +34,10 @@ function wrapBubble(innerHtml: string): string {
 
 export default function WelcomeWidget() {
   useEffect(() => {
+    // The React iframe is at FindCare origin; window.location.origin is
+    // that origin, and `/welcome` is served by the same FindCare backend.
+    // Same-origin fetch — no cross-origin parent access required.
+    const fcOrigin = window.location.origin
     function paint(inner: string) {
       window.parent.postMessage({
         type: 'router:render',
@@ -44,9 +48,7 @@ export default function WelcomeWidget() {
       }, '*')
     }
     paint(FALLBACK_WELCOME_HTML)
-    const fc = (window as any).parent?._envServiceUrls?.findcare
-    if (!fc) return
-    fetch(`${fc}/welcome`, { method: 'POST' })
+    fetch(`${fcOrigin}/welcome`, { method: 'POST' })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         const html = d && typeof d.message === 'string' ? d.message : ''
