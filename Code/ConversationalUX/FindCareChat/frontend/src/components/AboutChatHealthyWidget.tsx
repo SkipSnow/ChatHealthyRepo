@@ -36,12 +36,21 @@ function buildAboutHtml(data: any): string {
   const security = [
     factRow('Server', sp.server),
     factRow('Environment', sp.env),
-    factRow('Signed token', sp.signed_token),
+    factRow('Authorization ID', sp.signed_token),
     factRow('Nonce', sp.nonce),
-    factRow('GUID', sp.guid),
+    factRow('Session GUID', sp.guid),
     factRow('Verified', sp.verified),
     factRow('Time', sp.time),
   ].join('')
+
+  // Service-switch buttons mirror the old non-prod chrome's row of
+  // FindCare / EvaluateCare / SharedServices service switchers.
+  // SharedServices reveals the user_object in frame_MainWindow so the
+  // operator can diagnose live session state.
+  const navBtn = (action: string, label: string, color: string) =>
+    `<button type="button" data-router-action="${action}"
+             style="padding:0.5em 1em;border-radius:0.4em;border:0.125em solid ${color};
+                    background:#fff;color:${color};font-weight:700;cursor:pointer;">${label}</button>`
 
   return `
     <div style="font-family:system-ui,-apple-system,sans-serif;color:#1f2937;">
@@ -54,6 +63,16 @@ function buildAboutHtml(data: any): string {
       <div style="margin-top:1.25em;background:#f0fffe;border:0.25em solid #0b7a75;border-radius:0.4em;padding:0.75em;">
         <h3 style="margin:0 0 0.5em 0;color:#0b7a75;font-size:1em;">Security</h3>
         <table style="width:100%;border-collapse:collapse;font-size:0.95em;"><tbody>${security}</tbody></table>
+      </div>
+
+      <h3 style="margin:1em 0 0.4em 0;color:#0b7a75;font-size:1em;border-bottom:0.125em solid #d8e2e1;padding-bottom:0.2em;">Services</h3>
+      <div style="display:flex;gap:0.75em;flex-wrap:wrap;margin-top:0.5em;">
+        ${navBtn('goto_findcare',       'FindCare',       '#0b7a75')}
+        ${navBtn('goto_evaluatecare',   'EvaluateCare',   '#d97706')}
+        ${navBtn('goto_sharedservices', 'SharedServices', '#6366f1')}
+      </div>
+      <div style="margin-top:0.5em;font-size:0.85em;color:#6b7280;">
+        SharedServices shows the live user_object (identity, threads, actions) for diagnosis.
       </div>
     </div>
   `
@@ -78,6 +97,24 @@ export default function AboutChatHealthyWidget() {
           call_id: 'about-' + Date.now(),
         }, '*')
         return
+      }
+
+      // Nav buttons inside the About popup — close the popup first so
+      // the user sees the underlying frame change, then leave the
+      // matching widget (EvaluateCareSplashWidget, SharedServicesSplashWidget,
+      // WelcomeWidget) to handle the action it subscribed to.
+      if (msg.type === 'router:action' &&
+          (msg.action === 'goto_findcare' ||
+           msg.action === 'goto_evaluatecare' ||
+           msg.action === 'goto_sharedservices')) {
+        window.parent.postMessage({
+          type: 'router:exec',
+          code:
+            "var p = document.getElementById('popup_" + TARGET + "');" +
+            "if (p && p.parentNode) p.parentNode.removeChild(p);",
+        }, '*')
+        // Don't return — the matching splash widget also listens for
+        // this same router:action and dispatches the underlying op.
       }
 
       if (msg.type === 'router:event-broadcast' && msg.kind === 'about_chathealthy') {

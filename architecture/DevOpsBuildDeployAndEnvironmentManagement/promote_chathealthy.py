@@ -57,9 +57,15 @@ def _current_branch(repo_root: Path) -> str:
     return _run_git(["symbolic-ref", "--short", "HEAD"], repo_root).stdout.strip()
 
 
-def _promote_local_to_dev(repo_root: Path) -> int:
+def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
     """Stage every modified + untracked file under the working tree,
-    commit, push to dev. Atomic: no partial commits."""
+    commit, push to dev. Atomic: no partial commits.
+
+    Optional `label` becomes the commit-message subject line. The
+    auto-generated `promote local -> dev (<ts>)` line follows as the body.
+    Label survives every downstream branch advance (dev -> qa -> prod)
+    because those just move the branch pointer to the same commit.
+    """
     branch = _current_branch(repo_root)
     if branch != "dev":
         sys.exit(
@@ -75,7 +81,8 @@ def _promote_local_to_dev(repo_root: Path) -> int:
 
     print("[promote] staging modified + untracked files")
     _run_git(["add", "-A"], repo_root)
-    msg = f"promote local -> dev ({datetime.now(timezone.utc).isoformat()})"
+    auto = f"promote local -> dev ({datetime.now(timezone.utc).isoformat()})"
+    msg = f"{label}\n\n{auto}" if label else auto
     print(f"[promote] commit: {msg}")
     result = subprocess.run(
         ["git", "commit", "-m", msg],
@@ -154,6 +161,11 @@ def main(argv: list[str] | None = None) -> int:
                         choices=["local", "dev", "qa"])
     parser.add_argument("--to", dest="to_env", required=True,
                         choices=["dev", "qa", "prod"])
+    parser.add_argument("--label", dest="label", default=None,
+                        help="Commit message subject for local -> dev promotes. "
+                             "Ignored on branch-to-branch promotes (those don't "
+                             "create commits; the label rides on the underlying "
+                             "commit advanced by the branch pointer move).")
     args = parser.parse_args(argv)
 
     pair = (args.from_env, args.to_env)
@@ -165,7 +177,7 @@ def main(argv: list[str] | None = None) -> int:
 
     repo_root = _repo_root()
     if args.from_env == "local":
-        return _promote_local_to_dev(repo_root)
+        return _promote_local_to_dev(repo_root, label=args.label)
     return _promote_branch_to_branch(repo_root, args.from_env, args.to_env)
 
 

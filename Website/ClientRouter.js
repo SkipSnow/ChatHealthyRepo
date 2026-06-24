@@ -95,6 +95,23 @@
 
   var _subscribers = {};
 
+  // Session GUID carried across /gate calls so the same user_object
+  // (with its accumulated utterances + actions) is loaded on every
+  // request. Without this, each /gate call mints a fresh user_object
+  // and the SharedServices splash shows an empty history.
+  // SS extracts the GUID from payload.prior_guid (32-char hex).
+  var _sessionGuid = null;
+
+  function _captureSessionGuid(evt) {
+    if (!evt || typeof evt !== 'object') return;
+    var tok = evt.session_token && evt.session_token.token;
+    if (typeof tok !== 'string' || tok.length < 32) return;
+    var guid = tok.slice(-32);
+    if (guid && /^[0-9a-f]{32}$/i.test(guid)) {
+      _sessionGuid = guid;
+    }
+  }
+
   function _bindActions(root) {
     if (!root || !root.querySelectorAll) return;
     var nodes = root.querySelectorAll('[data-router-action]');
@@ -112,7 +129,11 @@
           for (var j = 0; j < attrs.length; j++) {
             var a = attrs[j];
             if (a.name.indexOf('data-') === 0 && a.name !== 'data-router-action') {
-              data[a.name.substring(5)] = a.value;
+              // Convert hyphens to underscores so widgets read keys
+              // verbatim — e.g. data-trial-idx is accessible as
+              // msg.data.trial_idx (HTML attribute names are
+              // hyphenated; JS object property convention is _).
+              data[a.name.substring(5).replace(/-/g, '_')] = a.value;
             }
           }
           if (tag === 'form') {
@@ -134,6 +155,46 @@
         });
       })(nodes[i]);
     }
+    // Drag sources: any draggable element with data-drag-payload writes
+    // its payload to dataTransfer on dragstart. The payload is whatever
+    // the widget set (typically an NPI or other id the drop target needs).
+    var dragSrc = root.querySelectorAll('[draggable="true"][data-drag-payload]');
+    for (var s = 0; s < dragSrc.length; s++) {
+      (function (el) {
+        el.addEventListener('dragstart', function (ev) {
+          ev.dataTransfer.setData('text/plain', el.getAttribute('data-drag-payload') || '');
+          ev.dataTransfer.effectAllowed = 'move';
+          el.style.opacity = '0.5';
+        });
+        el.addEventListener('dragend', function () { el.style.opacity = ''; });
+      })(dragSrc[s]);
+    }
+    // Drop targets: any element with data-router-drop-action accepts
+    // drops and fires a router:action with the dropped payload at data.dropped.
+    // Receiving widget then invokes makeCall to mutate state server-side.
+    var dropTgt = root.querySelectorAll('[data-router-drop-action]');
+    for (var d = 0; d < dropTgt.length; d++) {
+      (function (el) {
+        var action = el.getAttribute('data-router-drop-action');
+        el.addEventListener('dragover', function (ev) {
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = 'move';
+        });
+        el.addEventListener('drop', function (ev) {
+          ev.preventDefault();
+          var dropped = ev.dataTransfer.getData('text/plain');
+          if (!dropped) return;
+          var iframe = document.querySelector('iframe[data-frame="MainWindow"]');
+          if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+              type: 'router:action',
+              action: action,
+              data: { dropped: dropped },
+            }, '*');
+          }
+        });
+      })(dropTgt[d]);
+    }
   }
 
   function render(args) {
@@ -154,8 +215,29 @@
     _bindActions(sink);
   }
 
+  // merge — fill a named region inside a frame's scaffold without
+  // disturbing the rest of the frame. The scaffold (painted by render)
+  // defines the region ids; merge replaces the innerHTML of the element
+  // whose id matches `region`. No-op when the region element is absent
+  // (scaffold not yet painted) so widgets can subscribe defensively.
+  function merge(args) {
+    var target = args && args.target;
+    var region = args && args.region;
+    if (!target || !region) return;
+    var content = (args && args.content) || '';
+    var frame = _frameElement(target);
+    if (!frame) return;
+    var sink = frame.querySelector('#' + region);
+    if (!sink) return;
+    sink.innerHTML = content;
+    _bindActions(sink);
+  }
+
   function _dispatchEvent(evt, caller) {
     if (!evt || typeof evt !== 'object') return;
+    // Capture the session GUID from the stream's final event so the next
+    // /gate call lands on the same user_object.
+    _captureSessionGuid(evt);
     var kind = evt.kind || '';
     var handlers = _subscribers[kind] || [];
     for (var i = 0; i < handlers.length; i++) {
@@ -171,13 +253,24 @@
     if (!op) return Promise.reject(new Error('makeCall: op is required'));
     var payload = (args && args.payload) || {};
     var url = _sharedGateUrl() + '/gate';
+    // Thread the session GUID so SS reloads the same user_object on
+    // every call instead of minting a fresh one (which would lose the
+    // session_conversation_history that powers the SharedServices
+    // splash + UM transcript window).
+    var body = { op: op, payload: payload };
+    if (_sessionGuid) body.prior_guid = _sessionGuid;
     return fetch(url, {
       method: 'POST',
+      // Cross-origin: wrapper is https://localhost (443), SS is
+      // https://localhost:8002. Default 'omit' strips the ch_session
+      // cookie and SS mints a fresh user_object on every call. 'include'
+      // sends + accepts cookies cross-origin so the GUID survives.
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/x-ndjson',
       },
-      body: JSON.stringify({ op: op, payload: payload }),
+      body: JSON.stringify(body),
     }).then(function (resp) {
       if (!resp.ok || !resp.body) {
         var err = new Error('ClientRouter.makeCall: gate failed HTTP ' + resp.status + ' for op=' + op);
@@ -215,6 +308,32 @@
     });
   }
 
+  // callTrivial — for /gate ops in _TRIVIAL_GATE_OPS (peer_urls, peer_health,
+  // session, verify_token, transfer_to_findcare) that return plain JSON
+  // instead of NDJSON. Same credentials discipline as makeCall so the
+  // session cookie threads through. Returns a Promise of the parsed JSON
+  // body. Use this for the bootstrap peer_urls fetch and any other
+  // request/response op that does not need streaming.
+  function callTrivial(args) {
+    var op = args && args.op;
+    if (!op) return Promise.reject(new Error('callTrivial: op is required'));
+    var payload = (args && args.payload) || {};
+    var url = _sharedGateUrl() + '/gate';
+    var body = { op: op, payload: payload };
+    if (_sessionGuid) body.prior_guid = _sessionGuid;
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (resp) {
+      if (!resp.ok) {
+        throw new Error('ClientRouter.callTrivial: gate failed HTTP ' + resp.status + ' for op=' + op);
+      }
+      return resp.json();
+    });
+  }
+
   function subscribe(kind, handler) {
     if (!kind || typeof handler !== 'function') return function () {};
     if (!_subscribers[kind]) _subscribers[kind] = [];
@@ -234,6 +353,12 @@
         target: msg.target,
         append: msg.append,
         popup: msg.popup,
+        content: msg.content,
+      });
+    } else if (msg.type === 'router:merge') {
+      merge({
+        target: msg.target,
+        region: msg.region,
         content: msg.content,
       });
     } else if (msg.type === 'router:makeCall') {
@@ -290,7 +415,9 @@
 
   window.ClientRouter = {
     render: render,
+    merge: merge,
     makeCall: makeCall,
+    callTrivial: callTrivial,
     subscribe: subscribe,
   };
 })();

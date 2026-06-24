@@ -28,17 +28,18 @@ function buildSearchingHtml(query: string, seconds: number): string {
   `
 }
 
-function buildProviderHtml(providers: any[], totalCount?: number, header?: string): string {
+function buildResultsAreaHtml(providers: any[], totalCount?: number, header?: string): string {
   if (!providers.length) {
-    return `
-      <div style="padding:2em;color:#6b7280;font-style:italic;">No providers matched.</div>
-    `
+    return `<div style="padding:2em;color:#6b7280;font-style:italic;">No providers matched.</div>`
   }
   const count = totalCount || providers.length
   const heading = header || `${count} provider${count === 1 ? '' : 's'} found`
   // renderProviderRow ported verbatim from prod _oneshots/prod_index.html
   // line 1819-1835. Action data-* attributes carry the full card payload
   // the SS provider_detail_tool requires.
+  // draggable=true + data-drag-payload=npi: ClientRouter wires
+  // dragstart to write the NPI to dataTransfer for the
+  // SelectedProvidersWidget's drop zone.
   const rows = providers.map(p => {
     const name = _esc(p.name || '')
     const addrLine = _esc([p.address, p.city, p.state, p.zip].filter(Boolean).join(', '))
@@ -53,7 +54,7 @@ function buildProviderHtml(providers: any[], totalCount?: number, header?: strin
       ` data-phone="${_esc(p.phone || '')}"` +
       ` data-state="${_esc(p.state || '')}"`
     return (
-      `<div data-testid="provider-card" data-npi="${_esc(p.npi || '')}" style="padding:0.5em 1em;border-bottom:0.0625em solid #eee;display:flex;justify-content:space-between;align-items:center;gap:1em;">` +
+      `<div data-testid="provider-card" data-npi="${_esc(p.npi || '')}" draggable="true" data-drag-payload="${_esc(p.npi || '')}" style="padding:0.5em 1em;border-bottom:0.0625em solid #eee;display:flex;justify-content:space-between;align-items:center;gap:1em;cursor:grab;">` +
         `<div style="flex:1;min-width:0;">` +
           `<div style="font-weight:600;color:#0b7a75;">${name}</div>` +
           `<div style="font-size:0.9em;color:#6b7280;">${spec}</div>` +
@@ -61,27 +62,44 @@ function buildProviderHtml(providers: any[], totalCount?: number, header?: strin
           `<div style="font-size:0.85em;color:#6b7280;">NPI: ${_esc(p.npi || '')}${p.phone ? ' &middot; Phone: ' + _esc(p.phone) : ''}${p.county ? ' &middot; County: ' + _esc(p.county) : ''}</div>` +
           `<div style="font-size:0.66em;margin-top:0.25em;"><a href="#" ${detailAttrs} style="color:#0b7a75;text-decoration:underline;">provider detail</a></div>` +
         `</div>` +
+        `<button data-router-action="provider:select-click" data-npi="${_esc(p.npi || '')}" title="Select for evaluation" style="background:#fff;border:0.0625em solid #0b7a75;color:#0b7a75;padding:0.3em 0.75em;border-radius:0.375em;cursor:pointer;font-size:0.85em;white-space:nowrap;flex-shrink:0;">↓ Select</button>` +
       `</div>`
     )
   }).join('')
   return (
     `<div style="display:flex;flex-direction:column;height:100%;min-height:0;">` +
-      `<div style="padding:0.5em 1em;background:#f0fffe;border-bottom:0.125em solid #d8e2e1;color:#0b7a75;font-weight:600;">${_esc(heading)}</div>` +
+      `<div style="padding:0.5em 1em;background:#f0fffe;border-bottom:0.125em solid #d8e2e1;color:#0b7a75;font-weight:600;flex-shrink:0;">${_esc(heading)}</div>` +
       `<div style="display:flex;align-items:center;justify-content:space-between;padding:1em;background:#fafafa;border-bottom:0.125em solid #eee;flex-shrink:0;">` +
         `<span style="font-weight:600;color:#0b7a75;text-transform:uppercase;">Available Providers</span>` +
-        `<span style="color:#6b7280;">${providers.length} available</span>` +
+        `<span style="color:#6b7280;">${providers.length} available — drag to select</span>` +
       `</div>` +
       `<div data-testid="available-providers" style="flex:1;overflow:auto;">${rows}</div>` +
     `</div>`
   )
 }
 
+// Scaffold the widget paints into MainWindow (replace). Two named
+// regions: results_area (fills with the provider list) and selected_strip
+// (stays empty for SelectedProvidersWidget to merge into).
+function buildScaffoldHtml(): string {
+  return (
+    `<div style="display:flex;flex-direction:column;height:100%;min-height:0;">` +
+      `<div id="results_area" style="flex:1;min-height:0;overflow:hidden;"></div>` +
+      `<div id="selected_strip" style="flex-shrink:0;"></div>` +
+    `</div>`
+  )
+}
+
 export default function ProviderResultsWidget() {
   useEffect(() => {
-    window.parent.postMessage({
-      type: 'router:subscribe-broadcast',
-      kind: 'providers',
-    }, '*')
+    // Subscribe to every kind that signals the search is done. The widget
+    // only paints provider rows for kind:'providers'; the other kinds are
+    // listened to so the timer + searching indicator can stand down when
+    // the response is owned by a different widget (e.g. ClinicalTrialsWidget
+    // handles kind:'trials').
+    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'providers' }, '*')
+    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'trials' }, '*')
+    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'close' }, '*')
 
     let currentQuery = ''
     let startTs = 0
@@ -93,6 +111,15 @@ export default function ProviderResultsWidget() {
         target: TARGET,
         append: false,
         popup: false,
+        content,
+      }, '*')
+    }
+
+    function postMergeResults(content: string) {
+      window.parent.postMessage({
+        type: 'router:merge',
+        target: TARGET,
+        region: 'results_area',
         content,
       }, '*')
     }
@@ -124,7 +151,22 @@ export default function ProviderResultsWidget() {
         stopTimer()
         const data = msg.data || {}
         const providers = Array.isArray(data.providers) ? data.providers : []
-        postRender(buildProviderHtml(providers, data.total_count, data.summary_message))
+        // Paint the scaffold first (replace MainWindow), then merge the
+        // provider rows into the results_area region. SelectedProvidersWidget
+        // owns the selected_strip region in the same scaffold.
+        postRender(buildScaffoldHtml())
+        postMergeResults(buildResultsAreaHtml(providers, data.total_count, data.summary_message))
+        return
+      }
+      // 'trials' is painted by ClinicalTrialsWidget into MainWindow; we just
+      // need to vacate the searching indicator so that paint isn't overwritten.
+      // 'close' fires when UM closes the turn (e.g., closeConnection200 after
+      // asking for refinements) — same: stop the timer, leave MainWindow blank
+      // so SystemMessageWidget's prompt shows in the UserMessage frame.
+      if (msg.type === 'router:final' || (
+          msg.type === 'router:event-broadcast' &&
+          (msg.kind === 'trials' || msg.kind === 'close'))) {
+        stopTimer()
       }
     }
     window.addEventListener('message', onMessage)

@@ -148,17 +148,25 @@ def _write_hf_build_info(workspace: Path, target_id: str, env: str) -> None:
     if build_n is None:
         sys.exit("ERROR: admin.Versions latest record has no 'build' field.")
     build_n = int(build_n)
+    version_str = latest.get("version")
+    framework_str = latest.get("framework")
+    if not version_str:
+        sys.exit("ERROR: admin.Versions latest record has no 'version' field.")
     commit = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
         capture_output=True, text=True, check=True,
     ).stdout.strip()
+    # Version + framework now come from admin.Versions (single-source). Skip
+    # edits the latest record directly when a release ships; build chain
+    # reads from there and bakes into the image.
     info = {
         "build": build_n,
         "commit": commit,
         "env": env,
         "target_id": target_id,
         "service": service,
-        "version": "1.4.1",
+        "version": version_str,
+        "framework": framework_str,
         "built_at": datetime.now(timezone.utc).isoformat(),
     }
     (workspace / "build_info.json").write_text(

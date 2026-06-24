@@ -351,12 +351,55 @@ def _parse_trial(study: dict) -> Trial:
     )
 
 
+def _parse_age_years(s: str) -> Optional[float]:
+    """Parse a CT.gov eligibility-age string ('18 Years' / '6 Months' /
+    '1 Day' / 'N/A') into years (float). Returns None if not parseable
+    or marked 'N/A' (which means the trial does not constrain this side
+    of the range)."""
+    if not s:
+        return None
+    txt = str(s).strip().lower()
+    if not txt or txt in ("n/a", "na", "none"):
+        return None
+    parts = txt.split()
+    try:
+        n = float(parts[0])
+    except (ValueError, IndexError):
+        return None
+    unit = parts[1] if len(parts) > 1 else "year"
+    if unit.startswith("year"):
+        return n
+    if unit.startswith("month"):
+        return n / 12.0
+    if unit.startswith("week"):
+        return n / 52.0
+    if unit.startswith("day"):
+        return n / 365.0
+    if unit.startswith("hour"):
+        return n / (365.0 * 24)
+    return n
+
+
+def _age_in_range(target: int, minimum_age: str, maximum_age: str) -> bool:
+    """True iff the integer target age fits inside the trial's declared
+    eligibility window. Unparseable / N/A bounds are treated as open
+    (always satisfied on that side)."""
+    lo = _parse_age_years(minimum_age)
+    hi = _parse_age_years(maximum_age)
+    if lo is not None and target < lo:
+        return False
+    if hi is not None and target > hi:
+        return False
+    return True
+
+
 async def _fetch_ct_gov(
     condition: str,
     page_size: int,
     cursor: Optional[str],
     age_years: Optional[int] = None,
     sex: Optional[str] = None,
+    geographic_scope: Optional[str] = "international",
 ) -> tuple[list[Trial], Optional[str], Optional[int]]:
     params: dict[str, Any] = {
         "query.cond": condition,
@@ -386,6 +429,11 @@ async def _fetch_ct_gov(
             agg_parts.append("sex:f")
     if agg_parts:
         params["aggFilters"] = ",".join(agg_parts)
+    # EPIC-006-F-031-S-001-REQ-B-074: geographic_scope='us' restricts to
+    # country=United States via CT.gov's locStr-style filter; 'international'
+    # (the default) applies NO geo filter so every record is in scope.
+    if (geographic_scope or "").strip().lower() == "us":
+        params["query.locn"] = "United States"
     if cursor:
         params["pageToken"] = cursor
     async with httpx.AsyncClient(timeout=20.0) as client:
@@ -580,7 +628,7 @@ class ClinicalTrialsTool(ChatHealthyTool):
             user_location=request.user_location,
             age_years=request.age_years,
             sex=request.sex,
-            gender=request.gender,
+            geographic_scope=(request.geographic_scope or "international"),
         )
         condition = search_context.condition
         if not condition:
@@ -605,7 +653,19 @@ class ClinicalTrialsTool(ChatHealthyTool):
             request.cursor,
             age_years=request.age_years,
             sex=request.sex,
+            geographic_scope=request.geographic_scope,
         )
+
+        # Age-range safety net. CT.gov's aggFilters bucket trials by
+        # std-eligibility-tag (Child/Adult/Older Adult), but study
+        # eligibility_module minAge/maxAge can still slip a non-matching
+        # trial through. When the caller supplied an age, drop trials
+        # whose declared minimum_age is above the target age or whose
+        # declared maximum_age is below it.
+        if isinstance(request.age_years, int):
+            target = request.age_years
+            trials = [t for t in trials
+                      if _age_in_range(target, t.minimum_age, t.maximum_age)]
         if not trials:
             result = Response(
                 trials=[],

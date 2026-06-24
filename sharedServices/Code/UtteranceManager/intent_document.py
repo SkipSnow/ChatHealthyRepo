@@ -115,13 +115,15 @@ class IntentFindAProvider(BaseModel):
 
 class IntentFindClinicalTrials(BaseModel):
     """Intent entry: user is looking for recruiting clinical trials.
-    Carries the complaint (condition), an optional user_location string,
-    and an optional cursor for paged retrieval. EPIC-006-F-031-S-003."""
+    Carries the complaint (condition, required), and optional refinements:
+    user_location, cursor (for paged retrieval), age_years, sex, and
+    geographic_scope. EPIC-006-F-031-S-003 (REQ-B-006 — UM extracts
+    age_years/sex/user_location/geographic_scope; REQ-B-074 — geographic_scope)."""
 
     model_config = {"extra": "forbid"}
 
     name: Literal["findClinicalTrials"]
-    arguments: list[Argument] = Field(min_length=1, max_length=3)
+    arguments: list[Argument] = Field(min_length=1, max_length=6)
     pending_disambiguation: Optional[PendingDisambiguation] = None
 
 

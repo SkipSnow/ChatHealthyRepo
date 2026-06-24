@@ -72,6 +72,11 @@ function buildLeftPanel(
     ? `Clinical trials — ${esc(queryStr)}${esc(countStr)}`
     : `Clinical trials${esc(countStr)}`
 
+  // Whole-card click target: the <li> itself carries data-router-action so
+  // ClientRouter._bindActions binds a click handler that fires
+  // 'trial:select' regardless of WHERE inside the card the user clicks
+  // (NCT id, title, summary, conditions line, etc.). Without this, only
+  // the small NCT id span was clickable.
   const items = trials.map((t: any, i: number) => {
     const nct = esc(t.nct_id || '(no id)')
     const title = esc(t.brief_title || '')
@@ -82,9 +87,9 @@ function buildLeftPanel(
     const sex = esc(t.sex || '—')
     const selected = i === selectedIdx ? 'background:#f0fffe;' : ''
     return `
-      <li style="margin-bottom:0.75em;padding:0.4em;${selected}border-radius:0.3em;">
-        <a href="#" data-router-action="trial:select" data-trial-idx="${i}"
-           style="color:#0b7a75;font-weight:700;text-decoration:underline;cursor:pointer;">${nct}</a>
+      <li data-router-action="trial:select" data-trial-idx="${i}"
+          style="margin-bottom:0.75em;padding:0.4em;${selected}border-radius:0.3em;cursor:pointer;">
+        <span style="color:#0b7a75;font-weight:700;text-decoration:underline;">${nct}</span>
         <div style="font-size:0.9em;color:#374151;margin:0.15em 0 0.25em 0;">${title}</div>
         ${summary ? `<div style="font-size:0.85em;color:#4b5563;font-style:italic;margin:0.15em 0 0.35em 0;">${summary}</div>` : ''}
         <ul style="margin:0.25em 0 0 1em;padding:0;font-size:0.9em;color:#4b5563;">
@@ -271,6 +276,12 @@ export default function ClinicalTrialsWidget() {
     function startLoadingTimer(criteria: string, startN: number) {
       postRender('MainWindow', buildLoadingBanner(criteria, startN, pageSize, totalCount))
       postRender('RightPanel', '')
+      // Empty the LeftPanel too so the user has clear visual feedback that
+      // a new search/page is in flight; the new trial list will overwrite
+      // this on kind:'trials'. First-pass text omits "more" — there is no
+      // prior page yet, so "more" reads as a lie.
+      const leftMsg = startN <= 1 ? 'Searching for clinical trials…' : 'Searching for more trials…'
+      postRender('LeftPanel', `<div style="padding:1em;color:#0b7a75;font-weight:700;">${leftMsg}</div>`)
       if (timerRef.current) clearInterval(timerRef.current)
       const t0 = Date.now()
       timerRef.current = setInterval(() => {
@@ -321,14 +332,21 @@ export default function ClinicalTrialsWidget() {
       if (msg.type === 'router:action') {
         if (msg.action === 'trial:select') {
           const idx = parseInt(String((msg.data || {}).trial_idx || '0'), 10)
+          // Per S-002 click contract: immediately blank MainWindow +
+          // RightPanel so the user sees an unambiguous visual response,
+          // then paint the new trial on the next tick.
+          postRender('MainWindow', '')
+          postRender('RightPanel', '')
           setSelectedIdx(idx)
           const t = trials[idx]
           if (t) {
-            postRender('MainWindow', buildMainWindow(t))
-            postRender('RightPanel', buildRightPanel(t))
-            const hasPrev = prevCursorsRef.current.length > 0
-            const hasMore = !!nextCursorRef.current
-            postRender('LeftPanel', buildLeftPanel(trials, idx, hasPrev, hasMore, pageStart, totalCount, lastQueryRef.current))
+            setTimeout(() => {
+              postRender('MainWindow', buildMainWindow(t))
+              postRender('RightPanel', buildRightPanel(t))
+              const hasPrev = prevCursorsRef.current.length > 0
+              const hasMore = !!nextCursorRef.current
+              postRender('LeftPanel', buildLeftPanel(trials, idx, hasPrev, hasMore, pageStart, totalCount, lastQueryRef.current))
+            }, 0)
           }
         }
         if (msg.action === 'trial:scroll') {

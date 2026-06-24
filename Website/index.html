@@ -124,12 +124,12 @@
     (function () {
       var SS = '__HF_URL_SHAREDSERVICES__';
       window._envServiceUrls = { sharedservices: SS, findcare: '', evaluatecare: '' };
-      fetch(SS + '/gate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ op: 'peer_urls', payload: {} }),
-      })
-        .then(function (r) { return r.json(); })
+      // Bootstrap call: peer_urls is a trivial /gate op that returns plain
+      // JSON. Routed through ClientRouter.callTrivial so every server call
+      // — bootstrap included — goes through the one canonical client-side
+      // gateway (FrontEndArchitecture deck contract). credentials:'include'
+      // is wired inside callTrivial.
+      window.ClientRouter.callTrivial({ op: 'peer_urls', payload: {} })
         .then(function (d) {
           window._envServiceUrls.findcare     = (d && d.findcare)     || '';
           window._envServiceUrls.evaluatecare = (d && d.evaluatecare) || '';
@@ -137,8 +137,55 @@
           if (iframe && window._envServiceUrls.findcare) {
             iframe.src = window._envServiceUrls.findcare;
           }
+          // Eager user_object mint at page load (matches the prod wrapper's
+          // /entrance behavior pre-port). Without this, the user_object is
+          // minted lazily on the first user gesture; a visitor who lands
+          // and just looks is invisible to SharedServices — no
+          // admin.sessions row, no registered-user cookie writeback, no
+          // identity in the banner. The boot op handler ([UR._handle_boot])
+          // mints/restores the user_object, persists it, sets the cookie,
+          // and streams kind:'boot'. Fire-and-forget; widgets that need
+          // the session GUID will get it via the cookie on subsequent calls.
+          if (window.ClientRouter && typeof window.ClientRouter.makeCall === 'function') {
+            window.ClientRouter.makeCall({ op: 'boot', payload: {} });
+          }
         })
-        .catch(function () {});
+        .catch(function (err) {
+          // Bootstrap fetch is the spine of the page — without it the
+          // React widget host cannot mount and no capability works.
+          // Surface a detailed error in frame_MainWindow so the
+          // operator (and any user) immediately sees what failed.
+          // TODO(operator): wire this to ChatHealthyLoggingService once
+          // a client-side log sink is available.
+          var msg = (err && err.message) ? err.message : String(err);
+          var main = document.getElementById('frame_MainWindow');
+          if (main) {
+            main.innerHTML =
+              '<div style="padding:1.5em;font-family:system-ui,-apple-system,sans-serif;color:#1f2937;">'
+              + '<h2 style="color:#dc2626;margin:0 0 0.5em 0;">ChatHealthy.ai could not start.</h2>'
+              + '<p style="line-height:1.5;">'
+              +   'The page tried to reach SharedServices at '
+              +   '<code style="background:#f5f5f4;padding:0.1em 0.3em;border-radius:0.2em;">' + SS + '/gate</code> '
+              +   'to discover the FindCare and EvaluateCare iframe URLs '
+              +   '(op:peer_urls). That request failed, so the React widget '
+              +   'host cannot mount and no chat, search, or popup capability '
+              +   'will load.'
+              + '</p>'
+              + '<p><strong>Underlying error:</strong> '
+              +   '<code style="background:#fef2f2;color:#991b1b;padding:0.2em 0.4em;border-radius:0.2em;">'
+              +   String(msg).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+              +   '</code></p>'
+              + '<p style="margin-top:1em;color:#6b7280;font-size:0.9em;">'
+              +   'Common causes: SharedServices is down or unreachable, '
+              +   'the local SSL cert is not trusted by this browser, the '
+              +   '__HF_URL_SHAREDSERVICES__ placeholder was not substituted '
+              +   'at build time, or a network/firewall block. Retry by '
+              +   'refreshing the page; if the problem persists, check the '
+              +   'SharedServices container logs.'
+              + '</p>'
+              + '</div>';
+          }
+        });
     })();
   </script>
 </body>

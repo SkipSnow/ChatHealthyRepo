@@ -233,6 +233,9 @@ class UserObject(BaseModel):
     intent: Annotated[
         Optional["IntentDocument"], MergeRole.GUEST_WINS,
     ] = None
+    selected_providers: Annotated[
+        list[str], MergeRole.GUEST_WINS,
+    ] = Field(default_factory=list)
 
     def merge(self, guest: "UserObject") -> "UserObject":
         merged: dict = {}

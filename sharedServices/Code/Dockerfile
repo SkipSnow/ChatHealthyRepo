@@ -23,6 +23,7 @@ COPY UtteranceManager  /app/UtteranceManager
 COPY NonsenseTool  /app/NonsenseTool
 COPY CloseConnection200Tool  /app/CloseConnection200Tool
 COPY LockoutTool  /app/LockoutTool
+COPY ProviderSelection  /app/ProviderSelection
 
 ENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key
 EXPOSE 7860

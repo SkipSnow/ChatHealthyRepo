@@ -10044,7 +10044,541 @@
               "name": "Find Clinical Trials",
               "description": "Find recruiting clinical trials by condition. Decomposed into three stories (data retrieval, display, architecture). Stories and requirements pending operator approval of V5 draft in _oneshots/EPIC-006-F-031_FindClinicalTrials_FeatureDraft_V5.docx.",
               "stories": {
-                "story": []
+                "story": [
+                  {
+                    "story_id": "EPIC-006-F-031-S-001",
+                    "name": "Find Clinical Trials data retrieval",
+                    "description": "ClinicalTrialsTool data-retrieval contract: CT.gov v2 search parameters, the geographic_scope filter (international or US-only), pagination defaults, demographic filters (age, sex), the canonical search_context echo, and the deterministic /gate op for pagination.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-031-S-001-REQ-B-067",
+                          "name": "Request totalCount from CT.gov and surface the total to callers",
+                          "requirement": "ClinicalTrialsTool MUST send countTotal=true on every CT.gov v2 /studies request and parse payload.totalCount from the response. The total MUST be surfaced on Response.total_count for downstream display. CT.gov returns totalCount as an integer when countTotal=true.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-001-REQ-B-068",
+                          "name": "Default page size of 10 records",
+                          "requirement": "Request.page_size MUST default to 10 (down from 25). The user explicitly paginates with the cursor returned in Response.cursor; the wrapper's pagination control mirrors the providers pagination pattern.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-001-REQ-B-069",
+                          "name": "Accept optional participant demographics (age, sex)",
+                          "requirement": "Request MUST accept two optional participant-demographic fields: age_years (Optional[int]) and sex (Optional[str]). Condition remains the only required field. When age_years is supplied, ClinicalTrialsTool MUST map to CT.gov aggFilters using the canonical buckets: age<18 -> ages:child, 18<=age<65 -> ages:adult, age>=65 -> ages:older. When sex is supplied, ClinicalTrialsTool MUST resolve it to 'm' or 'f' (per S-003-REQ-B-007) and map to CT.gov sex:m or sex:f. Gender is intentionally NOT a parameter on this tool -- sex alone drives the CT.gov filter.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-001-REQ-B-070",
+                          "name": "Always emit a 'trials' stream event on every code path",
+                          "requirement": "ClinicalTrialsTool MUST emit a {kind:'trials', data:Response} stream event on every code path -- success, empty result set, error. The client relies on the trials event as the canonical end-of-search signal; silent paths previously caused 'no trials event in stream' user-visible failures.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-001-REQ-B-071",
+                          "name": "Echo authoritative SearchContext on every Response",
+                          "requirement": "ClinicalTrialsTool MUST populate Response.search_context with the exact {condition, user_location, age_years, sex, geographic_scope} actually used to fetch this page. The client uses search_context to re-issue pagination requests against the same canonical criteria, preventing the raw user utterance from leaking into the CT.gov call on subsequent pages.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-001-REQ-B-072",
+                          "name": "Routes API failures must be surfaced (no silent swallow)",
+                          "requirement": "When the Google Routes API call for a destination fails, the tool MUST log the failure as a Mode 2 ChatHealthyException in one of four named modes: routes_api_key_missing (GOOGLE_MAPS_API_KEY env var absent), routes_api_non_200 (HTTP response not 200), routes_api_empty (200 with empty routes[]), and routes_api_failed (exception during the call). Distance/duration MAY remain absent on the affected Location; the operator is notified via the log.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-001-REQ-B-073",
+                          "name": "Direct deterministic pagination op on /gate",
+                          "requirement": "SharedServices /gate MUST accept op='clinical_trials_page' with a payload matching ClinicalTrialsTool.Request (condition, user_location, age_years, sex, geographic_scope, cursor, page_size). UR dispatches to ClinicalTrialsTool with no LLM and no UtteranceManager hop. This is the deterministic path the client uses for More / Back pagination clicks (REQ-B-068).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-001-REQ-B-074",
+                          "name": "Geographic scope: international (default) or US-only",
+                          "requirement": "Request MUST accept an optional geographic_scope field with values 'international' (default) or 'us'. ClinicalTrialsTool MUST honor it as follows: 'international' applies NO geographic filter to CT.gov (all records returned worldwide). 'us' MUST add the CT.gov v2 GEO filter restricting to country=United States. No other per-country scoping is supported in this iteration -- the only choices are international or US.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-001-REQ-T-100",
+                          "name": "Unit tests cover every public component of ClinicalTrialsTool",
+                          "requirement": "Every public method/function of ClinicalTrialsTool -- including but not limited to: CT.gov request builder, response parser, age_years -> aggFilter mapper, sex -> aggFilter mapper, geographic_scope -> GEO filter mapper, brief_summary first-sentence truncator, search_context echo populator, Routes API caller -- MUST have unit tests. Each component's test set MUST include at least ONE positive case (asserting the happy-path output) AND at least ONE anticipated negative case (e.g. missing input, malformed input, upstream failure mode, boundary condition). Tests live in FindCare/ClinicalTrials/tests/ alongside the tool source. No test may share state with another test.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-031-S-002",
+                    "name": "Find Clinical Trials display",
+                    "description": "Front-end display contract: left-panel header band, first-sentence truncation, More/Back pagination, center-panel section anchors, right-panel section-list with smooth-scroll, loading banner content and timer behavior, intent_classified mid-stream banner update, and the pagination error overlay verb context.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-B-066",
+                          "name": "Left-panel brief_summary truncated to first sentence with ellipsis",
+                          "requirement": "In the per-trial card in the left panel, the trial's brief_summary MUST be displayed truncated to its first sentence. When truncation occurs (the first sentence is shorter than the full summary), '...' MUST be appended to signal truncation. The user clicks the trial's NCT id to view the full detail in the main window.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-B-067",
+                          "name": "Left-panel header band: canonical query criteria + record range",
+                          "requirement": "The colored header band at the top of the left panel MUST display the canonical query criteria as echoed by the tool (Response.search_context). Format: 'Clinical trials -- condition: <X>, subject age: <Y>, subject sex: <Z>, <location>, scope: <international|US>'. When the tool returns a total_count, the band MUST also append ' -- showing <start> to <end> of <total>'. When total is unknown the band MUST NOT show a count (it MUST NOT imply a count it does not know).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-B-068",
+                          "name": "Left-panel More / Back pagination controls",
+                          "requirement": "The left panel MUST render a 'more trials' link when Response.cursor is non-null and a 'back' link when prior cursors exist (client-side history). Clicking either MUST round-trip through ClientRouter.makeCall to /gate op='clinical_trials_page' (REQ-B-073) -- NOT through the LLM-routed utterance path. The pagination control mirrors the providers pagination pattern.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-B-069",
+                          "name": "Center-panel trial detail: section anchors",
+                          "requirement": "Every section in the main-window trial detail MUST carry a stable anchor id of the form id=\"ct-sec-<slug>\" where <slug> is a lowercased hyphenated form of the section title. The anchors are the targets for right-panel section-list jump links (REQ-B-070).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-B-070",
+                          "name": "Right-panel section-list with smooth-scroll jumps",
+                          "requirement": "When a trial is displayed in the main window, the right panel MUST render a 'Trial sections' list with one clickable link per section in the current trial (linked to the anchor ids from REQ-B-069). Clicking a link MUST smooth-scroll the main-window center to that section's anchor.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-B-071",
+                          "name": "Immediate clear + timer on More / Back click",
+                          "requirement": "When the user clicks More or Back in the left panel, the system MUST immediately (before the network round-trip): clear the main-window trial detail, clear the right-panel section list, start a one-second-tick timer from zero, and render a loading banner. Then the network fetch is issued. The user must never see stale data while a new page is being fetched.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-B-072",
+                          "name": "Loading banner content: canonical criteria + record range",
+                          "requirement": "The loading banner MUST display the canonical criteria (REQ-B-067 format, INCLUDING the geographic_scope) plus the record range being retrieved, e.g. 'condition: hepatitis B, subject age: 28, subject sex: male, Los Angeles, scope: US -- retrieving records 11-20 of 247'. The banner MUST NOT show only the raw user verb. The timer ticks every second next to or under the banner.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-B-073",
+                          "name": "Mid-stream loading-banner update from intent_classified",
+                          "requirement": "On a fresh utterance flow, when UR has finished classifying the utterance into a findClinicalTrials intent, UR MUST emit a {kind:'intent_classified'} stream event carrying the canonical criteria (action, condition, user_location, age_years, sex, geographic_scope). The client MUST replace the loading banner's raw utterance text with the canonical criteria as soon as that event arrives, so the user sees what the system actually understood, not the raw utterance.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-B-074",
+                          "name": "Pagination error overlay must include verb context",
+                          "requirement": "When a More / Back pagination fetch fails, the client error overlay MUST prepend a verb-context clause to the underlying error message: 'While trying to load more clinical trials: <err>' (for next) or 'While trying to go back to the previous page of clinical trials: <err>' (for prev). The user must always see what action was in flight when the error occurred.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-T-100",
+                          "name": "Standalone Playwright test for the clinical-trials display",
+                          "requirement": "A NEW Playwright test MUST be created at architecture/DevOpsBuildDeployAndEnvironmentManagement/find_care_clinical_trials_test.py covering every display REQ in Story S-002 -- at minimum: the left-panel header band format, the first-sentence truncation with ellipsis, the More / Back pagination controls and their round-trip through op='clinical_trials_page', the center-panel section anchors, the right-panel section-list with smooth-scroll, the immediate clear+timer on click, the loading-banner content and intent_classified update, and the pagination-error overlay verb context. The test MUST be INDEPENDENT of the smoke Playwright test -- the smoke only confirms the page renders and each iframe shows good content at a high level; this test asserts the fine-grained display contract. The test MUST fetch a real clinical trial from clinicaltrials.gov v2 (a stable, recruiting NCT id with a known section structure) as the reference fixture and assert against its actual data. The test MUST allow parameterized exercise of different search parameters (condition, age, sex, location, scope) and full pagination cycles (More, Back, More, etc.). If an existing Playwright test already covers any of this surface, that test is reused (and extended where it is incomplete) rather than duplicated.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-002-REQ-B-075",
+                          "name": "Selected trial highlighted in left panel; click clears center+right immediately, then paints new trial",
+                          "requirement": "In the left-panel trial list, the trial currently displayed in frame_MainWindow MUST be visually distinguished (highlighted background) so the user always knows which card they are viewing. When the user clicks any trial card, the system MUST IMMEDIATELY blank frame_MainWindow and frame_RightPanel (paint empty content) BEFORE painting the new trial, so the user has an unambiguous visual confirmation that the click registered even when the new trial is fetched from the same in-memory page (no backend hop). The new trial's full detail is then painted into frame_MainWindow and its section-list into frame_RightPanel, and the left-panel highlight moves to the newly-selected card.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-031-S-003",
+                    "name": "Find Clinical Trials architecture",
+                    "description": "Architecture contract between UtteranceManager, Universal Router, and ClinicalTrialsTool. UM prompts for refinements on first turn and extracts on follow-up; LLM (not regex) resolves the sex answer; condition is the only required field; UR thin pass-through for the deterministic pagination op.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "orphan": false,
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-031-S-003-REQ-B-005",
+                          "name": "UtteranceManager prompts for refinements on first clinical-trial turn",
+                          "requirement": "On the FIRST turn where the user expresses clinical-trial interest, UM MUST set target_action='closeConnection200' and emit a user_message that names EVERY refinement field not already known. The literal words 'age', 'sex', 'location', and 'scope' (asking international vs US) MUST appear in the user_message for each field that is missing. UM MUST tell the user that condition alone is enough -- they can answer 'skip' for any field. Park a pending_disambiguation with kind='clinical_trial_demographics'. UM MAY skip the ask and dispatch findClinicalTrials directly ONLY when all refinements are already known.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-003-REQ-B-006",
+                          "name": "UtteranceManager extracts age_years, sex, user_location, geographic_scope from follow-up",
+                          "requirement": "On the FOLLOW-UP turn after the prompt, UM MUST extract every refinement supplied. age_years (int) from 'I'm 28' / '28' / '28yo' / 'age 28'. sex (lowercased 'm' or 'f') per REQ-B-007. user_location (free-text) from any location mention. geographic_scope ('international' or 'us') from any 'international'/'worldwide'/'US only'/'United States only' mention. Populate all extracted fields as Arguments on the findClinicalTrials intent. If the user declines ('skip', 'no', 'just show me'), proceed with whatever fields are populated. Always set target_action='findClinicalTrials'.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-003-REQ-B-007",
+                          "name": "LLM-driven resolution of the user's sex answer to 'm' or 'f'",
+                          "requirement": "UM MUST resolve the user's answer to the sex prompt — or any sex signal in a free-text utterance — into the canonical lowercase token 'm' or 'f' via the classifier LLM. The LLM, not regex, MUST be authoritative. The LLM MUST recognize: (a) direct labels — 'Male', 'M', 'man', 'boy', 'masculino' → 'm'; 'Female', 'F', 'woman', 'girl' → 'f'; (b) male family / relationship words referring to the subject — 'son', 'brother', 'father', 'dad', 'uncle', 'nephew', 'grandfather', 'grandpa', 'husband', 'boyfriend', 'fiancé' → 'm'; (c) female family / relationship words — 'daughter', 'sister', 'mother', 'mom', 'aunt', 'niece', 'grandmother', 'grandma', 'wife', 'girlfriend', 'fiancée' → 'f'; (d) third-person pronouns about the subject when no contradicting label is present — 'he', 'his', 'him' → 'm'; 'she', 'her', 'hers' → 'f'. If the answer is ambiguous, non-binary, or mixes signals the LLM cannot reconcile, sex MUST be left None and the search dispatches without a sex filter. Gender is not a parameter in this iteration; we ask sex only. The same rules apply BOTH on the dedicated follow-up prompt AND on the first turn when the user volunteers the information ('clinical trial for my son who is 9' → sex='m', age_years=9).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-003-REQ-B-008",
+                          "name": "Condition is the ONLY required field for findClinicalTrials",
+                          "requirement": "Across the entire clinical-trials flow (UM extraction, UR dispatch, tool execution), condition is the ONLY required field. age_years, sex, user_location, and geographic_scope are ALL optional refinements of equal stature -- none is 'primary', none is 'bonus'. The search MUST dispatch with whatever the user provides, including no refinements at all if the user skips every field. Default scope when omitted is 'international' (REQ-B-074).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-003-REQ-B-009",
+                          "name": "Universal Router dispatches /gate op=clinical_trials_page as a thin pass-through",
+                          "requirement": "When /gate receives op='clinical_trials_page', UR MUST invoke _handle_clinical_trials_page which constructs a clinical_trials_tool.Request from the payload (Pydantic validates) and calls TOOL.run_and_log(deps, request). No biz logic in the handler -- all biz logic lives in ClinicalTrialsTool. UR also emits {kind:'intent_classified'} per REQ-B-073 on the LLM-routed findClinicalTrials dispatch path so the client can update its loading banner.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-006-F-031-S-003-REQ-T-100",
+                          "name": "Unit tests cover UtteranceManager clinical-trial extraction paths",
+                          "requirement": "Every UM extraction rule in S-003 -- first-turn prompt construction (REQ-B-005), follow-up extraction of age / sex / location / scope (REQ-B-006), LLM-driven sex resolution (REQ-B-007), and the condition-only required-field guarantee (REQ-B-008) -- MUST have unit tests. Each rule's test set MUST include at least ONE positive case (e.g. user supplies all refinements; UM extracts cleanly) AND at least ONE anticipated negative case (e.g. user says 'skip'; ambiguous sex answer the LLM cannot resolve; user supplies an unsupported country for geographic_scope and UM falls back to international). Tests live alongside the UM source.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "approval": "approved",
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  }
+                ]
               },
               "orphan": false,
               "status": "in_progress",
