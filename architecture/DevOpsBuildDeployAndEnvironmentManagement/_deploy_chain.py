@@ -2699,7 +2699,7 @@ class LocalDeploy:
             record("http_to_https_301", r.status_code == 301, f"got {r.status_code}")
             r = c.get("https://localhost/")
             record("website_200", r.status_code == 200, f"got {r.status_code}")
-            record("website_has_banner", "envBanner" in r.text, "")
+            record("website_has_client_router", "ClientRouter" in r.text, "")
             for svc, port in (("findcare", self.PORTS["findcare"]),
                               ("evalcare", self.PORTS["evalcare"]),
                               ("shared",   self.PORTS["shared"])):
