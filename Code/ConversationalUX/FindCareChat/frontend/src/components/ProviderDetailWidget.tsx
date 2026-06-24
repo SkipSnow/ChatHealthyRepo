@@ -56,6 +56,23 @@ function buildDetailHtml(data: any): string {
   const insurance = (Array.isArray(p.insurance) ? p.insurance : [])
     .map((ins: any) => _esc(typeof ins === 'string' ? ins : (ins.payer || ins.identifier || '')))
     .filter(Boolean).join(', ') || 'None on file.'
+  // research_sites is a dict keyed by site slug ('healthgrades', etc.) with
+  // {url, name, guidance}. Render each as a labeled link with the guidance
+  // sentence underneath. Source: SS provider_detail_tool.Source schema.
+  const rs = p.research_sites || {}
+  const rsEntries = Object.keys(rs)
+    .map(k => rs[k])
+    .filter((s: any) => s && s.url)
+  const research = rsEntries.length
+    ? rsEntries.map((s: any) =>
+        `<div style="margin:0.3em 0;">
+           <a href="${_esc(s.url || '')}" target="_blank" rel="noopener noreferrer"
+              style="color:#0b7a75;text-decoration:underline;font-weight:600;">${_esc(s.name || '')}</a>
+           ${s.guidance
+             ? `<div style="font-size:0.85em;color:#6b7280;margin-top:0.1em;">${_esc(s.guidance)}</div>`
+             : ''}
+         </div>`).join('')
+    : '<div style="color:#6b7280;font-style:italic;">None on file.</div>'
   return `
     <div style="padding:0.75em 1em;">
       <div style="font-weight:700;color:#0b7a75;font-size:1.05em;">${name}</div>
@@ -64,6 +81,7 @@ function buildDetailHtml(data: any): string {
       ${sect('Practice addresses', addrs)}
       ${sect('Licenses', licenses)}
       ${sect('Insurance', insurance)}
+      ${sect('Research', research)}
     </div>
   `
 }

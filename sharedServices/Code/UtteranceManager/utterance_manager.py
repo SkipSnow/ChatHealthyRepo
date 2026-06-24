@@ -85,6 +85,13 @@ class ClassifierOutput(BaseModel):
     user_message: Optional[str] = None
     pending_disambiguation: Optional[PendingDisambiguationOut] = None
     corrections: list[Correction] = Field(default_factory=list)
+    # findClinicalTrials refinement fields — extracted by the LLM per the
+    # prompt rules in section 5b (family/relational words, pronouns, etc.).
+    # All optional; condition (carried as `complaint`) is the only required
+    # field for findClinicalTrials.
+    age_years: Optional[int] = None
+    sex: Optional[Literal["m", "f"]] = None
+    geographic_scope: Optional[Literal["international", "us"]] = None
     # Audit-only label carried on the safetyLockout intent. LockoutTool
     # writes it onto {env}_Safety.emergency_incidents but renders the
     # user-facing prose from the trigger utterance, not from this label.
@@ -452,6 +459,21 @@ WHERE YOU SIT IN THE PROCESS:
     (specialtySearch), SpecialtyFilter+ProviderSearch (findAProvider),
     or CloseConnection200Tool.
 
+RULE 0 — UNIVERSAL UTTERANCE PRECEDENCE (highest priority; applies to
+every other rule below). The transcript window is ordered oldest-first
+and the LATEST 'user:' line is the current turn. When facts in the
+current turn CONTRADICT facts from earlier turns or from the prior
+IntentDocument — different condition, different location, different
+age, different sex, different scope, different intent of any kind —
+the CURRENT TURN ALWAYS WINS. Drop the contradicted older fact entirely
+and use the current value. This applies to condition, geography, age,
+sex, geographic_scope, complaint, target_action, AND any other slot.
+"Contradiction" includes outright replacement ('actually, the condition
+is asthma'), retraction ('never mind the trial, find me a doctor'),
+correction of a misheard value, OR a NEW utterance whose meaning
+implies a different filled slot. Older utterances may only CONTRIBUTE
+context; they may never OVERRIDE a slot the current utterance fills.
+
 READ THE SCHEMA'S COMMENTS. Every description field in the schema below
 carries the WHY behind a rule. Read them and let them guide your output.
 
@@ -721,32 +743,44 @@ DECISION RULES (apply in this order):
       this action — we'll proceed without it, but if supplied we
       compute travel time and distance to each trial site.
 
-      The participant's age, sex, and gender are also OPTIONAL inputs
-      that refine the CT.gov search when present. Encourage the user
-      to supply them, but condition remains the only required minimum
-      — never block the search waiting for age/sex/gender if the user
-      has already given location (or explicitly skipped it).
+      The participant's age and sex are OPTIONAL inputs that refine
+      the CT.gov search when present. geographic_scope (international
+      vs US) is the fourth optional refinement. Encourage the user to
+      supply them, but condition remains the only required minimum —
+      never block the search waiting on any refinement if the user
+      has already supplied some (or explicitly skipped).
 
-        - The four refinement fields are: age, sex, gender, and
-          user_location. NONE of these is required by the system;
-          condition is the only required field. Each refinement is
-          treated equally — none is "bonus", none is "primary".
+        - The four refinement fields are: age, sex, location, and
+          scope. NONE of these is required by the system; condition
+          is the only required field. Each refinement is treated
+          equally — none is "bonus", none is "primary". Gender is
+          NOT a refinement in this flow — ASK only for sex.
 
           On the FIRST turn where the user expresses clinical-trial
           interest, you MUST ASK for every refinement field that is
           NOT already known — either from the current utterance OR
-          from the prior IntentDocument. Set
-          target_action="closeConnection200" and emit a user_message
-          that names each missing field by its literal word ("age",
-          "sex", "gender", "location"). Acknowledge any field the
-          user already supplied. Tell the user that condition alone
-          is enough — they can answer "skip" for any field. Park a
-          pending_disambiguation with
+          from the prior IntentDocument. Apply the SAME extraction
+          rules listed under "On the FOLLOW-UP turn" below WHEN
+          parsing the first utterance — in particular, a refinement
+          implied by family/relational words ("son" → sex=m, age
+          from "9 years old"), pronouns ("she has migraines" →
+          sex=f), or location/scope phrases ("Las Vegas NV",
+          "US-based trial") COUNTS AS KNOWN and you MUST NOT
+          ask for it again. Set target_action="closeConnection200"
+          and emit a user_message that names each STILL-MISSING
+          field by its literal word ("age", "sex", "location",
+          "scope") — for "scope" ask whether the user wants
+          international (all trials worldwide) or US-only trials.
+          Acknowledge any field the user already supplied. Tell the
+          user that condition alone is enough — they can answer
+          "skip" for any field. Park a pending_disambiguation with
           kind="clinical_trial_demographics".
 
           You may skip the ask and proceed directly to
           target_action="findClinicalTrials" ONLY when all four
-          refinements are already known.
+          refinements are already known (including ones inferred
+          from family words, pronouns, location, or scope phrasing
+          per the rules above).
 
           RULE 1.5 STILL APPLIES TO THIS user_message AND TO
           corrections[]. If the user's condition contained a
@@ -764,19 +798,39 @@ DECISION RULES (apply in this order):
           refinement the user supplied. You MUST extract:
             * age_years (integer) — any of "I'm 28", "I am 28
               years old", "28", "age 28", "28yo", etc. → 28
-            * sex (lowercase string, "male" or "female") — any of
-              "I'm Male", "Male", "M", "boy", "man" → "male";
-              "Female", "F", "girl", "woman" → "female". An unqualified
-              "Male" or "Female" is SEX, not gender — do NOT also
-              populate gender unless the user explicitly qualified
-              their gender identity (e.g., "cis male", "trans
-              woman", "non-binary", "they/them").
-            * gender (free-text string) — populate ONLY when the
-              user explicitly volunteered a gender identity distinct
-              from their sex. If the user gave only "Male" or
-              "Female", leave gender unset.
+            * sex (lowercase single character, "m" or "f") — you
+              MUST resolve the user's natural-language answer to
+              one of {"m", "f"}. Examples (this list is illustrative;
+              apply the same reasoning to other phrasings):
+                - direct labels: "Male", "M", "boy", "man",
+                  "I'm a guy", "masculino" → "m"; "Female", "F",
+                  "girl", "woman", "I'm a woman" → "f"
+                - male family / relationship words (when the
+                  utterance is about THAT person): "son",
+                  "brother", "father", "dad", "uncle", "nephew",
+                  "grandfather", "grandpa", "husband", "boyfriend",
+                  "fiancé" → "m"
+                - female family / relationship words: "daughter",
+                  "sister", "mother", "mom", "aunt", "niece",
+                  "grandmother", "grandma", "wife", "girlfriend",
+                  "fiancée" → "f"
+                - third-person pronouns about the subject when
+                  no contradicting label is present: "he", "his",
+                  "him" → "m"; "she", "her", "hers" → "f"
+              If the answer is ambiguous, non-binary, or the
+              utterance mixes signals you cannot reconcile, leave
+              sex unset (the search dispatches without a sex
+              filter). Gender is NOT extracted in this flow.
             * user_location (free-text string) — any location ("Los
               Angeles", "30605", "near Boston", etc.).
+            * geographic_scope (one of "international" or "us") —
+              resolve the user's answer: any of "international",
+              "worldwide", "all", "everywhere", "anywhere" → "international";
+              any of "US", "USA", "United States", "domestic",
+              "US only", "United States only", "American" → "us".
+              If the answer is unclear or the user picks a single
+              non-US country, leave geographic_scope unset and the
+              system defaults to international.
           Populate ALL extracted fields as Arguments on the
           findClinicalTrials intent. If the user declines ("skip",
           "no", "no thanks", "just show me"), proceed with whatever
@@ -787,8 +841,9 @@ DECISION RULES (apply in this order):
       Set complaint to the medical condition the user is asking
       about, normalized (e.g. "type 2 diabetes", "lung cancer",
       "depression"). Condition is the ONLY required field for
-      findClinicalTrials; age, sex, gender, and user_location are
-      all optional refinements per the rules above.
+      findClinicalTrials; age, sex, user_location, and
+      geographic_scope are all optional refinements per the rules
+      above.
 
   6. If the utterance is a real request but you cannot extract a
      complaint or recognize a healthcare ask, set target_action to
@@ -874,7 +929,20 @@ def summarize_prior(prior: Optional[IntentDocument]) -> str:
     ]
     if prior.user_message:
         parts.append(f"Prior user_message was: {prior.user_message!r}.")
+    # Surface every prior intent's Arguments so the next-turn LLM can see
+    # what slots have already been filled (age, sex, geography,
+    # geographic_scope, complaint, etc.) without re-asking. Per RULE 0 the
+    # current turn may still override any of these on contradiction.
     for entry in prior.intents:
+        args = getattr(entry, "arguments", None) or []
+        arg_pairs = []
+        for a in args:
+            name = getattr(a, "name", None) or (a.get("name") if isinstance(a, dict) else None)
+            value = getattr(a, "value", None) or (a.get("value") if isinstance(a, dict) else None)
+            if name and value not in (None, "", []):
+                arg_pairs.append(f"{name}={value!r}")
+        if arg_pairs:
+            parts.append(f"Prior {entry.name} arguments: {', '.join(arg_pairs)}.")
         pd = getattr(entry, "pending_disambiguation", None)
         if pd is not None:
             parts.append(
@@ -1103,6 +1171,9 @@ def build_find_clinical_trials_intent(
     complaint: str,
     user_location: Optional[str] = None,
     cursor: Optional[str] = None,
+    age_years: Optional[int] = None,
+    sex: Optional[str] = None,
+    geographic_scope: Optional[str] = None,
 ) -> "IntentFindClinicalTrials":
     from UtteranceManager.intent_document import IntentFindClinicalTrials
     args = [Argument(name="complaint", value=complaint, type="string", required=True)]
@@ -1113,6 +1184,18 @@ def build_find_clinical_trials_intent(
     if cursor:
         args.append(Argument(
             name="cursor", value=cursor, type="string", required=False,
+        ))
+    if isinstance(age_years, int):
+        args.append(Argument(
+            name="age_years", value=str(age_years), type="integer", required=False,
+        ))
+    if sex:
+        args.append(Argument(
+            name="sex", value=str(sex), type="string", required=False,
+        ))
+    if geographic_scope:
+        args.append(Argument(
+            name="geographic_scope", value=str(geographic_scope), type="string", required=False,
         ))
     return IntentFindClinicalTrials(
         name="findClinicalTrials",
@@ -1430,7 +1513,13 @@ class UtteranceManagerTool(ChatHealthyTool):
                 )
             new_doc = merge_intents(
                 base_doc,
-                [build_find_clinical_trials_intent(complaint, user_location)],
+                [build_find_clinical_trials_intent(
+                    complaint,
+                    user_location,
+                    age_years=llm_result.age_years,
+                    sex=llm_result.sex,
+                    geographic_scope=llm_result.geographic_scope,
+                )],
                 target_action,
                 user_message,
             )

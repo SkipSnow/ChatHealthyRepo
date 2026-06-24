@@ -21,7 +21,6 @@ function buildFooterHtml(): string {
     <nav style="display:flex;align-items:center;justify-content:center;gap:1.5em;height:100%;font-size:0.85em;flex-wrap:wrap;">
       <span style="color:#6b7280;font-style:italic;">&copy; 2026 ChatHealthy.ai LLC</span>
       ${lnk('about_chathealthy', 'About ChatHealthy.ai')}
-      ${panel('roadmap.html',       'Roadmap')}
       ${panel('privacy.html',       'Privacy Policy')}
       ${panel('terms.html',         'Terms of Use')}
       ${panel('architecture.html',  'Architecture')}

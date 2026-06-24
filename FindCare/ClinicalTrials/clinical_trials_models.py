@@ -269,6 +269,8 @@ class Trial(BaseModel):
 
 
 class Request(BaseModel):
+    # EPIC-006-F-031-S-001-REQ-B-069 (sex only — gender intentionally absent)
+    # EPIC-006-F-031-S-001-REQ-B-074 (geographic_scope: international | us)
     model_config = {"extra": "ignore"}
     condition: str
     user_location: Optional[str] = None
@@ -276,18 +278,19 @@ class Request(BaseModel):
     cursor: Optional[str] = None
     age_years: Optional[int] = None
     sex: Optional[str] = None
-    gender: Optional[str] = None
+    geographic_scope: Optional[str] = "international"
 
 
 class SearchContext(BaseModel):
     """Echoes the actual query parameters the tool used to fetch this page.
     The iframe stores this and re-issues it verbatim on pagination so the
-    user's natural-language utterance doesn't leak into the CT.gov call."""
+    user's natural-language utterance doesn't leak into the CT.gov call.
+    EPIC-006-F-031-S-001-REQ-B-071."""
     condition: str = ""
     user_location: Optional[str] = None
     age_years: Optional[int] = None
     sex: Optional[str] = None
-    gender: Optional[str] = None
+    geographic_scope: Optional[str] = "international"
 
 
 class Response(BaseModel):

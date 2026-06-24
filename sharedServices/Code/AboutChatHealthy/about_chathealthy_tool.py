@@ -48,8 +48,11 @@ class BuildFacts(BaseModel):
 class SecurityPanelData(BaseModel):
     server: Optional[str] = None
     env: Optional[str] = None
+    # 'signed_token' is rendered by the widget as "Authorization ID".
     signed_token: Optional[str] = None
     nonce: Optional[str] = None
+    # GUID is the canonical session GUID off the SessionToken
+    # (cst.get_auth_token()); the widget labels this "Session GUID".
     guid: Optional[str] = None
     verified: Optional[str] = None
     time: Optional[str] = None
@@ -96,21 +99,33 @@ def _build_facts(env_prefix: str) -> BuildFacts:
 def _security_panel(deps: AgentDeps) -> SecurityPanelData:
     user_obj = getattr(deps, "user_object", None)
     sess = getattr(user_obj, "current_session_token", None) if user_obj else None
-    if not sess:
+    if not sess or not hasattr(sess, "token"):
         return SecurityPanelData(
             server="SharedServices",
             env=getattr(deps, "server_env", None),
             verified="pending",
         )
-    token_str = str(sess) if sess else ""
-    nonce = token_str[2:19] if len(token_str) >= 19 else None
-    guid = token_str[-32:] if len(token_str) >= 32 else None
+    # Use canonical getters from SessionToken instead of slicing the
+    # Python repr (the previous code did `str(sess)` which returned the
+    # Pydantic repr like "origin='SharedServices' token='CH...' ..." and
+    # slicing that produced garbage like "igin='SharedServi"). The
+    # SessionToken class exposes get_nonce()/get_auth_token() that read
+    # the canonical positions on the underlying token string.
+    token_str = getattr(sess, "token", "") or ""
+    try:
+        nonce_val = sess.get_nonce() if callable(getattr(sess, "get_nonce", None)) else None
+    except Exception:
+        nonce_val = None
+    try:
+        guid_val = sess.get_auth_token() if callable(getattr(sess, "get_auth_token", None)) else None
+    except Exception:
+        guid_val = None
     return SecurityPanelData(
         server="SharedServices",
         env=getattr(deps, "server_env", None),
-        signed_token=token_str[:60] + "..." if len(token_str) > 60 else token_str,
-        nonce=nonce,
-        guid=guid,
+        signed_token=(token_str[:60] + "...") if len(token_str) > 60 else token_str,
+        nonce=nonce_val,
+        guid=guid_val,
         verified="verified",
     )
 

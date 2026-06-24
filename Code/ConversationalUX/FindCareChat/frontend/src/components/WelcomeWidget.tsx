@@ -38,6 +38,8 @@ export default function WelcomeWidget() {
     // that origin, and `/welcome` is served by the same FindCare backend.
     // Same-origin fetch — no cross-origin parent access required.
     const fcOrigin = window.location.origin
+    let cachedHtml = FALLBACK_WELCOME_HTML
+
     function paint(inner: string) {
       window.parent.postMessage({
         type: 'router:render',
@@ -52,9 +54,30 @@ export default function WelcomeWidget() {
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         const html = d && typeof d.message === 'string' ? d.message : ''
-        if (html) paint(html)
+        if (html) { cachedHtml = html; paint(html) }
       })
       .catch(() => {})
+
+    // Re-paint the welcome bubble in two cases:
+    //   1. UM closes the turn with target_action=closeConnection200 (e.g.
+    //      asking the user for a refinement). The searching indicator
+    //      in frame_MainWindow becomes stale; nothing else writes to
+    //      that frame on the close path. Repaint so the user can read
+    //      the prompt in frame_UserMessage against a clean MainWindow.
+    //   2. The user clicks the FindCare nav button in the About popup
+    //      (or anywhere else that fires router:action 'goto_findcare').
+    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'close' }, '*')
+    function onMessage(ev: MessageEvent) {
+      const msg = ev.data
+      if (!msg || typeof msg !== 'object') return
+      if (msg.type === 'router:event-broadcast' && msg.kind === 'close') {
+        paint(cachedHtml)
+      } else if (msg.type === 'router:action' && msg.action === 'goto_findcare') {
+        paint(cachedHtml)
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
   }, [])
   return null
 }

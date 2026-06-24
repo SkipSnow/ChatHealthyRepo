@@ -2342,10 +2342,16 @@ class LocalDeploy:
         if not conn:
             sys.exit("ERROR: MONGO_FRONTEND_connectionString not set; cannot read local build counter.")
         latest = MongoClient(conn, serverSelectionTimeoutMS=10000)["admin"]["Versions"].find_one(sort=[("from", -1)])
-        build_num = (latest or {}).get("build")
+        if not latest:
+            sys.exit("ERROR: admin.Versions has no records.")
+        build_num = latest.get("build")
         if build_num is None:
             sys.exit("ERROR: admin.Versions latest record has no 'build' field.")
         build_num = int(build_num)
+        version_str = latest.get("version")
+        framework_str = latest.get("framework")
+        if not version_str:
+            sys.exit("ERROR: admin.Versions latest record has no 'version' field.")
         try:
             commit = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
@@ -2360,8 +2366,8 @@ class LocalDeploy:
             "env": self.env,
             "target_id": self.CONTAINER_TARGET_ID.get(container_name),
             "service": container_name,
-            "version": "1.4.1",
-            "framework": "0.1.5",
+            "version": version_str,
+            "framework": framework_str,
             "built_at": datetime.now(timezone.utc).isoformat(),
         }
         out = build_ctx_abs / "build_info.json"

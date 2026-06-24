@@ -307,6 +307,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         "evalcare-splash":      "_handle_evalcare_splash",
         "clinical_trials_page": "_handle_clinical_trials_page",
         "about_chathealthy":    "_handle_about_chathealthy",
+        "provider_selection":   "_handle_provider_selection",
     }
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
@@ -609,6 +610,17 @@ class UniversalNavigationTool(ChatHealthyTool):
         req = about_chathealthy_tool.Request(**(payload or {}))
         await about_chathealthy_tool.TOOL.run_and_log(deps, req)
         return Response(kind="about_chathealthy", result={"ok": True})
+
+    async def _handle_provider_selection(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """Thin pass-through to ProviderSelectionTool. Tool mutates
+        user_object.selected_providers and streams `kind:selection_changed`
+        with the current NPI list; SelectedProvidersWidget repaints its
+        strip via ClientRouter.merge into MainWindow's selected_strip
+        region."""
+        from ProviderSelection import provider_selection_tool
+        req = provider_selection_tool.Request(**(payload or {}))
+        await provider_selection_tool.TOOL.run_and_log(deps, req)
+        return Response(kind="provider_selection", result={"ok": True})
 
     # ── Orchestration helpers ─────────────────────────────────────
 
@@ -1029,8 +1041,8 @@ class UniversalNavigationTool(ChatHealthyTool):
                 (a.value for a in target_intent_entry.arguments if a.name == "sex"),
                 None,
             )
-            gender_filter = next(
-                (a.value for a in target_intent_entry.arguments if a.name == "gender"),
+            geographic_scope = next(
+                (a.value for a in target_intent_entry.arguments if a.name == "geographic_scope"),
                 None,
             )
             # Emit the canonical criteria the moment classification is done
@@ -1044,7 +1056,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                     "user_location": user_location,
                     "age_years": age_years,
                     "sex": sex_filter,
-                    "gender": gender_filter,
+                    "geographic_scope": geographic_scope,
                 },
             })
             ct_req = clinical_trials_tool.Request(
@@ -1053,7 +1065,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 cursor=cursor,
                 age_years=age_years,
                 sex=sex_filter,
-                gender=gender_filter,
+                geographic_scope=geographic_scope,
             )
             await clinical_trials_tool.TOOL.run_and_log(deps, ct_req)
             # No inner "final" emission — outer pipeline emits the

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyUserStateSchema.json",
   "title": "ChatHealthy User State",
-  "description": "The in-session and post-session representation of a ChatHealthy user, per EPIC-002-F-003-S-005.",
+  "description": "The in-session and post-session representation of a ChatHealthy user, per EPIC-002-F-003-S-005. Aspirational fields (insurance, EMR, financial facts, profile facts) are intentionally retained — they describe the architectural destination for the registered-user profile-load gap (no code currently transfers profile_facts from the registered store into the runtime user_object on OAuth login).",
   "type": "object",
   "required": ["$schema", "user"],
   "properties": {
@@ -10,11 +10,9 @@
     "user": {
       "type": "object",
       "required": [
-        "session_conversation_history",
-        "is_locked_out",
-        "silly_question_counts",
-        "ip_address",
-        "is_registered"
+        "current_session_token",
+        "expires_at",
+        "session_conversation_history"
       ],
       "if": {
         "properties": { "is_registered": { "const": true } },
@@ -27,30 +25,88 @@
         }
       },
       "properties": {
+        "current_session_token": {
+          "type": "object",
+          "description": "Signed wire-envelope security token, restamped on every gate call (new NONCE each time). Shape mirrors chathealthy_frontend_lib.authentication.session_token.SessionToken.",
+          "required": ["origin", "token", "signature", "created_at", "signed", "server_env"],
+          "properties": {
+            "origin":     { "type": "string" },
+            "token":      { "type": "string", "description": "CH{nonce(35)}{guid(32)} = 69-char string" },
+            "signature":  { "type": "string" },
+            "created_at": { "type": "string", "format": "date-time" },
+            "signed":     { "type": "boolean" },
+            "server_env": { "type": "string", "enum": ["local", "dev", "qa", "prod"] }
+          }
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Reset to NOW + 300s on each restamp; canonical 'this session expires at' marker."
+        },
         "session_conversation_history": {
           "type": "object",
-          "required": ["unanswered_questions"],
+          "description": "Two parallel threads: human-readable dialogue and machine-readable action log. Each has its own monotonic per-session counter.",
+          "required": ["utterances", "actions"],
           "properties": {
-            "unanswered_questions": {
+            "utterances": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": {
+                "type": "object",
+                "required": ["n", "at", "actor", "text"],
+                "properties": {
+                  "n":     { "type": "integer", "minimum": 1 },
+                  "at":    { "type": "string" },
+                  "actor": { "type": "string", "enum": ["person", "system"] },
+                  "text":  { "type": "string" }
+                }
+              }
+            },
+            "actions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["n", "at", "tool_name", "input_json", "output_json"],
+                "properties": {
+                  "n":           { "type": "integer", "minimum": 1 },
+                  "at":          { "type": "string" },
+                  "tool_name":   { "type": "string" },
+                  "input_json":  { "type": "object" },
+                  "output_json": { "type": "object" }
+                }
+              }
             }
           }
         },
         "is_locked_out": { "type": "boolean" },
+        "lockout": {
+          "type": "object",
+          "description": "Active safety-lockout state, populated by UR's hydration step from {env}_Safety.emergency_incidents. None when no active lockout.",
+          "required": ["expires_at", "trigger_utterance"],
+          "properties": {
+            "expires_at":        { "type": "string", "format": "date-time" },
+            "trigger_utterance": { "type": "string" },
+            "history":           { "type": "array", "items": { "type": "object" } }
+          }
+        },
         "silly_question_counts": {
           "type": "object",
           "required": ["session_total", "current_sequence_total"],
           "properties": {
-            "session_total": { "type": "integer", "minimum": 0 },
+            "session_total":          { "type": "integer", "minimum": 0 },
             "current_sequence_total": { "type": "integer", "minimum": 0 }
           }
         },
-        "ip_address": {
-          "type": "string",
-          "description": "Representation TBD pending REQ; string for now."
-        },
+        "ip_address": { "type": "string" },
         "is_registered": { "type": "boolean" },
+        "user_id": {
+          "type": "string",
+          "description": "ChatHealthy-minted user identifier. Required when is_registered is true."
+        },
+        "user_type": {
+          "type": "string",
+          "enum": ["Guest", "Owner", "Customer", "Prospect"]
+        },
+        "public_username": { "type": "string" },
         "OAuthIdentities": {
           "type": "array",
           "description": "One entry per identity provider the user has linked. Required (and non-empty) whenever is_registered is true.",
@@ -58,43 +114,22 @@
             "type": "object",
             "required": ["identity_provider", "identity_provider_user_id", "email"],
             "properties": {
-              "identity_provider": {
-                "type": "string",
-                "description": "Identity provider name (e.g., Google, Facebook, Apple). Open enum; additional identity providers added as introduced."
-              },
-              "identity_provider_user_id": {
-                "type": "string",
-                "description": "Identity provider's stable identifier for the user."
-              },
-              "email": {
-                "type": "string",
-                "format": "email",
-                "description": "Verified email returned by the identity provider on its most recent OAuth callback."
-              }
+              "identity_provider":         { "type": "string" },
+              "identity_provider_user_id": { "type": "string" },
+              "email":                     { "type": "string", "format": "email" }
             },
             "additionalProperties": false
           }
         },
-        "user_id": {
-          "type": "string",
-          "description": "ChatHealthy-minted GUID (RFC 4122 UUIDv4). Required when is_registered is true."
-        },
         "registered_profile": {
           "type": "object",
-          "description": "Populated when is_registered is true.",
+          "description": "Populated when is_registered is true. ARCHITECTURAL TARGET: profile_facts is loaded from the registered-user store on OAuth callback. CURRENT IMPLEMENTATION GAP: no code transfers profile_facts into the runtime user_object yet; the Pydantic shape is authored but never written.",
           "required": ["user_id", "user_type", "oauth_source", "auth_token", "profile_facts"],
           "properties": {
-            "user_id": { "type": "string" },
-            "user_type": {
-              "type": "string",
-              "enum": ["Guest", "Owner", "Customer", "Prospect"]
-            },
-            "oauth_source": {
-              "type": "string",
-              "enum": ["Google"],
-              "description": "Other identity providers added when introduced."
-            },
-            "auth_token": { "type": "string" },
+            "user_id":      { "type": "string" },
+            "user_type":    { "type": "string", "enum": ["Guest", "Owner", "Customer", "Prospect"] },
+            "oauth_source": { "type": "string", "enum": ["Google"] },
+            "auth_token":   { "type": "string", "description": "OAuth provider's token, distinct from current_session_token." },
             "profile_facts": {
               "type": "object",
               "required": [
@@ -127,12 +162,12 @@
                     "portal_allowed"
                   ],
                   "properties": {
-                    "plan": { "type": "string" },
-                    "plan_state": { "type": "string" },
-                    "plan_url": { "type": "string", "format": "uri" },
+                    "plan":            { "type": "string" },
+                    "plan_state":      { "type": "string" },
+                    "plan_url":        { "type": "string", "format": "uri" },
                     "plan_begin_date": { "type": "string", "format": "date" },
-                    "plan_end_date": { "type": "string", "format": "date" },
-                    "portal_allowed": { "type": "boolean" },
+                    "plan_end_date":   { "type": "string", "format": "date" },
+                    "portal_allowed":  { "type": "boolean" },
                     "portal_access": {
                       "type": "object",
                       "description": "Populated when portal_allowed is true.",
@@ -145,9 +180,9 @@
                             "type": "object",
                             "required": ["name", "value", "max"],
                             "properties": {
-                              "name": { "type": "string" },
+                              "name":  { "type": "string" },
                               "value": { "type": "number" },
-                              "max": { "type": "number" }
+                              "max":   { "type": "number" }
                             }
                           }
                         },
@@ -196,7 +231,7 @@
                         "type": "object",
                         "required": ["condition", "spend_limit"],
                         "properties": {
-                          "condition": { "type": "string" },
+                          "condition":   { "type": "string" },
                           "spend_limit": { "type": "number" }
                         }
                       }
@@ -213,8 +248,17 @@
           "required": ["has_asked_for_follow_ups"],
           "properties": {
             "has_asked_for_follow_ups": { "type": "boolean" },
-            "follow_up_record_id": { "type": ["string", "null"] }
+            "follow_up_record_id":      { "type": ["string", "null"] }
           }
+        },
+        "intent": {
+          "type": "object",
+          "description": "UM-authored IntentDocument carrying the current target_action plus intent entries with their arguments. Shape per ChatHealthyUtteranceManagerOutputSchema.json."
+        },
+        "selected_providers": {
+          "type": "array",
+          "description": "NPIs the user has curated from FindCare results for EvaluateCare handoff.",
+          "items": { "type": "string" }
         }
       }
     }
