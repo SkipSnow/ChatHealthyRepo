@@ -1198,145 +1198,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "DevOps/FindCareBackend/.dockerignore",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "ac2de72f51a815d5d4c3b2c16f8aa800a4c817c4b4f5e054218e300c661b47fa"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "DevOps/FindCareBackend/Dockerfile",
-          "handler_type": "dockerfile",
-          "disposition": "managed",
-          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\nCOPY DevOps/FindCareBackend/requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY Code/ConversationalUX/FindCareChat/backend /app/Code/ConversationalUX/FindCareChat/backend\nCOPY Code/Shared /app/Code/Shared\nCOPY Code/ConversationalUX/ChatHealthyWhoAmIChat/me /app/Code/ConversationalUX/ChatHealthyWhoAmIChat/me\nCOPY brain /app/brain\nCOPY FindCare /app/FindCare\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json /app/build_info.json\n\nWORKDIR /app/Code/ConversationalUX/FindCareChat/backend\nENV PORT=7860     SSL_CERTFILE=/certs/findcare.crt SSL_KEYFILE=/certs/findcare.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n",
-          "layout": [
-            {
-              "instruction": "BLANK",
-              "args": []
-            },
-            {
-              "instruction": "FROM",
-              "args": [
-                "python:3.12-slim"
-              ]
-            },
-            {
-              "instruction": "BLANK",
-              "args": []
-            },
-            {
-              "instruction": "WORKDIR",
-              "args": [
-                "/app"
-              ]
-            },
-            {
-              "instruction": "COPY",
-              "args": [
-                "DevOps/FindCareBackend/requirements.txt /app/requirements.txt"
-              ]
-            },
-            {
-              "instruction": "RUN",
-              "args": [
-                "pip install --no-cache-dir -r /app/requirements.txt"
-              ]
-            },
-            {
-              "instruction": "BLANK",
-              "args": []
-            },
-            {
-              "instruction": "COPY",
-              "args": [
-                "Code/ConversationalUX/FindCareChat/backend /app/Code/ConversationalUX/FindCareChat/backend"
-              ]
-            },
-            {
-              "instruction": "COPY",
-              "args": [
-                "Code/Shared /app/Code/Shared"
-              ]
-            },
-            {
-              "instruction": "COPY",
-              "args": [
-                "Code/ConversationalUX/ChatHealthyWhoAmIChat/me /app/Code/ConversationalUX/ChatHealthyWhoAmIChat/me"
-              ]
-            },
-            {
-              "instruction": "COPY",
-              "args": [
-                "brain /app/brain"
-              ]
-            },
-            {
-              "instruction": "COPY",
-              "args": [
-                "FindCare /app/FindCare"
-              ]
-            },
-            {
-              "instruction": "COPY",
-              "args": [
-                "FrontEndApplicationLib /app/FrontEndApplicationLib"
-              ]
-            },
-            {
-              "instruction": "RUN",
-              "args": [
-                "pip install --no-cache-dir /app/FrontEndApplicationLib"
-              ]
-            },
-            {
-              "instruction": "BLANK",
-              "args": []
-            },
-            {
-              "instruction": "COPY",
-              "args": [
-                "build_info.json /app/build_info.json"
-              ]
-            },
-            {
-              "instruction": "BLANK",
-              "args": []
-            },
-            {
-              "instruction": "WORKDIR",
-              "args": [
-                "/app/Code/ConversationalUX/FindCareChat/backend"
-              ]
-            },
-            {
-              "instruction": "ENV",
-              "args": [
-                "PORT=7860     SSL_CERTFILE=/certs/findcare.crt SSL_KEYFILE=/certs/findcare.key"
-              ]
-            },
-            {
-              "instruction": "EXPOSE",
-              "args": [
-                "7860"
-              ]
-            },
-            {
-              "instruction": "CMD",
-              "args": [
-                "[\"python\", \"app.py\"]"
-              ]
-            }
-          ]
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "DevOps/FindCareBackend/requirements.txt",
-          "handler_type": "python_requirements",
-          "disposition": "referenced",
-          "content_hash": "42470832aa604d26ec812086dd529692a03b558c946f78cebc89c83a93b9c0ea"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "FindCare/ProviderDetail/__init__.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -1669,6 +1530,27 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "d0b977f249b29035ce9902fef48680196fbd53702d26691e4bfe064c3f8fa56f"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "DevOps/FindCareBackend/.dockerignore",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "ac2de72f51a815d5d4c3b2c16f8aa800a4c817c4b4f5e054218e300c661b47fa"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "DevOps/FindCareBackend/Dockerfile",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "c158f42a2c266e5d5a1811bc30769cba91c1ba49b075a013c49f2664c2302a3f"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "DevOps/FindCareBackend/requirements.txt",
+          "handler_type": "python_requirements",
+          "disposition": "referenced",
+          "content_hash": "42470832aa604d26ec812086dd529692a03b558c946f78cebc89c83a93b9c0ea"
         }
       ],
       "secrets": {
