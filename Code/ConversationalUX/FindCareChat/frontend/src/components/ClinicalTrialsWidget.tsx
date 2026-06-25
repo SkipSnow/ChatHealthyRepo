@@ -64,6 +64,12 @@ function buildLeftPanel(
   if (ctx.sex) queryParts.push(`subject sex: ${ctx.sex}`)
   if (ctx.gender) queryParts.push(`subject gender: ${ctx.gender}`)
   if (ctx.user_location) queryParts.push(`location: ${ctx.user_location}`)
+  // REQ-B-067: scope segment is canonical in the header band; values
+  // map "us" → "US" and "international" → "international".
+  if (ctx.geographic_scope) {
+    const scopeLabel = ctx.geographic_scope === 'us' ? 'US' : ctx.geographic_scope
+    queryParts.push(`scope: ${scopeLabel}`)
+  }
   const queryStr = queryParts.join(', ')
   const end = pageStart + trials.length - 1
   const countStr = (typeof totalCount === 'number' && totalCount > 0)
@@ -230,6 +236,11 @@ export default function ClinicalTrialsWidget() {
   const prevCursorsRef = useRef<string[]>([])
   const lastQueryRef = useRef<any>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Tracks the most recent pagination direction so REQ-B-074's verb-context
+  // error overlay knows whether to say "load more" vs "go back to the
+  // previous page".
+  const lastPageDirectionRef = useRef<'next' | 'prev' | null>(null)
+  const pageCallIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     function postRender(target: string, content: string) {
@@ -316,6 +327,10 @@ export default function ClinicalTrialsWidget() {
             if (d.sex) parts.push(`subject sex: ${d.sex}`)
             if (d.gender) parts.push(`subject gender: ${d.gender}`)
             if (d.user_location) parts.push(`location: ${d.user_location}`)
+            if (d.geographic_scope) {
+              const sl = d.geographic_scope === 'us' ? 'US' : d.geographic_scope
+              parts.push(`scope: ${sl}`)
+            }
             const criteria = parts.join(', ')
             lastQueryRef.current = {
               condition: d.condition || '',
@@ -323,6 +338,7 @@ export default function ClinicalTrialsWidget() {
               age_years: d.age_years ?? null,
               sex: d.sex || null,
               gender: d.gender || null,
+              geographic_scope: d.geographic_scope || null,
             }
             startLoadingTimer(criteria || 'clinical trials', 1)
           }
@@ -381,11 +397,18 @@ export default function ClinicalTrialsWidget() {
           if (last.sex) parts.push(`subject sex: ${last.sex}`)
           if (last.gender) parts.push(`subject gender: ${last.gender}`)
           if (last.user_location) parts.push(`location: ${last.user_location}`)
+          if (last.geographic_scope) {
+            const sl = last.geographic_scope === 'us' ? 'US' : last.geographic_scope
+            parts.push(`scope: ${sl}`)
+          }
           startLoadingTimer(parts.join(', '), newPageStart)
           setPageStart(newPageStart)
+          lastPageDirectionRef.current = dir === 'next' ? 'next' : 'prev'
+          const callId = `trial-page-${Date.now()}`
+          pageCallIdRef.current = callId
           window.parent.postMessage({
             type: 'router:makeCall',
-            call_id: `trial-page-${Date.now()}`,
+            call_id: callId,
             op: 'clinical_trials_page',
             payload: {
               condition: last.condition,
@@ -398,6 +421,27 @@ export default function ClinicalTrialsWidget() {
             },
           }, '*')
         }
+      }
+
+      // REQ-B-074: pagination failure must render an overlay with a verb
+      // clause naming the user's intent ("load more clinical trials" /
+      // "go back to the previous page of clinical trials"). Only handle
+      // errors keyed to the most recent pagination call.
+      if (msg.type === 'router:error'
+          && msg.call_id
+          && msg.call_id === pageCallIdRef.current) {
+        stopLoadingTimer()
+        const dir = lastPageDirectionRef.current
+        const verb = dir === 'prev'
+          ? 'While trying to go back to the previous page of clinical trials'
+          : 'While trying to load more clinical trials'
+        const err = (msg.error || 'unknown error').toString()
+        postRender('MainWindow', `
+          <div style="padding:1.5em;color:#1f2937;">
+            <div style="color:#dc2626;font-weight:700;margin-bottom:0.5em;">${verb}:</div>
+            <div style="background:#fef2f2;color:#991b1b;padding:0.5em 0.75em;border-radius:0.25em;font-family:monospace;font-size:0.9em;">${err.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+          </div>
+        `)
       }
     }
 
