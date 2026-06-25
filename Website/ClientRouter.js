@@ -418,11 +418,16 @@
     }
   });
 
+  function getSessionGuid() {
+    return _sessionGuid;
+  }
+
   window.ClientRouter = {
     render: render,
     merge: merge,
     makeCall: makeCall,
     callTrivial: callTrivial,
     subscribe: subscribe,
+    getSessionGuid: getSessionGuid,
   };
 })();
