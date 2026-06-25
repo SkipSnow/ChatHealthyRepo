@@ -220,15 +220,23 @@ def _build_popup_close_html(
 </head><body>
 <p data-testid="oauth-popup-message">{safe_message}</p>
 <p style="color:#5f6368;">This window will close in a moment.</p>
+<p id="oauth-popup-status" style="color:#9aa0a6;font-size:0.85em;">(loading)</p>
 <script>
 (function() {{
   var payload = {body};
+  var status = document.getElementById('oauth-popup-status');
+  function log(s) {{ if (status) status.textContent = '[oauth-popup] ' + s; console.log('[oauth-popup]', s); }}
+  log('opener=' + String(window.opener) + ' opener.closed=' + (window.opener ? window.opener.closed : 'n/a'));
   try {{
     if (window.opener && !window.opener.closed) {{
+      log('posting to opener: ' + JSON.stringify(payload));
       window.opener.postMessage(payload, '*');
+      log('posted ok');
+    }} else {{
+      log('opener missing or closed — postMessage SKIPPED');
     }}
-  }} catch (e) {{ /* swallow */ }}
-  setTimeout(function() {{ window.close(); }}, 500);
+  }} catch (e) {{ log('postMessage threw: ' + (e && e.message)); }}
+  setTimeout(function() {{ window.close(); }}, 8000);
 }})();
 </script>
 </body></html>"""
