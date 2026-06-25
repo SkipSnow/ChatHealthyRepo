@@ -59,11 +59,6 @@ ENV_TO_WRAPPER_ORIGIN = {
     "local": "https://localhost",
 }
 
-CHATHEALTHY_USER_COOKIE_NAME = "ChatHealthyRegisteredUserCookie"
-CHATHEALTHY_USER_COOKIE_MAX_AGE = 5184000  # 60 days, per S-006-REQ-T-001
-CHATHEALTHY_USER_COOKIE_DOMAIN = "chathealthy.ai"
-CHATHEALTHY_USER_COOKIE_PATH = "/gate"
-
 # State param TTL.
 STATE_TTL_SECONDS = 600
 
@@ -161,19 +156,6 @@ def verify_state(state: str) -> dict:
     return payload
 
 
-def set_chathealthy_user_cookie(response: RedirectResponse, user_id: str) -> None:
-    response.set_cookie(
-        key=CHATHEALTHY_USER_COOKIE_NAME,
-        value=user_id,
-        max_age=CHATHEALTHY_USER_COOKIE_MAX_AGE,
-        secure=True,
-        httponly=True,
-        samesite="lax",
-        domain=CHATHEALTHY_USER_COOKIE_DOMAIN,
-        path=CHATHEALTHY_USER_COOKIE_PATH,
-    )
-
-
 async def _invoke_oauth_login_tool(
     server_env: str,
     session_guid: str,
@@ -257,12 +239,12 @@ def _wrap_invoke_into_html(
     landing_url: str, user_id: Optional[str],
     *, outcome: str, message: str, email: Optional[str],
 ):
-    response = _build_popup_close_html(
+    # Cookie-free: the OAuth popup posts {user_id, outcome, email} to its
+    # opener via postMessage; the wrapper page persists state how it
+    # chooses (e.g., sessionStorage). No long-lived browser cookie.
+    return _build_popup_close_html(
         outcome=outcome, message=message, email=email, user_id=user_id,
     )
-    if user_id:
-        set_chathealthy_user_cookie(response, user_id)
-    return response
 
 
 class GoogleOAuthEndpoint:
@@ -293,7 +275,6 @@ class GoogleOAuthEndpoint:
         code: Optional[str],
         state: Optional[str],
         server_env: str,
-        session_guid: Optional[str],
         error: Optional[str] = None,
     ):
         def _fail_popup(tag: str, message: str):
@@ -330,13 +311,11 @@ class GoogleOAuthEndpoint:
                 "state_invalid", "OAuth state verification failed",
             )
 
-        state_session_guid = state_payload.get("session_guid")
-        if state_session_guid:
-            session_guid = state_session_guid
+        session_guid = state_payload.get("session_guid")
         if not session_guid:
             return _fail_popup(
-                "missing_session_cookie",
-                "OAuth callback missing session identifier",
+                "missing_session_guid",
+                "OAuth callback state did not carry a session identifier",
             )
 
         resp = await _invoke_oauth_login_tool(

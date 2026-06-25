@@ -137,15 +137,14 @@
           if (iframe && window._envServiceUrls.findcare) {
             iframe.src = window._envServiceUrls.findcare;
           }
-          // Eager user_object mint at page load (matches the prod wrapper's
-          // /entrance behavior pre-port). Without this, the user_object is
-          // minted lazily on the first user gesture; a visitor who lands
-          // and just looks is invisible to SharedServices — no
-          // admin.sessions row, no registered-user cookie writeback, no
-          // identity in the banner. The boot op handler ([UR._handle_boot])
-          // mints/restores the user_object, persists it, sets the cookie,
-          // and streams kind:'boot'. Fire-and-forget; widgets that need
-          // the session GUID will get it via the cookie on subsequent calls.
+          // Eager user_object mint at page load. Without this, the
+          // user_object is minted lazily on the first user gesture; a
+          // visitor who lands and just looks is invisible to SharedServices
+          // — no admin.sessions row, no identity in the banner. The boot
+          // op handler (UR._handle_boot) mints/restores the user_object,
+          // persists it, and streams kind:'boot' carrying the session
+          // GUID. ClientRouter captures the GUID from that event and
+          // threads it as body.prior_guid on every subsequent call.
           if (window.ClientRouter && typeof window.ClientRouter.makeCall === 'function') {
             window.ClientRouter.makeCall({ op: 'boot', payload: {} });
           }

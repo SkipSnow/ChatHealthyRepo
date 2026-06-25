@@ -261,11 +261,13 @@
     if (_sessionGuid) body.prior_guid = _sessionGuid;
     return fetch(url, {
       method: 'POST',
-      // Cross-origin: wrapper is https://localhost (443), SS is
-      // https://localhost:8002. Default 'omit' strips the ch_session
-      // cookie and SS mints a fresh user_object on every call. 'include'
-      // sends + accepts cookies cross-origin so the GUID survives.
-      credentials: 'include',
+      // No credentials:'include' on the fetch. HF Spaces' edge proxy
+      // strips Access-Control-Allow-Credentials from the OPTIONS
+      // preflight response, which blocks credentialed cross-origin
+      // requests entirely. We thread the session GUID via the body-level
+      // `prior_guid` field instead — SS reads it at app.py /gate.
+      // Works on both local (cross-port) and dev/qa/prod (cross-domain).
+      // No cookies anywhere in the architecture.
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/x-ndjson',
@@ -323,7 +325,10 @@
     if (_sessionGuid) body.prior_guid = _sessionGuid;
     return fetch(url, {
       method: 'POST',
-      credentials: 'include',
+      // No credentials:'include' for the same reason as makeCall —
+      // see comment there. peer_urls (the typical caller) doesn't
+      // need session continuity anyway; prior_guid in the body
+      // covers any trivial op that does.
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }).then(function (resp) {

@@ -28,7 +28,7 @@ import sys
 import tempfile
 import time
 
-from fastapi import Body, Cookie, FastAPI, Form as FormBody, Request, Response
+from fastapi import Body, FastAPI, Form as FormBody, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -138,10 +138,6 @@ UNIVERSAL_NAV_TOOL = nav.TOOL
 
 ORIGIN = "SharedServices"
 ENV = os.getenv("ENV_PREFIX", "dev")
-SESSION_COOKIE_NAME = "ch_session"
-SESSION_COOKIE_MAX_AGE = 300
-SESSION_COOKIE_DOMAIN = "chathealthy.ai"
-SESSION_COOKIE_PATH = "/gate"
 
 # Browser-facing peer URLs the wrapper consumes from /gate (op=peer_urls
 # or /gate boot response) so iframe.src and peer-health lookups never
@@ -180,34 +176,6 @@ def health():
 # ─────────────────────────────────────────────────────────────────────
 # /gate — the universal entrance. Streams NDJSON.
 # ─────────────────────────────────────────────────────────────────────
-
-def set_session_cookie(response: Response, cookie_value: str) -> None:
-    """REQ-T-001 + REQ-T-002.
-
-    Cookie attributes: Secure, HttpOnly, Max-Age=300, SameSite=None,
-    Domain=chathealthy.ai, Path=/gate. Value is the 67-byte session-token
-    assembly per REQ-B-007 (assembled inside UniversalNavigationTool's
-    orchestrator; this thin wrapper just puts it on the HTTP response).
-
-    The Domain attribute is included on every response regardless of host
-    so the header satisfies REQ-T-001 byte-for-byte. Browsers that reach
-    the endpoint via a host that does NOT match chathealthy.ai (localhost
-    during smoke runs; the bare HF Space hostname) will silently drop the
-    cookie. That is expected — production traffic reaches /gate at
-    *.chathealthy.ai by way of the Pages Function fronting the HF Space,
-    where the Domain attribute lines up with the browser-visible host.
-    """
-    response.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=cookie_value,
-        max_age=SESSION_COOKIE_MAX_AGE,
-        httponly=True,
-        secure=True,
-        samesite="none",
-        domain=SESSION_COOKIE_DOMAIN,
-        path=SESSION_COOKIE_PATH,
-    )
-
 
 _TRIVIAL_GATE_OPS = frozenset({
     "peer_urls", "peer_health", "session", "verify_token", "transfer_to_findcare",
@@ -358,36 +326,30 @@ async def _dispatch_trivial_gate_op(op: str, payload: dict) -> dict:
 async def gate(
     request: Request,
     body: dict | None = Body(default=None),
-    ch_session: str | None = Cookie(default=None),
 ):
     """Single entrance for every client call.
 
-    HTTP plumbing only: parse the POST body + cookies, hand off to
+    HTTP plumbing only: parse the POST body, hand off to
     UniversalNavigationTool.handle_gate for all orchestration, then
     shape the returned GateResponse into a FastAPI response (Streaming,
-    bytes-NDJSON, or JSON) and stamp the session cookie.
+    bytes-NDJSON, or JSON).
+
+    Session continuity comes from the body-level `prior_guid` field
+    ClientRouter threads from its in-memory `_sessionGuid`. Cookies are
+    no longer used — HuggingFace Spaces' edge proxy strips the
+    Access-Control-Allow-Credentials header on OPTIONS preflights, which
+    breaks credentialed cross-origin requests. Body-level GUID threading
+    works the same on local, dev, qa, and prod.
     """
     payload = dict(body or {})
     op = str(payload.get("op") or "boot")
     op_payload = payload.get("payload") or {}
     intent = payload.get("intent")
-    # ch_session cookie value carries the 67-byte assembled session token
-    # per REQ-B-007. The first 32 bytes are the GUID.
-    prior_guid = None
-    prior_guid_source = "none"
-    if ch_session and len(ch_session) >= 32:
-        prior_guid = ch_session[:32]
-        prior_guid_source = "cookie"
-    elif payload.get("prior_guid"):
-        prior_guid = payload.get("prior_guid")
-        prior_guid_source = "body"
+    prior_guid = payload.get("prior_guid") or None
     log.debug(
-        "/gate ENTRY op=%s intent=%r prior_guid=%s source=%s "
-        "(cookie_present=%s body_keys=%s)",
+        "/gate ENTRY op=%s intent=%r prior_guid=%s body_keys=%s",
         op, intent,
         (prior_guid[:8] + "..." if prior_guid else None),
-        prior_guid_source,
-        bool(ch_session),
         sorted(list(payload.keys())),
     )
 
@@ -402,19 +364,10 @@ async def gate(
 
     # Trivial ops dispatched inline (EPIC-002-F-004-S-001): no graph
     # invocation, no nonce machinery. peer_urls + peer_health + session +
-    # verify_token + transfer_to_findcare all return immediately. Cookie
-    # pass-through preserves whatever ch_session the wrapper already holds.
+    # verify_token + transfer_to_findcare all return immediately.
     if op in _TRIVIAL_GATE_OPS:
         body_dict = await _dispatch_trivial_gate_op(op, op_payload)
-        resp = JSONResponse(content=body_dict)
-        if ch_session:
-            resp.set_cookie(
-                key=SESSION_COOKIE_NAME, value=ch_session,
-                max_age=SESSION_COOKIE_MAX_AGE,
-                httponly=True, secure=True, samesite="none",
-                domain=SESSION_COOKIE_DOMAIN, path=SESSION_COOKIE_PATH,
-            )
-        return resp
+        return JSONResponse(content=body_dict)
 
     try:
         gate_req = nav.GateRequest(
@@ -441,7 +394,6 @@ async def gate(
             _gate_log_json_complete(op)
             resp = JSONResponse(content=gate_resp.body_data)
 
-        set_session_cookie(resp, gate_resp.cookie_value)
         return resp
     except Exception as exc:
         # REQ-T-009: any /gate exception MUST log the full stack with the
@@ -525,11 +477,11 @@ def fake_google_token(
          openapi_extra=impl("GoogleOAuthEndpoint", "authentication/google_oauth_endpoint.py"))
 async def google_oauth_callback(
     code: str = None, state: str = None, error: str = None,
-    ch_session: str | None = Cookie(default=None),
 ):
+    # session_guid is recovered from the HMAC-signed OAuth state parameter
+    # (see GoogleOAuthEndpoint.build_state / verify_state). No cookies used.
     return await GoogleOAuthEndpoint.callback(
-        code=code, state=state, server_env=ENV,
-        session_guid=(ch_session[:32] if ch_session else None), error=error,
+        code=code, state=state, server_env=ENV, error=error,
     )
 
 
