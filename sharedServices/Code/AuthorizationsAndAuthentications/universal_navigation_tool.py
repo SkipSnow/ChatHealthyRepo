@@ -122,9 +122,6 @@ class GateRequest:
 class GateResponse:
     """What the orchestrator returns to /gate.
 
-    cookie_value: the 67-byte session-token bytes (`ch_session` cookie
-    value). /gate puts it on the HTTP Response via `set_cookie`.
-
     body_kind == 'ndjson_stream' → body_data is an async iterator of
     bytes; /gate returns StreamingResponse(body_data).
 
@@ -133,8 +130,11 @@ class GateResponse:
     Response(content=body_data, media_type='application/x-ndjson').
 
     body_kind == 'json' → body_data is a dict; /gate returns it as JSON.
+
+    Session continuity is carried client-side: ClientRouter holds the
+    session GUID in JavaScript memory and threads it as body.prior_guid
+    on every /gate POST. No HTTP cookie is set or read.
     """
-    cookie_value: str
     body_kind: Literal["ndjson_stream", "ndjson_bytes", "json"]
     body_data: Any
 
@@ -145,17 +145,6 @@ class GateResponse:
 # (login-register short-circuit, final-event projection) can use them
 # without instantiating UR.
 # ────────────────────────────────────────────────────────────────────
-
-
-def assemble_session_token_value(user_object: UserObject) -> str:
-    """Assemble the 67-byte ch_session cookie value per
-    EPIC-002-F-003-S-003-REQ-B-007: GUID(32) + first_stamp(17) + 'X'
-    + second_stamp(17).
-    """
-    st = user_object.current_session_token
-    guid = st.get_auth_token()              # 32 bytes
-    nonce_field = st.get_nonce()            # 17 + 1 + 17 = 35 bytes
-    return f"{guid}{nonce_field}"           # 67 bytes
 
 
 def time_remaining_seconds(user_object: UserObject) -> int:
@@ -1314,7 +1303,6 @@ class UniversalNavigationTool(ChatHealthyTool):
         user_object = authn_resp.user_object
         fresh_mint = authn_resp.fresh_mint
         guid = user_object.current_session_token.get_auth_token()
-        cookie_value = assemble_session_token_value(user_object)
 
         # Bind the user_object's GUID to the logging context for this
         # async task. Every log emitted from here on (handle_gate +
@@ -1454,7 +1442,6 @@ class UniversalNavigationTool(ChatHealthyTool):
                     yield (json.dumps(item, default=str) + "\n").encode("utf-8")
 
             return GateResponse(
-                cookie_value=cookie_value,
                 body_kind="ndjson_stream",
                 body_data=_event_stream(),
             )
@@ -1469,7 +1456,6 @@ class UniversalNavigationTool(ChatHealthyTool):
             if isinstance(item, dict) and item.get("kind") == "final":
                 final_event = item
         return GateResponse(
-            cookie_value=cookie_value,
             body_kind="json",
             body_data=final_event or {},
         )
