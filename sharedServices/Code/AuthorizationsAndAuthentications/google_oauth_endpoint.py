@@ -256,8 +256,21 @@ class GoogleOAuthEndpoint:
         session_guid: Optional[str] = None,
         flow: str = "login",
     ) -> RedirectResponse:
+        # Audit: distinguish a wrapper that sent a real session_guid from
+        # one that sent empty/none and forced the server to synthesize.
+        # The synthesize case is a wrapper-side bug — the callback will
+        # later raise oauth_login_no_session_for_callback because the
+        # synthesized GUID has no admin.sessions row.
+        client_supplied = bool(session_guid)
+        client_guid_len = len(session_guid or "")
         if not session_guid:
             session_guid = secrets.token_hex(16)
+        log.info(
+            "OAUTH-START session_guid client_supplied=%s client_len=%d "
+            "used_prefix=%s flow=%s server_env=%s",
+            client_supplied, client_guid_len,
+            session_guid[:8] + "...", flow, server_env,
+        )
         resp = await _invoke_oauth_login_tool(
             server_env, session_guid, phase="start", flow=flow,
         )

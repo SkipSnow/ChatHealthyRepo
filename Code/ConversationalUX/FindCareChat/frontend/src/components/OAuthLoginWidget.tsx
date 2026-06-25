@@ -20,9 +20,14 @@ const START_LOGIN_REGISTER_JS = `
       return;
     }
     var sharedUrl = (window._envServiceUrls || {}).sharedservices || 'https://localhost:8002';
+    // Session GUID lives in ClientRouter._sessionGuid, captured from /gate
+    // stream events. The old _authBoot.token mechanism is dead in the new
+    // architecture; reading it would yield an empty string and the OAuth
+    // callback would later 500 with oauth_login_no_session_for_callback.
     var sessionGuid = '';
-    var tok = window._authBoot && window._authBoot.token;
-    if (tok && tok.length >= 32) sessionGuid = tok.slice(-32);
+    if (window.ClientRouter && typeof window.ClientRouter.getSessionGuid === 'function') {
+      sessionGuid = window.ClientRouter.getSessionGuid() || '';
+    }
     var popupName = 'chathealthy-oauth';
     window.open('about:blank', popupName,
       'width=520,height=680,resizable=yes,scrollbars=yes');
