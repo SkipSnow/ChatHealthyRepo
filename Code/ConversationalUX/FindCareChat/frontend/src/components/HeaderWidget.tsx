@@ -57,13 +57,13 @@ function buildHeaderHtml(): string {
   `
 }
 
-// Success/fail palette is 30% lighter than the prior banner colors so it
-// reads as informational, not as an alert. Close button is mounted via
-// data-router-action='oauth_banner_close' so ClientRouter binds it; on
-// click the listener re-paints the normal header.
+// Banner colors are 30% lighter than the prior teal/red so the post-login
+// state reads as informational. Close button uses data-router-action
+// 'oauth_banner_close' so ClientRouter binds its click; the action lands
+// back on HeaderWidget and triggers the normal-header repaint.
 function buildAuthBannerHtml(outcome: string, message: string): string {
   const bg = outcome === 'success' ? '#54a29e' : '#e76b6b'
-  const safe = String(message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const safe = String(message || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   return `
     <div style="display:flex;align-items:center;justify-content:center;gap:1em;height:100%;
                 background:${bg};color:#fff;padding:0 1.5em;font-weight:600;font-size:1em;
@@ -80,6 +80,7 @@ function buildAuthBannerHtml(outcome: string, message: string): string {
 export default function HeaderWidget() {
   useEffect(() => {
     function paintNormal() {
+      console.log('[HeaderWidget] paint normal header')
       window.parent.postMessage({
         type: 'router:render',
         target: TARGET,
@@ -93,12 +94,8 @@ export default function HeaderWidget() {
     function onMessage(ev: MessageEvent) {
       const msg = ev.data
       if (!msg || typeof msg !== 'object') return
-      // Popup-close postMessage from /auth/google/callback. The popup
-      // posts {type:'oauth_login_result', outcome, message, email,
-      // user_id}. Replace the header with a status banner; the close
-      // button in the banner fires 'oauth_banner_close' which we catch
-      // below to restore the normal header.
       if (msg.type === 'oauth_login_result') {
+        console.log('[HeaderWidget] received oauth_login_result', msg)
         window.parent.postMessage({
           type: 'router:render',
           target: TARGET,
@@ -109,6 +106,7 @@ export default function HeaderWidget() {
         return
       }
       if (msg.type === 'router:action' && msg.action === 'oauth_banner_close') {
+        console.log('[HeaderWidget] oauth_banner_close clicked')
         paintNormal()
       }
     }
