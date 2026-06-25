@@ -415,6 +415,14 @@
       window['__unsub_' + msg.kind] = unsub;
     } else if (msg.type === 'router:exec') {
       try { new Function(String(msg.code || ''))(); } catch (_) {}
+    } else if (msg.type === 'oauth_login_result') {
+      // The OAuth callback popup posts this to its opener (the wrapper).
+      // Forward into the chat iframe so React widgets (HeaderWidget) can
+      // react to it — repaint the header as a status banner, etc.
+      var ifr = document.querySelector('iframe[data-frame="MainWindow"]');
+      if (ifr && ifr.contentWindow) {
+        ifr.contentWindow.postMessage(msg, '*');
+      }
     }
   });
 

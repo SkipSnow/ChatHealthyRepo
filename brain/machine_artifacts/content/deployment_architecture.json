@@ -1012,7 +1012,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/static/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "149bbd8697eaf4a17e342984c83cb62312a65153958bd58f24b0823822c92914"
+          "content_hash": "c4853367588d082a697104788e5e5e0a83d55247fd35927311895f38e284122a"
         },
         {
           "feature_id": "EPIC-008-F-012",
