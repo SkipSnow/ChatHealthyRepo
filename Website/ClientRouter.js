@@ -419,9 +419,13 @@
       // The OAuth callback popup posts this to its opener (the wrapper).
       // Forward into the chat iframe so React widgets (HeaderWidget) can
       // react to it — repaint the header as a status banner, etc.
+      console.log('[ClientRouter] received oauth_login_result, forwarding', msg);
       var ifr = document.querySelector('iframe[data-frame="MainWindow"]');
       if (ifr && ifr.contentWindow) {
         ifr.contentWindow.postMessage(msg, '*');
+        console.log('[ClientRouter] forwarded to iframe', ifr);
+      } else {
+        console.warn('[ClientRouter] no iframe found, cannot forward');
       }
     }
   });
