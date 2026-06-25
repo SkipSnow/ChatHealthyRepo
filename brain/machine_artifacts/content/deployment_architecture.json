@@ -1012,7 +1012,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/backend/static/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "502997d725b826db4bf0ae18a2b3df5a8dacf6aba4c9765e0d7b241b1ca85780"
+          "content_hash": "149bbd8697eaf4a17e342984c83cb62312a65153958bd58f24b0823822c92914"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2242,7 +2242,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "47c30192880fd6a63a7a2b444b11328eebc854718c1f90985964b5bd1b0d1c74"
+          "content_hash": "7b0168bef9019f90c4a162ca58d6b704a3c4f406063de29fc58490a21c66e88e"
         },
         {
           "feature_id": "EPIC-008-F-012",
