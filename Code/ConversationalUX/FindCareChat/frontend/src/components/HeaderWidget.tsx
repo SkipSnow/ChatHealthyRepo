@@ -57,15 +57,63 @@ function buildHeaderHtml(): string {
   `
 }
 
+// Success/fail palette is 30% lighter than the prior banner colors so it
+// reads as informational, not as an alert. Close button is mounted via
+// data-router-action='oauth_banner_close' so ClientRouter binds it; on
+// click the listener re-paints the normal header.
+function buildAuthBannerHtml(outcome: string, message: string): string {
+  const bg = outcome === 'success' ? '#54a29e' : '#e76b6b'
+  const safe = String(message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return `
+    <div style="display:flex;align-items:center;justify-content:center;gap:1em;height:100%;
+                background:${bg};color:#fff;padding:0 1.5em;font-weight:600;font-size:1em;
+                box-shadow:0 0.125em 0.25em rgba(0,0,0,0.15);">
+      <span>${safe}</span>
+      <button type="button" data-router-action="oauth_banner_close"
+              style="background:rgba(255,255,255,0.2);color:#fff;border:0.0625em solid #fff;
+                     border-radius:0.25em;padding:0.3em 0.8em;cursor:pointer;font-size:0.9em;
+                     font-weight:600;">close</button>
+    </div>
+  `
+}
+
 export default function HeaderWidget() {
   useEffect(() => {
-    window.parent.postMessage({
-      type: 'router:render',
-      target: TARGET,
-      append: false,
-      popup: false,
-      content: buildHeaderHtml(),
-    }, '*')
+    function paintNormal() {
+      window.parent.postMessage({
+        type: 'router:render',
+        target: TARGET,
+        append: false,
+        popup: false,
+        content: buildHeaderHtml(),
+      }, '*')
+    }
+    paintNormal()
+
+    function onMessage(ev: MessageEvent) {
+      const msg = ev.data
+      if (!msg || typeof msg !== 'object') return
+      // Popup-close postMessage from /auth/google/callback. The popup
+      // posts {type:'oauth_login_result', outcome, message, email,
+      // user_id}. Replace the header with a status banner; the close
+      // button in the banner fires 'oauth_banner_close' which we catch
+      // below to restore the normal header.
+      if (msg.type === 'oauth_login_result') {
+        window.parent.postMessage({
+          type: 'router:render',
+          target: TARGET,
+          append: false,
+          popup: false,
+          content: buildAuthBannerHtml(msg.outcome, msg.message),
+        }, '*')
+        return
+      }
+      if (msg.type === 'router:action' && msg.action === 'oauth_banner_close') {
+        paintNormal()
+      }
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
   }, [])
   return null
 }
