@@ -68,17 +68,13 @@ class PromptSystemMaker:
         _log.warning("Record '%s' not found in collection '%s'", record_id, collection)
         return {}
 
-    # ------------------------------------------------------------------
-    # Emergency keywords
-    # Source: brain/machine_artifacts/content/controlled_vocabularies.json (CV-006)
-    # Fallback: brain/machine_artifacts/content/emergency_keywords.json
+    # Emergency keywords — CV-006 in controlled_vocabularies.json only.
     # ------------------------------------------------------------------
     def load_emergency_keywords(self) -> list[str]:
         """Load flat list of emergency keywords from controlled vocabulary CV-006."""
         if self._emergency_keywords is not None:
             return self._emergency_keywords
 
-        # Primary: controlled_vocabularies.json CV-006
         cv_path = self._brain / "machine_artifacts" / "content" / "controlled_vocabularies.json"
         try:
             with open(cv_path, "r", encoding="utf-8") as f:
@@ -92,25 +88,13 @@ class PromptSystemMaker:
         except Exception as exc:
             _log.warning("Failed to load CV-006 from controlled_vocabularies: %s", exc)
 
-        # Fallback: emergency_keywords.json (legacy format)
-        ek_path = self._brain / "machine_artifacts" / "content" / "emergency_keywords.json"
-        try:
-            with open(ek_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            keywords = []
-            for category_list in data.get("categories", {}).values():
-                keywords.extend(category_list)
-            self._emergency_keywords = keywords
-            _log.info("Loaded %d emergency keywords from fallback %s", len(keywords), ek_path)
-            return keywords
-        except Exception as exc:
-            _log.warning("Failed to load emergency keywords: %s — using defaults", exc)
-            self._emergency_keywords = [
-                "chest pain", "heart attack", "can't breathe", "stroke",
-                "severe bleeding", "unconscious", "overdose", "suicide",
-                "seizure", "anaphylaxis", "choking",
-            ]
-            return self._emergency_keywords
+        _log.warning("Using built-in emergency keyword defaults")
+        self._emergency_keywords = [
+            "chest pain", "heart attack", "can't breathe", "stroke",
+            "severe bleeding", "unconscious", "overdose", "suicide",
+            "seizure", "anaphylaxis", "choking",
+        ]
+        return self._emergency_keywords
 
     # ------------------------------------------------------------------
     # Tool definitions — Anthropic format

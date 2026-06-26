@@ -1,6 +1,6 @@
 """scan_deliberate_raises_enforcement_worker.py — Rule-003 worker.
 
-Enforces EPIC-003-F-003-S-001-REQ-B-006: deliberate raises in our
+Enforces EPIC-008-F-002-S-009-REQ-B-006: deliberate raises in our
 authored Python code MUST use ChatHealthyException with a mode
 discriminator, not built-in exception types.
 
@@ -162,7 +162,7 @@ class ScanDeliberateRaisesEnforcementWorker(EnforcementWorker):
                 resource=f"{file_path}:{lineno}",
                 message=(
                     f"deliberate raise of built-in {name!r}; "
-                    f"EPIC-003-F-003-S-001-REQ-B-002 forbids this — use "
+                    f"EPIC-008-F-002-S-009-REQ-B-002 forbids this — use "
                     f"ChatHealthyException(mode=..., message=...) instead. "
                     f"(staged count={len(staged_hits)}, HEAD count="
                     f"{len(head_hits)})"

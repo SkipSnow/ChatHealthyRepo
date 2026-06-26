@@ -198,60 +198,39 @@ async def _invoke_oauth_login_tool(
     return await OAUTH_LOGIN_TOOL.run(deps, req)
 
 
-def _build_popup_close_html(
-    *, outcome: str, message: str, email: Optional[str], user_id: Optional[str],
-) -> "HTMLResponse":
-    """Return an HTML page that posts the outcome back to the opener
-    window and closes the popup. Used to land OAuth callback results into
-    the wrapper while keeping the popup pattern symmetrical with how real
-    Google OAuth popup flows return control to the parent window."""
-    from fastapi.responses import HTMLResponse
-    import json as _json
-    body = _json.dumps({
-        "type": "oauth_login_result",
-        "outcome": outcome,
-        "message": message,
-        "email": email,
-        "user_id": user_id,
-    })
-    safe_message = (message or "").replace("<", "&lt;").replace(">", "&gt;")
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"><title>Signing in...</title>
-<style>body{{font-family:Roboto,Arial,sans-serif;text-align:center;padding:3em;color:#202124;}}</style>
-</head><body>
-<p data-testid="oauth-popup-message">{safe_message}</p>
-<p style="color:#5f6368;">This window will close in a moment.</p>
-<p id="oauth-popup-status" style="color:#9aa0a6;font-size:0.85em;">(loading)</p>
-<script>
-(function() {{
-  var payload = {body};
-  var status = document.getElementById('oauth-popup-status');
-  function log(s) {{ if (status) status.textContent = '[oauth-popup] ' + s; console.log('[oauth-popup]', s); }}
-  log('opener=' + String(window.opener) + ' opener.closed=' + (window.opener ? window.opener.closed : 'n/a'));
-  try {{
-    if (window.opener && !window.opener.closed) {{
-      log('posting to opener: ' + JSON.stringify(payload));
-      window.opener.postMessage(payload, '*');
-      log('posted ok');
-    }} else {{
-      log('opener missing or closed — postMessage SKIPPED');
-    }}
-  }} catch (e) {{ log('postMessage threw: ' + (e && e.message)); }}
-  setTimeout(function() {{ window.close(); }}, 8000);
-}})();
-</script>
-</body></html>"""
-    return HTMLResponse(html)
+def _popup_close_redirect(server_env: str) -> RedirectResponse:
+    """Redirect the popup back to the wrapper origin with a query flag
+    the wrapper page reads to close itself. No HTML in this module —
+    display semantics (including the window.close call) live in the
+    wrapper page's React-driven layer."""
+    target = wrapper_origin(server_env) + "/?oauth_popup_close=1"
+    return RedirectResponse(target, status_code=302)
 
 
-def _wrap_invoke_into_html(
-    landing_url: str, user_id: Optional[str],
-    *, outcome: str, message: str, email: Optional[str],
-):
-    # Cookie-free: the OAuth popup posts {user_id, outcome, email} to its
-    # opener via postMessage; the wrapper page persists state how it
-    # chooses (e.g., sessionStorage). No long-lived browser cookie.
-    return _build_popup_close_html(
-        outcome=outcome, message=message, email=email, user_id=user_id,
+def _persist_oauth_result(
+    session_guid: str, *,
+    outcome: str, message: str, email: Optional[str], user_id: Optional[str],
+) -> None:
+    """Stash the OAuth result on the user_object so the React
+    HeaderWidget can poll it via claim_oauth_result and render the banner.
+    No HTML in this path — pure structured data."""
+    from authentication.authorizations_and_authentications_tool import (
+        get_mongo_frontend, SESSION_DB, SESSION_COLLECTION,
+    )
+    coll = get_mongo_frontend()[SESSION_DB][SESSION_COLLECTION]
+    coll.update_one(
+        {"_id": session_guid},
+        {"$set": {"pending_oauth_result": {
+            "outcome": outcome,
+            "message": message,
+            "email": email,
+            "user_id": user_id,
+        }}},
+        upsert=False,
+    )
+    log.info(
+        "OAUTH-PERSIST result session_prefix=%s outcome=%s email=%s",
+        session_guid[:8] + "...", outcome, email,
     )
 
 
@@ -283,11 +262,11 @@ class GoogleOAuthEndpoint:
             server_env, session_guid, phase="start", flow=flow,
         )
         if resp.outcome != "redirect" or not resp.authz_url:
-            return _build_popup_close_html(
-                outcome="fail",
-                message="OAuth start failed",
-                email=None, user_id=None,
+            _persist_oauth_result(
+                session_guid, outcome="fail",
+                message="OAuth start failed", email=None, user_id=None,
             )
+            return _popup_close_redirect(server_env)
         return RedirectResponse(resp.authz_url, status_code=302)
 
     @staticmethod
@@ -298,25 +277,27 @@ class GoogleOAuthEndpoint:
         server_env: str,
         error: Optional[str] = None,
     ):
-        def _fail_popup(tag: str, message: str):
+        def _fail_popup(tag: str, message: str, session_guid: Optional[str]):
             log.warning("OAUTH-CALLBACK fail tag=%s", tag)
-            return _build_popup_close_html(
-                outcome="fail", message=message, email=None, user_id=None,
-            )
+            if session_guid:
+                _persist_oauth_result(
+                    session_guid, outcome="fail",
+                    message=message, email=None, user_id=None,
+                )
+            return _popup_close_redirect(server_env)
 
         if error:
-            return _fail_popup(error, f"Google returned error: {error}")
+            return _fail_popup(error, f"Google returned error: {error}", None)
         if not code or not state:
             return _fail_popup(
                 "missing_code_or_state",
                 "OAuth callback missing code or state parameter",
+                None,
             )
 
         try:
             state_payload = verify_state(state)
         except HTTPException as e:
-            # Mode 2 (REQ-B-008): state-verification failure during OAuth
-            # callback → user can't complete auth. log.error always.
             log.error(
                 "OAUTH-CALLBACK state_invalid detail=%s",
                 e.detail,
@@ -329,7 +310,7 @@ class GoogleOAuthEndpoint:
                 if_not_debug_log=True,
             )
             return _fail_popup(
-                "state_invalid", "OAuth state verification failed",
+                "state_invalid", "OAuth state verification failed", None,
             )
 
         session_guid = state_payload.get("session_guid")
@@ -337,16 +318,18 @@ class GoogleOAuthEndpoint:
             return _fail_popup(
                 "missing_session_guid",
                 "OAuth callback state did not carry a session identifier",
+                None,
             )
 
         resp = await _invoke_oauth_login_tool(
             server_env, session_guid,
             phase="callback", oauth_code=code, oauth_state=state,
         )
-        return _wrap_invoke_into_html(
-            landing_url=wrapper_origin(server_env),
-            user_id=(resp.user_id if resp.outcome == "success" else None),
+        _persist_oauth_result(
+            session_guid,
             outcome=resp.outcome,
             message=resp.user_facing_message,
             email=resp.public_username,
+            user_id=(resp.user_id if resp.outcome == "success" else None),
         )
+        return _popup_close_redirect(server_env)

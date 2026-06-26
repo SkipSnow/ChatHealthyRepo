@@ -297,6 +297,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         "clinical_trials_page": "_handle_clinical_trials_page",
         "about_chathealthy":    "_handle_about_chathealthy",
         "provider_selection":   "_handle_provider_selection",
+        "claim_oauth_result":   "_handle_claim_oauth_result",
     }
 
     async def run(self, deps: AgentDeps, request: "Request") -> "Response":
@@ -599,6 +600,38 @@ class UniversalNavigationTool(ChatHealthyTool):
         req = about_chathealthy_tool.Request(**(payload or {}))
         await about_chathealthy_tool.TOOL.run_and_log(deps, req)
         return Response(kind="about_chathealthy", result={"ok": True})
+
+    async def _handle_claim_oauth_result(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """Pop the OAuth result the callback stashed on user_object.
+        Returns {result: {...}} for the React HeaderWidget to render its
+        banner, then clears the field so the next poll returns nothing.
+        Pure structured-data path: no HTML anywhere.
+
+        Atomic find_one_and_update: claim and clear in one Mongo round-trip
+        so a concurrent /gate save with a snapshot of the user_object from
+        before the OAuth-callback persist cannot overwrite the persisted
+        result. The user_object's in-memory pending_oauth_result is also
+        cleared so the request-end save (write_session_record) doesn't put
+        it back.
+        """
+        from pymongo import ReturnDocument
+        from authentication.authorizations_and_authentications_tool import (
+            SESSION_DB, SESSION_COLLECTION,
+        )
+        user_obj = deps.user_object
+        guid = user_obj.current_session_token.get_auth_token()
+        coll = deps.mongo_frontend[SESSION_DB][SESSION_COLLECTION]
+        before = coll.find_one_and_update(
+            {"_id": guid, "pending_oauth_result": {"$ne": None}},
+            {"$set": {"pending_oauth_result": None}},
+            projection={"pending_oauth_result": 1},
+            return_document=ReturnDocument.BEFORE,
+        )
+        result = before.get("pending_oauth_result") if before else None
+        user_obj.pending_oauth_result = None
+        data = {"result": result}
+        deps.stream({"kind": "oauth_result", "data": data})
+        return Response(kind="claim_oauth_result", result=data)
 
     async def _handle_provider_selection(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         """Thin pass-through to ProviderSelectionTool. Tool mutates
@@ -935,7 +968,7 @@ class UniversalNavigationTool(ChatHealthyTool):
     async def _dispatch_llm_unavailable_dialogue(
         self, deps: AgentDeps, exc: ChatHealthyException,
     ) -> None:
-        """Rung 2 of the failure ladder (EPIC-003-F-003-S-001-REQ-B-007).
+        """Rung 2 of the failure ladder (EPIC-008-F-002-S-009-REQ-B-007).
 
         UM's classifier or apply_filter LLM call exhausted retries against
         an LLM provider. Re-dispatch UM with a manufacture trigger so it

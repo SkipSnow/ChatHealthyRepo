@@ -873,7 +873,7 @@ def main():
          "      - 'Code/ConversationalUX/ChatHealthyWhoAmIChat/me/**'\n"
          "      - 'Code/Shared/ChatHealthyMongoUtilities.py'\n"
          "      - 'Code/Shared/prompt_system_maker.py'\n"
-         "      - 'brain/machine_artifacts/content/emergency_keywords.json'\n"
+         "      - 'brain/machine_artifacts/content/controlled_vocabularies.json'  # CV-006 emergency_keywords\n"
          "      - '.github/workflows/deploy-findcare-backend.yml'\n"
          "\n"
          "  # AFTER\n"
@@ -884,7 +884,7 @@ def main():
          "      - 'shared/me/**'                        # was Code/ConversationalUX/ChatHealthyWhoAmIChat/me/\n"
          "      - 'shared/mongo/ChatHealthyMongoUtilities.py'\n"
          "      - 'shared/prompts/prompt_system_maker.py'\n"
-         "      - 'brain/machine_artifacts/content/emergency_keywords.json'\n"
+         "      - 'brain/machine_artifacts/content/controlled_vocabularies.json'  # CV-006 emergency_keywords\n"
          "      - 'brain/machine_artifacts/content/prompts.json'  # NEW - RAG prompt\n"
          "      - '.github/workflows/deploy-findcare-backend.yml'\n")
     P(doc, "Code/Shared/ contents move under shared/* during the Code/-removal "

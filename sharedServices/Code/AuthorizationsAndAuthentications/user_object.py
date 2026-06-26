@@ -236,6 +236,12 @@ class UserObject(BaseModel):
     selected_providers: Annotated[
         list[str], MergeRole.GUEST_WINS,
     ] = Field(default_factory=list)
+    # Stash for OAuth result so the React HeaderWidget can poll /gate after
+    # the popup closes and render the success/fail banner. Cleared by the
+    # claim_oauth_result op once the widget has read it.
+    pending_oauth_result: Annotated[
+        Optional[dict], MergeRole.GUEST_WINS,
+    ] = None
 
     def merge(self, guest: "UserObject") -> "UserObject":
         merged: dict = {}

@@ -80,7 +80,6 @@ function buildAuthBannerHtml(outcome: string, message: string): string {
 export default function HeaderWidget() {
   useEffect(() => {
     function paintNormal() {
-      console.log('[HeaderWidget] paint normal header')
       window.parent.postMessage({
         type: 'router:render',
         target: TARGET,
@@ -91,27 +90,78 @@ export default function HeaderWidget() {
     }
     paintNormal()
 
+    // Poll the server for any pending OAuth result the callback stashed
+    // on user_object.pending_oauth_result. Tool returns JSON; React
+    // builds the banner. Polling runs whenever the user has kicked off
+    // the OAuth flow and stops once a result lands.
+    let pollTimer: ReturnType<typeof setInterval> | null = null
+    function startPolling() {
+      if (pollTimer) return
+      const started = Date.now()
+      pollTimer = setInterval(() => {
+        // 5-minute ceiling so a closed popup or stalled flow doesn't
+        // leave a polling loop running forever.
+        if (Date.now() - started > 5 * 60_000) {
+          stopPolling()
+          return
+        }
+        window.parent.postMessage({
+          type: 'router:makeCall',
+          op: 'claim_oauth_result',
+          payload: {},
+          call_id: 'oauth-poll-' + Date.now(),
+        }, '*')
+      }, 1000)
+    }
+    function stopPolling() {
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+    }
+    // Subscribe to the kind:'oauth_result' broadcast that the
+    // claim_oauth_result handler emits on each poll.
+    window.parent.postMessage({
+      type: 'router:subscribe-broadcast', kind: 'oauth_result',
+    }, '*')
+
     function onMessage(ev: MessageEvent) {
       const msg = ev.data
       if (!msg || typeof msg !== 'object') return
-      if (msg.type === 'oauth_login_result') {
-        console.log('[HeaderWidget] received oauth_login_result', msg)
-        window.parent.postMessage({
-          type: 'router:render',
-          target: TARGET,
-          append: false,
-          popup: false,
-          content: buildAuthBannerHtml(msg.outcome, msg.message),
-        }, '*')
+      if (msg.type === 'router:action' && msg.action === 'oauth_start') {
+        startPolling()
+        return
+      }
+      // Two paths for the oauth_result event: subscribe-broadcast (the
+      // wrapper-side subscription registered above) and router:event
+      // (the per-makeCall event stream). If the subscribe registration
+      // raced the iframe load we'd miss the broadcast — the router:event
+      // fallback catches the same data and is forwarded to every
+      // makeCall caller unconditionally.
+      const isOauthResult =
+        (msg.type === 'router:event-broadcast' && msg.kind === 'oauth_result') ||
+        (msg.type === 'router:event' && msg.evt && msg.evt.kind === 'oauth_result')
+      if (isOauthResult) {
+        const payload = msg.type === 'router:event' ? msg.evt.data : msg.data
+        const result = (payload && payload.result) || null
+        if (result) {
+          stopPolling()
+          window.parent.postMessage({
+            type: 'router:render',
+            target: TARGET,
+            append: false,
+            popup: false,
+            content: buildAuthBannerHtml(result.outcome, result.message),
+          }, '*')
+        }
         return
       }
       if (msg.type === 'router:action' && msg.action === 'oauth_banner_close') {
-        console.log('[HeaderWidget] oauth_banner_close clicked')
         paintNormal()
       }
     }
     window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
+    return () => {
+      stopPolling()
+      window.removeEventListener('message', onMessage)
+    }
   }, [])
   return null
 }

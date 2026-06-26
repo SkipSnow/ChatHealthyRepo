@@ -24,16 +24,15 @@ function buildLoadingHtml(): string {
 }
 
 function buildEvalcareSplashHtml(data: any): string {
-  const html = String((data && (data.html || data.body || '')) || '').trim()
-  if (html) {
-    return `<div style="padding:1em 1.5em;">${html}</div>`
-  }
-  const pretty = _esc(JSON.stringify(data || {}, null, 2))
+  // Tool returns STRUCTURED DATA ONLY: { data: { title, subtitle } }.
+  // React builds the display from those fields.
+  const inner = (data && data.data) || data || {}
+  const title = _esc(inner.title || 'EvaluateCare')
+  const subtitle = _esc(inner.subtitle || '')
   return `
-    <div style="padding:1em 1.5em;">
-      <h3 style="color:#0b7a75;margin:0 0 0.5em 0;">EvaluateCare</h3>
-      <pre style="background:#f5f5f4;padding:0.75em;border-radius:0.4em;font-size:0.8em;
-                  white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto;">${pretty}</pre>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:2em;text-align:center;">
+      <div style="font-size:1em;font-weight:700;color:#1f2937;">${title}</div>
+      ${subtitle ? `<div style="font-size:1em;font-weight:600;color:#6b7280;margin-top:1em;">${subtitle}</div>` : ''}
     </div>
   `
 }

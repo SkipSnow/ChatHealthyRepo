@@ -996,7 +996,7 @@ Examples of gestures you may encounter and what they typically imply:
     What city and state are you in?"
   - gesture='system_llm_unavailable': the language model that powers
     the system just had a transient failure (per
-    EPIC-003-F-003-S-001-REQ-B-007 — the LLM facade exhausted its
+    EPIC-008-F-002-S-009-REQ-B-007 — the LLM facade exhausted its
     retries against the provider). The reason dict carries `provider`,
     `call_site`, and `attempts`; these are internal plumbing — the
     user MUST NEVER see provider names, exception class names, call

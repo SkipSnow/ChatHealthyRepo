@@ -37,7 +37,8 @@ class Request(BaseModel):
 
 
 class Response(BaseModel):
-    html: str = ""
+    # Tool returns STRUCTURED DATA ONLY. React widget renders.
+    data: dict = {}
     error: Optional[str] = None
 
 
@@ -72,7 +73,9 @@ class EvalCareSplashTool(ChatHealthyTool):
             deps.stream({"kind": "evalcare-splash", "data": resp.model_dump(exclude_none=True)})
             return resp
 
-        resp = self.Response(html=str(raw.get("html") or ""))
+        # Pass through whatever structured payload EvaluateCare returned.
+        # No HTML — the React widget is the renderer.
+        resp = self.Response(data=raw if isinstance(raw, dict) else {})
         deps.stream({"kind": "evalcare-splash", "data": resp.model_dump(exclude_none=True)})
         return resp
 

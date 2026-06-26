@@ -1,4 +1,4 @@
-"""Stub compliance test for EPIC-003-F-004-S-001-REQ-B-009.
+"""Stub compliance test for EPIC-008-F-002-S-010-REQ-B-009.
 
 Pattern:
   - Configure the canonical ChatHealthyLoggingService to DEBUG, redirected to a

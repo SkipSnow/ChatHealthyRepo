@@ -1,6 +1,6 @@
 """scan_mongo_client_direct_access_worker.py — Rule-004 worker.
 
-Enforces EPIC-003-F-004-S-001-REQ-B-007: direct MongoClient(...)
+Enforces EPIC-008-F-002-S-010-REQ-B-007: direct MongoClient(...)
 instantiation is forbidden in any ChatHealthy.ai-authored Python file
 except within FrontEndApplicationLib/src/chathealthy_frontend_lib/
 mongo_utilities.py itself.
@@ -121,7 +121,7 @@ class ScanMongoClientDirectAccessEnforcementWorker(EnforcementWorker):
                 message=(
                     "direct MongoClient(...) instantiation is forbidden "
                     "outside FrontEndApplicationLib/src/chathealthy_frontend_lib/"
-                    "mongo_utilities.py per EPIC-003-F-004-S-001-REQ-B-007. "
+                    "mongo_utilities.py per EPIC-008-F-002-S-010-REQ-B-007. "
                     "Use ChatHealthyMongoUtilities().getConnection() instead."
                 ),
             ))

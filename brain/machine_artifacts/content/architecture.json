@@ -712,7 +712,7 @@
             "file": "domain/shared/safety/emergency_detector.py",
             "feature": "Emergency Detection (F-09 fix)",
             "responsibility": "Config-driven keyword + embedding similarity detection",
-            "config_source": "brain/machine_artifacts/emergency_keywords.json"
+            "config_source": "brain/machine_artifacts/content/controlled_vocabularies.json (CV-006 emergency_keywords)"
           },
           {
             "class": "ConsentService",
@@ -1321,7 +1321,7 @@
             "id": "F-09",
             "title": "Emergency keyword list has coverage gaps",
             "status": "RESOLVED",
-            "response": "EmergencyDetector with config-driven keywords from brain/machine_artifacts/emergency_keywords.json. Phase 5 + B-189."
+            "response": "EmergencyDetector with config-driven keywords from brain/machine_artifacts/content/controlled_vocabularies.json (CV-006 emergency_keywords). Phase 5 + B-189."
           },
           {
             "id": "F-10",
@@ -2449,7 +2449,7 @@
         },
         "brain/": {
           "machine_artifacts/": {
-            "emergency_keywords.json": "loaded by EmergencyDetector",
+            "content/controlled_vocabularies.json": "loaded by EmergencyDetector (CV-006 emergency_keywords)",
             "tool_registry.json": "optional future sync for prompt/tool alignment"
           },
           "governance": [
@@ -2574,7 +2574,7 @@
       ],
       "safety_configuration": {
         "EmergencyDetector": {
-          "config_source": "brain/machine_artifacts/emergency_keywords.json",
+          "config_source": "brain/machine_artifacts/content/controlled_vocabularies.json (CV-006 emergency_keywords)",
           "reload_strategy": "loaded at startup (no runtime mutation)",
           "future": "can add embedding similarity expansion"
         }

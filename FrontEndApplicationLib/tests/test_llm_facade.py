@@ -1,7 +1,7 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 """Unit tests for chathealthy_frontend_lib.llm.run_llm / run_llm_sync.
 
-Realizes verification for EPIC-003-F-003-S-001-REQ-B-007.
+Realizes verification for EPIC-008-F-002-S-009-REQ-B-007.
 
 Run from FrontEndApplicationLib/ with:
     PYTHONPATH=src python -m pytest tests/test_llm_facade.py -v
