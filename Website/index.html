@@ -121,6 +121,19 @@
 
   <script src="/ClientRouter.js"></script>
   <script>
+    // Popup-window early exit. The OAuth callback redirects the popup
+    // back to the wrapper origin with ?oauth_popup_close=1; we close the
+    // window immediately without painting any UI. Window management is
+    // not display logic — no HTML is constructed here.
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      window._popupParams = Object.fromEntries(params);
+      if (params.get('oauth_popup_close') === '1') {
+        window.close();
+        return;
+      }
+    })();
+
     (function () {
       var SS = '__HF_URL_SHAREDSERVICES__';
       window._envServiceUrls = { sharedservices: SS, findcare: '', evaluatecare: '' };
@@ -135,6 +148,42 @@
           window._envServiceUrls.evaluatecare = (d && d.evaluatecare) || '';
           var iframe = document.getElementById('coreReactFrame');
           if (iframe && window._envServiceUrls.findcare) {
+            // Forward popup URL params (e.g. fake_google_login state/flow)
+            // to the React iframe once it loads. Parameter passing only —
+            // the React widget produces all display.
+            iframe.addEventListener('load', function () {
+              if (!window._popupParams || !iframe.contentWindow) return;
+              // The React app inside the iframe registers its message
+              // listener inside a useEffect, which fires AFTER the
+              // iframe's load event. Retry on a short cadence so the
+              // first message after React mounts isn't lost. ~2 s of
+              // retries handles the mount window; the widget treats
+              // duplicate messages as idempotent.
+              var tries = 0;
+              var send = function () {
+                if (iframe.contentWindow) {
+                  // Include the SharedServices origin so widgets in the
+                  // iframe can post back to SS without relying on the
+                  // wrapper's _envServiceUrls (which is not visible
+                  // cross-origin).
+                  iframe.contentWindow.postMessage(
+                    {
+                      type: 'popup_params',
+                      params: window._popupParams,
+                      env: {
+                        sharedservices: (window._envServiceUrls && window._envServiceUrls.sharedservices) || '',
+                      },
+                    },
+                    '*'
+                  );
+                }
+              };
+              send();
+              var t = setInterval(function () {
+                send();
+                if (++tries >= 20) clearInterval(t);
+              }, 100);
+            });
             iframe.src = window._envServiceUrls.findcare;
           }
           // Eager user_object mint at page load. Without this, the
@@ -149,41 +198,13 @@
             window.ClientRouter.makeCall({ op: 'boot', payload: {} });
           }
         })
-        .catch(function (err) {
-          // Bootstrap fetch is the spine of the page — without it the
-          // React widget host cannot mount and no capability works.
-          // Surface a detailed error in frame_MainWindow so the
-          // operator (and any user) immediately sees what failed.
-          // TODO(operator): wire this to ChatHealthyLoggingService once
-          // a client-side log sink is available.
-          var msg = (err && err.message) ? err.message : String(err);
-          var main = document.getElementById('frame_MainWindow');
-          if (main) {
-            main.innerHTML =
-              '<div style="padding:1.5em;font-family:system-ui,-apple-system,sans-serif;color:#1f2937;">'
-              + '<h2 style="color:#dc2626;margin:0 0 0.5em 0;">ChatHealthy.ai could not start.</h2>'
-              + '<p style="line-height:1.5;">'
-              +   'The page tried to reach SharedServices at '
-              +   '<code style="background:#f5f5f4;padding:0.1em 0.3em;border-radius:0.2em;">' + SS + '/gate</code> '
-              +   'to discover the FindCare and EvaluateCare iframe URLs '
-              +   '(op:peer_urls). That request failed, so the React widget '
-              +   'host cannot mount and no chat, search, or popup capability '
-              +   'will load.'
-              + '</p>'
-              + '<p><strong>Underlying error:</strong> '
-              +   '<code style="background:#fef2f2;color:#991b1b;padding:0.2em 0.4em;border-radius:0.2em;">'
-              +   String(msg).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-              +   '</code></p>'
-              + '<p style="margin-top:1em;color:#6b7280;font-size:0.9em;">'
-              +   'Common causes: SharedServices is down or unreachable, '
-              +   'the local SSL cert is not trusted by this browser, the '
-              +   '__HF_URL_SHAREDSERVICES__ placeholder was not substituted '
-              +   'at build time, or a network/firewall block. Retry by '
-              +   'refreshing the page; if the problem persists, check the '
-              +   'SharedServices container logs.'
-              + '</p>'
-              + '</div>';
-          }
+        .catch(function (_err) {
+          // Bootstrap is the spine of the page — without peer_urls,
+          // React cannot mount and nothing renders. Per Rule-009 this
+          // file authors no display content; redirect to the static
+          // bootstrap-error.html instead. The underlying error is
+          // visible in this browser's developer-tools Network panel.
+          window.location.replace('/bootstrap-error.html');
         });
     })();
   </script>

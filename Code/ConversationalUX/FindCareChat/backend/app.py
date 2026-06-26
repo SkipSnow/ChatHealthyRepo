@@ -277,7 +277,7 @@ from fastapi.responses import JSONResponse as JSONResponse
 
 @app.exception_handler(Exception)
 async def fatal(request: Request, exc: Exception):
-    # Safety net for UNHANDLED exceptions per EPIC-003-F-003-S-001-REQ-B-008
+    # Safety net for UNHANDLED exceptions per EPIC-008-F-002-S-009-REQ-B-008
     # Mode 3 (unhandled, not expected). Reaching here is always user-fatal
     # (503 to the user) — that IS the Mode 3 definition — so tag fatal_error
     # True. The architectural goal is for Mode 3 occurrences to be RARE; each
@@ -544,7 +544,7 @@ class SearchRequest(BaseModel):
 async def search(body: SearchRequest):
     """Direct provider search — for pagination. No LLM involved.
 
-    Local catch with mode discrimination per EPIC-003-F-003-S-001-REQ-B-008.
+    Local catch with mode discrimination per EPIC-008-F-002-S-009-REQ-B-008.
     Catcher classifies caught ChatHealthyException by mode and acts per the
     three-mode taxonomy."""
     params = body.model_dump(exclude_none=True)

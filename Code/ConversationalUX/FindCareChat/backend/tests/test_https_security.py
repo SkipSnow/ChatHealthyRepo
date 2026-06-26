@@ -307,7 +307,7 @@ class TestClientSecurityCheck:
 # ── EPIC-002-F-001-S-012-REQ-B-004: No HTTP URLs in production code ────────────────
 
 class TestScanHTTP:
-    """EPIC-008-F-002-S-005-REQ-T-001: scan_http.py standalone scanner tests."""
+    """EPIC-008-F-002-S-012-REQ-T-001: scan_http.py standalone scanner tests."""
 
     SCANNER = os.path.join(BASE_DIR, "Code", "Shared", "ops", "tools", "scan_http.py")
 

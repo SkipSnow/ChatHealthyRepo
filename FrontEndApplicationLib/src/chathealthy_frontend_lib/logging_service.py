@@ -3,7 +3,7 @@
 
 """ChatHealthyLoggingService - canonical logger for ChatHealthy.ai code.
 
-Realizes EPIC-003-F-005-S-001 REQs B-001..B-007 + B-009 + B-010.
+Realizes EPIC-008-F-002-S-011 REQs B-001..B-007 + B-009 + B-010.
 
 Mongo records conform to ChatHealthyLogsSchema.json published at
 {env}.chathealthy.ai/schemas/ChatHealthyLogsSchema.json. The schema is

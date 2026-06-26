@@ -1336,7 +1336,7 @@
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-B-014",
                           "name": "Returning OAuth login replaces the guest user_object with the DB user_object",
-                          "requirement": "On a successful OAuth callback whose OAuthIdentities lookup matches an existing user's { identity_provider, identity_provider_user_id }, the endpoint MUST reuse that record's existing user_id, MUST refresh that entry's email to the email returned by the identity provider on this callback, MUST re-set ChatHealthyRegisteredUserCookie per EPIC-002-F-003-S-006-REQ-T-004, MUST replace the current session's guest user_object with the stored UserObject, and MUST bind that stored UserObject to the current session.",
+                          "requirement": "On a successful OAuth callback whose OAuthIdentities lookup matches an existing user's { identity_provider, identity_provider_user_id }, the endpoint MUST reuse that record's existing user_id, MUST refresh that entry's email to the email returned by the identity provider on this callback, MUST replace the current session's guest user_object with the stored UserObject, and MUST bind that stored UserObject to the current session.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -1436,7 +1436,7 @@
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-B-019",
                           "name": "Cross-identity-provider reconciliation via verified email",
-                          "requirement": "On every successful OAuth callback, the endpoint MUST first attempt to match (identity_provider, identity_provider_user_id) against any user_object.OAuthIdentities entry across the users collection. When that match succeeds, the returning-login path per EPIC-002-F-003-S-004-REQ-T-012 runs. Otherwise, the endpoint MUST attempt to match the verified email returned by this callback against any user_object.OAuthIdentities[].email. When that match succeeds, the endpoint MUST append { identity_provider, identity_provider_user_id, email } to that user's OAuthIdentities, re-set ChatHealthyRegisteredUserCookie per EPIC-002-F-003-S-006-REQ-T-004 with that user's existing user_id, replace the current session's guest user_object with the stored UserObject, and bind that stored UserObject to the current session. Otherwise, the registration path per EPIC-002-F-003-S-004-REQ-T-009 runs.",
+                          "requirement": "On every successful OAuth callback, the endpoint MUST first attempt to match (identity_provider, identity_provider_user_id) against any user_object.OAuthIdentities entry across the users collection. When that match succeeds, the returning-login path per EPIC-002-F-003-S-004-REQ-T-012 runs. Otherwise, the endpoint MUST attempt to match the verified email returned by this callback against any user_object.OAuthIdentities[].email. When that match succeeds, the endpoint MUST append { identity_provider, identity_provider_user_id, email } to that user's OAuthIdentities, replace the current session's guest user_object with the stored UserObject, and bind that stored UserObject to the current session. Otherwise, the registration path per EPIC-002-F-003-S-004-REQ-T-009 runs.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -1496,7 +1496,7 @@
                         {
                           "req_id": "EPIC-002-F-003-S-004-REQ-B-022",
                           "name": "Failed authentication keeps user as guest without destroying or disclosing prior identity state",
-                          "requirement": "On a failed authentication, the system MUST keep the user as a guest, MUST tell the user that the authentication failed, and MUST NOT delete the user_object or the user's ChatHealthyRegisteredUserCookie. The user-facing message MUST NOT disclose that a cookie exists or any aspect of prior identity state.",
+                          "requirement": "On a failed authentication, the system MUST keep the user as a guest, MUST tell the user that the authentication failed, and MUST NOT delete the user_object or the user's persistently-stored registered-user token. The user-facing message MUST NOT disclose that a browser-stored token exists or any aspect of prior identity state.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -1566,8 +1566,8 @@
                         },
                         {
                           "req_id": "EPIC-002-F-003-S-005-REQ-B-003",
-                          "name": "ch_session carries the session token; server surfaces time_remaining; client tracks it and pre-flights",
-                          "requirement": "Every SharedServices /gate response MUST (a) set a Secure, HttpOnly cookie named ch_session with Max-Age=300 whose value is the session token defined by EPIC-002-F-003-S-003-REQ-B-007, and (b) include in the response body a field named time_remaining_seconds whose integer value is the seconds remaining between the moment of response and the most-recent-restamp timestamp (bytes 19-35 of the nonce per EPIC-002-F-003-S-002-REQ-B-002) plus the 300-second TTL. The browser MUST store the most-recent time_remaining_seconds together with the local clock value at receipt, and MUST update that stored pair on every subsequent /gate response. Before issuing any SharedServices request the browser MUST compute the remaining time from that stored pair against its local clock and refuse to issue the request when the remaining time has elapsed. All browser-side reads and writes of any ChatHealthy.ai cookie MUST be performed by exactly one shared JavaScript file (served with Content-Type text/javascript) loaded by index.html; no other browser code, including inline scripts within index.html, may read or write any ChatHealthy.ai cookie.",
+                          "name": "in-memory session token carries the session token; server surfaces time_remaining; client tracks it and pre-flights",
+                          "requirement": "Every SharedServices /gate response MUST (a) set a Secure, HttpOnly browser-stored token named in-memory session token with Max-Age=300 whose value is the session token defined by EPIC-002-F-003-S-003-REQ-B-007, and (b) include in the response body a field named time_remaining_seconds whose integer value is the seconds remaining between the moment of response and the most-recent-restamp timestamp (bytes 19-35 of the nonce per EPIC-002-F-003-S-002-REQ-B-002) plus the 300-second TTL. The browser MUST store the most-recent time_remaining_seconds together with the local clock value at receipt, and MUST update that stored pair on every subsequent /gate response. Before issuing any SharedServices request the browser MUST compute the remaining time from that stored pair against its local clock and refuse to issue the request when the remaining time has elapsed. All browser-side reads and writes of any ChatHealthy.ai browser-stored token MUST be performed by exactly one shared JavaScript file (served with Content-Type text/javascript) loaded by index.html; no other browser code, including inline scripts within index.html, may read or write any ChatHealthy.ai browser-stored token.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -1594,9 +1594,9 @@
                           ]
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-005-REQ-T-001",
-                          "name": "/gate sets the ch_session cookie with the required attributes",
-                          "requirement": "Every SharedServices /gate response MUST include a Set-Cookie header that sets a cookie named exactly ch_session with attributes Secure, HttpOnly, Max-Age=300, SameSite=None, Domain=chathealthy.ai, Path=/gate.",
+                          "req_id": "EPIC-002-F-003-S-005-REQ-B-004",
+                          "name": "/gate sets the in-memory session token browser-stored token with the required attributes",
+                          "requirement": "Every SharedServices /gate response MUST include a Set-Cookie header that sets a browser-stored token named exactly in-memory session token with attributes Secure, HttpOnly, Max-Age=300, SameSite=None, Domain=chathealthy.ai, Path=/gate.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -1604,7 +1604,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-005-REQ-T-001-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-005-REQ-B-004-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_session_cookie.py"
@@ -1614,9 +1614,9 @@
                           "depends_on": []
                         },
                         {
-                          "req_id": "EPIC-002-F-003-S-005-REQ-T-002",
-                          "name": "The ch_session cookie value IS the session token",
-                          "requirement": "The value of the ch_session cookie set by /gate MUST be the 67-byte session token defined by EPIC-002-F-003-S-003-REQ-B-007.",
+                          "req_id": "EPIC-002-F-003-S-005-REQ-B-005",
+                          "name": "The in-memory session token browser-stored token value IS the session token",
+                          "requirement": "The value of the in-memory session token browser-stored token set by /gate MUST be the 67-byte session token defined by EPIC-002-F-003-S-003-REQ-B-007.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "orphan": false,
@@ -1624,7 +1624,7 @@
                           "tests": {
                             "test": [
                               {
-                                "test_id": "EPIC-002-F-003-S-005-REQ-T-002-TEST-1",
+                                "test_id": "EPIC-002-F-003-S-005-REQ-B-005-TEST-1",
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_session_cookie.py"
@@ -1778,148 +1778,6 @@
                                 "test_type": "playwright",
                                 "orphan": false,
                                 "file": "test_session_cookie.py"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "approved"
-                  },
-                  {
-                    "story_id": "EPIC-002-F-003-S-006",
-                    "name": "Registered users must have a secure 60 day ChatHealthyRegisteredUserCookie",
-                    "description": "Defines the secure 60-day ChatHealthyRegisteredUserCookie - the browser's long-lived pointer into a registered user's record in admin.users. Set on a successful OAuth callback; carries only the ChatHealthy-minted user_id (the user_id top-level attribute of the admin.users record per EPIC-002-F-003-S-004-REQ-T-008).",
-                    "size": "S",
-                    "status": "in_progress",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-002-F-003-S-006-REQ-B-001",
-                          "name": "Business statement",
-                          "requirement": "ChatHealthyRegisteredUserCookie is a secure 60-day pointer the browser carries between sessions; its value is the ChatHealthy-minted user_id (the user_id top-level attribute of the matching admin.users record per EPIC-002-F-003-S-004-REQ-T-008). It is set on a successful OAuth callback.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-003-S-006-REQ-T-001",
-                          "name": "Cookie attributes",
-                          "requirement": "Every successful OAuth callback MUST issue a Set-Cookie header that sets a secure cookie named exactly ChatHealthyRegisteredUserCookie with attributes Secure, HttpOnly, Max-Age=5184000, SameSite=Lax, Domain=chathealthy.ai, Path=/gate.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-002-F-003-S-006-REQ-T-002",
-                          "name": "Cookie value IS the ChatHealthy-minted user_id",
-                          "requirement": "The value of ChatHealthyRegisteredUserCookie MUST be exactly the ChatHealthy-minted user_id - the value stored at the user_id top-level attribute of the matching admin.users record per EPIC-002-F-003-S-004-REQ-T-008.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-002-F-003-S-004",
-                              "reason": "REQ-T-008 defines user_id."
-                            }
-                          ]
-                        },
-                        {
-                          "req_id": "EPIC-002-F-003-S-006-REQ-T-003",
-                          "name": "Set on first-time registration callback",
-                          "requirement": "On a successful OAuth callback that registers a new user per EPIC-002-F-003-S-004-REQ-T-009, the endpoint MUST set ChatHealthyRegisteredUserCookie whose value is the newly minted user_id per EPIC-002-F-003-S-006-REQ-T-001 and T-002.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-002-F-003-S-004",
-                              "reason": "REQ-T-009 registration path."
-                            }
-                          ]
-                        },
-                        {
-                          "req_id": "EPIC-002-F-003-S-006-REQ-T-004",
-                          "name": "Re-set on returning OAuth callback",
-                          "requirement": "On a successful OAuth callback for a returning user per EPIC-002-F-003-S-004-REQ-T-012, the endpoint MUST re-set ChatHealthyRegisteredUserCookie whose value is the existing user_id per EPIC-002-F-003-S-006-REQ-T-001 and T-002.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-002-F-003-S-004",
-                              "reason": "REQ-T-012 returning-login path."
-                            }
-                          ]
-                        },
-                        {
-                          "req_id": "EPIC-002-F-003-S-006-REQ-T-005",
-                          "name": "/gate treats absent or expired ch_session as a fresh Guest",
-                          "requirement": "A subsequent SharedServices /gate request whose ch_session cookie is absent or expired MUST be treated as a fresh Guest session regardless of whether ChatHealthyRegisteredUserCookie is present.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "approval": "approved",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
                               }
                             ]
                           },
@@ -4497,222 +4355,7 @@
               "status": "in_progress",
               "approval": "approved",
               "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-003-F-003-S-001",
-                    "orphan": false,
-                    "name": "Use only the ChatHealthyException when deliberately throwing exceptions within the code base.",
-                    "description": "Establishes the foundational rule and the implementation that realizes it. Defines ChatHealthyException in chathealthy-frontend-lib, specifies the constructor contract (mode discriminator + message for logging + context dict), mandates the substitution at every existing deliberate-raise site in our authored code, and adds a pre-commit gate that rejects new raises of forbidden built-in exception types in our modules. The first mode the substrate uses is llm_unavailable, introduced by the LLM facade with context {provider, call_site, attempts}. Additional modes (compliance violations, geography insufficient, db unreachable, rate limited, etc.) land as the operator approves their definitions; the substrate accepts them without code change at the catch sites.",
-                    "size": "M",
-                    "status": "in_progress",
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-003-F-003-S-001-REQ-B-001",
-                          "orphan": false,
-                          "name": "ChatHealthyException class definition",
-                          "requirement": "The chathealthy-frontend-lib package MUST define a class ChatHealthyException that inherits from the standard library Exception. The constructor signature is (mode: str, message: str, **context). Message is used for logging, and not for end user communications. Context is a dict; its keys vary by mode. The instance exposes attributes mode (str), message (str), context (dict), and exception (Exception â€” the original wrapped exception, when ChatHealthyException is being raised as a boundary conversion of an external library exception; None when this is an originating raise from our own code). The class lives at a stable import path within the package so every consumer service can import it.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-003-S-001-REQ-B-002",
-                          "orphan": false,
-                          "name": "Exhaustive use rule for deliberate raises in our authored code",
-                          "requirement": "Every deliberate raise of an exception authored in ChatHealthy.ai repository code MUST use ChatHealthyException with an appropriate mode discriminator. Use of built-in Python exception types (ValueError, RuntimeError, AssertionError, TypeError, KeyError) in deliberate raises authored by our code is forbidden. Re-raises of external exceptions (e.g. httpx.RemoteProtocolError, pymongo.errors.*) preserve the original type and the call stack of the original exception, so that logging of the exception becomes the duty of the exception class and not the code that creates the exception.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-003-S-001-REQ-B-003",
-                          "orphan": false,
-                          "name": "Boundary conversion rule for external-library exceptions",
-                          "requirement": "External-library exceptions MAY be converted to ChatHealthyException at defined system boundaries. The LLM facade (EPIC-003-F-003-S-001-REQ-B-007 below) is one such boundary. When such a conversion happens, the exception object MUST log the original exception with full traceback for operator forensic value before raising the new ChatHealthyException, so the original failure is not lost.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-003-S-001-REQ-B-004",
-                          "orphan": false,
-                          "name": "Catch-side discrimination on mode",
-                          "requirement": "Code that catches ChatHealthyException SHOULD discriminate on the mode attribute, not on isinstance against new exception subclasses (there are no subclasses). The mode taxonomy is the design surface for discriminating failure shapes. Catch sites that need to handle several modes use an explicit conditional on exc.mode.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-003-S-001-REQ-B-005",
-                          "orphan": false,
-                          "name": "Mode taxonomy lives in the feature's design doc",
-                          "requirement": "The set of valid modes is documented in the feature's architecture design doc under FrontEndApplicationLib/architectureAndDesign/. Adding a new mode is a design-doc edit that the operator approves, not a code-only change. Code that raises with an undocumented mode MAY be rejected by a future enforcement gate (out of scope for this story).",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-003-S-001-REQ-B-006",
-                          "orphan": false,
-                          "name": "Pre-commit gate forbids new deliberate raises of built-in types",
-                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, FrontEndApplicationLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Forbidden raises in existing code at the moment the rule lands are tracked as orphan-fix items; the rule rejects only NEW commits that introduce additional violations until the historical backlog is migrated.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
-                            },
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "EPIC-003-F-003-S-001-REQ-B-002"
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-003-S-001-REQ-B-007",
-                          "orphan": false,
-                          "name": "LLM facade boundary defines the first concrete mode llm_unavailable",
-                          "requirement": "The LLM call facade in chathealthy-frontend-lib catches transient HTTP errors (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.PoolTimeout) from the underlying pydantic-ai Agent.run call and, after the retry policy is exhausted, raises ChatHealthyException(mode='llm_unavailable', provider=<str>, call_site=<str>, attempts=<int>). UR catches this exception in _handle_utterance and re-dispatches to UM as a manufacture-trigger Request whose manufacture_utterance_reason carries the same context, so UM authors a user-facing message via the existing manufacture pattern. If the manufacture call itself raises ChatHealthyException, that exception propagates to UR's outermost catch and the existing fatal path fires; the operator sees the failure via telemetry and the user sees chFatalError. This three-rung ladder (transient blip covered by retry, sustained-recoverable covered by manufacture dialogue, truly-down covered by fatal) is the substrate.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
-                            },
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "EPIC-003-F-003-S-001-REQ-B-003"
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-003-S-001-REQ-B-008",
-                          "orphan": false,
-                          "name": "Exception Management Modes",
-                          "requirement": "Every catch site that catches a ChatHealthyException MUST classify the caught exception into exactly one of three modes and act accordingly. Mode 1 â€” expected and easily handled (retry, fallback, alternate path): catcher logs at INFO with the if_debug flag set so the record is emitted only when in debug; caller continues via the recovery mechanism; user sees nothing. Mode 2 â€” expected and probably attributable to user error OR to a resource temporarily unavailable: catcher logs at ERROR (always emitted, no debug gate), surfaces an appropriate user-facing message describing the problem, and does NOT return HTTP 503. Mode 3 â€” unhandled, NOT expected (a bug): the safety-net @app.exception_handler returns HTTP 503 to the user and logs the unhandled exception so we can track it down and fix it; Mode 3 is the ONLY case where the user sees an HTTP 503; the architectural goal is for Mode 3 occurrences to be RARE â€” every observed Mode 3 instance MUST become a local catch with Mode 1 or Mode 2 handling. Throw-side rule: when a catch site converts a library exception (httpx, pymongo, etc.) into a ChatHealthyException, that site MUST clean up the underlying resource (close the connection / cursor / file handle, abort the request, release the pool slot, etc.) before raising the ChatHealthyException, so a leaked resource does not produce a delayed second failure (e.g., a 100-second-later timeout from a connection that was never closed).",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "EPIC-003-F-003-S-001-REQ-B-001"
-                            },
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "EPIC-003-F-003-S-001-REQ-B-004"
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-003-S-001-REQ-B-008-TEST-1",
-                                "test_type": "unit",
-                                "orphan": false,
-                                "file": "FrontEndApplicationLib/tests/test_llm_facade.py"
-                              },
-                              {
-                                "test_id": "EPIC-003-F-003-S-001-REQ-B-008-TEST-2",
-                                "test_type": "unit",
-                                "orphan": false,
-                                "file": "FrontEndApplicationLib/tests/test_logging_service_levels.py"
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
+                "story": []
               },
               "due_date": "2026-06-12",
               "realized_by": [
@@ -4732,206 +4375,7 @@
               "status": "done",
               "approval": "approved",
               "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-003-F-004-S-001",
-                    "orphan": false,
-                    "name": "Manage MongoDB Connections",
-                    "description": "ChatHealthyMongoUtilities (lives at FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py) is the canonical entry point for obtaining a MongoClient. Every live service path uses it. Direct MongoClient(...) instantiation outside the utility itself is forbidden and enforced at pre-commit via Rule-004.",
-                    "size": "S",
-                    "status": "done",
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-003-F-004-S-001-REQ-B-001",
-                          "orphan": false,
-                          "name": "Canonical Mongo client provider exists",
-                          "requirement": "A class named ChatHealthyMongoUtilities MUST exist at FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py and serve as the canonical Mongo client provider for every ChatHealthy.ai service.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-004-S-001-REQ-B-001-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-004-S-001-REQ-B-002",
-                          "orphan": false,
-                          "name": "Zero-parameter constructor, environment-sourced configuration",
-                          "requirement": "The constructor takes zero parameters. The utility sources connection coordinates and service identity from runtime environment configuration without caller input.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-004-S-001-REQ-B-002-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-004-S-001-REQ-B-003",
-                          "orphan": false,
-                          "name": "Process-wide singleton client",
-                          "requirement": "The utility maintains a process-wide singleton MongoClient. Repeated instantiation of ChatHealthyMongoUtilities returns the same underlying client and connection pool.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-004-S-001-REQ-B-003-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-004-S-001-REQ-B-004",
-                          "orphan": false,
-                          "name": "getConnection() is the single public method",
-                          "requirement": "getConnection() is the single public method. It returns the MongoClient. Callers select their own database and collection from the returned client.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-004-S-001-REQ-B-004-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-004-S-001-REQ-B-005",
-                          "orphan": false,
-                          "name": "Default operation timeout",
-                          "requirement": "The utility sets timeoutMS on the MongoClient per the CSOT (Client-Side Operation Timeout) policy, with default value 15000ms.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-004-S-001-REQ-B-005-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-004-S-001-REQ-B-006",
-                          "orphan": false,
-                          "name": "Per-call overrides use pymongo's native context manager",
-                          "requirement": "Per-call timeout overrides are performed by the calling code using pymongo's native `with pymongo.timeout(seconds):` context manager. The utility does NOT expose a wrapper API for timeout overrides.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-004-S-001-REQ-B-006-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-004-S-001-REQ-B-007",
-                          "orphan": false,
-                          "name": "Direct MongoClient instantiation forbidden outside the utility",
-                          "requirement": "Direct MongoClient(...) instantiation in any ChatHealthy.ai-authored Python file is forbidden except within FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py itself.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-004-S-001-REQ-B-007-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-004-S-001-REQ-B-008",
-                          "orphan": false,
-                          "name": "Logging is governed by uniform application logging",
-                          "requirement": "The utility's logging surface is governed by EPIC-008-F-011-S-005 (Uniform application logging).",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-008-F-011-S-005",
-                              "reason": "Logging surface is governed by the uniform application logging story."
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-004-S-001-REQ-B-008-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-004-S-001-REQ-B-009",
-                          "orphan": false,
-                          "name": "Explicit per-call batch_size override on library find()",
-                          "requirement": "The ChatHealthyMongoUtilities Mongo wrapper SHALL expose batch_size as an explicit named keyword parameter on its find() method, with default value None. When batch_size is None the library MUST NOT pass any batch_size to pymongo (pymongo default applies). When the caller sets batch_size to an integer, the library MUST forward that integer to pymongo. The library MUST NOT impose a default batch_size for any caller, MUST NOT cache or persist a batch_size across calls, and MUST NOT infer a batch_size from collection size or call history. Choosing to override batch_size is a per-call caller decision. Compliance test: a pytest configures the canonical logging service to DEBUG, calls find() with batch_size set to a known integer, then reads the configured log destination and asserts the captured mongo.find START line includes the batch_size kwarg verbatim. The same pytest also asserts that omitting batch_size results in a START line that does NOT include batch_size in opts.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-004-S-001-REQ-B-009-TEST-1",
-                                "orphan": false,
-                                "test_type": "unit",
-                                "file": "FrontEndApplicationLib/tests/test_mongo_utilities_batch_size.py"
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
+                "story": []
               }
             },
             {
@@ -4947,249 +4391,7 @@
               "status": "not_started",
               "approval": "approved",
               "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-003-F-005-S-001",
-                    "orphan": false,
-                    "name": "Manage logging using Python's logging library",
-                    "description": "Every ChatHealthy.ai Python file MUST get its logger from ChatHealthyLoggingService in chathealthy_frontend_lib. ChatHealthyLoggingService uses Python's logging module. logging.basicConfig(), logging.getLogger(), and print() MUST NOT appear in ChatHealthy.ai code. Pre-commit Rule-005 MUST enforce this.",
-                    "size": "S",
-                    "status": "not_started",
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-003-F-005-S-001-REQ-B-001",
-                          "orphan": false,
-                          "name": "ChatHealthyLoggingService is the only place loggers come from",
-                          "requirement": "ChatHealthyLoggingService MUST exist in chathealthy_frontend_lib. Every ChatHealthy.ai Python file MUST get its logger from it.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "Python standard logging package",
-                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-005-S-001-REQ-B-001-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-005-S-001-REQ-B-002",
-                          "orphan": false,
-                          "name": "logging.basicConfig(), logging.getLogger(), and print() are forbidden in ChatHealthy.ai code",
-                          "requirement": "logging.basicConfig(), logging.getLogger(), and print() MUST NOT appear in any ChatHealthy.ai Python file except ChatHealthyLoggingService itself. Pre-commit Rule-005 MUST enforce this.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "approval": "approved",
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-005-S-001-REQ-B-002-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-005-S-001-REQ-B-003",
-                          "orphan": false,
-                          "name": "Default log level and destination come from environment variables",
-                          "requirement": "ChatHealthyLoggingService MUST read its default log level and log destination from environment variables. If no environment variable is set, the default level MUST be INFO.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "Python standard logging package",
-                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-005-S-001-REQ-B-003-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-005-S-001-REQ-B-004",
-                          "orphan": false,
-                          "name": "All log messages, including 3rd-party library logs, write to the same log file",
-                          "requirement": "All log messages from ChatHealthy.ai code AND from other Python libraries (pymongo, openai, httpx, etc.) MUST write to the same log file. ChatHealthyLoggingService MUST route them via handlers configured on the root logger.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "Python standard logging package",
-                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-005-S-001-REQ-B-004-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-005-S-001-REQ-B-005",
-                          "orphan": false,
-                          "name": "One log file per ChatHealthy component",
-                          "requirement": "There MUST be one log file per ChatHealthy component (FindCareServer, EvaluateCareServer, SharedServices, etc.). ChatHealthyLoggingService MUST select the file based on the component the process is running.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "Python standard logging package",
-                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-005-S-001-REQ-B-005-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-005-S-001-REQ-B-006",
-                          "orphan": false,
-                          "name": "Application MUST NOT be disrupted by rotating or deleting the log file",
-                          "requirement": "The application MUST continue uninterrupted when its log file is archived, renamed, or deleted by an external process. Managing rotation or archival is out of scope. Implementation hint: changing the value of the log-destination environment variable is a valid way to point the application at a new file.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "Python standard logging package",
-                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-005-S-001-REQ-B-006-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-005-S-001-REQ-B-007",
-                          "orphan": false,
-                          "name": "Logger renders ChatHealthyException with all attributes and both stack traces",
-                          "requirement": "ChatHealthyLoggingService MUST recognize ChatHealthyException at log time and render every attribute - mode, message, component, server, context - together with a full stack trace of both the wrapped original `exception` (when present) and the ChatHealthyException itself, in a single log entry. The exception argument passed to ChatHealthyLoggingService log methods (exc_info=, or the implicit current exception captured by log.exception() inside an except block) MUST be a ChatHealthyException; passing a non-ChatHealthyException exception is forbidden.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "ChatHealthyException class and contract (Manage Errors story)."
-                            },
-                            {
-                              "story_id": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
-                              "reason": "Exception rendering policy lives in the Manage Errors design."
-                            },
-                            {
-                              "story_id": "Python standard logging package",
-                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-005-S-001-REQ-B-007-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-005-S-001-REQ-B-009",
-                          "orphan": false,
-                          "name": "Per-call debug gate - opt-in conditional emission",
-                          "requirement": "Every log call to a ChatHealthyLoggingService logger MUST accept an optional parameter (working name `if_not_debug_log` - final name TBD). The parameter's default value MUST be False: when omitted, the call MUST be a no-op unless debug mode is on. When explicitly set to True, the call emits as a normal log call subject to standard level filtering. The flag MUST NOT alter the severity stamped on records that DO emit: logger.info(msg, if_not_debug_log=True) MUST emit at INFO level when debug mode is on, not DEBUG. \"Debug mode is on\" is defined as: the effective log level of the receiving logger is DEBUG (or lower) - equivalently, the same logger would emit a DEBUG-level record.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "Python standard logging package",
-                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-005-S-001-REQ-B-009-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-003-F-005-S-001-REQ-B-010",
-                          "orphan": false,
-                          "name": "Code that throws ChatHealthyException MUST NOT log; the catcher logs",
-                          "requirement": "In any ChatHealthy.ai-authored Python function or method whose body contains a `raise ChatHealthyException(...)` statement, no call to ChatHealthyLoggingService log methods (debug, info, warning, error, critical, exception) MUST appear in the same function/method body. The catch site (the function that handles the raised exception) is where the log occurs. Pre-commit Rule-005 MUST enforce this.",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "approval": "approved",
-                          "depends_on": [
-                            {
-                              "story_id": "EPIC-003-F-003-S-001",
-                              "reason": "ChatHealthyException class and contract (Manage Errors story)."
-                            }
-                          ],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-003-F-005-S-001-REQ-B-010-TEST-1",
-                                "orphan": false,
-                                "test_type": "engineering_rule",
-                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
+                "story": []
               }
             }
           ]
@@ -10850,149 +10052,6 @@
               "stories": {
                 "story": [
                   {
-                    "story_id": "EPIC-008-F-002-S-001",
-                    "description": "The PreToolUse guard loads risk_acceptance.json, passes all active entries to GPT-4.1-mini with the command being evaluated. GPT checks risks FIRST â€” if covered, action passes immediately without further evaluation. Structured JSON schema enforces typed output.",
-                    "size": "M",
-                    "status": "in_progress",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-002-S-001-REQ-T-001",
-                          "requirement": "Guard loads risk_acceptance.json dynamically on every tool call. No hardcoded risk acceptances.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-002-S-001-REQ-T-001-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Dynamic risk_acceptance.json reload",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-001-REQ-T-002",
-                          "requirement": "GPT structured output schema includes: pass (bool), reason (string), risk_accepted (bool), risk_id (string). Strict JSON schema enforced via response_format.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-002-S-001-REQ-T-002-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "GPT output schema fields",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-001-REQ-T-003",
-                          "requirement": "If risk_accepted=true, the action passes immediately. GPT does not evaluate state change further.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_id": "EPIC-008-F-002-S-001-REQ-T-003-TEST-1",
-                                "test_type": "ordinary",
-                                "orphan": false,
-                                "file": "Code/ConversationalUX/FindCareChat/backend/tests/test_arch_constraints.py"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "risk_accepted bypass",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Guard checks risk acceptances before GPT evaluation"
-                  },
-                  {
-                    "story_id": "EPIC-008-F-002-S-002",
-                    "name": "Move prime rule into governance JSON and add two runtime enforcement points",
-                    "description": "The prime engineering rule lives only in CLAUDE.md today and has no hook-driven enforcement. This story moves the rule text verbatim into engineering_rules.json and adds two runtime enforcement entries that execute via the existing hook architecture: prompt_verify_directive (UserPromptSubmit) and response_claim_audit (Stop). Both executors live inside the renamed hook manager AnthropicsClaudeCodeHookManager.py.",
-                    "size": "M",
-                    "status": "in_progress",
-                    "approval": "approved",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-002-S-002-REQ-B-001",
-                          "requirement": "Above all else: Claude MUST NOT make any misrepresentations. Before stating anything, Claude must conduct sufficient research - reading project files, code, requirements, and external sources as needed - so that Claude can only: state a verified fact, state that it does not know, or ask a clarifying question. This rule takes precedence over all other directives when Claude is interacting with the human operator.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Prime rule: no misrepresentation",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-002-REQ-B-002",
-                          "name": "Materiality threshold",
-                          "requirement": "In all non-production environments, a possible consequence to an action a human user asks Claude Code to do - either as an analysis task or as one that will change state in a reversible way - must not be surfaced to the human operator when that possible analytical or factual potential has less than a 2% probability of occurring.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "proposed",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-002-REQ-T-001",
-                          "requirement": "The prime rule MUST be encoded as a Rule entry in brain/machine_artifacts/content/engineering_rules.json with at least two enforcement entries that execute at runtime via the existing hook architecture: (1) prompt_verify_directive fires on UserPromptSubmit and, when the user prompt asks about external-system behavior, injects a hard directive requiring Claude to cite a tool result from this turn or to say 'I don't know - let me verify'; (2) response_claim_audit fires on Stop, scans Claude's just-finished response for definitive claims about external systems, and writes a violation record when no Read/Grep/Bash/WebFetch tool call in the same turn touched that system. Both executors live inside the renamed hook manager (AnthropicsClaudeCodeHookManager.py). The CLAUDE.md preamble is replaced by a one-line pointer to the rule ID.",
-                          "priority": "must-have",
-                          "status": "in_progress",
-                          "approval": "approved",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "name": "Prime rule runtime enforcement",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "orphan": false
-                  },
-                  {
                     "story_id": "EPIC-008-F-002-S-003",
                     "name": "Rules infrastructure: manager, base worker, lock, timeout, telemetry, exit-code aggregation",
                     "description": "ChatHealthyEnforcementManager + EnforcementWorker (abstract base) deliver the framework: read-only rules-registry load, hook-filtered enforcement dispatch, manager-owned mutex coordination, per-worker subprocess timeout, structured violation/telemetry envelopes, and worst-code-wins aggregation. Per V20 Â§4.4. The manager is invoked by every Git and Claude Code hook with a single hook_name argument.",
@@ -11514,7 +10573,7 @@
                           "req_id": "EPIC-008-F-002-S-004-REQ-B-001",
                           "orphan": false,
                           "name": "Scan must test this content",
-                          "requirement": "The scan rule Must test for: (a) Font compliance â€” see EPIC-008-F-011-S-003-REQ-B-004 (Scan of all relevant files must test font compliance); (b) JSON Schema validation â€” see EPIC-008-F-002-S-006 (JSON validation: _validate_json check, $schema web-fetch resolver, meta-schema carve-out, in-run cache); (c) HTTPS compliance â€” see EPIC-008-F-002-S-005 (HTTP vs HTTPS: _scan_http check and allowed_pattern URL handling).",
+                          "requirement": "The scan rule Must test for: (a) Font compliance â€” see EPIC-008-F-011-S-003-REQ-B-004 (Scan of all relevant files must test font compliance); (b) JSON Schema validation â€” see EPIC-008-F-002-S-012 (JSON validation: _validate_json check, $schema web-fetch resolver, meta-schema carve-out, in-run cache); (c) HTTPS compliance â€” see EPIC-008-F-002-S-012 (HTTP vs HTTPS: _scan_http check and allowed_pattern URL handling).",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -11533,205 +10592,8 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-008-F-002-S-005",
-                    "name": "HTTP vs HTTPS: _scan_http check and allowed_pattern URL handling",
-                    "description": "Per V20 BR-12, BR-13, TR-11. The _scan_http check on ScanFilesEnforcementWorker enforces that production source code, documentation, and deployment configuration MUST NOT contain http:// URLs unless the URL itself matches an allowed_pattern row on the enforcement entry's scopes (loopback, link-local metadata, w3.org, etc.). Files intended to carry http:// content as legitimate data are listed in allowed_exact / allowed_pattern rows. Other files are exempted via excluded_exact / excluded_pattern.",
-                    "size": "S",
-                    "status": "done",
-                    "approval": "approved",
-                    "orphan": false,
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-002-S-005-REQ-B-001",
-                          "name": "http: legitimate-content allowance",
-                          "requirement": "Files that are intended to carry plain text \"http:\" as legitimate content â€” for example, JSON files whose purpose is to record example URLs, configuration files that list http endpoints by design, fixtures, and similar data files â€” MUST be allowed to contain the term \"http:\". These files are listed on the enforcement entry's allowed by exact match rows, or matched by the enforcement entry's allowed by pattern rows, and they will not be flagged as a violation.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "orphan": false,
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-005-REQ-B-002",
-                          "name": "http: production-source ban",
-                          "requirement": "Files that are intended to be production source code, documentation, deployment configuration, or any other artifact that should not embed insecure http URLs MUST NOT contain the term \"http:\" unless the URL itself is on the enforcement entry's allowed by pattern rows (for example, loopback addresses, link-local metadata endpoints, or known public standards URLs). Files of this kind that are deliberately exempt for any reason MUST appear on the enforcement entry's excluded by exact match rows or be matched by the enforcement entry's excluded by pattern rows. Any other file found to contain the term \"http:\" is a violation and the commit MUST be blocked.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "orphan": false,
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-005-REQ-T-001",
-                          "name": "_scan_http scope alignment",
-                          "requirement": "The set of files allowed to contain \"http:\" is exactly the union of the enforcement entry's allowed_exact rows and the files matched by the entry's allowed_pattern rows for _scan_http. The set of files exempt from the scan entirely is exactly the union of the entry's excluded_exact rows and the files matched by the entry's excluded_pattern rows for _scan_http. Any file not matched by any of those four scope_list_type rows that contains the term \"http:\" â€” except where the URL itself matches an allowed_pattern row for _scan_http â€” is a violation.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "orphan": false,
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "story_id": "EPIC-008-F-002-S-006",
-                    "name": "JSON validation: _validate_json check, $schema web-fetch resolver, meta-schema carve-out, in-run cache",
-                    "description": "Per V20 BR-11/15/16, TR-12/18/19, Â§4.9.3 and Â§4.9.3.1. The _validate_json check on ScanFilesEnforcementWorker validates every governed JSON file under brain/machine_artifacts/content/ against the schema declared in its $schema field, using jsonschema Draft 2020-12. ChatHealthy schemas declared in $schema URLs are resolved via HTTPS GET (5s timeout, per-run cache) per TR-18; the JSON Schema 2020-12 meta-schema is the single carve-out, served from a local copy under Website/schemas/standard/ per TR-19 / BR-16. Files with $schema missing that are not explicitly excluded MUST FAIL LOUD.",
-                    "size": "M",
-                    "status": "done",
-                    "approval": "approved",
-                    "orphan": false,
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-002-S-006-REQ-B-001",
-                          "name": "Governed JSON validation gate",
-                          "requirement": "Every file the system treats as governed JSON content MUST validate cleanly against the schema declared in its $schema field. The set of governed JSON files is defined using only the four permitted scope-list terms (allowed_exact, allowed_pattern, excluded_exact, excluded_pattern). The system MUST NOT trust data from a JSON file that fails schema validation, and the framework MUST treat validation failure as a governance violation. JSON validation is the load-bearing gate that protects the entire governed-data layer from silent drift.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "orphan": false,
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-006-REQ-T-001",
-                          "name": "Draft 2020-12, no opt-out",
-                          "requirement": "Governed JSON content lives under brain/machine_artifacts/content/. Each governed JSON file MUST declare its schema URL in a top-level $schema field. JSON parsing uses Python's standard library json module. Schema validation uses the jsonschema package against JSON Schema Draft 2020-12. Validation failure produces a violation record per TR-6 and contributes to the worker's exit code (EXIT_VIOLATIONS_FOUND = 1). Files identified by the worker's excluded_exact or excluded_pattern lists are skipped silently; files in scope without a $schema field MUST FAIL LOUD. There is no opt-out, and there is no quiet passing of unschemaed JSON content. The JSON Schema 2020-12 meta-schema URL is the single resolver carve-out, served from a local copy at Website/schemas/standard/json-schema-2020-12-meta.json. All other $schema URLs are resolved by HTTP GET with a 5-second timeout and per-run cache.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "orphan": false,
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-006-REQ-B-002",
-                          "name": "Validation uses $schema URL",
-                          "requirement": "Validation MUST use the schema referenced by the JSON file's $schema URL.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "orphan": false,
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-006-REQ-B-003",
-                          "name": "External standards committed",
-                          "requirement": "External standards used by the framework MUST be committed to the repository.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "orphan": false,
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-006-REQ-T-002",
-                          "name": "$schema HTTPS resolution + cache",
-                          "requirement": "Aligned to BR-15. ChatHealthy schemas declared in $schema URLs are resolved via HTTPS GET to the URL the JSON file declared, performed at validation time. A per-run cache deduplicates identical URLs within a single worker invocation. Unreachable URL, non-200, timeout, or non-JSON response body produces a per-file ViolationRecord per TR-6.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "orphan": false,
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "req_id": "EPIC-008-F-002-S-006-REQ-T-003",
-                          "name": "External-standard carve-out cache",
-                          "requirement": "Aligned to BR-16. Cached external standards live under Website/schemas/standard/. A standard is eligible for caching when its URL is contractually frozen by the spec maintainer (any change requires a new versioned URL). The framework's runtime serves those URLs from the cached copies. Cached standards remain under the stewardship of their original publisher; the framework's governance applies to content the framework owns.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "approval": "approved",
-                          "orphan": false,
-                          "depends_on": [],
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
                     "story_id": "EPIC-008-F-002-S-007",
-                    "name": "SessionStart and PostCompact boot duties dispatched via chathealthy_enforcement_manager",
+                    "name": "Rule-002 - Boot execution on SessionStart and PostCompact",
                     "description": "On every Claude Code SessionStart hook and on every PostCompact hook (context purge), the boot program replays the most recent conversation utterances from MongoDB and injects the agile_backlog taxonomy. Dispatch is performed by chathealthy_enforcement_manager.py per Rule-002 enforcement entries; the boot is no longer wired directly in .claude/settings.json.",
                     "size": "L",
                     "status": "not_started",
@@ -11811,6 +10673,1213 @@
                                 "orphan": true,
                                 "test_type": "ORPHAN",
                                 "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-002-S-008",
+                    "name": "Rule-001 - Persist Claude conversation events to Kafka",
+                    "description": "Catalog entry. Semantic requirements live at EPIC-008-F-013-S-001 (Publisher leg) - REQ-T-001 (UserPromptSubmit publish), REQ-T-002 (Stop publish), REQ-B-001 (sidecar-unreachable fullscreen browser warning). Worker: architecture/Conversation-logPipeline/conversation_log_publisher_worker.py.",
+                    "size": "S",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-002-S-009",
+                    "orphan": false,
+                    "name": "Rule-003 - Deliberate raises must use ChatHealthyException",
+                    "description": "Establishes the foundational rule and the implementation that realizes it. Defines ChatHealthyException in chathealthy-frontend-lib, specifies the constructor contract (mode discriminator + message for logging + context dict), mandates the substitution at every existing deliberate-raise site in our authored code, and adds a pre-commit gate that rejects new raises of forbidden built-in exception types in our modules. The first mode the substrate uses is llm_unavailable, introduced by the LLM facade with context {provider, call_site, attempts}. Additional modes (compliance violations, geography insufficient, db unreachable, rate limited, etc.) land as the operator approves their definitions; the substrate accepts them without code change at the catch sites.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-002-S-009-REQ-B-001",
+                          "orphan": false,
+                          "name": "ChatHealthyException class definition",
+                          "requirement": "The chathealthy-frontend-lib package MUST define a class ChatHealthyException that inherits from the standard library Exception. The constructor signature is (mode: str, message: str, **context). Message is used for logging, and not for end user communications. Context is a dict; its keys vary by mode. The instance exposes attributes mode (str), message (str), context (dict), and exception (Exception â€” the original wrapped exception, when ChatHealthyException is being raised as a boundary conversion of an external library exception; None when this is an originating raise from our own code). The class lives at a stable import path within the package so every consumer service can import it.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-009-REQ-B-002",
+                          "orphan": false,
+                          "name": "Exhaustive use rule for deliberate raises in our authored code",
+                          "requirement": "Every deliberate raise of an exception authored in ChatHealthy.ai repository code MUST use ChatHealthyException with an appropriate mode discriminator. Use of built-in Python exception types (ValueError, RuntimeError, AssertionError, TypeError, KeyError) in deliberate raises authored by our code is forbidden. Re-raises of external exceptions (e.g. httpx.RemoteProtocolError, pymongo.errors.*) preserve the original type and the call stack of the original exception, so that logging of the exception becomes the duty of the exception class and not the code that creates the exception.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "EPIC-008-F-002-S-009-REQ-B-001"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-009-REQ-B-003",
+                          "orphan": false,
+                          "name": "Boundary conversion rule for external-library exceptions",
+                          "requirement": "External-library exceptions MAY be converted to ChatHealthyException at defined system boundaries. The LLM facade (EPIC-008-F-002-S-009-REQ-B-007 below) is one such boundary. When such a conversion happens, the exception object MUST log the original exception with full traceback for operator forensic value before raising the new ChatHealthyException, so the original failure is not lost.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "EPIC-008-F-002-S-009-REQ-B-001"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-009-REQ-B-004",
+                          "orphan": false,
+                          "name": "Catch-side discrimination on mode",
+                          "requirement": "Code that catches ChatHealthyException SHOULD discriminate on the mode attribute, not on isinstance against new exception subclasses (there are no subclasses). The mode taxonomy is the design surface for discriminating failure shapes. Catch sites that need to handle several modes use an explicit conditional on exc.mode.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "EPIC-008-F-002-S-009-REQ-B-001"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-009-REQ-B-005",
+                          "orphan": false,
+                          "name": "Mode taxonomy lives in the feature's design doc",
+                          "requirement": "The set of valid modes is documented in the feature's architecture design doc under FrontEndApplicationLib/architectureAndDesign/. Adding a new mode is a design-doc edit that the operator approves, not a code-only change. Code that raises with an undocumented mode MAY be rejected by a future enforcement gate (out of scope for this story).",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-009-REQ-B-006",
+                          "orphan": false,
+                          "name": "Pre-commit gate forbids new deliberate raises of built-in types",
+                          "requirement": "A new engineering rule (Rule-NNN, operator picks the number) MUST gate pre-commit. The worker scans every staged Python file under ChatHealthy.ai's authored directories (sharedServices/, FindCare/, evaluateCare/, Code/, FrontEndApplicationLib/, architecture/) and rejects any line matching a deliberate raise of ValueError, RuntimeError, AssertionError, KeyError, TypeError. Exempted: re-raises with no expression, test files asserting expected behavior, and external-library calls that we do not author. Forbidden raises in existing code at the moment the rule lands are tracked as orphan-fix items; the rule rejects only NEW commits that introduce additional violations until the historical backlog is migrated.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "EPIC-008-F-002-S-009-REQ-B-001"
+                            },
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "EPIC-008-F-002-S-009-REQ-B-002"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-009-REQ-B-007",
+                          "orphan": false,
+                          "name": "LLM facade boundary defines the first concrete mode llm_unavailable",
+                          "requirement": "The LLM call facade in chathealthy-frontend-lib catches transient HTTP errors (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadTimeout, httpx.WriteTimeout, httpx.PoolTimeout) from the underlying pydantic-ai Agent.run call and, after the retry policy is exhausted, raises ChatHealthyException(mode='llm_unavailable', provider=<str>, call_site=<str>, attempts=<int>). UR catches this exception in _handle_utterance and re-dispatches to UM as a manufacture-trigger Request whose manufacture_utterance_reason carries the same context, so UM authors a user-facing message via the existing manufacture pattern. If the manufacture call itself raises ChatHealthyException, that exception propagates to UR's outermost catch and the existing fatal path fires; the operator sees the failure via telemetry and the user sees chFatalError. This three-rung ladder (transient blip covered by retry, sustained-recoverable covered by manufacture dialogue, truly-down covered by fatal) is the substrate.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "EPIC-008-F-002-S-009-REQ-B-001"
+                            },
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "EPIC-008-F-002-S-009-REQ-B-003"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-009-REQ-B-008",
+                          "orphan": false,
+                          "name": "Exception Management Modes",
+                          "requirement": "Every catch site that catches a ChatHealthyException MUST classify the caught exception into exactly one of three modes and act accordingly. Mode 1 â€” expected and easily handled (retry, fallback, alternate path): catcher logs at INFO with the if_debug flag set so the record is emitted only when in debug; caller continues via the recovery mechanism; user sees nothing. Mode 2 â€” expected and probably attributable to user error OR to a resource temporarily unavailable: catcher logs at ERROR (always emitted, no debug gate), surfaces an appropriate user-facing message describing the problem, and does NOT return HTTP 503. Mode 3 â€” unhandled, NOT expected (a bug): the safety-net @app.exception_handler returns HTTP 503 to the user and logs the unhandled exception so we can track it down and fix it; Mode 3 is the ONLY case where the user sees an HTTP 503; the architectural goal is for Mode 3 occurrences to be RARE â€” every observed Mode 3 instance MUST become a local catch with Mode 1 or Mode 2 handling. Throw-side rule: when a catch site converts a library exception (httpx, pymongo, etc.) into a ChatHealthyException, that site MUST clean up the underlying resource (close the connection / cursor / file handle, abort the request, release the pool slot, etc.) before raising the ChatHealthyException, so a leaked resource does not produce a delayed second failure (e.g., a 100-second-later timeout from a connection that was never closed).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "EPIC-008-F-002-S-009-REQ-B-001"
+                            },
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "EPIC-008-F-002-S-009-REQ-B-004"
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-009-REQ-B-008-TEST-1",
+                                "test_type": "unit",
+                                "orphan": false,
+                                "file": "FrontEndApplicationLib/tests/test_llm_facade.py"
+                              },
+                              {
+                                "test_id": "EPIC-008-F-002-S-009-REQ-B-008-TEST-2",
+                                "test_type": "unit",
+                                "orphan": false,
+                                "file": "FrontEndApplicationLib/tests/test_logging_service_levels.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-002-S-010",
+                    "orphan": false,
+                    "name": "Rule-004 - Direct MongoClient instantiation forbidden outside the canonical utility",
+                    "description": "ChatHealthyMongoUtilities (lives at FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py) is the canonical entry point for obtaining a MongoClient. Every live service path uses it. Direct MongoClient(...) instantiation outside the utility itself is forbidden and enforced at pre-commit via Rule-004.",
+                    "size": "S",
+                    "status": "done",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-002-S-010-REQ-B-001",
+                          "orphan": false,
+                          "name": "Canonical Mongo client provider exists",
+                          "requirement": "A class named ChatHealthyMongoUtilities MUST exist at FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py and serve as the canonical Mongo client provider for every ChatHealthy.ai service.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-010-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-010-REQ-B-002",
+                          "orphan": false,
+                          "name": "Zero-parameter constructor, environment-sourced configuration",
+                          "requirement": "The constructor takes zero parameters. The utility sources connection coordinates and service identity from runtime environment configuration without caller input.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-010-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-010-REQ-B-003",
+                          "orphan": false,
+                          "name": "Process-wide singleton client",
+                          "requirement": "The utility maintains a process-wide singleton MongoClient. Repeated instantiation of ChatHealthyMongoUtilities returns the same underlying client and connection pool.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-010-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-010-REQ-B-004",
+                          "orphan": false,
+                          "name": "getConnection() is the single public method",
+                          "requirement": "getConnection() is the single public method. It returns the MongoClient. Callers select their own database and collection from the returned client.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-010-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-010-REQ-B-005",
+                          "orphan": false,
+                          "name": "Default operation timeout",
+                          "requirement": "The utility sets timeoutMS on the MongoClient per the CSOT (Client-Side Operation Timeout) policy, with default value 15000ms.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-010-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-010-REQ-B-006",
+                          "orphan": false,
+                          "name": "Per-call overrides use pymongo's native context manager",
+                          "requirement": "Per-call timeout overrides are performed by the calling code using pymongo's native `with pymongo.timeout(seconds):` context manager. The utility does NOT expose a wrapper API for timeout overrides.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-010-REQ-B-006-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-010-REQ-B-007",
+                          "orphan": false,
+                          "name": "Direct MongoClient instantiation forbidden outside the utility",
+                          "requirement": "Direct MongoClient(...) instantiation in any ChatHealthy.ai-authored Python file is forbidden except within FrontEndApplicationLib/src/chathealthy_frontend_lib/mongo_utilities.py itself.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-010-REQ-B-007-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-010-REQ-B-008",
+                          "orphan": false,
+                          "name": "Logging is governed by uniform application logging",
+                          "requirement": "The utility's logging surface is governed by EPIC-008-F-011-S-005 (Uniform application logging).",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-011-S-005",
+                              "reason": "Logging surface is governed by the uniform application logging story."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-010-REQ-B-008-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_mongo_client_direct_access_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-010-REQ-B-009",
+                          "orphan": false,
+                          "name": "Explicit per-call batch_size override on library find()",
+                          "requirement": "The ChatHealthyMongoUtilities Mongo wrapper SHALL expose batch_size as an explicit named keyword parameter on its find() method, with default value None. When batch_size is None the library MUST NOT pass any batch_size to pymongo (pymongo default applies). When the caller sets batch_size to an integer, the library MUST forward that integer to pymongo. The library MUST NOT impose a default batch_size for any caller, MUST NOT cache or persist a batch_size across calls, and MUST NOT infer a batch_size from collection size or call history. Choosing to override batch_size is a per-call caller decision. Compliance test: a pytest configures the canonical logging service to DEBUG, calls find() with batch_size set to a known integer, then reads the configured log destination and asserts the captured mongo.find START line includes the batch_size kwarg verbatim. The same pytest also asserts that omitting batch_size results in a START line that does NOT include batch_size in opts.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-010-REQ-B-009-TEST-1",
+                                "orphan": false,
+                                "test_type": "unit",
+                                "file": "FrontEndApplicationLib/tests/test_mongo_utilities_batch_size.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-002-S-011",
+                    "orphan": false,
+                    "name": "Rule-005 - Uniform logging discipline",
+                    "description": "Every ChatHealthy.ai Python file MUST get its logger from ChatHealthyLoggingService in chathealthy_frontend_lib. ChatHealthyLoggingService uses Python's logging module. logging.basicConfig(), logging.getLogger(), and print() MUST NOT appear in ChatHealthy.ai code. Pre-commit Rule-005 MUST enforce this.",
+                    "size": "S",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-002-S-011-REQ-B-001",
+                          "orphan": false,
+                          "name": "ChatHealthyLoggingService is the only place loggers come from",
+                          "requirement": "ChatHealthyLoggingService MUST exist in chathealthy_frontend_lib. Every ChatHealthy.ai Python file MUST get its logger from it.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-011-REQ-B-001-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-011-REQ-B-002",
+                          "orphan": false,
+                          "name": "logging.basicConfig(), logging.getLogger(), and print() are forbidden in ChatHealthy.ai code",
+                          "requirement": "logging.basicConfig(), logging.getLogger(), and print() MUST NOT appear in any ChatHealthy.ai Python file except ChatHealthyLoggingService itself. Pre-commit Rule-005 MUST enforce this.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-011-REQ-B-002-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-011-REQ-B-003",
+                          "orphan": false,
+                          "name": "Default log level and destination come from environment variables",
+                          "requirement": "ChatHealthyLoggingService MUST read its default log level and log destination from environment variables. If no environment variable is set, the default level MUST be INFO.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-011-REQ-B-003-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-011-REQ-B-004",
+                          "orphan": false,
+                          "name": "All log messages, including 3rd-party library logs, write to the same log file",
+                          "requirement": "All log messages from ChatHealthy.ai code AND from other Python libraries (pymongo, openai, httpx, etc.) MUST write to the same log file. ChatHealthyLoggingService MUST route them via handlers configured on the root logger.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-011-REQ-B-004-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-011-REQ-B-005",
+                          "orphan": false,
+                          "name": "One log file per ChatHealthy component",
+                          "requirement": "There MUST be one log file per ChatHealthy component (FindCareServer, EvaluateCareServer, SharedServices, etc.). ChatHealthyLoggingService MUST select the file based on the component the process is running.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-011-REQ-B-005-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-011-REQ-B-006",
+                          "orphan": false,
+                          "name": "Application MUST NOT be disrupted by rotating or deleting the log file",
+                          "requirement": "The application MUST continue uninterrupted when its log file is archived, renamed, or deleted by an external process. Managing rotation or archival is out of scope. Implementation hint: changing the value of the log-destination environment variable is a valid way to point the application at a new file.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-011-REQ-B-006-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-011-REQ-B-007",
+                          "orphan": false,
+                          "name": "Logger renders ChatHealthyException with all attributes and both stack traces",
+                          "requirement": "ChatHealthyLoggingService MUST recognize ChatHealthyException at log time and render every attribute - mode, message, component, server, context - together with a full stack trace of both the wrapped original `exception` (when present) and the ChatHealthyException itself, in a single log entry. The exception argument passed to ChatHealthyLoggingService log methods (exc_info=, or the implicit current exception captured by log.exception() inside an except block) MUST be a ChatHealthyException; passing a non-ChatHealthyException exception is forbidden.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "ChatHealthyException class and contract (Manage Errors story)."
+                            },
+                            {
+                              "story_id": "FrontEndApplicationLib/architectureAndDesign/EPIC-003-F-003-Manage-Errors-design-v5.docx",
+                              "reason": "Exception rendering policy lives in the Manage Errors design."
+                            },
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-011-REQ-B-007-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-011-REQ-B-009",
+                          "orphan": false,
+                          "name": "Per-call debug gate - opt-in conditional emission",
+                          "requirement": "Every log call to a ChatHealthyLoggingService logger MUST accept an optional parameter (working name `if_not_debug_log` - final name TBD). The parameter's default value MUST be False: when omitted, the call MUST be a no-op unless debug mode is on. When explicitly set to True, the call emits as a normal log call subject to standard level filtering. The flag MUST NOT alter the severity stamped on records that DO emit: logger.info(msg, if_not_debug_log=True) MUST emit at INFO level when debug mode is on, not DEBUG. \"Debug mode is on\" is defined as: the effective log level of the receiving logger is DEBUG (or lower) - equivalently, the same logger would emit a DEBUG-level record.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "Python standard logging package",
+                              "reason": "ChatHealthyLoggingService uses Python's standard library logging module."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-011-REQ-B-009-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-011-REQ-B-010",
+                          "orphan": false,
+                          "name": "Code that throws ChatHealthyException MUST NOT log; the catcher logs",
+                          "requirement": "In any ChatHealthy.ai-authored Python function or method whose body contains a `raise ChatHealthyException(...)` statement, no call to ChatHealthyLoggingService log methods (debug, info, warning, error, critical, exception) MUST appear in the same function/method body. The catch site (the function that handles the raised exception) is where the log occurs. Pre-commit Rule-005 MUST enforce this.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "approval": "approved",
+                          "depends_on": [
+                            {
+                              "story_id": "EPIC-008-F-002-S-009",
+                              "reason": "ChatHealthyException class and contract (Manage Errors story)."
+                            }
+                          ],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-011-REQ-B-010-TEST-1",
+                                "orphan": false,
+                                "test_type": "engineering_rule",
+                                "file": "architecture/EngineeringRuleEnforcement/code/scan_uniform_logging_worker.py"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-002-S-012",
+                    "name": "Rule-008 - All files added to the local Git repository must be scanned for architectural compliance",
+                    "description": "Collapsed home for Rule-008's per-check semantics, previously split across F-002-S-005 (HTTP scan) and F-002-S-006 (JSON validation). Holds the contracts for _scan_http, _validate_json, _block_regular_expressions_in_executable_code, and _scan_no_secret_values. Worker: architecture/EngineeringRuleEnforcement/code/scan_files_enforcement_worker.py.",
+                    "size": "L",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-002-S-012-REQ-B-001",
+                          "name": "http: legitimate-content allowance",
+                          "requirement": "Files that are intended to carry plain text \"http:\" as legitimate content â€” for example, JSON files whose purpose is to record example URLs, configuration files that list http endpoints by design, fixtures, and similar data files â€” MUST be allowed to contain the term \"http:\". These files are listed on the enforcement entry's allowed by exact match rows, or matched by the enforcement entry's allowed by pattern rows, and they will not be flagged as a violation.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-012-REQ-B-002",
+                          "name": "http: production-source ban",
+                          "requirement": "Files that are intended to be production source code, documentation, deployment configuration, or any other artifact that should not embed insecure http URLs MUST NOT contain the term \"http:\" unless the URL itself is on the enforcement entry's allowed by pattern rows (for example, loopback addresses, link-local metadata endpoints, or known public standards URLs). Files of this kind that are deliberately exempt for any reason MUST appear on the enforcement entry's excluded by exact match rows or be matched by the enforcement entry's excluded by pattern rows. Any other file found to contain the term \"http:\" is a violation and the commit MUST be blocked.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-012-REQ-T-001",
+                          "name": "_scan_http scope alignment",
+                          "requirement": "The set of files allowed to contain \"http:\" is exactly the union of the enforcement entry's allowed_exact rows and the files matched by the entry's allowed_pattern rows for _scan_http. The set of files exempt from the scan entirely is exactly the union of the entry's excluded_exact rows and the files matched by the entry's excluded_pattern rows for _scan_http. Any file not matched by any of those four scope_list_type rows that contains the term \"http:\" â€” except where the URL itself matches an allowed_pattern row for _scan_http â€” is a violation.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-012-REQ-B-003",
+                          "name": "Governed JSON validation gate",
+                          "requirement": "Every file the system treats as governed JSON content MUST validate cleanly against the schema declared in its $schema field. The set of governed JSON files is defined using only the four permitted scope-list terms (allowed_exact, allowed_pattern, excluded_exact, excluded_pattern). The system MUST NOT trust data from a JSON file that fails schema validation, and the framework MUST treat validation failure as a governance violation. JSON validation is the load-bearing gate that protects the entire governed-data layer from silent drift.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-012-REQ-T-002",
+                          "name": "Draft 2020-12, no opt-out",
+                          "requirement": "Governed JSON content lives under brain/machine_artifacts/content/. Each governed JSON file MUST declare its schema URL in a top-level $schema field. JSON parsing uses Python's standard library json module. Schema validation uses the jsonschema package against JSON Schema Draft 2020-12. Validation failure produces a violation record per TR-6 and contributes to the worker's exit code (EXIT_VIOLATIONS_FOUND = 1). Files identified by the worker's excluded_exact or excluded_pattern lists are skipped silently; files in scope without a $schema field MUST FAIL LOUD. There is no opt-out, and there is no quiet passing of unschemaed JSON content. The JSON Schema 2020-12 meta-schema URL is the single resolver carve-out, served from a local copy at Website/schemas/standard/json-schema-2020-12-meta.json. All other $schema URLs are resolved by HTTP GET with a 5-second timeout and per-run cache.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-012-REQ-B-004",
+                          "name": "Validation uses $schema URL",
+                          "requirement": "Validation MUST use the schema referenced by the JSON file's $schema URL.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-012-REQ-B-005",
+                          "name": "External standards committed",
+                          "requirement": "External standards used by the framework MUST be committed to the repository.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-012-REQ-T-003",
+                          "name": "$schema HTTPS resolution + cache",
+                          "requirement": "Aligned to BR-15. ChatHealthy schemas declared in $schema URLs are resolved via HTTPS GET to the URL the JSON file declared, performed at validation time. A per-run cache deduplicates identical URLs within a single worker invocation. Unreachable URL, non-200, timeout, or non-JSON response body produces a per-file ViolationRecord per TR-6.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-012-REQ-T-004",
+                          "name": "External-standard carve-out cache",
+                          "requirement": "Aligned to BR-16. Cached external standards live under Website/schemas/standard/. A standard is eligible for caching when its URL is contractually frozen by the spec maintainer (any change requires a new versioned URL). The framework's runtime serves those URLs from the cached copies. Cached standards remain under the stewardship of their original publisher; the framework's governance applies to content the framework owns.",
+                          "priority": "must-have",
+                          "status": "done",
+                          "approval": "approved",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-002-S-013",
+                    "name": "Rule-064 - Block tool actions targeting the legacy tree",
+                    "description": "All Claude tool actions (Bash commands, Write, Edit, NotebookEdit) targeting the legacy project tree are denied at the Claude Code permission layer (PreToolUse). One requirement per rule statement (12 total), each requirement's body is the verbatim statement body from engineering_rules.json. Worker: architecture/EngineeringRuleEnforcement/code/block_legacy_path_worker.py.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-001",
+                          "name": "Rule-064 statement 1",
+                          "requirement": "Bash command containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-002",
+                          "name": "Rule-064 statement 2",
+                          "requirement": "Bash command containing the substring `c:/chatHealthy/Resources` or `c:\\chatHealthy\\Resources` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-003",
+                          "name": "Rule-064 statement 3",
+                          "requirement": "Bash command targeting any path under `c:\\chatHealthy\\` other than `c:\\CHATHealthyLLC\\` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-004",
+                          "name": "Rule-064 statement 4",
+                          "requirement": "Write tool with `file_path` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-005",
+                          "name": "Rule-064 statement 5",
+                          "requirement": "Write tool with `file_path` containing the substring `c:/chatHealthy/Resources` or `c:\\chatHealthy\\Resources` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-006",
+                          "name": "Rule-064 statement 6",
+                          "requirement": "Write tool with `file_path` under `c:\\chatHealthy\\` other than `c:\\CHATHealthyLLC\\` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-007",
+                          "name": "Rule-064 statement 7",
+                          "requirement": "Write tool with `content` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-008",
+                          "name": "Rule-064 statement 8",
+                          "requirement": "Edit tool with `file_path` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-009",
+                          "name": "Rule-064 statement 9",
+                          "requirement": "Edit tool with `file_path` containing the substring `c:/chatHealthy/Resources` or `c:\\chatHealthy\\Resources` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-010",
+                          "name": "Rule-064 statement 10",
+                          "requirement": "Edit tool with `new_string` containing the substring `{CHATHEALTHY_PROJECT_ROOT}` or `{CHATHEALTHY_PROJECT_ROOT}` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-011",
+                          "name": "Rule-064 statement 11",
+                          "requirement": "NotebookEdit tool with `notebook_path` under `c:\\chatHealthy\\` other than `c:\\CHATHealthyLLC\\` (case-insensitive) MUST be denied at PreToolUse.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-013-REQ-B-012",
+                          "name": "Rule-064 statement 12",
+                          "requirement": "Maintenance obligation: if the legacy tree is renamed, removed, or relocated in the future, the patterns in block_legacy_path_worker.py and the corresponding statements above MUST be updated. Skip will track this explicitly; this statement exists to make the maintenance contract visible.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "approved",
+                          "orphan": false,
+                          "tests": {
+                            "test": [
+                              {
+                                "test_type": "ORPHAN",
+                                "orphan": true,
+                                "file": "ORPHAN"
+                              }
+                            ]
+                          },
+                          "depends_on": []
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-002-S-014",
+                    "name": "Rule-065 - No commit or deploy without explicit human authorization",
+                    "description": "Catalog entry. Semantic requirement lives at EPIC-008-F-012-S-001-REQ-B-007. Worker: architecture/EngineeringRuleEnforcement/code/commit_authorization_worker.py.",
+                    "size": "S",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-002-S-015",
+                    "name": "Rule-066 - Build/deploy/promote entry-point uniqueness",
+                    "description": "Catalog entry. Semantic requirement lives at EPIC-008-F-012-S-001-REQ-B-007. Worker: architecture/EngineeringRuleEnforcement/code/scan_entrypoint_uniqueness_worker.py.",
+                    "size": "S",
+                    "status": "in_progress",
+                    "approval": "approved",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-008-F-002-S-016",
+                    "name": "Rule-009 - Separation of concerns between React display, plumbing JS/HTML, and Python tools",
+                    "description": "Defines the architectural separation enforced by Rule-009. React owns all display content authoring; tool code (Python) owns all persistent-state change and business logic; authored .js files outside the React source tree and authored .html files are plumbing only - they courier opaque content between React and tools, never authoring display, never changing data state, and never carrying business logic. Worker: architecture/EngineeringRuleEnforcement/code/scan_separation_of_concerns_worker.py.",
+                    "size": "M",
+                    "status": "in_progress",
+                    "approval": "proposed",
+                    "orphan": false,
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-008-F-002-S-016-REQ-B-001",
+                          "name": "No display authoring outside React",
+                          "requirement": "Authored .js files outside the React application source tree (Code/ConversationalUX/FindCareChat/frontend/src/) and authored .html files MUST NOT author display content. Display content authoring includes assignments to innerHTML, outerHTML, textContent, or innerText; programmatic construction of DOM nodes carrying visible text or styles; and emitting template literals containing HTML markup. Couriering an opaque content string handed in via postMessage and assigning it to a named frame is permitted and lives on the enforcement entry's exception list.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-016-REQ-B-001-TEST-1",
+                                "test_type": "engineering_rule",
+                                "orphan": false,
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_scan_separation_of_concerns_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-016-REQ-B-002",
+                          "name": "No persistent-state change from React",
+                          "requirement": "The React application MUST NOT change persistent state directly. All persistence changes MUST originate from a /gate call dispatched through ClientRouter. Forbidden in React source: writes to localStorage, sessionStorage, indexedDB, or document.cookie; any fetch, XMLHttpRequest, or navigator.sendBeacon call that does not resolve to the canonical ClientRouter.makeCall / ClientRouter.callTrivial / router:makeCall postMessage path. Approved out-of-band reads (e.g., FindCare's /welcome) live on the enforcement entry's exception list.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-016-REQ-B-002-TEST-1",
+                                "test_type": "engineering_rule",
+                                "orphan": false,
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_scan_separation_of_concerns_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-016-REQ-B-003",
+                          "name": "No business logic outside tools",
+                          "requirement": "Authored .js files outside the React source tree and authored .html files MUST NOT carry business logic. Business logic is identified by branching on, or directly reading/writing, domain-vocabulary fields (provider, specialty, NPI, NUCC, clinical_trial, evaluation, user_object) on any payload or DOM value.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-016-REQ-B-003-TEST-1",
+                                "test_type": "engineering_rule",
+                                "orphan": false,
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_scan_separation_of_concerns_worker.py"
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "req_id": "EPIC-008-F-002-S-016-REQ-B-004",
+                          "name": "Enforcement is deterministic",
+                          "requirement": "The pre-commit worker that enforces REQ-B-001, REQ-B-002, and REQ-B-003 MUST be deterministic - no LLM call in the pre-commit path. Detection MUST be structural (stdlib html.parser for .html, tree-sitter or equivalent for .js/.ts/.tsx). Where regex on parsed string contents is required, the worker MUST be added to Rule-008's _block_regular_expressions_in_executable_code excluded_exact list per the established pattern.",
+                          "priority": "must-have",
+                          "status": "in_progress",
+                          "approval": "proposed",
+                          "orphan": false,
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "test_id": "EPIC-008-F-002-S-016-REQ-B-004-TEST-1",
+                                "test_type": "engineering_rule",
+                                "orphan": false,
+                                "file": "architecture/EngineeringRuleEnforcement/tests/test_scan_separation_of_concerns_worker.py"
                               }
                             ]
                           }

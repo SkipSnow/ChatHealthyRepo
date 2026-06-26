@@ -2,7 +2,7 @@
 """Integration test for the UR catch + UM manufacture dispatch on
 ChatHealthyException(mode='llm_unavailable').
 
-Realizes verification for EPIC-003-F-003-S-001-REQ-B-007 (UR side):
+Realizes verification for EPIC-008-F-002-S-009-REQ-B-007 (UR side):
 when UM's classifier/manufacture LLM exhausts retries and raises
 ChatHealthyException, UR catches and re-dispatches UM with a synthetic
 manufacture trigger carrying the system_llm_unavailable gesture. The

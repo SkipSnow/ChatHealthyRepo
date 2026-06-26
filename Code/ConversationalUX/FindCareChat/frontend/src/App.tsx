@@ -21,6 +21,7 @@ import EvaluateCareSplashWidget from './components/EvaluateCareSplashWidget'
 import SharedServicesSplashWidget from './components/SharedServicesSplashWidget'
 import LegalPanelWidget from './components/LegalPanelWidget'
 import OAuthLoginWidget from './components/OAuthLoginWidget'
+import FakeGoogleLoginWidget from './components/FakeGoogleLoginWidget'
 import AboutChatHealthyWidget from './components/AboutChatHealthyWidget'
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
       <SharedServicesSplashWidget />
       <LegalPanelWidget />
       <OAuthLoginWidget />
+      <FakeGoogleLoginWidget />
       <AboutChatHealthyWidget />
     </>
   )

@@ -3,7 +3,7 @@
 """ChatHealthyException — the single deliberate-exception type for ChatHealthy.ai
 authored code.
 
-Realizes EPIC-003-F-003-S-001-REQ-B-001. Inherits from Exception (not
+Realizes EPIC-008-F-002-S-009-REQ-B-001. Inherits from Exception (not
 BaseException) so standard `except Exception:` blocks catch it.
 """
 from __future__ import annotations

@@ -3,7 +3,7 @@
 
 """Canonical MongoClient provider for ChatHealthy.ai front-end services.
 
-Realizes EPIC-003-F-004-S-001. Direct MongoClient(...) instantiation in
+Realizes EPIC-008-F-002-S-010. Direct MongoClient(...) instantiation in
 any ChatHealthy.ai-authored Python file outside THIS file is forbidden
 and enforced at pre-commit via Rule-004.
 """

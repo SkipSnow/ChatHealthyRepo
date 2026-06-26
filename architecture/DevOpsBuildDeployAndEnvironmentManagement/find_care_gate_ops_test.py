@@ -1,0 +1,104 @@
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+#
+# find_care_gate_ops_test.py
+# Direct /gate-op contract tests for the ops I touched in the
+# HTML-out-of-Python cleanup. No browser — keeps these fast and isolates
+# them from the Playwright fixture (pymongo's transitive imports were
+# leaving an asyncio loop running and breaking sync_playwright in the
+# paired panels_and_auth smoke).
+#
+# Covers:
+#   - claim_oauth_result (empty → null)
+#   - claim_oauth_result (seeded → returns + clears)
+#   - evalcare-splash (structured data, no html anywhere)
+
+import os
+import json
+import ssl
+import urllib.request
+
+SHARED_URL = "https://localhost:8002"
+
+
+def _ndjson_post(url, body):
+    ctx = ssl._create_unverified_context()
+    req = urllib.request.Request(
+        url, method="POST",
+        headers={"Content-Type": "application/json", "Accept": "application/x-ndjson"},
+        data=json.dumps(body).encode(),
+    )
+    with urllib.request.urlopen(req, timeout=30, context=ctx) as r:
+        raw = r.read().decode()
+    return [json.loads(ln) for ln in raw.split("\n") if ln.strip()]
+
+
+def test_claim_oauth_result_returns_null_when_empty():
+    events = _ndjson_post(f"{SHARED_URL}/gate",
+                          {"op": "claim_oauth_result", "payload": {}})
+    kinds = [ev.get("kind") for ev in events]
+    assert "oauth_result" in kinds, f"missing oauth_result event: {kinds}"
+    result_event = next(ev for ev in events if ev.get("kind") == "oauth_result")
+    assert result_event["data"]["result"] is None, (
+        f"empty session should return result=null, got {result_event}"
+    )
+
+
+def test_claim_oauth_result_pop_and_clear():
+    from dotenv import load_dotenv
+    from pymongo import MongoClient
+    load_dotenv("Code/.env")
+    client = MongoClient(os.environ["MONGO_FRONTEND_connectionString"],
+                         serverSelectionTimeoutMS=10000)
+    coll = client["Users"]["sessions"]
+    try:
+        # Seed a session via op=boot, then plant a pending_oauth_result.
+        boot_events = _ndjson_post(f"{SHARED_URL}/gate",
+                                   {"op": "boot", "payload": {}})
+        guid = None
+        for ev in boot_events:
+            if ev.get("kind") == "final":
+                guid = ev.get("guid")
+                break
+        assert guid, "boot did not return a session guid"
+
+        seeded = {"outcome": "success", "message": "Welcome test",
+                  "email": "test@example.com", "user_id": "u-TEST123"}
+        res = coll.update_one({"_id": guid},
+                              {"$set": {"pending_oauth_result": seeded}})
+        assert res.matched_count == 1, "could not seed pending_oauth_result"
+
+        first = _ndjson_post(f"{SHARED_URL}/gate",
+                             {"op": "claim_oauth_result", "payload": {},
+                              "prior_guid": guid})
+        first_result = next(ev for ev in first
+                            if ev.get("kind") == "oauth_result"
+                           )["data"]["result"]
+        assert first_result == seeded, (
+            f"first claim should return seeded data, got {first_result}"
+        )
+
+        second = _ndjson_post(f"{SHARED_URL}/gate",
+                              {"op": "claim_oauth_result", "payload": {},
+                               "prior_guid": guid})
+        second_result = next(ev for ev in second
+                             if ev.get("kind") == "oauth_result"
+                            )["data"]["result"]
+        assert second_result is None, (
+            f"second claim should return null after clear, got {second_result}"
+        )
+    finally:
+        client.close()
+
+
+def test_evalcare_splash_returns_structured_data_no_html():
+    events = _ndjson_post(f"{SHARED_URL}/gate",
+                          {"op": "evalcare-splash", "payload": {}})
+    ev = next(e for e in events if e.get("kind") == "evalcare-splash")
+    full = json.dumps(ev)
+    assert "<html" not in full.lower() and "<div" not in full, (
+        f"evalcare-splash must NOT carry HTML strings: {full[:300]!r}"
+    )
+    data = ev["data"].get("data") or {}
+    assert data.get("title"), f"missing title: {ev}"
+    assert "subtitle" in data, f"missing subtitle: {ev}"

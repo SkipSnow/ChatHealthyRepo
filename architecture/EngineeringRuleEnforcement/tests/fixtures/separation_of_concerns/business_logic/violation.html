@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>fixture biz logic</title></head>
+<body>
+  <script>
+    function lookupProviderByNPI(npi) {
+      // domain logic on the wrapper page - forbidden
+      return fetch("/api/provider?NPI=" + npi);
+    }
+  </script>
+</body>
+</html>

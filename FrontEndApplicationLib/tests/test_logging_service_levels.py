@@ -3,7 +3,7 @@
 
 """All 6 log levels of ChatHealthyLoggingService.
 
-Realizes EPIC-003-F-005-S-001-REQ-T-001 — every level (debug, info,
+Realizes EPIC-008-F-002-S-011-REQ-T-001 — every level (debug, info,
 warning, error, critical, exception) on ChatHealthyLoggingService MUST
 emit a record at the matching stdlib logging level, route through the
 typed exc= path on REQ-B-007, and honor the if_not_debug_log gate on
