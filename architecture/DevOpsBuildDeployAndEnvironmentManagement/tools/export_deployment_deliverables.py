@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Export deployment deliverables for operators:
 
-1. BUILD_DEPLOY_MINIMUM_FACTS_PROPOSAL.docx (from .md in this directory)
+1. DeploymentArchitectureDesignAndMigrationPlanPhase.docx (from ArchitectureDesignAndAuditDocs/*.md)
 2. deployment_facts_inventory_<date>.xlsx + .csv — one row per fact IN deployment_architecture.json ONLY
 
 The workbook is a pure projection of the persisted manifest. No proposed drafts,
@@ -22,7 +22,9 @@ ROOT = Path(__file__).resolve().parents[3]
 DEVOPS = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
 ENV_FILE = ROOT / "Code" / ".env"
-MD_PATH = DEVOPS / "BUILD_DEPLOY_MINIMUM_FACTS_PROPOSAL.md"
+AUDIT_DOCS = DEVOPS / "ArchitectureDesignAndAuditDocs"
+MD_PATH = AUDIT_DOCS / "DeploymentArchitectureDesignAndMigrationPlanPhase.md"
+PLAN_DOCX_PATH = AUDIT_DOCS / "DeploymentArchitectureDesignAndMigrationPlanPhase.docx"
 TODAY = date.today().isoformat()
 
 COLUMNS = [
@@ -353,7 +355,7 @@ def main() -> None:
     rows = collect_fact_rows(manifest)
     base = DEVOPS / f"deployment_facts_inventory_{TODAY}"
     write_spreadsheet(rows, base)
-    md_to_docx(MD_PATH, DEVOPS / "BUILD_DEPLOY_MINIMUM_FACTS_PROPOSAL.docx")
+    md_to_docx(MD_PATH, PLAN_DOCX_PATH)
     print("Rows by fact_kind:")
     from collections import Counter
     for k, v in sorted(Counter(r["fact_kind"] for r in rows).items()):
