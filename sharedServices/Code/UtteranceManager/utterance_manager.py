@@ -840,7 +840,27 @@ DECISION RULES (apply in this order):
 
       Set complaint to the medical condition the user is asking
       about, normalized (e.g. "type 2 diabetes", "lung cancer",
-      "depression"). Condition is the ONLY required field for
+      "depression").
+
+      If the user described a symptom rather than a clinical
+      diagnosis (e.g. "chronic headaches", "back pain",
+      "shortness of breath", "frequent dizziness"), expand the
+      complaint to the specific clinical condition(s) the
+      symptom most commonly maps to. Join multiple alternatives
+      with " OR " inside a single complaint string. Examples
+      (the list is illustrative; apply the same reasoning to
+      other symptoms):
+          "chronic headaches"   -> "chronic migraine OR tension-type headache OR cluster headache"
+          "back pain"           -> "lumbar disc herniation OR lumbar radiculopathy OR sciatica OR chronic low back pain"
+          "shortness of breath" -> "asthma OR COPD OR pulmonary fibrosis OR heart failure"
+          "frequent dizziness"  -> "vertigo OR Meniere's disease OR vestibular neuronitis OR BPPV"
+      Layperson symptom strings yield zero or weakly-relevant
+      results downstream; specific clinical condition names
+      yield usable ones. If the user already named a specific
+      clinical condition (e.g. "type 2 diabetes", "non-small
+      cell lung cancer"), use it verbatim without OR-expansion.
+
+      Condition is the ONLY required field for
       findClinicalTrials; age, sex, user_location, and
       geographic_scope are all optional refinements per the rules
       above.

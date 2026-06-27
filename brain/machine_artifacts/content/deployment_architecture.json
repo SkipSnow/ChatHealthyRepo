@@ -113,7 +113,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "868fa434ca2b883d4d52e7be815cc86449b3606a8f3798e80c3038dd5fe88be1"
+          "content_hash": "63bdb21c04913e22065b45f89819e7323147583284cfa2b03ca4b90eab3ecba8"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2655,7 +2655,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "cc7b98532f19edf1e50fdc96c22b24f2eb9318798f678a7da29cbc652ef033ab"
+          "content_hash": "9868bdad6982380b3cf1b2ce701c92f4af6dc772cf8ed16328d3994d0290413d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -4941,7 +4941,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "cc7b98532f19edf1e50fdc96c22b24f2eb9318798f678a7da29cbc652ef033ab"
+          "content_hash": "9868bdad6982380b3cf1b2ce701c92f4af6dc772cf8ed16328d3994d0290413d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5102,7 +5102,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "868fa434ca2b883d4d52e7be815cc86449b3606a8f3798e80c3038dd5fe88be1"
+          "content_hash": "63bdb21c04913e22065b45f89819e7323147583284cfa2b03ca4b90eab3ecba8"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -6675,7 +6675,7 @@
           "source_location": "Website/index.html",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "868fa434ca2b883d4d52e7be815cc86449b3606a8f3798e80c3038dd5fe88be1"
+          "content_hash": "63bdb21c04913e22065b45f89819e7323147583284cfa2b03ca4b90eab3ecba8"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7015,101 +7015,10 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/AgileBacklogToDeploymentMap_2026-05-10.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "aff358d0142112fe549c283f62d4a5637a29cd6f581ce51b93c1b293505a4384"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/CH-EPIC8-Feachure-004-DevOpsBuildDeployAndEnvironmentManagement-designV1.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "5266805a52d89c8b3566ad07a785856ac0128d383625e81cab024ad9002cd9d6"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/CH-EPIC8-Feachure-004-DevOpsBuildDeployAndEnvironmentManagement-designV2.docx",
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "39a2cdd235b6ea40c24d9b67b0a194ad985304827146d68dfbce4aa509dbfaac"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/EPIC-008-F-004-proposed-reviewV10.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "480a75636d44f33f110696d988749e54d2cffecfcb38495d2ddc4213ff9fcdce"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/EPIC-008-F-004-proposed-reviewV11.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "ccf7734da44056c76607a6dc2313ac63f7e987a7f78091e803de8e666020da4d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/EPIC-008-F-004-proposed-reviewV7.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "b0290b3b31751932f006ff4ed63f9705bf6b165e29d5809575d8ae38afbb9504"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/EPIC-008-F-004-proposed-reviewV7_1.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "7246a4dfa1c2ac4e2783cd21819975438933d875b980108faf54a32b5ad3176a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/EPIC-008-F-004-proposed-reviewV8.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "460d9ec26e7588d39f8ae256869d6dd13c0cf906e0bf008a9b51ba86d062bdee"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/EPIC-008-F-004-proposed-reviewV9.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "ce8da266fdcb7b47af070da05c5ea9b41f774f318a6ca029ff69b1b15abda9af"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/build_deploy_promote_plan.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "4ad1b21c745b25f3f714feb92479b107a9f1894b4a08a46f64b2cc3760081636"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/build_deploy_promote_plan_v2.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "af64446188baff2276b311ccf98cf9617afb05783ad4c6c6e504c91a51cf7956"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/build_deploy_promote_plan_v3.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "5de91e7b81268980e82cf73f160227f0a23e9660969e3904b8561719a52ece5c"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/unified_build_deploy_plan_v4.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "17b6e03f0b7151eaf7c7a1eabccd527b4f57bc2d7f120ba546999b3a89da65c9"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/ArchitectureDesignAndAuditDocs/unified_build_deploy_promote_analyysis_v5.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "f84a5e5142d3a1b5090b35e60e7641072f12fd2c93ac763d8603b2c8b094f4b2"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -8823,7 +8732,7 @@
           "source_location": "sharedServices/Code/UtteranceManager/utterance_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "cc7b98532f19edf1e50fdc96c22b24f2eb9318798f678a7da29cbc652ef033ab"
+          "content_hash": "9868bdad6982380b3cf1b2ce701c92f4af6dc772cf8ed16328d3994d0290413d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -9980,12 +9889,6 @@
         }
       ],
       "files": [
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "brain/machine_artifacts/content/deployment_architecture.json",
-          "handler_type": "json",
-          "disposition": "referenced"
-        },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/change_db_version.py",
