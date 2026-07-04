@@ -1304,7 +1304,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/ClinicalTrialsWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "625aee16e31a14fc6a7734f47a7ac69c8660426c67e4ace67c042e527527e197"
+          "content_hash": "7a5fb6ed66101603faa3eac9ab7a1988a01a2d2a1922acf6745983ac2ad2061c"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3247,7 +3247,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/ClinicalTrialsWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "625aee16e31a14fc6a7734f47a7ac69c8660426c67e4ace67c042e527527e197"
+          "content_hash": "7a5fb6ed66101603faa3eac9ab7a1988a01a2d2a1922acf6745983ac2ad2061c"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5836,7 +5836,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/ClinicalTrialsWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "625aee16e31a14fc6a7734f47a7ac69c8660426c67e4ace67c042e527527e197"
+          "content_hash": "7a5fb6ed66101603faa3eac9ab7a1988a01a2d2a1922acf6745983ac2ad2061c"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -6977,7 +6977,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/_deploy_chain.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3f4b853b585d1689217a3cfbbb2727380a5be6cbe2bd26d435513c75aa98fa9a"
+          "content_hash": "58d0ff0014454ea5f29fa24f13e47e8377e8497ef37ae424c8b60b0822892270"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -8766,7 +8766,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/_deploy_chain.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3f4b853b585d1689217a3cfbbb2727380a5be6cbe2bd26d435513c75aa98fa9a"
+          "content_hash": "58d0ff0014454ea5f29fa24f13e47e8377e8497ef37ae424c8b60b0822892270"
         },
         {
           "feature_id": "EPIC-008-F-012",

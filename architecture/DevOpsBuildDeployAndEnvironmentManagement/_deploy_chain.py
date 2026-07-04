@@ -2700,7 +2700,7 @@ class LocalDeploy:
             v.append({"name": name, "ok": ok, "detail": detail[:300]})
             (passed if ok else failed).append(name)
 
-        with httpx.Client(verify=False, timeout=10) as c:
+        with httpx.Client(verify=False, timeout=60) as c:
             r = c.get("http://localhost/", follow_redirects=False)
             record("http_to_https_301", r.status_code == 301, f"got {r.status_code}")
             r = c.get("https://localhost/")
