@@ -88,10 +88,11 @@ function buildLeftPanel(
     const selected = i === selectedIdx ? 'background:#f0fffe;' : ''
     return `
       <li data-router-action="trial:select" data-trial-idx="${i}"
-          draggable="true" data-drag-payload="${nct}"
-          style="margin-bottom:0.75em;padding:0.4em;${selected}border-radius:0.3em;cursor:grab;">
-        <span style="color:#0b7a75;font-weight:700;text-decoration:underline;">${nct}</span>
-        <div style="font-size:0.9em;color:#374151;margin:0.15em 0 0.25em 0;">${title}</div>
+          style="margin-bottom:0.75em;padding:0.4em;${selected}border-radius:0.3em;cursor:pointer;">
+        <div draggable="true" data-drag-payload="${nct}" style="cursor:grab;">
+          <span style="color:#0b7a75;font-weight:700;text-decoration:underline;">${nct}</span>
+          <div style="font-size:0.9em;color:#374151;margin:0.15em 0 0.25em 0;">${title}</div>
+        </div>
         ${summary ? `<div style="font-size:0.85em;color:#4b5563;font-style:italic;margin:0.15em 0 0.35em 0;">${summary}</div>` : ''}
         <ul style="margin:0.25em 0 0 1em;padding:0;font-size:0.9em;color:#4b5563;">
           <li><strong>Conditions:</strong> ${conds}</li>

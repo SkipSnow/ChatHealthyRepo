@@ -95,10 +95,16 @@ export default function NewQueryLoadingWidget() {
       }, 1000)
     }
 
+    // Solid white fill so the frame's own CSS background (LeftPanel is
+    // pastel blue by default) does not show through an empty innerHTML.
+    const WHITE_FILL = '<div style="height:100%;width:100%;background:#fff;"></div>'
+
     function whiteOutAndEcho(prompt: string) {
-      // Blank the three content frames per Change C.
-      postRender('LeftPanel', '')
-      postRender('RightPanel', '')
+      // Blank the three content frames per Change C. Solid white, not
+      // an empty div — otherwise the frame's default background color
+      // shows and the surface looks pastel-blue, not blank.
+      postRender('LeftPanel', WHITE_FILL)
+      postRender('RightPanel', WHITE_FILL)
       postRender('MainWindow', buildMainWindowTimer())
       // Echo the (possibly corrected) prompt into UserMessage.
       // Rule-008 statement 4 forbids regex in executable front-end code,
@@ -120,6 +126,17 @@ export default function NewQueryLoadingWidget() {
       const msg = ev.data
       if (!msg || typeof msg !== 'object') return
 
+      // Change D: prompt-row timer starts the MOMENT the user submits —
+      // client-side, no server round-trip. Cumulative from here to
+      // router:final. The white-out itself waits for intent_classified so
+      // we do not wipe the previous query's content until UM has actually
+      // understood the new one.
+      if (msg.type === 'router:action' && msg.action === 'user:submit') {
+        const text = String((msg.data || {}).text || '').trim()
+        if (text) startTicking()
+        return
+      }
+
       if (msg.type === 'router:event-broadcast' && msg.kind === 'intent_classified') {
         const d = msg.data || {}
         // Prefer the classifier's corrected text; fall back to the raw
@@ -128,7 +145,11 @@ export default function NewQueryLoadingWidget() {
           d.corrected_text || d.corrected || d.text || d.utterance || ''
         )
         whiteOutAndEcho(echoed)
-        startTicking()
+        // startTicking() is idempotent — if user:submit already started
+        // the timer, this call is a no-op relative to the timer state
+        // (stopTicking + startTicking resets t0). Guard so the timer
+        // does not reset partway through.
+        if (startTsRef.current === null) startTicking()
         return
       }
 
