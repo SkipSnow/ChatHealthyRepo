@@ -299,6 +299,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         # slices its cached chunks locally.
         "about_chathealthy":    "_handle_about_chathealthy",
         "provider_selection":   "_handle_provider_selection",
+        "clinical_trial_selection": "_handle_clinical_trial_selection",
         "claim_oauth_result":   "_handle_claim_oauth_result",
     }
 
@@ -633,6 +634,17 @@ class UniversalNavigationTool(ChatHealthyTool):
         req = provider_selection_tool.Request(**(payload or {}))
         await provider_selection_tool.TOOL.run_and_log(deps, req)
         return Response(kind="provider_selection", result={"ok": True})
+
+    async def _handle_clinical_trial_selection(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
+        """Thin pass-through to ClinicalTrialSelectionTool. Tool mutates
+        user_object.selected_clinical_trials and streams
+        `kind:trial_selection_changed` with the current NCT-ID list; the
+        SelectedClinicalTrialsWidget repaints its strip via ClientRouter.merge
+        into MainWindow's selected_trials_strip region."""
+        from ClinicalTrialSelection import clinical_trial_selection_tool
+        req = clinical_trial_selection_tool.Request(**(payload or {}))
+        await clinical_trial_selection_tool.TOOL.run_and_log(deps, req)
+        return Response(kind="clinical_trial_selection", result={"ok": True})
 
     # ── Orchestration helpers ─────────────────────────────────────
 

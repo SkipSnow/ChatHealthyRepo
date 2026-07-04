@@ -76,6 +76,23 @@ export default function WelcomeWidget() {
     // The router:action 'goto_findcare' handler stays because that is a
     // direct user gesture (nav button click) with the same intent.
     window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'show_welcome' }, '*')
+    function postRenderTarget(target: string, content: string) {
+      window.parent.postMessage({
+        type: 'router:render',
+        target,
+        append: false,
+        popup: false,
+        content,
+      }, '*')
+    }
+    function resetToInitial() {
+      // Home = identical to first load: welcome bubble in MainWindow,
+      // every other content frame blank.
+      paint(cachedHtml)
+      postRenderTarget('LeftPanel', '')
+      postRenderTarget('RightPanel', '')
+      postRenderTarget('UserMessage', '')
+    }
     function onMessage(ev: MessageEvent) {
       const msg = ev.data
       if (!msg || typeof msg !== 'object') return
@@ -87,6 +104,8 @@ export default function WelcomeWidget() {
         paint(cachedHtml)
       } else if (msg.type === 'router:action' && msg.action === 'goto_findcare') {
         paint(cachedHtml)
+      } else if (msg.type === 'router:action' && msg.action === 'goto_home') {
+        resetToInitial()
       }
     }
     window.addEventListener('message', onMessage)

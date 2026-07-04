@@ -17,6 +17,8 @@ import SelectedProvidersWidget from './components/SelectedProvidersWidget'
 import ProviderDetailWidget from './components/ProviderDetailWidget'
 import SpecialtyFilterWidget from './components/SpecialtyFilterWidget'
 import ClinicalTrialsWidget from './components/ClinicalTrialsWidget'
+import SelectedClinicalTrialsWidget from './components/SelectedClinicalTrialsWidget'
+import NewQueryLoadingWidget from './components/NewQueryLoadingWidget'
 import EvaluateCareSplashWidget from './components/EvaluateCareSplashWidget'
 import SharedServicesSplashWidget from './components/SharedServicesSplashWidget'
 import LegalPanelWidget from './components/LegalPanelWidget'
@@ -38,6 +40,8 @@ function App() {
       <ProviderDetailWidget />
       <SpecialtyFilterWidget />
       <ClinicalTrialsWidget />
+      <SelectedClinicalTrialsWidget />
+      <NewQueryLoadingWidget />
       <EvaluateCareSplashWidget />
       <SharedServicesSplashWidget />
       <LegalPanelWidget />

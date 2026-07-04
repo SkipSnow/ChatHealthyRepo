@@ -88,7 +88,8 @@ function buildLeftPanel(
     const selected = i === selectedIdx ? 'background:#f0fffe;' : ''
     return `
       <li data-router-action="trial:select" data-trial-idx="${i}"
-          style="margin-bottom:0.75em;padding:0.4em;${selected}border-radius:0.3em;cursor:pointer;">
+          draggable="true" data-drag-payload="${nct}"
+          style="margin-bottom:0.75em;padding:0.4em;${selected}border-radius:0.3em;cursor:grab;">
         <span style="color:#0b7a75;font-weight:700;text-decoration:underline;">${nct}</span>
         <div style="font-size:0.9em;color:#374151;margin:0.15em 0 0.25em 0;">${title}</div>
         ${summary ? `<div style="font-size:0.85em;color:#4b5563;font-style:italic;margin:0.15em 0 0.35em 0;">${summary}</div>` : ''}
@@ -124,7 +125,7 @@ function sectionTitle(title: string): string {
   return `<h3 id="${sid}" style="font-size:1em;color:#0b7a75;font-weight:700;border-bottom:0.125em solid #d8e2e1;margin:1em 0 0.5em;padding-bottom:0.25em;">${esc(title)}</h3>`
 }
 
-function buildMainWindow(trial: any): string {
+function buildTrialDetailInner(trial: any): string {
   if (!trial) return '<div style="padding:1em;color:#6b7280;">No trial selected.</div>'
   const di = trial.design_info || {}
   const ipd = trial.ipd_sharing || {}
@@ -152,6 +153,18 @@ function buildMainWindow(trial: any): string {
     </tbody></table>
   `
   const sections: string[] = []
+  // Top row: Choose-for-evaluation button. Mirrors the provider-detail
+  // "↓ Select" pattern — one click adds this trial to the user's
+  // selected_clinical_trials list on user_object. The strip below picks
+  // it up via the trial_selection_changed broadcast.
+  const nctId = esc(trial.nct_id || '')
+  sections.push(
+    `<div style="display:flex;justify-content:flex-end;margin-bottom:0.5em;">` +
+      `<button data-router-action="trial:select-click" data-nct-id="${nctId}" ` +
+      `style="background:#fff;border:0.0625em solid #0b7a75;color:#0b7a75;padding:0.4em 0.9em;` +
+      `border-radius:0.375em;cursor:pointer;font-size:0.9em;font-weight:600;">↓ Choose for evaluation</button>` +
+    `</div>`
+  )
   // ct-record-top: the anchor the right-panel jump list AND the trial:select
   // handler use to scroll the record to its actual top (the trial title)
   // rather than to the first section header partway down the record.
@@ -191,6 +204,21 @@ function buildMainWindow(trial: any): string {
   return `<div style="max-width:70em;margin:0 auto;padding:1em;background:#fff;border:0.125em solid #e5e7eb;border-radius:0.5em;font-size:1em;line-height:1.6;color:#1f2937;">${sections.join('')}</div>`
 }
 
+// Scaffold the widget paints into MainWindow (replace). Two named regions:
+// trial_detail_area (filled with the trial-detail HTML from
+// buildTrialDetailInner) and selected_trials_strip (SelectedClinicalTrials
+// Widget merges into this — a subsequent trial:select never touches the
+// strip because we only re-merge trial_detail_area, not re-render the
+// whole MainWindow).
+function buildScaffoldHtml(): string {
+  return (
+    `<div style="display:flex;flex-direction:column;height:100%;min-height:0;">` +
+      `<div id="trial_detail_area" style="flex:1;min-height:0;overflow:auto;"></div>` +
+      `<div id="selected_trials_strip" style="flex-shrink:0;"></div>` +
+    `</div>`
+  )
+}
+
 function buildRightPanel(trial: any): string {
   if (!trial) return ''
   // Overview is the first jump target and points at the record-top anchor
@@ -218,15 +246,6 @@ function buildRightPanel(trial: any): string {
     </div>`
 }
 
-function buildLoadingBanner(criteria: string, pageStart: number, pageSize: number, totalCount: number | null): string {
-  const endRange = pageStart + pageSize - 1
-  const totalSuffix = totalCount ? ` of ${totalCount}` : ''
-  return `<div style="padding:2em;text-align:center;color:#0b7a75;">
-    <div style="font-size:1em;color:#374151;margin-bottom:0.5em;">${esc(criteria)} — retrieving records ${pageStart}–${endRange}${esc(totalSuffix)}</div>
-    <div id="ct-loading-timer" style="font-size:1em;font-weight:700;">0s</div>
-  </div>`
-}
-
 export default function ClinicalTrialsWidget() {
   // Widget produces no JSX (returns null) — every visible surface is
   // painted via postMessage to the parent. So every "state" value below
@@ -242,7 +261,6 @@ export default function ClinicalTrialsWidget() {
   const pageSizeRef = useRef<number>(10)
   const pageStartRef = useRef<number>(1)
   const lastQueryRef = useRef<any>(null)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastPageDirectionRef = useRef<'next' | 'prev' | null>(null)
 
   useEffect(() => {
@@ -257,6 +275,14 @@ export default function ClinicalTrialsWidget() {
     }
     function postSubscribe(kind: string) {
       window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: kind }, '*')
+    }
+    function postMergeTrialDetail(content: string) {
+      window.parent.postMessage({
+        type: 'router:merge',
+        target: 'MainWindow',
+        region: 'trial_detail_area',
+        content,
+      }, '*')
     }
 
     postSubscribe('clinical_trials_chunk')
@@ -274,7 +300,12 @@ export default function ClinicalTrialsWidget() {
         slice, 0, hasPrev, hasMore, start, totalEligibleRef.current, ctx,
         isPartialRef.current,
       ))
-      postRender('MainWindow', buildMainWindow(slice[0] || null))
+      // Paint the scaffold (two named regions) then merge the trial
+      // detail into #trial_detail_area. Subsequent trial:select calls
+      // merge into the same region, leaving #selected_trials_strip
+      // undisturbed so SelectedClinicalTrialsWidget's paint survives.
+      postRender('MainWindow', buildScaffoldHtml())
+      postMergeTrialDetail(buildTrialDetailInner(slice[0] || null))
       postRender('RightPanel', buildRightPanel(slice[0] || null))
       trialsRef.current = slice
       selectedIdxRef.current = 0
@@ -326,43 +357,9 @@ export default function ClinicalTrialsWidget() {
       }
     }
 
-    function startLoadingTimer(criteria: string, startN: number) {
-      postRender('MainWindow', buildLoadingBanner(criteria, startN, pageSizeRef.current, totalEligibleRef.current))
-      postRender('RightPanel', '')
-      // Empty the LeftPanel too so the user has clear visual feedback that
-      // a new search/page is in flight; the new trial list will overwrite
-      // this on kind:'trials'. First-pass text omits "more" — there is no
-      // prior page yet, so "more" reads as a lie.
-      const leftMsg = startN <= 1 ? 'Searching for clinical trials…' : 'Searching for more trials…'
-      postRender('LeftPanel', `<div style="padding:1em;color:#0b7a75;font-weight:700;">${leftMsg}</div>`)
-      if (timerRef.current) clearInterval(timerRef.current)
-      const t0 = Date.now()
-      timerRef.current = setInterval(() => {
-        // Guard against the race where a tick was scheduled by the
-        // browser before stopLoadingTimer cleared the interval but is
-        // now executing after chunk 0 already painted the trial detail
-        // into MainWindow. Without this check, that stale tick paints
-        // the loading banner back over the trial content.
-        if (timerRef.current === null) return
-        const sec = Math.round((Date.now() - t0) / 1000)
-        // Merge the seconds counter into ONLY the ct-loading-timer
-        // element rather than repainting the whole MainWindow every
-        // second. Repainting the whole frame every tick was causing a
-        // visible flicker. If the ct-loading-timer element is absent
-        // (banner has been replaced by the trial detail), merge is a
-        // no-op — ClientRouter's merge only touches the named region.
-        window.parent.postMessage({
-          type: 'router:merge',
-          target: 'MainWindow',
-          region: 'ct-loading-timer',
-          content: `${sec}s`,
-        }, '*')
-      }, 1000)
-    }
-
-    function stopLoadingTimer() {
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
-    }
+    // Loading UX (white-out + prompt-row timer + MainWindow timer) is
+    // owned by NewQueryLoadingWidget. This widget only paints trial
+    // content when clinical_trials_chunk arrives.
 
     function onMessage(ev: MessageEvent) {
       const msg = ev.data
@@ -370,25 +367,11 @@ export default function ClinicalTrialsWidget() {
 
       if (msg.type === 'router:event-broadcast') {
         if (msg.kind === 'clinical_trials_chunk') {
-          // The very first chunk replaces the loading state. Stop the
-          // timer here so a fast cache fill doesn't leave the spinner up.
-          if ((msg.data || {}).chunk_index === 0) stopLoadingTimer()
           applyChunk(msg.data || {})
         }
         if (msg.kind === 'intent_classified') {
           const d = msg.data || {}
           if (d.action === 'findClinicalTrials') {
-            const parts: string[] = []
-            if (d.condition) parts.push(`condition: ${d.condition}`)
-            if (d.age_years != null) parts.push(`subject age: ${d.age_years}`)
-            if (d.sex) parts.push(`subject sex: ${d.sex}`)
-            if (d.gender) parts.push(`subject gender: ${d.gender}`)
-            if (d.user_location) parts.push(`location: ${d.user_location}`)
-            if (d.geographic_scope) {
-              const sl = d.geographic_scope === 'us' ? 'US' : d.geographic_scope
-              parts.push(`scope: ${sl}`)
-            }
-            const criteria = parts.join(', ')
             lastQueryRef.current = {
               condition: d.condition || '',
               user_location: d.user_location || null,
@@ -397,7 +380,6 @@ export default function ClinicalTrialsWidget() {
               gender: d.gender || null,
               geographic_scope: d.geographic_scope || null,
             }
-            startLoadingTimer(criteria || 'clinical trials', 1)
           }
         }
       }
@@ -408,7 +390,10 @@ export default function ClinicalTrialsWidget() {
           const t = trialsRef.current[idx]
           if (!t) return
           selectedIdxRef.current = idx
-          postRender('MainWindow', buildMainWindow(t))
+          // Merge the new trial detail into #trial_detail_area only. The
+          // scaffold and #selected_trials_strip are untouched so the
+          // "Selected for Evaluation" strip persists across selections.
+          postMergeTrialDetail(buildTrialDetailInner(t))
           postRender('RightPanel', buildRightPanel(t))
           // Move the selection highlight in the LEFT panel by toggling a
           // background style on the target <li> directly. A single DOM
@@ -465,7 +450,6 @@ export default function ClinicalTrialsWidget() {
 
     window.addEventListener('message', onMessage)
     return () => {
-      stopLoadingTimer()
       window.removeEventListener('message', onMessage)
     }
   }, [])

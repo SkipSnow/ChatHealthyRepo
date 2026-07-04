@@ -34,13 +34,13 @@ function buildHeaderHtml(): string {
       </a>
       <span style="font-family:'DM Serif Display',serif;font-style:italic;color:#e05a8a;
                    font-size:0.85em;transform:rotate(-8deg);display:inline-block;">Pre-Alpha</span>
-      <nav class="ch-header-nav-desktop" style="margin-left:auto;gap:0.5em;font-size:0.9em;">
-        <button type="button" data-router-action="home_home"
-                style="background:transparent;border:none;color:#6b7280;cursor:not-allowed;padding:0.4em 0.8em;">Home</button>
-        <button type="button" data-router-action="oauth_start"
-                style="background:#0b7a75;border:none;color:#fff;cursor:pointer;padding:0.4em 0.8em;border-radius:0.25em;">Login &amp; Registration</button>
-        <button type="button" data-router-action="open_panel" data-path="products.html" data-title="Products &amp; Services"
-                style="background:transparent;border:0.0625em solid #0b7a75;color:#0b7a75;cursor:pointer;padding:0.4em 0.8em;border-radius:0.25em;">Products &amp; Services</button>
+      <nav class="ch-header-nav-desktop" style="font-size:0.9em;align-items:center;">
+        <a href="#" data-router-action="goto_home"
+           style="color:#0b7a75;text-decoration:underline;margin-left:3vw;">Home</a>
+        <a href="#" data-router-action="oauth_start"
+           style="color:#0b7a75;text-decoration:underline;margin-left:3vw;">Login &amp; Registration</a>
+        <a href="#" data-router-action="open_panel" data-path="products.html" data-title="Products &amp; Services"
+           style="color:#0b7a75;text-decoration:underline;margin-left:3vw;">Products &amp; Services</a>
       </nav>
       <button type="button" class="ch-header-hamburger"
               data-router-action="toggle_mobile_nav"
