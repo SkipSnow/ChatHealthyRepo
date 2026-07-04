@@ -289,6 +289,82 @@ def write_spreadsheet(rows: list[dict], base: Path) -> None:
     print(f"Facts XLSX: {xlsx_path} ({len(rows)} rows)")
 
 
+def _strip_inline_marks(text: str) -> str:
+    """Remove markdown inline marks for plain-text contexts (e.g. heading strings)."""
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    text = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"\1", text)
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+    return text
+
+
+def _add_formatted_runs(paragraph, text: str, *, mono_name: str = "Consolas") -> None:
+    """Append runs to a paragraph, mapping markdown inline marks to Word formatting."""
+    pos = 0
+    while pos < len(text):
+        next_bold = text.find("**", pos)
+        next_code = text.find("`", pos)
+        next_italic = -1
+        scan = pos
+        while scan < len(text):
+            if text[scan] == "*" and not text.startswith("**", scan):
+                next_italic = scan
+                break
+            if text[scan] == "*":
+                scan += 2
+            else:
+                scan += 1
+
+        candidates = [(next_bold, "bold"), (next_code, "code"), (next_italic, "italic")]
+        candidates = [(idx, kind) for idx, kind in candidates if idx != -1]
+        if not candidates:
+            paragraph.add_run(text[pos:])
+            break
+
+        start, kind = min(candidates, key=lambda item: item[0])
+        if start > pos:
+            paragraph.add_run(text[pos:start])
+
+        if kind == "bold":
+            end = text.find("**", start + 2)
+            if end == -1:
+                paragraph.add_run(text[start:])
+                break
+            run = paragraph.add_run(text[start + 2 : end])
+            run.bold = True
+            pos = end + 2
+        elif kind == "code":
+            end = text.find("`", start + 1)
+            if end == -1:
+                paragraph.add_run(text[start:])
+                break
+            run = paragraph.add_run(text[start + 1 : end])
+            run.font.name = mono_name
+            pos = end + 1
+        elif kind == "italic":
+            end = text.find("*", start + 1)
+            if end == -1:
+                paragraph.add_run(text[start:])
+                break
+            run = paragraph.add_run(text[start + 1 : end])
+            run.italic = True
+            pos = end + 1
+            continue
+        else:
+            pos = start + 1
+
+
+def _add_formatted_paragraph(doc2, text: str, style: str | None = None):
+    paragraph = doc2.add_paragraph(style=style) if style else doc2.add_paragraph()
+    _add_formatted_runs(paragraph, text)
+    return paragraph
+
+
+def _set_cell_formatted_text(cell, text: str) -> None:
+    cell.text = ""
+    paragraph = cell.paragraphs[0]
+    _add_formatted_runs(paragraph, text)
+
+
 def md_to_docx(md_path: Path, docx_path: Path) -> None:
     from docx import Document
     from docx.shared import Pt, RGBColor
@@ -313,21 +389,21 @@ def md_to_docx(md_path: Path, docx_path: Path) -> None:
             tbl = doc2.add_table(rows=1 + len(body_rows), cols=len(headers))
             tbl.style = "Table Grid"
             for ci, h in enumerate(headers):
-                tbl.rows[0].cells[ci].text = h
+                _set_cell_formatted_text(tbl.rows[0].cells[ci], h)
             for ri, row in enumerate(body_rows):
                 for ci, cell in enumerate(row):
                     if ci < len(headers):
-                        tbl.rows[ri + 1].cells[ci].text = cell
+                        _set_cell_formatted_text(tbl.rows[ri + 1].cells[ci], cell)
             doc2.add_paragraph("")
             continue
         if line.startswith("# "):
-            h = doc2.add_heading(line[2:].strip(), level=1)
+            h = doc2.add_heading(_strip_inline_marks(line[2:].strip()), level=1)
             for run in h.runs:
                 run.font.color.rgb = TEAL
         elif line.startswith("## "):
-            doc2.add_heading(line[3:].strip(), level=2)
+            doc2.add_heading(_strip_inline_marks(line[3:].strip()), level=2)
         elif line.startswith("### "):
-            doc2.add_heading(line[4:].strip(), level=3)
+            doc2.add_heading(_strip_inline_marks(line[4:].strip()), level=3)
         elif line.startswith("```"):
             i += 1
             block = []
@@ -336,14 +412,21 @@ def md_to_docx(md_path: Path, docx_path: Path) -> None:
                 i += 1
             if block:
                 doc2.add_paragraph("\n".join(block), style="Intense Quote")
+        elif line.strip() in ("---", "***", "___"):
+            doc2.add_paragraph("")
         elif not line.strip():
             pass
         elif re.match(r"^\d+\.\s", line):
-            doc2.add_paragraph(line, style="List Number")
+            m = re.match(r"^(\d+\.\s)(.*)$", line)
+            assert m
+            paragraph = doc2.add_paragraph(style="List Number")
+            paragraph.clear()
+            paragraph.add_run(m.group(1))
+            _add_formatted_runs(paragraph, m.group(2))
         elif line.startswith("- "):
-            doc2.add_paragraph(line[2:], style="List Bullet")
+            _add_formatted_paragraph(doc2, line[2:], style="List Bullet")
         else:
-            doc2.add_paragraph(line)
+            _add_formatted_paragraph(doc2, line)
         i += 1
 
     doc2.save(docx_path)
@@ -356,6 +439,10 @@ def main() -> None:
     base = DEVOPS / f"deployment_facts_inventory_{TODAY}"
     write_spreadsheet(rows, base)
     md_to_docx(MD_PATH, PLAN_DOCX_PATH)
+    for version in ("v2", "v3", "v4", "v6"):
+        md_plan = AUDIT_DOCS / f"DeploymentArchitectureDesignAndMigrationPlanPhase_{version}.md"
+        if md_plan.is_file():
+            md_to_docx(md_plan, AUDIT_DOCS / f"DeploymentArchitectureDesignAndMigrationPlanPhase_{version}.docx")
     print("Rows by fact_kind:")
     from collections import Counter
     for k, v in sorted(Counter(r["fact_kind"] for r in rows).items()):

@@ -664,6 +664,59 @@ def welcome():
     return {"message": WELCOME_MESSAGE}
 
 
+# Clinical trials cross-service entry point. SharedServices dispatches
+# /findClinicalTrials utterances through this endpoint instead of
+# importing the tool directly, so the clinical-trials domain stays
+# inside FindCare. Streams the tool's chunk events as NDJSON; SS
+# forwards each line into the user's /gate stream.
+class _ClinicalTrialsRequest(BaseModel):
+    condition: str
+    user_location: Optional[str] = None
+    age_years: Optional[int] = None
+    sex: Optional[str] = None
+    geographic_scope: Optional[str] = None
+    page_size: int = 10
+    cursor: Optional[str] = None
+
+
+@app.post("/clinical_trials")
+async def clinical_trials(body: _ClinicalTrialsRequest):
+    import asyncio
+    import json as _json
+    from fastapi.responses import StreamingResponse
+    try:
+        from ClinicalTrials import clinical_trials_tool
+    except ImportError:
+        from FindCare.ClinicalTrials import clinical_trials_tool
+
+    queue: asyncio.Queue = asyncio.Queue()
+    sentinel = object()
+
+    class _StreamCollector:
+        def stream(self, event):
+            queue.put_nowait(event)
+
+    deps = _StreamCollector()
+    req = clinical_trials_tool.Request(**body.model_dump())
+
+    async def runner():
+        try:
+            await clinical_trials_tool.TOOL.run(deps, req)
+        finally:
+            queue.put_nowait(sentinel)
+
+    asyncio.create_task(runner())
+
+    async def gen():
+        while True:
+            item = await queue.get()
+            if item is sentinel:
+                break
+            yield _json.dumps(item).encode() + b"\n"
+
+    return StreamingResponse(gen(), media_type="application/x-ndjson")
+
+
 # Provider Detail click-path endpoint (EPIC-006-F-025). Pure deterministic
 # tool; no LLM. Input fields mirror the on-screen provider card.
 from ProviderDetail.provider_detail_models import (

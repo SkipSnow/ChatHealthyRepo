@@ -8,7 +8,7 @@
 // jump list), and hands each HTML fragment to the wrapper's
 // ClientRouter via router:render postMessage.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 function esc(s: any): string {
   return String(s == null ? '' : s)
@@ -28,17 +28,6 @@ function firstSentence(text: string): string {
   return m[0].length < s.length ? m[0] + '...' : m[0]
 }
 
-function nearestDistance(trial: any): string {
-  const locs = trial.locations || []
-  const withDist = locs.filter((l: any) => l && l.distance && l.duration)
-  if (!withDist.length) return '—'
-  const ranked = withDist.slice().sort((a: any, b: any) => {
-    const na = parseFloat(String(a.distance).replace(/[^0-9.]/g, '')) || 0
-    const nb = parseFloat(String(b.distance).replace(/[^0-9.]/g, '')) || 0
-    return na - nb
-  })
-  return `${ranked[0].distance} · ${ranked[0].duration}`
-}
 
 function ageRange(trial: any): string {
   const a = (trial.minimum_age || '').trim()
@@ -54,8 +43,9 @@ function buildLeftPanel(
   hasPrev: boolean,
   hasMore: boolean,
   pageStart: number,
-  totalCount: number | null,
+  totalEligible: number | null,
   searchContext: any,
+  isPartial: boolean = false,
 ): string {
   const ctx = searchContext || {}
   const queryParts: string[] = []
@@ -64,16 +54,21 @@ function buildLeftPanel(
   if (ctx.sex) queryParts.push(`subject sex: ${ctx.sex}`)
   if (ctx.gender) queryParts.push(`subject gender: ${ctx.gender}`)
   if (ctx.user_location) queryParts.push(`location: ${ctx.user_location}`)
-  // REQ-B-067: scope segment is canonical in the header band; values
-  // map "us" → "US" and "international" → "international".
   if (ctx.geographic_scope) {
     const scopeLabel = ctx.geographic_scope === 'us' ? 'US' : ctx.geographic_scope
     queryParts.push(`scope: ${scopeLabel}`)
   }
   const queryStr = queryParts.join(', ')
   const end = pageStart + trials.length - 1
-  const countStr = (typeof totalCount === 'number' && totalCount > 0)
-    ? ` — showing ${pageStart} to ${end} of ${totalCount}` : ''
+  // Quantity-suffix gating: render "showing X to Y of Z" (or "of many"
+  // when the tool capped its pre-filter fetch) ONLY after the final
+  // chunk has landed. While the cache is still filling, totalEligible
+  // is null and we omit the suffix entirely.
+  let countStr = ''
+  if (typeof totalEligible === 'number' && totalEligible > 0) {
+    const totalLabel = isPartial ? 'many' : String(totalEligible)
+    countStr = ` — showing ${pageStart} to ${end} of ${totalLabel}`
+  }
   const header = queryStr
     ? `Clinical trials — ${esc(queryStr)}${esc(countStr)}`
     : `Clinical trials${esc(countStr)}`
@@ -88,7 +83,6 @@ function buildLeftPanel(
     const title = esc(t.brief_title || '')
     const summary = esc(firstSentence(t.brief_summary || ''))
     const conds = esc((t.conditions || []).join(', ') || '—')
-    const dist = esc(nearestDistance(t))
     const ages = esc(ageRange(t))
     const sex = esc(t.sex || '—')
     const selected = i === selectedIdx ? 'background:#f0fffe;' : ''
@@ -100,7 +94,6 @@ function buildLeftPanel(
         ${summary ? `<div style="font-size:0.85em;color:#4b5563;font-style:italic;margin:0.15em 0 0.35em 0;">${summary}</div>` : ''}
         <ul style="margin:0.25em 0 0 1em;padding:0;font-size:0.9em;color:#4b5563;">
           <li><strong>Conditions:</strong> ${conds}</li>
-          <li><strong>Nearest site:</strong> ${dist}</li>
           <li><strong>Age range:</strong> ${ages}</li>
           <li><strong>Sex:</strong> ${sex}</li>
         </ul>
@@ -159,7 +152,10 @@ function buildMainWindow(trial: any): string {
     </tbody></table>
   `
   const sections: string[] = []
-  sections.push(`<h2 style="margin:0 0 0.5em 0;color:#0b7a75;font-size:1.25em;">${esc(trial.brief_title || '')}</h2>`)
+  // ct-record-top: the anchor the right-panel jump list AND the trial:select
+  // handler use to scroll the record to its actual top (the trial title)
+  // rather than to the first section header partway down the record.
+  sections.push(`<h2 id="ct-record-top" style="margin:0 0 0.5em 0;color:#0b7a75;font-size:1.25em;">${esc(trial.brief_title || '')}</h2>`)
   if (trial.official_title && trial.official_title !== trial.brief_title) {
     sections.push(`<div style="font-style:italic;color:#6b7280;margin-bottom:0.5em;">${esc(trial.official_title)}</div>`)
   }
@@ -185,8 +181,7 @@ function buildMainWindow(trial: any): string {
     const siteRows = (trial.locations || []).map((l: any) => {
       const where = [l.facility, [l.city, l.state, l.zip].filter(Boolean).join(', '), l.country].filter(Boolean).join(' — ')
       const status = l.status ? ` <em>(${esc(l.status)})</em>` : ''
-      const travel = (l.distance && l.duration) ? ` · ${esc(l.distance)} · ${esc(l.duration)}` : ''
-      return `<li>${esc(where)}${status}${travel}</li>`
+      return `<li>${esc(where)}${status}</li>`
     }).join('')
     sections.push(`<ul style="margin:0.25em 0 0.5em 1.25em;color:#374151;">${siteRows}</ul>`)
   }
@@ -198,18 +193,24 @@ function buildMainWindow(trial: any): string {
 
 function buildRightPanel(trial: any): string {
   if (!trial) return ''
-  const headers = [
-    trial.brief_summary ? 'Brief summary' : null,
-    trial.detailed_description ? 'Detailed description' : null,
-    (trial.conditions || []).length ? 'Conditions' : null,
-    trial.eligibility_criteria ? 'Eligibility' : null,
-    (trial.locations || []).length ? `Sites (${trial.locations.length})` : null,
-  ].filter(Boolean) as string[]
-  if (!headers.length) return ''
-  const items = headers.map((h: string) => {
-    const sid = 'ct-sec-' + _slug(h)
-    return `<li style="margin:0.25em 0;"><a href="#" data-router-action="trial:scroll" data-anchor="${esc(sid)}" style="color:#0b7a75;text-decoration:underline;cursor:pointer;">${esc(h)}</a></li>`
-  }).join('')
+  // Overview is the first jump target and points at the record-top anchor
+  // (the trial title), so clicking it scrolls to the top of the record
+  // rather than to the first section header partway down the record.
+  const jumpTargets: Array<{label: string, sid: string}> = [
+    {label: 'Overview', sid: 'ct-record-top'},
+  ]
+  if (trial.brief_summary)         jumpTargets.push({label: 'Brief summary',        sid: 'ct-sec-' + _slug('Brief summary')})
+  if (trial.detailed_description)  jumpTargets.push({label: 'Detailed description', sid: 'ct-sec-' + _slug('Detailed description')})
+  if ((trial.conditions || []).length) jumpTargets.push({label: 'Conditions', sid: 'ct-sec-' + _slug('Conditions')})
+  if (trial.eligibility_criteria)  jumpTargets.push({label: 'Eligibility',          sid: 'ct-sec-' + _slug('Eligibility')})
+  if ((trial.locations || []).length) {
+    const sitesLabel = `Sites (${trial.locations.length})`
+    jumpTargets.push({label: sitesLabel, sid: 'ct-sec-' + _slug(sitesLabel)})
+  }
+  if (jumpTargets.length <= 1) return ''  // Overview-only is not worth showing.
+  const items = jumpTargets.map(({label, sid}) =>
+    `<li style="margin:0.25em 0;"><a href="#" data-router-action="trial:scroll" data-anchor="${esc(sid)}" style="color:#0b7a75;text-decoration:underline;cursor:pointer;">${esc(label)}</a></li>`
+  ).join('')
   return `
     <div style="padding:1em;box-sizing:border-box;">
       <div style="font-size:1em;font-weight:700;color:#0b7a75;text-transform:uppercase;margin-bottom:0.5em;">Trial sections</div>
@@ -227,20 +228,22 @@ function buildLoadingBanner(criteria: string, pageStart: number, pageSize: numbe
 }
 
 export default function ClinicalTrialsWidget() {
-  const [trials, setTrials] = useState<any[]>([])
-  const [selectedIdx, setSelectedIdx] = useState<number>(0)
-  const [totalCount, setTotalCount] = useState<number | null>(null)
-  const [pageSize, setPageSize] = useState<number>(10)
-  const [pageStart, setPageStart] = useState<number>(1)
-  const nextCursorRef = useRef<string | null>(null)
-  const prevCursorsRef = useRef<string[]>([])
+  // Widget produces no JSX (returns null) — every visible surface is
+  // painted via postMessage to the parent. So every "state" value below
+  // is a ref, not useState: nothing triggers a React re-render, so
+  // useState offers no benefit and its dep-array plumbing would leak
+  // subscriptions on every change (fixed here — the effect subscribes
+  // once at mount and reads live values from these refs).
+  const cacheRef = useRef<any[]>([])
+  const trialsRef = useRef<any[]>([])
+  const selectedIdxRef = useRef<number>(0)
+  const totalEligibleRef = useRef<number | null>(null)
+  const isPartialRef = useRef<boolean>(false)
+  const pageSizeRef = useRef<number>(10)
+  const pageStartRef = useRef<number>(1)
   const lastQueryRef = useRef<any>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  // Tracks the most recent pagination direction so REQ-B-074's verb-context
-  // error overlay knows whether to say "load more" vs "go back to the
-  // previous page".
   const lastPageDirectionRef = useRef<'next' | 'prev' | null>(null)
-  const pageCallIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     function postRender(target: string, content: string) {
@@ -256,36 +259,75 @@ export default function ClinicalTrialsWidget() {
       window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: kind }, '*')
     }
 
-    postSubscribe('trials')
+    postSubscribe('clinical_trials_chunk')
     postSubscribe('intent_classified')
 
-    function applyTrialsData(data: any, newPageStart: number) {
-      const list = data.trials || []
-      setTrials(list)
-      setSelectedIdx(0)
-      nextCursorRef.current = data.cursor || null
-      const tc = typeof data.total_count === 'number' ? data.total_count : null
-      if (tc !== null) setTotalCount(tc)
-      const ps = typeof data.page_size === 'number' ? data.page_size : 10
-      setPageSize(ps)
-      setPageStart(newPageStart)
-      const ctx = data.search_context || lastQueryRef.current || {}
-      lastQueryRef.current = {
-        condition: ctx.condition || '',
-        user_location: ctx.user_location || null,
-        age_years: ctx.age_years ?? null,
-        sex: ctx.sex || null,
-        gender: ctx.gender || null,
+    function renderSlice(start: number) {
+      // start is 1-based pageStart per the existing UX. Convert to a 0-based
+      // cache offset, slice page_size items, and paint the three panels.
+      const offset = Math.max(0, start - 1)
+      const slice = cacheRef.current.slice(offset, offset + pageSizeRef.current)
+      const hasPrev = start > 1
+      const hasMore = offset + slice.length < cacheRef.current.length
+      const ctx = lastQueryRef.current || {}
+      postRender('LeftPanel', buildLeftPanel(
+        slice, 0, hasPrev, hasMore, start, totalEligibleRef.current, ctx,
+        isPartialRef.current,
+      ))
+      postRender('MainWindow', buildMainWindow(slice[0] || null))
+      postRender('RightPanel', buildRightPanel(slice[0] || null))
+      trialsRef.current = slice
+      selectedIdxRef.current = 0
+    }
+
+    function applyChunk(data: any) {
+      const incoming = Array.isArray(data.trials) ? data.trials : []
+      const chunkIndex: number = typeof data.chunk_index === 'number' ? data.chunk_index : 0
+      const isFinal: boolean = !!data.is_final
+
+      if (chunkIndex === 0) {
+        cacheRef.current = incoming.slice()
+        const ctx = data.search_context || lastQueryRef.current || {}
+        lastQueryRef.current = {
+          condition: ctx.condition || '',
+          user_location: ctx.user_location || null,
+          age_years: ctx.age_years ?? null,
+          sex: ctx.sex || null,
+          gender: ctx.gender || null,
+          geographic_scope: ctx.geographic_scope || null,
+        }
+        // page_size locks to the first chunk's length so subsequent
+        // pagination math stays consistent with what the tool sent.
+        pageSizeRef.current = incoming.length || 5
+        pageStartRef.current = 1
+        renderSlice(1)
+      } else {
+        // Subsequent chunk - append to the cache silently. No repaint
+        // unless the user has already paged past the existing cache.
+        cacheRef.current = cacheRef.current.concat(incoming)
       }
-      const hasPrev = prevCursorsRef.current.length > 0
-      const hasMore = !!data.cursor
-      postRender('LeftPanel', buildLeftPanel(list, 0, hasPrev, hasMore, newPageStart, tc !== null ? tc : totalCount, ctx))
-      postRender('MainWindow', buildMainWindow(list[0] || null))
-      postRender('RightPanel', buildRightPanel(list[0] || null))
+
+      if (isFinal) {
+        const te = typeof data.total_eligible === 'number' ? data.total_eligible : cacheRef.current.length
+        totalEligibleRef.current = te
+        isPartialRef.current = !!data.is_partial
+        // Repaint the left panel so the "of N" / "of many" suffix
+        // appears for the first time. Center+Right panel keep their
+        // current rendering.
+        const ps = pageStartRef.current || 1
+        const offset = Math.max(0, ps - 1)
+        const slice = cacheRef.current.slice(offset, offset + (pageSizeRef.current || 5))
+        const hasPrev = ps > 1
+        const hasMore = offset + slice.length < cacheRef.current.length
+        postRender('LeftPanel', buildLeftPanel(
+          slice, selectedIdxRef.current, hasPrev, hasMore, ps, te,
+          lastQueryRef.current || {}, !!data.is_partial,
+        ))
+      }
     }
 
     function startLoadingTimer(criteria: string, startN: number) {
-      postRender('MainWindow', buildLoadingBanner(criteria, startN, pageSize, totalCount))
+      postRender('MainWindow', buildLoadingBanner(criteria, startN, pageSizeRef.current, totalEligibleRef.current))
       postRender('RightPanel', '')
       // Empty the LeftPanel too so the user has clear visual feedback that
       // a new search/page is in flight; the new trial list will overwrite
@@ -296,12 +338,25 @@ export default function ClinicalTrialsWidget() {
       if (timerRef.current) clearInterval(timerRef.current)
       const t0 = Date.now()
       timerRef.current = setInterval(() => {
+        // Guard against the race where a tick was scheduled by the
+        // browser before stopLoadingTimer cleared the interval but is
+        // now executing after chunk 0 already painted the trial detail
+        // into MainWindow. Without this check, that stale tick paints
+        // the loading banner back over the trial content.
+        if (timerRef.current === null) return
         const sec = Math.round((Date.now() - t0) / 1000)
-        const banner = buildLoadingBanner(criteria, startN, pageSize, totalCount).replace(
-          /<div id="ct-loading-timer"[^>]*>[^<]*<\/div>/,
-          `<div id="ct-loading-timer" style="font-size:1em;font-weight:700;">${sec}s</div>`,
-        )
-        postRender('MainWindow', banner)
+        // Merge the seconds counter into ONLY the ct-loading-timer
+        // element rather than repainting the whole MainWindow every
+        // second. Repainting the whole frame every tick was causing a
+        // visible flicker. If the ct-loading-timer element is absent
+        // (banner has been replaced by the trial detail), merge is a
+        // no-op — ClientRouter's merge only touches the named region.
+        window.parent.postMessage({
+          type: 'router:merge',
+          target: 'MainWindow',
+          region: 'ct-loading-timer',
+          content: `${sec}s`,
+        }, '*')
       }, 1000)
     }
 
@@ -314,9 +369,11 @@ export default function ClinicalTrialsWidget() {
       if (!msg || typeof msg !== 'object') return
 
       if (msg.type === 'router:event-broadcast') {
-        if (msg.kind === 'trials') {
-          stopLoadingTimer()
-          applyTrialsData(msg.data || {}, pageStart || 1)
+        if (msg.kind === 'clinical_trials_chunk') {
+          // The very first chunk replaces the loading state. Stop the
+          // timer here so a fast cache fill doesn't leave the spinner up.
+          if ((msg.data || {}).chunk_index === 0) stopLoadingTimer()
+          applyChunk(msg.data || {})
         }
         if (msg.kind === 'intent_classified') {
           const d = msg.data || {}
@@ -348,22 +405,27 @@ export default function ClinicalTrialsWidget() {
       if (msg.type === 'router:action') {
         if (msg.action === 'trial:select') {
           const idx = parseInt(String((msg.data || {}).trial_idx || '0'), 10)
-          // Per S-002 click contract: immediately blank MainWindow +
-          // RightPanel so the user sees an unambiguous visual response,
-          // then paint the new trial on the next tick.
-          postRender('MainWindow', '')
-          postRender('RightPanel', '')
-          setSelectedIdx(idx)
-          const t = trials[idx]
-          if (t) {
-            setTimeout(() => {
-              postRender('MainWindow', buildMainWindow(t))
-              postRender('RightPanel', buildRightPanel(t))
-              const hasPrev = prevCursorsRef.current.length > 0
-              const hasMore = !!nextCursorRef.current
-              postRender('LeftPanel', buildLeftPanel(trials, idx, hasPrev, hasMore, pageStart, totalCount, lastQueryRef.current))
-            }, 0)
-          }
+          const t = trialsRef.current[idx]
+          if (!t) return
+          selectedIdxRef.current = idx
+          postRender('MainWindow', buildMainWindow(t))
+          postRender('RightPanel', buildRightPanel(t))
+          // Move the selection highlight in the LEFT panel by toggling a
+          // background style on the target <li> directly. A single DOM
+          // mutation via router:exec is instant and does not re-parse the
+          // list; repainting the whole list to change one row was the
+          // left-panel flicker source.
+          window.parent.postMessage({
+            type: 'router:exec',
+            code: `(function(){
+              var all = document.querySelectorAll('li[data-router-action="trial:select"]');
+              for (var i = 0; i < all.length; i++) { all[i].style.background = ''; }
+              var sel = document.querySelector('li[data-router-action="trial:select"][data-trial-idx="${idx}"]');
+              if (sel) sel.style.background = '#f0fffe';
+              var top = document.getElementById('ct-record-top');
+              if (top && top.scrollIntoView) top.scrollIntoView({behavior:'auto', block:'start'});
+            })();`,
+          }, '*')
         }
         if (msg.action === 'trial:scroll') {
           const anchorId = String((msg.data || {}).anchor || '')
@@ -375,74 +437,30 @@ export default function ClinicalTrialsWidget() {
           }
         }
         if (msg.action === 'trial:page') {
+          // Pagination is client-side state slicing over the cache
+          // populated by streamed chunks - no server round-trip. If the
+          // user races the cache fill (clicks More before the next chunk
+          // arrives) the widget still has the current page rendered; the
+          // next render after the chunk lands will catch up.
           const dir = String((msg.data || {}).direction || '')
-          const last = lastQueryRef.current
-          if (!last) return
-          let cursor: string | null = null
-          let newPageStart = pageStart
+          const ps = pageStartRef.current
+          const psize = pageSizeRef.current
+          let newPageStart = ps
           if (dir === 'next') {
-            cursor = nextCursorRef.current
-            if (!cursor) return
-            prevCursorsRef.current.push(cursor)
-            newPageStart = pageStart + trials.length
+            const candidate = ps + (trialsRef.current.length || psize)
+            if (candidate - 1 >= cacheRef.current.length) return
+            newPageStart = candidate
           } else if (dir === 'prev') {
-            prevCursorsRef.current.pop()
-            cursor = prevCursorsRef.current.length
-              ? prevCursorsRef.current[prevCursorsRef.current.length - 1] : null
-            newPageStart = Math.max(1, pageStart - pageSize)
-          } else { return }
-          const parts: string[] = []
-          if (last.condition) parts.push(`condition: ${last.condition}`)
-          if (last.age_years != null) parts.push(`subject age: ${last.age_years}`)
-          if (last.sex) parts.push(`subject sex: ${last.sex}`)
-          if (last.gender) parts.push(`subject gender: ${last.gender}`)
-          if (last.user_location) parts.push(`location: ${last.user_location}`)
-          if (last.geographic_scope) {
-            const sl = last.geographic_scope === 'us' ? 'US' : last.geographic_scope
-            parts.push(`scope: ${sl}`)
+            newPageStart = Math.max(1, ps - psize)
+          } else {
+            return
           }
-          startLoadingTimer(parts.join(', '), newPageStart)
-          setPageStart(newPageStart)
           lastPageDirectionRef.current = dir === 'next' ? 'next' : 'prev'
-          const callId = `trial-page-${Date.now()}`
-          pageCallIdRef.current = callId
-          window.parent.postMessage({
-            type: 'router:makeCall',
-            call_id: callId,
-            op: 'clinical_trials_page',
-            payload: {
-              condition: last.condition,
-              user_location: last.user_location || null,
-              page_size: pageSize,
-              cursor: cursor,
-              age_years: last.age_years,
-              sex: last.sex,
-              gender: last.gender,
-            },
-          }, '*')
+          pageStartRef.current = newPageStart
+          renderSlice(newPageStart)
         }
       }
 
-      // REQ-B-074: pagination failure must render an overlay with a verb
-      // clause naming the user's intent ("load more clinical trials" /
-      // "go back to the previous page of clinical trials"). Only handle
-      // errors keyed to the most recent pagination call.
-      if (msg.type === 'router:error'
-          && msg.call_id
-          && msg.call_id === pageCallIdRef.current) {
-        stopLoadingTimer()
-        const dir = lastPageDirectionRef.current
-        const verb = dir === 'prev'
-          ? 'While trying to go back to the previous page of clinical trials'
-          : 'While trying to load more clinical trials'
-        const err = (msg.error || 'unknown error').toString()
-        postRender('MainWindow', `
-          <div style="padding:1.5em;color:#1f2937;">
-            <div style="color:#dc2626;font-weight:700;margin-bottom:0.5em;">${verb}:</div>
-            <div style="background:#fef2f2;color:#991b1b;padding:0.5em 0.75em;border-radius:0.25em;font-family:monospace;font-size:0.9em;">${err.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-          </div>
-        `)
-      }
     }
 
     window.addEventListener('message', onMessage)
@@ -450,7 +468,7 @@ export default function ClinicalTrialsWidget() {
       stopLoadingTimer()
       window.removeEventListener('message', onMessage)
     }
-  }, [trials, pageStart, pageSize, totalCount])
+  }, [])
 
   return null
 }

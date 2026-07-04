@@ -590,7 +590,7 @@
             },
             {
               "statement_number": 2,
-              "statement_body": "The React application MUST NOT change persistent state directly. All persistence changes MUST originate from a /gate call dispatched through ClientRouter. Forbidden in React source: writes to localStorage, sessionStorage, indexedDB, or document.cookie; any fetch, XMLHttpRequest, or navigator.sendBeacon call that does not resolve to the canonical ClientRouter.makeCall / ClientRouter.callTrivial / router:makeCall postMessage path. Approved out-of-band reads are permitted via the excluded_exact list.",
+              "statement_body": "The React application MUST NOT change persistent state directly. All persistence changes MUST originate from a /gate call dispatched through ClientRouter. Forbidden in React source: writes to localStorage, sessionStorage, indexedDB, or document.cookie; any fetch, XMLHttpRequest, or navigator.sendBeacon call that does not resolve to the canonical ClientRouter.getStreamedPayloads / ClientRouter.getFullPayload / router:makeCall postMessage path. Approved out-of-band reads are permitted via the excluded_exact list.",
               "req_id": "EPIC-008-F-002-S-016-REQ-B-002"
             },
             {

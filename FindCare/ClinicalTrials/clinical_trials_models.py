@@ -21,8 +21,6 @@ class Location(BaseModel):
     state: str = ""
     country: str = ""
     zip: str = ""
-    distance: Optional[str] = None
-    duration: Optional[str] = None
 
 
 class CentralContact(BaseModel):

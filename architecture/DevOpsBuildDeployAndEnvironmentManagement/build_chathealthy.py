@@ -37,6 +37,7 @@ from pathlib import Path
 # Per-target_kind handlers, helper utilities, crosswalk gate — all
 # imported from local_build.py for now. They migrate in step 5.7.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from preflight_undefined_names import scan as _scan_undefined_names  # noqa: E402
 from _build_chain import (  # noqa: E402
     _build_one,
     _find_repo_root,
@@ -168,6 +169,19 @@ def main(argv: list[str] | None = None) -> int:
         sys.stderr.write(report.format() + "\n")
         return report.exit_code()
     _step(f"crosswalk gate passed (targets={len(coll)}, violations=0)")
+
+    # Undefined-name gate: every packaged .py file MUST resolve every name
+    # it references. Missing imports, typos, or symbols removed by refactor
+    # get caught here at build time instead of at runtime in production.
+    undefined = _scan_undefined_names(repo_root)
+    if undefined:
+        sys.stderr.write(
+            f"BUILD FAILURE: {len(undefined)} unresolved name reference(s) in packaged Python:\n"
+        )
+        for e in undefined:
+            sys.stderr.write(f"  {e}\n")
+        return 3
+    _step("undefined-name gate passed")
 
     if args.env == "local":
         build_n = _read_dev_build_number()

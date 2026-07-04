@@ -24,7 +24,7 @@ from datetime import datetime
 from typing import Any, Callable, Optional
 from zoneinfo import ZoneInfo
 
-from authentication.user_object import (
+from chathealthy_frontend_lib.authentication.user_object import (
     Action,
     UserObject,
     Utterance,
@@ -50,7 +50,7 @@ class AgentDeps:
 class AuthnDeps:
     """AuthN tool's own runtime resources. Constructed by the gate route
     from the incoming cookie + env + mongo client."""
-    prior_guid: Optional[str]
+    session_guid: Optional[str]
     server_env: str
     mongo_frontend: Any
 

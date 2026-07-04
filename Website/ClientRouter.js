@@ -13,11 +13,18 @@
      popup   : boolean — true: wrap content in a non-modal popup keyed by target.
      content : string — HTML fragment to inject.
 
-   makeCall({op, payload, onEvent, onFinal, onError})
+   getStreamedPayloads({op, payload, onEvent, onFinal, onError})
      Posts to SharedServices /gate as op + payload, reads the NDJSON
      stream, dispatches every {kind, data} envelope to subscribers and
      to the caller's onEvent. Calls onFinal once when {kind:'final'}
-     arrives. Calls onError on any failure.
+     arrives. Calls onError on any failure. Use for ops where the server
+     emits multiple payloads over time (utterances, tool dispatch).
+
+   getFullPayload({op, payload})
+     Posts to SharedServices /gate as op + payload, reads a single JSON
+     response body, returns it as a Promise. Use for ops where the
+     server returns one complete payload (peer_urls, peer_health,
+     session, verify_token, transfer_to_findcare).
 
    subscribe(kind, handler)
      Subscribes a handler to every stream event with this kind. Used by
@@ -95,21 +102,40 @@
 
   var _subscribers = {};
 
-  // Session GUID carried across /gate calls so the same user_object
-  // (with its accumulated utterances + actions) is loaded on every
-  // request. Without this, each /gate call mints a fresh user_object
-  // and the SharedServices splash shows an empty history.
-  // SS extracts the GUID from payload.prior_guid (32-char hex).
-  var _sessionGuid = null;
+  // Full signed SessionToken (wire object). Carried across every /gate
+  // call so SS validates and hydrates the same user_object each time.
+  // Replaces the earlier bearer-only GUID pattern: /gate now verifies
+  // the signature on every non-trivial op, not just the tail-32 lookup.
+  var _sessionToken = null;
 
-  function _captureSessionGuid(evt) {
+  function _captureSessionToken(evt) {
     if (!evt || typeof evt !== 'object') return;
-    var tok = evt.session_token && evt.session_token.token;
-    if (typeof tok !== 'string' || tok.length < 32) return;
-    var guid = tok.slice(-32);
-    if (guid && /^[0-9a-f]{32}$/i.test(guid)) {
-      _sessionGuid = guid;
-    }
+    var st = evt.session_token;
+    if (!st || typeof st !== 'object') return;
+    if (typeof st.token !== 'string' || st.token.length < 32) return;
+    _sessionToken = st;
+  }
+
+  // bootstrap — fetch a freshly-minted SessionToken from SS's /auth/issue
+  // endpoint. Called by the wrapper on page load so ClientRouter holds a
+  // valid signed token before the first non-trivial /gate call fires.
+  // /auth/issue itself is un-authenticated; every downstream /gate call
+  // is validated using the token this returns.
+  function bootstrap() {
+    var url = _sharedGateUrl() + '/auth/issue';
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    }).then(function (resp) {
+      if (!resp.ok) {
+        throw new Error('ClientRouter.bootstrap: /auth/issue failed HTTP ' + resp.status);
+      }
+      return resp.json();
+    }).then(function (st) {
+      _sessionToken = st;
+      return st;
+    });
   }
 
   function _bindActions(root) {
@@ -171,7 +197,7 @@
     }
     // Drop targets: any element with data-router-drop-action accepts
     // drops and fires a router:action with the dropped payload at data.dropped.
-    // Receiving widget then invokes makeCall to mutate state server-side.
+    // Receiving widget then invokes getStreamedPayloads to mutate state server-side.
     var dropTgt = root.querySelectorAll('[data-router-drop-action]');
     for (var d = 0; d < dropTgt.length; d++) {
       (function (el) {
@@ -235,9 +261,10 @@
 
   function _dispatchEvent(evt, caller) {
     if (!evt || typeof evt !== 'object') return;
-    // Capture the session GUID from the stream's final event so the next
-    // /gate call lands on the same user_object.
-    _captureSessionGuid(evt);
+    // Capture the freshly-restamped SessionToken from any stream event
+    // that carries one, so the next /gate call sends the current signed
+    // token (with an advanced nonce) rather than a stale copy.
+    _captureSessionToken(evt);
     var kind = evt.kind || '';
     var handlers = _subscribers[kind] || [];
     for (var i = 0; i < handlers.length; i++) {
@@ -248,9 +275,9 @@
     }
   }
 
-  function makeCall(args) {
+  function getStreamedPayloads(args) {
     var op = args && args.op;
-    if (!op) return Promise.reject(new Error('makeCall: op is required'));
+    if (!op) return Promise.reject(new Error('getStreamedPayloads: op is required'));
     var payload = (args && args.payload) || {};
     var url = _sharedGateUrl() + '/gate';
     // Thread the session GUID so SS reloads the same user_object on
@@ -258,16 +285,16 @@
     // session_conversation_history that powers the SharedServices
     // splash + UM transcript window).
     var body = { op: op, payload: payload };
-    if (_sessionGuid) body.prior_guid = _sessionGuid;
+    if (_sessionToken) body.session_token = _sessionToken;
     return fetch(url, {
       method: 'POST',
       // No credentials:'include' on the fetch. HF Spaces' edge proxy
       // strips Access-Control-Allow-Credentials from the OPTIONS
       // preflight response, which blocks credentialed cross-origin
-      // requests entirely. We thread the session GUID via the body-level
-      // `prior_guid` field instead — SS reads it at app.py /gate.
-      // Works on both local (cross-port) and dev/qa/prod (cross-domain).
-      // No cookies anywhere in the architecture.
+      // requests entirely. We thread the signed session token via the
+      // body-level `session_token` field instead — SS verifies it at
+      // app.py /gate before dispatching any non-trivial op. No cookies
+      // anywhere in the architecture.
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/x-ndjson',
@@ -275,7 +302,7 @@
       body: JSON.stringify(body),
     }).then(function (resp) {
       if (!resp.ok || !resp.body) {
-        var err = new Error('ClientRouter.makeCall: gate failed HTTP ' + resp.status + ' for op=' + op);
+        var err = new Error('ClientRouter.getStreamedPayloads: gate failed HTTP ' + resp.status + ' for op=' + op);
         if (args && typeof args.onError === 'function') args.onError(err);
         throw err;
       }
@@ -310,30 +337,33 @@
     });
   }
 
-  // callTrivial — for /gate ops in _TRIVIAL_GATE_OPS (peer_urls, peer_health,
+  // getFullPayload — for /gate ops in _TRIVIAL_GATE_OPS (peer_urls, peer_health,
   // session, verify_token, transfer_to_findcare) that return plain JSON
-  // instead of NDJSON. Same credentials discipline as makeCall so the
+  // instead of NDJSON. Same credentials discipline as getStreamedPayloads so the
   // session cookie threads through. Returns a Promise of the parsed JSON
   // body. Use this for the bootstrap peer_urls fetch and any other
   // request/response op that does not need streaming.
-  function callTrivial(args) {
+  function getFullPayload(args) {
     var op = args && args.op;
-    if (!op) return Promise.reject(new Error('callTrivial: op is required'));
+    if (!op) return Promise.reject(new Error('getFullPayload: op is required'));
     var payload = (args && args.payload) || {};
     var url = _sharedGateUrl() + '/gate';
     var body = { op: op, payload: payload };
-    if (_sessionGuid) body.prior_guid = _sessionGuid;
+    // Trivial ops are pre-authentication utilities (peer_urls,
+    // peer_health, etc.) and do not require the signed token. Include
+    // it when we already hold one so downstream logging/audit can see
+    // the caller's session, but never require it here.
+    if (_sessionToken) body.session_token = _sessionToken;
     return fetch(url, {
       method: 'POST',
-      // No credentials:'include' for the same reason as makeCall —
-      // see comment there. peer_urls (the typical caller) doesn't
-      // need session continuity anyway; prior_guid in the body
-      // covers any trivial op that does.
+      // No credentials:'include' for the same reason as getStreamedPayloads —
+      // see comment there. Trivial ops carry the token when we have
+      // one but do not require it.
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }).then(function (resp) {
       if (!resp.ok) {
-        throw new Error('ClientRouter.callTrivial: gate failed HTTP ' + resp.status + ' for op=' + op);
+        throw new Error('ClientRouter.getFullPayload: gate failed HTTP ' + resp.status + ' for op=' + op);
       }
       return resp.json();
     });
@@ -367,7 +397,7 @@
         content: msg.content,
       });
     } else if (msg.type === 'router:makeCall') {
-      makeCall({
+      getStreamedPayloads({
         op: msg.op,
         payload: msg.payload,
         onEvent: function (evt) {
@@ -418,16 +448,40 @@
     }
   });
 
-  function getSessionGuid() {
-    return _sessionGuid;
+  function getSessionToken() {
+    return _sessionToken;
   }
+
+  function getSessionGuid() {
+    if (!_sessionToken || typeof _sessionToken.token !== 'string') return null;
+    return _sessionToken.token.slice(-32);
+  }
+
+  // Serialize a /gate request body with the current session token
+  // attached. Exposed on window so the Playwright smoke suite can build
+  // valid /gate posts from page.evaluate blocks without duplicating the
+  // token-attach logic. Callers pass the op + payload; the helper
+  // returns a ready-to-POST string.
+  function gateBody(args) {
+    var body = {
+      op: (args && args.op) || 'boot',
+      payload: (args && args.payload) || {},
+    };
+    if (args && args.intent) body.intent = args.intent;
+    if (_sessionToken) body.session_token = _sessionToken;
+    return JSON.stringify(body);
+  }
+  window._gateBody = gateBody;
 
   window.ClientRouter = {
     render: render,
     merge: merge,
-    makeCall: makeCall,
-    callTrivial: callTrivial,
+    getStreamedPayloads: getStreamedPayloads,
+    getFullPayload: getFullPayload,
     subscribe: subscribe,
+    bootstrap: bootstrap,
+    getSessionToken: getSessionToken,
     getSessionGuid: getSessionGuid,
+    gateBody: gateBody,
   };
 })();

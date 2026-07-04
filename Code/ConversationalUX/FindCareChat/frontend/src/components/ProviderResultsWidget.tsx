@@ -92,14 +92,12 @@ function buildScaffoldHtml(): string {
 
 export default function ProviderResultsWidget() {
   useEffect(() => {
-    // Subscribe to every kind that signals the search is done. The widget
-    // only paints provider rows for kind:'providers'; the other kinds are
-    // listened to so the timer + searching indicator can stand down when
-    // the response is owned by a different widget (e.g. ClinicalTrialsWidget
-    // handles kind:'trials').
+    // Widget claims MainWindow only when the server classifies the turn as
+    // a provider search. Ownership arrives via kind:'intent_classified'
+    // with a provider action; any other action means a different widget
+    // owns the surface this turn and this widget stays quiet.
+    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'intent_classified' }, '*')
     window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'providers' }, '*')
-    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'trials' }, '*')
-    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'close' }, '*')
 
     let currentQuery = ''
     let startTs = 0
@@ -139,33 +137,35 @@ export default function ProviderResultsWidget() {
       }, 1000)
     }
 
+    // Actions this widget claims MainWindow for. Any other classified
+    // action means another widget owns the turn.
+    const PROVIDER_ACTIONS = new Set(['findAProvider', 'specialtySearch'])
+
     function onMessage(ev: MessageEvent) {
       const msg = ev.data
       if (!msg || typeof msg !== 'object') return
-      if (msg.type === 'router:action' && msg.action === 'user:submit') {
-        const text = String((msg.data && msg.data.text) || '').trim()
-        if (text) startTimer(text)
+      if (msg.type === 'router:event-broadcast' && msg.kind === 'intent_classified') {
+        const action = String((msg.data || {}).action || '')
+        if (PROVIDER_ACTIONS.has(action)) {
+          // Turn is ours — start the searching indicator using the criteria
+          // the server classified. Chunks arrive on kind:'providers' below.
+          const criteria = String((msg.data || {}).criteria || (msg.data || {}).condition || '')
+          startTimer(criteria || action)
+        } else {
+          // Not ours — stand down so the owning widget can paint MainWindow.
+          stopTimer()
+        }
         return
       }
       if (msg.type === 'router:event-broadcast' && msg.kind === 'providers') {
         stopTimer()
         const data = msg.data || {}
         const providers = Array.isArray(data.providers) ? data.providers : []
-        // Paint the scaffold first (replace MainWindow), then merge the
-        // provider rows into the results_area region. SelectedProvidersWidget
-        // owns the selected_strip region in the same scaffold.
         postRender(buildScaffoldHtml())
         postMergeResults(buildResultsAreaHtml(providers, data.total_count, data.summary_message))
         return
       }
-      // 'trials' is painted by ClinicalTrialsWidget into MainWindow; we just
-      // need to vacate the searching indicator so that paint isn't overwritten.
-      // 'close' fires when UM closes the turn (e.g., closeConnection200 after
-      // asking for refinements) — same: stop the timer, leave MainWindow blank
-      // so SystemMessageWidget's prompt shows in the UserMessage frame.
-      if (msg.type === 'router:final' || (
-          msg.type === 'router:event-broadcast' &&
-          (msg.kind === 'trials' || msg.kind === 'close'))) {
+      if (msg.type === 'router:final') {
         stopTimer()
       }
     }

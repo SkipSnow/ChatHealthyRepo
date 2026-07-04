@@ -22,16 +22,18 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from authentication.agent_deps import AgentDeps
-from authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
+from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
 from chathealthy_frontend_lib import run_llm
 
-from UtteranceManager.intent_document import (
+from chathealthy_frontend_lib.authentication.intent_document import (
     Argument,
     IntentCloseConnection200,
     IntentDocument,
     IntentFindAProvider,
+    IntentFindClinicalTrials,
     IntentNonsense,
+    IntentSafetyLockout,
     IntentSpecialtySearch,
     PendingDisambiguation,
 )
@@ -1195,7 +1197,7 @@ def build_find_clinical_trials_intent(
     sex: Optional[str] = None,
     geographic_scope: Optional[str] = None,
 ) -> "IntentFindClinicalTrials":
-    from UtteranceManager.intent_document import IntentFindClinicalTrials
+    from chathealthy_frontend_lib.authentication.intent_document import IntentFindClinicalTrials
     args = [Argument(name="complaint", value=complaint, type="string", required=True)]
     if user_location:
         args.append(Argument(
@@ -1240,7 +1242,7 @@ def build_safety_lockout_intent(lockout_reason: str) -> "IntentSafetyLockout":
     LockoutTool writes it onto the {env}_Safety.emergency_incidents row
     and renders the user-facing prose from the verbatim trigger
     utterance, not from this label."""
-    from UtteranceManager.intent_document import IntentSafetyLockout
+    from chathealthy_frontend_lib.authentication.intent_document import IntentSafetyLockout
     label = (lockout_reason or "").strip() or "immediate medical attention"
     return IntentSafetyLockout(
         name="safetyLockout",
@@ -1351,9 +1353,13 @@ class UtteranceManagerTool(ChatHealthyTool):
             target_action="closeConnection200",
             user_message=fallback,
         )
-        from authentication.agent_deps import append_system_utterance
+        from chathealthy_frontend_lib.authentication.agent_deps import append_system_utterance
         deps.stream({"kind": "prompt", "data": {"text": fallback}})
         append_system_utterance(deps.user_object, fallback)
+        # No tool painted MainWindow this turn — direct the client to
+        # restore the welcome bubble so the user reads the prompt against
+        # a clean MainWindow surface.
+        deps.stream({"kind": "show_welcome", "data": {}})
         deps.user_object.intent = new_doc
         await asyncio.sleep(0)
         return self.Response(target_action="closeConnection200")
@@ -1396,9 +1402,12 @@ class UtteranceManagerTool(ChatHealthyTool):
 
         # Stream + persist the manufactured prose, same shape as the
         # interpret path's user_message handling.
-        from authentication.agent_deps import append_system_utterance
+        from chathealthy_frontend_lib.authentication.agent_deps import append_system_utterance
         deps.stream({"kind": "prompt", "data": {"text": user_message}})
         append_system_utterance(deps.user_object, user_message)
+        # Manufacture path always closes without a tool paint — direct the
+        # client to restore the welcome bubble.
+        deps.stream({"kind": "show_welcome", "data": {}})
 
         deps.user_object.intent = new_doc
         await asyncio.sleep(0)
@@ -1578,7 +1587,7 @@ class UtteranceManagerTool(ChatHealthyTool):
         # transcript UM hands itself on the NEXT turn, which is what
         # gives a follow-up "yes" its referent.
         if new_doc.user_message:
-            from authentication.agent_deps import append_system_utterance
+            from chathealthy_frontend_lib.authentication.agent_deps import append_system_utterance
             data: dict[str, Any] = {"text": new_doc.user_message}
             if llm_result.corrections:
                 data["corrections"] = [
@@ -1587,6 +1596,15 @@ class UtteranceManagerTool(ChatHealthyTool):
                 ]
             deps.stream({"kind": "prompt", "data": data})
             append_system_utterance(deps.user_object, new_doc.user_message)
+
+        # When UM closes the turn without dispatching a content-painting
+        # tool (target_action=closeConnection200), no tool will paint
+        # MainWindow. Direct the client to restore the welcome bubble so
+        # the user reads any streamed prompt against a clean surface.
+        # When target_action names a tool, the tool paints MainWindow and
+        # this directive is NOT emitted.
+        if new_doc.target_action == "closeConnection200":
+            deps.stream({"kind": "show_welcome", "data": {}})
 
         deps.user_object.intent = new_doc
         await asyncio.sleep(0)

@@ -10,7 +10,265 @@
         "name": "Evaluate Care v0.1.4",
         "status": "in_progress",
         "features": {
-          "feature": []
+          "feature": [
+            {
+              "feature_id": "EPIC-001-F-001",
+              "orphan": false,
+              "name": "EvalCareRequestManager",
+              "status": "not_started",
+              "description": "This feature specifies how EvalCare uses the ManageRequests functions to send requests to peer services and to handle requests received from them. Its four stories cover synchronous send, synchronous receive, asynchronous send, and asynchronous receive.",
+              "priority": "TBD",
+              "realized_by": [],
+              "approval": "approved",
+              "due_date": "TBD",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-001-F-001-S-001",
+                    "orphan": false,
+                    "name": "EvalCare Make Synchronous Request",
+                    "description": "EvalCare, on a user thread, initiates a synchronous call to a peer service and waits for the response before continuing.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-001-F-001-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "EvalCare makes synchronous requests",
+                          "requirement": "EvalCare, on a user thread, MUST be able to initiate a synchronous call to a peer service and wait for the peer's response before continuing its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-001-F-001-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "EvalCare synchronous outbound payload carries User State",
+                          "requirement": "Every synchronous outbound request MUST take as its one and only argument either a JSON payload that EvalCare converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the current User State as a first-class field. The returned response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by the peer.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-001-F-001-S-002",
+                    "orphan": false,
+                    "name": "EvalCare Receive Synchronous Request",
+                    "description": "EvalCare, on a user thread, satisfies a synchronous request from a peer and returns the result before the peer continues its own work.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-001-F-001-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "EvalCare satisfies synchronous requests",
+                          "requirement": "EvalCare, on a user thread, MUST be able to satisfy a synchronous request from a peer and return the result before the peer continues its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-001-F-001-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "EvalCare synchronous inbound payload carries User State",
+                          "requirement": "Every synchronous inbound request handler MUST take as its one and only argument either a JSON payload that EvalCare converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the caller's current User State as a first-class field. The returned response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by EvalCare.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-001-F-001-S-003",
+                    "orphan": false,
+                    "name": "EvalCare Make Asynchronous Request",
+                    "description": "EvalCare initiates an asynchronous call to a peer service and continues without waiting; the response is delivered later via a callback EvalCare supplies.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-001-F-001-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "EvalCare makes asynchronous requests",
+                          "requirement": "EvalCare MUST be able to initiate an asynchronous call to a peer service and continue its own work without waiting for the peer's response.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-001-F-001-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "EvalCare asynchronous outbound payload carries User State",
+                          "requirement": "Every asynchronous outbound request MUST take as its one and only argument either a JSON payload that EvalCare converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the current User State as a first-class field. The delivered response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by the peer.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-001-F-001-S-003-REQ-B-003",
+                          "orphan": false,
+                          "name": "EvalCare asynchronous outbound supplies a callback mechanism",
+                          "requirement": "Every asynchronous outbound request MUST supply a callback mechanism through which the peer's response is delivered. The callback mechanism MUST be an API endpoint, an in-memory event, or both.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-001-F-001-S-004",
+                    "orphan": false,
+                    "name": "EvalCare Receive Asynchronous Request",
+                    "description": "EvalCare accepts an asynchronous request, allows the peer to continue, and later delivers the response via the caller-supplied callback.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-001-F-001-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "EvalCare accepts asynchronous requests",
+                          "requirement": "EvalCare MUST be able to accept an asynchronous request from a peer and produce the response after the caller has continued its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-001-F-001-S-004-REQ-B-002",
+                          "orphan": false,
+                          "name": "EvalCare asynchronous inbound payload carries User State",
+                          "requirement": "Every asynchronous inbound request handler MUST take as its one and only argument either a JSON payload that EvalCare converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the caller's current User State as a first-class field. The delivered response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by EvalCare.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-001-F-001-S-004-REQ-B-003",
+                          "orphan": false,
+                          "name": "EvalCare asynchronous inbound delivers via caller's callback mechanism",
+                          "requirement": "The response MUST be delivered to the caller through the callback mechanism the caller supplied in the original request. The callback mechanism MUST be an API endpoint, an in-memory event, or both.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
         },
         "description": "Evaluate Care scores and ranks healthcare providers and clinical trials by quality measures, giving consumers objective data to make informed decisions.",
         "orphan": false,
@@ -1782,6 +2040,25 @@
                             ]
                           },
                           "depends_on": []
+                        },
+                        {
+                          "req_id": "EPIC-002-F-003-S-005-REQ-B-006",
+                          "orphan": false,
+                          "name": "User State flows on the wire in every stateful request and response",
+                          "requirement": "Every stateful request payload exchanged between ChatHealthy services MUST carry the current User State as a first-class field. Every stateful response payload MUST return the User State with any modifications applied by the responding service.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
                         }
                       ]
                     },
@@ -1983,6 +2260,127 @@
                               }
                             ]
                           }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-002-F-004-S-003",
+                    "orphan": false,
+                    "name": "Container Independence and Cross-Container Resolution",
+                    "description": "The ChatHealthy gateway can route a request to any ChatHealthy server component. Each such component may run in its own separate process space.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-004-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "Each server is an independent container",
+                          "requirement": "Each ChatHealthy server MUST be deployable as an independent container.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-002-F-004-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "Gateway request resolvable by any server component",
+                          "requirement": "A request received at the ChatHealthy gateway MUST be resolvable by any ChatHealthy server component, not only by the component that hosts the gateway.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-002-F-004-S-004",
+                    "orphan": false,
+                    "name": "Session Coordination for Stateful Work",
+                    "description": "Every stateful call from a client to the gateway is coordinated through the calling thread. Parallel state-changing work from a client to the gateway is disallowed by design; the user experiences the resulting serialization as a real wait. The server MAY route calls to peer servers in parallel when necessary.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-004-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "Calling thread owns the merge",
+                          "requirement": "When a ChatHealthy service originates a stateful call to a peer, the calling thread MUST be the sole authority for merging the peer's returned User State back into the current User State.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-002-F-004-S-004-REQ-B-002",
+                          "orphan": false,
+                          "name": "No parallel state-changing work",
+                          "requirement": "The ChatHealthy system MUST NOT allow parallel work that can change shared ChatHealthy state. Stateless parallel work (reads, health checks) is permitted. Any service MAY change its local copy of the User State. It is the responsibility of the gateway to reconcile all such changes back into the session and, if required, into the persisted User State.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-002-F-004-S-004-REQ-B-003",
+                          "orphan": false,
+                          "name": "Front end blocks concurrent stateful requests per user",
+                          "requirement": "The front end MUST block a user from initiating a stateful request while a prior stateful request from that user is still in flight. The resulting wait MUST be visible to the user. The user MUST be able to cancel any in-flight request.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
                         }
                       ]
                     }
@@ -3536,8 +3934,8 @@
                         {
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-002",
                           "orphan": false,
-                          "name": "User object is the tool's input",
-                          "requirement": "The tool's input MUST be a User State object as canonically defined by EPIC-002-F-003 (Authorizations and Authentications).",
+                          "name": "Tool input is a Pydantic object that carries User State",
+                          "requirement": "The tool's input MUST be a Pydantic object (or its JSON serialization) that includes the current User State as a first-class field. The User State conforms to the canonical schema defined by EPIC-002-F-003 (Authorizations and Authentications).",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -3606,8 +4004,8 @@
                         {
                           "req_id": "EPIC-002-F-010-S-001-REQ-B-005",
                           "orphan": false,
-                          "name": "Universal utterance tool must be capable of doing multi-thread processing",
-                          "requirement": "The universal utterance tool must be capable of multi-threaded processing. It might make parallel calls to Mongo, and/or LLMs. Within that multithreaded environment, if required and one thread with precedence returns, the tool must be capable of calling on a tool prior to the other tools completing their activities.",
+                          "name": "Multi-thread processing is limited to non-state-changing operations",
+                          "requirement": "The universal utterance tool must be capable of multi-threaded processing for non-state-changing operations (Mongo reads, LLM calls). Within that multithreaded environment, if a precedence thread returns before other threads complete, the tool must be capable of invoking a downstream tool without waiting for the other threads. Parallel processing MUST NOT include state-changing writes to shared user state; the no-parallel-state-changing-work rule (EPIC-002-F-004-S-004-REQ-B-002) and the one-in-flight-per-user rule (EPIC-002-F-004-S-004-REQ-B-003) govern any stateful calls.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "approved",
@@ -4292,6 +4690,263 @@
               "orphan": false,
               "approval": "proposed",
               "due_date": "2026-04-01"
+            },
+            {
+              "feature_id": "EPIC-002-F-012",
+              "orphan": false,
+              "name": "SharedServicesRequestManager",
+              "status": "not_started",
+              "description": "This feature specifies how SharedServices uses the ManageRequests functions to send requests to peer services and to handle requests received from them. Its four stories cover synchronous send, synchronous receive, asynchronous send, and asynchronous receive.",
+              "priority": "TBD",
+              "realized_by": [],
+              "approval": "approved",
+              "due_date": "TBD",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-002-F-012-S-001",
+                    "orphan": false,
+                    "name": "SharedServices Make Synchronous Request",
+                    "description": "SharedServices, on a user thread, initiates a synchronous call to a peer service and waits for the response before continuing.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-012-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "SharedServices makes synchronous requests",
+                          "requirement": "SharedServices, on a user thread, MUST be able to initiate a synchronous call to a peer service and wait for the peer's response before continuing its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-002-F-012-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "SharedServices synchronous outbound payload carries User State",
+                          "requirement": "Every synchronous outbound request MUST take as its one and only argument either a JSON payload that SharedServices converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the current User State as a first-class field. The returned response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by the peer.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-002-F-012-S-002",
+                    "orphan": false,
+                    "name": "SharedServices Receive Synchronous Request",
+                    "description": "SharedServices, on a user thread, satisfies a synchronous request from a peer and returns the result before the peer continues its own work.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-012-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "SharedServices satisfies synchronous requests",
+                          "requirement": "SharedServices, on a user thread, MUST be able to satisfy a synchronous request from a peer and return the result before the peer continues its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-002-F-012-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "SharedServices synchronous inbound payload carries User State",
+                          "requirement": "Every synchronous inbound request handler MUST take as its one and only argument either a JSON payload that SharedServices converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the caller's current User State as a first-class field. The returned response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by SharedServices.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-002-F-012-S-003",
+                    "orphan": false,
+                    "name": "SharedServices Make Asynchronous Request",
+                    "description": "SharedServices initiates an asynchronous call to a peer service and continues without waiting; the response is delivered later via a callback SharedServices supplies.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-012-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "SharedServices makes asynchronous requests",
+                          "requirement": "SharedServices MUST be able to initiate an asynchronous call to a peer service and continue its own work without waiting for the peer's response.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-002-F-012-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "SharedServices asynchronous outbound payload carries User State",
+                          "requirement": "Every asynchronous outbound request MUST take as its one and only argument either a JSON payload that SharedServices converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the current User State as a first-class field. The delivered response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by the peer.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-002-F-012-S-003-REQ-B-003",
+                          "orphan": false,
+                          "name": "SharedServices asynchronous outbound supplies a callback mechanism",
+                          "requirement": "Every asynchronous outbound request MUST supply a callback mechanism through which the peer's response is delivered. The callback mechanism MUST be an API endpoint, an in-memory event, or both.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-002-F-012-S-004",
+                    "orphan": false,
+                    "name": "SharedServices Receive Asynchronous Request",
+                    "description": "SharedServices accepts an asynchronous request, allows the peer to continue, and later delivers the response via the caller-supplied callback.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-002-F-012-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "SharedServices accepts asynchronous requests",
+                          "requirement": "SharedServices MUST be able to accept an asynchronous request from a peer and produce the response after the caller has continued its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-002-F-012-S-004-REQ-B-002",
+                          "orphan": false,
+                          "name": "SharedServices asynchronous inbound payload carries User State",
+                          "requirement": "Every asynchronous inbound request handler MUST take as its one and only argument either a JSON payload that SharedServices converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the caller's current User State as a first-class field. The delivered response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by SharedServices.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-002-F-012-S-004-REQ-B-003",
+                          "orphan": false,
+                          "name": "SharedServices asynchronous inbound delivers via caller's callback mechanism",
+                          "requirement": "The response MUST be delivered to the caller through the callback mechanism the caller supplied in the original request. The callback mechanism MUST be an API endpoint, an in-memory event, or both.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
@@ -4392,6 +5047,314 @@
               "approval": "approved",
               "stories": {
                 "story": []
+              }
+            },
+            {
+              "feature_id": "EPIC-003-F-006",
+              "orphan": false,
+              "name": "ManageRequests",
+              "status": "not_started",
+              "description": "This feature provides the shared functions every ChatHealthy service uses to send requests to peer services and to handle requests received from them. It covers synchronous and asynchronous calls in both directions, plus the merge function the calling thread uses to reconcile a returned User State with its current one. The gateway itself belongs to EPIC-002-F-004 Universal Navigation, not to this feature.",
+              "priority": "TBD",
+              "realized_by": [],
+              "approval": "approved",
+              "due_date": "TBD",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-003-F-006-S-001",
+                    "orphan": false,
+                    "name": "Make Synchronous Request",
+                    "description": "A ChatHealthy service, on a user thread, initiates a synchronous call to a peer and waits for the response before continuing.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-003-F-006-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "A ChatHealthy service makes synchronous requests",
+                          "requirement": "A ChatHealthy service, on a user thread, MUST be able to initiate a synchronous call to a peer service and wait for the peer's response before continuing its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-003-F-006-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "A ChatHealthy service synchronous outbound payload carries User State",
+                          "requirement": "Every synchronous outbound request MUST take as its one and only argument either a JSON payload that a ChatHealthy service converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the current User State as a first-class field. The returned response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by the peer.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-003-F-006-S-002",
+                    "orphan": false,
+                    "name": "Receive Synchronous Request",
+                    "description": "A ChatHealthy service, on a user thread, satisfies a synchronous request from a peer and returns the result before the peer continues.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-003-F-006-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "A ChatHealthy service satisfies synchronous requests",
+                          "requirement": "A ChatHealthy service, on a user thread, MUST be able to satisfy a synchronous request from a peer and return the result before the peer continues its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-003-F-006-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "A ChatHealthy service synchronous inbound payload carries User State",
+                          "requirement": "Every synchronous inbound request handler MUST take as its one and only argument either a JSON payload that a ChatHealthy service converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the caller's current User State as a first-class field. The returned response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by a ChatHealthy service.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-003-F-006-S-003",
+                    "orphan": false,
+                    "name": "Make Asynchronous Request",
+                    "description": "A ChatHealthy service initiates an asynchronous call to a peer and continues without waiting; the response is delivered later via a callback the caller supplied.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-003-F-006-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "A ChatHealthy service makes asynchronous requests",
+                          "requirement": "A ChatHealthy service MUST be able to initiate an asynchronous call to a peer service and continue its own work without waiting for the peer's response.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-003-F-006-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "A ChatHealthy service asynchronous outbound payload carries User State",
+                          "requirement": "Every asynchronous outbound request MUST take as its one and only argument either a JSON payload that a ChatHealthy service converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the current User State as a first-class field. The delivered response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by the peer.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-003-F-006-S-003-REQ-B-003",
+                          "orphan": false,
+                          "name": "A ChatHealthy service asynchronous outbound supplies a callback mechanism",
+                          "requirement": "Every asynchronous outbound request MUST supply a callback mechanism through which the peer's response is delivered. The callback mechanism MUST be an API endpoint, an in-memory event, or both.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-003-F-006-S-004",
+                    "orphan": false,
+                    "name": "Receive Asynchronous Request",
+                    "description": "A ChatHealthy service accepts an asynchronous request, allows the peer to continue, and later delivers the response via the caller-supplied callback.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-003-F-006-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "A ChatHealthy service accepts asynchronous requests",
+                          "requirement": "A ChatHealthy service MUST be able to accept an asynchronous request from a peer and produce the response after the caller has continued its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-003-F-006-S-004-REQ-B-002",
+                          "orphan": false,
+                          "name": "A ChatHealthy service asynchronous inbound payload carries User State",
+                          "requirement": "Every asynchronous inbound request handler MUST take as its one and only argument either a JSON payload that a ChatHealthy service converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the caller's current User State as a first-class field. The delivered response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by a ChatHealthy service.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-003-F-006-S-004-REQ-B-003",
+                          "orphan": false,
+                          "name": "A ChatHealthy service asynchronous inbound delivers via caller's callback mechanism",
+                          "requirement": "The response MUST be delivered to the caller through the callback mechanism the caller supplied in the original request. The callback mechanism MUST be an API endpoint, an in-memory event, or both.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-003-F-006-S-005",
+                    "orphan": false,
+                    "name": "Merge Returned User State",
+                    "description": "The library provides a deterministic function used by the calling thread to merge a returned User State back into the current User State.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-003-F-006-S-005-REQ-B-001",
+                          "orphan": false,
+                          "name": "Library provides a User State merge function",
+                          "requirement": "The library MUST provide a function that produces a merged User State given a current User State and a returned User State as inputs.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-003-F-006-S-005-REQ-B-002",
+                          "orphan": false,
+                          "name": "Merge is deterministic",
+                          "requirement": "The merge function MUST be deterministic: given identical current and returned User State inputs, it MUST produce an identical merged User State.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             }
           ]
@@ -8181,144 +9144,6 @@
               "due_date": "2026-04-01"
             },
             {
-              "feature_id": "EPIC-006-F-023",
-              "name": "Chat Iframe Wiring and Auto-Detection",
-              "description": "Parent page auto-detects localhost vs deployed environment and sets iframe src accordingly. DR-011: no query params, no workarounds. Retry logic for slow backend startup.",
-              "priority": "HIGH",
-              "status": "not_started",
-              "stories": {
-                "story": [
-                  {
-                    "story_id": "EPIC-006-F-023-S-001",
-                    "size": "S",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-023-S-001-REQ-T-001",
-                          "requirement": "When hostname is localhost or 127.0.0.1, iframe src is https://localhost:3000 (DR-011)",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Set iframe src to https://localhost:3000 for localhost or 127.0.0.1 hostnames",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-023-S-001-REQ-T-002",
-                          "requirement": "When hostname is *.chathealthy.ai, iframe src is the corresponding HuggingFace Space URL derived from hostname",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Derive iframe src HuggingFace Space URL from *.chathealthy.ai hostname",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-023-S-001-REQ-T-003",
-                          "requirement": "No query parameter or manual override is required to switch between local and deployed (DR-011)",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Remove need for query parameter or manual override to switch environments",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Auto-detect localhost for iframe src",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Auto-detect localhost for iframe src"
-                  },
-                  {
-                    "story_id": "EPIC-006-F-023-S-002",
-                    "size": "S",
-                    "status": "not_started",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-006-F-023-S-002-REQ-B-001",
-                          "requirement": "After max retries, an error message is displayed to the user",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Display error message to user after maximum retries",
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-006-F-023-S-002-REQ-T-001",
-                          "requirement": "Parent page retries iframe loading up to 10 times with 3-second intervals if initial load fails",
-                          "priority": "must-have",
-                          "status": "not_started",
-                          "orphan": false,
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "approval": "proposed",
-                          "name": "Parent page retries iframe load 10 times with 3s intervals on failure",
-                          "depends_on": []
-                        }
-                      ]
-                    },
-                    "description": "Iframe retry on backend startup",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "name": "Iframe retry on backend startup"
-                  }
-                ]
-              },
-              "realized_by": [
-                "Static HTML/JS (Cloudflare Pages)"
-              ],
-              "orphan": false,
-              "approval": "proposed",
-              "due_date": "2026-04-01"
-            },
-            {
               "feature_id": "EPIC-006-F-024",
               "name": "Control Frame â€” Pagination and Filter Controls",
               "description": "7% control frame canvas that renders pagination and filter controls on demand. 3D raised button style. Deterministic paging via /search â€” no LLM round-trip after first page.",
@@ -9482,7 +10307,7 @@
                         {
                           "req_id": "EPIC-006-F-031-S-002-REQ-B-068",
                           "name": "Left-panel More / Back pagination controls",
-                          "requirement": "The left panel MUST render a 'more trials' link when Response.cursor is non-null and a 'back' link when prior cursors exist (client-side history). Clicking either MUST round-trip through ClientRouter.makeCall to /gate op='clinical_trials_page' (REQ-B-073) -- NOT through the LLM-routed utterance path. The pagination control mirrors the providers pagination pattern.",
+                          "requirement": "The left panel MUST render a 'more trials' link when Response.cursor is non-null and a 'back' link when prior cursors exist (client-side history). Clicking either MUST round-trip through ClientRouter.getStreamedPayloads to /gate op='clinical_trials_page' (REQ-B-073) -- NOT through the LLM-routed utterance path. The pagination control mirrors the providers pagination pattern.",
                           "priority": "must-have",
                           "status": "done",
                           "orphan": false,
@@ -9788,6 +10613,263 @@
               "realized_by": [],
               "approval": "proposed",
               "due_date": ""
+            },
+            {
+              "feature_id": "EPIC-006-F-032",
+              "orphan": false,
+              "name": "FindCareRequestManager",
+              "status": "not_started",
+              "description": "This feature specifies how FindCare uses the ManageRequests functions to send requests to peer services and to handle requests received from them. Its four stories cover synchronous send, synchronous receive, asynchronous send, and asynchronous receive.",
+              "priority": "TBD",
+              "realized_by": [],
+              "approval": "approved",
+              "due_date": "TBD",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-006-F-032-S-001",
+                    "orphan": false,
+                    "name": "FindCare Make Synchronous Request",
+                    "description": "FindCare, on a user thread, initiates a synchronous call to a peer service and waits for the response before continuing.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-032-S-001-REQ-B-001",
+                          "orphan": false,
+                          "name": "FindCare makes synchronous requests",
+                          "requirement": "FindCare, on a user thread, MUST be able to initiate a synchronous call to a peer service and wait for the peer's response before continuing its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-006-F-032-S-001-REQ-B-002",
+                          "orphan": false,
+                          "name": "FindCare synchronous outbound payload carries User State",
+                          "requirement": "Every synchronous outbound request MUST take as its one and only argument either a JSON payload that FindCare converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the current User State as a first-class field. The returned response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by the peer.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-032-S-002",
+                    "orphan": false,
+                    "name": "FindCare Receive Synchronous Request",
+                    "description": "FindCare, on a user thread, satisfies a synchronous request from a peer and returns the result before the peer continues its own work.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-032-S-002-REQ-B-001",
+                          "orphan": false,
+                          "name": "FindCare satisfies synchronous requests",
+                          "requirement": "FindCare, on a user thread, MUST be able to satisfy a synchronous request from a peer and return the result before the peer continues its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-006-F-032-S-002-REQ-B-002",
+                          "orphan": false,
+                          "name": "FindCare synchronous inbound payload carries User State",
+                          "requirement": "Every synchronous inbound request handler MUST take as its one and only argument either a JSON payload that FindCare converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the caller's current User State as a first-class field. The returned response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by FindCare.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-032-S-003",
+                    "orphan": false,
+                    "name": "FindCare Make Asynchronous Request",
+                    "description": "FindCare initiates an asynchronous call to a peer service and continues without waiting; the response is delivered later via a callback FindCare supplies.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-032-S-003-REQ-B-001",
+                          "orphan": false,
+                          "name": "FindCare makes asynchronous requests",
+                          "requirement": "FindCare MUST be able to initiate an asynchronous call to a peer service and continue its own work without waiting for the peer's response.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-006-F-032-S-003-REQ-B-002",
+                          "orphan": false,
+                          "name": "FindCare asynchronous outbound payload carries User State",
+                          "requirement": "Every asynchronous outbound request MUST take as its one and only argument either a JSON payload that FindCare converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the current User State as a first-class field. The delivered response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by the peer.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-006-F-032-S-003-REQ-B-003",
+                          "orphan": false,
+                          "name": "FindCare asynchronous outbound supplies a callback mechanism",
+                          "requirement": "Every asynchronous outbound request MUST supply a callback mechanism through which the peer's response is delivered. The callback mechanism MUST be an API endpoint, an in-memory event, or both.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-006-F-032-S-004",
+                    "orphan": false,
+                    "name": "FindCare Receive Asynchronous Request",
+                    "description": "FindCare accepts an asynchronous request, allows the peer to continue, and later delivers the response via the caller-supplied callback.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": [
+                        {
+                          "req_id": "EPIC-006-F-032-S-004-REQ-B-001",
+                          "orphan": false,
+                          "name": "FindCare accepts asynchronous requests",
+                          "requirement": "FindCare MUST be able to accept an asynchronous request from a peer and produce the response after the caller has continued its own work.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-006-F-032-S-004-REQ-B-002",
+                          "orphan": false,
+                          "name": "FindCare asynchronous inbound payload carries User State",
+                          "requirement": "Every asynchronous inbound request handler MUST take as its one and only argument either a JSON payload that FindCare converts into a Pydantic object, or a Pydantic object directly. The payload MUST include the caller's current User State as a first-class field. The delivered response MUST be either a Pydantic object or its JSON serialization, and MUST include the User State with any modifications applied by FindCare.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        },
+                        {
+                          "req_id": "EPIC-006-F-032-S-004-REQ-B-003",
+                          "orphan": false,
+                          "name": "FindCare asynchronous inbound delivers via caller's callback mechanism",
+                          "requirement": "The response MUST be delivered to the caller through the callback mechanism the caller supplied in the original request. The callback mechanism MUST be an API endpoint, an in-memory event, or both.",
+                          "priority": "must-have",
+                          "status": "not_started",
+                          "depends_on": [],
+                          "tests": {
+                            "test": [
+                              {
+                                "orphan": true,
+                                "test_type": "ORPHAN",
+                                "file": ""
+                              }
+                            ]
+                          },
+                          "approval": "approved"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
@@ -11827,7 +12909,7 @@
                         {
                           "req_id": "EPIC-008-F-002-S-016-REQ-B-002",
                           "name": "No persistent-state change from React",
-                          "requirement": "The React application MUST NOT change persistent state directly. All persistence changes MUST originate from a /gate call dispatched through ClientRouter. Forbidden in React source: writes to localStorage, sessionStorage, indexedDB, or document.cookie; any fetch, XMLHttpRequest, or navigator.sendBeacon call that does not resolve to the canonical ClientRouter.makeCall / ClientRouter.callTrivial / router:makeCall postMessage path. Approved out-of-band reads (e.g., FindCare's /welcome) live on the enforcement entry's exception list.",
+                          "requirement": "The React application MUST NOT change persistent state directly. All persistence changes MUST originate from a /gate call dispatched through ClientRouter. Forbidden in React source: writes to localStorage, sessionStorage, indexedDB, or document.cookie; any fetch, XMLHttpRequest, or navigator.sendBeacon call that does not resolve to the canonical ClientRouter.getStreamedPayloads / ClientRouter.getFullPayload / router:makeCall postMessage path. Approved out-of-band reads (e.g., FindCare's /welcome) live on the enforcement entry's exception list.",
                           "priority": "must-have",
                           "status": "in_progress",
                           "approval": "proposed",
@@ -16371,76 +17453,6 @@
                     }
                   },
                   {
-                    "story_id": "EPIC-008-F-012-S-008",
-                    "name": "React serving migration (opportunistic architectural evolution, one-time)",
-                    "description": "ONE-TIME architectural evolution included opportunistically in this deploy-management feature. Moves the React frontend serving responsibility from FindCare (port 7860) to SharedServices (port 8002). After this story ships, it is permanently done â€” it does NOT belong to the enduring deploy facts and never re-fires.",
-                    "size": "M",
-                    "status": "done",
-                    "orphan": false,
-                    "approval": "proposed",
-                    "requirements": {
-                      "requirement": [
-                        {
-                          "req_id": "EPIC-008-F-012-S-008-REQ-B-001",
-                          "name": "React serving moves to SharedServices",
-                          "requirement": "After this story ships, SharedServices (port 8002 per S-001-REQ-T-001) serves the React frontend in addition to its backend. FindCare (port 7860) serves only the FindCare backend. No other behavioral change.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-012-S-008-REQ-T-001",
-                          "name": "Build URLs updated",
-                          "requirement": "S-001-REQ-T-008 (the universal React build req) builds the React frontend with the SharedServices URL baked in. Pre-migration FindCare URL is removed from all build paths.",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        },
-                        {
-                          "req_id": "EPIC-008-F-012-S-008-REQ-T-002",
-                          "name": "Smoke test passes post-migration",
-                          "requirement": "The master smoke test (S-006) passes against an environment where SharedServices serves the React frontend, with no regression in any of the current step set (Step00..Step34 plus the cert-verification step in S-006-REQ-T-003 â€” currently 36 steps total).",
-                          "priority": "must-have",
-                          "status": "done",
-                          "orphan": false,
-                          "approval": "proposed",
-                          "tests": {
-                            "test": [
-                              {
-                                "test_type": "ORPHAN",
-                                "orphan": true,
-                                "file": "ORPHAN"
-                              }
-                            ]
-                          },
-                          "depends_on": []
-                        }
-                      ]
-                    }
-                  },
-                  {
                     "story_id": "EPIC-008-F-012-S-009",
                     "name": "Local Development File System & local Code Repository Management",
                     "description": "This story specifies how the local file system will materialize on the disk and in the Cursor IDE. It will also specify the file system's relationship to the local Git, which is an exact mirror, when pushed, of the same repository on GitHub. Due 2026-05-22.",
@@ -19754,6 +20766,69 @@
                           }
                         }
                       ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "feature_id": "EPIC-010-F-106",
+              "orphan": false,
+              "name": "PipelineRequestManager",
+              "status": "not_started",
+              "description": "This feature specifies how the pipeline uses the ManageRequests functions to send requests to peer services and to handle requests received from them. Its four stories cover synchronous send, synchronous receive, asynchronous send, and asynchronous receive. Requirements are omitted per standing directive.",
+              "priority": "TBD",
+              "realized_by": [],
+              "approval": "approved",
+              "due_date": "TBD",
+              "stories": {
+                "story": [
+                  {
+                    "story_id": "EPIC-010-F-106-S-001",
+                    "orphan": false,
+                    "name": "Pipeline Make Synchronous Request",
+                    "description": "The pipeline initiates a synchronous call to a peer and waits for the response before continuing.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-106-S-002",
+                    "orphan": false,
+                    "name": "Pipeline Receive Synchronous Request",
+                    "description": "The pipeline satisfies a synchronous request from a peer and returns the result before the peer continues.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-106-S-003",
+                    "orphan": false,
+                    "name": "Pipeline Make Asynchronous Request",
+                    "description": "The pipeline initiates an asynchronous call to a peer and continues without waiting.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
+                    }
+                  },
+                  {
+                    "story_id": "EPIC-010-F-106-S-004",
+                    "orphan": false,
+                    "name": "Pipeline Receive Asynchronous Request",
+                    "description": "The pipeline accepts an asynchronous request and delivers the response via the caller-supplied callback.",
+                    "size": "M",
+                    "status": "not_started",
+                    "approval": "approved",
+                    "requirements": {
+                      "requirement": []
                     }
                   }
                 ]

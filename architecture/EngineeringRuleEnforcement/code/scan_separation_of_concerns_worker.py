@@ -12,8 +12,8 @@ plumbing JS/HTML, and Python tools.
   _scan_react_persistence (.ts + .tsx under React src):
       forbid writes to localStorage/sessionStorage/indexedDB/document.cookie
       and any fetch/XMLHttpRequest/navigator.sendBeacon call that does not
-      resolve to the canonical ClientRouter.makeCall / .callTrivial /
-      router:makeCall postMessage path.
+      resolve to the canonical ClientRouter.getStreamedPayloads /
+      .getFullPayload / router:makeCall postMessage path.
 
   _scan_business_logic (.js + .html outside React src):
       forbid domain-vocabulary token usage (provider, specialty, NPI,
@@ -66,7 +66,7 @@ _OUTBOUND_CALL = re.compile(
     r"\bnavigator\.sendBeacon\s*\("
 )
 _CANONICAL_DISPATCH = re.compile(
-    r"ClientRouter\.(makeCall|callTrivial)\s*\(|"
+    r"ClientRouter\.(getStreamedPayloads|getFullPayload)\s*\(|"
     r"['\"]router:makeCall['\"]"
 )
 

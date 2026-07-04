@@ -2,29 +2,25 @@
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 """ClinicalTrialsTool — EPIC-006-F-031.
 
-Fetches recruiting trials from ClinicalTrials.gov v2 by condition, enriches
-each location with drive distance + duration from the user's location via
-Google Routes API (skipped when user_location is absent), derives a per-
-trial NUCC code set via one batched LLM call, and attaches an NPI to any
-centralContact whose name matches a single provider in the ChatHealthy
-providers collection whose taxonomies intersect the derived code set.
+Fetches recruiting trials from ClinicalTrials.gov v2 by condition and
+streams them to the client. No per-trial enrichment: NUCC-code
+derivation and NPI attachment produced fields the widget never
+displayed, and holding the stream open across those late passes kept
+the input prompt disabled after the user could already see results.
 
 A single outer try/except converts any exception to an empty result with
 an error message — REQ-B-012 says no fatal exception escapes."""
 from __future__ import annotations
 
-import asyncio
-import os
 from typing import Any, Optional
 
 import httpx
 
 from chathealthy_frontend_lib import ChatHealthyLoggingService
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
-from chathealthy_frontend_lib.runtime_data_collections import providers_coll
 
-from authentication.agent_deps import AgentDeps
-from authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
+from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
 
 try:
     from ClinicalTrials.clinical_trials_models import (
@@ -35,7 +31,6 @@ try:
         SeeAlsoLink, Trial, UnpostedAnnotation, UnpostedEvent,
         ViolationAnnotation, ViolationEvent,
     )
-    from ClinicalTrials.nucc_llm import derive_nucc_codes_for_page
 except ImportError:
     from FindCare.ClinicalTrials.clinical_trials_models import (
         ArmGroup, BioSpec, BrowseBranch, BrowseLeaf, CentralContact,
@@ -45,13 +40,22 @@ except ImportError:
         SeeAlsoLink, Trial, UnpostedAnnotation, UnpostedEvent,
         ViolationAnnotation, ViolationEvent,
     )
-    from FindCare.ClinicalTrials.nucc_llm import derive_nucc_codes_for_page
 
 log = ChatHealthyLoggingService()
 
 CT_GOV_URL = "https://clinicaltrials.gov/api/v2/studies"
-ROUTES_API_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
-GOOGLE_MAPS_API_KEY_ENV = "GOOGLE_MAPS_API_KEY"
+
+# Pre-filter cap: how many recruiting trials the tool will pull from
+# CT.gov in one call, before applying the per-trial age safety net.
+# When CT.gov's unfiltered totalCount exceeds this cap, the widget shows
+# "of many" instead of an exact total because the true filtered total
+# is unknown without fetching beyond the cap.
+_PREFILTER_CAP = 150
+
+# Page size the CT.gov v2 call requests per cursor step. The widget
+# caches the whole returned set and paginates client-side, so this is
+# the CT.gov page size, not a display page size.
+_CT_GOV_PAGE_SIZE = 10
 
 
 def _s(v) -> str:
@@ -447,147 +451,6 @@ async def _fetch_ct_gov(
     return [_parse_trial(s) for s in studies], next_token, total_count
 
 
-async def _routes_api_one(client: httpx.AsyncClient, api_key: str, origin: str, dest: str) -> Optional[tuple[str, str]]:
-    body = {
-        "origin": {"address": origin},
-        "destination": {"address": dest},
-        "travelMode": "DRIVE",
-        "routingPreference": "TRAFFIC_UNAWARE",
-    }
-    headers = {
-        "X-Goog-Api-Key": api_key,
-        "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
-        "Content-Type": "application/json",
-    }
-    try:
-        r = await client.post(ROUTES_API_URL, json=body, headers=headers, timeout=10.0)
-        if r.status_code != 200:
-            # Mode 2 (REQ-B-008): Routes API non-200 means distance/duration
-            # WILL BE MISSING for this destination — user-visible degradation.
-            # Operator MUST know so we don't silently lose travel info.
-            log.error(
-                "Routes API non-200 for dest=%r status=%d body=%s",
-                dest, r.status_code, (r.text or "")[:200],
-                exc=ChatHealthyException(
-                    mode="routes_api_non_200",
-                    message=f"Routes API non-200 for dest={dest!r} status={r.status_code}",
-                    component="ClinicalTrialsTool",
-                ),
-                if_not_debug_log=True,
-            )
-            return None
-        routes = (r.json() or {}).get("routes") or []
-        if not routes:
-            log.error(
-                "Routes API returned empty routes[] for dest=%r origin=%r",
-                dest, origin,
-                exc=ChatHealthyException(
-                    mode="routes_api_empty",
-                    message=f"Routes API returned empty routes[] for dest={dest!r}",
-                    component="ClinicalTrialsTool",
-                ),
-                if_not_debug_log=True,
-            )
-            return None
-        meters = routes[0].get("distanceMeters", 0)
-        secs = int(str(routes[0].get("duration", "0s")).rstrip("s") or "0")
-        miles = meters / 1609.34
-        hrs, mins = secs // 3600, (secs % 3600) // 60
-        return (f"{miles:.0f} miles", f"{hrs}h {mins}m" if hrs else f"{mins}m")
-    except Exception as exc:
-        # Mode 2 (REQ-B-008): network/JSON failure on Routes API; distance
-        # missing for this destination.
-        log.error(
-            "Routes API call raised for dest=%r: %s", dest, exc,
-            exc=ChatHealthyException(
-                mode="routes_api_failed",
-                message=f"Routes API call raised for dest={dest!r}: {exc}",
-                component="ClinicalTrialsTool",
-                exception=exc,
-            ),
-            if_not_debug_log=True,
-        )
-        return None
-
-
-async def _enrich_locations_with_travel(trials: list[Trial], user_location: str) -> None:
-    api_key = os.environ.get(GOOGLE_MAPS_API_KEY_ENV, "")
-    if not api_key:
-        # Mode 2 (REQ-B-008): GOOGLE_MAPS_API_KEY missing in env — every
-        # trial's distance/duration WILL BE MISSING. Operator MUST know
-        # because there is no other surface to detect this misconfig.
-        log.error(
-            "%s not set in env — clinical-trials distance/duration disabled",
-            GOOGLE_MAPS_API_KEY_ENV,
-            exc=ChatHealthyException(
-                mode="routes_api_key_missing",
-                message=f"{GOOGLE_MAPS_API_KEY_ENV} not set in env",
-                component="ClinicalTrialsTool",
-            ),
-            if_not_debug_log=True,
-        )
-        return
-    if not user_location:
-        return
-    unique: dict[str, list[Location]] = {}
-    for t in trials:
-        for loc in t.locations:
-            key = f"{loc.city}, {loc.state}".strip(", ")
-            if key:
-                unique.setdefault(key, []).append(loc)
-    if not unique:
-        return
-    async with httpx.AsyncClient() as client:
-        results = await asyncio.gather(*[
-            _routes_api_one(client, api_key, user_location, k) for k in unique.keys()
-        ])
-    for (key, locs), result in zip(unique.items(), results):
-        if result is None:
-            continue
-        dist, dur = result
-        for loc in locs:
-            loc.distance = dist
-            loc.duration = dur
-
-
-def _enrich_npis(trials: list[Trial], code_map: dict[str, list[str]]) -> None:
-    try:
-        coll = providers_coll()
-    except Exception:
-        return
-    for t in trials:
-        derived = set(code_map.get(t.nct_id) or [])
-        if not derived:
-            continue
-        for contact in t.central_contacts:
-            name = (contact.name or "").strip()
-            if not name:
-                continue
-            parts = name.split()
-            if len(parts) < 2:
-                continue
-            first, last = parts[0], parts[-1]
-            try:
-                cursor = coll.find({
-                    "provider_first_name": {"$regex": f"^{first}$", "$options": "i"},
-                    "provider_last_name_legal_name": {"$regex": f"^{last}$", "$options": "i"},
-                    "entity_type_code": "1",
-                }, {"npi": 1, "taxonomies": 1, "_id": 0})
-                matches = list(cursor)
-            except Exception:
-                continue
-            relevant = [
-                m for m in matches
-                if any(
-                    (tx.get("code") or "") in derived
-                    for tx in (m.get("taxonomies") or [])
-                )
-            ]
-            if len(relevant) == 1:
-                contact.npi = relevant[0].get("npi") or None
-        t.derived_nucc_codes = sorted(derived)
-
-
 class ClinicalTrialsTool(ChatHealthyTool):
     """EPIC-006-F-031 — Find Clinical Trials."""
     TOOL_NAME = "clinical_trials"
@@ -645,12 +508,27 @@ class ClinicalTrialsTool(ChatHealthyTool):
                 error="No condition provided.",
                 search_context=search_context,
             )
-            deps.stream({"kind": "trials", "data": result.model_dump(exclude_none=True)})
+            deps.stream({
+                "kind": "clinical_trials_chunk",
+                "data": {
+                    "trials": [],
+                    "chunk_index": 0,
+                    "is_final": True,
+                    "total_eligible": 0,
+                    "is_partial": False,
+                    "search_context": search_context.model_dump(exclude_none=True),
+                    "error": "No condition provided.",
+                },
+            })
             return result
-        trials, next_cursor, total_count = await _fetch_ct_gov(
+
+        # Single CT.gov fetch up to the pre-filter cap. Pagination after
+        # this point is client-side state slicing in the React widget; SS
+        # remains stateless.
+        trials, _next_cursor, ct_total_count = await _fetch_ct_gov(
             condition,
-            request.page_size,
-            request.cursor,
+            _PREFILTER_CAP,
+            None,
             age_years=request.age_years,
             sex=request.sex,
             geographic_scope=request.geographic_scope,
@@ -666,46 +544,51 @@ class ClinicalTrialsTool(ChatHealthyTool):
             target = request.age_years
             trials = [t for t in trials
                       if _age_in_range(target, t.minimum_age, t.maximum_age)]
+
+        total_eligible = len(trials)
+        is_partial = (
+            isinstance(ct_total_count, int) and ct_total_count > _PREFILTER_CAP
+        )
+
         if not trials:
-            result = Response(
+            deps.stream({
+                "kind": "clinical_trials_chunk",
+                "data": {
+                    "trials": [],
+                    "chunk_index": 0,
+                    "is_final": True,
+                    "total_eligible": 0,
+                    "is_partial": is_partial,
+                    "search_context": search_context.model_dump(exclude_none=True),
+                },
+            })
+            return Response(
                 trials=[],
-                cursor=None,
-                total_count=total_count,
-                page_size=request.page_size,
+                total_count=0,
+                page_size=_CT_GOV_PAGE_SIZE,
                 search_context=search_context,
             )
-            deps.stream({"kind": "trials", "data": result.model_dump(exclude_none=True)})
-            return result
 
-        trial_dicts = [
-            {
-                "nct_id": t.nct_id,
-                "conditions": t.conditions,
-                "brief_title": t.brief_title,
-                "brief_summary": t.brief_summary,
-            }
-            for t in trials
-        ]
+        # Stream every trial in one shot and close. The widget caches the
+        # full set client-side and paginates locally; there is no server-
+        # side work left to do, so the connection closes here and the
+        # input prompt re-enables immediately.
+        data: dict[str, Any] = {
+            "trials": [t.model_dump() for t in trials],
+            "chunk_index": 0,
+            "is_final": True,
+            "search_context": search_context.model_dump(exclude_none=True),
+            "total_eligible": total_eligible,
+            "is_partial": is_partial,
+        }
+        deps.stream({"kind": "clinical_trials_chunk", "data": data})
 
-        async def routes_branch() -> None:
-            if request.user_location:
-                await _enrich_locations_with_travel(trials, request.user_location)
-
-        async def nucc_branch() -> dict[str, list[str]]:
-            return await derive_nucc_codes_for_page(trial_dicts)
-
-        _, code_map = await asyncio.gather(routes_branch(), nucc_branch())
-        _enrich_npis(trials, code_map)
-
-        result = Response(
+        return Response(
             trials=trials,
-            cursor=next_cursor,
-            total_count=total_count,
-            page_size=request.page_size,
+            total_count=total_eligible,
+            page_size=_CT_GOV_PAGE_SIZE,
             search_context=search_context,
         )
-        deps.stream({"kind": "trials", "data": result.model_dump(exclude_none=True)})
-        return result
 
 
 TOOL = ClinicalTrialsTool()

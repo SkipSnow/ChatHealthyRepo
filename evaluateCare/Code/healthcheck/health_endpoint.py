@@ -8,6 +8,8 @@ import os
 from pathlib import Path
 
 
+log = ChatHealthyLoggingService()
+
 BUILD_INFO_PATH = "/app/build_info.json"
 
 

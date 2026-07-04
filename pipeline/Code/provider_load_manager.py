@@ -152,6 +152,10 @@ LOAD_LABEL_WORKERS  = "Step 4: Raw-load worker fan-out"
 LOAD_LABEL_INDEXES  = "Step 4: Building indexes + reconciling"
 LOAD_LABEL_REPORT   = "Step 4: Writing report"
 
+# Step 6 (Multi-practice addresses) and Step 14 (Embeddings) status labels.
+PROVIDER_LABEL_MULTI_PRACTICE = "Step 6: Attaching multi-practice addresses"
+PROVIDER_LABEL_EMBED          = "Step 14: Generating provider embeddings"
+
 
 # ── Orchestrators ─────────────────────────────────────────────────────────────
 

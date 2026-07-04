@@ -22,8 +22,8 @@ from typing import Any, Optional
 import httpx
 from pydantic import BaseModel, Field
 
-from authentication.agent_deps import AgentDeps
-from authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
+from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
 
 log = ChatHealthyLoggingService()
 
