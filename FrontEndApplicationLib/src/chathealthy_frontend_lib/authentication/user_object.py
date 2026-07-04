@@ -236,6 +236,9 @@ class UserObject(BaseModel):
     selected_providers: Annotated[
         list[str], MergeRole.GUEST_WINS,
     ] = Field(default_factory=list)
+    selected_clinical_trials: Annotated[
+        list[str], MergeRole.GUEST_WINS,
+    ] = Field(default_factory=list)
     # Stash for OAuth result so the React HeaderWidget can poll /gate after
     # the popup closes and render the success/fail banner. Cleared by the
     # claim_oauth_result op once the widget has read it.

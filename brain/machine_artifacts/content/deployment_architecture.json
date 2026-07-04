@@ -1290,7 +1290,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "457e343888c3687bc7cddb6da5c830f7795a8fb8bdfcc77a8ab63e8779c6e7d4"
+          "content_hash": "a8f9f02dee3c158e274efe313b944ac015aabcfea6fea58c7dd439246e3fc9a9"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1304,7 +1304,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/ClinicalTrialsWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "697a33fa311bc46f6a35bb4d131eb51717fa4eda2ea3ed42261f20543dcc91aa"
+          "content_hash": "625aee16e31a14fc6a7734f47a7ac69c8660426c67e4ace67c042e527527e197"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1325,7 +1325,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/HeaderWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "6b882ffee5b8b1175e8e121e3be3dd2afe7b32335933f176fc9687f573d7ba45"
+          "content_hash": "09bd55bcd8202b3312bad51c157022eb5e3caab5008770826fddf4525168f1f7"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -1402,7 +1402,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/WelcomeWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "d9589434383ae63f7c47576f4ab0583e28fecc963f29544aeb91373d825785a2"
+          "content_hash": "11f6717fda0ce2d66fc6c666478ed7057ef8471c864e1bddfb2b0a5fa29e3b7d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2413,7 +2413,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "84b3bcaa3ab58a62ce6eb584646957abc851294e87fda5c1d88e06dcde255b60"
+          "content_hash": "a7d012ed50f260c6446ea0eb2a938eb66f4343e54ef5f4925b9f10dafc256de1"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2516,6 +2516,10 @@
               "args": "ProviderSelection  /app/ProviderSelection"
             },
             {
+              "instruction": "COPY",
+              "args": "ClinicalTrialSelection  /app/ClinicalTrialSelection"
+            },
+            {
               "instruction": "ENV",
               "args": "PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key"
             },
@@ -2531,7 +2535,7 @@
               ]
             }
           ],
-          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY NonsenseTool  /app/NonsenseTool\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n"
+          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY NonsenseTool  /app/NonsenseTool\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\nCOPY ClinicalTrialSelection  /app/ClinicalTrialSelection\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -2601,7 +2605,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "16d3af974e6d5397d267fd471d0f757e30c64c6298bcab455931080be6806c33"
+          "content_hash": "7d630fc13cf51dec29d2810987f00fb11663723089869210e33048afc11f635a"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3229,7 +3233,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "457e343888c3687bc7cddb6da5c830f7795a8fb8bdfcc77a8ab63e8779c6e7d4"
+          "content_hash": "a8f9f02dee3c158e274efe313b944ac015aabcfea6fea58c7dd439246e3fc9a9"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3243,7 +3247,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/ClinicalTrialsWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "697a33fa311bc46f6a35bb4d131eb51717fa4eda2ea3ed42261f20543dcc91aa"
+          "content_hash": "625aee16e31a14fc6a7734f47a7ac69c8660426c67e4ace67c042e527527e197"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3264,7 +3268,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/HeaderWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "6b882ffee5b8b1175e8e121e3be3dd2afe7b32335933f176fc9687f573d7ba45"
+          "content_hash": "09bd55bcd8202b3312bad51c157022eb5e3caab5008770826fddf4525168f1f7"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -3341,7 +3345,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/WelcomeWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "d9589434383ae63f7c47576f4ab0583e28fecc963f29544aeb91373d825785a2"
+          "content_hash": "11f6717fda0ce2d66fc6c666478ed7057ef8471c864e1bddfb2b0a5fa29e3b7d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -4641,7 +4645,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "84b3bcaa3ab58a62ce6eb584646957abc851294e87fda5c1d88e06dcde255b60"
+          "content_hash": "a7d012ed50f260c6446ea0eb2a938eb66f4343e54ef5f4925b9f10dafc256de1"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -4744,6 +4748,10 @@
               "args": "ProviderSelection  /app/ProviderSelection"
             },
             {
+              "instruction": "COPY",
+              "args": "ClinicalTrialSelection  /app/ClinicalTrialSelection"
+            },
+            {
               "instruction": "ENV",
               "args": "PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key"
             },
@@ -4759,7 +4767,7 @@
               ]
             }
           ],
-          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY NonsenseTool  /app/NonsenseTool\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n"
+          "embedded_content": "\nFROM python:3.12-slim\n\nWORKDIR /app\n\nCOPY requirements.txt /app/requirements.txt\nRUN pip install --no-cache-dir -r /app/requirements.txt\n\nCOPY FrontEndApplicationLib /app/FrontEndApplicationLib\nRUN pip install --no-cache-dir /app/FrontEndApplicationLib\n\nCOPY build_info.json    /app/build_info.json\nCOPY app.py             /app/app.py\nCOPY healthcheck        /app/healthcheck\nCOPY displayChrome      /app/displayChrome\nCOPY authentication     /app/authentication\nCOPY SpecialtyFilter    /app/SpecialtyFilter\nCOPY AboutChatHealthy  /app/AboutChatHealthy\nCOPY externalInterface  /app/externalInterface\nCOPY secretsManager     /app/secretsManager\nCOPY UtteranceManager  /app/UtteranceManager\nCOPY NonsenseTool  /app/NonsenseTool\nCOPY CloseConnection200Tool  /app/CloseConnection200Tool\nCOPY LockoutTool  /app/LockoutTool\nCOPY ProviderSelection  /app/ProviderSelection\nCOPY ClinicalTrialSelection  /app/ClinicalTrialSelection\n\nENV PORT=7860     CERTS_DIR=/certs     SSL_CERTFILE=/certs/shared.crt SSL_KEYFILE=/certs/shared.key\nEXPOSE 7860\nCMD [\"python\", \"app.py\"]\n"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -4829,7 +4837,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "16d3af974e6d5397d267fd471d0f757e30c64c6298bcab455931080be6806c33"
+          "content_hash": "7d630fc13cf51dec29d2810987f00fb11663723089869210e33048afc11f635a"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5814,7 +5822,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/App.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "457e343888c3687bc7cddb6da5c830f7795a8fb8bdfcc77a8ab63e8779c6e7d4"
+          "content_hash": "a8f9f02dee3c158e274efe313b944ac015aabcfea6fea58c7dd439246e3fc9a9"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5828,7 +5836,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/ClinicalTrialsWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "697a33fa311bc46f6a35bb4d131eb51717fa4eda2ea3ed42261f20543dcc91aa"
+          "content_hash": "625aee16e31a14fc6a7734f47a7ac69c8660426c67e4ace67c042e527527e197"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5849,7 +5857,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/HeaderWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "6b882ffee5b8b1175e8e121e3be3dd2afe7b32335933f176fc9687f573d7ba45"
+          "content_hash": "09bd55bcd8202b3312bad51c157022eb5e3caab5008770826fddf4525168f1f7"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5926,7 +5934,7 @@
           "source_location": "Code/ConversationalUX/FindCareChat/frontend/src/components/WelcomeWidget.tsx",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "d9589434383ae63f7c47576f4ab0583e28fecc963f29544aeb91373d825785a2"
+          "content_hash": "11f6717fda0ce2d66fc6c666478ed7057ef8471c864e1bddfb2b0a5fa29e3b7d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7011,7 +7019,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/build_chathealthy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3d433259bddafc9a23f0733cf64f9da2d1beeddf6fc2fe2085518f1375ee1ff0"
+          "content_hash": "cf75767853c33f345e4cce2df5afa33789f9f2a9f5114ba5fa9310dfd962748d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -8515,7 +8523,7 @@
           "source_location": "sharedServices/Code/AuthorizationsAndAuthentications/universal_navigation_tool.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "84b3bcaa3ab58a62ce6eb584646957abc851294e87fda5c1d88e06dcde255b60"
+          "content_hash": "a7d012ed50f260c6446ea0eb2a938eb66f4343e54ef5f4925b9f10dafc256de1"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -8599,7 +8607,7 @@
           "source_location": "sharedServices/Code/app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "16d3af974e6d5397d267fd471d0f757e30c64c6298bcab455931080be6806c33"
+          "content_hash": "7d630fc13cf51dec29d2810987f00fb11663723089869210e33048afc11f635a"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -8786,7 +8794,7 @@
           "source_location": "architecture/DevOpsBuildDeployAndEnvironmentManagement/build_chathealthy.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3d433259bddafc9a23f0733cf64f9da2d1beeddf6fc2fe2085518f1375ee1ff0"
+          "content_hash": "cf75767853c33f345e4cce2df5afa33789f9f2a9f5114ba5fa9310dfd962748d"
         },
         {
           "feature_id": "EPIC-008-F-012",

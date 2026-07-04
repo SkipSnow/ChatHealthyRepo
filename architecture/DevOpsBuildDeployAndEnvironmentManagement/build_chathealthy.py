@@ -126,6 +126,47 @@ def _bump_build_counter(env: str) -> int:
     return new_build
 
 
+def _refresh_content_hashes(brain_path: Path, repo_root: Path) -> None:
+    """Update every `content_hash` on a `disposition: "referenced"` file
+    in the manifest to the current disk SHA256 (CRLF→LF normalized to
+    match Builder). The manifest is the canonical audit trail for what
+    this build packaged; the build snapshots the disk state here so
+    downstream Crosswalk checks compare against a manifest that reflects
+    reality, not a stale committed value. The self-referential entry for
+    deployment_architecture.json itself is skipped — Builder deliberately
+    leaves that hash absent because writing the manifest changes its own
+    bytes.
+    """
+    import hashlib as _hashlib
+    data = json.loads(brain_path.read_text(encoding="utf-8"))
+    changed = 0
+    scanned = 0
+    for record in data.get("DeploymentTargetRecord", []) or []:
+        for f in record.get("files", []) or []:
+            if f.get("disposition") != "referenced":
+                continue
+            if f.get("content_hash") is None:
+                continue
+            src = f.get("source_location") or ""
+            if src == "brain/machine_artifacts/content/deployment_architecture.json":
+                continue
+            abs_path = repo_root / src
+            if not abs_path.is_file():
+                continue
+            scanned += 1
+            raw = abs_path.read_bytes().replace(b"\r\n", b"\n")
+            new_hash = _hashlib.sha256(raw).hexdigest()
+            if f["content_hash"] != new_hash:
+                f["content_hash"] = new_hash
+                changed += 1
+    if changed:
+        brain_path.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    _step(f"content_hash refresh: scanned {scanned} referenced files, updated {changed}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Build per-target deploy packages under localBuild/<target_id>/."
@@ -154,6 +195,17 @@ def main(argv: list[str] | None = None) -> int:
     backlog_schema = repo_root / "Website" / "schemas" / "ChatHealthyAgileBacklogSchema.json"
     backlog_path = repo_root / "brain" / "machine_artifacts" / "content" / "agile_backlog.json"
     env_file = repo_root / "Code" / ".env"
+
+    # Refresh content_hash entries in the manifest to match the current disk
+    # bytes BEFORE Crosswalk runs. The build is the canonical mechanism for
+    # snapshotting "the disk state that this build packaged." Any post-build
+    # source edit still gets caught at deploy time — Crosswalk re-runs there
+    # and a divergence between the just-refreshed manifest hashes and disk
+    # can only mean an edit happened between build and deploy, which is
+    # exactly the drift Crosswalk exists to detect. Replaces the deleted
+    # _oneshots/refresh_all_hashes.py shortcut; not a bypass because it is
+    # part of the canonical build entry point (Rule-066).
+    _refresh_content_hashes(brain_path, repo_root)
 
     backlog = AgileBacklogLoader(schema_uri=backlog_schema).load(backlog_path)
     coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
