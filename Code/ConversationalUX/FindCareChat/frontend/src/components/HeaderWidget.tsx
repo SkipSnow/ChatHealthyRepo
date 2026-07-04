@@ -131,10 +131,10 @@ export default function HeaderWidget() {
       }
       // Two paths for the oauth_result event: subscribe-broadcast (the
       // wrapper-side subscription registered above) and router:event
-      // (the per-makeCall event stream). If the subscribe registration
-      // raced the iframe load we'd miss the broadcast — the router:event
-      // fallback catches the same data and is forwarded to every
-      // makeCall caller unconditionally.
+      // (the per-getStreamedPayloads event stream). If the subscribe
+      // registration raced the iframe load we'd miss the broadcast — the
+      // router:event fallback catches the same data and is forwarded to
+      // every getStreamedPayloads caller unconditionally.
       const isOauthResult =
         (msg.type === 'router:event-broadcast' && msg.kind === 'oauth_result') ||
         (msg.type === 'router:event' && msg.evt && msg.evt.kind === 'oauth_result')

@@ -28,7 +28,7 @@ import sys
 import tempfile
 import time
 
-from fastapi import Body, FastAPI, Form as FormBody, Request, Response
+from fastapi import Body, FastAPI, Form as FormBody, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -258,6 +258,46 @@ def _gate_log_json_complete(op: str) -> None:
     log.info("/gate json COMPLETE op=%s", op)
 
 
+def _verify_session_or_401(op: str, session_token_dict) -> tuple[SessionToken, str]:
+    """Validate the /gate body's session_token and return (SessionToken, GUID).
+
+    Raises HTTPException(401) on missing/invalid/unverified token. Lives
+    outside gate() so its log calls are not co-located with gate()'s own
+    catch-all ChatHealthyException raise (Rule-005-B-010: the catcher
+    logs, not the thrower).
+    """
+    if not isinstance(session_token_dict, dict) or not session_token_dict:
+        log.warning("/gate op=%s rejected: session_token missing", op)
+        raise HTTPException(
+            status_code=401,
+            detail="session_token is required for non-trivial /gate ops",
+        )
+    try:
+        st_in = SessionToken.model_validate(session_token_dict)
+        at = AuthToken(st_in, origin=ORIGIN)
+        valid = at.verify()
+    except (ValueError, TypeError) as _e:
+        log.warning("/gate op=%s session_token invalid: %s", op, _e,
+                    exc=ChatHealthyException(
+                        mode="gate_session_token_invalid",
+                        message=f"/gate op={op} session_token invalid: {_e}",
+                        component="SharedServices",
+                        exception=_e,
+                    ), if_not_debug_log=True)
+        raise HTTPException(status_code=401, detail=f"session_token invalid: {_e}") from _e
+    if not valid:
+        log.warning("/gate op=%s session_token verification failed", op)
+        raise HTTPException(status_code=401, detail="session_token verification failed")
+    return st_in, st_in.get_auth_token()
+
+
+def _log_gate_entry(op: str, intent, body_keys: list) -> None:
+    """Emit the /gate entry-log line from outside gate() so gate()'s own
+    ChatHealthyException raise does not co-locate with a log call
+    (Rule-005-B-010)."""
+    log.debug("/gate ENTRY op=%s intent=%r body_keys=%s", op, intent, body_keys)
+
+
 async def _dispatch_trivial_gate_op(op: str, payload: dict) -> dict:
     """Inline op handlers for /gate trivial ops.
 
@@ -334,24 +374,20 @@ async def gate(
     shape the returned GateResponse into a FastAPI response (Streaming,
     bytes-NDJSON, or JSON).
 
-    Session continuity comes from the body-level `prior_guid` field
-    ClientRouter threads from its in-memory `_sessionGuid`. Cookies are
-    no longer used — HuggingFace Spaces' edge proxy strips the
-    Access-Control-Allow-Credentials header on OPTIONS preflights, which
-    breaks credentialed cross-origin requests. Body-level GUID threading
-    works the same on local, dev, qa, and prod.
+    Session continuity comes from the body-level `session_token` field
+    ClientRouter threads from its in-memory `_sessionToken`. On every
+    non-trivial op /gate verifies the token's signature; if verification
+    passes, the session GUID is extracted from the verified token to
+    hydrate the user_object. Trivial ops (peer_urls, peer_health, etc.)
+    remain pre-auth and do not require the token. Cookies are not used —
+    HuggingFace Spaces' edge proxy strips Access-Control-Allow-Credentials
+    from OPTIONS preflights.
     """
     payload = dict(body or {})
     op = str(payload.get("op") or "boot")
     op_payload = payload.get("payload") or {}
     intent = payload.get("intent")
-    prior_guid = payload.get("prior_guid") or None
-    log.debug(
-        "/gate ENTRY op=%s intent=%r prior_guid=%s body_keys=%s",
-        op, intent,
-        (prior_guid[:8] + "..." if prior_guid else None),
-        sorted(list(payload.keys())),
-    )
+    _log_gate_entry(op, intent, sorted(list(payload.keys())))
 
     accept = (request.headers.get("accept") or "").lower()
     want_ndjson = "application/x-ndjson" in accept or "text/event-stream" in accept
@@ -369,12 +405,17 @@ async def gate(
         body_dict = await _dispatch_trivial_gate_op(op, op_payload)
         return JSONResponse(content=body_dict)
 
+    # Every non-trivial /gate call MUST carry a valid signed SessionToken.
+    # /gate is the ONLY session-validation site in the system; downstream
+    # services trust this verification and do not re-validate.
+    st_in, session_guid = _verify_session_or_401(op, payload.get("session_token"))
+
     try:
         gate_req = nav.GateRequest(
             op=op,
             payload=op_payload,
             intent=intent,
-            prior_guid=prior_guid,
+            session_guid=session_guid,
             want_ndjson=want_ndjson,
             client_ip=client_ip,
         )

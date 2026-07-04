@@ -34,10 +34,10 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel
 
-from authentication.agent_deps import AuthnDeps
-from authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_frontend_lib.authentication.agent_deps import AuthnDeps
+from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
 from authentication.mintable_auth_token import MintableAuthToken
-from authentication.user_object import UserObject
+from chathealthy_frontend_lib.authentication.user_object import UserObject
 from chathealthy_frontend_lib.authentication.session_token import SessionToken
 
 log = ChatHealthyLoggingService()
@@ -121,7 +121,7 @@ def manufacture_session(user_object: UserObject, server_env: str) -> UserObject:
     Action #1 of every new session is the on_load marker, appended
     here so every session has a deterministic anchor in the actions
     bucket (Skip 2026-06-10)."""
-    from authentication.agent_deps import append_action
+    from chathealthy_frontend_lib.authentication.agent_deps import append_action
     now = datetime.now(timezone.utc)
     minted = MintableAuthToken.manufacture(server_env=server_env)
     user_object.current_session_token = auth_token_to_session_token(minted)

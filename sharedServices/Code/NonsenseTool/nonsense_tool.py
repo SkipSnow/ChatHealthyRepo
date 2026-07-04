@@ -16,11 +16,11 @@ from chathealthy_frontend_lib import ChatHealthyLoggingService
 
 from pydantic import BaseModel
 
-from authentication.agent_deps import AgentDeps
-from authentication.chathealthy_tool import ChatHealthyTool
-from authentication.user_object import SillyQuestionCounts
+from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
+from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_frontend_lib.authentication.user_object import SillyQuestionCounts
 
-from UtteranceManager.intent_document import (
+from chathealthy_frontend_lib.authentication.intent_document import (
     Argument,
     IntentCloseConnection200,
     IntentDocument,

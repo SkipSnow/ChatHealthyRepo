@@ -483,6 +483,7 @@ def _get_ops_agent():
     from pymongo import MongoClient
     conn = _get_mongo_conn()
     frontend_conn = _get_frontend_conn()
+    env_prefix = os.environ.get("ENV_PREFIX", "dev")
     push_fn = None
     email_fn = None
     try:

@@ -66,15 +66,16 @@ export default function WelcomeWidget() {
       })
       .catch(() => {})
 
-    // Re-paint the welcome bubble in two cases:
-    //   1. UM closes the turn with target_action=closeConnection200 (e.g.
-    //      asking the user for a refinement). The searching indicator
-    //      in frame_MainWindow becomes stale; nothing else writes to
-    //      that frame on the close path. Repaint so the user can read
-    //      the prompt in frame_UserMessage against a clean MainWindow.
-    //   2. The user clicks the FindCare nav button in the About popup
-    //      (or anywhere else that fires router:action 'goto_findcare').
-    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'close' }, '*')
+    // Widgets paint only on explicit paint directives, never inferred from
+    // lifecycle events. The server emits kind:'show_welcome' whenever
+    // MainWindow should return to the welcome bubble — e.g., UM authoring a
+    // refinement prompt with no tool paint on this turn. Widgets that paint
+    // MainWindow on their own (clinical trials, provider detail, etc.) do
+    // NOT trigger this directive, so their content is not overwritten by an
+    // incidental close.
+    // The router:action 'goto_findcare' handler stays because that is a
+    // direct user gesture (nav button click) with the same intent.
+    window.parent.postMessage({ type: 'router:subscribe-broadcast', kind: 'show_welcome' }, '*')
     function onMessage(ev: MessageEvent) {
       const msg = ev.data
       if (!msg || typeof msg !== 'object') return
@@ -82,7 +83,7 @@ export default function WelcomeWidget() {
         suppressed = true
         return
       }
-      if (msg.type === 'router:event-broadcast' && msg.kind === 'close') {
+      if (msg.type === 'router:event-broadcast' && msg.kind === 'show_welcome') {
         paint(cachedHtml)
       } else if (msg.type === 'router:action' && msg.action === 'goto_findcare') {
         paint(cachedHtml)

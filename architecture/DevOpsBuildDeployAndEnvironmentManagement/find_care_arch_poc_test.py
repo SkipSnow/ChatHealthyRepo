@@ -47,7 +47,7 @@ class TestStep02ClientRouterLoaded:
     def test_client_router_global(self, page):
         page.wait_for_function(
             "() => window.ClientRouter && typeof window.ClientRouter.render === 'function' "
-            "&& typeof window.ClientRouter.makeCall === 'function'",
+            "&& typeof window.ClientRouter.getStreamedPayloads === 'function'",
             timeout=10_000,
         )
 
@@ -211,12 +211,12 @@ class TestStep13SpecialtyFilterPaintsLeftPanel:
 
 
 class TestStep14SharedServicesSplash:
-    """ClientRouter.makeCall(op:'splash') → SS streams kind:'splash' →
+    """ClientRouter.getStreamedPayloads(op:'splash') → SS streams kind:'splash' →
     SharedServicesSplashWidget paints user_object into frame_MainWindow."""
 
     def test_splash_paints_main_window(self, page):
         page.evaluate("""() => {
-            window.ClientRouter.makeCall({op:'splash', payload:{}});
+            window.ClientRouter.getStreamedPayloads({op:'splash', payload:{}});
         }""")
         page.wait_for_function(
             "() => (document.querySelector('#frame_MainWindow')?.innerText || '').includes('SharedServices')",
@@ -226,12 +226,12 @@ class TestStep14SharedServicesSplash:
 
 
 class TestStep15EvaluateCareSplash:
-    """ClientRouter.makeCall(op:'evalcare-splash') → SS hops to EvaluateCare →
+    """ClientRouter.getStreamedPayloads(op:'evalcare-splash') → SS hops to EvaluateCare →
     EvaluateCareSplashWidget paints into frame_MainWindow."""
 
     def test_evalcare_splash_paints_main_window(self, page):
         page.evaluate("""() => {
-            window.ClientRouter.makeCall({op:'evalcare-splash', payload:{}});
+            window.ClientRouter.getStreamedPayloads({op:'evalcare-splash', payload:{}});
         }""")
         page.wait_for_function(
             "() => (document.querySelector('#frame_MainWindow')?.innerText || '').length > 30",
@@ -316,7 +316,7 @@ class TestStep15dSpecialtyFilterApply:
 
 
 class TestStep16ClinicalTrialsThreeFrames:
-    """ClientRouter.makeCall(op:'clinical_trials_page', payload:{condition})
+    """ClientRouter.getStreamedPayloads(op:'clinical_trials_page', payload:{condition})
     → SS streams kind:'trials' → ClinicalTrialsWidget paints LeftPanel +
     MainWindow + RightPanel."""
 
@@ -327,7 +327,7 @@ class TestStep16ClinicalTrialsThreeFrames:
             timeout=15_000,
         )
         page.evaluate("""() => {
-            window.ClientRouter.makeCall({
+            window.ClientRouter.getStreamedPayloads({
                 op: 'clinical_trials_page',
                 payload: { condition: 'diabetes', page: 1 },
             });

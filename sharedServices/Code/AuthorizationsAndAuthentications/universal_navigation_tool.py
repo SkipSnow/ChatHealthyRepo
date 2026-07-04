@@ -38,18 +38,18 @@ from typing import Any, AsyncIterator, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from authentication.agent_deps import (
+from chathealthy_frontend_lib.authentication.agent_deps import (
     AgentDeps,
     AuthnDeps,
     append_action,
 )
-from authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
 from authentication import (
     authorizations_and_authentications_tool as authn,
     evalcare_splash_tool,
     provider_detail_tool,
 )
-from authentication.user_object import UserObject
+from chathealthy_frontend_lib.authentication.user_object import UserObject
 from chathealthy_frontend_lib import ChatHealthyException
 from UtteranceManager import utterance_manager
 
@@ -108,7 +108,7 @@ class GateRequest:
     op: str
     payload: dict[str, Any] = field(default_factory=dict)
     intent: Optional[str] = None
-    prior_guid: Optional[str] = None
+    session_guid: Optional[str] = None
     want_ndjson: bool = False
     # Pulled by /gate from X-Forwarded-For (preferred — Cloudflare and HF
     # proxies populate it with the real client) or scope.client.host. UR
@@ -132,7 +132,7 @@ class GateResponse:
     body_kind == 'json' → body_data is a dict; /gate returns it as JSON.
 
     Session continuity is carried client-side: ClientRouter holds the
-    session GUID in JavaScript memory and threads it as body.prior_guid
+    session GUID in JavaScript memory and threads it as body.session_guid
     on every /gate POST. No HTTP cookie is set or read.
     """
     body_kind: Literal["ndjson_stream", "ndjson_bytes", "json"]
@@ -294,7 +294,9 @@ class UniversalNavigationTool(ChatHealthyTool):
         "provider-detail":      "_handle_provider_detail",
         "apply_filter":         "_handle_apply_filter",
         "evalcare-splash":      "_handle_evalcare_splash",
-        "clinical_trials_page": "_handle_clinical_trials_page",
+        # clinical_trials_page op removed: client-side cache pagination
+        # eliminated the per-page server round-trip; the React widget
+        # slices its cached chunks locally.
         "about_chathealthy":    "_handle_about_chathealthy",
         "provider_selection":   "_handle_provider_selection",
         "claim_oauth_result":   "_handle_claim_oauth_result",
@@ -493,7 +495,7 @@ class UniversalNavigationTool(ChatHealthyTool):
           loop chains to CloseConnection200Tool.
         """
         import json as json
-        from UtteranceManager.intent_document import (
+        from chathealthy_frontend_lib.authentication.intent_document import (
             Argument, IntentDocument, IntentSpecialtySearch, IntentFindAProvider,
         )
 
@@ -579,18 +581,6 @@ class UniversalNavigationTool(ChatHealthyTool):
             kind="apply_filter",
             result={"target_action": "closeConnection200"},
         )
-
-    async def _handle_clinical_trials_page(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
-        """UR dispatch for op == 'clinical_trials_page'. Thin pass-through
-        — biz logic lives in ClinicalTrialsTool. Pydantic validates the
-        payload via Request. The tool streams the `trials` event."""
-        try:
-            from ClinicalTrials import clinical_trials_tool
-        except ImportError:
-            from FindCare.ClinicalTrials import clinical_trials_tool
-        ct_req = clinical_trials_tool.Request(**(payload or {}))
-        await clinical_trials_tool.TOOL.run_and_log(deps, ct_req)
-        return Response(kind="clinical_trials_page", result={"ok": True})
 
     async def _handle_about_chathealthy(self, deps: AgentDeps, payload: dict[str, Any]) -> Response:
         """Thin pass-through to AboutChatHealthyTool. Tool streams
@@ -697,7 +687,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         Argument objects ready to be re-emitted on a refreshed entry.
         Filters out any prior selected_nucc_codes — Apply Filter
         regenerates that on every click."""
-        from UtteranceManager.intent_document import Argument
+        from chathealthy_frontend_lib.authentication.intent_document import Argument
         out: list = []
         if prior_entry is None:
             return out
@@ -721,7 +711,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         panel renders, and the complaint did not change so the universe
         does not change."""
         import json as json
-        from UtteranceManager.intent_document import (
+        from chathealthy_frontend_lib.authentication.intent_document import (
             Argument, IntentDocument, IntentFindAProvider, IntentSpecialtySearch,
         )
         prior_spec = next(
@@ -788,7 +778,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         change. The next-turn interpret path will see selected_nucc_codes
         and ProviderSearch will use it as its filter."""
         import json as json
-        from UtteranceManager.intent_document import (
+        from chathealthy_frontend_lib.authentication.intent_document import (
             Argument, IntentDocument, IntentFindAProvider, IntentSpecialtySearch,
         )
         prior_spec = next(
@@ -882,7 +872,7 @@ class UniversalNavigationTool(ChatHealthyTool):
             return
         if record is None:
             return
-        from authentication.user_object import Lockout
+        from chathealthy_frontend_lib.authentication.user_object import Lockout
         expires_str = record.get("expires_at") or ""
         try:
             expires_at = datetime.fromisoformat(expires_str)
@@ -1034,21 +1024,17 @@ class UniversalNavigationTool(ChatHealthyTool):
             # emits the single canonical final event with full payload.
 
         elif target_action == "findClinicalTrials":
-            # EPIC-006-F-031 — dispatch ClinicalTrialsTool.
-            try:
-                from ClinicalTrials import clinical_trials_tool
-            except ImportError:
-                from FindCare.ClinicalTrials import clinical_trials_tool
+            # EPIC-006-F-031 — dispatch to FindCare backend's
+            # /clinical_trials endpoint via the SS-side dispatcher.
+            # The clinical-trials tool itself lives in FindCare; SS
+            # carries only the cross-service forwarder.
+            from authentication import clinical_trials_dispatcher
             complaint = next(
                 (a.value for a in target_intent_entry.arguments if a.name == "complaint"),
                 "",
             )
             user_location = next(
                 (a.value for a in target_intent_entry.arguments if a.name == "user_location"),
-                None,
-            )
-            cursor = next(
-                (a.value for a in target_intent_entry.arguments if a.name == "cursor"),
                 None,
             )
             age_years_raw = next(
@@ -1081,17 +1067,14 @@ class UniversalNavigationTool(ChatHealthyTool):
                     "geographic_scope": geographic_scope,
                 },
             })
-            ct_req = clinical_trials_tool.Request(
+            ct_req = clinical_trials_dispatcher.Request(
                 condition=complaint,
                 user_location=user_location,
-                cursor=cursor,
                 age_years=age_years,
                 sex=sex_filter,
                 geographic_scope=geographic_scope,
             )
-            await clinical_trials_tool.TOOL.run_and_log(deps, ct_req)
-            # No inner "final" emission — outer pipeline emits the
-            # canonical final event with full payload.
+            await clinical_trials_dispatcher.TOOL.run_and_log(deps, ct_req)
 
         elif target_action == "findAProvider":
             from authentication import provider_search_and_selection_tool
@@ -1169,7 +1152,7 @@ class UniversalNavigationTool(ChatHealthyTool):
         Returns the list of {code, name, score, ...} dicts.
         """
         import json as json
-        from UtteranceManager.intent_document import Argument
+        from chathealthy_frontend_lib.authentication.intent_document import Argument
 
         document = deps.user_object.intent
         if document is None:
@@ -1228,7 +1211,7 @@ class UniversalNavigationTool(ChatHealthyTool):
                 }))
             else:
                 new_intents.append(entry)
-        from UtteranceManager.intent_document import IntentDocument as _IntentDocument
+        from chathealthy_frontend_lib.authentication.intent_document import IntentDocument as _IntentDocument
         deps.user_object.intent = _IntentDocument(
             target_action=document.target_action,
             intents=new_intents,
@@ -1260,16 +1243,16 @@ class UniversalNavigationTool(ChatHealthyTool):
         # 2. Mongo handle + AuthnDeps.
         mongo_frontend = authn.get_mongo_frontend()
         authn_deps = AuthnDeps(
-            prior_guid=gate_req.prior_guid,
+            session_guid=gate_req.session_guid,
             server_env=ENV,
             mongo_frontend=mongo_frontend,
         )
 
         # 3. Session load + auth_intent decision.
         loaded_user_object: Optional[UserObject] = None
-        if gate_req.prior_guid:
+        if gate_req.session_guid:
             sessions_coll = mongo_frontend[authn.SESSION_DB][authn.SESSION_COLLECTION]
-            session_doc = sessions_coll.find_one({"_id": gate_req.prior_guid})
+            session_doc = sessions_coll.find_one({"_id": gate_req.session_guid})
             if session_doc:
                 try:
                     candidate = UserObject.model_validate(
@@ -1287,10 +1270,10 @@ class UniversalNavigationTool(ChatHealthyTool):
                     # User-affecting → log.error + always-log.
                     log.error(
                         "could not reconstitute UserObject for %s: %s",
-                        gate_req.prior_guid[:8], exc,
+                        gate_req.session_guid[:8], exc,
                         exc=ChatHealthyException(
                          mode="user_object_reconstitute_failed",
-                         message=f"could not reconstitute UserObject for {gate_req.prior_guid[:8]}: {exc}",
+                         message=f"could not reconstitute UserObject for {gate_req.session_guid[:8]}: {exc}",
                          component="UniversalNavigationTool",
                          exception=exc,
                      ), if_not_debug_log=True,
@@ -1305,10 +1288,10 @@ class UniversalNavigationTool(ChatHealthyTool):
                 if loaded_user_object.intent is not None else None
             )
             log.debug(
-                "handle_gate SESSION LOADED prior_guid=%s utterances=%d actions=%d "
+                "handle_gate SESSION LOADED session_guid=%s utterances=%d actions=%d "
                 "has_intent=%s\nLOADED session_conversation_history=%s\n"
                 "LOADED intent=%s",
-                gate_req.prior_guid[:8] + "..." if gate_req.prior_guid else None,
+                gate_req.session_guid[:8] + "..." if gate_req.session_guid else None,
                 len(loaded_user_object.session_conversation_history.utterances),
                 len(loaded_user_object.session_conversation_history.actions),
                 loaded_user_object.intent is not None,
@@ -1323,9 +1306,9 @@ class UniversalNavigationTool(ChatHealthyTool):
                 + timedelta(seconds=SESSION_TTL_SECONDS),
             )
             log.debug(
-                "handle_gate FRESH MINT (no prior_guid or session not found) "
-                "prior_guid=%s",
-                gate_req.prior_guid[:8] + "..." if gate_req.prior_guid else None,
+                "handle_gate FRESH MINT (no session_guid or session not found) "
+                "session_guid=%s",
+                gate_req.session_guid[:8] + "..." if gate_req.session_guid else None,
             )
 
         # 4. Call AUTHN_TOOL.run.

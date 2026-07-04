@@ -172,8 +172,8 @@ async def _invoke_oauth_login_tool(
     from authentication.authorizations_and_authentications_tool import (
         get_mongo_frontend,
     )
-    from authentication.agent_deps import AgentDeps
-    from authentication.user_object import UserObject
+    from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps
+    from chathealthy_frontend_lib.authentication.user_object import UserObject
     from datetime import datetime, timezone, timedelta
 
     deps = AgentDeps(

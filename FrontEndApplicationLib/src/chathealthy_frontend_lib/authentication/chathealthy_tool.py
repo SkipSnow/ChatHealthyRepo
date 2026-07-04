@@ -54,7 +54,7 @@ class ChatHealthyTool(ABC):
         method.
         """
         result = await self.run(deps, request)
-        from authentication.agent_deps import append_action
+        from chathealthy_frontend_lib.authentication.agent_deps import append_action
         try:
             args_dump = (
                 request.model_dump(exclude_none=True) if request is not None else {}
@@ -95,7 +95,11 @@ class ChatHealthyTool(ABC):
         super().__init_subclass__(**kwargs)
         for attr in ("TOOL_NAME", "Request", "Response"):
             if not getattr(cls, attr, None):
-                raise TypeError(
-                    f"ChatHealthyTool subclass {cls.__name__} missing "
-                    f"required class attribute {attr!r}"
+                raise ChatHealthyException(
+                    mode="chathealthy_tool_subclass_missing_attribute",
+                    message=(
+                        f"ChatHealthyTool subclass {cls.__name__} missing "
+                        f"required class attribute {attr!r}"
+                    ),
+                    component="ChatHealthyTool",
                 )

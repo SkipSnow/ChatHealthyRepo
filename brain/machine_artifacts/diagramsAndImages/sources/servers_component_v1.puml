@@ -1,0 +1,120 @@
+@startuml ChatHealthy_Servers_Component_v1
+!theme plain
+title ChatHealthy.ai — Servers Component Diagram (v1)\n2026-07-03 — companion to frontend_technical_design_v1.docx
+
+skinparam componentStyle rectangle
+skinparam backgroundColor white
+skinparam linetype ortho
+
+skinparam component {
+  BackgroundColor #F5F5F5
+  BorderColor #333333
+  FontSize 10
+}
+skinparam package {
+  FontSize 12
+  BorderThickness 2
+}
+skinparam database {
+  BackgroundColor #E8E8E8
+  BorderColor #444444
+}
+
+actor "User\n(Browser)" as user
+
+package "Wrapper page (Website)" as wrapper #EFEFFF {
+  component [index.html\nHeader / Footer / Panels] as indexhtml
+  component [ClientRouter.js\nSingle client-side call surface\nBroadcasts /gate stream to iframes] as router
+  component [iframe: SS React app] as if_ss
+  component [iframe: FindCare React app] as if_fc
+  component [iframe: EvalCare React app] as if_ec
+}
+
+package "SharedServices container" as ss #FFF0F0 {
+  component [/gate endpoint\nSession token verified here\nOnly session-validation site] as gate
+  component [UtteranceManager (UM)\nClassifies utterance\nBuilds IntentDocument] as um
+  component [UniversalRouter (UR)\nDispatches to tool by target_action] as ur
+  component [Tool: provider_search\nSS -> FindCare /search] as t_search
+  component [Tool: provider_detail\nSS -> FindCare /provider-detail] as t_pd
+  component [Tool: clinical_trials\nSS -> FindCare /clinical_trials] as t_ct
+  component [Tool: evaluate_providers\nSS -> EvalCare /evaluate/providers\nNEW under 2026-07-03 fix] as t_ep
+  component [Tool: evalcare_splash\nSS -> EvalCare /splash] as t_es
+  component [SS React app\n/static/assets/\nSS-owned widgets] as ss_react
+}
+
+package "FindCare container" as fc #F0FFF0 {
+  component [/search endpoint\nProvider search] as fc_search
+  component [/clinical_trials endpoint\nClinical trials stream] as fc_ct
+  component [/provider-detail endpoint\nSingle NPI drill-down] as fc_pd
+  component [FindCare tools\nProviderSearch, ClinicalTrials, ...] as fc_tools
+  component [FindCare React app\n/static/assets/\nFindCare-owned widgets] as fc_react
+}
+
+package "EvaluateCare container" as ec #F0F0FF {
+  component [/evaluate/providers endpoint\nAccepts SS S2S POST\nNo re-validation of token] as ec_ep
+  component [/splash endpoint] as ec_splash
+  component [EvalCare tools\nProviderFacilityEvaluation, ClinicalTrialsEvaluation] as ec_tools
+  component [EvalCare React app\n/static/assets/\nEvalCare-owned widgets] as ec_react
+}
+
+database "MongoDB\nFrontEnd cluster" as mongo_fe
+database "MongoDB\nPipeline cluster" as mongo_pipe
+
+user --> router : click / submit
+router --> gate : POST /gate (NDJSON)\nUser State on the wire
+gate --> um : classify
+um --> ur
+ur --> t_search
+ur --> t_pd
+ur --> t_ct
+ur --> t_ep
+ur --> t_es
+
+t_search --> fc_search : HTTPS POST (S2S)
+t_pd --> fc_pd : HTTPS POST (S2S)
+t_ct --> fc_ct : HTTPS POST (streamed NDJSON)
+t_ep --> ec_ep : HTTPS POST (S2S)\nNEW under 2026-07-03 fix
+t_es --> ec_splash : HTTPS POST (S2S)
+
+fc_search --> fc_tools
+fc_ct --> fc_tools
+fc_pd --> fc_tools
+ec_ep --> ec_tools
+ec_splash --> ec_tools
+
+fc_tools --> mongo_fe : session read/write
+fc_tools --> mongo_pipe : provider/specialty search
+ec_tools --> mongo_fe : session read/write
+gate --> mongo_fe : hydrate/persist User State
+
+gate ..> router : stream events (/gate NDJSON)
+router ..> if_ss : postMessage broadcast
+router ..> if_fc : postMessage broadcast
+router ..> if_ec : postMessage broadcast
+
+if_ss ..> ss_react : bundle load
+if_fc ..> fc_react : bundle load
+if_ec ..> ec_react : bundle load
+
+note right of gate
+  Session validation happens here and
+  ONLY here. Downstream S2S hops do not
+  re-validate.
+end note
+
+note right of t_ep
+  Prior to 2026-07-03 the browser POSTed
+  directly to EvalCare /evaluate/providers,
+  bypassing the gateway. This new dispatcher
+  brings the flow into the SS -> peer pattern
+  used by every other tool.
+end note
+
+note right of if_fc
+  Wrapper broadcasts every /gate stream
+  event to all three iframes. Each React
+  app's widgets subscribe to the kinds
+  they care about; the rest are ignored.
+end note
+
+@enduml

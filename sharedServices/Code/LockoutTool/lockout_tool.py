@@ -46,11 +46,11 @@ from datetime import datetime, timedelta, timezone
 
 from pydantic import BaseModel
 
-from authentication.agent_deps import AgentDeps, append_system_utterance
-from authentication.chathealthy_tool import ChatHealthyTool
-from authentication.user_object import Lockout
+from chathealthy_frontend_lib.authentication.agent_deps import AgentDeps, append_system_utterance
+from chathealthy_frontend_lib.authentication.chathealthy_tool import ChatHealthyTool
+from chathealthy_frontend_lib.authentication.user_object import Lockout
 
-from UtteranceManager.intent_document import (
+from chathealthy_frontend_lib.authentication.intent_document import (
     Argument,
     IntentCloseConnection200,
     IntentDocument,
