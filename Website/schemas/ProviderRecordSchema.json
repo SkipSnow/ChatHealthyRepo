@@ -1,0 +1,570 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dev.chathealthy.ai/schemas/ProviderRecordSchema.json",
+  "title": "ChatHealthy Runtime Provider Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "npi",
+    "entity_type_code",
+    "entity_type_code_label",
+    "addresses",
+    "licenses",
+    "taxonomies",
+    "insurance",
+    "active",
+    "bad_data"
+  ],
+  "properties": {
+    "npi": {
+      "type": "string",
+      "pattern": "^[0-9]{10}$"
+    },
+    "entity_type_code": {
+      "enum": [
+        "1",
+        "2"
+      ]
+    },
+    "entity_type_code_label": {
+      "enum": [
+        "individual",
+        "institutional"
+      ]
+    },
+    "provider_first_name": {
+      "type": "string"
+    },
+    "provider_last_name": {
+      "type": "string"
+    },
+    "provider_credential": {
+      "type": "string"
+    },
+    "provider_sex": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "M",
+        "F",
+        null
+      ]
+    },
+    "sole_proprietor": {
+      "type": "boolean"
+    },
+    "provider_organization_name": {
+      "type": "string"
+    },
+    "other_organization_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "other_organization_name_type_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "other_organization_name_type_code_label": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "institutional_identity": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "authorized_official": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "first_name",
+            "last_name",
+            "title",
+            "title_label",
+            "phone"
+          ],
+          "properties": {
+            "first_name": {
+              "type": "string"
+            },
+            "last_name": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "title_label": {
+              "type": "string"
+            },
+            "phone": {
+              "type": "string"
+            }
+          }
+        },
+        "parent_organization": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "legal_name"
+          ],
+          "properties": {
+            "legal_name": {
+              "type": "string"
+            }
+          }
+        },
+        "administrative_contact": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "first_name",
+            "last_name",
+            "title",
+            "title_label",
+            "phone"
+          ],
+          "properties": {
+            "first_name": {
+              "type": "string"
+            },
+            "last_name": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "title_label": {
+              "type": "string"
+            },
+            "phone": {
+              "type": "string"
+            }
+          }
+        },
+        "facility_type_descriptions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "code_label",
+              "classification",
+              "classification_label"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "code_label": {
+                "type": "string"
+              },
+              "classification": {
+                "type": "string"
+              },
+              "classification_label": {
+                "type": "string"
+              },
+              "specialization": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "definition": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "addresses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "address_type",
+          "line1",
+          "city",
+          "state",
+          "state_label",
+          "zip",
+          "country_code",
+          "country_code_label",
+          "phones",
+          "primary"
+        ],
+        "properties": {
+          "address_type": {
+            "enum": [
+              "primary_practice",
+              "mailing",
+              "secondary_practice"
+            ]
+          },
+          "line1": {
+            "type": "string"
+          },
+          "line2": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "state_label": {
+            "type": "string"
+          },
+          "zip": {
+            "type": "string",
+            "pattern": "^[0-9]{5}$"
+          },
+          "country_code": {
+            "type": "string"
+          },
+          "country_code_label": {
+            "type": "string"
+          },
+          "phones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "type_label",
+                "number"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "voice",
+                    "fax",
+                    "mobile",
+                    "tty"
+                  ]
+                },
+                "type_label": {
+                  "type": "string"
+                },
+                "number": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "primary": {
+            "type": "boolean"
+          },
+          "source": {
+            "enum": [
+              "nppes_base",
+              "pl_pfile",
+              null
+            ]
+          },
+          "county": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "fips": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "source": {
+                "enum": [
+                  "zip_crosswalk",
+                  "census_batch",
+                  "nppes_registry",
+                  "google_maps",
+                  "county_unresolvable",
+                  "out_of_scope",
+                  "out_of_scope_zip_state_mismatch",
+                  null
+                ]
+              }
+            }
+          },
+          "urban": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "address_repair_provenance": {
+            "enum": [
+              "license_state_match",
+              null
+            ]
+          }
+        }
+      }
+    },
+    "licenses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "license_id",
+          "state",
+          "state_label",
+          "status"
+        ],
+        "properties": {
+          "license_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "state_label": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "taxonomy_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "taxonomies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "code_label",
+          "primary"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "code_label": {
+            "type": "string"
+          },
+          "primary": {
+            "type": "boolean"
+          },
+          "state_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state_code_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "insurance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "insurance_type",
+          "insurance_type_label",
+          "state",
+          "state_label"
+        ],
+        "properties": {
+          "insurance_type": {
+            "type": "string"
+          },
+          "insurance_type_label": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "state_label": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "can_prescribe": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "is_homeopathic": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "is_disqualified": {
+      "type": "boolean"
+    },
+    "active": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "is_active",
+          "event_date",
+          "source"
+        ],
+        "properties": {
+          "is_active": {
+            "type": "boolean"
+          },
+          "event_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "bad_data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "attribute",
+          "reason"
+        ],
+        "properties": {
+          "attribute": {
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "identity_incomplete",
+              "sex_absent",
+              "org_name_absent",
+              "authorized_official_incomplete",
+              "parent_organization_incomplete",
+              "state_missing_no_license",
+              "state_missing_ambiguous_license",
+              "zip_state_mismatch",
+              "zip_state_mismatch_no_license",
+              "zip_state_mismatch_multiple_licenses",
+              "county_unresolvable",
+              "no_address",
+              "deactivated",
+              "foreign_provider"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "entity_type_code": {
+            "const": "1"
+          }
+        },
+        "required": [
+          "entity_type_code"
+        ]
+      },
+      "then": {
+        "required": [
+          "provider_first_name",
+          "provider_last_name",
+          "provider_credential",
+          "provider_sex",
+          "sole_proprietor",
+          "is_disqualified",
+          "can_prescribe",
+          "is_homeopathic"
+        ],
+        "properties": {
+          "provider_organization_name": false,
+          "other_organization_name": false,
+          "other_organization_name_type_code": false,
+          "other_organization_name_type_code_label": false,
+          "institutional_identity": false
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "entity_type_code": {
+            "const": "2"
+          }
+        },
+        "required": [
+          "entity_type_code"
+        ]
+      },
+      "then": {
+        "required": [
+          "provider_organization_name",
+          "institutional_identity"
+        ],
+        "properties": {
+          "provider_first_name": false,
+          "provider_last_name": false,
+          "provider_credential": false,
+          "provider_sex": false,
+          "sole_proprietor": false,
+          "is_disqualified": false,
+          "can_prescribe": false,
+          "is_homeopathic": false
+        }
+      }
+    }
+  ]
+}
