@@ -132,7 +132,7 @@
           }
         },
         "licenses": {
-          "description": "Professional licenses held by the provider. Each entry is a state/number pair from the NPPES data. A provider may hold licenses in multiple states.",
+          "description": "Optional. Omitted when NPPES reported no license slots.",
           "type": "array",
           "items": {
             "type": "object",
@@ -231,7 +231,7 @@
           "type": "boolean"
         },
         "is_disqualified": {
-          "description": "True only if EVERY one of this provider's NUCC taxonomies is marked is_disqualified in the proprietary catalog (i.e., every taxonomy on the record belongs to the curated 'not a licensed clinical role' set such as Other Service Providers or Student, Health Care). AND across taxonomies. entity_type_code='2' (organization) short-circuits to false. BUG-005 close-out: discriminates non-clinical NPPES NUCC codes from licensed clinical roles.",
+          "description": "From ProprietaryData.SpecialtyAndProviderFlags (F-006) per NUCC taxonomy. entity_type_code='2' not applicable.",
           "type": "boolean"
         },
         "provider_last_name_legal_name": {
