@@ -9,9 +9,7 @@
     "entity_type_code",
     "entity_type_code_label",
     "addresses",
-    "licenses",
     "taxonomies",
-    "insurance",
     "active",
     "bad_data"
   ],
@@ -338,6 +336,7 @@
       }
     },
     "licenses": {
+      "description": "Optional. Omitted or empty when NPPES reported no license slots.",
       "type": "array",
       "items": {
         "type": "object",
@@ -406,6 +405,7 @@
       }
     },
     "insurance": {
+      "description": "Optional. Omitted or empty when NPPES reported no insurance-bearing other identifiers.",
       "type": "array",
       "items": {
         "type": "object",
@@ -445,6 +445,7 @@
       ]
     },
     "is_disqualified": {
+      "description": "From ProprietaryData.SpecialtyAndProviderFlags (F-006). Individuals only.",
       "type": "boolean"
     },
     "active": {
