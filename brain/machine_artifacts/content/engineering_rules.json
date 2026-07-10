@@ -365,6 +365,7 @@
                   "excluded_pattern",
                   [
                     "^tests/fixtures/",
+                    "^pipeline/Code/tests/fixtures/",
                     "^architecture/EngineeringRuleEnforcement/tests/fixtures/",
                     "^Website/schemas/standard/",
                     "^evaluateCare/APICatalogue/",
