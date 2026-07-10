@@ -21,6 +21,7 @@ venv/
 venv_func/
 __pycache__/
 *.pyc
+*.egg-info/
 
 # Claude Code — track settings files, ignore transient data
 .claude/backups/

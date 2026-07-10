@@ -29,6 +29,7 @@ only on the local workstation).
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -57,6 +58,19 @@ def _current_branch(repo_root: Path) -> str:
     return _run_git(["symbolic-ref", "--short", "HEAD"], repo_root).stdout.strip()
 
 
+def _run_pipeline_test_gate(repo_root: Path) -> int:
+    """LLD §9.5 — unit + regression gate before local -> dev promote."""
+    if os.environ.get("SKIP_PIPELINE_TESTS", "").lower() in ("1", "true", "yes"):
+        print("[promote] SKIP_PIPELINE_TESTS set — skipping pipeline test gate")
+        return 0
+    script = repo_root / "pipeline" / "Code" / "run_pipeline_tests.py"
+    if not script.is_file():
+        print(f"[promote] pipeline test gate skipped — {script} not found")
+        return 0
+    print("[promote] running LLD §9.5 pipeline test gate (unit + regression)")
+    return subprocess.call([sys.executable, str(script)], cwd=str(script.parent))
+
+
 def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
     """Stage every modified + untracked file under the working tree,
     commit, push to dev. Atomic: no partial commits.
@@ -73,6 +87,11 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
             f"current is {branch!r}. Local source comes from the working "
             f"tree on the dev branch."
         )
+
+    gate_rc = _run_pipeline_test_gate(repo_root)
+    if gate_rc != 0:
+        print(f"[promote] pipeline test gate FAILED (exit {gate_rc}) — promote aborted")
+        return gate_rc
 
     status = _run_git(["status", "--porcelain"], repo_root).stdout.strip()
     if not status:
