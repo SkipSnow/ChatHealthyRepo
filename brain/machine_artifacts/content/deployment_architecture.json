@@ -5315,45 +5315,206 @@
       "files": [
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/Perplexity_final_urgent_provider_pipeline_audit_findings.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "a04e0bbca8c531753758963a041d9ee065f47e7a38cbf68a15e87529e4f807b0"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/ProviderPipeline_LowLevelDesign_v22.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "27b0aefefc8caffd688d453ec28a320f6553842f4652f9d50e025c8590a19e95"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/PerplexityPipelineStackWhitePaper.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "1fd477fe42b414efb10b458b79ec3be0eb655287143b5e5ace379a9dfbbe3350"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v10.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "f26a84a181b847d0187eefe130803fc497cf285243c8353d514c6b7a26ac5e22"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v11.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "b2a0a923fff69daa15b584c504eda1c289145885a0fc10fbdcac1738cfbee2fe"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v12.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "0fb84b4fce830055aa6e191a3d22b4ddcb62f12cf5e9139792adb29b079c2332"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v13.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "7556f87a09cb85f8f238b8d718c388961bbce781a6bf2ff7bb6da8d94d927abc"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v14.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "70b3735e68c8339956a8746438ce765c186bff17a9b9821a9d6f1f0fe2be879a"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v15.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "dc4c2a3a16b165a62851a106f5509cc70ce3047f6140f6628ec62951906ac0b5"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v16.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "ca4fd567568b93ed85d85b33a1cbb9e1008052473f297d1268e23dc7368b831a"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v17.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "187d2e0284cefe4cb8fe75f5f76f4b29d0fbf85f2d1a559f23a9b1a337df28d0"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v18.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "a3671d0b1b7e0ec5e435e72ecb71bf7ff30085c536e43c01f197376c6901234a"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v19.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "90313d99b8c8cd20e4fbb7f133b7bc859b772d219cff0ecee2a4c2d5cd1e493f"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v20.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "1660932edcbf5687d6f5c13861c134919566525fdfa532b32243858f4a0b43c7"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v21.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "823d1334e9ddca0733f1d8bd964a55357da82a662003e339da788601d5df5177"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v4.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "727680ef87b10b9086bcb1916f7669066d6b45fd7a6ab0c349312538fa85bd9d"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v5.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "d9f89eeb05f42ea9c48cc4e1eb6ddc80d033fe31aa18826696b767d484a73946"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v6.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "d6e6d8538bedfe0826e0f807156194f22115378fb20a8db7caa339c9b7682e6e"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v7.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "fbc476b76bc1b83e19889a2b561868442167562cc24af653419ca59100bdb4fb"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v8.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "e413a745e947470afc773290731def5211034d45dd2b96c5c49e5e2f674187a1"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ProviderPipeline_LowLevelDesign_v9.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "1e70cd1b45879b4ae010736fa9124d2c6b3d8aaa358240c2d8295c23a71652dc"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/archive/ResponseToPerplexityPipelineStack.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "ba3e731619cbb64cb4cd58d4666a5878a5b1b0cf9232ec3dd7b64bcb99106271"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/~$oviderPipeline_LowLevelDesign_v12.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "59460c13953de50b35b588f38ae25879cb737895dd16cc1789323ad481418edd"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/ArchitectureDesignAndAudit/~$oviderPipeline_LowLevelDesign_v13.docx",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "c5ecd520d4515b7acfb61430affde1138d87dc8975f4c50bcbf6198b5ec998c6"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/ChatHealthyDataPipelinesGatewayFunctionApp.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b6233a1be8501ca0b6ce0a64961eb2183097e2aae0105a45a581a597e085d1d7"
+          "content_hash": "235a752a2f9191b00f0fc173e0834485a150b7af1353a4ef0f108cffdfcab4b8"
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/Providerother_identifiersHandeler.py",
+          "source_location": "pipeline/Code/aca_job_manager.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "fdeb1861b186e85a3614b678066cd7028da7642bd60d55a78c37ab3bc176d7a5"
+          "content_hash": "5a9563efdc1d4803925ca321aefa2f8de6f17d768663c790a5d5c5576ae8263b"
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/atlas_cluster_manager.py",
+          "source_location": "pipeline/Code/address_dedup.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "849d821bee9a318992d0ecbbe0380de4430faa5ad32ddf071b0dcd30764266b4"
+          "content_hash": "f9ee2dfb3e267a342db198f0c7758c3b2768dbaa151a733d8ae8de146a39dd47"
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/auth.py",
+          "source_location": "pipeline/Code/attach_practice_addresses.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7b1a2eba11e0a0609f17f4e3f57a34818daad78b6b503833c66fd793bc2a9126"
+          "content_hash": "3fb9c7a6a1216a0cc5f3defb14e8a3b3f7563895d33bc43def8b7cb811643fdc"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/base_pipeline_orchestrator.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dcb73fc93c4834ce684f0e474c284b8ff5c8132f1dd115394e07cf592c74392b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/batched_pass2_census_activity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "74c9ec1fc813f786f44b05a3768711076cda290855dde158ce773a62d49c7962"
+          "content_hash": "39c25bd5d13ef4a47c70f2a942bfc650c47a47727e96bbf24f2f80869e0202be"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5364,24 +5525,10 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/build_provider_v03_from_v02.py",
+          "source_location": "pipeline/Code/bootstrap_e2e.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "66c68f1d66573e3d9e0d27c35c1ea9025a764952a509b90a6448e679b1fb5186"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/change_db_version.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "9c936b3fdabcfb80783ff1c559d70a8776634befb1e6e6874cb9a16dc292a3d7"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/chunk_indexer.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "3be4d294f45351b3fbe85461726e4207e047a090deb85b1726f1b63158dd662a"
+          "content_hash": "d07b3f1a77d48219ad61604a1f1e42da68fbd57823422f1ad2695617b4f355d5"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5391,11 +5538,18 @@
           "content_hash": "ad03326cf7461158e3f76a177ebb974136ac90bea31d2b3185a04c43d03c0042"
         },
         {
+          "source_location": "pipeline/Code/control_runner.py",
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/count_providers_by_state.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1978ce19fbcc0c1ab280dca62f1030514b3695eec09bfa5395ef026aa81f1b19"
+          "content_hash": "4dfc33d57b6f3605c2093467ac8003eeaa2e86e19e32cc4cc87320ec317da5f1"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/county_cascade_engine.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "c69474a7664399dfe95b7a3fc2a0b7d999d478957f42c833d7216a2bb9f58f67"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5406,73 +5560,38 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/crosswalk_builder.py",
+          "source_location": "pipeline/Code/county_source.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "45a07fcdeb551b554918399ab58d0087fb00faf5c8ded2fb53824f70e4fab790"
+          "content_hash": "e5358931df7aa557432d9eecf9b59668965fd38d23728f9cbeec5a50108daeb0"
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/data_fetcher_base.py",
+          "source_location": "pipeline/Code/discrepancy_pdf.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "c4b80e321c8921fc74e095acb046f511623a669284a73a4c2b83afbdd74ea77a"
+          "content_hash": "1e5049151a8dc3c800250426fc3ade1ab4cab8cd1dbe902c54c54fdcff7a5c8b"
         },
         {
+          "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/discrepancy_reporter.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7c3e761503c0dace2c533bcf5194767f1f73a30720d1e1a5ef884569e5f650c0"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/embedding_worker.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "95d227547edcf179572dd22c8fa0c8ad849639e7ef2cb3076c662946c718ddc2"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/end_of_job_cleanup.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "aa3ca9f92131d54b0ad76edc97b67ea707d1b249c1cead71e98c54738789a506"
+          "content_hash": "4055964c80fa94435e557f1942de823d06c9cc19d1d274bd6251f989a8bfdca3"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/ensure_provider_indexes_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "3c6a53133a0eceda7ea5d412093570247ee3b567cff3e8265d12327bdc6ccaee"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/fan_out_workers.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "cb4018c52040922e6353c5182256978537bf9dfbd578c45cbf251bf9113d5b3d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/favicon.ico",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "887a11acad37e20c7c8d0b8c495aa9657ae7c587efc708c077c91b90c3279bb5"
+          "content_hash": "6319986a6429b0f1ed97df1b1ca0b430ba02e661fdaced68516c43e420376bba"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/function_app.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7636eeea826b993ad2a8c2427339370ef6513d1f0d8f078a86a949dd22f0d713"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/gather_activities.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "3401ae512ea2b97b7a1f8fededd3d97f7eb67b6fc0fac11dd5728eb72df875a7"
+          "content_hash": "5553edb2f5a0af6ec009c267546ff27dc37bc67e8a8c024e5c8bdb2d8d3e6e0d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5483,24 +5602,10 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/icd10_loader.py",
+          "source_location": "pipeline/Code/license_address_repair.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "41a49973d91fb1e25a8a441c1b1b1ec473db762efb78280b2582784263a4686f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/instance_warmer.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "303a682b5c7d109f2ef7362201561962101a4cd9c9ef384111b54b43e90c6c9e"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/legal/licence.txt",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "4fe5ff88648faf2da9a9813952363d8a6ddde76965674345bc8db9e6ef8b49e4"
+          "content_hash": "6dea68725d66f99abf187eed4ed8171da1461c994f97a890d8dfe883a3b42925"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5518,6 +5623,20 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/notification_client.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "25ad1ded84dcccc3b778a499374987a054cf056ce2b366878c41ea1bad896212"
+        },
+        {
+          "source_location": "pipeline/Code/pipeline_config.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "b787792910264fb0ddc58cf9af031d601529e1e9bf9b892d9e63ab61465b0873"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/pipeline_db.py",
           "handler_type": "python_source",
           "disposition": "referenced",
@@ -5525,10 +5644,38 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/pipeline_health.py",
+          "source_location": "pipeline/Code/pipeline_env.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4c29cb755c17814f023b3e6dec3e0393e4588ec1a3425f206476e91677dd07dd"
+          "content_hash": "33b5b5b82641a1ec99188d28fdff0a97d48502eeb9efdbe81a392d72a7c8d471"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pipeline_integration_snapshot.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "539ac88915a7aa3b0859898143b05f017c8f7407a93acc60ff3623a2aa402a31"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pipeline_runtime.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "f19e8555f60bf2495d94c04a300f00877466d26190fe5489deb803d8ebcbb055"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pipeline_source_archival.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "28aa5919ea7ebcb270e6fa7cda042b31db6039f306c67baa19d8bf82340e40f0"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pipeline_test_config.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "cde091100d0a3ac2deb4bc6ca1020fec8a7568bf0010eb7948de19677fcf0f71"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5539,45 +5686,24 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/prescriber_data_fetcher.py",
+          "source_location": "pipeline/Code/post_load_reconciliation.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "63d48087f8ae283fd7a3470dc0a8dbe877f03dd1ce2c20e1a94a9c1c5a0d6c05"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/prescriber_enrichment_job.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "751b320dc537aaa974bce4ea59ce972449d37425cfd0a87b15eae46e80089f36"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/prescriber_load_worker.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5bbac8fee1ace9d96257fdc979d0ec28f738901bc69ea776a0ca8bea861a4a04"
+          "content_hash": "40d00231c8f483c9526339614c84269a9edb109e5afc0c5a1ada975b12384aed"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/process_assignment_activity.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e312ffd9f81bc395c3c6731a741b9f8eb73d4b9eb9e3fac6f2f747f066cd38ea"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/provider_embedding.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5b50f7fbb597e657cba98793ac0d2edda631e2d2638a30d59eaf2494d6a180f2"
+          "content_hash": "c0ea92c435b0bc2bc3edb55305d89307509aee00ea7a7b9e5ba9f4fb33524034"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/provider_flags_enrichment.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "8eafe72e27e07a741222a8470023f8f8b9c6804f6b8fc16f1d314ac577e68684"
+          "content_hash": "c448843aff73d49d3e57d7f277e8a2b3c4ba853705326bea772febaa2ca9596b"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5588,416 +5714,10 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/record_worker_orchestrator.py",
+          "source_location": "pipeline/Code/provider_normalize_engine.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "8aa2e983cee2d924fc534decd62e2bd219e48d40ce788966abe10464724b5ba3"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/recover_county_activity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8b0a0b79fe533e1ce9bf24f8a684ac02ce7191abb31c6ce615260f2eb696bcd9"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/recovery_worker_orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "44ca9e1491a6bdedeec7514664a1b03e156b686231e6e53ad3c2ecb9b685dc1a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/requirements-pipeline.txt",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "fa175b85f29493761844c9e4786ebad6be2366ec2fc17eb68cb559b98ad3f1ea"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/deprovisioner.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2705662c770bb1d0d4b96f43d009cfc78270aae4497a3c03ed343004ad4ea4b2"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "fe1e150ea8700dfe278c0dc299b51b72ed01120b1217c45e79266a9fb3502611"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "51474650f9d6f4306ad0df6a2546cb1499652b54b4ac48bbcbf93f1e12802609"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/provisioner.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7318071fc6ea570d4621038ff651c0f117b4c9a44531319a91f67f7208db752c"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/reservation_reaper.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "835ac00841bd6abf7123753b8068f303ee5d480cb79fbd75bdf995f89abb5e9c"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/source_gather_orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8c90f486358f2a4f1c1cf35854d3bede3224a715d2140627d88e767fc50c101a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/source_url_discovery.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "4cc60e0d2fac342c2dc3f142355971a1b0bc300aae546e5f5b36f993dfcbc275"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/specialty_classification_catalog.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "295154ece99c603e3b554309b8044ca77ed888f49197f58da67be895c852bc98"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/staging.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "a067f70b6b59063081273a1b69c8df30a07700739f68557265c34c6cc4cc9c5a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/state_filter.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7c0ab80946b6843741389c6b13d4370a234a43691903f781147b7c3c9f0ac0cd"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/ProviderPipelineMultistate.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "d2084089eef0e486f947b2c1ec94097fd23c9252d1728bfd52180dfc72bc050f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/Provider_pipeline_gateway_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "bf7051c9dd191584e20f1eb9e36140934a65cbb7e3678e6e55826e6d2fe24a8e"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/Provider_pipeline_large_multi_state_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "4c4e3d5e98685819068973f37e10406e545a587ecf9d762cec6d4b589f9fa56a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/Provider_pipeline_small_multi_state_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "8297043b029624e41a50a080b50c37650cb230779c3cab3173cd97de452bcd8b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/gpt_sit_with_gpt.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "62e5e7fe280542ebb045d39f7f9ecfe522f479c193171fbc5c8822d11e39994d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/mongo_cluster_migrator_business_all_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "cc903b71ff38171a4b43176c318e6215861bf4fe97e449a81bc74cd769b9f82b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/mongo_cluster_migrator_business_wy_vt_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "442fbd1295e5f78f1d70ca636f37d5420ad09df2c9b84d2112fae6c449f1c440"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/providerPipelineMO_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "2bc5394d661b84bcd46afb7be853d939b137ae97d1a43d5fcb0db9777ec356fc"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_compliance.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "1ada90fb5350a917e5b1bdab9e9fc686649a9eaec7ef06aa696d337f5d6fe699"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_county_enrichment_sla.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "6aaa6ddee3624526a954f7c13724b955d352ab7286f030b9bfde946053e283a4"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_data_quality.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "230c1873fbf6b95553a0c0bb47856e19d432ac4513b919df1ef92361734ebac6"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_dr024_test_rigor.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "7c919c187bae309deb23652545d95d6729cfdc82150c830e517eb3ce1bd5349f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_error_alerting.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "2e719c5d1829654c01d035c351a36055d180f4f4126079dcbfb513de64eec8ef"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_findcare_requirements.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "b9d144cc0aa3d91b3f54fe8718957698054b1e7c3a5628d9ac79ef59ae16ae6b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_idempotency.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "df5ab99696548ff0c6f62f041396a163d5f7f7b88252049ae57e8b31e1aefc80"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_load_parity.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "3d55505b91f18658b1c50bd1e0351e78318d9912568a8bb69d4b80062182bd77"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_manifest.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "b7c614a886a5d3bf972e2b5df2f90d6e79f8f92b9932eb6d23a343a5ea64f541"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_pipeline_compliance.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "83bc9d27e3268a289cee803c0878276135fdeff1ef5c3cf420a41bd28c88b7fd"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_pipeline_orchestrator.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "0e371a94868973dc3624d8a4e691ffc42a5f16c5a747625e47454b0f2f9bb062"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_pipeline_rename_compliance.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "8e182f6f0c217e2f17056225cb2cd1c61b91219d86b8853415effb3a5549d55f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_pipeline_worker_base.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "20884f42092ca03a2c4ce75106c495efba5057bbf364093cf9ff83bc75d95575"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_provider_embedding.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "339cf2cfb4a15e4d31e5723550e922b8b7c57594450b18583735e000b92ad9d1"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_specialty_classification.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "8dd1ac3194b94becb006f8801d7745559226e4242ab25da1d84386a5dead3382"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_specialty_classification_catalog.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "d417c8539f19270a7b3f0270deb5ff7d2140b6dfa8627105e0b86e5efbedda98"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_traceability.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "a089e9e29ef4c6cecbb7014db07973de5231c0a295ebb73b76d06c7ee458a352"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_traceability_matrix.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "cacea273e9781291638e10e0942c4b3012793b5cf1a91820f7fe0cd1a3f78d13"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/throttle_acquire.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "57e376ff0d358e861f2a05ceed2a3cfb192a98082666f13d9c2ac90d36256676"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/throttle_entities.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "fd0ebc2e1c3886951d0d378bfc7d5faa2c23e5f780124d4f249e9cb31e621f46"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/throttle_entity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "f65f9f8ccd6ddd30ff377a4c19c437e44e75ba4580601de5ec2f3d921c9cbe2a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/urban_flag.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "d91918186b72b663a216a27e740e891503bbd9f9a2251c71738021a91709f4e3"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/urban_flag_enrichment.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "140b442d2940ecd184b7238c6737f15fe7fd216e3a0b375389a1bea07e20afb7"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/work_manager_entity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "d9ea905b8f29eff40d6bc8e33aa506c8925fb8c58fe88e96ba7b18b1c235a173"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/zip_county_crosswalk_loader.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b2f7e3a0e6f3f60604ccfe04f8fbe0b30b141f815e5af567c8594f0b8f23f96c"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/_router_client.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c54df32f359a8540a8d058cd04dc9d90fb34e1a30bbf8fbdfb8d1c2c1b5ddf7d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/reserve_cluster.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8bb654d30e6d08ff03bdfe28356a3ee59c96ce3ad6180224252dae8a8387328f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/run_county_enrichment.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "529f59db75c7f62ed3aa49050db4c1242b506057416c129a4c867b830fe44c9d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/run_prescriber_pipeline.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "551007cf834c7c824fc28fafa3de6d5adb350ff9e568f63b3c5197c8918376c0"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/run_provider_pipeline.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "22223990ffabdb507fb307883880c385968a29662ca4db2a120094ff68f9ba2d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/run_snapshot_collection.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c1b0715acde2ce7b47adee1e42e26bd449f86f4ee115897883c05bc3a186cb26"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/run_specialty_pipeline.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "be71d488bf4fe4fefc5d87861c23bce58075119307394831b71a83b92f7d8c13"
-        },
-        {
-          "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "80cc404d2b42532600d3ba883fc86e1dbc0f28cc7edfe4e460f5e5159148c288"
-        },
-        {
-          "source_location": "pipeline/Code/step_spec.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "e3ae7dc5c88f49db0ab76b8321c02464b47e6cac2db449480ae25a6195a7a77f"
-        },
-        {
-          "source_location": "pipeline/Code/step_context.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "05ee5300d54cd1958f2952e020626c0d0eb7bd9c6f74e1af42eee7c9587f9332"
-        },
-        {
-          "source_location": "pipeline/Code/work_item_claim.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7d2c5e1fb9419720b28a637157bb527c3b1061fc1f8b4993cf859e44ca5545e3"
-        },
-        {
-          "source_location": "pipeline/Code/pipeline_config.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b787792910264fb0ddc58cf9af031d601529e1e9bf9b892d9e63ab61465b0873"
+          "content_hash": "2526cf41a72d28964ca0536d8e45252614e76fe96de0209a3e27631a6d6ca81c"
         },
         {
           "source_location": "pipeline/Code/provider_pipeline_orchestrator.py",
@@ -6007,38 +5727,95 @@
           "content_hash": "e8a4afdd6f4d054809295e3f0c79d81b04d163df048fe924d19732faf6ce779d"
         },
         {
-          "source_location": "pipeline/Code/control_runner.py",
           "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/provider_record_builder.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4dfc33d57b6f3605c2093467ac8003eeaa2e86e19e32cc4cc87320ec317da5f1"
+          "content_hash": "0d8c1ee467d8a8fbfc540948d5034a006c20514db1a465a79f45917894b79678"
         },
         {
-          "source_location": "pipeline/Code/worker_runner.py",
           "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/provider_worker.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dbba529cd34efe9607eaff9e765d0e7c9cddfdd4977fb2ec6b78cf3c4523ebcd"
+          "content_hash": "e9822d9fed7cfa93aa55c511b3c3465feec72528274939ead906093a825c4d94"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pytest.ini",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "5e2c0020964947dd0717669b2ef3ea46f643aa3aafc22486104135f3911e0828"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/record_subdoc_dedup.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "1dfe17f5e8708142681c33c825d7da5fe3b3aed56ad06f85040715b6e16b494e"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/requirements-pipeline.txt",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "ba6ca258a0f1cb043a6e8b478c2189d4ab60834d357dec5d59c2629a2612cbc9"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/run_pipeline_tests.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "73ffc2fb110105d906171a2dbc108d054723fd1ccf78ec6e53b43b5cbc8a064e"
         },
         {
           "source_location": "pipeline/Code/schemas/provider_record_validator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d99b8e94ed03cee3faf8d62d784db04dcd5344fbc8724a34f507737f47fc15fb"
+          "content_hash": "fc265ecbebd6e7b852283fb57b82dfe15628379e51c6dc04175b96defb8eebd3"
         },
         {
-          "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
           "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/specialty_classification_catalog.py",
           "handler_type": "python_source",
-          "disposition": "referenced"
+          "disposition": "referenced",
+          "content_hash": "13eadd847bb0fc7e747798ab4cac56b9e7d159f06ebfea5730a14da8afdb7ddf"
         },
         {
-          "source_location": "pipeline/run_provider_pipeline_lld.py",
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/staging_collections.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "1f0dc1c79afc4a73716556aa3a6defe331a31a1232317d6a7d138e28b9da6a19"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/staging_projections.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e5a8acdcf9afbce0e70431dc6767f7e8cfad04a596820ce429963d03acdacc33"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/state_filter.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "7c0ab80946b6843741389c6b13d4370a234a43691903f781147b7c3c9f0ac0cd"
+        },
+        {
+          "source_location": "pipeline/Code/step_context.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64f9fdca5b5f7b50c9b0ea91d8376cd3b45b0b61396537a7a5a2917070cb3931"
+          "content_hash": "05ee5300d54cd1958f2952e020626c0d0eb7bd9c6f74e1af42eee7c9587f9332"
+        },
+        {
+          "source_location": "pipeline/Code/step_spec.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69"
         },
         {
           "source_location": "pipeline/Code/steps/__init__.py",
@@ -6048,25 +5825,11 @@
           "content_hash": "ebd14f9cc0bffb14a71c5327d84222e240a8da08f163ec48aa185bc5b68469ce"
         },
         {
-          "source_location": "pipeline/Code/steps/prepare_infrastructure.py",
+          "source_location": "pipeline/Code/steps/_partitions.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "78467cba3cacbe47a54357a665384d7e737e645331ca067028dac92fa9cf1a60"
-        },
-        {
-          "source_location": "pipeline/Code/steps/source_freshness_gate.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8cd9285a0c0af6e5ad4595779a83a430f31b4ae8eee7ce0fc83cec11188b1b50"
-        },
-        {
-          "source_location": "pipeline/Code/steps/fetch_all_sources.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "ec219b5b511d6f72711ebd1c3736be96d4eff7d7ab0d1abf2230adaeacdb770d"
+          "content_hash": "b1d4a1069f64bdb35ed60e088c48a274ebd384b45737d55c030cb422ded11f70"
         },
         {
           "source_location": "pipeline/Code/steps/archive_sources.py",
@@ -6076,60 +5839,11 @@
           "content_hash": "c281385bd1dc1827f5926a1d9813918dd9dad8a74005c299bde51d3035e2ada4"
         },
         {
-          "source_location": "pipeline/Code/steps/load_staging_parallel.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2d84d229b78e34a3f61c4ded1267c3bc0cf9c507f0d2a7165c842a573f0747cb"
-        },
-        {
-          "source_location": "pipeline/Code/steps/load_nucc_classification_catalog.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "87c5815f1de6d114faff29c55d8d192c0fd57e5da06997243461d98a9efa7d0c"
-        },
-        {
-          "source_location": "pipeline/Code/steps/normalize_npi_serial_bulk_load.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b45ffa74e044959116be8624e738f1d6d2547c49300df5da122313d17f2cf623"
-        },
-        {
-          "source_location": "pipeline/Code/steps/normalize_npi_per_state_fanout.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2e9f6cda874f24e7d4560550c3535ead7afc38a83f1e17003242cb615f031ca3"
-        },
-        {
           "source_location": "pipeline/Code/steps/attach_practice_addresses.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "58b00dc703f70673aff73606834e17a86f03e7d35cbda2000efc07602c74cf72"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type1_first_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5898d8a8c8dcb8113bfa1502f9c85fd5e422f9f6f564b739f10675642ddf0a53"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type2_first_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "63ab3bc5b2cb8badfd4d9a47a9879941995e082d0370dad09eb9159e2f57d71a"
-        },
-        {
-          "source_location": "pipeline/Code/steps/license_address_repair.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "caeb5794b481e862abd4425e166857b4108c924a2f7fcb6e36adeb8e9704218a"
         },
         {
           "source_location": "pipeline/Code/steps/county_enrichment_cascade.py",
@@ -6139,25 +5853,53 @@
           "content_hash": "3eaca7445b7f0804c0190b03c2e99d89c92b0d02d9fbc3720636f17214dd440e"
         },
         {
-          "source_location": "pipeline/Code/steps/urban_flag.py",
+          "source_location": "pipeline/Code/steps/discrepancy_reports_and_notifications.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "8ffd743b6781ae672c90ac74fe7e97d575dfb7ce0cf39c1de6ab6fb87b46d0ea"
+          "content_hash": "962a60f3b8805ac3b2deb5ca3c2a8e62dd0a99e1fd23bfe908770a5cff39cf96"
         },
         {
-          "source_location": "pipeline/Code/steps/type1_second_branch.py",
+          "source_location": "pipeline/Code/steps/fetch_all_sources.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2a3627f91d0d6fa9bb7ee73c9ba567e60beb4143bca1781978cb6f678de5a4fa"
+          "content_hash": "36e5e8b760491c01592d75cd4ec8e760022164a8ed1477fea5b53372d59faabe"
         },
         {
-          "source_location": "pipeline/Code/steps/type2_second_branch.py",
+          "source_location": "pipeline/Code/steps/license_address_repair.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7f0112d37385c89495e5548e8beddfe0308e2b20d6e02898c26812d32a142fe9"
+          "content_hash": "caeb5794b481e862abd4425e166857b4108c924a2f7fcb6e36adeb8e9704218a"
+        },
+        {
+          "source_location": "pipeline/Code/steps/load_nucc_classification_catalog.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "87c5815f1de6d114faff29c55d8d192c0fd57e5da06997243461d98a9efa7d0c"
+        },
+        {
+          "source_location": "pipeline/Code/steps/load_staging_parallel.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2d84d229b78e34a3f61c4ded1267c3bc0cf9c507f0d2a7165c842a573f0747cb"
+        },
+        {
+          "source_location": "pipeline/Code/steps/normalize_npi_per_state_fanout.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2e9f6cda874f24e7d4560550c3535ead7afc38a83f1e17003242cb615f031ca3"
+        },
+        {
+          "source_location": "pipeline/Code/steps/normalize_npi_serial_bulk_load.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "b45ffa74e044959116be8624e738f1d6d2547c49300df5da122313d17f2cf623"
         },
         {
           "source_location": "pipeline/Code/steps/post_load_reconciliation.py",
@@ -6167,31 +5909,151 @@
           "content_hash": "6dcf5d30dcd57343b7ccd75795ca6b516072c5c4309db26a473f6938053206a0"
         },
         {
-          "source_location": "pipeline/Code/steps/discrepancy_reports_and_notifications.py",
+          "source_location": "pipeline/Code/steps/prepare_infrastructure.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f1cd9c3ed988eb8b7832defb9564de2bdf8dd86adea5e891154be455718334f6"
+          "content_hash": "78467cba3cacbe47a54357a665384d7e737e645331ca067028dac92fa9cf1a60"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/provider_flags_enrichment.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "8858dfd4243313656fc065c0e76504d6d17e7af617f5f09fc685b0ee59dc2892"
         },
         {
           "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "99a88dd774ddfdc1451c55ace5d8b7810f8b068354574f349a8f62bcaf3e7d8f"
+          "content_hash": "6163e018c4187c9dd6a8da684c880c813d04b545817c18a6dd458402b471437c"
         },
         {
-          "source_location": "pipeline/Code/steps/_streaming_bridge.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "source_location": "pipeline/Code/steps/_partitions.py",
+          "source_location": "pipeline/Code/steps/source_freshness_gate.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b1d4a1069f64bdb35ed60e088c48a274ebd384b45737d55c030cb422ded11f70"
+          "content_hash": "8cd9285a0c0af6e5ad4595779a83a430f31b4ae8eee7ce0fc83cec11188b1b50"
+        },
+        {
+          "source_location": "pipeline/Code/steps/type1_first_branch.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "5898d8a8c8dcb8113bfa1502f9c85fd5e422f9f6f564b739f10675642ddf0a53"
+        },
+        {
+          "source_location": "pipeline/Code/steps/type1_second_branch.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2a3627f91d0d6fa9bb7ee73c9ba567e60beb4143bca1781978cb6f678de5a4fa"
+        },
+        {
+          "source_location": "pipeline/Code/steps/type2_first_branch.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "63ab3bc5b2cb8badfd4d9a47a9879941995e082d0370dad09eb9159e2f57d71a"
+        },
+        {
+          "source_location": "pipeline/Code/steps/type2_second_branch.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "7f0112d37385c89495e5548e8beddfe0308e2b20d6e02898c26812d32a142fe9"
+        },
+        {
+          "source_location": "pipeline/Code/steps/urban_flag.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "8ffd743b6781ae672c90ac74fe7e97d575dfb7ce0cf39c1de6ab6fb87b46d0ea"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/type1_first_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "01699ad3fde5fe289c14383cdef35b2f4588a750b345d50875093a47377bbce6"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/type1_second_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "59c08fc55cf7e7a0f1f1f4988f706e778692b38c25b8cb26778c6f3929ce0d72"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/type2_first_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "9e44d3b0b5ce342934460217a9559be36bcb97df82cb38ba80b9e59a7fb4397e"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/type2_second_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "8ea9e0df22d1258e4d4709aa160c7467fb81fff6f7cb75c1595b495014494272"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/upload_integration_snapshots.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "356249b8ff2dc9cfceaff175ad7f08b899898e606d4049db808b1b63f64cf99d"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/urban_flag.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e250d995d102db15664c70fbda698a675e7236cee9060cd4f2c57fb34d4c2c98"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/urban_flag_step.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "ce01591fbaca98494471f946355a17de73def8a2e1246bee349392d492719ab8"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/verify_e2e_readiness.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "880f39817d83af58b3dd09c4903e5354b3a0a6254aa3bc378a15acaa4d2c62b4"
+        },
+        {
+          "source_location": "pipeline/Code/work_item_claim.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "7d2c5e1fb9419720b28a637157bb527c3b1061fc1f8b4993cf859e44ca5545e3"
+        },
+        {
+          "source_location": "pipeline/Code/worker_runner.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a7d357ea640e68388ffa1103d6b9523a9262a2f5d62897d45e902e7b1d618ecf"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/zip_county_crosswalk_loader.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "b2f7e3a0e6f3f60604ccfe04f8fbe0b30b141f815e5af567c8594f0b8f23f96c"
+        },
+        {
+          "source_location": "pipeline/run_provider_pipeline_lld.py",
+          "feature_id": "EPIC-008-F-012",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "f42548d650ea2f93dca91865544ec599c957c819213fc2bce9967f00a0077a35"
         }
       ],
       "secrets": {
@@ -6238,21 +6100,21 @@
           "source_location": "pipeline/Code/requirements-pipeline.txt",
           "handler_type": "static_asset",
           "disposition": "referenced",
-          "content_hash": "fa175b85f29493761844c9e4786ebad6be2366ec2fc17eb68cb559b98ad3f1ea"
+          "content_hash": "ba6ca258a0f1cb043a6e8b478c2189d4ab60834d357dec5d59c2629a2612cbc9"
         },
         {
           "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "80cc404d2b42532600d3ba883fc86e1dbc0f28cc7edfe4e460f5e5159148c288"
+          "content_hash": "4055964c80fa94435e557f1942de823d06c9cc19d1d274bd6251f989a8bfdca3"
         },
         {
           "source_location": "pipeline/Code/step_spec.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e3ae7dc5c88f49db0ab76b8321c02464b47e6cac2db449480ae25a6195a7a77f"
+          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69"
         },
         {
           "source_location": "pipeline/Code/step_context.py",
@@ -6294,27 +6156,21 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dbba529cd34efe9607eaff9e765d0e7c9cddfdd4977fb2ec6b78cf3c4523ebcd"
+          "content_hash": "a7d357ea640e68388ffa1103d6b9523a9262a2f5d62897d45e902e7b1d618ecf"
         },
         {
           "source_location": "pipeline/Code/schemas/provider_record_validator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d99b8e94ed03cee3faf8d62d784db04dcd5344fbc8724a34f507737f47fc15fb"
-        },
-        {
-          "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "fc265ecbebd6e7b852283fb57b82dfe15628379e51c6dc04175b96defb8eebd3"
         },
         {
           "source_location": "pipeline/run_provider_pipeline_lld.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64f9fdca5b5f7b50c9b0ea91d8376cd3b45b0b61396537a7a5a2917070cb3931"
+          "content_hash": "f42548d650ea2f93dca91865544ec599c957c819213fc2bce9967f00a0077a35"
         },
         {
           "source_location": "pipeline/Code/steps/__init__.py",
@@ -6342,7 +6198,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ec219b5b511d6f72711ebd1c3736be96d4eff7d7ab0d1abf2230adaeacdb770d"
+          "content_hash": "36e5e8b760491c01592d75cd4ec8e760022164a8ed1477fea5b53372d59faabe"
         },
         {
           "source_location": "pipeline/Code/steps/archive_sources.py",
@@ -6447,20 +6303,14 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f1cd9c3ed988eb8b7832defb9564de2bdf8dd86adea5e891154be455718334f6"
+          "content_hash": "962a60f3b8805ac3b2deb5ca3c2a8e62dd0a99e1fd23bfe908770a5cff39cf96"
         },
         {
           "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "99a88dd774ddfdc1451c55ace5d8b7810f8b068354574f349a8f62bcaf3e7d8f"
-        },
-        {
-          "source_location": "pipeline/Code/steps/_streaming_bridge.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "6163e018c4187c9dd6a8da684c880c813d04b545817c18a6dd458402b471437c"
         },
         {
           "source_location": "pipeline/Code/steps/_partitions.py",
@@ -6493,6 +6343,15 @@
       "promote_chain_bound": false,
       "environments": [
         {
+          "env_binding": "dev",
+          "node_address": "https://chathealthydatapipelinesgatewayfunctionapp.azurewebsites.net",
+          "azure": {
+            "resource_group": "FindCareDataPipelines-Dev",
+            "function_app": "ChatHealthyDataPipelinesGatewayFunctionApp",
+            "task_hub": "DevPipelineNetherite3"
+          }
+        },
+        {
           "env_binding": "prod",
           "node_address": "https://chathealthydatapipelinesgatewayfunctionapp.azurewebsites.net",
           "azure": {
@@ -6508,977 +6367,7 @@
           "source_location": "pipeline/ChatHealthyDataPipelinesGatewayFunctionApp.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "b6233a1be8501ca0b6ce0a64961eb2183097e2aae0105a45a581a597e085d1d7"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/Providerother_identifiersHandeler.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "fdeb1861b186e85a3614b678066cd7028da7642bd60d55a78c37ab3bc176d7a5"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/atlas_cluster_manager.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "849d821bee9a318992d0ecbbe0380de4430faa5ad32ddf071b0dcd30764266b4"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/auth.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7b1a2eba11e0a0609f17f4e3f57a34818daad78b6b503833c66fd793bc2a9126"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/base_pipeline_orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "dcb73fc93c4834ce684f0e474c284b8ff5c8132f1dd115394e07cf592c74392b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/batched_pass2_census_activity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "74c9ec1fc813f786f44b05a3768711076cda290855dde158ce773a62d49c7962"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/blob_client.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7a4f141eaf690583e1dc92c8a9de125eb1302d965c47c5700c7f9ec78c984d11"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/build_provider_v03_from_v02.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "66c68f1d66573e3d9e0d27c35c1ea9025a764952a509b90a6448e679b1fb5186"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/change_db_version.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "9c936b3fdabcfb80783ff1c559d70a8776634befb1e6e6874cb9a16dc292a3d7"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/chunk_indexer.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "3be4d294f45351b3fbe85461726e4207e047a090deb85b1726f1b63158dd662a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/cluster_lifecycle_manager.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "ad03326cf7461158e3f76a177ebb974136ac90bea31d2b3185a04c43d03c0042"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/count_providers_by_state.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "1978ce19fbcc0c1ab280dca62f1030514b3695eec09bfa5395ef026aa81f1b19"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/county_enrichment_job.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "d38618a8399e17919df362adf8d077bbd00f59d7bf38c886059e56ae863a1199"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/crosswalk_builder.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "45a07fcdeb551b554918399ab58d0087fb00faf5c8ded2fb53824f70e4fab790"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/data_fetcher_base.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c4b80e321c8921fc74e095acb046f511623a669284a73a4c2b83afbdd74ea77a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/discrepancy_reporter.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7c3e761503c0dace2c533bcf5194767f1f73a30720d1e1a5ef884569e5f650c0"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/embedding_worker.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "95d227547edcf179572dd22c8fa0c8ad849639e7ef2cb3076c662946c718ddc2"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/end_of_job_cleanup.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "aa3ca9f92131d54b0ad76edc97b67ea707d1b249c1cead71e98c54738789a506"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/ensure_provider_indexes_activity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "3c6a53133a0eceda7ea5d412093570247ee3b567cff3e8265d12327bdc6ccaee"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/fan_out_workers.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "cb4018c52040922e6353c5182256978537bf9dfbd578c45cbf251bf9113d5b3d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/favicon.ico",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "887a11acad37e20c7c8d0b8c495aa9657ae7c587efc708c077c91b90c3279bb5"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/function_app.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7636eeea826b993ad2a8c2427339370ef6513d1f0d8f078a86a949dd22f0d713"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/gather_activities.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "3401ae512ea2b97b7a1f8fededd3d97f7eb67b6fc0fac11dd5728eb72df875a7"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/host.json",
-          "handler_type": "json",
-          "disposition": "referenced",
-          "content_hash": "0f2d25787fd2f45d5c87be055db190b85105d3672f2b6651354f64b3f51e1d6e"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/icd10_loader.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "41a49973d91fb1e25a8a441c1b1b1ec473db762efb78280b2582784263a4686f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/instance_warmer.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "303a682b5c7d109f2ef7362201561962101a4cd9c9ef384111b54b43e90c6c9e"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/legal/licence.txt",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "4fe5ff88648faf2da9a9813952363d8a6ddde76965674345bc8db9e6ef8b49e4"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/load_specialty_data.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5092a0557e405140beac3f33db4bf662c3d6c45a102b5daeb964c7202941d195"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/normalize_provider_rows.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "3a9e97cdeed54176cb87393d0b5d4938990d91da7b79d10e8db71e67f8cbc74d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/pipeline_db.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "1d51dcbbe2abcf9aa4ccf43010a15314f1e4f11bc1bbd7d24b914dd8c266a8da"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/pipeline_health.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "4c29cb755c17814f023b3e6dec3e0393e4588ec1a3425f206476e91677dd07dd"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/pipeline_worker_base.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2f266b0cefc1de8c173b768c86572ca1d03e2ada03801c3b9b84d83b0731f868"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/prescriber_data_fetcher.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "63d48087f8ae283fd7a3470dc0a8dbe877f03dd1ce2c20e1a94a9c1c5a0d6c05"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/prescriber_enrichment_job.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "751b320dc537aaa974bce4ea59ce972449d37425cfd0a87b15eae46e80089f36"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/prescriber_load_worker.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5bbac8fee1ace9d96257fdc979d0ec28f738901bc69ea776a0ca8bea861a4a04"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/process_assignment_activity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "e312ffd9f81bc395c3c6731a741b9f8eb73d4b9eb9e3fac6f2f747f066cd38ea"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/provider_embedding.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5b50f7fbb597e657cba98793ac0d2edda631e2d2638a30d59eaf2494d6a180f2"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/provider_flags_enrichment.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8eafe72e27e07a741222a8470023f8f8b9c6804f6b8fc16f1d314ac577e68684"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/provider_load_manager.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5e3294d0a1035c79c92e8e2bbfacd56159c0239d7c2931c441511279960bef87"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/record_worker_orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8aa2e983cee2d924fc534decd62e2bd219e48d40ce788966abe10464724b5ba3"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/recover_county_activity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8b0a0b79fe533e1ce9bf24f8a684ac02ce7191abb31c6ce615260f2eb696bcd9"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/recovery_worker_orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "44ca9e1491a6bdedeec7514664a1b03e156b686231e6e53ad3c2ecb9b685dc1a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/requirements-pipeline.txt",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "fa175b85f29493761844c9e4786ebad6be2366ec2fc17eb68cb559b98ad3f1ea"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/deprovisioner.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2705662c770bb1d0d4b96f43d009cfc78270aae4497a3c03ed343004ad4ea4b2"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "fe1e150ea8700dfe278c0dc299b51b72ed01120b1217c45e79266a9fb3502611"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "51474650f9d6f4306ad0df6a2546cb1499652b54b4ac48bbcbf93f1e12802609"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/provisioner.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7318071fc6ea570d4621038ff651c0f117b4c9a44531319a91f67f7208db752c"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/reservation_reaper.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "835ac00841bd6abf7123753b8068f303ee5d480cb79fbd75bdf995f89abb5e9c"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/source_gather_orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8c90f486358f2a4f1c1cf35854d3bede3224a715d2140627d88e767fc50c101a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/source_url_discovery.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "4cc60e0d2fac342c2dc3f142355971a1b0bc300aae546e5f5b36f993dfcbc275"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/specialty_classification_catalog.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "295154ece99c603e3b554309b8044ca77ed888f49197f58da67be895c852bc98"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/staging.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "a067f70b6b59063081273a1b69c8df30a07700739f68557265c34c6cc4cc9c5a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/state_filter.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7c0ab80946b6843741389c6b13d4370a234a43691903f781147b7c3c9f0ac0cd"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/ProviderPipelineMultistate.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "d2084089eef0e486f947b2c1ec94097fd23c9252d1728bfd52180dfc72bc050f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/Provider_pipeline_gateway_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "bf7051c9dd191584e20f1eb9e36140934a65cbb7e3678e6e55826e6d2fe24a8e"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/Provider_pipeline_large_multi_state_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "4c4e3d5e98685819068973f37e10406e545a587ecf9d762cec6d4b589f9fa56a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/Provider_pipeline_small_multi_state_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "8297043b029624e41a50a080b50c37650cb230779c3cab3173cd97de452bcd8b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/gpt_sit_with_gpt.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "62e5e7fe280542ebb045d39f7f9ecfe522f479c193171fbc5c8822d11e39994d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/mongo_cluster_migrator_business_all_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "cc903b71ff38171a4b43176c318e6215861bf4fe97e449a81bc74cd769b9f82b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/mongo_cluster_migrator_business_wy_vt_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "442fbd1295e5f78f1d70ca636f37d5420ad09df2c9b84d2112fae6c449f1c440"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/providerPipelineMO_test.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "2bc5394d661b84bcd46afb7be853d939b137ae97d1a43d5fcb0db9777ec356fc"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_compliance.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "1ada90fb5350a917e5b1bdab9e9fc686649a9eaec7ef06aa696d337f5d6fe699"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_county_enrichment_sla.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "6aaa6ddee3624526a954f7c13724b955d352ab7286f030b9bfde946053e283a4"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_data_quality.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "230c1873fbf6b95553a0c0bb47856e19d432ac4513b919df1ef92361734ebac6"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_dr024_test_rigor.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "7c919c187bae309deb23652545d95d6729cfdc82150c830e517eb3ce1bd5349f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_error_alerting.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "2e719c5d1829654c01d035c351a36055d180f4f4126079dcbfb513de64eec8ef"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_findcare_requirements.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "b9d144cc0aa3d91b3f54fe8718957698054b1e7c3a5628d9ac79ef59ae16ae6b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_idempotency.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "df5ab99696548ff0c6f62f041396a163d5f7f7b88252049ae57e8b31e1aefc80"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_load_parity.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "3d55505b91f18658b1c50bd1e0351e78318d9912568a8bb69d4b80062182bd77"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_manifest.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "b7c614a886a5d3bf972e2b5df2f90d6e79f8f92b9932eb6d23a343a5ea64f541"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_pipeline_compliance.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "83bc9d27e3268a289cee803c0878276135fdeff1ef5c3cf420a41bd28c88b7fd"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_pipeline_orchestrator.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "0e371a94868973dc3624d8a4e691ffc42a5f16c5a747625e47454b0f2f9bb062"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_pipeline_rename_compliance.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "8e182f6f0c217e2f17056225cb2cd1c61b91219d86b8853415effb3a5549d55f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_pipeline_worker_base.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "20884f42092ca03a2c4ce75106c495efba5057bbf364093cf9ff83bc75d95575"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_provider_embedding.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "339cf2cfb4a15e4d31e5723550e922b8b7c57594450b18583735e000b92ad9d1"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_specialty_classification.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "8dd1ac3194b94becb006f8801d7745559226e4242ab25da1d84386a5dead3382"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_specialty_classification_catalog.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "d417c8539f19270a7b3f0270deb5ff7d2140b6dfa8627105e0b86e5efbedda98"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_traceability.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "a089e9e29ef4c6cecbb7014db07973de5231c0a295ebb73b76d06c7ee458a352"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/tests/test_traceability_matrix.py",
-          "handler_type": "python_test",
-          "disposition": "referenced",
-          "content_hash": "cacea273e9781291638e10e0942c4b3012793b5cf1a91820f7fe0cd1a3f78d13"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/throttle_acquire.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "57e376ff0d358e861f2a05ceed2a3cfb192a98082666f13d9c2ac90d36256676"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/throttle_entities.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "fd0ebc2e1c3886951d0d378bfc7d5faa2c23e5f780124d4f249e9cb31e621f46"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/throttle_entity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "f65f9f8ccd6ddd30ff377a4c19c437e44e75ba4580601de5ec2f3d921c9cbe2a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/urban_flag.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "d91918186b72b663a216a27e740e891503bbd9f9a2251c71738021a91709f4e3"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/urban_flag_enrichment.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "140b442d2940ecd184b7238c6737f15fe7fd216e3a0b375389a1bea07e20afb7"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/work_manager_entity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "d9ea905b8f29eff40d6bc8e33aa506c8925fb8c58fe88e96ba7b18b1c235a173"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/zip_county_crosswalk_loader.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b2f7e3a0e6f3f60604ccfe04f8fbe0b30b141f815e5af567c8594f0b8f23f96c"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/_router_client.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c54df32f359a8540a8d058cd04dc9d90fb34e1a30bbf8fbdfb8d1c2c1b5ddf7d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/reserve_cluster.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8bb654d30e6d08ff03bdfe28356a3ee59c96ce3ad6180224252dae8a8387328f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/run_county_enrichment.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "529f59db75c7f62ed3aa49050db4c1242b506057416c129a4c867b830fe44c9d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/run_prescriber_pipeline.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "551007cf834c7c824fc28fafa3de6d5adb350ff9e568f63b3c5197c8918376c0"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/run_provider_pipeline.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "22223990ffabdb507fb307883880c385968a29662ca4db2a120094ff68f9ba2d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/run_snapshot_collection.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c1b0715acde2ce7b47adee1e42e26bd449f86f4ee115897883c05bc3a186cb26"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/run_specialty_pipeline.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "be71d488bf4fe4fefc5d87861c23bce58075119307394831b71a83b92f7d8c13"
-        },
-        {
-          "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "80cc404d2b42532600d3ba883fc86e1dbc0f28cc7edfe4e460f5e5159148c288"
-        },
-        {
-          "source_location": "pipeline/Code/step_spec.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "e3ae7dc5c88f49db0ab76b8321c02464b47e6cac2db449480ae25a6195a7a77f"
-        },
-        {
-          "source_location": "pipeline/Code/step_context.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "05ee5300d54cd1958f2952e020626c0d0eb7bd9c6f74e1af42eee7c9587f9332"
-        },
-        {
-          "source_location": "pipeline/Code/work_item_claim.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7d2c5e1fb9419720b28a637157bb527c3b1061fc1f8b4993cf859e44ca5545e3"
-        },
-        {
-          "source_location": "pipeline/Code/pipeline_config.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b787792910264fb0ddc58cf9af031d601529e1e9bf9b892d9e63ab61465b0873"
-        },
-        {
-          "source_location": "pipeline/Code/provider_pipeline_orchestrator.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "e8a4afdd6f4d054809295e3f0c79d81b04d163df048fe924d19732faf6ce779d"
-        },
-        {
-          "source_location": "pipeline/Code/control_runner.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "4dfc33d57b6f3605c2093467ac8003eeaa2e86e19e32cc4cc87320ec317da5f1"
-        },
-        {
-          "source_location": "pipeline/Code/worker_runner.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "dbba529cd34efe9607eaff9e765d0e7c9cddfdd4977fb2ec6b78cf3c4523ebcd"
-        },
-        {
-          "source_location": "pipeline/Code/schemas/provider_record_validator.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "d99b8e94ed03cee3faf8d62d784db04dcd5344fbc8724a34f507737f47fc15fb"
-        },
-        {
-          "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "source_location": "pipeline/run_provider_pipeline_lld.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "64f9fdca5b5f7b50c9b0ea91d8376cd3b45b0b61396537a7a5a2917070cb3931"
-        },
-        {
-          "source_location": "pipeline/Code/steps/__init__.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "ebd14f9cc0bffb14a71c5327d84222e240a8da08f163ec48aa185bc5b68469ce"
-        },
-        {
-          "source_location": "pipeline/Code/steps/prepare_infrastructure.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "78467cba3cacbe47a54357a665384d7e737e645331ca067028dac92fa9cf1a60"
-        },
-        {
-          "source_location": "pipeline/Code/steps/source_freshness_gate.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8cd9285a0c0af6e5ad4595779a83a430f31b4ae8eee7ce0fc83cec11188b1b50"
-        },
-        {
-          "source_location": "pipeline/Code/steps/fetch_all_sources.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "ec219b5b511d6f72711ebd1c3736be96d4eff7d7ab0d1abf2230adaeacdb770d"
-        },
-        {
-          "source_location": "pipeline/Code/steps/archive_sources.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c281385bd1dc1827f5926a1d9813918dd9dad8a74005c299bde51d3035e2ada4"
-        },
-        {
-          "source_location": "pipeline/Code/steps/load_staging_parallel.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2d84d229b78e34a3f61c4ded1267c3bc0cf9c507f0d2a7165c842a573f0747cb"
-        },
-        {
-          "source_location": "pipeline/Code/steps/load_nucc_classification_catalog.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "87c5815f1de6d114faff29c55d8d192c0fd57e5da06997243461d98a9efa7d0c"
-        },
-        {
-          "source_location": "pipeline/Code/steps/normalize_npi_serial_bulk_load.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b45ffa74e044959116be8624e738f1d6d2547c49300df5da122313d17f2cf623"
-        },
-        {
-          "source_location": "pipeline/Code/steps/normalize_npi_per_state_fanout.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2e9f6cda874f24e7d4560550c3535ead7afc38a83f1e17003242cb615f031ca3"
-        },
-        {
-          "source_location": "pipeline/Code/steps/attach_practice_addresses.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "58b00dc703f70673aff73606834e17a86f03e7d35cbda2000efc07602c74cf72"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type1_first_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5898d8a8c8dcb8113bfa1502f9c85fd5e422f9f6f564b739f10675642ddf0a53"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type2_first_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "63ab3bc5b2cb8badfd4d9a47a9879941995e082d0370dad09eb9159e2f57d71a"
-        },
-        {
-          "source_location": "pipeline/Code/steps/license_address_repair.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "caeb5794b481e862abd4425e166857b4108c924a2f7fcb6e36adeb8e9704218a"
-        },
-        {
-          "source_location": "pipeline/Code/steps/county_enrichment_cascade.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "3eaca7445b7f0804c0190b03c2e99d89c92b0d02d9fbc3720636f17214dd440e"
-        },
-        {
-          "source_location": "pipeline/Code/steps/urban_flag.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8ffd743b6781ae672c90ac74fe7e97d575dfb7ce0cf39c1de6ab6fb87b46d0ea"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type1_second_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2a3627f91d0d6fa9bb7ee73c9ba567e60beb4143bca1781978cb6f678de5a4fa"
-        },
-        {
-          "source_location": "pipeline/Code/steps/type2_second_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7f0112d37385c89495e5548e8beddfe0308e2b20d6e02898c26812d32a142fe9"
-        },
-        {
-          "source_location": "pipeline/Code/steps/post_load_reconciliation.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "6dcf5d30dcd57343b7ccd75795ca6b516072c5c4309db26a473f6938053206a0"
-        },
-        {
-          "source_location": "pipeline/Code/steps/discrepancy_reports_and_notifications.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "f1cd9c3ed988eb8b7832defb9564de2bdf8dd86adea5e891154be455718334f6"
-        },
-        {
-          "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "99a88dd774ddfdc1451c55ace5d8b7810f8b068354574f349a8f62bcaf3e7d8f"
-        },
-        {
-          "source_location": "pipeline/Code/steps/_streaming_bridge.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "source_location": "pipeline/Code/steps/_partitions.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b1d4a1069f64bdb35ed60e088c48a274ebd384b45737d55c030cb422ded11f70"
-        },
-        {
-          "source_location": "pipeline/Code/notification_client.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "25ad1ded84dcccc3b778a499374987a054cf056ce2b366878c41ea1bad896212"
-        },
-        {
-          "source_location": "pipeline/Code/pipeline_runtime.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "f19e8555f60bf2495d94c04a300f00877466d26190fe5489deb803d8ebcbb055"
-        },
-        {
-          "source_location": "pipeline/Code/pipeline_labels.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
-        },
-        {
-          "source_location": "pipeline/Code/provider_record_builder.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "0d8c1ee467d8a8fbfc540948d5034a006c20514db1a465a79f45917894b79678"
-        },
-        {
-          "source_location": "pipeline/Code/staging_collections.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "9ff57a4a37cd4b941761922072367f66966353747f6a576271a2472ed72178cf"
-        },
-        {
-          "source_location": "pipeline/Code/provider_normalize_engine.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2526cf41a72d28964ca0536d8e45252614e76fe96de0209a3e27631a6d6ca81c"
-        },
-        {
-          "source_location": "pipeline/Code/discrepancy_pdf.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7765136cda02df7a7c9dbcb9ed205dbc7e6621d46ff4b0430d79a1fb3265d6a6"
-        },
-        {
-          "source_location": "pipeline/Code/type1_first_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8bba0ebb13a26a3a0644da14eee4155e8ef274cddebe2016a23302c185e1e43d"
-        },
-        {
-          "source_location": "pipeline/Code/type2_first_branch.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "9988c1a204514d22332ffe1ef7722a8f00f158203b3868a543e09261dc2b7a2d"
-        },
-        {
-          "source_location": "pipeline/Code/license_address_repair.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "6281de6d51da53ec0c074f61ef24e73b7b5a887655daa40cc514b1cdbe9e33a4"
-        },
-        {
-          "source_location": "pipeline/Code/post_load_reconciliation.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "023a11f6209e4dee25b571d615a93ab1541249bfb2dc859641ec16793fc08075"
-        },
-        {
-          "source_location": "pipeline/Code/attach_practice_addresses.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "6977e144cc13aec19f959f954ee6f91a048182b569ec594d418f5d72496259c4"
-        },
-        {
-          "source_location": "pipeline/Code/county_cascade_engine.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c69474a7664399dfe95b7a3fc2a0b7d999d478957f42c833d7216a2bb9f58f67"
-        },
-        {
-          "source_location": "pipeline/Code/urban_flag_step.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2a34fe6238b05bd29bf9b1e3c1088670cd748c3dc94ee0c3cacd20a6be7d32ef"
+          "content_hash": "235a752a2f9191b00f0fc173e0834485a150b7af1353a4ef0f108cffdfcab4b8"
         }
       ],
       "secrets": {
@@ -7516,6 +6405,621 @@
         "SPECIALTY_COLLECTION": "local_env",
         "UMLS_API_KEY": "local_env",
         "CHANGEDBVERSION_WEBHOOK_URL": "azure_automation_webhook"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_pipeline",
+      "target_kind": "azure_container_app",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://prod-providerpipeline-app.azurecontainerapps.io",
+          "azure_container_app": {
+            "resource_group": "FindCareDataPipelines-Dev",
+            "container_app": "prod-providerpipeline-app",
+            "container_app_environment": "prod-providerpipeline-env",
+            "log_analytics_workspace": "prod-providerpipeline-workspace",
+            "application_insights": "prod-providerpipeline-insights",
+            "registry": "chathealthypipelinedev",
+            "task_hub": "ProdProviderPipelineNetherite4",
+            "event_hubs_namespace": "ChatHealthyDataPipelines",
+            "min_replicas": 0,
+            "max_replicas": 4,
+            "cpu": 2.0,
+            "memory_gi": 4.0,
+            "location": "eastus2",
+            "dockerfile_from": "mcr.microsoft.com/azure-functions/python:4-python3.11",
+            "placeholder_image": "mcr.microsoft.com/k8se/quickstart:latest",
+            "netherite": {
+              "partitions_eh_name": "partitions",
+              "loadmonitor_eh_name": "loadmonitor",
+              "loadmonitor_partition_count": 1,
+              "clients_eh_names": [
+                "clients0",
+                "clients1",
+                "clients2",
+                "clients3"
+              ],
+              "clients_partition_count": 32
+            }
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/aca_job_manager.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "5a9563efdc1d4803925ca321aefa2f8de6f17d768663c790a5d5c5576ae8263b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/address_dedup.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "f9ee2dfb3e267a342db198f0c7758c3b2768dbaa151a733d8ae8de146a39dd47"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/attach_practice_addresses.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "3fb9c7a6a1216a0cc5f3defb14e8a3b3f7563895d33bc43def8b7cb811643fdc"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/base_pipeline_orchestrator.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "39c25bd5d13ef4a47c70f2a942bfc650c47a47727e96bbf24f2f80869e0202be"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/blob_client.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "7a4f141eaf690583e1dc92c8a9de125eb1302d965c47c5700c7f9ec78c984d11"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/cluster_lifecycle_manager.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "ad03326cf7461158e3f76a177ebb974136ac90bea31d2b3185a04c43d03c0042"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/control_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4dfc33d57b6f3605c2093467ac8003eeaa2e86e19e32cc4cc87320ec317da5f1"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/county_cascade_engine.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "c69474a7664399dfe95b7a3fc2a0b7d999d478957f42c833d7216a2bb9f58f67"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/county_enrichment_job.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "d38618a8399e17919df362adf8d077bbd00f59d7bf38c886059e56ae863a1199"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/county_source.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e5358931df7aa557432d9eecf9b59668965fd38d23728f9cbeec5a50108daeb0"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/discrepancy_pdf.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "1e5049151a8dc3c800250426fc3ade1ab4cab8cd1dbe902c54c54fdcff7a5c8b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4055964c80fa94435e557f1942de823d06c9cc19d1d274bd6251f989a8bfdca3"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/ensure_provider_indexes_activity.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "6319986a6429b0f1ed97df1b1ca0b430ba02e661fdaced68516c43e420376bba"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/function_app.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "5553edb2f5a0af6ec009c267546ff27dc37bc67e8a8c024e5c8bdb2d8d3e6e0d"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/host.json",
+          "handler_type": "json",
+          "disposition": "referenced",
+          "content_hash": "0f2d25787fd2f45d5c87be055db190b85105d3672f2b6651354f64b3f51e1d6e"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/license_address_repair.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "6dea68725d66f99abf187eed4ed8171da1461c994f97a890d8dfe883a3b42925"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/load_specialty_data.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "5092a0557e405140beac3f33db4bf662c3d6c45a102b5daeb964c7202941d195"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/normalize_provider_rows.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "3a9e97cdeed54176cb87393d0b5d4938990d91da7b79d10e8db71e67f8cbc74d"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/notification_client.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "25ad1ded84dcccc3b778a499374987a054cf056ce2b366878c41ea1bad896212"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pipeline_config.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "b787792910264fb0ddc58cf9af031d601529e1e9bf9b892d9e63ab61465b0873"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pipeline_db.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "1d51dcbbe2abcf9aa4ccf43010a15314f1e4f11bc1bbd7d24b914dd8c266a8da"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pipeline_env.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "33b5b5b82641a1ec99188d28fdff0a97d48502eeb9efdbe81a392d72a7c8d471"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pipeline_runtime.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "f19e8555f60bf2495d94c04a300f00877466d26190fe5489deb803d8ebcbb055"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pipeline_source_archival.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "28aa5919ea7ebcb270e6fa7cda042b31db6039f306c67baa19d8bf82340e40f0"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/pipeline_worker_base.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2f266b0cefc1de8c173b768c86572ca1d03e2ada03801c3b9b84d83b0731f868"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/post_load_reconciliation.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "40d00231c8f483c9526339614c84269a9edb109e5afc0c5a1ada975b12384aed"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/process_assignment_activity.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "c0ea92c435b0bc2bc3edb55305d89307509aee00ea7a7b9e5ba9f4fb33524034"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/provider_flags_enrichment.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "c448843aff73d49d3e57d7f277e8a2b3c4ba853705326bea772febaa2ca9596b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/provider_load_manager.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "5e3294d0a1035c79c92e8e2bbfacd56159c0239d7c2931c441511279960bef87"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/provider_normalize_engine.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2526cf41a72d28964ca0536d8e45252614e76fe96de0209a3e27631a6d6ca81c"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/provider_pipeline_orchestrator.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e8a4afdd6f4d054809295e3f0c79d81b04d163df048fe924d19732faf6ce779d"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/provider_record_builder.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "0d8c1ee467d8a8fbfc540948d5034a006c20514db1a465a79f45917894b79678"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/provider_worker.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e9822d9fed7cfa93aa55c511b3c3465feec72528274939ead906093a825c4d94"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/record_subdoc_dedup.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "1dfe17f5e8708142681c33c825d7da5fe3b3aed56ad06f85040715b6e16b494e"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/requirements-pipeline.txt",
+          "handler_type": "static_asset",
+          "disposition": "referenced",
+          "content_hash": "ba6ca258a0f1cb043a6e8b478c2189d4ab60834d357dec5d59c2629a2612cbc9"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/schemas/provider_record_validator.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "fc265ecbebd6e7b852283fb57b82dfe15628379e51c6dc04175b96defb8eebd3"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/specialty_classification_catalog.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "13eadd847bb0fc7e747798ab4cac56b9e7d159f06ebfea5730a14da8afdb7ddf"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/staging_collections.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "1f0dc1c79afc4a73716556aa3a6defe331a31a1232317d6a7d138e28b9da6a19"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/staging_projections.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e5a8acdcf9afbce0e70431dc6767f7e8cfad04a596820ce429963d03acdacc33"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/state_filter.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "7c0ab80946b6843741389c6b13d4370a234a43691903f781147b7c3c9f0ac0cd"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/step_context.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "05ee5300d54cd1958f2952e020626c0d0eb7bd9c6f74e1af42eee7c9587f9332"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/step_spec.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/__init__.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "ebd14f9cc0bffb14a71c5327d84222e240a8da08f163ec48aa185bc5b68469ce"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/_partitions.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "b1d4a1069f64bdb35ed60e088c48a274ebd384b45737d55c030cb422ded11f70"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/archive_sources.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "c281385bd1dc1827f5926a1d9813918dd9dad8a74005c299bde51d3035e2ada4"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/attach_practice_addresses.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "58b00dc703f70673aff73606834e17a86f03e7d35cbda2000efc07602c74cf72"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/county_enrichment_cascade.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "3eaca7445b7f0804c0190b03c2e99d89c92b0d02d9fbc3720636f17214dd440e"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/discrepancy_reports_and_notifications.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "962a60f3b8805ac3b2deb5ca3c2a8e62dd0a99e1fd23bfe908770a5cff39cf96"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/fetch_all_sources.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "36e5e8b760491c01592d75cd4ec8e760022164a8ed1477fea5b53372d59faabe"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/license_address_repair.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "caeb5794b481e862abd4425e166857b4108c924a2f7fcb6e36adeb8e9704218a"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/load_nucc_classification_catalog.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "87c5815f1de6d114faff29c55d8d192c0fd57e5da06997243461d98a9efa7d0c"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/load_staging_parallel.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2d84d229b78e34a3f61c4ded1267c3bc0cf9c507f0d2a7165c842a573f0747cb"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/normalize_npi_per_state_fanout.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2e9f6cda874f24e7d4560550c3535ead7afc38a83f1e17003242cb615f031ca3"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/normalize_npi_serial_bulk_load.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "b45ffa74e044959116be8624e738f1d6d2547c49300df5da122313d17f2cf623"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/post_load_reconciliation.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "6dcf5d30dcd57343b7ccd75795ca6b516072c5c4309db26a473f6938053206a0"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/prepare_infrastructure.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "78467cba3cacbe47a54357a665384d7e737e645331ca067028dac92fa9cf1a60"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/provider_flags_enrichment.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "8858dfd4243313656fc065c0e76504d6d17e7af617f5f09fc685b0ee59dc2892"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "6163e018c4187c9dd6a8da684c880c813d04b545817c18a6dd458402b471437c"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/source_freshness_gate.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "8cd9285a0c0af6e5ad4595779a83a430f31b4ae8eee7ce0fc83cec11188b1b50"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/type1_first_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "5898d8a8c8dcb8113bfa1502f9c85fd5e422f9f6f564b739f10675642ddf0a53"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/type1_second_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "2a3627f91d0d6fa9bb7ee73c9ba567e60beb4143bca1781978cb6f678de5a4fa"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/type2_first_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "63ab3bc5b2cb8badfd4d9a47a9879941995e082d0370dad09eb9159e2f57d71a"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/type2_second_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "7f0112d37385c89495e5548e8beddfe0308e2b20d6e02898c26812d32a142fe9"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/steps/urban_flag.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "8ffd743b6781ae672c90ac74fe7e97d575dfb7ce0cf39c1de6ab6fb87b46d0ea"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/type1_first_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "01699ad3fde5fe289c14383cdef35b2f4588a750b345d50875093a47377bbce6"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/type1_second_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "59c08fc55cf7e7a0f1f1f4988f706e778692b38c25b8cb26778c6f3929ce0d72"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/type2_first_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "9e44d3b0b5ce342934460217a9559be36bcb97df82cb38ba80b9e59a7fb4397e"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/type2_second_branch.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "8ea9e0df22d1258e4d4709aa160c7467fb81fff6f7cb75c1595b495014494272"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/urban_flag.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e250d995d102db15664c70fbda698a675e7236cee9060cd4f2c57fb34d4c2c98"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/urban_flag_step.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "ce01591fbaca98494471f946355a17de73def8a2e1246bee349392d492719ab8"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/work_item_claim.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "7d2c5e1fb9419720b28a637157bb527c3b1061fc1f8b4993cf859e44ca5545e3"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a7d357ea640e68388ffa1103d6b9523a9262a2f5d62897d45e902e7b1d618ecf"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/zip_county_crosswalk_loader.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "b2f7e3a0e6f3f60604ccfe04f8fbe0b30b141f815e5af567c8594f0b8f23f96c"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "AzureWebJobsStorage": "local_env",
+        "EventHubsConnection": "local_env",
+        "AZURE_SUBSCRIPTION_ID": "local_env",
+        "AZURE_RESOURCE_GROUP": "local_env",
+        "AZURE_TENANT_ID": "local_env",
+        "OPENAI_API_KEY": "local_env",
+        "GOOGLE_MAPS_API_KEY": "local_env",
+        "ENV_PREFIX": "local_env",
+        "WEBSITE_HOSTNAME": "local_env",
+        "API_TOKEN_MAP": "local_env",
+        "Anthropic_API_KEY": "local_env",
+        "DURABLE_MGMT_CODE": "local_env",
+        "DURABLE_TASK_CONNECTION": "local_env",
+        "PYTHON_THREADPOOL_THREAD_COUNT": "local_env",
+        "FUNCTIONS_WORKER_PROCESS_COUNT": "local_env",
+        "ACTIVITY_WINDOW_MINUTES": "local_env",
+        "ANTHROPIC_API_KEY": "local_env",
+        "ATLAS_GROUP_ID": "local_env",
+        "AUTOMATION_JOB_ID": "local_env",
+        "AZUREPS_HOST_ENVIRONMENT": "local_env",
+        "AZURE_DURABLE_TASK_CODE": "local_env",
+        "AZURE_PIPELINE_CLIENT_ID": "local_env",
+        "AZURE_PIPELINE_CLIENT_SECRET": "local_env",
+        "AZURE_STORAGE_CONTAINER": "local_env",
+        "AZURE_WEBJOBS_STORAGE": "local_env",
+        "AZ_AUTOMATION_ACCOUNT": "local_env",
+        "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
+        "AZ_RESOURCE_GROUP": "local_env",
+        "AZ_SUBSCRIPTION_ID": "local_env",
+        "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
+        "AZ_VM_ADMIN_USERNAME": "local_env",
+        "AZ_VM_LOCATION": "local_env",
+        "AZ_VM_RESOURCE_GROUP": "local_env",
+        "AZ_VM_SIZE": "local_env",
+        "AZ_VM_SUBNET_ID": "local_env",
+        "DURABLE_ROUTER_URL": "local_env",
+        "DURABLE_TASK_HUB": "local_env",
+        "FRONTEND_MONGO_URI": "local_env",
+        "GPT_READER_TOKEN": "local_env",
+        "IDENTITY_ENDPOINT": "local_env",
+        "IDENTITY_HEADER": "local_env",
+        "MONGO_READONLY_FRONTEND": "local_env",
+        "MONGO_URI": "local_env",
+        "NOTIFICATION_FROM_EMAIL": "local_env",
+        "NOTIFICATION_TO_EMAIL": "local_env",
+        "PIPELINE_CLUSTER": "local_env",
+        "PIPELINE_DEBUG": "local_env",
+        "PROVIDER_COLLECTION": "local_env",
+        "PUSHOVER_TOKEN": "local_env",
+        "PUSHOVER_USER_KEY": "local_env",
+        "SPARKMAIL_API_KEY": "local_env",
+        "SPECIALTY_COLLECTION": "local_env",
+        "UMLS_API_KEY": "local_env",
+        "WEBSITE_SITE_NAME": "local_env"
       }
     },
     {
@@ -7588,25 +7092,18 @@
       ],
       "files": [
         {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/reservation_reaper.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "835ac00841bd6abf7123753b8068f303ee5d480cb79fbd75bdf995f89abb5e9c"
-        },
-        {
           "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "80cc404d2b42532600d3ba883fc86e1dbc0f28cc7edfe4e460f5e5159148c288"
+          "content_hash": "4055964c80fa94435e557f1942de823d06c9cc19d1d274bd6251f989a8bfdca3"
         },
         {
           "source_location": "pipeline/Code/step_spec.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e3ae7dc5c88f49db0ab76b8321c02464b47e6cac2db449480ae25a6195a7a77f"
+          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69"
         },
         {
           "source_location": "pipeline/Code/step_context.py",
@@ -7648,27 +7145,21 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dbba529cd34efe9607eaff9e765d0e7c9cddfdd4977fb2ec6b78cf3c4523ebcd"
+          "content_hash": "a7d357ea640e68388ffa1103d6b9523a9262a2f5d62897d45e902e7b1d618ecf"
         },
         {
           "source_location": "pipeline/Code/schemas/provider_record_validator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d99b8e94ed03cee3faf8d62d784db04dcd5344fbc8724a34f507737f47fc15fb"
-        },
-        {
-          "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "fc265ecbebd6e7b852283fb57b82dfe15628379e51c6dc04175b96defb8eebd3"
         },
         {
           "source_location": "pipeline/run_provider_pipeline_lld.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64f9fdca5b5f7b50c9b0ea91d8376cd3b45b0b61396537a7a5a2917070cb3931"
+          "content_hash": "f42548d650ea2f93dca91865544ec599c957c819213fc2bce9967f00a0077a35"
         },
         {
           "source_location": "pipeline/Code/steps/__init__.py",
@@ -7696,7 +7187,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ec219b5b511d6f72711ebd1c3736be96d4eff7d7ab0d1abf2230adaeacdb770d"
+          "content_hash": "36e5e8b760491c01592d75cd4ec8e760022164a8ed1477fea5b53372d59faabe"
         },
         {
           "source_location": "pipeline/Code/steps/archive_sources.py",
@@ -7801,20 +7292,14 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f1cd9c3ed988eb8b7832defb9564de2bdf8dd86adea5e891154be455718334f6"
+          "content_hash": "962a60f3b8805ac3b2deb5ca3c2a8e62dd0a99e1fd23bfe908770a5cff39cf96"
         },
         {
           "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "99a88dd774ddfdc1451c55ace5d8b7810f8b068354574f349a8f62bcaf3e7d8f"
-        },
-        {
-          "source_location": "pipeline/Code/steps/_streaming_bridge.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "6163e018c4187c9dd6a8da684c880c813d04b545817c18a6dd458402b471437c"
         },
         {
           "source_location": "pipeline/Code/steps/_partitions.py",
@@ -7888,25 +7373,18 @@
       ],
       "files": [
         {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/change_db_version.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "9c936b3fdabcfb80783ff1c559d70a8776634befb1e6e6874cb9a16dc292a3d7"
-        },
-        {
           "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "80cc404d2b42532600d3ba883fc86e1dbc0f28cc7edfe4e460f5e5159148c288"
+          "content_hash": "4055964c80fa94435e557f1942de823d06c9cc19d1d274bd6251f989a8bfdca3"
         },
         {
           "source_location": "pipeline/Code/step_spec.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e3ae7dc5c88f49db0ab76b8321c02464b47e6cac2db449480ae25a6195a7a77f"
+          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69"
         },
         {
           "source_location": "pipeline/Code/step_context.py",
@@ -7948,27 +7426,21 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dbba529cd34efe9607eaff9e765d0e7c9cddfdd4977fb2ec6b78cf3c4523ebcd"
+          "content_hash": "a7d357ea640e68388ffa1103d6b9523a9262a2f5d62897d45e902e7b1d618ecf"
         },
         {
           "source_location": "pipeline/Code/schemas/provider_record_validator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d99b8e94ed03cee3faf8d62d784db04dcd5344fbc8724a34f507737f47fc15fb"
-        },
-        {
-          "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "fc265ecbebd6e7b852283fb57b82dfe15628379e51c6dc04175b96defb8eebd3"
         },
         {
           "source_location": "pipeline/run_provider_pipeline_lld.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64f9fdca5b5f7b50c9b0ea91d8376cd3b45b0b61396537a7a5a2917070cb3931"
+          "content_hash": "f42548d650ea2f93dca91865544ec599c957c819213fc2bce9967f00a0077a35"
         },
         {
           "source_location": "pipeline/Code/steps/__init__.py",
@@ -7996,7 +7468,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ec219b5b511d6f72711ebd1c3736be96d4eff7d7ab0d1abf2230adaeacdb770d"
+          "content_hash": "36e5e8b760491c01592d75cd4ec8e760022164a8ed1477fea5b53372d59faabe"
         },
         {
           "source_location": "pipeline/Code/steps/archive_sources.py",
@@ -8101,20 +7573,14 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f1cd9c3ed988eb8b7832defb9564de2bdf8dd86adea5e891154be455718334f6"
+          "content_hash": "962a60f3b8805ac3b2deb5ca3c2a8e62dd0a99e1fd23bfe908770a5cff39cf96"
         },
         {
           "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "99a88dd774ddfdc1451c55ace5d8b7810f8b068354574f349a8f62bcaf3e7d8f"
-        },
-        {
-          "source_location": "pipeline/Code/steps/_streaming_bridge.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "6163e018c4187c9dd6a8da684c880c813d04b545817c18a6dd458402b471437c"
         },
         {
           "source_location": "pipeline/Code/steps/_partitions.py",
@@ -8146,25 +7612,18 @@
       ],
       "files": [
         {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "51474650f9d6f4306ad0df6a2546cb1499652b54b4ac48bbcbf93f1e12802609"
-        },
-        {
           "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "80cc404d2b42532600d3ba883fc86e1dbc0f28cc7edfe4e460f5e5159148c288"
+          "content_hash": "4055964c80fa94435e557f1942de823d06c9cc19d1d274bd6251f989a8bfdca3"
         },
         {
           "source_location": "pipeline/Code/step_spec.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e3ae7dc5c88f49db0ab76b8321c02464b47e6cac2db449480ae25a6195a7a77f"
+          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69"
         },
         {
           "source_location": "pipeline/Code/step_context.py",
@@ -8206,27 +7665,21 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dbba529cd34efe9607eaff9e765d0e7c9cddfdd4977fb2ec6b78cf3c4523ebcd"
+          "content_hash": "a7d357ea640e68388ffa1103d6b9523a9262a2f5d62897d45e902e7b1d618ecf"
         },
         {
           "source_location": "pipeline/Code/schemas/provider_record_validator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d99b8e94ed03cee3faf8d62d784db04dcd5344fbc8724a34f507737f47fc15fb"
-        },
-        {
-          "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "fc265ecbebd6e7b852283fb57b82dfe15628379e51c6dc04175b96defb8eebd3"
         },
         {
           "source_location": "pipeline/run_provider_pipeline_lld.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64f9fdca5b5f7b50c9b0ea91d8376cd3b45b0b61396537a7a5a2917070cb3931"
+          "content_hash": "f42548d650ea2f93dca91865544ec599c957c819213fc2bce9967f00a0077a35"
         },
         {
           "source_location": "pipeline/Code/steps/__init__.py",
@@ -8254,7 +7707,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ec219b5b511d6f72711ebd1c3736be96d4eff7d7ab0d1abf2230adaeacdb770d"
+          "content_hash": "36e5e8b760491c01592d75cd4ec8e760022164a8ed1477fea5b53372d59faabe"
         },
         {
           "source_location": "pipeline/Code/steps/archive_sources.py",
@@ -8359,20 +7812,14 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f1cd9c3ed988eb8b7832defb9564de2bdf8dd86adea5e891154be455718334f6"
+          "content_hash": "962a60f3b8805ac3b2deb5ca3c2a8e62dd0a99e1fd23bfe908770a5cff39cf96"
         },
         {
           "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "99a88dd774ddfdc1451c55ace5d8b7810f8b068354574f349a8f62bcaf3e7d8f"
-        },
-        {
-          "source_location": "pipeline/Code/steps/_streaming_bridge.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "6163e018c4187c9dd6a8da684c880c813d04b545817c18a6dd458402b471437c"
         },
         {
           "source_location": "pipeline/Code/steps/_partitions.py",
@@ -8430,25 +7877,18 @@
       ],
       "files": [
         {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/provisioner.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7318071fc6ea570d4621038ff651c0f117b4c9a44531319a91f67f7208db752c"
-        },
-        {
           "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "80cc404d2b42532600d3ba883fc86e1dbc0f28cc7edfe4e460f5e5159148c288"
+          "content_hash": "4055964c80fa94435e557f1942de823d06c9cc19d1d274bd6251f989a8bfdca3"
         },
         {
           "source_location": "pipeline/Code/step_spec.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e3ae7dc5c88f49db0ab76b8321c02464b47e6cac2db449480ae25a6195a7a77f"
+          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69"
         },
         {
           "source_location": "pipeline/Code/step_context.py",
@@ -8490,27 +7930,21 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dbba529cd34efe9607eaff9e765d0e7c9cddfdd4977fb2ec6b78cf3c4523ebcd"
+          "content_hash": "a7d357ea640e68388ffa1103d6b9523a9262a2f5d62897d45e902e7b1d618ecf"
         },
         {
           "source_location": "pipeline/Code/schemas/provider_record_validator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d99b8e94ed03cee3faf8d62d784db04dcd5344fbc8724a34f507737f47fc15fb"
-        },
-        {
-          "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "fc265ecbebd6e7b852283fb57b82dfe15628379e51c6dc04175b96defb8eebd3"
         },
         {
           "source_location": "pipeline/run_provider_pipeline_lld.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64f9fdca5b5f7b50c9b0ea91d8376cd3b45b0b61396537a7a5a2917070cb3931"
+          "content_hash": "f42548d650ea2f93dca91865544ec599c957c819213fc2bce9967f00a0077a35"
         },
         {
           "source_location": "pipeline/Code/steps/__init__.py",
@@ -8538,7 +7972,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ec219b5b511d6f72711ebd1c3736be96d4eff7d7ab0d1abf2230adaeacdb770d"
+          "content_hash": "36e5e8b760491c01592d75cd4ec8e760022164a8ed1477fea5b53372d59faabe"
         },
         {
           "source_location": "pipeline/Code/steps/archive_sources.py",
@@ -8643,20 +8077,14 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f1cd9c3ed988eb8b7832defb9564de2bdf8dd86adea5e891154be455718334f6"
+          "content_hash": "962a60f3b8805ac3b2deb5ca3c2a8e62dd0a99e1fd23bfe908770a5cff39cf96"
         },
         {
           "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "99a88dd774ddfdc1451c55ace5d8b7810f8b068354574f349a8f62bcaf3e7d8f"
-        },
-        {
-          "source_location": "pipeline/Code/steps/_streaming_bridge.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "6163e018c4187c9dd6a8da684c880c813d04b545817c18a6dd458402b471437c"
         },
         {
           "source_location": "pipeline/Code/steps/_partitions.py",
@@ -8712,25 +8140,18 @@
       ],
       "files": [
         {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/migrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "fe1e150ea8700dfe278c0dc299b51b72ed01120b1217c45e79266a9fb3502611"
-        },
-        {
           "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "80cc404d2b42532600d3ba883fc86e1dbc0f28cc7edfe4e460f5e5159148c288"
+          "content_hash": "4055964c80fa94435e557f1942de823d06c9cc19d1d274bd6251f989a8bfdca3"
         },
         {
           "source_location": "pipeline/Code/step_spec.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e3ae7dc5c88f49db0ab76b8321c02464b47e6cac2db449480ae25a6195a7a77f"
+          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69"
         },
         {
           "source_location": "pipeline/Code/step_context.py",
@@ -8772,27 +8193,21 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dbba529cd34efe9607eaff9e765d0e7c9cddfdd4977fb2ec6b78cf3c4523ebcd"
+          "content_hash": "a7d357ea640e68388ffa1103d6b9523a9262a2f5d62897d45e902e7b1d618ecf"
         },
         {
           "source_location": "pipeline/Code/schemas/provider_record_validator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d99b8e94ed03cee3faf8d62d784db04dcd5344fbc8724a34f507737f47fc15fb"
-        },
-        {
-          "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "fc265ecbebd6e7b852283fb57b82dfe15628379e51c6dc04175b96defb8eebd3"
         },
         {
           "source_location": "pipeline/run_provider_pipeline_lld.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64f9fdca5b5f7b50c9b0ea91d8376cd3b45b0b61396537a7a5a2917070cb3931"
+          "content_hash": "f42548d650ea2f93dca91865544ec599c957c819213fc2bce9967f00a0077a35"
         },
         {
           "source_location": "pipeline/Code/steps/__init__.py",
@@ -8820,7 +8235,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ec219b5b511d6f72711ebd1c3736be96d4eff7d7ab0d1abf2230adaeacdb770d"
+          "content_hash": "36e5e8b760491c01592d75cd4ec8e760022164a8ed1477fea5b53372d59faabe"
         },
         {
           "source_location": "pipeline/Code/steps/archive_sources.py",
@@ -8925,20 +8340,14 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f1cd9c3ed988eb8b7832defb9564de2bdf8dd86adea5e891154be455718334f6"
+          "content_hash": "962a60f3b8805ac3b2deb5ca3c2a8e62dd0a99e1fd23bfe908770a5cff39cf96"
         },
         {
           "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "99a88dd774ddfdc1451c55ace5d8b7810f8b068354574f349a8f62bcaf3e7d8f"
-        },
-        {
-          "source_location": "pipeline/Code/steps/_streaming_bridge.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "6163e018c4187c9dd6a8da684c880c813d04b545817c18a6dd458402b471437c"
         },
         {
           "source_location": "pipeline/Code/steps/_partitions.py",
@@ -8996,25 +8405,18 @@
       ],
       "files": [
         {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/runbooks/data_migrator/deprovisioner.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2705662c770bb1d0d4b96f43d009cfc78270aae4497a3c03ed343004ad4ea4b2"
-        },
-        {
           "source_location": "pipeline/Code/durable_pipeline_orchestrator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "80cc404d2b42532600d3ba883fc86e1dbc0f28cc7edfe4e460f5e5159148c288"
+          "content_hash": "4055964c80fa94435e557f1942de823d06c9cc19d1d274bd6251f989a8bfdca3"
         },
         {
           "source_location": "pipeline/Code/step_spec.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e3ae7dc5c88f49db0ab76b8321c02464b47e6cac2db449480ae25a6195a7a77f"
+          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69"
         },
         {
           "source_location": "pipeline/Code/step_context.py",
@@ -9056,27 +8458,21 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "dbba529cd34efe9607eaff9e765d0e7c9cddfdd4977fb2ec6b78cf3c4523ebcd"
+          "content_hash": "a7d357ea640e68388ffa1103d6b9523a9262a2f5d62897d45e902e7b1d618ecf"
         },
         {
           "source_location": "pipeline/Code/schemas/provider_record_validator.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d99b8e94ed03cee3faf8d62d784db04dcd5344fbc8724a34f507737f47fc15fb"
-        },
-        {
-          "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "fc265ecbebd6e7b852283fb57b82dfe15628379e51c6dc04175b96defb8eebd3"
         },
         {
           "source_location": "pipeline/run_provider_pipeline_lld.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "64f9fdca5b5f7b50c9b0ea91d8376cd3b45b0b61396537a7a5a2917070cb3931"
+          "content_hash": "f42548d650ea2f93dca91865544ec599c957c819213fc2bce9967f00a0077a35"
         },
         {
           "source_location": "pipeline/Code/steps/__init__.py",
@@ -9104,7 +8500,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "ec219b5b511d6f72711ebd1c3736be96d4eff7d7ab0d1abf2230adaeacdb770d"
+          "content_hash": "36e5e8b760491c01592d75cd4ec8e760022164a8ed1477fea5b53372d59faabe"
         },
         {
           "source_location": "pipeline/Code/steps/archive_sources.py",
@@ -9209,20 +8605,14 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f1cd9c3ed988eb8b7832defb9564de2bdf8dd86adea5e891154be455718334f6"
+          "content_hash": "962a60f3b8805ac3b2deb5ca3c2a8e62dd0a99e1fd23bfe908770a5cff39cf96"
         },
         {
           "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "99a88dd774ddfdc1451c55ace5d8b7810f8b068354574f349a8f62bcaf3e7d8f"
-        },
-        {
-          "source_location": "pipeline/Code/steps/_streaming_bridge.py",
-          "feature_id": "EPIC-008-F-012",
-          "handler_type": "python_source",
-          "disposition": "referenced"
+          "content_hash": "6163e018c4187c9dd6a8da684c880c813d04b545817c18a6dd458402b471437c"
         },
         {
           "source_location": "pipeline/Code/steps/_partitions.py",
