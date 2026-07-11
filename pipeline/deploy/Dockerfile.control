@@ -1,0 +1,19 @@
+FROM python:3.12-slim
+
+WORKDIR /app/pipeline/Code
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-pipeline.txt /app/pipeline/Code/
+RUN pip install --no-cache-dir -r requirements-pipeline.txt \
+    && pip install --no-cache-dir azure-identity azure-keyvault-secrets
+
+COPY . /app/pipeline/Code/
+
+ENV PYTHONPATH=/app/pipeline/Code
+ENV PYTHONUNBUFFERED=1
+
+# bootstrap fetches Key Vault secrets → env vars, then exec's control_runner.py
+ENTRYPOINT ["python", "bootstrap.py", "control_runner.py"]

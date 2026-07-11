@@ -166,20 +166,6 @@ def apply_provider_flags_fn(config: dict) -> dict:
     )
 
     for doc in cursor:
-        entity_type = doc.get("entity_type_code", "")
-        if entity_type == "2":
-            # Institutional records must not carry individual-only flag fields
-            # (ProviderRecordSchema.json forbids them on entity_type_code "2").
-            ops.append(UpdateOne(
-                {"_id": doc["_id"]},
-                {"$unset": {
-                    "is_disqualified": "",
-                    "is_homeopathic": "",
-                    "can_prescribe": "",
-                }},
-            ))
-            continue
-
         flags = compute_provider_flags(doc, catalog)
 
         if flags["can_prescribe"]:
@@ -190,7 +176,8 @@ def apply_provider_flags_fn(config: dict) -> dict:
             disqualified += 1
         # Unknown-taxonomy = no catalog entry matched; that path also returns
         # is_disqualified=True, so detect it explicitly.
-        if not any(
+        entity_type = doc.get("entity_type_code", "")
+        if entity_type != "2" and not any(
             isinstance(t, dict)
             and catalog.get(t.get("code", "")) is not None
             for t in (doc.get("taxonomies") or [])

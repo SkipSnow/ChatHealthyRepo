@@ -28,11 +28,7 @@ from typing import Dict
 from pymongo import MongoClient
 
 _DB_NAME = "ProprietaryData"
-_DEFAULT_COLL_NAME = "SpecialtyAndProviderFlags"
-
-
-def _catalog_collection_name() -> str:
-    return os.environ.get("PROVIDER_FLAGS_COLLECTION", _DEFAULT_COLL_NAME).strip() or _DEFAULT_COLL_NAME
+_COLL_NAME = "SpecialtyAndProviderFlags"
 
 _cache: Dict[str, Dict[str, bool]] | None = None
 _cache_lock = threading.Lock()
@@ -52,8 +48,7 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
         conn = os.environ["MONGO_connectionString"]
         client = MongoClient(conn, serverSelectionTimeoutMS=15000)
         try:
-            coll_name = _catalog_collection_name()
-            cursor = client[_DB_NAME][coll_name].find(
+            cursor = client[_DB_NAME][_COLL_NAME].find(
                 {}, {"_id": 0, "Code": 1, "can_prescribe": 1,
                      "is_homeopathic": 1, "is_npi_registered": 1,
                      "is_disqualified": 1}
@@ -74,7 +69,7 @@ def load_catalog() -> Dict[str, Dict[str, bool]]:
         if not out:
             raise RuntimeError(
                 f"specialty_classification_catalog: collection "
-                f"{_DB_NAME}.{_catalog_collection_name()} returned 0 documents"
+                f"{_DB_NAME}.{_COLL_NAME} returned 0 documents"
             )
         _cache = out
         return _cache

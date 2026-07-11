@@ -700,18 +700,6 @@ _RUCC_CACHE: dict[str, dict] = {}
 _RUCC_CACHE_LOCK = threading.Lock()
 
 
-def _load_rucc_from_staging(env_prefix: str) -> dict:
-    from pipeline_db import get_mongo
-
-    coll = get_mongo()[f"{env_prefix}_PublicHealthData"]["pipeline_sources_rucc"]
-    out: dict[str, bool] = {}
-    for doc in coll.find({}):
-        fips = doc.get("county_fips") or doc.get("_id")
-        if fips is not None:
-            out[str(fips)] = bool(doc.get("urban"))
-    return out
-
-
 def _load_rucc(env_prefix: str, blob_container: str = "provider-data") -> dict:
     """Module-level cached. Reads rucc.json (the source-of-truth blob the
     gather_rucc_activity wrote) once per worker process, caches the
@@ -725,24 +713,17 @@ def _load_rucc(env_prefix: str, blob_container: str = "provider-data") -> dict:
         cached = _RUCC_CACHE.get(cache_key)
         if cached is not None:
             return cached
-    out: dict[str, bool] | None = None
-    try:
-        from blob_client import get_blob_service
-        blob = (
-            get_blob_service()
-            .get_container_client(blob_container)
-            .get_blob_client(RUCC_JSON_BLOB_NAME)
-        )
-        raw = blob.download_blob().readall()
-        out = {k: bool(v) for k, v in _json.loads(raw.decode("utf-8")).items()}
-    except Exception:
-        if os.environ.get("PIPELINE_TEST_MODE", "").lower() in ("1", "true", "yes"):
-            out = _load_rucc_from_staging(env_prefix)
-        else:
-            raise
+    from blob_client import get_blob_service
+    blob = (
+        get_blob_service()
+        .get_container_client(blob_container)
+        .get_blob_client(RUCC_JSON_BLOB_NAME)
+    )
+    raw = blob.download_blob().readall()
+    out = {k: bool(v) for k, v in _json.loads(raw.decode("utf-8")).items()}
     with _RUCC_CACHE_LOCK:
         _RUCC_CACHE[cache_key] = out
-    logging.info("rucc: loaded %d entries", len(out))
+    logging.info("rucc: loaded %d entries from %s", len(out), RUCC_JSON_BLOB_NAME)
     return out
 
 
