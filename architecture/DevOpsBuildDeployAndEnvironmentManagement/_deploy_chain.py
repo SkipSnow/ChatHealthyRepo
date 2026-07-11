@@ -554,7 +554,7 @@ def functionapp_exists(rg: str, app: str) -> bool:
 
 
 def functionapp_create(rg: str, app: str) -> None:
-    step(f"  creating Function App {app} (rg={rg}) on Consumption Linux Python {_GATEWAY_PYTHON_VERSION}")
+    step(f"  creating Function App {app} (rg={rg}) on Consumption Linux Python {GATEWAY_PYTHON_VERSION}")
     # Storage account lives in a different RG (FindCareAzureInfrastructure),
     # so pass its full resource ID — az functionapp create only accepts a
     # bare name when the storage account is in the same RG as the FA.
@@ -566,7 +566,7 @@ def functionapp_create(rg: str, app: str) -> None:
     )
     if sid.returncode != 0 or not sid.stdout.strip():
         sys.exit(
-            f"ERROR: storage account {_GATEWAY_STORAGE_ACCOUNT} not found\n"
+            f"ERROR: storage account {GATEWAY_STORAGE_ACCOUNT} not found\n"
             f"  stderr: {(sid.stderr or '').strip()[:500]}"
         )
     storage_id = sid.stdout.strip()
