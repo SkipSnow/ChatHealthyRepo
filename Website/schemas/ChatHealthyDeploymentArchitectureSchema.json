@@ -68,6 +68,11 @@
               "docker_local_container",
               "mongodb_cluster",
               "mongodb_collection",
+              "mongodb_atlas_cluster",
+              "azure_container_registry",
+              "azure_key_vault",
+              "azure_storage_account",
+              "azure_vnet_subnet",
               "github_actions_workflow_runner"
             ]
           },
@@ -75,6 +80,12 @@
           "promote_chain_bound": {
             "type": "boolean",
             "description": "Whether this target participates in the firm-level dev->qa->prod promote chain. Default true (absent == true). When true, the deploy script enforces that the local git branch matches the env_binding.branch declared for the requested env (dev branch deploys dev, qa branch deploys qa, main branch deploys prod) — both at firm-level entry and at per-target dispatch. When false, the target is single-environment shared infrastructure (e.g. the one pipeline Function App, the one durable router ACA, the one Automation Account and its runbooks) that every developer deploys to from any branch, typically dev. Both branch-vs-env guards in local_deploy.py skip targets carrying promote_chain_bound=false."
+          },
+
+          "provisioning": {
+            "type": "string",
+            "description": "Who owns creating this target. 'deploy_provisioned' — Deploy creates and reconciles this target on every invocation. 'pre_existing' — the target is provisioned once out of band by the operator; Deploy verifies presence + declared configuration on every invocation and refuses to proceed on absence (F-012 v7 §4). Default (absent) is 'deploy_provisioned'.",
+            "enum": ["deploy_provisioned", "pre_existing"]
           },
 
           "environments": {
@@ -350,6 +361,130 @@
                         },
                         "clients_partition_count": { "type": "integer", "minimum": 1, "maximum": 32 }
                       }
+                    }
+                  }
+                },
+
+                "mongodb_atlas_cluster": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "MongoDB Atlas cluster coordinates for this env binding. Present iff target_kind=='mongodb_atlas_cluster'. atlas_project_id + cluster_name identify the cluster; x509_trust_chain_ref names the KV secret that holds Atlas's X.509 trust chain so pipeline nodes with F-003-issued client certs can authenticate via mTLS. INVARIANT: Atlas clusters are pre-existing; Deploy verifies presence + configuration and never creates them.",
+                  "required": ["atlas_project_id", "cluster_name"],
+                  "properties": {
+                    "atlas_project_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "cluster_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "x509_trust_chain_ref": {
+                      "type": "string",
+                      "description": "KV secret name that holds the Atlas X.509 trust chain PEM bytes. Pipeline nodes fetch this via their attached MI on boot and pass it as pymongo tlsCAFile.",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                },
+
+                "azure_container_registry": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Azure Container Registry coordinates for this env binding. Present iff target_kind=='azure_container_registry'. registry_name is the ACR short name (login server derived as <registry_name>.azurecr.io); resource_group is the Azure RG that owns it. image_tag_convention documents the deploy-time tag shape (F-012 v7 §5 mandates git_head_sha as the tag).",
+                  "required": ["registry_name", "resource_group"],
+                  "properties": {
+                    "registry_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 50,
+                      "pattern": "^[a-zA-Z0-9]+$"
+                    },
+                    "resource_group": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "image_tag_convention": {
+                      "type": "string",
+                      "description": "Deploy-time image tag convention. Free-text documentation; the deploy script uses this to construct tags. F-012 v7 §5 mandates 'git_head_sha' for ACR tags.",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                },
+
+                "azure_key_vault": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Azure Key Vault coordinates for this env binding. Present iff target_kind=='azure_key_vault'. vault_name is the short name (URI derived as https://<vault_name>.vault.azure.net/); resource_group is the RG that owns it. Deploy verifies presence + configuration; never creates.",
+                  "required": ["vault_name", "resource_group"],
+                  "properties": {
+                    "vault_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 24,
+                      "pattern": "^[a-zA-Z0-9-]+$"
+                    },
+                    "resource_group": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "firewall_default_action": {
+                      "type": "string",
+                      "description": "Expected KV firewall default action. Deploy verifies this matches the live configuration.",
+                      "enum": ["Deny", "Allow"]
+                    }
+                  }
+                },
+
+                "azure_storage_account": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Azure Storage Account coordinates for this env binding. Present iff target_kind=='azure_storage_account'. account_name is the storage short name; resource_group is the RG. Deploy verifies presence + configuration; never creates.",
+                  "required": ["account_name", "resource_group"],
+                  "properties": {
+                    "account_name": {
+                      "type": "string",
+                      "minLength": 3,
+                      "maxLength": 24,
+                      "pattern": "^[a-z0-9]+$"
+                    },
+                    "resource_group": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                },
+
+                "azure_vnet_subnet": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Azure Virtual Network + subnet coordinates for this env binding. Present iff target_kind=='azure_vnet_subnet'. vnet_name + subnet_name identify the subnet the ACA Environment is placed into. Deploy verifies presence + configuration; never creates.",
+                  "required": ["vnet_name", "subnet_name", "resource_group"],
+                  "properties": {
+                    "vnet_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "subnet_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "resource_group": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "address_prefix": {
+                      "type": "string",
+                      "pattern": "^[0-9.]+/[0-9]+$"
                     }
                   }
                 },
