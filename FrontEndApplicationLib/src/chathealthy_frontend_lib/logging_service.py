@@ -54,7 +54,7 @@ def bind_user_object_to_log(user_object: Any) -> None:
     asgi request runs in its own async task and contextvars are
     per-task.
 
-    Per EPIC-002-F-003-S-003-REQ-B-007 the GUID lives at
+    Per EPIC-002-F-003-S-003-REQ-B-001 the GUID lives at
     user_object.current_session_token.get_auth_token() (first 32 bytes
     of the assembled session token).
     """

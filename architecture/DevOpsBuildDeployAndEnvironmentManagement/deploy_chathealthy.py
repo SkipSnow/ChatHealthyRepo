@@ -43,6 +43,11 @@ from _deploy_chain import (  # noqa: E402
     run_cloud_deploy,
     BUILD_ROOT_REL,
 )
+from cert_placement import (  # noqa: E402
+    provision_long_lived_certs,
+    bake_ca_chain_into_images,
+    LONG_LIVED_IDENTITIES,
+)
 
 
 VALID_ENVS = ("local", "dev", "qa", "prod")
@@ -174,6 +179,40 @@ def _collect_target_ids_for_env(repo_root: Path, env: str, target_arg: str) -> l
     return out
 
 
+def _provision_pipeline_certs(
+    repo_root: Path, env: str, target_ids: list[str]
+) -> None:
+    """F-012 §7.1 pipeline-cert provisioning bridge. Runs BEFORE the
+    substrate-specific deploy so ACR builds see the CA chain baked into
+    the image and ACA Jobs find their per-node cert at KV boot time.
+
+    No-op if no Azure pipeline target is in the current deploy set.
+    Idempotent: skips certs already at the KV node-scoped path and not
+    near expiry (rotation window handled inside cert_placement)."""
+    if not any(t.startswith("target_azure_") for t in target_ids):
+        return
+    from record_loader import RecordLoader
+    brain_path = (
+        repo_root / "brain" / "machine_artifacts" / "content"
+        / "deployment_architecture.json"
+    )
+    coll = RecordLoader().load_collection(brain_path)
+    kv_target = coll.by_target_id("target_azure_key_vault_pipeline")
+    acr_target = coll.by_target_id("target_azure_container_registry_pipeline")
+    if kv_target is None or acr_target is None:
+        sys.exit(
+            "ERROR: manifest missing target_azure_key_vault_pipeline or "
+            "target_azure_container_registry_pipeline. F-012 §7 cannot "
+            "run without both."
+        )
+    provision_long_lived_certs(
+        env=env,
+        kv_target=kv_target,
+        identities=LONG_LIVED_IDENTITIES,
+    )
+    bake_ca_chain_into_images(env=env, acr_target=acr_target)
+
+
 def _run_tests(env: str, tests: list[str]) -> int:
     """Run the named tests after the deploy completes. SMOKE_TEST_ENV is
     set so the test modules pick up the right URL set."""
@@ -247,6 +286,14 @@ def main(argv: list[str] | None = None) -> int:
         if not target_ids:
             sys.exit(f"ERROR: no targets matched --env={args.env} --target={args.target!r}")
         _staleness_gate(repo_root, args.env, target_ids)
+        # F-003 §5.1 / F-012 §7.1: for every Azure pipeline target
+        # in the current deploy set, ensure the long-lived identities
+        # named by the identity registry have a leaf cert + private key
+        # placed at the KV node-scoped path, and that the container
+        # image about to be pushed carries the CA chain baked in.
+        # Idempotent: skipped for targets not touching Azure and for
+        # certs already present + not near expiry.
+        _provision_pipeline_certs(repo_root, args.env, target_ids)
         rc = run_cloud_deploy(args.env, args.target)
 
     if rc == 0:

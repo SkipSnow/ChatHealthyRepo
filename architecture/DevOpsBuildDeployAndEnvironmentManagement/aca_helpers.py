@@ -26,8 +26,12 @@ from pathlib import Path
 # target's environments[<env>].azure_container_app block in
 # deployment_architecture.json (EPIC-008-F-012-S-001-REQ-B-008). No
 # module-level constants for any of these.
-
-_ACA_TARGET_ID = "target_azure_container_app_pipeline"
+#
+# Multi-target support (F-012 v7 §5 Control + Worker Job definitions):
+# the manifest carries one target_kind=azure_container_app record per
+# distinct ACA Job (control, worker). Callers pass an explicit
+# target_id or "all-aca-target-ids" iterators use aca_target_ids() to
+# discover the full set from the manifest.
 
 # Dockerfile ENV line stays in code because it's not a deploy fact — it's
 # a runtime contract between the image and Azure Functions worker, and
@@ -38,27 +42,76 @@ _DOCKERFILE_ENV = (
 )
 
 
+def _manifest_path() -> Path:
+    return (
+        Path(__file__).resolve().parents[2]
+        / "brain" / "machine_artifacts" / "content"
+        / "deployment_architecture.json"
+    )
+
+
 @functools.lru_cache(maxsize=1)
-def _load_aca_facts() -> dict:
-    """Return the ACA target's first env_binding's azure_container_app
-    block. Fails loud if missing."""
-    repo_root = Path(__file__).resolve().parents[2]
-    manifest = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
-    data = json.loads(manifest.read_text(encoding="utf-8"))
-    for rec in data["DeploymentTargetRecord"]:
-        if rec.get("target_id") != _ACA_TARGET_ID:
+def _load_all_records() -> list[dict]:
+    return json.loads(_manifest_path().read_text(encoding="utf-8"))["DeploymentTargetRecord"]
+
+
+def aca_target_ids() -> list[str]:
+    """Return every target_id in the manifest whose target_kind is
+    azure_container_app. Replaces the single-target `_ACA_TARGET_ID`
+    module constant. Callers iterate this when the operation applies
+    to every ACA target (Control + Worker + future long-lived ACAs)."""
+    return [
+        rec["target_id"]
+        for rec in _load_all_records()
+        if rec.get("target_kind") == "azure_container_app"
+    ]
+
+
+@functools.lru_cache(maxsize=None)
+def _load_aca_facts_for(target_id: str, env_binding: str | None = None) -> dict:
+    """Return the ACA target's azure_container_app block for the named
+    env_binding, or its first env_binding if none supplied. Fails loud
+    if missing."""
+    for rec in _load_all_records():
+        if rec.get("target_id") != target_id:
             continue
         envs = rec.get("environments", [])
         if not envs:
-            sys.exit(f"ERROR: target {_ACA_TARGET_ID!r} has no environments[].")
+            sys.exit(f"ERROR: target {target_id!r} has no environments[].")
+        if env_binding is not None:
+            for eb in envs:
+                if eb.get("env_binding") == env_binding:
+                    block = eb.get("azure_container_app")
+                    if not block:
+                        sys.exit(
+                            f"ERROR: target {target_id!r} env_binding "
+                            f"{env_binding!r} has no azure_container_app block."
+                        )
+                    return block
+            sys.exit(
+                f"ERROR: target {target_id!r} has no env_binding "
+                f"{env_binding!r}."
+            )
         block = envs[0].get("azure_container_app")
         if not block:
             sys.exit(
-                f"ERROR: target {_ACA_TARGET_ID!r} env_binding "
+                f"ERROR: target {target_id!r} env_binding "
                 f"{envs[0].get('env_binding')!r} has no azure_container_app block."
             )
         return block
-    sys.exit(f"ERROR: target {_ACA_TARGET_ID!r} not present in manifest.")
+    sys.exit(f"ERROR: target {target_id!r} not present in manifest.")
+
+
+def _load_aca_facts(target_id: str | None = None) -> dict:
+    """Back-compat shim. When no target_id supplied, defaults to the
+    first ACA target in the manifest — matches the previous single-
+    target behavior. New callers should pass the explicit target_id."""
+    if target_id is None:
+        ids = aca_target_ids()
+        if not ids:
+            sys.exit("ERROR: no azure_container_app targets in manifest.")
+        target_id = ids[0]
+    return _load_aca_facts_for(target_id)
 
 
 def _cflags() -> int:

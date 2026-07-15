@@ -1,73 +1,91 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
 
-"""ACA Control tier entrypoint — LLD v22 prov-control job."""
+"""Provider Pipeline LLD v23 §2.2 — ACA Control container entry point.
+
+Invoked by bootstrap.py inside the prov-control ACA Job as
+    python control_runner.py --run-id ... --env-prefix ... [--resume-from-step ...]
+The Runbook (§2.1) has already written the run manifest to
+chathealthyfrontend.pipeline.runs; this process picks it up, instantiates
+ProviderPipelineOrchestrator, and drives every stage.
+
+Local runs (developer workstation) invoke this same entry point; the
+aca_job_manager helper detects PIPELINE_LOCAL_MODE and no-ops the ARM
+calls.
+"""
 
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import os
 import sys
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+from blob_client import get_blob_service
+from pipeline_db import get_mongo
+from pipeline_env import load_pipeline_env
+from provider_pipeline_orchestrator import ProviderPipelineOrchestrator
+from step_context import PipelineArgs
+
 _log = logging.getLogger("control_runner")
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-if HERE not in sys.path:
-    sys.path.insert(0, HERE)
 
-from pipeline_env import load_pipeline_env
+def _parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Provider Pipeline Control runner")
+    parser.add_argument("--run-id", dest="run_id", default=None,
+                        help="Existing manifest run_id; new one is minted if omitted")
+    parser.add_argument("--env-prefix", dest="env_prefix",
+                        default=os.environ.get("ENV_PREFIX", "dev"),
+                        help="Environment prefix (local|dev|qa|prod)")
+    parser.add_argument("--states", dest="states", default="ALL",
+                        help="Comma-separated state list or ALL")
+    parser.add_argument("--resume-from-step", dest="resume_from_step", default=None,
+                        help="Skip completed steps up to this step name")
+    parser.add_argument("--expected-duration-minutes",
+                        dest="expected_duration_minutes",
+                        type=int, default=120)
+    parser.add_argument("--log-level", dest="log_level",
+                        default=os.environ.get("LOG_LEVEL", "INFO"))
+    return parser.parse_args(argv)
 
-load_pipeline_env()
-os.environ.setdefault("PROVIDER_FLAGS_COLLECTION", "SpecialtyAndProviderFlags_draft")
+
+def _states_list(raw: str) -> list[str]:
+    return [s.strip().upper() for s in raw.split(",") if s.strip()]
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Provider pipeline LLD v22 control runner")
-    parser.add_argument("--states", nargs="+", required=True)
-    parser.add_argument("--env-prefix", default=os.environ.get("ENV_PREFIX", "dev"))
-    parser.add_argument("--duration-minutes", type=int, default=120)
-    parser.add_argument("--provider-collection", default=None)
-    parser.add_argument("--resume-from-step", default=None)
-    parser.add_argument("--run-id", default=None)
-    parser.add_argument("--google-maps-enabled", action="store_true")
-    parser.add_argument("--pool-size", type=int, default=51)
-    parser.add_argument("--incremental", action="store_true")
-    args = parser.parse_args(argv)
+    ns = _parse_args(argv if argv is not None else sys.argv[1:])
 
-    from pipeline_db import get_mongo
-    from provider_pipeline_orchestrator import ProviderPipelineOrchestrator
-    from step_context import PipelineArgs
+    root = logging.getLogger()
+    if not root.handlers:
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(logging.Formatter(
+            "%(asctime)s %(levelname)s %(name)s %(message)s"))
+        root.addHandler(handler)
+    root.setLevel(getattr(logging, ns.log_level.upper(), logging.INFO))
 
-    pipeline_args = PipelineArgs(
-        states=[s.upper() for s in args.states],
-        env_prefix=args.env_prefix,
-        expected_duration_minutes=args.duration_minutes,
-        provider_collection=args.provider_collection,
-        google_maps_enabled=args.google_maps_enabled,
-        pool_size=args.pool_size,
-        resume_from_step=args.resume_from_step,
-        run_id=args.run_id,
-        incremental=args.incremental,
+    load_pipeline_env()
+
+    args = PipelineArgs(
+        states=_states_list(ns.states),
+        env_prefix=ns.env_prefix,
+        expected_duration_minutes=ns.expected_duration_minutes,
+        resume_from_step=ns.resume_from_step,
+        run_id=ns.run_id,
     )
 
-    orch = ProviderPipelineOrchestrator(
-        env=args.env_prefix,
+    orchestrator = ProviderPipelineOrchestrator(
+        env=ns.env_prefix,
         config={},
         mongo_client=get_mongo(),
-        blob_client=None,
+        blob_client=get_blob_service(),
     )
-    manifest = orch.run(pipeline_args)
-    manifest.metrics["states"] = pipeline_args.resolved_states()
-    print(json.dumps({
-        "run_id": manifest.run_id,
-        "status": manifest.status,
-        "completed_steps": sorted(manifest.completed_steps),
-        "metrics": manifest.metrics,
-    }, indent=2))
-    return 0 if manifest.status in ("completed", "quiesced") else 1
+    _log.info("control_runner: starting run env=%s states=%s",
+              ns.env_prefix, ns.states)
+    manifest = orchestrator.run(args)
+    _log.info("control_runner: run %s finished status=%s",
+              manifest.run_id, manifest.status)
+    return 0 if manifest.status == "succeeded" else 1
 
 
 if __name__ == "__main__":

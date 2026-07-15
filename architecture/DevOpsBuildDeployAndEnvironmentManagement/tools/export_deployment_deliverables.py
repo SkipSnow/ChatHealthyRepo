@@ -438,7 +438,9 @@ def main() -> None:
     rows = collect_fact_rows(manifest)
     base = DEVOPS / f"deployment_facts_inventory_{TODAY}"
     write_spreadsheet(rows, base)
-    md_to_docx(MD_PATH, PLAN_DOCX_PATH)
+    plan_md = MD_PATH if MD_PATH.is_file() else AUDIT_DOCS / "DeploymentArchitectureDesignAndMigrationPlanPhase_v6.md"
+    if plan_md.is_file():
+        md_to_docx(plan_md, PLAN_DOCX_PATH)
     for version in ("v2", "v3", "v4", "v6"):
         md_plan = AUDIT_DOCS / f"DeploymentArchitectureDesignAndMigrationPlanPhase_{version}.md"
         if md_plan.is_file():
