@@ -167,10 +167,15 @@ def _start_ca_job_via_arm(csr_pem: bytes, subject_cn: str,
         "caller_principal": caller_principal,
         "caller_ad_token": azure_ad_token,
     })
+    # Azure Automation Python 3 delivers job parameter *values* as
+    # sys.argv[1..] and rejects argv values containing spaces. Base64
+    # the mint JSON (same pattern as CHDM health_check payloads).
+    import base64
+    mint_b64 = base64.b64encode(mint_request.encode("utf-8")).decode("ascii")
     body = {
         "properties": {
             "runbook": {"name": runbook},
-            "parameters": {"mint_request": mint_request},
+            "parameters": {"mint_request": mint_b64},
         }
     }
     status, resp = _arm_request("PUT", url, azure_ad_token, body=body, timeout=60)
@@ -341,14 +346,18 @@ def _invoke_issuance(csr_pem: bytes, subject_cn: str,
         )
 
     result = _poll_job(rg, aa, job_id, azure_ad_token)
-    if result["status"] != "Completed":
-        raise Exception(
-            f"CA job {job_id} ended status={result['status']}: "
-            f"{result['exception'][:800]}"
-        )
-    parsed = _parse_ca_response(
-        _job_output_text(rg, aa, job_id, azure_ad_token)
-    )
+    output_text = _job_output_text(rg, aa, job_id, azure_ad_token)
+    # CaEndpointRunbook emits CA_RESPONSE even on refusal (non-zero exit).
+    # Prefer parsing that over a bare Failed status with empty exception.
+    try:
+        parsed = _parse_ca_response(output_text)
+    except Exception:
+        if result["status"] != "Completed":
+            raise Exception(
+                f"CA job {job_id} ended status={result['status']}: "
+                f"{result['exception'][:800]}\nOutput tail:\n{output_text[-1500:]}"
+            )
+        raise
     if "error" in parsed:
         raise Exception(
             f"CA refused mint at step '{parsed.get('refused_at', '?')}': "

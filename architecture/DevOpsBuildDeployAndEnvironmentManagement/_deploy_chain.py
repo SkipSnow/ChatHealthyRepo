@@ -852,6 +852,77 @@ def az_automation_runbook_ensure_exists(rg: str, aa: str, runbook: str) -> None:
     step(f"  runbook {runbook} created.")
 
 
+def az_automation_runbook_ensure_mint_request_parameter(
+    rg: str, aa: str, runbook: str,
+) -> None:
+    """Declare the `mint_request` string parameter on CaEndpointRunbook.
+
+    Azure Automation Python 3 only injects job parameters into the runbook
+    globals when they are declared on the runbook resource. Without this,
+    PUT /jobs can carry mint_request in properties.parameters while the
+    script sees NameError / empty globals (F-003 deploy-time mint path).
+    """
+    if runbook != "CaEndpointRunbook":
+        return
+    sub = az_subscription_id()
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/runbooks/{runbook}?api-version=2023-11-01"
+    )
+    get = subprocess.run(
+        ["az", "rest", "--method", "get", "--url", url, "-o", "json"],
+        capture_output=True, text=True,
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
+    )
+    if get.returncode != 0:
+        sys.exit(
+            f"ERROR: cannot read runbook {runbook!r} to declare mint_request: "
+            f"{(get.stderr or '')[:800]}"
+        )
+    doc = json.loads(get.stdout or "{}")
+    props = doc.get("properties") or {}
+    params = dict(props.get("parameters") or {})
+    desired = {
+        "type": "string",
+        "isMandatory": False,
+        "position": 0,
+        "defaultValue": "",
+        "description": "F-003 mint payload JSON (csr_pem, caller_principal, caller_ad_token)",
+    }
+    if (
+        isinstance(params.get("mint_request"), dict)
+        and params["mint_request"].get("type") == "string"
+    ):
+        step(f"  runbook {runbook} mint_request parameter already declared")
+        return
+    params["mint_request"] = desired
+    body = {
+        "location": doc.get("location"),
+        "properties": {
+            "runbookType": props.get("runbookType") or "Python3",
+            "logVerbose": bool(props.get("logVerbose")),
+            "logProgress": bool(props.get("logProgress")),
+            "parameters": params,
+        },
+    }
+    step(f"  declaring mint_request parameter on {runbook}")
+    put = subprocess.run(
+        [
+            "az", "rest", "--method", "put", "--url", url,
+            "--headers", "Content-Type=application/json",
+            "--body", json.dumps(body), "-o", "none",
+        ],
+        capture_output=True, text=True,
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
+    )
+    if put.returncode != 0:
+        sys.exit(
+            f"ERROR: failed to declare mint_request on {runbook!r}: "
+            f"{(put.stderr or '')[:1500]}"
+        )
+
+
 def az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, content_path: Path) -> None:
     """Upload runbook source via ARM draft/content (UTF-8).
 
@@ -1609,6 +1680,7 @@ def deploy_azure_automation_runbook(
     # First-time deploys need a Python3 runbook resource created; subsequent
     # deploys see it and no-op.
     az_automation_runbook_ensure_exists(rg, aa, runbook)
+    az_automation_runbook_ensure_mint_request_parameter(rg, aa, runbook)
     # Replace runbook bytes + publish (so next scheduled tick uses the new code).
     az_automation_runbook_replace_content(rg, aa, runbook, content_path)
     az_automation_runbook_publish(rg, aa, runbook)

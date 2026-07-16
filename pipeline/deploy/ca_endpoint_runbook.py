@@ -73,18 +73,48 @@ def _log_event(event: str, **fields) -> None:
 
 
 def _parse_mint_input() -> dict:
-    """Accept either Automation webhook WEBHOOKDATA or a PUT /jobs
-    `mint_request` parameter (deploy-time path). Both carry the same
-    CSR / principal / token fields (F-003 Design v1 sec 4.1)."""
-    # Deploy-time: Azure Automation injects runbook parameters as
-    # module-level globals. Prefer an explicit mint_request JSON blob.
+    """Accept Automation webhook WEBHOOKDATA, sys.argv mint payload
+    (deploy-time PUT /jobs), or a declared mint_request global.
+
+    Azure Automation Python 3 delivers job parameter values as
+    sys.argv[1..] (not named globals). Deploy-time mints pass a
+    base64-encoded JSON blob to avoid AA's no-spaces-in-argv limit.
+    WEBHOOKDATA remains the webhook path.
+    """
+    import base64
+
+    def _coerce_payload(raw: str) -> dict:
+        if not raw or not str(raw).strip():
+            return {}
+        text = str(raw).strip()
+        # Prefer base64 (deploy-time); fall back to raw JSON (local tests).
+        try:
+            decoded = base64.b64decode(text, validate=True).decode("utf-8")
+            parsed = json.loads(decoded)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            pass
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            return {}
+        return {}
+
+    if len(sys.argv) > 1 and sys.argv[1]:
+        got = _coerce_payload(sys.argv[1])
+        if got:
+            return got
+
     mint_request = globals().get("mint_request")
     if mint_request:
-        if isinstance(mint_request, str):
-            return json.loads(mint_request) if mint_request.strip() else {}
         if isinstance(mint_request, dict):
             return mint_request
-    # Webhook path: WEBHOOKDATA wraps RequestBody.
+        if isinstance(mint_request, str):
+            return _coerce_payload(mint_request)
+
     raw = os.environ.get("WEBHOOKDATA", "")
     if not raw:
         return {}
