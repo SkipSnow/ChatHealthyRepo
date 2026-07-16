@@ -459,7 +459,13 @@ def ensure_aca_job(
 
 
 def seed_kv_secrets_from_env(vault_name: str, secret_names: list[str]) -> None:
-    """Seed declared secret names from process env / dotenv into KV (Set)."""
+    """Seed declared secret names from process env / dotenv into KV (Set).
+
+    Manifest secrets keys use env-var spelling (underscores). Azure Key
+    Vault secret names allow only alphanumerics and hyphens, so underscores
+    are converted to hyphens for the KV name while the env lookup keeps
+    the original key.
+    """
     from dotenv import load_dotenv
 
     repo_root = Path(__file__).resolve().parents[2]
@@ -471,12 +477,13 @@ def seed_kv_secrets_from_env(vault_name: str, secret_names: list[str]) -> None:
         if not val:
             step(f"skip KV seed {name}: not present in local env")
             continue
-        step(f"seed KV secret {name}")
+        kv_name = name.replace("_", "-")
+        step(f"seed KV secret {kv_name} (from env {env_key})")
         _az(
             [
                 "keyvault", "secret", "set",
                 "--vault-name", vault_name,
-                "--name", name,
+                "--name", kv_name,
                 "--value", val,
             ]
         )
