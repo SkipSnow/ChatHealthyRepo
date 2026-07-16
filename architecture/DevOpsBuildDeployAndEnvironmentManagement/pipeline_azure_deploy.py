@@ -261,6 +261,45 @@ def ensure_pipeline_automation_identity(
         check=False,
     )
     step(f"AA {aa_name} identity={mi_name} oid={mi_oid} KV Secrets User granted")
+    # AA Python sandboxes need AZURE_CLIENT_ID for user-assigned IMDS.
+    client_id = mi.get("clientId") or ""
+    if client_id:
+        sub = _az(
+            ["account", "show", "--query", "id", "-o", "tsv"]
+        ).stdout.strip()
+        var_url = (
+            f"https://management.azure.com/subscriptions/{sub}"
+            f"/resourceGroups/{rg}"
+            f"/providers/Microsoft.Automation/automationAccounts/{aa_name}"
+            f"/variables/AZURE_CLIENT_ID?api-version=2023-11-01"
+        )
+        var_body = {
+            "properties": {
+                "value": json.dumps(client_id),
+                "isEncrypted": False,
+                "description": "mi-runbook client id for IMDS token requests",
+            }
+        }
+        import tempfile
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", suffix=".json", delete=False,
+        ) as tmp:
+            json.dump(var_body, tmp)
+            tmp_path = tmp.name
+        try:
+            _az(
+                [
+                    "rest", "--method", "put", "--url", var_url,
+                    "--headers", "Content-Type=application/json",
+                    "--body", f"@{tmp_path}", "-o", "none",
+                ]
+            )
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+        step(f"AA Automation Variable AZURE_CLIENT_ID={client_id}")
     return mi_name
 
 

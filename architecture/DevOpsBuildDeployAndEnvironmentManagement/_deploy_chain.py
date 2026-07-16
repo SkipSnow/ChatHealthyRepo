@@ -1680,7 +1680,6 @@ def deploy_azure_automation_runbook(
     # First-time deploys need a Python3 runbook resource created; subsequent
     # deploys see it and no-op.
     az_automation_runbook_ensure_exists(rg, aa, runbook)
-    az_automation_runbook_ensure_mint_request_parameter(rg, aa, runbook)
     # Replace runbook bytes + publish (so next scheduled tick uses the new code).
     az_automation_runbook_replace_content(rg, aa, runbook, content_path)
     az_automation_runbook_publish(rg, aa, runbook)
