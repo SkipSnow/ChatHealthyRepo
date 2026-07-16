@@ -24,48 +24,44 @@ class EnvironmentBinding:
 
     env_binding: str  # closed enum: local|dev|qa|prod
     node_address: str  # addressable location; {env} substitution allowed
-    azure: dict | None = None  # present iff target_kind=='azure_function_app';
-                                # keys: resource_group, function_app, task_hub
+    azure: dict | None = None
     azure_container_app: dict | None = None
-                                # present iff target_kind=='azure_container_app';
-                                # keys: resource_group, container_app,
-                                # container_app_environment, task_hub,
-                                # min_replicas, max_replicas, cpu, memory_gi
+    azure_container_apps_environment: dict | None = None
+    azure_container_app_job: dict | None = None
     azure_automation: dict | None = None
-                                # present iff target_kind=='azure_automation_runbook';
-                                # keys: resource_group, automation_account,
-                                # runbook_name, schedule_names[]
     azure_automation_account: dict | None = None
-                                # present iff target_kind=='azure_automation_account';
-                                # keys: vnet_name, vm_subnet_name,
-                                # vm_subnet_address_prefix, hybrid_worker_group_name,
-                                # admin_private_key_filename, automation_api_version,
-                                # network_api_version
+    azure_container_registry: dict | None = None
+    azure_key_vault: dict | None = None
+    azure_storage_account: dict | None = None
+    azure_vnet: dict | None = None
+    azure_resource_group: dict | None = None
+    identity: dict | None = None
     huggingface_space: dict | None = None
-                                # present iff target_kind=='hf_space'; keys: space
     cloudflare_pages: dict | None = None
-                                # present iff target_kind=='cloudflare_pages_project';
-                                # keys: project_name
-    branch: str | None = None   # source git branch this env deploys from;
-                                 # required for git-branch-bound target_kinds
-                                 # (cloudflare_pages_project) per REQ-T-050
+    branch: str | None = None
 
     def to_dict(self) -> dict:
         out: dict = {"env_binding": self.env_binding, "node_address": self.node_address}
-        if self.azure is not None:
-            out["azure"] = self.azure
-        if self.azure_container_app is not None:
-            out["azure_container_app"] = self.azure_container_app
-        if self.azure_automation is not None:
-            out["azure_automation"] = self.azure_automation
-        if self.azure_automation_account is not None:
-            out["azure_automation_account"] = self.azure_automation_account
-        if self.huggingface_space is not None:
-            out["huggingface_space"] = self.huggingface_space
-        if self.cloudflare_pages is not None:
-            out["cloudflare_pages"] = self.cloudflare_pages
-        if self.branch is not None:
-            out["branch"] = self.branch
+        for key in (
+            "azure",
+            "azure_container_app",
+            "azure_container_apps_environment",
+            "azure_container_app_job",
+            "azure_automation",
+            "azure_automation_account",
+            "azure_container_registry",
+            "azure_key_vault",
+            "azure_storage_account",
+            "azure_vnet",
+            "azure_resource_group",
+            "identity",
+            "huggingface_space",
+            "cloudflare_pages",
+            "branch",
+        ):
+            val = getattr(self, key)
+            if val is not None:
+                out[key] = val
         return out
 
     @classmethod
@@ -75,8 +71,16 @@ class EnvironmentBinding:
             node_address=d["node_address"],
             azure=d.get("azure"),
             azure_container_app=d.get("azure_container_app"),
+            azure_container_apps_environment=d.get("azure_container_apps_environment"),
+            azure_container_app_job=d.get("azure_container_app_job"),
             azure_automation=d.get("azure_automation"),
             azure_automation_account=d.get("azure_automation_account"),
+            azure_container_registry=d.get("azure_container_registry"),
+            azure_key_vault=d.get("azure_key_vault"),
+            azure_storage_account=d.get("azure_storage_account"),
+            azure_vnet=d.get("azure_vnet"),
+            azure_resource_group=d.get("azure_resource_group"),
+            identity=d.get("identity"),
             huggingface_space=d.get("huggingface_space"),
             cloudflare_pages=d.get("cloudflare_pages"),
             branch=d.get("branch"),
