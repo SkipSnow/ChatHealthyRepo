@@ -186,6 +186,84 @@ def ensure_managed_identity(target, env: str) -> str:
     return name
 
 
+def ensure_pipeline_automation_identity(
+    *,
+    rg: str,
+    aa_name: str,
+    mi_name: str = "mi-runbook",
+    vault_name: str = "kv-chpipeline-dev",
+) -> str:
+    """Attach mi-runbook to the pipeline Automation Account and grant KV read.
+
+    F-003: only mi-runbook may read ca-intermediate-privatekey. The AA job
+    sandbox obtains tokens via the user-assigned identity attached here.
+    """
+    step(f"ensure AA {aa_name} uses user-assigned identity {mi_name}")
+    mi = _az_json(
+        ["identity", "show", "--name", mi_name, "--resource-group", rg]
+    )
+    if not mi or not mi.get("id"):
+        sys.exit(
+            f"ERROR: managed identity {mi_name!r} missing in {rg!r}; "
+            f"deploy target_identity_mi_runbook first"
+        )
+    mi_id = mi["id"]
+    mi_oid = mi["principalId"]
+    # Enable user-assigned identity on the AA (keep any system-assigned).
+    _az(
+        [
+            "automation", "account", "update",
+            "--name", aa_name,
+            "--resource-group", rg,
+            "--assign-identity",
+            "--user-assigned", mi_id,
+        ],
+        check=False,
+    )
+    # Prefer REST PUT identity block — CLI update flags vary by extension version.
+    sub = _az(
+        ["account", "show", "--query", "id", "-o", "tsv"]
+    ).stdout.strip()
+    aa_url = (
+        f"https://management.azure.com/subscriptions/{sub}"
+        f"/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa_name}"
+        f"?api-version=2023-11-01"
+    )
+    body = {
+        "identity": {
+            "type": "UserAssigned",
+            "userAssignedIdentities": {mi_id: {}},
+        }
+    }
+    _az(
+        [
+            "rest", "--method", "patch", "--url", aa_url,
+            "--headers", "Content-Type=application/json",
+            "--body", json.dumps(body), "-o", "none",
+        ]
+    )
+    # Key Vault Secrets User on the vault (covers intermediate key + certs).
+    vault_id = _az(
+        [
+            "keyvault", "show", "--name", vault_name,
+            "--query", "id", "-o", "tsv",
+        ]
+    ).stdout.strip()
+    _az(
+        [
+            "role", "assignment", "create",
+            "--assignee-object-id", mi_oid,
+            "--assignee-principal-type", "ServicePrincipal",
+            "--role", "Key Vault Secrets User",
+            "--scope", vault_id,
+        ],
+        check=False,
+    )
+    step(f"AA {aa_name} identity={mi_name} oid={mi_oid} KV Secrets User granted")
+    return mi_name
+
+
 def ensure_acr(target, env: str) -> str:
     block = _env_block(target, env, "azure_container_registry")
     name = block["registry_name"]

@@ -286,14 +286,9 @@ def main(argv: list[str] | None = None) -> int:
         if not target_ids:
             sys.exit(f"ERROR: no targets matched --env={args.env} --target={args.target!r}")
         _staleness_gate(repo_root, args.env, target_ids)
-        # F-003 §5.1 / F-012 §7.1: for every Azure pipeline target
-        # in the current deploy set, ensure the long-lived identities
-        # named by the identity registry have a leaf cert + private key
-        # placed at the KV node-scoped path, and that the container
-        # image about to be pushed carries the CA chain baked in.
-        # Idempotent: skipped for targets not touching Azure and for
-        # certs already present + not near expiry.
-        _provision_pipeline_certs(repo_root, args.env, target_ids)
+        # F-003 §5.1 / F-012 §7.1 cert placement runs inside run_cloud_deploy
+        # after CA runbooks and before ACA Jobs (dependency order). Do not
+        # call it here — CaEndpointRunbook must already be published.
         rc = run_cloud_deploy(args.env, args.target)
 
     if rc == 0:

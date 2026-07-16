@@ -1916,8 +1916,18 @@ def deploy_one(
     if target_kind == "azure_container_app_job":
         return pad.ensure_aca_job(target, env, repo_root=repo_root)
     if target_kind == "azure_automation_account":
-        # Pre-existing shell — presence check only.
+        # Pre-existing shell — presence check + attach mi-runbook for F-003.
         step(f"verify automation account target {target_id}")
+        for eb in target.environments:
+            if eb.env_binding != env:
+                continue
+            # Pipeline AA lives under rg-chathealthy-pipeline-dev.
+            na = eb.node_address or ""
+            if "rg-chathealthy-pipeline-dev" in na or "ChatHealthyJobManager" in na:
+                pad.ensure_pipeline_automation_identity(
+                    rg="rg-chathealthy-pipeline-dev",
+                    aa_name="ChatHealthyJobManager",
+                )
         return target_id
 
     if not build_dir.is_dir():
@@ -2028,11 +2038,14 @@ def select_target_ids(coll: DeploymentCollection, target_arg: str) -> list[tuple
 
 
 def _dependency_sort_targets(selected: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    """Order selected targets so the wrapper (cloudflare_pages_project)
-    always deploys LAST, after the HF backends it points at. The wrapper
-    must never publish URLs pointing at backends that didn't deploy.
+    """Order selected targets so dependencies deploy before dependents.
 
-    Order: hf_space -> azure_* -> cloudflare_pages_project -> everything else.
+    Pipeline (F-012 / F-003): RG -> shell (KV/storage/VNet) -> identities
+    -> ACR -> ACA Env -> Automation Account -> CA runbooks -> ACA Jobs
+    -> remaining runbooks. Cert placement (not a target) runs between CA
+    runbooks and ACA Jobs inside run_cloud_deploy.
+
+    Front-end: HF backends before Cloudflare wrapper.
     """
     rank = {
         "azure_resource_group": 0,
@@ -2042,15 +2055,26 @@ def _dependency_sort_targets(selected: list[tuple[str, str]]) -> list[tuple[str,
         "identity": 2,
         "azure_container_registry": 3,
         "azure_container_apps_environment": 4,
-        "azure_container_app_job": 5,
-        "azure_automation_account": 6,
-        "azure_automation_runbook": 7,
-        "hf_space": 8,
-        "azure_function_app": 9,
-        "azure_container_app": 9,
-        "cloudflare_pages_project": 10,
+        "azure_automation_account": 5,
+        # CA runbooks = 6 (see secondary key below)
+        # ACA jobs = 7
+        # other runbooks = 8
+        "azure_container_app_job": 7,
+        "hf_space": 9,
+        "azure_function_app": 10,
+        "azure_container_app": 10,
+        "cloudflare_pages_project": 11,
     }
-    return sorted(selected, key=lambda tk: (rank.get(tk[1], 99), tk[0]))
+
+    def _key(tk: tuple[str, str]) -> tuple[int, str]:
+        tid, kind = tk
+        if kind == "azure_automation_runbook":
+            if "_ca_" in tid:
+                return (6, tid)
+            return (8, tid)
+        return (rank.get(kind, 99), tid)
+
+    return sorted(selected, key=_key)
 
 
 def _hf_space_live_url_for_target(coll: DeploymentCollection, env: str, target_id: str) -> Optional[str]:
@@ -2132,7 +2156,39 @@ def run_cloud_deploy(env: str, target_arg: str) -> int:
     succeeded: list[str] = []
     failed: list[tuple[str, str]] = []  # (target_id, error_message)
     any_hf_failed = False
+    pipeline_certs_done = False
     for target_id, target_kind in selected:
+        # F-012 §7.1 / F-003 §5.1: after CA issuance runbooks are live,
+        # provision long-lived leaf certs BEFORE ACA Jobs (images/jobs
+        # need the chain + node certs). Runs once per pipeline deploy.
+        if (
+            not pipeline_certs_done
+            and target_arg == "pipeline"
+            and target_kind == "azure_container_app_job"
+        ):
+            from cert_placement import (
+                LONG_LIVED_IDENTITIES,
+                bake_ca_chain_into_images,
+                provision_long_lived_certs,
+            )
+            kv_target = coll.by_target_id("target_azure_key_vault_pipeline")
+            acr_target = coll.by_target_id(
+                "target_azure_container_registry_pipeline"
+            )
+            if kv_target is None or acr_target is None:
+                sys.exit(
+                    "ERROR: manifest missing target_azure_key_vault_pipeline "
+                    "or target_azure_container_registry_pipeline. F-012 §7 "
+                    "cannot run without both."
+                )
+            step("F-012 §7.1 / F-003 §5.1: provisioning long-lived pipeline certs")
+            provision_long_lived_certs(
+                env=env,
+                kv_target=kv_target,
+                identities=LONG_LIVED_IDENTITIES,
+            )
+            bake_ca_chain_into_images(env=env, acr_target=acr_target)
+            pipeline_certs_done = True
         # Wrapper gate: if any HF backend failed in this same run, refuse
         # to publish the wrapper. Live wrapper bytes are the contract
         # against the live backends; we never let them disagree.

@@ -267,30 +267,50 @@ def _deployer_object_id() -> str:
     return r2.stdout.strip()
 
 
+def _find_repo_root(start: Path) -> Path:
+    p = start.resolve()
+    while p != p.parent:
+        if (p / ".git").exists():
+            return p
+        p = p.parent
+    sys.exit(f"ERROR: no .git found walking up from {start}")
+
+
 def _mint_leaf_cert(subject: str) -> tuple[str, str, str]:
     """Call the F-003 CA client library to mint one leaf cert for
     `subject`. Returns (cert_pem, key_pem, expires_iso)."""
     # Import lazily so this module is safe to import in contexts that
     # don't touch the CA (e.g. cross-check smoke drivers).
-    sys.path.insert(
-        0,
-        str(Path(__file__).resolve().parents[1] / "pipeline" / "Code")
-        if (Path(__file__).resolve().parents[1] / "pipeline").is_dir()
-        else str(Path(__file__).resolve().parent),
-    )
-    try:
-        import chathealthy_ca  # type: ignore[import-not-found]
-    except ImportError:
+    code_dir = _find_repo_root(Path(__file__)) / "pipeline" / "Code"
+    if not (code_dir / "chathealthy_ca.py").is_file():
         sys.exit(
-            "ERROR: chathealthy_ca module not on sys.path; cert placement "
+            f"ERROR: chathealthy_ca.py missing at {code_dir}; cert placement "
             "requires the pipeline/Code CA client library."
         )
+    sys.path.insert(0, str(code_dir))
+    try:
+        import chathealthy_ca  # type: ignore[import-not-found]
+    except ImportError as exc:
+        sys.exit(
+            "ERROR: chathealthy_ca module not importable; cert placement "
+            f"requires the pipeline/Code CA client library ({exc})."
+        )
+    # F-003 §4.3 deployer entitlement: principal name must contain
+    # "sp-deployer". Pass that canonical role name (not the SP client id).
+    os.environ.setdefault("CHATHEALTHY_CA_AA_RG", "rg-chathealthy-pipeline-dev")
+    os.environ.setdefault("CHATHEALTHY_CA_AA_NAME", "ChatHealthyJobManager")
+    os.environ.setdefault("CHATHEALTHY_CA_AA_RUNBOOK", "CaEndpointRunbook")
+    os.environ.setdefault(
+        "AZURE_SUBSCRIPTION_ID",
+        "7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee",
+    )
     from azure.identity import DefaultAzureCredential
     cred = DefaultAzureCredential()
     token = cred.get_token("https://management.azure.com/.default").token
     cert_pem, key_pem, expires_iso = chathealthy_ca.mint_cert(
         subject=subject,
         azure_ad_token=token,
+        caller_principal="sp-deployer",
     )
     return (
         cert_pem.decode("utf-8") if isinstance(cert_pem, bytes) else cert_pem,

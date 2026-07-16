@@ -72,9 +72,19 @@ def _log_event(event: str, **fields) -> None:
     LOG.info(json.dumps(record, default=str))
 
 
-def _parse_webhook_input() -> dict:
-    """WEBHOOKDATA is set by Automation on webhook fire. RequestBody is
-    a JSON blob (may be stringified inside the outer JSON)."""
+def _parse_mint_input() -> dict:
+    """Accept either Automation webhook WEBHOOKDATA or a PUT /jobs
+    `mint_request` parameter (deploy-time path). Both carry the same
+    CSR / principal / token fields (F-003 Design v1 sec 4.1)."""
+    # Deploy-time: Azure Automation injects runbook parameters as
+    # module-level globals. Prefer an explicit mint_request JSON blob.
+    mint_request = globals().get("mint_request")
+    if mint_request:
+        if isinstance(mint_request, str):
+            return json.loads(mint_request) if mint_request.strip() else {}
+        if isinstance(mint_request, dict):
+            return mint_request
+    # Webhook path: WEBHOOKDATA wraps RequestBody.
     raw = os.environ.get("WEBHOOKDATA", "")
     if not raw:
         return {}
@@ -192,18 +202,18 @@ def _emit_response(payload: dict) -> None:
 def main() -> int:
     _log_event("runbook_start")
     try:
-        webhook = _parse_webhook_input()
+        webhook = _parse_mint_input()
     except Exception as exc:
         _log_event("webhook_parse_failed",
                    error_type=type(exc).__name__,
                    error_msg=str(exc))
-        _emit_response({"error": "webhook payload not valid JSON",
+        _emit_response({"error": "mint payload not valid JSON",
                         "refused_at": "webhook_parse"})
         return 2
 
     if not webhook:
-        _log_event("no_webhook_data")
-        _emit_response({"error": "no webhook data",
+        _log_event("no_mint_input")
+        _emit_response({"error": "no mint input (WEBHOOKDATA or mint_request)",
                         "refused_at": "webhook_parse"})
         return 2
 
