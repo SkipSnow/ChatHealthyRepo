@@ -7797,11 +7797,11 @@
               },
               {
                 "name": "cffi",
-                "content_url": "https://files.pythonhosted.org/packages/4a/56/572f7f728b20e4d51766e63d7de811e45c7cae727dc1f769caad2973fb52/cffi-1.16.0-cp38-cp38-win_amd64.whl"
+                "content_url": "https://files.pythonhosted.org/packages/c9/7c/43d81bdd5a915923c3bad5bb4bff401ea00ccc8e28433fb6083d2e3bf58e/cffi-1.16.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
               },
               {
                 "name": "cryptography",
-                "content_url": "https://files.pythonhosted.org/packages/f6/23/b28f4a03650512efff13a8fcbb977bac178a765c5a887a6720bee13fa85b/cryptography-41.0.7-cp37-abi3-win_amd64.whl"
+                "content_url": "https://files.pythonhosted.org/packages/fa/e2/b7e6e8c261536c489d9cf908769880d94bd5d9a187e166b0dc838d2e6a56/cryptography-42.0.8-cp39-abi3-manylinux_2_28_x86_64.whl"
               }
             ]
           }
@@ -7841,11 +7841,11 @@
               },
               {
                 "name": "cffi",
-                "content_url": "https://files.pythonhosted.org/packages/4a/56/572f7f728b20e4d51766e63d7de811e45c7cae727dc1f769caad2973fb52/cffi-1.16.0-cp38-cp38-win_amd64.whl"
+                "content_url": "https://files.pythonhosted.org/packages/c9/7c/43d81bdd5a915923c3bad5bb4bff401ea00ccc8e28433fb6083d2e3bf58e/cffi-1.16.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
               },
               {
                 "name": "cryptography",
-                "content_url": "https://files.pythonhosted.org/packages/f6/23/b28f4a03650512efff13a8fcbb977bac178a765c5a887a6720bee13fa85b/cryptography-41.0.7-cp37-abi3-win_amd64.whl"
+                "content_url": "https://files.pythonhosted.org/packages/fa/e2/b7e6e8c261536c489d9cf908769880d94bd5d9a187e166b0dc838d2e6a56/cryptography-42.0.8-cp39-abi3-manylinux_2_28_x86_64.whl"
               }
             ]
           }
@@ -7857,7 +7857,7 @@
           "source_location": "pipeline/deploy/ca_endpoint_runbook.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "1ae33bc25e182e8a4593fcf5fb9dc5a42ef9984e32cd86a2be9dfe9b77912cbb"
+          "content_hash": "d576b8fb09cdce2d4a3778dbf8fbf72d0f7930f75e3ea5736e42b9ef03632709"
         }
       ],
       "secrets": {
