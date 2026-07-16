@@ -79,14 +79,14 @@ def _bootstrap(vault_uri: str) -> None:
     root_cert = ch.build_root_ca_cert(root_key)
     _log_event("root_ca_created",
                subject=root_cert.subject.rfc4514_string(),
-               not_after=root_cert.not_valid_after_utc.isoformat())
+               not_after=ch.cert_not_after_iso(root_cert))
 
     _log_event("generate_intermediate_ca_keypair")
     inter_key = ch.generate_ca_keypair()
     inter_cert = ch.build_intermediate_ca_cert(inter_key, root_key, root_cert)
     _log_event("intermediate_ca_created",
                subject=inter_cert.subject.rfc4514_string(),
-               not_after=inter_cert.not_valid_after_utc.isoformat())
+               not_after=ch.cert_not_after_iso(inter_cert))
 
     # Write four material secrets + marker.
     _log_event("kv_put_root_privatekey")

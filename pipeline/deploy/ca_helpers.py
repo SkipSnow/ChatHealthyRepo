@@ -34,12 +34,40 @@ import urllib.request
 from typing import Optional
 
 from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
 
 LOG = logging.getLogger(__name__)
+_BACKEND = default_backend()
+
+
+def cert_not_after_iso(cert: x509.Certificate) -> str:
+    """ISO-8601 notAfter; works on cryptography 3.2 (AA sandbox) and modern."""
+    if hasattr(cert, "not_valid_after_utc"):
+        return cert.not_valid_after_utc.isoformat()
+    na = cert.not_valid_after
+    if na.tzinfo is None:
+        na = na.replace(tzinfo=datetime.timezone.utc)
+    return na.isoformat()
+
+
+def cert_not_before_iso(cert: x509.Certificate) -> str:
+    """ISO-8601 notBefore; works on cryptography 3.2 (AA sandbox) and modern."""
+    if hasattr(cert, "not_valid_before_utc"):
+        return cert.not_valid_before_utc.isoformat()
+    nb = cert.not_valid_before
+    if nb.tzinfo is None:
+        nb = nb.replace(tzinfo=datetime.timezone.utc)
+    return nb.isoformat()
+
+
+def _utcnow_naive() -> datetime.datetime:
+    """Azure Automation ships cryptography 3.2.x which expects naive UTC
+    datetimes on CertificateBuilder; modern cryptography accepts aware."""
+    return datetime.datetime.utcnow()
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +231,9 @@ def kv_put(vault_uri: str, secret_name: str, value: str,
 # X.509 primitives - CA generation, CSR verification, leaf signing
 # ===========================================================================
 def generate_ca_keypair() -> rsa.RSAPrivateKey:
-    return rsa.generate_private_key(public_exponent=65537, key_size=CA_KEY_BITS)
+    return rsa.generate_private_key(
+        public_exponent=65537, key_size=CA_KEY_BITS, backend=_BACKEND,
+    )
 
 
 def build_root_ca_cert(root_key: rsa.RSAPrivateKey) -> x509.Certificate:
@@ -211,7 +241,7 @@ def build_root_ca_cert(root_key: rsa.RSAPrivateKey) -> x509.Certificate:
         x509.NameAttribute(NameOID.ORGANIZATION_NAME, CA_ORGANIZATION),
         x509.NameAttribute(NameOID.COMMON_NAME, CA_ROOT_CN),
     ])
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = _utcnow_naive()
     return (
         x509.CertificateBuilder()
         .subject_name(subject)
@@ -234,7 +264,7 @@ def build_root_ca_cert(root_key: rsa.RSAPrivateKey) -> x509.Certificate:
             x509.SubjectKeyIdentifier.from_public_key(root_key.public_key()),
             critical=False,
         )
-        .sign(root_key, hashes.SHA256())
+        .sign(root_key, hashes.SHA256(), backend=_BACKEND)
     )
 
 
@@ -245,7 +275,7 @@ def build_intermediate_ca_cert(intermediate_key: rsa.RSAPrivateKey,
         x509.NameAttribute(NameOID.ORGANIZATION_NAME, CA_ORGANIZATION),
         x509.NameAttribute(NameOID.COMMON_NAME, CA_INTERMEDIATE_CN),
     ])
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = _utcnow_naive()
     return (
         x509.CertificateBuilder()
         .subject_name(subject)
@@ -272,7 +302,7 @@ def build_intermediate_ca_cert(intermediate_key: rsa.RSAPrivateKey,
             x509.AuthorityKeyIdentifier.from_issuer_public_key(root_key.public_key()),
             critical=False,
         )
-        .sign(root_key, hashes.SHA256())
+        .sign(root_key, hashes.SHA256(), backend=_BACKEND)
     )
 
 
@@ -305,7 +335,7 @@ def sign_leaf(csr: x509.CertificateSigningRequest,
               intermediate_key: rsa.RSAPrivateKey,
               intermediate_cert: x509.Certificate,
               validity_days: int) -> x509.Certificate:
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = _utcnow_naive()
     return (
         x509.CertificateBuilder()
         .subject_name(csr.subject)
@@ -339,7 +369,7 @@ def sign_leaf(csr: x509.CertificateSigningRequest,
             x509.AuthorityKeyIdentifier.from_issuer_public_key(intermediate_key.public_key()),
             critical=False,
         )
-        .sign(intermediate_key, hashes.SHA256())
+        .sign(intermediate_key, hashes.SHA256(), backend=_BACKEND)
     )
 
 
@@ -356,11 +386,13 @@ def key_to_pem(key: rsa.RSAPrivateKey) -> bytes:
 
 
 def load_key_pem(pem: bytes) -> rsa.RSAPrivateKey:
-    return serialization.load_pem_private_key(pem, password=None)
+    return serialization.load_pem_private_key(
+        pem, password=None, backend=_BACKEND,
+    )
 
 
 def load_cert_pem(pem: bytes) -> x509.Certificate:
-    return x509.load_pem_x509_certificate(pem)
+    return x509.load_pem_x509_certificate(pem, backend=_BACKEND)
 
 
 def validity_days_for(identity_class: str) -> int:
