@@ -7800,13 +7800,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "d95a17ed32882b9c7ce92029ffbd70bf1a4d97dd3bdd0ee915814c64d97b1692"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/deploy/ca_helpers.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "1e9ff720e60f095ecfe13bedfaa910951f502e31ad381cf52c3366bca38d282d"
         }
       ],
       "secrets": {
@@ -7837,13 +7830,6 @@
           "handler_type": "python_source",
           "disposition": "referenced",
           "content_hash": "1ae33bc25e182e8a4593fcf5fb9dc5a42ef9984e32cd86a2be9dfe9b77912cbb"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/deploy/ca_helpers.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "1e9ff720e60f095ecfe13bedfaa910951f502e31ad381cf52c3366bca38d282d"
         }
       ],
       "secrets": {
