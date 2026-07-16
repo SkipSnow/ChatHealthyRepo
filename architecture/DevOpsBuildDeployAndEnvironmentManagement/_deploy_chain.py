@@ -1388,7 +1388,13 @@ def ensure_runbook_python_packages(
         if cur is not None:
             cur_url = (cur.get("contentLink") or {}).get("uri")
             cur_state = cur.get("provisioningState")
-            if cur_url == url and cur_state == "Succeeded":
+            # Azure Automation often omits contentLink.uri on GET after a
+            # successful install (uri comes back null). Treat Succeeded +
+            # matching name as installed; only re-install when Azure echoes
+            # a different non-empty URI than declared.
+            if cur_state == "Succeeded" and (
+                not cur_url or cur_url == url
+            ):
                 step(f"  python3 package {name} already installed at declared URL")
                 continue
             step(
