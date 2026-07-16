@@ -6193,13 +6193,13 @@
           "kind": "azure_rbac_role_assignment",
           "principal": "ChatHealthyJobManager system-assigned managed identity",
           "role": "Contributor",
-          "scope": "/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
+          "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
         },
         {
           "kind": "azure_rbac_role_assignment",
           "principal": "ChatHealthyJobManager system-assigned managed identity",
           "role": "User Access Administrator",
-          "scope": "/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
+          "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
         }
       ],
       "provisioning": "pre_existing"
@@ -6210,16 +6210,34 @@
       "promote_chain_bound": false,
       "environments": [
         {
-          "env_binding": "prod",
-          "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/ReservationReaper",
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ReservationReaper",
           "azure_automation": {
-            "resource_group": "ChatHhealthyResorceManager",
+            "resource_group": "rg-chathealthy-pipeline-dev",
             "automation_account": "ChatHealthyJobManager",
             "runbook_name": "ReservationReaper",
             "schedule_names": [
-              "SCH-Reaper-5min-a",
-              "SCH-Reaper-5min-b",
-              "SCH-Reaper-5min-c"
+              "SCH-Reaper-15min-a",
+              "SCH-Reaper-15min-b",
+              "SCH-Reaper-15min-c"
+            ],
+            "python_packages": [
+              {
+                "name": "requests",
+                "content_url": "https://files.pythonhosted.org/packages/f9/9b/335f9764261e915ed497fcdeb11df5dfd6f7bf257d4a6a2a686d80da4d54/requests-2.32.3-py3-none-any.whl"
+              },
+              {
+                "name": "pymongo",
+                "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
+              },
+              {
+                "name": "dnspython",
+                "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
+              },
+              {
+                "name": "certifi",
+                "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
+              }
             ]
           }
         }
@@ -6268,16 +6286,12 @@
       "promote_chain_bound": false,
       "environments": [
         {
-          "env_binding": "prod",
-          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChangeDBVersion",
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChangeDBVersion",
           "azure_automation": {
-            "resource_group": "ChatHhealthyResorceManager",
+            "resource_group": "rg-chathealthy-pipeline-dev",
             "automation_account": "ChatHealthyJobManager",
             "runbook_name": "ChangeDBVersion",
-            "webhook": {
-              "consumer_target_id": "target_azure_function_app_pipeline",
-              "app_setting_name": "CHANGEDBVERSION_WEBHOOK_URL"
-            },
             "python_packages": [
               {
                 "name": "pymongo",
@@ -6315,10 +6329,10 @@
       "promote_chain_bound": false,
       "environments": [
         {
-          "env_binding": "prod",
-          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorOrchestrator",
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorOrchestrator",
           "azure_automation": {
-            "resource_group": "ChatHhealthyResorceManager",
+            "resource_group": "rg-chathealthy-pipeline-dev",
             "automation_account": "ChatHealthyJobManager",
             "runbook_name": "ChatHealthyDataMigratorOrchestrator"
           }
@@ -6370,10 +6384,10 @@
       "promote_chain_bound": false,
       "environments": [
         {
-          "env_binding": "prod",
-          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorProvisioner",
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorProvisioner",
           "azure_automation": {
-            "resource_group": "ChatHhealthyResorceManager",
+            "resource_group": "rg-chathealthy-pipeline-dev",
             "automation_account": "ChatHealthyJobManager",
             "runbook_name": "ChatHealthyDataMigratorProvisioner"
           }
@@ -6385,7 +6399,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "7318071fc6ea570d4621038ff651c0f117b4c9a44531319a91f67f7208db752c"
+          "content_hash": "2ffc970ef13bb52b4b27856324a48f5f8e704d599d9be763e130d78035e5a138"
         }
       ],
       "secrets": {
@@ -6423,10 +6437,10 @@
       "promote_chain_bound": false,
       "environments": [
         {
-          "env_binding": "prod",
-          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigrator",
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigrator",
           "azure_automation": {
-            "resource_group": "ChatHhealthyResorceManager",
+            "resource_group": "rg-chathealthy-pipeline-dev",
             "automation_account": "ChatHealthyJobManager",
             "runbook_name": "ChatHealthyDataMigrator"
           }
@@ -6478,10 +6492,10 @@
       "promote_chain_bound": false,
       "environments": [
         {
-          "env_binding": "prod",
-          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorDeprovisioner",
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager/runbooks/ChatHealthyDataMigratorDeprovisioner",
           "azure_automation": {
-            "resource_group": "ChatHhealthyResorceManager",
+            "resource_group": "rg-chathealthy-pipeline-dev",
             "automation_account": "ChatHealthyJobManager",
             "runbook_name": "ChatHealthyDataMigratorDeprovisioner"
           }
@@ -6493,7 +6507,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "2705662c770bb1d0d4b96f43d009cfc78270aae4497a3c03ed343004ad4ea4b2"
+          "content_hash": "aac55a55c4437f4a3af7b7ef5fff9345297fab2d600c6be6fef5ba977223e684"
         }
       ],
       "secrets": {
@@ -6796,14 +6810,14 @@
           "source_location": "pipeline/deploy/Dockerfile.control",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "a3b51b95b54d85a3037fd339a3468c56a3c48c5ba09915a774ff07bc1b58db3a"
+          "content_hash": "7be4d7013e7c8fb8a6e3e0cd4ef023e7add50af6240d64d31d009d58c485b501"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -6857,14 +6871,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -6918,14 +6932,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -6979,14 +6993,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7040,14 +7054,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7101,14 +7115,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7162,14 +7176,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7223,14 +7237,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7284,14 +7298,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7345,14 +7359,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7406,14 +7420,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7467,14 +7481,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7528,14 +7542,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7589,14 +7603,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7650,14 +7664,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7711,14 +7725,14 @@
           "source_location": "pipeline/deploy/Dockerfile.worker",
           "handler_type": "dockerfile",
           "disposition": "referenced",
-          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+          "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4"
         },
         {
           "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/Code/bootstrap.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+          "content_hash": "48e0510aa3c989d1a6bd446636957e169358e0773b1ce2ceba74038167a38084"
         },
         {
           "feature_id": "EPIC-008-F-012",

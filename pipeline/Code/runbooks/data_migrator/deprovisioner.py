@@ -19,8 +19,8 @@ Input payload (one JSON-encoded `payload` parameter, read via sys.argv[1]):
 
 Environment (Automation Variables):
     AZ_SUBSCRIPTION_ID            - Azure subscription hosting the VM + AA.
-    AZ_VM_RESOURCE_GROUP          - RG containing the VM (FindCareDataPipelines-Dev).
-    AZ_AUTOMATION_RESOURCE_GROUP  - RG containing the AA (ChatHhealthyResorceManager).
+    AZ_VM_RESOURCE_GROUP          - RG containing the VM (rg-chathealthy-pipeline-dev).
+    AZ_AUTOMATION_RESOURCE_GROUP  - RG containing the AA (rg-chathealthy-pipeline-dev).
     AZ_AUTOMATION_ACCOUNT         - ChatHealthyJobManager.
 """
 from __future__ import annotations
