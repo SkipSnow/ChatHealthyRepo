@@ -165,15 +165,15 @@ def _issue_leaf(csr_pem: bytes, caller_principal: str) -> dict:
     _log_event("leaf_signed",
                cn=csr_cn,
                validity_days=validity_days,
-               not_after=leaf.not_valid_after_utc.isoformat(),
+               not_after=ch.cert_not_after_iso(leaf),
                serial=str(leaf.serial_number))
 
     return {
         "leaf_cert_pem": ch.cert_to_pem(leaf).decode("ascii"),
         "intermediate_cert_pem": ch.cert_to_pem(inter_cert).decode("ascii"),
         "root_cert_pem": _load_root_cert_pem(),
-        "not_before": leaf.not_valid_before_utc.isoformat(),
-        "not_after": leaf.not_valid_after_utc.isoformat(),
+        "not_before": ch.cert_not_before_iso(leaf),
+        "not_after": ch.cert_not_after_iso(leaf),
         "serial": str(leaf.serial_number),
     }
 

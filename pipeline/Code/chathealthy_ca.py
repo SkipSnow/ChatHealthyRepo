@@ -391,7 +391,14 @@ def mint_cert(subject: str,
         leaf = x509.load_pem_x509_certificate(
             response["leaf_cert_pem"].encode("ascii")
         )
-        not_after = leaf.not_valid_after_utc.isoformat()
+        if hasattr(leaf, "not_valid_after_utc"):
+            not_after = leaf.not_valid_after_utc.isoformat()
+        else:
+            na = leaf.not_valid_after
+            if na.tzinfo is None:
+                import datetime as _dt
+                na = na.replace(tzinfo=_dt.timezone.utc)
+            not_after = na.isoformat()
     LOG.info("chathealthy_ca.mint_cert: minted cert for subject=%s "
              "not_after=%s serial=%s",
              subject, not_after, response.get("serial"))
