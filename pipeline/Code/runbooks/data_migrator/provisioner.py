@@ -19,7 +19,7 @@ Sequence:
   5. PUT the HybridWorkerForLinux extension on the VM with that URL in
      settings.AutomationAccountURL. No wait - the AA will queue the
      migrator job until the worker finishes registering.
-  6. Fire the migrator runbook (run_on=ChatHealthyDataMigratorWorkGroup)
+  6. Fire the migrator runbook (run_on=ChatHealthyHybridWorkers)
      fire-and-forget. Log the migrator AA job_id and exit.
 
 Input payload (one JSON-encoded `payload` parameter, read via sys.argv[1]):
@@ -83,7 +83,7 @@ _NETWORK_API = "2024-01-01"
 _AUTOMATION_API = "2023-11-01"
 _AUTHORIZATION_API = "2022-04-01"
 _HYBRID_WORKER_API = "2024-10-23"
-_HYBRID_WORKER_GROUP = "ChatHealthyDataMigratorWorkGroup"
+_HYBRID_WORKER_GROUP = "ChatHealthyHybridWorkers"
 _MIGRATOR_RUNBOOK = "ChatHealthyDataMigrator"
 _WAIT_POLL_SEC = 10
 _VM_WAIT_TIMEOUT_SEC = 20 * 60
@@ -402,7 +402,7 @@ def _install_hybrid_worker_extension(sub: str, vm_rg: str, vm_name: str,
 
 
 def _fire_migrator(sub: str, aa_rg: str, aa: str, payload: dict) -> str:
-    """Start the migrator runbook on ChatHealthyDataMigratorWorkGroup,
+    """Start the migrator runbook on ChatHealthyHybridWorkers,
     fire-and-forget. Returns the AA job_id."""
     aa_job_id = str(uuid.uuid4())
     url = (

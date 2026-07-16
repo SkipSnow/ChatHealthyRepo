@@ -782,7 +782,7 @@ def az_automation_variable_set(rg: str, aa: str, name: str, value: str) -> None:
         f"https://management.azure.com/subscriptions/{sub}"
         f"/resourceGroups/{rg}/providers/Microsoft.Automation"
         f"/automationAccounts/{aa}/variables/{name}"
-        f"?api-version={_AUTOMATION_API}"
+        f"?api-version={AUTOMATION_API}"
     )
     body = json.dumps({
         "name": name,
