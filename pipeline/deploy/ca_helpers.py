@@ -1,7 +1,7 @@
 """ca_helpers.py - shared helpers for the ChatHealthy CA runbooks.
 
 Consumed by ca_bootstrap_runbook.py and ca_endpoint_runbook.py (inlined
-into each staged Azure Automation runbook at build time — AA is one
+into each staged Azure Automation runbook at build time - AA is one
 file), by operator/local smoke scripts, and mirrored conceptually by
 pipeline/Code/chathealthy_ca.py. Isolates the three concerns that both
 runbook files use:

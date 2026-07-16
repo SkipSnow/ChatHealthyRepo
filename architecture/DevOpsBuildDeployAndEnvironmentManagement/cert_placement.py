@@ -304,9 +304,26 @@ def _mint_leaf_cert(subject: str) -> tuple[str, str, str]:
         "AZURE_SUBSCRIPTION_ID",
         "7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee",
     )
-    from azure.identity import DefaultAzureCredential
-    cred = DefaultAzureCredential()
-    token = cred.get_token("https://management.azure.com/.default").token
+    # Token via `az` (same shim as the rest of deploy) — do not require
+    # azure.identity on the operator workstation.
+    tok_r = subprocess.run(
+        [
+            "az", "account", "get-access-token",
+            "--resource", "https://management.azure.com/",
+            "-o", "json",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if tok_r.returncode != 0:
+        sys.exit(
+            "ERROR: az account get-access-token failed for CA mint: "
+            f"{(tok_r.stderr or '')[:500]}"
+        )
+    try:
+        token = json.loads(tok_r.stdout)["accessToken"]
+    except (json.JSONDecodeError, KeyError) as exc:
+        sys.exit(f"ERROR: cannot parse az access token for CA mint: {exc}")
     cert_pem, key_pem, expires_iso = chathealthy_ca.mint_cert(
         subject=subject,
         azure_ad_token=token,

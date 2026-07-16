@@ -853,21 +853,47 @@ def az_automation_runbook_ensure_exists(rg: str, aa: str, runbook: str) -> None:
 
 
 def az_automation_runbook_replace_content(rg: str, aa: str, runbook: str, content_path: Path) -> None:
-    step(f"az automation runbook replace-content --name {runbook}")
-    args = [
-        "az", "automation", "runbook", "replace-content",
-        "--resource-group", rg, "--automation-account-name", aa,
-        "--name", runbook,
-        "--content", "@" + str(content_path),
-        "-o", "none",
-    ]
-    r = subprocess.run(
-        args, capture_output=True, text=True,
-        creationflags=creation_flags(), shell=(sys.platform == "win32"),
+    """Upload runbook source via ARM draft/content (UTF-8).
+
+    `az automation runbook replace-content` encodes the body as Latin-1 and
+    rejects Unicode (em-dashes, section signs) that appear in our sources.
+    The management-plane draft/content PUT accepts UTF-8 bytes.
+    """
+    step(f"az rest PUT runbook draft/content --name {runbook}")
+    if not content_path.is_file():
+        sys.exit(f"ERROR: runbook content missing at {content_path}")
+    text = content_path.read_text(encoding="utf-8")
+    sub = az_subscription_id()
+    url = (
+        f"https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}"
+        f"/providers/Microsoft.Automation/automationAccounts/{aa}"
+        f"/runbooks/{runbook}/draft/content?api-version=2023-11-01"
     )
+    import tempfile
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", suffix=".py", delete=False,
+    ) as tmp:
+        tmp.write(text)
+        tmp_path = tmp.name
+    try:
+        r = subprocess.run(
+            [
+                "az", "rest", "--method", "put", "--url", url,
+                "--headers", "Content-Type=text/powershell",
+                "--body", f"@{tmp_path}",
+                "-o", "none",
+            ],
+            capture_output=True, text=True,
+            creationflags=creation_flags(), shell=(sys.platform == "win32"),
+        )
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
     if r.returncode != 0:
         sys.exit(
-            f"ERROR: az automation runbook replace-content failed for {runbook!r} "
+            f"ERROR: runbook draft/content PUT failed for {runbook!r} "
             f"(exit {r.returncode})\n  stderr: {(r.stderr or '').strip()[:1500]}"
         )
 
@@ -2182,6 +2208,15 @@ def run_cloud_deploy(env: str, target_arg: str) -> int:
                     "cannot run without both."
                 )
             step("F-012 §7.1 / F-003 §5.1: provisioning long-lived pipeline certs")
+            if not any(
+                str(s).endswith("/CaEndpointRunbook") or str(s).endswith("CaEndpointRunbook")
+                for s in succeeded
+            ):
+                sys.exit(
+                    "ERROR: CaEndpointRunbook did not deploy successfully; "
+                    "refusing F-012 §7.1 cert placement (F-003 issuance API "
+                    "must be live first)."
+                )
             provision_long_lived_certs(
                 env=env,
                 kv_target=kv_target,
