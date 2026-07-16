@@ -77,16 +77,26 @@ def _kv_name_for_env(kv_target, env: str) -> str:
     return host
 
 
+def _block_field(block, key: str):
+    """Read a field from an env block that may be a dict or an object."""
+    if block is None:
+        return None
+    if isinstance(block, dict):
+        return block.get(key)
+    return getattr(block, key, None)
+
+
 def _acr_name_for_env(acr_target, env: str) -> str:
     for eb in acr_target.environments:
         if getattr(eb, "env_binding", None) == env:
             block = getattr(eb, "azure_container_registry", None)
-            if block is None or not getattr(block, "registry_name", None):
+            name = _block_field(block, "registry_name")
+            if not name:
                 sys.exit(
                     f"ERROR: ACR target env_binding {env!r} missing "
                     f"azure_container_registry.registry_name."
                 )
-            return block.registry_name
+            return name
     sys.exit(f"ERROR: ACR target has no env_binding for env {env!r}.")
 
 
@@ -366,44 +376,36 @@ def provision_long_lived_certs(
         if existing and not _needs_rotation(existing):
             _step(
                 f"{identity}: cert present at {cert_secret} and not "
-                f"near expiry — skip"
+                f"near expiry — skip mint"
             )
-            continue
-
-        _step(f"{identity}: minting new leaf via F-003 CA endpoint")
-        if kv_client is not None:
-            cert_pem = f"---MOCK CERT for {identity}---"
-            key_pem = f"---MOCK KEY for {identity}---"
-            expires = "2027-01-01T00:00:00+00:00"
         else:
-            cert_pem, key_pem, expires = _mint_leaf_cert(identity)
+            _step(f"{identity}: minting new leaf via F-003 CA endpoint")
+            if kv_client is not None:
+                cert_pem = f"---MOCK CERT for {identity}---"
+                key_pem = f"---MOCK KEY for {identity}---"
+                expires = "2027-01-01T00:00:00+00:00"
+            else:
+                cert_pem, key_pem, expires = _mint_leaf_cert(identity)
 
-        _step(f"{identity}: writing {cert_secret} + {key_secret} to KV {vault_name}")
-        if kv_client is not None:
-            kv_client.set(cert_secret, cert_pem, expires)
-            kv_client.set(key_secret, key_pem, expires)
-        else:
-            _kv_secret_set(vault_name, cert_secret, cert_pem, expires)
-            _kv_secret_set(vault_name, key_secret, key_pem, expires)
+            _step(
+                f"{identity}: writing {cert_secret} + {key_secret} "
+                f"to KV {vault_name}"
+            )
+            if kv_client is not None:
+                kv_client.set(cert_secret, cert_pem, expires)
+                kv_client.set(key_secret, key_pem, expires)
+            else:
+                _kv_secret_set(vault_name, cert_secret, cert_pem, expires)
+                _kv_secret_set(vault_name, key_secret, key_pem, expires)
 
-        mi_name = f"mi-{identity.replace('pipeline-', '')}"  # mi-runbook, mi-control
-        # RBAC + revoke are Azure-only; test-injection path skips.
+        # RBAC + revoke always run (even when mint is skipped) so a prior
+        # failed grant pass is repaired. Test-injection path skips Azure.
         if kv_client is None:
-            mi_rg = kv_target.environments[0].node_address  # placeholder; real rg via manifest
-            # Resource group for MI lookup comes from the KV env_binding
-            # or from a peer target; keep the shape here and rely on the
-            # deploy caller to have set up the MI ahead of time.
-            try:
-                mi_oid = _mi_object_id(
-                    mi_name,
-                    _resolve_mi_resource_group(kv_target, env),
-                )
-            except SystemExit:
-                _step(
-                    f"WARN: MI {mi_name} not yet provisioned; grant will "
-                    f"happen on next deploy pass"
-                )
-                continue
+            mi_name = f"mi-{identity.replace('pipeline-', '')}"
+            mi_oid = _mi_object_id(
+                mi_name,
+                _resolve_mi_resource_group(kv_target, env),
+            )
             _kv_grant_read(vault_name, mi_oid, cert_secret)
             _kv_grant_read(vault_name, mi_oid, key_secret)
             _kv_revoke_deployer_read(vault_name, deployer_id, cert_secret)
@@ -416,8 +418,9 @@ def _resolve_mi_resource_group(kv_target, env: str) -> str:
     for eb in kv_target.environments:
         if getattr(eb, "env_binding", None) == env:
             block = getattr(eb, "azure_key_vault", None)
-            if block is not None and getattr(block, "resource_group", None):
-                return block.resource_group
+            rg = _block_field(block, "resource_group")
+            if rg:
+                return rg
     sys.exit(
         f"ERROR: KV target env_binding {env!r} missing "
         f"azure_key_vault.resource_group; cannot look up managed identity."
