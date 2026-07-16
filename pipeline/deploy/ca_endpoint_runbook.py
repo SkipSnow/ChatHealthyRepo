@@ -60,6 +60,23 @@ KEY_VAULT_URI = os.environ.get(
 _HOSTNAME = socket.gethostname()
 
 
+def _seed_azure_client_id_from_automation_variable() -> None:
+    """Load AZURE_CLIENT_ID from the AA Automation Variable when unset.
+
+    Required for user-assigned mi-runbook IMDS calls inside the sandbox.
+    """
+    if os.environ.get("AZURE_CLIENT_ID", "").strip():
+        return
+    try:
+        import automationassets  # type: ignore
+        value = automationassets.get_automation_variable("AZURE_CLIENT_ID")
+    except Exception:
+        return
+    if value:
+        # AA Variable REST stores JSON-encoded strings; strip accidental quotes.
+        os.environ["AZURE_CLIENT_ID"] = str(value).strip().strip('"')
+
+
 def _log_event(event: str, **fields) -> None:
     now = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
     record = {
@@ -230,6 +247,7 @@ def _emit_response(payload: dict) -> None:
 
 
 def main() -> int:
+    _seed_azure_client_id_from_automation_variable()
     _log_event("runbook_start")
     try:
         webhook = _parse_mint_input()

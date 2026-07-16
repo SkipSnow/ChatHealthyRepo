@@ -172,11 +172,21 @@ def check_namespace_allowed(caller_principal: str,
 def imds_token(resource: str) -> str:
     """Fetch an OAuth2 access token for the given resource from IMDS.
     Works in Automation Runbook sandbox and any Azure compute with an
-    attached managed identity."""
+    attached managed identity.
+
+    When the host uses a user-assigned identity (F-003 mi-runbook on the
+    pipeline Automation Account), IMDS requires client_id. Read it from
+    AZURE_CLIENT_ID when set.
+    """
     identity_endpoint = os.environ.get("IDENTITY_ENDPOINT")
     identity_header = os.environ.get("IDENTITY_HEADER")
+    client_id = os.environ.get("AZURE_CLIENT_ID", "").strip()
     if identity_endpoint and identity_header:
-        url = f"{identity_endpoint}?resource={resource}&api-version=2019-08-01"
+        url = (
+            f"{identity_endpoint}?resource={resource}&api-version=2019-08-01"
+        )
+        if client_id:
+            url = f"{url}&client_id={client_id}"
         req = urllib.request.Request(
             url, headers={"X-IDENTITY-HEADER": identity_header}
         )
@@ -185,6 +195,8 @@ def imds_token(resource: str) -> str:
             "http://169.254.169.254/metadata/identity/oauth2/token"
             f"?api-version=2018-02-01&resource={resource}"
         )
+        if client_id:
+            url = f"{url}&client_id={client_id}"
         req = urllib.request.Request(url, headers={"Metadata": "true"})
     with urllib.request.urlopen(req, timeout=15) as r:
         return json.loads(r.read().decode("utf-8"))["access_token"]

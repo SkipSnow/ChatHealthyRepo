@@ -7817,7 +7817,7 @@
           "source_location": "pipeline/deploy/ca_bootstrap_runbook.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d95a17ed32882b9c7ce92029ffbd70bf1a4d97dd3bdd0ee915814c64d97b1692"
+          "content_hash": "37999d72cfc6bf75717811321d52127e2abff774125c09fcc4b61474b8af4582"
         }
       ],
       "secrets": {
@@ -7865,7 +7865,7 @@
           "source_location": "pipeline/deploy/ca_endpoint_runbook.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "d576b8fb09cdce2d4a3778dbf8fbf72d0f7930f75e3ea5736e42b9ef03632709"
+          "content_hash": "a3f580a5a00a261702c4132bcd373a7391944b629303efde146e27fc04d0fa4d"
         }
       ],
       "secrets": {
