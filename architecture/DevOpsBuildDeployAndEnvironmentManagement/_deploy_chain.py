@@ -2299,7 +2299,9 @@ def run_cloud_deploy(env: str, target_arg: str) -> int:
                 kv_target=kv_target,
                 identities=LONG_LIVED_IDENTITIES,
             )
-            bake_ca_chain_into_images(env=env, acr_target=acr_target)
+            bake_ca_chain_into_images(
+                env=env, acr_target=acr_target, kv_target=kv_target,
+            )
             pipeline_certs_done = True
         # Wrapper gate: if any HF backend failed in this same run, refuse
         # to publish the wrapper. Live wrapper bytes are the contract

@@ -65,8 +65,8 @@ ENV_CA_CHAIN_PATH = "CHATHEALTHY_CA_CHAIN_PATH"
 # workers never have a KV entry.
 KV_CERT_PREFIX = "certs-"           # certs-pipeline-runbook, certs-pipeline-control
 KV_KEY_SUFFIX = "-key"              # certs-pipeline-runbook-key, ...
-KV_CA_PUBLIC = "ca-public"
-KV_CA_INTERMEDIATE_CHAIN = "ca-intermediate-chain"
+KV_CA_PUBLIC = "ca-root-cert"
+KV_CA_INTERMEDIATE_CHAIN = "ca-intermediate-cert"
 
 WORKER_NAMESPACE_PREFIX = "pipeline-worker"
 
@@ -185,12 +185,12 @@ def _materialize_ca_chain(
         sys.exit(2)
 
     _emit("CA chain not baked into image; falling back to KV read")
-    public = client.get_secret(KV_CA_PUBLIC).value or ""
-    chain = client.get_secret(KV_CA_INTERMEDIATE_CHAIN).value or ""
-    combined = public.encode("utf-8")
+    intermediate = client.get_secret(KV_CA_INTERMEDIATE_CHAIN).value or ""
+    root = client.get_secret(KV_CA_PUBLIC).value or ""
+    combined = intermediate.encode("utf-8")
     if not combined.endswith(b"\n"):
         combined += b"\n"
-    combined += chain.encode("utf-8")
+    combined += root.encode("utf-8")
     out = _track(_write_secure_file(combined, suffix="_ca_chain.pem"))
     _emit(f"CA chain materialized from KV -> {out}")
     return out

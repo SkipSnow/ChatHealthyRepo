@@ -383,6 +383,16 @@ def build_and_push_job_image(
     df = repo_root / dockerfile
     if not df.is_file():
         sys.exit(f"ERROR: dockerfile missing: {dockerfile}")
+    root_b64 = os.environ.get("CHATHEALTHY_CA_ROOT_B64", "").strip()
+    intermediate_b64 = os.environ.get(
+        "CHATHEALTHY_CA_INTERMEDIATE_B64", ""
+    ).strip()
+    if not root_b64 or not intermediate_b64:
+        sys.exit(
+            "ERROR: CHATHEALTHY_CA_ROOT_B64 / CHATHEALTHY_CA_INTERMEDIATE_B64 "
+            "not set; bake_ca_chain_into_images must run before ACA job image "
+            "builds (F-003 §7)."
+        )
     # Dockerfiles COPY from pipeline/Code context.
     context = repo_root / "pipeline" / "Code"
     image = f"{registry_name}.azurecr.io/{image_repository}:{tag}"
@@ -393,6 +403,9 @@ def build_and_push_job_image(
             "--registry", registry_name,
             "--image", f"{image_repository}:{tag}",
             "--file", str(df),
+            "--build-arg", f"CHATHEALTHY_CA_ROOT_B64={root_b64}",
+            "--build-arg",
+            f"CHATHEALTHY_CA_INTERMEDIATE_B64={intermediate_b64}",
             str(context),
         ]
     )
