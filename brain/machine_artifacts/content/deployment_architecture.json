@@ -246,7 +246,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "6f52a5d99816827c8476aec28696195bdb0500a4c8ccc9d220f4db1d5e252e3a"
+          "content_hash": "40ed4244a04bb06e093c1085a96502e9aed377b30bdd228b87f7c3b97e249a41"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5131,7 +5131,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "6f52a5d99816827c8476aec28696195bdb0500a4c8ccc9d220f4db1d5e252e3a"
+          "content_hash": "40ed4244a04bb06e093c1085a96502e9aed377b30bdd228b87f7c3b97e249a41"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -6156,579 +6156,21 @@
       }
     },
     {
-      "target_id": "target_azure_function_app_pipeline",
-      "target_kind": "azure_function_app",
-      "promote_chain_bound": false,
-      "environments": [
-        {
-          "env_binding": "dev",
-          "node_address": "https://chathealthydatapipelinesgatewayfunctionapp.azurewebsites.net",
-          "azure": {
-            "resource_group": "FindCareDataPipelines-Dev",
-            "function_app": "ChatHealthyDataPipelinesGatewayFunctionApp",
-            "task_hub": "DevPipelineNetherite3"
-          }
-        },
-        {
-          "env_binding": "prod",
-          "node_address": "https://chathealthydatapipelinesgatewayfunctionapp.azurewebsites.net",
-          "azure": {
-            "resource_group": "FindCareDataPipelines-Dev",
-            "function_app": "ChatHealthyDataPipelinesGatewayFunctionApp",
-            "task_hub": "DevPipelineNetherite3"
-          }
-        }
-      ],
-      "files": [],
-      "secrets": {
-        "MONGO_FRONTEND_connectionString": "local_env",
-        "API_TOKEN_MAP": "local_env",
-        "AzureWebJobsStorage": "local_env",
-        "ENV_PREFIX": "local_env",
-        "GATEWAY_APPINSIGHTS_CONNECTION_STRING": "local_env",
-        "MONGO_connectionString": "local_env",
-        "MONGOCLUSTER_MIGRATOR_ORCHESTRATOR_WEBHOOK_URL": "local_env",
-        "ATLAS_PRIVATE_KEY": "local_env",
-        "ATLAS_PROJECT_ID": "local_env",
-        "ATLAS_PUBLIC_KEY": "local_env",
-        "AZURE_RESOURCE_GROUP": "local_env",
-        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-        "AZURE_STORAGE_CONTAINER": "local_env",
-        "AZURE_SUBSCRIPTION_ID": "local_env",
-        "AZURE_TENANT_ID": "local_env",
-        "AZ_AUTOMATION_ACCOUNT": "local_env",
-        "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
-        "AZ_RESOURCE_GROUP": "local_env",
-        "AZ_SUBSCRIPTION_ID": "local_env",
-        "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
-        "AZ_VM_ADMIN_USERNAME": "local_env",
-        "AZ_VM_LOCATION": "local_env",
-        "AZ_VM_RESOURCE_GROUP": "local_env",
-        "AZ_VM_SIZE": "local_env",
-        "Anthropic_API_KEY": "local_env",
-        "GPT_READER_TOKEN": "local_env",
-        "MONGO_READONLY_FRONTEND": "local_env",
-        "NOTIFICATION_FROM_EMAIL": "local_env",
-        "NOTIFICATION_TO_EMAIL": "local_env",
-        "OPENAI_API_KEY": "local_env",
-        "SPARKMAIL_API_KEY": "local_env",
-        "SPECIALTY_COLLECTION": "local_env",
-        "UMLS_API_KEY": "local_env",
-        "CHANGEDBVERSION_WEBHOOK_URL": "azure_automation_webhook"
-      }
-    },
-    {
-      "target_id": "target_azure_container_app_pipeline",
-      "target_kind": "azure_container_app",
-      "promote_chain_bound": false,
-      "environments": [
-        {
-          "env_binding": "dev",
-          "node_address": "https://prod-providerpipeline-app.azurecontainerapps.io",
-          "azure_container_app": {
-            "resource_group": "FindCareDataPipelines-Dev",
-            "container_app": "prod-providerpipeline-app",
-            "container_app_environment": "prod-providerpipeline-env",
-            "log_analytics_workspace": "prod-providerpipeline-workspace",
-            "application_insights": "prod-providerpipeline-insights",
-            "registry": "chathealthypipelinedev",
-            "task_hub": "ProdProviderPipelineNetherite4",
-            "event_hubs_namespace": "ChatHealthyDataPipelines",
-            "min_replicas": 0,
-            "max_replicas": 4,
-            "cpu": 2.0,
-            "memory_gi": 4.0,
-            "location": "eastus2",
-            "dockerfile_from": "mcr.microsoft.com/azure-functions/python:4-python3.11",
-            "placeholder_image": "mcr.microsoft.com/k8se/quickstart:latest",
-            "netherite": {
-              "partitions_eh_name": "partitions",
-              "loadmonitor_eh_name": "loadmonitor",
-              "loadmonitor_partition_count": 1,
-              "clients_eh_names": [
-                "clients0",
-                "clients1",
-                "clients2",
-                "clients3"
-              ],
-              "clients_partition_count": 32
-            }
-          }
-        }
-      ],
-      "files": [
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/aca_job_manager.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5a9563efdc1d4803925ca321aefa2f8de6f17d768663c790a5d5c5576ae8263b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/address_dedup.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "f9ee2dfb3e267a342db198f0c7758c3b2768dbaa151a733d8ae8de146a39dd47"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/attach_practice_addresses.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "3fb9c7a6a1216a0cc5f3defb14e8a3b3f7563895d33bc43def8b7cb811643fdc"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/blob_client.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7a4f141eaf690583e1dc92c8a9de125eb1302d965c47c5700c7f9ec78c984d11"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/cluster_lifecycle_manager.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "ad03326cf7461158e3f76a177ebb974136ac90bea31d2b3185a04c43d03c0042"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/county_source.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "e5358931df7aa557432d9eecf9b59668965fd38d23728f9cbeec5a50108daeb0"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/discrepancy_pdf.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "1e5049151a8dc3c800250426fc3ade1ab4cab8cd1dbe902c54c54fdcff7a5c8b"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/ensure_provider_indexes_activity.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "3c6a53133a0eceda7ea5d412093570247ee3b567cff3e8265d12327bdc6ccaee"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/license_address_repair.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "6dea68725d66f99abf187eed4ed8171da1461c994f97a890d8dfe883a3b42925"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/normalize_provider_rows.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "3a9e97cdeed54176cb87393d0b5d4938990d91da7b79d10e8db71e67f8cbc74d"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/notification_client.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "25ad1ded84dcccc3b778a499374987a054cf056ce2b366878c41ea1bad896212"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/pipeline_config.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b787792910264fb0ddc58cf9af031d601529e1e9bf9b892d9e63ab61465b0873"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/pipeline_db.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "1d51dcbbe2abcf9aa4ccf43010a15314f1e4f11bc1bbd7d24b914dd8c266a8da"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/pipeline_env.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "33b5b5b82641a1ec99188d28fdff0a97d48502eeb9efdbe81a392d72a7c8d471"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/pipeline_runtime.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "f19e8555f60bf2495d94c04a300f00877466d26190fe5489deb803d8ebcbb055"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/pipeline_source_archival.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "28aa5919ea7ebcb270e6fa7cda042b31db6039f306c67baa19d8bf82340e40f0"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/pipeline_worker_base.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2f266b0cefc1de8c173b768c86572ca1d03e2ada03801c3b9b84d83b0731f868"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/post_load_reconciliation.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "40d00231c8f483c9526339614c84269a9edb109e5afc0c5a1ada975b12384aed"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/provider_normalize_engine.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2526cf41a72d28964ca0536d8e45252614e76fe96de0209a3e27631a6d6ca81c"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/provider_pipeline_orchestrator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "f84a9ef60a25919b14b2724b57268e325375cc39b5fee92fbaf27feb1ea74f48"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/provider_record_builder.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "0d8c1ee467d8a8fbfc540948d5034a006c20514db1a465a79f45917894b79678"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/provider_worker.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "e9822d9fed7cfa93aa55c511b3c3465feec72528274939ead906093a825c4d94"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/record_subdoc_dedup.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "1dfe17f5e8708142681c33c825d7da5fe3b3aed56ad06f85040715b6e16b494e"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/requirements-pipeline.txt",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "fa175b85f29493761844c9e4786ebad6be2366ec2fc17eb68cb559b98ad3f1ea"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/schemas/provider_record_validator.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "fc265ecbebd6e7b852283fb57b82dfe15628379e51c6dc04175b96defb8eebd3"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/specialty_classification_catalog.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "295154ece99c603e3b554309b8044ca77ed888f49197f58da67be895c852bc98"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/staging_projections.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "e5a8acdcf9afbce0e70431dc6767f7e8cfad04a596820ce429963d03acdacc33"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/state_filter.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7c0ab80946b6843741389c6b13d4370a234a43691903f781147b7c3c9f0ac0cd"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/step_context.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "05ee5300d54cd1958f2952e020626c0d0eb7bd9c6f74e1af42eee7c9587f9332"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/step_spec.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "a04224cebd6acb8a91e8343a40f3575f0132fe2ec13f30ec5385cfb445036e69"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/__init__.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "463cc42dcb0f61b647973574bd0a8be25747b9c86eec5daf946107285c0846f0"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/_partitions.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b1d4a1069f64bdb35ed60e088c48a274ebd384b45737d55c030cb422ded11f70"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/archive_sources.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c281385bd1dc1827f5926a1d9813918dd9dad8a74005c299bde51d3035e2ada4"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/attach_practice_addresses.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "58b00dc703f70673aff73606834e17a86f03e7d35cbda2000efc07602c74cf72"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/discrepancy_reports_and_notifications.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "962a60f3b8805ac3b2deb5ca3c2a8e62dd0a99e1fd23bfe908770a5cff39cf96"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/license_address_repair.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "caeb5794b481e862abd4425e166857b4108c924a2f7fcb6e36adeb8e9704218a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/load_nucc_classification_catalog.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "87c5815f1de6d114faff29c55d8d192c0fd57e5da06997243461d98a9efa7d0c"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/normalize_npi_per_state_fanout.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2e9f6cda874f24e7d4560550c3535ead7afc38a83f1e17003242cb615f031ca3"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/normalize_npi_serial_bulk_load.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b45ffa74e044959116be8624e738f1d6d2547c49300df5da122313d17f2cf623"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/post_load_reconciliation.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "6dcf5d30dcd57343b7ccd75795ca6b516072c5c4309db26a473f6938053206a0"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/prepare_infrastructure.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "78467cba3cacbe47a54357a665384d7e737e645331ca067028dac92fa9cf1a60"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/quiesce_infrastructure.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "6163e018c4187c9dd6a8da684c880c813d04b545817c18a6dd458402b471437c"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/source_freshness_gate.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8cd9285a0c0af6e5ad4595779a83a430f31b4ae8eee7ce0fc83cec11188b1b50"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/type1_first_branch.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "5898d8a8c8dcb8113bfa1502f9c85fd5e422f9f6f564b739f10675642ddf0a53"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/type1_second_branch.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "2a3627f91d0d6fa9bb7ee73c9ba567e60beb4143bca1781978cb6f678de5a4fa"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/type2_first_branch.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "63ab3bc5b2cb8badfd4d9a47a9879941995e082d0370dad09eb9159e2f57d71a"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/type2_second_branch.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7f0112d37385c89495e5548e8beddfe0308e2b20d6e02898c26812d32a142fe9"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/steps/urban_flag.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "c8d18a5564a2b365a336564d6ed2883220d30aa29024c3787db02f54fb0eff0f"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/type1_first_branch.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "01699ad3fde5fe289c14383cdef35b2f4588a750b345d50875093a47377bbce6"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/type1_second_branch.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "59c08fc55cf7e7a0f1f1f4988f706e778692b38c25b8cb26778c6f3929ce0d72"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/type2_first_branch.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "9e44d3b0b5ce342934460217a9559be36bcb97df82cb38ba80b9e59a7fb4397e"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/type2_second_branch.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "8ea9e0df22d1258e4d4709aa160c7467fb81fff6f7cb75c1595b495014494272"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/urban_flag.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "d91918186b72b663a216a27e740e891503bbd9f9a2251c71738021a91709f4e3"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/urban_flag_step.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "ce01591fbaca98494471f946355a17de73def8a2e1246bee349392d492719ab8"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/work_item_claim.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "7d2c5e1fb9419720b28a637157bb527c3b1061fc1f8b4993cf859e44ca5545e3"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/Code/zip_county_crosswalk_loader.py",
-          "handler_type": "python_source",
-          "disposition": "referenced",
-          "content_hash": "b2f7e3a0e6f3f60604ccfe04f8fbe0b30b141f815e5af567c8594f0b8f23f96c"
-        }
-      ],
-      "secrets": {
-        "MONGO_connectionString": "local_env",
-        "MONGO_FRONTEND_connectionString": "local_env",
-        "ATLAS_PUBLIC_KEY": "local_env",
-        "ATLAS_PRIVATE_KEY": "local_env",
-        "ATLAS_PROJECT_ID": "local_env",
-        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-        "AzureWebJobsStorage": "local_env",
-        "EventHubsConnection": "local_env",
-        "AZURE_SUBSCRIPTION_ID": "local_env",
-        "AZURE_RESOURCE_GROUP": "local_env",
-        "AZURE_TENANT_ID": "local_env",
-        "OPENAI_API_KEY": "local_env",
-        "GOOGLE_MAPS_API_KEY": "local_env",
-        "ENV_PREFIX": "local_env",
-        "WEBSITE_HOSTNAME": "local_env",
-        "API_TOKEN_MAP": "local_env",
-        "Anthropic_API_KEY": "local_env",
-        "DURABLE_MGMT_CODE": "local_env",
-        "DURABLE_TASK_CONNECTION": "local_env",
-        "PYTHON_THREADPOOL_THREAD_COUNT": "local_env",
-        "FUNCTIONS_WORKER_PROCESS_COUNT": "local_env",
-        "ACTIVITY_WINDOW_MINUTES": "local_env",
-        "ANTHROPIC_API_KEY": "local_env",
-        "ATLAS_GROUP_ID": "local_env",
-        "AUTOMATION_JOB_ID": "local_env",
-        "AZUREPS_HOST_ENVIRONMENT": "local_env",
-        "AZURE_DURABLE_TASK_CODE": "local_env",
-        "AZURE_PIPELINE_CLIENT_ID": "local_env",
-        "AZURE_PIPELINE_CLIENT_SECRET": "local_env",
-        "AZURE_STORAGE_CONTAINER": "local_env",
-        "AZURE_WEBJOBS_STORAGE": "local_env",
-        "AZ_AUTOMATION_ACCOUNT": "local_env",
-        "AZ_AUTOMATION_RESOURCE_GROUP": "local_env",
-        "AZ_RESOURCE_GROUP": "local_env",
-        "AZ_SUBSCRIPTION_ID": "local_env",
-        "AZ_VM_ADMIN_SSH_PUBKEY": "local_env",
-        "AZ_VM_ADMIN_USERNAME": "local_env",
-        "AZ_VM_LOCATION": "local_env",
-        "AZ_VM_RESOURCE_GROUP": "local_env",
-        "AZ_VM_SIZE": "local_env",
-        "AZ_VM_SUBNET_ID": "local_env",
-        "DURABLE_ROUTER_URL": "local_env",
-        "DURABLE_TASK_HUB": "local_env",
-        "FRONTEND_MONGO_URI": "local_env",
-        "GPT_READER_TOKEN": "local_env",
-        "IDENTITY_ENDPOINT": "local_env",
-        "IDENTITY_HEADER": "local_env",
-        "MONGO_READONLY_FRONTEND": "local_env",
-        "MONGO_URI": "local_env",
-        "NOTIFICATION_FROM_EMAIL": "local_env",
-        "NOTIFICATION_TO_EMAIL": "local_env",
-        "PIPELINE_CLUSTER": "local_env",
-        "PIPELINE_DEBUG": "local_env",
-        "PROVIDER_COLLECTION": "local_env",
-        "PUSHOVER_TOKEN": "local_env",
-        "PUSHOVER_USER_KEY": "local_env",
-        "SPARKMAIL_API_KEY": "local_env",
-        "SPECIALTY_COLLECTION": "local_env",
-        "UMLS_API_KEY": "local_env",
-        "WEBSITE_SITE_NAME": "local_env"
-      }
-    },
-    {
       "target_id": "target_azure_automation_account_chathealthyjobmanager",
       "target_kind": "azure_automation_account",
       "promote_chain_bound": false,
       "environments": [
         {
-          "env_binding": "prod",
-          "node_address": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager",
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager",
           "azure_automation_account": {
-            "vnet_name": "ChatHealthy-VNet",
-            "vm_subnet_name": "hybrid-worker-subnet",
+            "vnet_name": "vnet-chathealthy-pipeline-dev",
+            "vm_subnet_name": "snet-hybrid-worker",
             "vm_subnet_address_prefix": "10.0.2.0/24",
-            "hybrid_worker_group_name": "ChatHealthyDataMigratorWorkGroup",
-            "admin_private_key_filename": "chdm_admin_id_ed25519",
+            "hybrid_worker_group_name": "ChatHealthyHybridWorkers",
+            "admin_private_key_filename": "chdm_admin_key",
             "automation_api_version": "2023-11-01",
-            "network_api_version": "2024-01-01"
+            "network_api_version": "2023-09-01"
           }
         }
       ],
@@ -6759,7 +6201,8 @@
           "role": "User Access Administrator",
           "scope": "/subscriptions/<subscription-id>/resourceGroups/ChatHhealthyResorceManager/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
         }
-      ]
+      ],
+      "provisioning": "pre_existing"
     },
     {
       "target_id": "target_azure_automation_runbook_reservation_reaper",
@@ -7081,6 +6524,1331 @@
         "PIPELINE_CLUSTER": "local_env",
         "SPARKMAIL_API_KEY": "local_env"
       }
+    },
+    {
+      "target_id": "target_azure_resource_group_pipeline",
+      "target_kind": "azure_resource_group",
+      "provisioning": "pre_existing",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "rg-chathealthy-pipeline-dev",
+          "azure_resource_group": {
+            "name": "rg-chathealthy-pipeline-dev",
+            "location": "eastus2"
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {}
+    },
+    {
+      "target_id": "target_azure_key_vault_pipeline",
+      "target_kind": "azure_key_vault",
+      "provisioning": "pre_existing",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://kv-chpipeline-dev.vault.azure.net/",
+          "azure_key_vault": {
+            "vault_name": "kv-chpipeline-dev",
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "firewall_default_action": "Allow"
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      },
+      "allowed_roles": [
+        "Key Vault Secrets Officer",
+        "Key Vault Secrets User"
+      ]
+    },
+    {
+      "target_id": "target_azure_storage_account_pipeline",
+      "target_kind": "azure_storage_account",
+      "provisioning": "pre_existing",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://stchpipelinedev.blob.core.windows.net",
+          "azure_storage_account": {
+            "account_name": "stchpipelinedev",
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "blob_containers": [
+              {
+                "name": "logs",
+                "purpose": "logs",
+                "path_prefixes": [
+                  "provider"
+                ]
+              },
+              {
+                "name": "sources",
+                "purpose": "sources",
+                "path_prefixes": [
+                  "provider"
+                ]
+              },
+              {
+                "name": "staging",
+                "purpose": "staging",
+                "path_prefixes": [
+                  "provider"
+                ]
+              },
+              {
+                "name": "reports",
+                "purpose": "reports",
+                "path_prefixes": [
+                  "provider"
+                ]
+              },
+              {
+                "name": "pipeline-logs",
+                "purpose": "logs",
+                "path_prefixes": [
+                  "provider"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {}
+    },
+    {
+      "target_id": "target_azure_vnet_pipeline",
+      "target_kind": "azure_vnet",
+      "provisioning": "pre_existing",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Network/virtualNetworks/vnet-chathealthy-pipeline-dev",
+          "azure_vnet": {
+            "vnet_name": "vnet-chathealthy-pipeline-dev",
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "subnets": [
+              {
+                "name": "snet-aca",
+                "address_prefix": "10.0.0.0/23",
+                "delegations": [
+                  "Microsoft.App/environments"
+                ]
+              },
+              {
+                "name": "snet-hybrid-worker",
+                "address_prefix": "10.0.2.0/24"
+              }
+            ]
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {}
+    },
+    {
+      "target_id": "target_identity_mi_runbook",
+      "target_kind": "identity",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "mi-runbook",
+          "identity": {
+            "identity_class": "managed_identity",
+            "name": "mi-runbook",
+            "resource_group": "rg-chathealthy-pipeline-dev"
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {}
+    },
+    {
+      "target_id": "target_identity_mi_control",
+      "target_kind": "identity",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "mi-control",
+          "identity": {
+            "identity_class": "managed_identity",
+            "name": "mi-control",
+            "resource_group": "rg-chathealthy-pipeline-dev"
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {}
+    },
+    {
+      "target_id": "target_identity_mi_worker",
+      "target_kind": "identity",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "mi-worker",
+          "identity": {
+            "identity_class": "managed_identity",
+            "name": "mi-worker",
+            "resource_group": "rg-chathealthy-pipeline-dev"
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {}
+    },
+    {
+      "target_id": "target_azure_container_registry_pipeline",
+      "target_kind": "azure_container_registry",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "chpipelinedevacr.azurecr.io",
+          "azure_container_registry": {
+            "registry_name": "chpipelinedevacr",
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "image_tag_convention": "git_head_sha"
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {},
+      "allowed_roles": [
+        "AcrPush",
+        "AcrPull"
+      ]
+    },
+    {
+      "target_id": "target_azure_container_apps_environment_pipeline",
+      "target_kind": "azure_container_apps_environment",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "cae-chathealthy-pipeline-dev",
+          "azure_container_apps_environment": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "location": "eastus2",
+            "vnet_name": "vnet-chathealthy-pipeline-dev",
+            "subnet_name": "snet-aca",
+            "logs_destination": "none"
+          }
+        }
+      ],
+      "files": [],
+      "secrets": {}
+    },
+    {
+      "target_id": "target_azure_container_app_job_control",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "job-chp-control-dev",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "job-chp-control-dev",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-control",
+            "dockerfile": "pipeline/deploy/Dockerfile.control",
+            "role": "control",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-control",
+            "managed_identity_name": "mi-control",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.control",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "a3b51b95b54d85a3037fd339a3468c56a3c48c5ba09915a774ff07bc1b58db3a"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/control_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "803f625e2ad633dd74e8598fa20e82a795dbaf15daad08a19a542edb60aae1af"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_prepare_infrastructure",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-prepare-infrastructure",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-prepare-infrastructure",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_fetch_sources",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-fetch-sources",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-fetch-sources",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_load_staging",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-load-staging",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-load-staging",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_normalize",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-normalize",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-normalize",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_normalize_state_fanout",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-normalize-state-fanout",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-normalize-state-fanout",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_add_secondary_practices",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-add-secondary-practices",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-add-secondary-practices",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_type1_first_branch",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-type1-first-branch",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-type1-first-branch",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_type2_first_branch",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-type2-first-branch",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-type2-first-branch",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_license_address_repair",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-license-address-repair",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-license-address-repair",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_county_enrichment",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-county-enrichment",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-county-enrichment",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_urban_flag",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-urban-flag",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-urban-flag",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_type1_second_branch",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-type1-second-branch",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-type1-second-branch",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_type2_second_branch",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-type2-second-branch",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-type2-second-branch",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_post_load_reconciliation",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-post-load-reconciliation",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-post-load-reconciliation",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_container_app_job_prov_discrepancy_and_notifications",
+      "target_kind": "azure_container_app_job",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "prov-discrepancy-and-notifications",
+          "azure_container_app_job": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "job_name": "prov-discrepancy-and-notifications",
+            "environment_name": "cae-chathealthy-pipeline-dev",
+            "registry_name": "chpipelinedevacr",
+            "image_repository": "prov-worker",
+            "dockerfile": "pipeline/deploy/Dockerfile.worker",
+            "role": "worker",
+            "trigger_type": "Manual",
+            "cpu": 2.0,
+            "memory": "4Gi",
+            "parallelism": 1,
+            "replica_timeout": 7200,
+            "node_identity": "pipeline-worker",
+            "managed_identity_name": "mi-worker",
+            "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/"
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/Dockerfile.worker",
+          "handler_type": "dockerfile",
+          "disposition": "referenced",
+          "content_hash": "71ecc7c06e7d39db8daa9187df4cda8a2d5f76a91f576779e3236057d5fd117b"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/bootstrap.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "4824d0534fa64ebc44f5a1aa6a7169a478e18a2c54d805228ea58273aabdf372"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/Code/worker_runner.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "a961bd96624800ac69d1b4ee1a5b4b5d95baa66be2a4a5e936670fdd9a932331"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_automation_runbook_provider_pipeline",
+      "target_kind": "azure_automation_runbook",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/ProviderPipelineRunbook",
+          "azure_automation": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "automation_account": "ChatHealthyJobManager",
+            "runbook_name": "ProviderPipelineRunbook",
+            "schedule_names": [
+              "SCH-ProviderPipeline-0200UTC"
+            ]
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "e76f30431b2a6b23b631881b5bde556a0214f56e40e3c6505e09c4cd5dfb078c"
+        }
+      ],
+      "secrets": {
+        "MONGO_connectionString": "local_env",
+        "MONGO_FRONTEND_connectionString": "local_env",
+        "ATLAS_PUBLIC_KEY": "local_env",
+        "ATLAS_PRIVATE_KEY": "local_env",
+        "ATLAS_PROJECT_ID": "local_env",
+        "AZURE_STORAGE_CONNECTION_STRING": "local_env",
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_automation_runbook_ca_bootstrap",
+      "target_kind": "azure_automation_runbook",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/CaBootstrapRunbook",
+          "azure_automation": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "automation_account": "ChatHealthyJobManager",
+            "runbook_name": "CaBootstrapRunbook",
+            "schedule_names": []
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/ca_bootstrap_runbook.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "d95a17ed32882b9c7ce92029ffbd70bf1a4d97dd3bdd0ee915814c64d97b1692"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/ca_helpers.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "1e9ff720e60f095ecfe13bedfaa910951f502e31ad381cf52c3366bca38d282d"
+        }
+      ],
+      "secrets": {
+        "KEY_VAULT_URI": "local_env"
+      }
+    },
+    {
+      "target_id": "target_azure_automation_runbook_ca_endpoint",
+      "target_kind": "azure_automation_runbook",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/CaEndpointRunbook",
+          "azure_automation": {
+            "resource_group": "rg-chathealthy-pipeline-dev",
+            "automation_account": "ChatHealthyJobManager",
+            "runbook_name": "CaEndpointRunbook",
+            "schedule_names": []
+          }
+        }
+      ],
+      "files": [
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/ca_endpoint_runbook.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "1ae33bc25e182e8a4593fcf5fb9dc5a42ef9984e32cd86a2be9dfe9b77912cbb"
+        },
+        {
+          "feature_id": "EPIC-008-F-012",
+          "source_location": "pipeline/deploy/ca_helpers.py",
+          "handler_type": "python_source",
+          "disposition": "referenced",
+          "content_hash": "1e9ff720e60f095ecfe13bedfaa910951f502e31ad381cf52c3366bca38d282d"
+        }
+      ],
+      "secrets": {
+        "KEY_VAULT_URI": "local_env"
+      }
     }
   ],
   "firm": {
@@ -7088,5 +7856,43 @@
       "name": "SkipSnow",
       "email": "skip.snow@gmail.com"
     }
-  }
+  },
+  "IdentityCatalog": [
+    {
+      "identity_id": "identity_mi_runbook",
+      "identity_class": "managed_identity",
+      "target_id_ref": "target_identity_mi_runbook",
+      "roles": [
+        "Key Vault Secrets User",
+        "Automation Contributor"
+      ]
+    },
+    {
+      "identity_id": "identity_mi_control",
+      "identity_class": "managed_identity",
+      "target_id_ref": "target_identity_mi_control",
+      "roles": [
+        "Key Vault Secrets User",
+        "AcrPull",
+        "Contributor"
+      ]
+    },
+    {
+      "identity_id": "identity_mi_worker",
+      "identity_class": "managed_identity",
+      "target_id_ref": "target_identity_mi_worker",
+      "roles": [
+        "Key Vault Secrets User",
+        "AcrPull"
+      ]
+    },
+    {
+      "identity_id": "identity_claudecode_deployer",
+      "identity_class": "user",
+      "roles": [
+        "Owner"
+      ]
+    }
+  ],
+  "CustomRoleCatalog": []
 }
