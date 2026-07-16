@@ -2,18 +2,21 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dev.chathealthy.ai/schemas/ChatHealthyDeploymentArchitectureSchema.json",
   "title": "ChatHealthy Deployment Architecture Record Collection",
-  "description": "Envelope shape of the on-disk deployment-architecture brain artifact. Top level carries the canonical $schema reference and a DeploymentTargetRecord[] array whose entries are TargetRecord objects. When persisted to MongoDB the envelope dissolves: each DeploymentTargetRecord[] entry becomes one document in the collection, and target_id is the document key (unique within the collection). The schema is closed at every object level; the field name 'metadata' MUST NOT appear anywhere; no business product/service/feature name appears in this schema, in its taxonomies, or in this description. INVARIANT (declared here, enforced by software): within a single record, env_binding values across environments[] are unique. INVARIANT: across DeploymentTargetRecord[] within one collection, target_id values are unique. INVARIANT: files[] enumerates every file the target ships; disposition partitions entries into 'managed' (JSON owns the bytes via embedded_content) and 'referenced' (bytes come from the repo tree at source_location at deploy time). Deploy machinery materializes managed bytes via the Extractor; referenced files are copied from origin/<branch>'s git tree. Crosswalk enforces byte-equality for managed and presence-only for referenced.",
+  "description": "Envelope shape of the on-disk deployment-architecture brain artifact. Top level carries the canonical $schema reference and a DeploymentTargetRecord[] array whose entries are TargetRecord objects. The schema is closed at every object level; the field name 'metadata' MUST NOT appear anywhere; no business product/service/feature name appears in this schema, in its taxonomies, or in this description. INVARIANT: within a single record, env_binding values across environments[] are unique. INVARIANT: across DeploymentTargetRecord[], target_id values are unique. INVARIANT: files[] enumerates every file the target ships; disposition partitions entries into 'managed' (JSON owns the bytes via embedded_content) and 'referenced' (only source_location declared).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["$schema", "DeploymentTargetRecord"],
+  "required": [
+    "$schema",
+    "DeploymentTargetRecord",
+    "IdentityCatalog",
+    "CustomRoleCatalog"
+  ],
   "properties": {
-
     "$schema": {
       "type": "string",
       "format": "uri",
       "description": "Canonical URL of this schema document. Tooling fetches the schema at this URL to validate the file. Filesystem source: Website/schemas/ChatHealthyDeploymentArchitectureSchema.json."
     },
-
     "firm": {
       "type": "object",
       "additionalProperties": false,
@@ -23,20 +26,34 @@
           "type": "object",
           "additionalProperties": false,
           "description": "Git identity used by deploy scripts when they have to commit on the operator's behalf (HF Space git push, promote-build workflow bot, etc.). Replaces hardcoded `git config user.name` / `user.email` in local_deploy.py and .github/workflows/promote-build.yml.",
-          "required": ["name", "email"],
+          "required": [
+            "name",
+            "email"
+          ],
           "properties": {
-            "name": { "type": "string", "minLength": 1, "maxLength": 256 },
-            "email": { "type": "string", "minLength": 1, "maxLength": 256 }
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "email": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
           }
         },
         "dependency_pins": {
           "type": "object",
           "description": "Single-source-of-truth Python dependency version pins. Keys are pip package names with underscores (e.g., 'pydantic_ai_slim'); the build chain converts to dashed form ('pydantic-ai-slim') and substitutes the exact version into per-target requirements.txt at build time so an HF rebuild can never silently pick up a breaking minor version. In-tree requirements.txt can remain readable with '>=' floors; deployed container installs the exact pinned version.",
-          "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 64 }
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
         }
       }
     },
-
     "DeploymentTargetRecord": {
       "type": "array",
       "description": "Every TargetRecord that this deployment realizes. Each entry is one deployment target's full definition across every environment in which it is realized, plus the files that compose it. INVARIANT: target_id is unique across this array (enforced by software at write time; the schema's uniqueItems applies to whole-object equality but does not specifically enforce target_id uniqueness across non-identical records).",
@@ -45,15 +62,18 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["target_id", "target_kind", "environments", "files"],
+        "required": [
+          "target_id",
+          "target_kind",
+          "environments",
+          "files"
+        ],
         "properties": {
-
           "target_id": {
             "type": "string",
             "description": "Opaque target identifier. Lowercase letters, digits, and underscores; required prefix 'target_'. MUST NOT encode any business product/service/feature name. Unique within the records[] array.",
             "pattern": "^target_[a-z0-9_]{1,64}$"
           },
-
           "target_kind": {
             "type": "string",
             "description": "Closed taxonomy of deployment-target classes. Source-of-truth for this controlled vocabulary: this schema document itself. Values classify the abstract class of the deployment endpoint only; no business name encoded.",
@@ -62,32 +82,33 @@
               "cloudflare_pages_project",
               "azure_function_app",
               "azure_container_app",
+              "azure_container_apps_environment",
+              "azure_container_app_job",
               "azure_automation_account",
               "azure_automation_runbook",
               "host_os_process",
               "docker_local_container",
-              "mongodb_cluster",
-              "mongodb_collection",
-              "mongodb_atlas_cluster",
               "azure_container_registry",
               "azure_key_vault",
               "azure_storage_account",
-              "azure_vnet_subnet",
-              "github_actions_workflow_runner"
+              "github_actions_workflow_runner",
+              "azure_vnet",
+              "azure_resource_group",
+              "identity"
             ]
           },
-
           "promote_chain_bound": {
             "type": "boolean",
             "description": "Whether this target participates in the firm-level dev->qa->prod promote chain. Default true (absent == true). When true, the deploy script enforces that the local git branch matches the env_binding.branch declared for the requested env (dev branch deploys dev, qa branch deploys qa, main branch deploys prod) — both at firm-level entry and at per-target dispatch. When false, the target is single-environment shared infrastructure (e.g. the one pipeline Function App, the one durable router ACA, the one Automation Account and its runbooks) that every developer deploys to from any branch, typically dev. Both branch-vs-env guards in local_deploy.py skip targets carrying promote_chain_bound=false."
           },
-
           "provisioning": {
             "type": "string",
             "description": "Who owns creating this target. 'deploy_provisioned' — Deploy creates and reconciles this target on every invocation. 'pre_existing' — the target is provisioned once out of band by the operator; Deploy verifies presence + declared configuration on every invocation and refuses to proceed on absence (F-012 v7 §4). Default (absent) is 'deploy_provisioned'.",
-            "enum": ["deploy_provisioned", "pre_existing"]
+            "enum": [
+              "deploy_provisioned",
+              "pre_existing"
+            ]
           },
-
           "environments": {
             "type": "array",
             "description": "The set of environment bindings under which this target is realized. INVARIANT: env_binding values MUST be unique within this array (one node_address per environment).",
@@ -96,27 +117,36 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["env_binding", "node_address"],
+              "required": [
+                "env_binding",
+                "node_address"
+              ],
               "properties": {
-
                 "env_binding": {
                   "type": "string",
                   "description": "Closed taxonomy of runtime-environment bindings. Source-of-truth: the project's env constants in the deploy/ops codebase (VALID_ENVS / ENV_ORDER) and Code/deploy/conftest.py choices.",
-                  "enum": ["local", "dev", "qa", "prod"]
+                  "enum": [
+                    "local",
+                    "dev",
+                    "qa",
+                    "prod"
+                  ]
                 },
-
                 "node_address": {
                   "type": "string",
                   "description": "Addressable location of this target in this environment. May be a URL, connection string, host:port pair, registry path, or other addressable form appropriate to the target_kind. Template tokens MAY appear; resolution semantics are software's job. Non-empty.",
                   "minLength": 1,
                   "maxLength": 1024
                 },
-
                 "azure": {
                   "type": "object",
                   "description": "Azure Functions deploy coordinates for this env binding. Present iff target_kind=='azure_function_app'. resource_group + function_app identify the App Service resource; task_hub names the Durable Functions task hub used for the orchestration runtime status webhook.",
                   "additionalProperties": false,
-                  "required": ["resource_group", "function_app", "task_hub"],
+                  "required": [
+                    "resource_group",
+                    "function_app",
+                    "task_hub"
+                  ],
                   "properties": {
                     "resource_group": {
                       "type": "string",
@@ -135,12 +165,15 @@
                     }
                   }
                 },
-
                 "azure_automation": {
                   "type": "object",
                   "description": "Azure Automation runbook deploy coordinates for this env binding. Present iff target_kind=='azure_automation_runbook'. resource_group + automation_account identify the Automation Account; runbook_name names the runbook whose content this target ships (replace-content on every deploy). schedule_names[] lists the Automation Schedules that fire this runbook — informational only; the deploy handler does not touch schedules. Secret bindings whose store is `azure_automation_variable` get materialized as Automation Variables on the same Automation Account during deploy. The optional `webhook` block declares that this runbook is dispatched by HTTP POST from another deployed target: the runbook deploy MUST ensure a webhook bound to the runbook exists (mint if absent; reuse if present and the consumer already carries the named app setting; delete-and-re-mint if present but the consumer is missing the setting, since Azure Automation never re-exposes a webhook URL after creation), then push the URL onto the consumer target's runtime env surface as the named app setting via UPSERT (no other consumer settings touched).",
                   "additionalProperties": false,
-                  "required": ["resource_group", "automation_account", "runbook_name"],
+                  "required": [
+                    "resource_group",
+                    "automation_account",
+                    "runbook_name"
+                  ],
                   "properties": {
                     "resource_group": {
                       "type": "string",
@@ -159,7 +192,11 @@
                     },
                     "schedule_names": {
                       "type": "array",
-                      "items": {"type": "string", "minLength": 1, "maxLength": 256},
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
                       "uniqueItems": true
                     },
                     "python_packages": {
@@ -168,7 +205,10 @@
                       "items": {
                         "type": "object",
                         "additionalProperties": false,
-                        "required": ["name", "content_url"],
+                        "required": [
+                          "name",
+                          "content_url"
+                        ],
                         "properties": {
                           "name": {
                             "type": "string",
@@ -192,7 +232,10 @@
                       "type": "object",
                       "additionalProperties": false,
                       "description": "Declares the consumer target the runbook deploy must push its webhook URL onto, and the app-setting key name the URL is stored under on that consumer.",
-                      "required": ["consumer_target_id", "app_setting_name"],
+                      "required": [
+                        "consumer_target_id",
+                        "app_setting_name"
+                      ],
                       "properties": {
                         "consumer_target_id": {
                           "type": "string",
@@ -209,12 +252,13 @@
                     }
                   }
                 },
-
                 "huggingface_space": {
                   "type": "object",
                   "additionalProperties": false,
                   "description": "HuggingFace Space deploy coordinates for this env binding. Present iff target_kind=='hf_space'. `space` is the fully-qualified Space identifier 'org/name' (e.g. 'SkipSnow/ChatHealthySpace', 'SkipSnow/dev_ChatHealthySpace'). Replaces the hardcoded _HF_ORG + _HF_SPACE_BASE mapping + env-prefix rule in hf_helpers.py.",
-                  "required": ["space"],
+                  "required": [
+                    "space"
+                  ],
                   "properties": {
                     "space": {
                       "type": "string",
@@ -224,12 +268,13 @@
                     }
                   }
                 },
-
                 "cloudflare_pages": {
                   "type": "object",
                   "additionalProperties": false,
                   "description": "Cloudflare Pages deploy coordinates for this env binding. Present iff target_kind=='cloudflare_pages_project'. `project_name` is the wrangler-recognized Pages project name (e.g. 'chathealthy-website-dev'). Replaces the hardcoded env->project_name map in local_deploy.py.",
-                  "required": ["project_name"],
+                  "required": [
+                    "project_name"
+                  ],
                   "properties": {
                     "project_name": {
                       "type": "string",
@@ -238,28 +283,64 @@
                     }
                   }
                 },
-
                 "azure_automation_account": {
                   "type": "object",
                   "additionalProperties": false,
                   "description": "Azure Automation Account shared-infra facts that the CHDM deploy reads when it ensures persistent infrastructure on this AA. Present iff target_kind=='azure_automation_account'. Replaces hardcoded module-level constants in chdm_helpers.py (_VNET_NAME, _VM_SUBNET_NAME, _VM_SUBNET_PREFIX, _HYBRID_WORKER_GROUP, _CHDM_ADMIN_PRIVATE_KEY_FILENAME, _AUTOMATION_API, _NETWORK_API).",
-                  "required": ["vnet_name", "vm_subnet_name", "vm_subnet_address_prefix", "hybrid_worker_group_name", "admin_private_key_filename", "automation_api_version", "network_api_version"],
+                  "required": [
+                    "vnet_name",
+                    "vm_subnet_name",
+                    "vm_subnet_address_prefix",
+                    "hybrid_worker_group_name",
+                    "admin_private_key_filename",
+                    "automation_api_version",
+                    "network_api_version"
+                  ],
                   "properties": {
-                    "vnet_name": { "type": "string", "minLength": 1, "maxLength": 256 },
-                    "vm_subnet_name": { "type": "string", "minLength": 1, "maxLength": 256 },
-                    "vm_subnet_address_prefix": { "type": "string", "pattern": "^[0-9.]+/[0-9]+$" },
-                    "hybrid_worker_group_name": { "type": "string", "minLength": 1, "maxLength": 256 },
-                    "admin_private_key_filename": { "type": "string", "minLength": 1, "maxLength": 256 },
-                    "automation_api_version": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(-preview)?$" },
-                    "network_api_version": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(-preview)?$" }
+                    "vnet_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "vm_subnet_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "vm_subnet_address_prefix": {
+                      "type": "string",
+                      "pattern": "^[0-9.]+/[0-9]+$"
+                    },
+                    "hybrid_worker_group_name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "admin_private_key_filename": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "automation_api_version": {
+                      "type": "string",
+                      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(-preview)?$"
+                    },
+                    "network_api_version": {
+                      "type": "string",
+                      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(-preview)?$"
+                    }
                   }
                 },
-
                 "azure_container_app": {
                   "type": "object",
                   "description": "Azure Container Apps deploy coordinates for this env binding. Present iff target_kind=='azure_container_app'. resource_group + container_app identify the ACA resource; container_app_environment names the Container Apps Environment that hosts it; registry names the Azure Container Registry that hosts the image (deploy issues `az acr login --name <registry>` and pushes <registry>.azurecr.io/<container_app>:<build_number>); min_replicas / max_replicas set the scale-to-zero envelope; task_hub names the Durable Functions task hub used by the Netherite storage provider that this ACA hosts; event_hubs_namespace names the Azure Event Hubs namespace whose `partitions` Event Hub backs Netherite's partition queues — deploy verifies it exists with partitionCount matching host.json and creates it if missing (per the deploy-owns-permanent-infrastructure split). location / dockerfile_from / placeholder_image / netherite move former module-level constants out of aca_helpers.py into per-target manifest declarations.",
                   "additionalProperties": false,
-                  "required": ["resource_group", "container_app", "container_app_environment", "task_hub"],
+                  "required": [
+                    "resource_group",
+                    "container_app",
+                    "container_app_environment",
+                    "task_hub"
+                  ],
                   "properties": {
                     "resource_group": {
                       "type": "string",
@@ -348,53 +429,196 @@
                       "type": "object",
                       "additionalProperties": false,
                       "description": "Netherite (Durable Functions storage provider) Event Hub topology for this ACA. Replaces the _NETHERITE_* module constants in aca_helpers.py.",
-                      "required": ["partitions_eh_name", "loadmonitor_eh_name", "loadmonitor_partition_count", "clients_eh_names", "clients_partition_count"],
+                      "required": [
+                        "partitions_eh_name",
+                        "loadmonitor_eh_name",
+                        "loadmonitor_partition_count",
+                        "clients_eh_names",
+                        "clients_partition_count"
+                      ],
                       "properties": {
-                        "partitions_eh_name": { "type": "string", "minLength": 1, "maxLength": 256 },
-                        "loadmonitor_eh_name": { "type": "string", "minLength": 1, "maxLength": 256 },
-                        "loadmonitor_partition_count": { "type": "integer", "minimum": 1, "maximum": 32 },
+                        "partitions_eh_name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        },
+                        "loadmonitor_eh_name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        },
+                        "loadmonitor_partition_count": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 32
+                        },
                         "clients_eh_names": {
                           "type": "array",
-                          "items": { "type": "string", "minLength": 1, "maxLength": 256 },
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
                           "minItems": 1,
                           "uniqueItems": true
                         },
-                        "clients_partition_count": { "type": "integer", "minimum": 1, "maximum": 32 }
+                        "clients_partition_count": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 32
+                        }
                       }
                     }
                   }
                 },
-
-                "mongodb_atlas_cluster": {
+                "azure_container_apps_environment": {
                   "type": "object",
                   "additionalProperties": false,
-                  "description": "MongoDB Atlas cluster coordinates for this env binding. Present iff target_kind=='mongodb_atlas_cluster'. atlas_project_id + cluster_name identify the cluster; x509_trust_chain_ref names the KV secret that holds Atlas's X.509 trust chain so pipeline nodes with F-003-issued client certs can authenticate via mTLS. INVARIANT: Atlas clusters are pre-existing; Deploy verifies presence + configuration and never creates them.",
-                  "required": ["atlas_project_id", "cluster_name"],
+                  "description": "Azure Container Apps Environment coordinates (F-012 §4.4). Present iff target_kind=='azure_container_apps_environment'. Deploy creates the environment attached to the declared subnet with logs-destination none (no Log Analytics).",
+                  "required": [
+                    "resource_group",
+                    "environment_name",
+                    "location",
+                    "vnet_name",
+                    "subnet_name",
+                    "logs_destination"
+                  ],
                   "properties": {
-                    "atlas_project_id": {
+                    "resource_group": {
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256
                     },
-                    "cluster_name": {
+                    "environment_name": {
+                      "type": "string",
+                      "pattern": "^cae-[a-z0-9-]{1,60}$"
+                    },
+                    "location": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "vnet_name": {
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256
                     },
-                    "x509_trust_chain_ref": {
+                    "subnet_name": {
                       "type": "string",
-                      "description": "KV secret name that holds the Atlas X.509 trust chain PEM bytes. Pipeline nodes fetch this via their attached MI on boot and pass it as pymongo tlsCAFile.",
-                      "minLength": 1,
-                      "maxLength": 256
+                      "pattern": "^snet-[a-z0-9-]{1,60}$"
+                    },
+                    "logs_destination": {
+                      "type": "string",
+                      "enum": [
+                        "none"
+                      ]
                     }
                   }
                 },
-
+                "azure_container_app_job": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Azure Container Apps Job definition (F-012 §4.4 / LLD v22). Present iff target_kind=='azure_container_app_job'. Deploy creates or replaces the Job definition; executions are started by the Automation runbook (control) or by Control (workers).",
+                  "required": [
+                    "resource_group",
+                    "job_name",
+                    "environment_name",
+                    "registry_name",
+                    "image_repository",
+                    "dockerfile",
+                    "role",
+                    "trigger_type",
+                    "cpu",
+                    "memory",
+                    "parallelism",
+                    "node_identity",
+                    "managed_identity_name"
+                  ],
+                  "properties": {
+                    "resource_group": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "job_name": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9-]{1,63}$"
+                    },
+                    "environment_name": {
+                      "type": "string",
+                      "pattern": "^cae-[a-z0-9-]{1,60}$"
+                    },
+                    "registry_name": {
+                      "type": "string",
+                      "pattern": "^[a-zA-Z0-9]+$"
+                    },
+                    "image_repository": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "dockerfile": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "control",
+                        "worker"
+                      ]
+                    },
+                    "trigger_type": {
+                      "type": "string",
+                      "enum": [
+                        "Manual"
+                      ]
+                    },
+                    "cpu": {
+                      "type": "number",
+                      "minimum": 0.25,
+                      "maximum": 4
+                    },
+                    "memory": {
+                      "type": "string",
+                      "pattern": "^[0-9]+Gi$"
+                    },
+                    "parallelism": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 200
+                    },
+                    "replica_timeout": {
+                      "type": "integer",
+                      "minimum": 60,
+                      "maximum": 86400
+                    },
+                    "node_identity": {
+                      "type": "string",
+                      "enum": [
+                        "pipeline-control",
+                        "pipeline-worker"
+                      ]
+                    },
+                    "managed_identity_name": {
+                      "type": "string",
+                      "pattern": "^mi-[a-z0-9-]{1,60}$"
+                    },
+                    "key_vault_uri": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                },
                 "azure_container_registry": {
                   "type": "object",
                   "additionalProperties": false,
                   "description": "Azure Container Registry coordinates for this env binding. Present iff target_kind=='azure_container_registry'. registry_name is the ACR short name (login server derived as <registry_name>.azurecr.io); resource_group is the Azure RG that owns it. image_tag_convention documents the deploy-time tag shape (F-012 v7 §5 mandates git_head_sha as the tag).",
-                  "required": ["registry_name", "resource_group"],
+                  "required": [
+                    "registry_name",
+                    "resource_group"
+                  ],
                   "properties": {
                     "registry_name": {
                       "type": "string",
@@ -415,12 +639,14 @@
                     }
                   }
                 },
-
                 "azure_key_vault": {
                   "type": "object",
                   "additionalProperties": false,
                   "description": "Azure Key Vault coordinates for this env binding. Present iff target_kind=='azure_key_vault'. vault_name is the short name (URI derived as https://<vault_name>.vault.azure.net/); resource_group is the RG that owns it. Deploy verifies presence + configuration; never creates.",
-                  "required": ["vault_name", "resource_group"],
+                  "required": [
+                    "vault_name",
+                    "resource_group"
+                  ],
                   "properties": {
                     "vault_name": {
                       "type": "string",
@@ -436,16 +662,21 @@
                     "firewall_default_action": {
                       "type": "string",
                       "description": "Expected KV firewall default action. Deploy verifies this matches the live configuration.",
-                      "enum": ["Deny", "Allow"]
+                      "enum": [
+                        "Deny",
+                        "Allow"
+                      ]
                     }
                   }
                 },
-
                 "azure_storage_account": {
                   "type": "object",
                   "additionalProperties": false,
                   "description": "Azure Storage Account coordinates for this env binding. Present iff target_kind=='azure_storage_account'. account_name is the storage short name; resource_group is the RG. Deploy verifies presence + configuration; never creates.",
-                  "required": ["account_name", "resource_group"],
+                  "required": [
+                    "account_name",
+                    "resource_group"
+                  ],
                   "properties": {
                     "account_name": {
                       "type": "string",
@@ -457,22 +688,68 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256
+                    },
+                    "blob_containers": {
+                      "type": "array",
+                      "description": "Blob containers deploy creates inside this pre-existing storage account (per F-012 v9 §4.3). Each entry declares one container's full configuration.",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "name",
+                          "purpose"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]{2,62}$"
+                          },
+                          "purpose": {
+                            "enum": [
+                              "logs",
+                              "sources",
+                              "staging",
+                              "reports"
+                            ]
+                          },
+                          "retention_days": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 3650
+                          },
+                          "path_prefixes": {
+                            "type": "array",
+                            "description": "Reserved top-level path prefixes inside this container, one per application or pipeline that writes to it.",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^[a-z0-9-]{1,64}$"
+                            },
+                            "uniqueItems": true
+                          }
+                        }
+                      }
                     }
                   }
                 },
-
-                "azure_vnet_subnet": {
+                "branch": {
+                  "type": "string",
+                  "description": "Source-code git branch this env_binding deploys from. Required for target_kind whose deploy destination is git-branch-bound (cloudflare_pages_project, github_actions_workflow_runner). The deploy script MUST read the branch from this field and MUST NOT carry a hard-coded branch map (REQ-T-050). Pattern: a valid git ref name fragment without leading slash or `..` segments.",
+                  "pattern": "^[a-zA-Z0-9_./-]+$",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "azure_vnet": {
                   "type": "object",
                   "additionalProperties": false,
-                  "description": "Azure Virtual Network + subnet coordinates for this env binding. Present iff target_kind=='azure_vnet_subnet'. vnet_name + subnet_name identify the subnet the ACA Environment is placed into. Deploy verifies presence + configuration; never creates.",
-                  "required": ["vnet_name", "subnet_name", "resource_group"],
+                  "description": "Azure VNET coordinates for this env binding. Present iff target_kind=='azure_vnet'. vnet_name is the VNET short name; resource_group is the RG. Deploy verifies presence and empty-shell state; every child fact (subnets, NSG rules, IP allocations, service endpoints, DNS zones) is manifest-declared here via the subnets[] array below.",
+                  "required": [
+                    "vnet_name",
+                    "resource_group",
+                    "subnets"
+                  ],
                   "properties": {
                     "vnet_name": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 256
-                    },
-                    "subnet_name": {
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 256
@@ -482,48 +759,179 @@
                       "minLength": 1,
                       "maxLength": 256
                     },
-                    "address_prefix": {
-                      "type": "string",
-                      "pattern": "^[0-9.]+/[0-9]+$"
+                    "subnets": {
+                      "type": "array",
+                      "description": "Subnets manifest-declared inside this pre-existing VNET.",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "name",
+                          "address_prefix"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "pattern": "^snet-[a-z0-9-]{1,60}$"
+                          },
+                          "address_prefix": {
+                            "type": "string",
+                            "pattern": "^[0-9.]+/[0-9]+$"
+                          },
+                          "delegations": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "uniqueItems": true
+                          },
+                          "service_endpoints": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "uniqueItems": true
+                          }
+                        }
+                      }
                     }
                   }
                 },
-
-                "branch": {
-                  "type": "string",
-                  "description": "Source-code git branch this env_binding deploys from. Required for target_kind whose deploy destination is git-branch-bound (cloudflare_pages_project, github_actions_workflow_runner). The deploy script MUST read the branch from this field and MUST NOT carry a hard-coded branch map (REQ-T-050). Pattern: a valid git ref name fragment without leading slash or `..` segments.",
-                  "pattern": "^[a-zA-Z0-9_./-]+$",
-                  "minLength": 1,
-                  "maxLength": 256
+                "azure_resource_group": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Resource group coordinates for this env binding. Present iff target_kind=='azure_resource_group'. Deploy verifies presence and empty-shell state; the RG is a top-level shell owning every other Azure resource in this env.",
+                  "required": [
+                    "name",
+                    "location"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "pattern": "^rg-[a-z0-9-]{1,88}$"
+                    },
+                    "location": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  }
+                },
+                "identity": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Identity coordinates for this env binding. Present iff target_kind=='identity'. The identity_class discriminator selects which class-specific fields deploy uses.",
+                  "required": [
+                    "identity_class",
+                    "name"
+                  ],
+                  "properties": {
+                    "identity_class": {
+                      "enum": [
+                        "managed_identity",
+                        "user",
+                        "service_principal"
+                      ]
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "user_principal_name": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "tenant_id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                    },
+                    "resource_group": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  },
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "identity_class": {
+                            "const": "azure_managed_identity"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "resource_group"
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "identity_class": {
+                            "const": "entra_user"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "user_principal_name",
+                          "tenant_id"
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "identity_class": {
+                            "const": "azure_service_principal"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "tenant_id"
+                        ]
+                      }
+                    }
+                  ]
                 }
               }
             }
           },
-
           "files": {
             "type": "array",
-            "description": "Every file the target ships, enumerated. disposition partitions entries into 'managed' (JSON owns the bytes via embedded_content; deploy materializes via the Extractor; Crosswalk validates byte-equality with the repo tree) and 'referenced' (only source_location is declared; deploy copies bytes from origin/<branch>'s git tree at deploy time; Crosswalk validates presence). MAY be empty for shared-infrastructure target_kinds (azure_automation_account, mongodb_cluster) which carry no source files — those targets exist to declare entitlements and shared facts that other targets reference.",
+            "description": "Every file the target ships, enumerated. disposition partitions entries into 'managed' (JSON owns the bytes via embedded_content; deploy materializes via the Extractor; Crosswalk validates byte-equality with the repo tree) and 'referenced' (only source_location is declared; deploy copies bytes from origin/<branch>'s git tree at deploy time; Crosswalk validates presence). MAY be empty for shared-infrastructure target_kinds (azure_automation_account) which carry no source files — those targets exist to declare entitlements and shared facts that other targets reference.",
             "minItems": 0,
             "uniqueItems": true,
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["feature_id", "source_location", "handler_type", "disposition"],
+              "required": [
+                "feature_id",
+                "source_location",
+                "handler_type",
+                "disposition"
+              ],
               "properties": {
-
                 "feature_id": {
                   "type": "string",
                   "description": "Syntactic shape only. References a feature in agile_backlog by regex; the schema does not enumerate which features exist. Source-of-truth for the regex: https://dev.chathealthy.ai/schemas/ChatHealthyAgileBacklogSchema.json (feature_id pattern).",
                   "pattern": "^EPIC-[0-9]{3}-F-[0-9]{3}$"
                 },
-
                 "source_location": {
                   "type": "string",
                   "description": "Repo-relative path at which the source file lives on disk. Forward slashes only. No leading slash. No '..' segments. No drive letters. Schema does not assume any particular directory layout for any feature.",
                   "pattern": "^(?!.*\\.\\.)[^\\\\:/][^\\\\:]*(?:/[^\\\\:/]+)*$",
                   "maxLength": 1024
                 },
-
                 "handler_type": {
                   "type": "string",
                   "description": "Closed taxonomy of software handlers that process a file. Source-of-truth for this controlled vocabulary: this schema document itself. Values classify the file's processing class only.",
@@ -541,23 +949,25 @@
                     "cert_or_key"
                   ]
                 },
-
                 "disposition": {
                   "type": "string",
                   "description": "Closed taxonomy that decides who owns the file's bytes. 'managed' — the JSON owns the bytes verbatim in embedded_content; Extractor materializes; Crosswalk requires byte-equality with the repo tree. 'referenced' — only the source_location path is declared; deploy machinery copies the bytes from origin/<branch>'s git tree at deploy time; Crosswalk requires presence only. INVARIANT: when disposition=managed, embedded_content is required. When disposition=referenced, embedded_content MUST be absent.",
-                  "enum": ["managed", "referenced"]
+                  "enum": [
+                    "managed",
+                    "referenced"
+                  ]
                 },
-
                 "embedded_content": {
                   "type": "string",
                   "description": "Verbatim source bytes of the file at source_location, captured as a JSON string. Required when disposition=managed; absent when disposition=referenced. Binary content is base64-encoded and prefixed with '__base64__:' by the Builder; the Extractor decodes that prefix back to raw bytes. For managed files of handler_type 'dockerfile' or 'workflow_yaml', embedded_content is the OUTPUT of rendering layout; it is not authored by hand."
                 },
-
                 "layout": {
-                  "type": ["object", "array"],
+                  "type": [
+                    "object",
+                    "array"
+                  ],
                   "description": "Structured spec from which the Builder generates the file's bytes. The Builder is the only writer; no operator hand-edits the rendered file on disk. For handler_type='dockerfile' the spec is an ordered array of {instruction, args} objects (FROM/WORKDIR/COPY/RUN/ENV/EXPOSE/CMD); the renderer emits one Dockerfile line per entry. For handler_type='workflow_yaml' the spec is a GHA-workflow JSON object (on:/jobs:/env:/...); the renderer dumps it as YAML. Required when disposition='managed' AND handler_type in {'dockerfile','workflow_yaml'}. Forbidden when disposition='referenced'. Other managed handler types may declare a layout but the Builder will not (yet) generate for them."
                 },
-
                 "content_hash": {
                   "type": "string",
                   "description": "sha256 hex digest of the file's bytes at the moment the Builder enumerated it. Populated for disposition='referenced' as a drift detector — Crosswalk re-hashes the disk bytes on every deploy and REJECTs on mismatch, catching unstaged edits that would otherwise ship differently between local builds (disk-driven) and remote builds (commit-driven). Forbidden when disposition='managed' (managed files are already byte-protected by embedded_content).",
@@ -567,55 +977,112 @@
               "allOf": [
                 {
                   "if": {
-                    "properties": { "disposition": { "const": "managed" } },
-                    "required": ["disposition"]
-                  },
-                  "then": { "required": ["embedded_content"] }
-                },
-                {
-                  "if": {
-                    "properties": { "disposition": { "const": "referenced" } },
-                    "required": ["disposition"]
-                  },
-                  "then": {
-                    "not": { "anyOf": [
-                      { "required": ["embedded_content"] },
-                      { "required": ["layout"] }
-                    ] }
-                  }
-                },
-                {
-                  "if": {
-                    "properties": { "disposition": { "const": "managed" } },
-                    "required": ["disposition"]
+                    "properties": {
+                      "disposition": {
+                        "const": "managed"
+                      }
+                    },
+                    "required": [
+                      "disposition"
+                    ]
                   },
                   "then": {
-                    "not": { "required": ["content_hash"] }
+                    "required": [
+                      "embedded_content"
+                    ]
                   }
                 },
                 {
                   "if": {
                     "properties": {
-                      "disposition": { "const": "managed" },
-                      "handler_type": { "enum": ["dockerfile", "workflow_yaml"] }
+                      "disposition": {
+                        "const": "referenced"
+                      }
                     },
-                    "required": ["disposition", "handler_type"]
+                    "required": [
+                      "disposition"
+                    ]
                   },
-                  "then": { "required": ["layout"] }
+                  "then": {
+                    "not": {
+                      "anyOf": [
+                        {
+                          "required": [
+                            "embedded_content"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "layout"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "disposition": {
+                        "const": "managed"
+                      }
+                    },
+                    "required": [
+                      "disposition"
+                    ]
+                  },
+                  "then": {
+                    "not": {
+                      "required": [
+                        "content_hash"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "disposition": {
+                        "const": "managed"
+                      },
+                      "handler_type": {
+                        "enum": [
+                          "dockerfile",
+                          "workflow_yaml"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "disposition",
+                      "handler_type"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "layout"
+                    ]
+                  }
                 }
               ]
             }
           },
-
           "secrets": {
             "type": "object",
             "description": "Secret / environment key declarations for this TARGET. Map of key NAME -> store id. The same keys apply across every env_binding of this target; per-env VALUES come from the bound store via SecretsResolver. The deploy script reads this inventory and configures the target's runtime env surface (FA app settings, Automation Variables, HF Space secrets, Cloudflare env, etc.). Values themselves NEVER appear in this JSON — only names + store ids. Each target enumerates ITS OWN full key list; no inheritance, no shared base, no implicit defaults. Per EPIC-008-F-012-S-001-REQ-T-037/T-038. The 'azure_automation_webhook' store names a key whose value is the webhook URL of another target (an azure_automation_runbook) — the runbook target's deploy step mints/reuses the webhook and pushes the URL directly onto this target's runtime env surface, and the THIS target's deploy resolver MUST skip entries carrying this store (they are set by the upstream runbook deploy, not by reading any local store).",
             "additionalProperties": {
               "type": "string",
-              "enum": ["local_env", "gha_secret", "hf_space_secret", "cloudflare_env", "azure_function_app_setting", "azure_automation_variable", "azure_automation_webhook"]
+              "enum": [
+                "local_env",
+                "gha_secret",
+                "hf_space_secret",
+                "cloudflare_env",
+                "azure_function_app_setting",
+                "azure_automation_variable",
+                "azure_automation_webhook",
+                "azure_key_vault"
+              ]
             }
           },
-
           "variables": {
             "type": "object",
             "description": "Deploy-computed VARIABLES (not secrets) for this TARGET, e.g. HF Space variables, runtime env values derived from cluster topology. Map of name -> source_qualifier string. Source-qualifier syntax: 'env_name' (value is the env binding name like dev/qa/prod), 'local_cert_file:<repo-relative-path>' (value is base64 of the file content), 'peer_url:<target_id>' (value is the peer target's HF Space URL resolved at deploy time), 'rename_from:<other_entry_name>' (value is the resolved value of another entry in this target's secrets or variables, pushed under THIS name). The deploy script dispatches on the qualifier prefix — zero target-specific knowledge lives in the deploy code. Moved here from hardcoded per-target maps inside local_deploy.py.",
@@ -625,21 +1092,29 @@
               "maxLength": 256
             }
           },
-
           "huggingface_source_set": {
             "type": "array",
             "description": "For target_kind=='hf_space' ONLY. The ordered list of (src, dst) subtree pairs the build wholesale-copies into this Space's docker build context. `src` is a repo-relative directory; `dst` is the destination relative path inside the build context (absent or equal to src means no rename, '.' means flatten to root). Replaces the hardcoded _findcare_source_set / _evaluatecare_source_set / _sharedservices_source_set functions in hf_helpers.py.",
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["src"],
+              "required": [
+                "src"
+              ],
               "properties": {
-                "src": { "type": "string", "minLength": 1, "maxLength": 256 },
-                "dst": { "type": "string", "minLength": 1, "maxLength": 256 }
+                "src": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "dst": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
               }
             }
           },
-
           "entitlements": {
             "type": "array",
             "description": "Roles, role assignments, memberships, and access grants this TARGET requires. Not secrets — values live entirely in this JSON, never in any .env or external store. The deploy procedure reads this inventory and provisions every entitlement it lists; a ground-up build produces a runtime with exactly these entitlements and no others. Per EPIC-008-F-012-S-001-REQ-B-009.",
@@ -647,47 +1122,109 @@
               "oneOf": [
                 {
                   "type": "object",
-                  "required": ["kind", "principal", "role", "scope"],
+                  "required": [
+                    "kind",
+                    "principal",
+                    "role",
+                    "scope"
+                  ],
                   "properties": {
-                    "kind": { "const": "azure_rbac_role_assignment" },
-                    "principal": { "type": "string", "description": "Managed identity, service principal, or user that receives the role." },
-                    "role": { "type": "string", "description": "Built-in role name (e.g. Contributor) or custom role id." },
-                    "scope": { "type": "string", "description": "Azure resource id or scope path the role is granted at." }
+                    "kind": {
+                      "const": "azure_rbac_role_assignment"
+                    },
+                    "principal": {
+                      "type": "string",
+                      "description": "Managed identity, service principal, or user that receives the role."
+                    },
+                    "role": {
+                      "type": "string",
+                      "description": "Built-in role name (e.g. Contributor) or custom role id."
+                    },
+                    "scope": {
+                      "type": "string",
+                      "description": "Azure resource id or scope path the role is granted at."
+                    }
                   },
                   "additionalProperties": false
                 },
                 {
                   "type": "object",
-                  "required": ["kind", "user", "role", "database"],
+                  "required": [
+                    "kind",
+                    "user",
+                    "role",
+                    "database"
+                  ],
                   "properties": {
-                    "kind": { "const": "atlas_db_role_assignment" },
-                    "user": { "type": "string", "description": "Atlas database user name." },
-                    "role": { "type": "string", "description": "Atlas role (e.g. readWriteAnyDatabase)." },
-                    "database": { "type": "string", "description": "Database the role applies to. Use '*' for any database." }
+                    "kind": {
+                      "const": "atlas_db_role_assignment"
+                    },
+                    "user": {
+                      "type": "string",
+                      "description": "Atlas database user name."
+                    },
+                    "role": {
+                      "type": "string",
+                      "description": "Atlas role (e.g. readWriteAnyDatabase)."
+                    },
+                    "database": {
+                      "type": "string",
+                      "description": "Database the role applies to. Use '*' for any database."
+                    }
                   },
                   "additionalProperties": false
                 },
                 {
                   "type": "object",
-                  "required": ["kind", "space", "user", "access"],
+                  "required": [
+                    "kind",
+                    "space",
+                    "user",
+                    "access"
+                  ],
                   "properties": {
-                    "kind": { "const": "hf_space_membership" },
-                    "space": { "type": "string", "description": "HuggingFace Space name or id." },
-                    "user": { "type": "string", "description": "HF user or org granted access." },
-                    "access": { "enum": ["read", "write", "admin"] }
+                    "kind": {
+                      "const": "hf_space_membership"
+                    },
+                    "space": {
+                      "type": "string",
+                      "description": "HuggingFace Space name or id."
+                    },
+                    "user": {
+                      "type": "string",
+                      "description": "HF user or org granted access."
+                    },
+                    "access": {
+                      "enum": [
+                        "read",
+                        "write",
+                        "admin"
+                      ]
+                    }
                   },
                   "additionalProperties": false
                 },
                 {
                   "type": "object",
-                  "required": ["kind", "account", "scopes"],
+                  "required": [
+                    "kind",
+                    "account",
+                    "scopes"
+                  ],
                   "properties": {
-                    "kind": { "const": "cloudflare_api_token_scope" },
-                    "account": { "type": "string", "description": "Cloudflare account name or id the token authenticates against." },
+                    "kind": {
+                      "const": "cloudflare_api_token_scope"
+                    },
+                    "account": {
+                      "type": "string",
+                      "description": "Cloudflare account name or id the token authenticates against."
+                    },
                     "scopes": {
                       "type": "array",
                       "description": "Scopes the API token grants (e.g. 'Cloudflare Pages:Edit', 'Account:Read').",
-                      "items": { "type": "string" },
+                      "items": {
+                        "type": "string"
+                      },
                       "minItems": 1,
                       "uniqueItems": true
                     }
@@ -696,19 +1233,139 @@
                 },
                 {
                   "type": "object",
-                  "required": ["kind", "workflow", "permissions"],
+                  "required": [
+                    "kind",
+                    "workflow",
+                    "permissions"
+                  ],
                   "properties": {
-                    "kind": { "const": "github_workflow_permission" },
-                    "workflow": { "type": "string", "description": "Repository-relative path of the GHA workflow file (e.g. '.github/workflows/remote-deploy.yml')." },
+                    "kind": {
+                      "const": "github_workflow_permission"
+                    },
+                    "workflow": {
+                      "type": "string",
+                      "description": "Repository-relative path of the GHA workflow file (e.g. '.github/workflows/remote-deploy.yml')."
+                    },
                     "permissions": {
                       "type": "object",
                       "description": "Permission map applied to GITHUB_TOKEN for the workflow's job(s). Key = permission scope (e.g. 'contents', 'packages'); value = access level ('read' | 'write' | 'none').",
-                      "additionalProperties": { "enum": ["read", "write", "none"] }
+                      "additionalProperties": {
+                        "enum": [
+                          "read",
+                          "write",
+                          "none"
+                        ]
+                      }
                     }
                   },
                   "additionalProperties": false
                 }
               ]
+            }
+          },
+          "allowed_roles": {
+            "type": "array",
+            "description": "Roles this target accepts. Each entry is either a built-in Azure role name (string) or a role_id from CustomRoleCatalog. Effective access = identity's roles[] intersect target's allowed_roles[].",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "IdentityCatalog": {
+      "type": "array",
+      "description": "Canonical registry of every identity (managed identity, entra user, service principal, atlas db user, hf user, cloudflare api token) referenced anywhere in this manifest. Each identity is declared once here; targets and role assignments reference identities by identity_id.",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identity_id",
+          "identity_class"
+        ],
+        "properties": {
+          "identity_id": {
+            "type": "string",
+            "pattern": "^identity_[a-z0-9_]{1,64}$",
+            "description": "Opaque canonical id for this identity."
+          },
+          "identity_class": {
+            "enum": [
+              "managed_identity",
+              "user",
+              "service_principal",
+              "api_token"
+            ],
+            "description": "The abstract kind of identity. Deploy handlers translate to the concrete platform realization (e.g. managed_identity -> Azure Managed Identity; user -> Entra user or Atlas DB user based on target_id_ref)."
+          },
+          "target_id_ref": {
+            "type": "string",
+            "pattern": "^target_[a-z0-9_]{1,64}$",
+            "description": "target_id of the DeploymentTargetRecord that provisions this identity (deploy-created). Absent for bootstrap-layer identities (e.g. claudecode)."
+          },
+          "roles": {
+            "type": "array",
+            "description": "Roles this identity holds. Each entry is either a built-in Azure role name (string) or a role_id referencing an entry in CustomRoleCatalog.",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "CustomRoleCatalog": {
+      "type": "array",
+      "description": "Custom role definitions. Built-in Azure roles do NOT appear here (Azure owns their definitions). Each entry declares one custom role's grants — the (operation, on) pairs that make up the role's authority. Identities' roles[] and targets' allowed_roles[] may reference role_id values from this catalog OR built-in Azure role names as strings.",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role_id",
+          "description",
+          "grants"
+        ],
+        "properties": {
+          "role_id": {
+            "type": "string",
+            "pattern": "^role_[a-z0-9_]{1,64}$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "grants": {
+            "type": "array",
+            "description": "Each grant is one (operation, on) pair: the operation the role permits and the resource it permits it on.",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "operation",
+                "on"
+              ],
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Azure Resource Manager action string, e.g. Microsoft.KeyVault/vaults/secrets/read."
+                },
+                "on": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Resource this operation is permitted on. May be a target_id, a target_id/subpath (e.g. target_storage_pipeline/containers/logs) for child-fact scope, or an explicit ARM scope path."
+                }
+              }
             }
           }
         }

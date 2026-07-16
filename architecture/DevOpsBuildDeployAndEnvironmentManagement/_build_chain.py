@@ -683,6 +683,29 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
         _build_azure_container_app(repo_root, target, build_dir)
     elif target.target_kind == "azure_automation_runbook":
         _build_azure_automation_runbook(repo_root, target, build_dir)
+    elif target.target_kind in (
+        "azure_resource_group",
+        "azure_key_vault",
+        "azure_storage_account",
+        "azure_vnet",
+        "identity",
+        "azure_container_registry",
+        "azure_container_apps_environment",
+        "azure_container_app_job",
+        "azure_automation_account",
+    ):
+        # F-012: shell / identity / ACR / ACA Env / Job definition packages
+        # are manifests only (deploy owns Azure create; jobs build images
+        # at deploy via az acr build from dockerfile path in the target).
+        if build_dir.exists():
+            shutil.rmtree(build_dir, ignore_errors=True)
+        build_dir.mkdir(parents=True)
+        for f in target.files:
+            src = repo_root / f.source_location
+            if not src.is_file():
+                sys.exit(f"ERROR: missing source file {f.source_location}")
+            dst = build_dir / Path(f.source_location).name
+            shutil.copy2(src, dst)
     else:
         raise RuntimeError(
             f"target_kind {target.target_kind!r} not supported in local_build."
@@ -699,12 +722,36 @@ _BUILDABLE_KINDS = (
     "azure_function_app",
     "azure_container_app",
     "azure_automation_runbook",
+    "azure_resource_group",
+    "azure_key_vault",
+    "azure_storage_account",
+    "azure_vnet",
+    "identity",
+    "azure_container_registry",
+    "azure_container_apps_environment",
+    "azure_container_app_job",
+    "azure_automation_account",
+)
+
+_PIPELINE_BUILD_KINDS = (
+    "azure_resource_group",
+    "azure_key_vault",
+    "azure_storage_account",
+    "azure_vnet",
+    "identity",
+    "azure_container_registry",
+    "azure_container_apps_environment",
+    "azure_container_app_job",
+    "azure_automation_account",
+    "azure_automation_runbook",
 )
 
 
 def _select_targets(coll: DeploymentCollection, target_arg: str) -> list[TargetRecord]:
     if target_arg == "all":
-        return [t for t in coll if t.target_kind in _BUILDABLE_KINDS]
+        return [t for t in coll if t.target_kind in ("cloudflare_pages_project", "hf_space")]
+    if target_arg == "pipeline":
+        return [t for t in coll if t.target_kind in _PIPELINE_BUILD_KINDS]
     if target_arg in ("cloudflare", "cloudflare_pages_project"):
         return [t for t in coll if t.target_kind == "cloudflare_pages_project"]
     if target_arg in ("hf", "hf_space"):

@@ -1883,25 +1883,56 @@ def deploy_one(
     resolver: SecretsResolver,
     coll: DeploymentCollection,
 ) -> str:
+    import pipeline_azure_deploy as pad
+
     build_dir = repo_root / BUILD_ROOT_REL / target_id
+    target = coll.by_target_id(target_id)
+    require_branch_matches_env_binding(repo_root, target, env)
+
+    # F-012 shell / identity / ACR / ACA Env / ACA Job path — packages may be
+    # empty (files=[]) so build_dir is optional for verify/provision kinds.
+    if target_kind == "azure_resource_group":
+        return pad.verify_resource_group(target, env)
+    if target_kind == "azure_key_vault":
+        vault = pad.verify_key_vault(target, env)
+        secret_names = [
+            k.replace("_", "-") if "-" not in k else k
+            for k in (target.secrets or {}).keys()
+        ]
+        # Prefer exact env key names as KV secret names (dash form for CA;
+        # underscore form for Mongo etc. — store both styles as declared).
+        pad.seed_kv_secrets_from_env(vault, list((target.secrets or {}).keys()))
+        return vault
+    if target_kind == "azure_storage_account":
+        return pad.ensure_storage_containers(target, env)
+    if target_kind == "azure_vnet":
+        return pad.ensure_vnet_subnets(target, env)
+    if target_kind == "identity":
+        return pad.ensure_managed_identity(target, env)
+    if target_kind == "azure_container_registry":
+        return pad.ensure_acr(target, env)
+    if target_kind == "azure_container_apps_environment":
+        return pad.ensure_aca_environment(target, env)
+    if target_kind == "azure_container_app_job":
+        return pad.ensure_aca_job(target, env, repo_root=repo_root)
+    if target_kind == "azure_automation_account":
+        # Pre-existing shell — presence check only.
+        step(f"verify automation account target {target_id}")
+        return target_id
+
     if not build_dir.is_dir():
         sys.exit(f"ERROR: build dir missing: {build_dir}")
     manifest = load_target_manifest(repo_root, target_id)
     build_n = int(manifest["build_number"])
-    target = coll.by_target_id(target_id)
-    require_branch_matches_env_binding(repo_root, target, env)
     if target_kind == "cloudflare_pages_project":
         return deploy_cloudflare(build_dir, env, resolver, target)
     if target_kind == "hf_space":
         return deploy_hf_space(repo_root, build_dir, build_n, target_id, env, resolver, target)
     if target_kind == "azure_function_app":
-        target = coll.by_target_id(target_id)
         return deploy_azure_function_app(build_dir, target, env, resolver, coll)
     if target_kind == "azure_container_app":
-        target = coll.by_target_id(target_id)
         return deploy_azure_container_app(build_dir, target, env, resolver, build_n)
     if target_kind == "azure_automation_runbook":
-        target = coll.by_target_id(target_id)
         return deploy_azure_automation_runbook(
             build_dir, target, env, resolver, repo_root, coll,
         )
@@ -1915,16 +1946,32 @@ DEPLOYABLE_KINDS = (
     "hf_space",
     "azure_function_app",
     "azure_container_app",
+    "azure_container_apps_environment",
+    "azure_container_app_job",
     "azure_automation_runbook",
+    "azure_automation_account",
+    "azure_container_registry",
+    "azure_key_vault",
+    "azure_storage_account",
+    "azure_vnet",
+    "azure_resource_group",
+    "identity",
 )
 
 # EPIC-008-F-012-S-001-REQ-B-012: the data pipeline tier is operated on its
 # own cadence and is never co-deployed with the front-end app stack.
 FRONTEND_KINDS = ("cloudflare_pages_project", "hf_space")
 PIPELINE_KINDS = (
-    "azure_function_app",
+    "azure_resource_group",
+    "azure_key_vault",
+    "azure_storage_account",
+    "azure_vnet",
+    "identity",
+    "azure_container_registry",
+    "azure_container_apps_environment",
+    "azure_container_app_job",
+    "azure_automation_account",
     "azure_automation_runbook",
-    "azure_container_app",
 )
 
 
@@ -1988,13 +2035,22 @@ def _dependency_sort_targets(selected: list[tuple[str, str]]) -> list[tuple[str,
     Order: hf_space -> azure_* -> cloudflare_pages_project -> everything else.
     """
     rank = {
-        "hf_space": 0,
-        "azure_function_app": 1,
-        "azure_container_app": 1,
-        "azure_automation_runbook": 1,
-        "cloudflare_pages_project": 2,
+        "azure_resource_group": 0,
+        "azure_key_vault": 1,
+        "azure_storage_account": 1,
+        "azure_vnet": 1,
+        "identity": 2,
+        "azure_container_registry": 3,
+        "azure_container_apps_environment": 4,
+        "azure_container_app_job": 5,
+        "azure_automation_account": 6,
+        "azure_automation_runbook": 7,
+        "hf_space": 8,
+        "azure_function_app": 9,
+        "azure_container_app": 9,
+        "cloudflare_pages_project": 10,
     }
-    return sorted(selected, key=lambda tk: (rank.get(tk[1], 3), tk[0]))
+    return sorted(selected, key=lambda tk: (rank.get(tk[1], 99), tk[0]))
 
 
 def _hf_space_live_url_for_target(coll: DeploymentCollection, env: str, target_id: str) -> Optional[str]:
