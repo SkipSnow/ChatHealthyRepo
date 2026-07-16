@@ -7789,7 +7789,21 @@
             "resource_group": "rg-chathealthy-pipeline-dev",
             "automation_account": "ChatHealthyJobManager",
             "runbook_name": "CaBootstrapRunbook",
-            "schedule_names": []
+            "schedule_names": [],
+            "python_packages": [
+              {
+                "name": "pycparser",
+                "content_url": "https://files.pythonhosted.org/packages/62/d5/5f610ebe421e85889f2e55e33b7f9a6795bd982198517d912eb1c76e1a53/pycparser-2.21-py2.py3-none-any.whl"
+              },
+              {
+                "name": "cffi",
+                "content_url": "https://files.pythonhosted.org/packages/4a/56/572f7f728b20e4d51766e63d7de811e45c7cae727dc1f769caad2973fb52/cffi-1.16.0-cp38-cp38-win_amd64.whl"
+              },
+              {
+                "name": "cryptography",
+                "content_url": "https://files.pythonhosted.org/packages/f6/23/b28f4a03650512efff13a8fcbb977bac178a765c5a887a6720bee13fa85b/cryptography-41.0.7-cp37-abi3-win_amd64.whl"
+              }
+            ]
           }
         }
       ],
@@ -7819,7 +7833,21 @@
             "resource_group": "rg-chathealthy-pipeline-dev",
             "automation_account": "ChatHealthyJobManager",
             "runbook_name": "CaEndpointRunbook",
-            "schedule_names": []
+            "schedule_names": [],
+            "python_packages": [
+              {
+                "name": "pycparser",
+                "content_url": "https://files.pythonhosted.org/packages/62/d5/5f610ebe421e85889f2e55e33b7f9a6795bd982198517d912eb1c76e1a53/pycparser-2.21-py2.py3-none-any.whl"
+              },
+              {
+                "name": "cffi",
+                "content_url": "https://files.pythonhosted.org/packages/4a/56/572f7f728b20e4d51766e63d7de811e45c7cae727dc1f769caad2973fb52/cffi-1.16.0-cp38-cp38-win_amd64.whl"
+              },
+              {
+                "name": "cryptography",
+                "content_url": "https://files.pythonhosted.org/packages/f6/23/b28f4a03650512efff13a8fcbb977bac178a765c5a887a6720bee13fa85b/cryptography-41.0.7-cp37-abi3-win_amd64.whl"
+              }
+            ]
           }
         }
       ],
