@@ -297,18 +297,21 @@ def _mint_leaf_cert(subject: str) -> tuple[str, str, str]:
         )
     # F-003 §4.3 deployer entitlement: principal name must contain
     # "sp-deployer". Pass that canonical role name (not the SP client id).
-    os.environ.setdefault("CHATHEALTHY_CA_AA_RG", "rg-chathealthy-pipeline-dev")
-    os.environ.setdefault("CHATHEALTHY_CA_AA_NAME", "ChatHealthyJobManager")
-    os.environ.setdefault("CHATHEALTHY_CA_AA_RUNBOOK", "CaEndpointRunbook")
-    os.environ.setdefault(
-        "AZURE_SUBSCRIPTION_ID",
-        "7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee",
-    )
+    # Force PipeLineServices coords — Code/.env often carries the product
+    # subscription (ChatHealthy-AI); setdefault would leave that in place and
+    # ARM would reject the token as wrong-tenant for the CA Automation Account.
+    pipeline_sub = "7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee"
+    os.environ["CHATHEALTHY_CA_AA_RG"] = "rg-chathealthy-pipeline-dev"
+    os.environ["CHATHEALTHY_CA_AA_NAME"] = "ChatHealthyJobManager"
+    os.environ["CHATHEALTHY_CA_AA_RUNBOOK"] = "CaEndpointRunbook"
+    os.environ["CHATHEALTHY_CA_AA_SUBSCRIPTION"] = pipeline_sub
     # Token via `az` (same shim as the rest of deploy) — do not require
-    # azure.identity on the operator workstation.
+    # azure.identity on the operator workstation. Scope the token to the
+    # pipeline subscription so the issuer matches the AA's tenant.
     tok_r = subprocess.run(
         [
             "az", "account", "get-access-token",
+            "--subscription", pipeline_sub,
             "--resource", "https://management.azure.com/",
             "-o", "json",
         ],
