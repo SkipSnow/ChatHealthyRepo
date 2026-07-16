@@ -396,19 +396,62 @@ def build_and_push_job_image(
     # Dockerfiles COPY from pipeline/Code context.
     context = repo_root / "pipeline" / "Code"
     image = f"{registry_name}.azurecr.io/{image_repository}:{tag}"
-    step(f"acr build {image}")
-    _az(
+    # Idempotent: many ACA jobs share prov-control / prov-worker tags.
+    existing = _az(
         [
-            "acr", "build",
-            "--registry", registry_name,
+            "acr", "repository", "show",
+            "--name", registry_name,
             "--image", f"{image_repository}:{tag}",
-            "--file", str(df),
-            "--build-arg", f"CHATHEALTHY_CA_ROOT_B64={root_b64}",
-            "--build-arg",
-            f"CHATHEALTHY_CA_INTERMEDIATE_B64={intermediate_b64}",
-            str(context),
-        ]
+        ],
+        check=False,
     )
+    if existing.returncode == 0:
+        step(f"acr image {image} already present — skip build")
+        return image
+    step(f"acr build {image}")
+    # --no-logs waits for the server-side run without streaming log text.
+    # Windows az (cp1252) raises UnicodeEncodeError on non-ASCII log bytes
+    # even when the ACR task itself Succeeded — false deploy failures.
+    env = os.environ.copy()
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    cmd = [
+        "az", "acr", "build",
+        "--registry", registry_name,
+        "--image", f"{image_repository}:{tag}",
+        "--file", str(df),
+        "--build-arg", f"CHATHEALTHY_CA_ROOT_B64={root_b64}",
+        "--build-arg", f"CHATHEALTHY_CA_INTERMEDIATE_B64={intermediate_b64}",
+        "--no-logs",
+        str(context),
+    ]
+    r = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        env=env,
+        creationflags=_cflags(),
+        shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: az acr build --registry {registry_name} "
+            f"--image {image_repository}:{tag}... failed ({r.returncode})\n"
+            f"  stderr: {(r.stderr or '')[:2000]}"
+        )
+    verify = _az(
+        [
+            "acr", "repository", "show",
+            "--name", registry_name,
+            "--image", f"{image_repository}:{tag}",
+        ],
+        check=False,
+    )
+    if verify.returncode != 0:
+        sys.exit(
+            f"ERROR: acr build reported success but image {image} is not "
+            f"present in the registry."
+        )
     return image
 
 
