@@ -6,6 +6,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
+# F-003 §7: bake CA PEMs into the image at build time (no runtime KV for CA).
+ARG CHATHEALTHY_CA_ROOT_B64
+ARG CHATHEALTHY_CA_INTERMEDIATE_B64
+RUN test -n "$CHATHEALTHY_CA_ROOT_B64" \
+ && test -n "$CHATHEALTHY_CA_INTERMEDIATE_B64" \
+ && mkdir -p /etc/chathealthy/ca \
+ && printf '%s' "$CHATHEALTHY_CA_ROOT_B64" | base64 -d > /etc/chathealthy/ca/root.pem \
+ && printf '%s' "$CHATHEALTHY_CA_INTERMEDIATE_B64" | base64 -d > /etc/chathealthy/ca/intermediate.pem \
+ && grep -q "BEGIN CERTIFICATE" /etc/chathealthy/ca/root.pem \
+ && grep -q "BEGIN CERTIFICATE" /etc/chathealthy/ca/intermediate.pem
+
 COPY requirements-pipeline.txt /app/pipeline/Code/
 RUN pip install --no-cache-dir -r requirements-pipeline.txt \
     && pip install --no-cache-dir azure-identity azure-keyvault-secrets

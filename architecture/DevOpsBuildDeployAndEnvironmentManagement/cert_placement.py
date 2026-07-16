@@ -209,7 +209,11 @@ def _kv_revoke_deployer_read(
         creationflags=_cflags(), shell=(sys.platform == "win32"),
     )
     # Non-fatal: if the assignment did not exist, revoke is a no-op.
-    if r.returncode != 0 and "not found" not in (r.stderr or "").lower():
+    err = (r.stderr or "").lower()
+    if r.returncode != 0 and (
+        "not found" not in err
+        and "no matched assignments" not in err
+    ):
         _step(
             f"WARN: revoke of deployer Get on {secret_name} returned "
             f"{r.returncode}: {(r.stderr or '').strip()[:400]}"
@@ -427,49 +431,78 @@ def _resolve_mi_resource_group(kv_target, env: str) -> str:
     )
 
 
-def bake_ca_chain_into_images(env: str, acr_target) -> None:
-    """F-003 §7 image bake. Read the CA chain from KV once, pass as
-    `az acr build --build-arg` so the Dockerfile can ADD the chain to
-    /etc/chathealthy/ca/. Called AFTER provision_long_lived_certs so
-    the KV chain is guaranteed present."""
-    # No-op signal: only triggers a rebuild when the image tag differs
-    # from what's already in the registry — that gate lives in
-    # aca_helpers.aca_docker_build, not here. This helper is the point
-    # at which the base64-encoded chain becomes available to the build
-    # invocation via env-var; the build helper decides whether to use
-    # it on a given invocation.
+def bake_ca_chain_into_images(env: str, acr_target, kv_target) -> None:
+    """F-003 §7 image bake. Read root + intermediate PEMs from KV, expose
+    as base64 env vars consumed by `az acr build --build-arg`. Dockerfiles
+    write them to /etc/chathealthy/ca/{root,intermediate}.pem."""
     acr_name = _acr_name_for_env(acr_target, env)
+    vault_name = _kv_name_for_env(kv_target, env)
     _step(f"exposing CA chain as ACR build-arg for {acr_name}")
-    os.environ["CHATHEALTHY_CA_CHAIN_B64"] = _fetch_ca_chain_b64(env)
+    root_b64, intermediate_b64 = _fetch_ca_pem_b64s(vault_name)
+    os.environ["CHATHEALTHY_CA_ROOT_B64"] = root_b64
+    os.environ["CHATHEALTHY_CA_INTERMEDIATE_B64"] = intermediate_b64
+
+
+def _fetch_ca_pem_b64s(vault_name: str) -> tuple[str, str]:
+    """Fetch ca-root-cert + ca-intermediate-cert; return (root_b64, int_b64)."""
+    if os.environ.get("CHATHEALTHY_CERT_TEST_MODE") == "1":
+        return (
+            base64.b64encode(b"---MOCK ROOT---").decode("ascii"),
+            base64.b64encode(b"---MOCK INTERMEDIATE---").decode("ascii"),
+        )
+    root = _kv_secret_value(vault_name, "ca-root-cert")
+    intermediate = _kv_secret_value(vault_name, "ca-intermediate-cert")
+    if "BEGIN CERTIFICATE" not in root or "END CERTIFICATE" not in root:
+        sys.exit(
+            f"ERROR: KV secret ca-root-cert in {vault_name} is not a PEM cert "
+            f"(len={len(root)})."
+        )
+    if (
+        "BEGIN CERTIFICATE" not in intermediate
+        or "END CERTIFICATE" not in intermediate
+    ):
+        sys.exit(
+            f"ERROR: KV secret ca-intermediate-cert in {vault_name} is not a "
+            f"PEM cert (len={len(intermediate)})."
+        )
+    return (
+        base64.b64encode(root.encode("utf-8")).decode("ascii"),
+        base64.b64encode(intermediate.encode("utf-8")).decode("ascii"),
+    )
+
+
+def _kv_secret_value(vault_name: str, secret_name: str) -> str:
+    r = subprocess.run(
+        [
+            "az", "keyvault", "secret", "show",
+            "--vault-name", vault_name,
+            "--name", secret_name,
+            "--query", "value",
+            "-o", "tsv",
+        ],
+        capture_output=True, text=True,
+        creationflags=_cflags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0 or not (r.stdout or "").strip():
+        sys.exit(
+            f"ERROR: cannot read KV secret {secret_name!r} from "
+            f"{vault_name}: {(r.stderr or '').strip()[:800]}"
+        )
+    return r.stdout.strip()
 
 
 def _fetch_ca_chain_b64(env: str) -> str:
-    """Fetch the CA public + intermediate chain from the pipeline KV
-    for this env and return base64(public || intermediate)."""
-    # Kept simple + shellable so the test smoke can bypass Azure and
-    # return an empty placeholder.
-    if os.environ.get("CHATHEALTHY_CERT_TEST_MODE") == "1":
-        return base64.b64encode(b"---MOCK CA CHAIN---").decode("ascii")
-    vault_name = os.environ.get("CHATHEALTHY_PIPELINE_KV_NAME")
+    """Deprecated path kept for callers that still pass a concatenated
+    chain. Prefer bake_ca_chain_into_images + per-PEM build-args."""
+    del env  # vault must be resolved by caller via CHATHEALTHY_PIPELINE_KV_NAME
+    vault_name = os.environ.get("CHATHEALTHY_PIPELINE_KV_NAME", "").strip()
     if not vault_name:
-        _step(
-            "WARN: CHATHEALTHY_PIPELINE_KV_NAME not set; caller MUST "
-            "resolve KV name from manifest before invoking this helper"
+        sys.exit(
+            "ERROR: CHATHEALTHY_PIPELINE_KV_NAME not set; pass kv_target to "
+            "bake_ca_chain_into_images (F-003 §7)."
         )
-        return ""
-    r_pub = subprocess.run(
-        ["az", "keyvault", "secret", "show",
-         "--vault-name", vault_name, "--name", "ca-public",
-         "--query", "value", "-o", "tsv"],
-        capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
-    )
-    r_chain = subprocess.run(
-        ["az", "keyvault", "secret", "show",
-         "--vault-name", vault_name, "--name", "ca-intermediate-chain",
-         "--query", "value", "-o", "tsv"],
-        capture_output=True, text=True,
-        creationflags=_cflags(), shell=(sys.platform == "win32"),
-    )
-    combined = (r_pub.stdout or "").encode() + b"\n" + (r_chain.stdout or "").encode()
+    root_b64, intermediate_b64 = _fetch_ca_pem_b64s(vault_name)
+    root = base64.b64decode(root_b64)
+    intermediate = base64.b64decode(intermediate_b64)
+    combined = intermediate + (b"" if intermediate.endswith(b"\n") else b"\n") + root
     return base64.b64encode(combined).decode("ascii")
