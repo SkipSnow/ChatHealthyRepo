@@ -39,6 +39,10 @@ class EnvironmentBinding:
     huggingface_space: dict | None = None
     cloudflare_pages: dict | None = None
     branch: str | None = None
+    # Consolidated Atlas sub-block: project + cluster + accepted_access +
+    # private_endpoint_service under one substrate target. Deploy handler
+    # provisions everything Atlas-side from this one block.
+    atlas: dict | None = None
     # Package lists — child artifacts that get deployed TO this target's
     # host. runbooks[] is populated when the parent target is an
     # azure_automation_account; jobs[] when the parent is an
@@ -66,6 +70,7 @@ class EnvironmentBinding:
             "huggingface_space",
             "cloudflare_pages",
             "branch",
+            "atlas",
             "runbooks",
             "jobs",
         ):
@@ -94,6 +99,7 @@ class EnvironmentBinding:
             huggingface_space=d.get("huggingface_space"),
             cloudflare_pages=d.get("cloudflare_pages"),
             branch=d.get("branch"),
+            atlas=d.get("atlas"),
             runbooks=d.get("runbooks"),
             jobs=d.get("jobs"),
         )
@@ -215,6 +221,12 @@ class TargetRecord:
     # for. Deploy chain intersects `IdentityCatalog[*].roles` with each
     # target's allowed_roles to compute the concrete role-assignment set.
     # Data-driven; no role names appear in the deploy scripts themselves.
+    peers: list | None = None
+    # Cross-substrate handshake declarations. Each entry names a peer
+    # target and the kind of handshake this target participates in with
+    # it (e.g., Atlas target declares peers=[{target_id: <vnet>, kind:
+    # private_endpoint_service}]). Deploy uses this for sequencing the
+    # two-sided provisioning; it is documentary + coordination.
 
     def env_binding_set(self) -> set[str]:
         return {e.env_binding for e in self.environments}
@@ -238,6 +250,10 @@ class TargetRecord:
             out["secrets"] = self.secrets
         if self.variables:
             out["variables"] = self.variables
+        if self.allowed_roles:
+            out["allowed_roles"] = self.allowed_roles
+        if self.peers:
+            out["peers"] = self.peers
         return out
 
     @classmethod
@@ -255,6 +271,7 @@ class TargetRecord:
             variables=d.get("variables"),  # type: ignore[arg-type]
             promote_chain_bound=bool(d.get("promote_chain_bound", True)),
             allowed_roles=d.get("allowed_roles"),  # type: ignore[arg-type]
+            peers=d.get("peers"),  # type: ignore[arg-type]
         )
 
 

@@ -2237,7 +2237,12 @@ def deploy_one(
     if target_kind == "azure_storage_account":
         return pad.ensure_storage_containers(target, env)
     if target_kind == "azure_vnet":
-        return pad.ensure_vnet_subnets(target, env)
+        result = pad.ensure_vnet_subnets(target, env)
+        pad.ensure_vnet_private_dns_zones(target, env)
+        pad.ensure_vnet_private_endpoints(target, env, coll)
+        return result
+    if target_kind == "atlas":
+        return pad.verify_atlas(target, env)
     if target_kind == "identity":
         return pad.ensure_managed_identity(target, env)
     if target_kind == "azure_container_registry":
@@ -2297,12 +2302,14 @@ DEPLOYABLE_KINDS = (
     "azure_vnet",
     "azure_resource_group",
     "identity",
+    "atlas",
 )
 
 # EPIC-008-F-012-S-001-REQ-B-012: the data pipeline tier is operated on its
 # own cadence and is never co-deployed with the front-end app stack.
 FRONTEND_KINDS = ("cloudflare_pages_project", "hf_space")
 PIPELINE_KINDS = (
+    "atlas",
     "azure_resource_group",
     "azure_key_vault",
     "azure_storage_account",
@@ -2379,10 +2386,11 @@ def _dependency_sort_targets(selected: list[tuple[str, str]]) -> list[tuple[str,
     Front-end: HF backends before Cloudflare wrapper.
     """
     rank = {
+        "atlas": 0,
         "azure_resource_group": 0,
         "azure_key_vault": 1,
         "azure_storage_account": 1,
-        "azure_vnet": 1,
+        "azure_vnet": 2,
         "identity": 2,
         "azure_container_registry": 3,
         "azure_container_apps_environment": 4,
