@@ -218,6 +218,70 @@ def _get_mongo_conn_string() -> str:
         return json.loads(r.read().decode("utf-8"))["value"]
 
 
+def _doh_query(name: str, rtype: str) -> list:
+    """Query Cloudflare DNS-over-HTTPS for a single record type. Returns
+    the Answer list (each item is a dict with `data` and `type`). Used
+    to sidestep the Automation sandbox's broken outbound DNS resolver
+    for Atlas SRV/TXT lookups."""
+    url = f"https://cloudflare-dns.com/dns-query?name={name}&type={rtype}"
+    req = urllib.request.Request(
+        url, headers={"Accept": "application/dns-json"},
+    )
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return json.loads(r.read().decode("utf-8")).get("Answer", []) or []
+
+
+def _srv_to_direct_mongo_uri(srv_uri: str) -> str:
+    """Translate a mongodb+srv:// URI to its non-SRV mongodb:// equivalent
+    by resolving _mongodb._tcp.<host> SRV + <host> TXT via DNS-over-HTTPS,
+    then reassembling the URI with the resolved hostnames and TXT options
+    inline. Non-SRV inputs are returned unchanged."""
+    if not srv_uri.startswith("mongodb+srv://"):
+        return srv_uri
+    tail = srv_uri[len("mongodb+srv://"):]
+    if "@" in tail:
+        userinfo, rest = tail.split("@", 1)
+        userinfo = userinfo + "@"
+    else:
+        userinfo, rest = "", tail
+    host_and_query = rest.split("/", 1)
+    host_only = host_and_query[0]
+    trailing = "/" + host_and_query[1] if len(host_and_query) > 1 else ""
+    # SRV lookup for hosts:port
+    srv_answers = _doh_query(f"_mongodb._tcp.{host_only}", "SRV")
+    hosts = []
+    for a in srv_answers:
+        if a.get("type") != 33:  # SRV
+            continue
+        parts = a.get("data", "").strip().split()
+        if len(parts) >= 4:
+            port = parts[2]
+            target = parts[3].rstrip(".")
+            hosts.append(f"{target}:{port}")
+    if not hosts:
+        raise RuntimeError(f"DoH SRV lookup returned no hosts for {host_only}")
+    # TXT lookup for connection options (Atlas ships tls/replicaSet/authSource)
+    txt_answers = _doh_query(host_only, "TXT")
+    txt_opts = ""
+    for a in txt_answers:
+        if a.get("type") != 16:  # TXT
+            continue
+        val = a.get("data", "").strip().strip('"')
+        if val:
+            txt_opts = val
+            break
+    # Assemble direct URI
+    base = "mongodb://" + userinfo + ",".join(hosts) + trailing
+    if txt_opts:
+        sep = "&" if ("?" in base) else "?"
+        base = base + sep + txt_opts
+    # Atlas SRV implies tls=true; enforce.
+    if "tls=" not in base and "ssl=" not in base:
+        sep = "&" if ("?" in base) else "?"
+        base = base + sep + "tls=true"
+    return base
+
+
 def _read_pipeline_config(mongo) -> dict:
     """LLD §2.6 step 2: read chathealthyfrontend.pipeline.config for
     pipeline_name='provider'. Returns config dict or empty dict if the
@@ -286,14 +350,20 @@ def _start_control_job(run_id: str, load_mode: str, state_scope) -> dict:
 # Webhook input parsing
 # ============================================================================
 def _parse_webhook_input() -> dict:
-    """WEBHOOKDATA is set by Automation when triggered via webhook -- a
-    JSON blob with WebhookName, RequestBody, ..."""
+    """Webhook payload is delivered by Azure Automation as either:
+      - the WEBHOOKDATA environment variable (some sandbox flavors), or
+      - sys.argv[1] as a JSON string with {WebhookName, RequestBody, ...}
+        (standard Python-3 runbook convention).
+    Try both. Return the parsed RequestBody dict (POST body), or {} when
+    the runbook was not triggered by a webhook."""
     raw = os.environ.get("WEBHOOKDATA", "")
+    if not raw and len(sys.argv) > 1 and sys.argv[1]:
+        raw = sys.argv[1]
     if not raw:
         return {}
     try:
         parsed = json.loads(raw)
-        body = parsed.get("RequestBody", "")
+        body = parsed.get("RequestBody", "") if isinstance(parsed, dict) else raw
         if isinstance(body, str) and body:
             body = json.loads(body)
         return body or {}
@@ -347,7 +417,18 @@ def main() -> int:
         import pymongo  # provided by AA Python 3 package
         conn = _get_mongo_conn_string()
         log("mongo_secret_fetched", vault_uri=KEY_VAULT_URI)
-        mongo = pymongo.MongoClient(conn, serverSelectionTimeoutMS=15000)
+        # Atlas SRV lookups fail from the Automation sandbox because its
+        # resolver cannot answer _mongodb._tcp.<domain> SRV queries. Try
+        # a direct connect first; on SRV failure, translate the URI to
+        # its non-SRV equivalent via DNS-over-HTTPS and retry.
+        try:
+            mongo = pymongo.MongoClient(conn, serverSelectionTimeoutMS=15000)
+            mongo.admin.command("ping")
+        except Exception:
+            direct = _srv_to_direct_mongo_uri(conn)
+            log("mongo_srv_bypass_active", direct_hostcount=direct.count(",") + 1
+                if direct.startswith("mongodb://") else 0)
+            mongo = pymongo.MongoClient(direct, serverSelectionTimeoutMS=15000)
         config = _read_pipeline_config(mongo)
         log("config_read",
             config_keys=list(config.keys()),
