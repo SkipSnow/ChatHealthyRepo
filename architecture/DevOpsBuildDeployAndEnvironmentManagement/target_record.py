@@ -210,6 +210,11 @@ class TargetRecord:
     # one durable router ACA, the one Automation Account + its runbooks)
     # deployed from any branch, typically dev. The branch-vs-env guards
     # in deploy_chathealthy.py skip records with this flag set False.
+    allowed_roles: list | None = None
+    # The set of Azure RBAC roles this target will accept role-assignments
+    # for. Deploy chain intersects `IdentityCatalog[*].roles` with each
+    # target's allowed_roles to compute the concrete role-assignment set.
+    # Data-driven; no role names appear in the deploy scripts themselves.
 
     def env_binding_set(self) -> set[str]:
         return {e.env_binding for e in self.environments}
@@ -249,6 +254,7 @@ class TargetRecord:
             secrets=d.get("secrets"),  # type: ignore[arg-type]
             variables=d.get("variables"),  # type: ignore[arg-type]
             promote_chain_bound=bool(d.get("promote_chain_bound", True)),
+            allowed_roles=d.get("allowed_roles"),  # type: ignore[arg-type]
         )
 
 
@@ -257,10 +263,15 @@ class DeploymentCollection:
     """The set of TargetRecords that constitutes one deployment.
 
     Persisted to `brain/machine_artifacts/content/deployment_architecture.json`
-    as a JSON array of TargetRecord documents.
+    as a JSON array of TargetRecord documents. Also carries the raw
+    IdentityCatalog and CustomRoleCatalog envelope entries so the deploy
+    chain can iterate identity+role facts from the manifest instead of
+    from hardcoded code paths.
     """
 
     records: list[TargetRecord] = field(default_factory=list)
+    identity_catalog: list = field(default_factory=list)
+    custom_role_catalog: list = field(default_factory=list)
 
     def __iter__(self) -> Iterator[TargetRecord]:
         return iter(self.records)

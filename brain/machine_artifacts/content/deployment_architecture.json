@@ -7274,7 +7274,10 @@
         }
       ],
       "files": [],
-      "secrets": {}
+      "secrets": {},
+      "allowed_roles": [
+        "Storage Blob Data Contributor"
+      ]
     },
     {
       "target_id": "target_azure_vnet_pipeline",
@@ -8273,7 +8276,10 @@
         }
       ],
       "files": [],
-      "secrets": {}
+      "secrets": {},
+      "allowed_roles": [
+        "Container Apps Jobs Operator"
+      ]
     }
   ],
   "firm": {
@@ -8289,7 +8295,9 @@
       "target_id_ref": "target_identity_mi_runbook",
       "roles": [
         "Key Vault Secrets User",
-        "Automation Contributor"
+        "Automation Contributor",
+        "Storage Blob Data Contributor",
+        "Container Apps Jobs Operator"
       ]
     },
     {
@@ -8299,7 +8307,9 @@
       "roles": [
         "Key Vault Secrets User",
         "AcrPull",
-        "Contributor"
+        "Contributor",
+        "Storage Blob Data Contributor",
+        "Container Apps Jobs Operator"
       ]
     },
     {
@@ -8308,7 +8318,8 @@
       "target_id_ref": "target_identity_mi_worker",
       "roles": [
         "Key Vault Secrets User",
-        "AcrPull"
+        "AcrPull",
+        "Storage Blob Data Contributor"
       ]
     },
     {

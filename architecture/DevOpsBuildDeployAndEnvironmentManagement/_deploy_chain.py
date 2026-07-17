@@ -1518,6 +1518,149 @@ def functionapp_get_appsetting(rg: str, app: str, name: str) -> str:
     return ""
 
 
+def _resolve_target_azure_scope(target: TargetRecord, env: str) -> str:
+    """Return the Azure resource id of a target for the given env, derived
+    entirely from the manifest env_binding sub-block. Empty string when
+    the target does not project a distinct Azure resource id (e.g. shell
+    verification target). No role names, no resource names appear here —
+    everything is read from the manifest."""
+    eb = next((e for e in target.environments if e.env_binding == env), None)
+    if eb is None:
+        return ""
+    k = target.target_kind
+    sub = az_subscription_id()
+    if k == "azure_key_vault":
+        b = eb.azure_key_vault or {}
+        rg = b.get("resource_group", "")
+        name = b.get("vault_name", "")
+        if rg and name:
+            return (
+                f"/subscriptions/{sub}/resourceGroups/{rg}"
+                f"/providers/Microsoft.KeyVault/vaults/{name}"
+            )
+    if k == "azure_storage_account":
+        b = eb.azure_storage_account or {}
+        rg = b.get("resource_group", "")
+        name = b.get("account_name", "")
+        if rg and name:
+            return (
+                f"/subscriptions/{sub}/resourceGroups/{rg}"
+                f"/providers/Microsoft.Storage/storageAccounts/{name}"
+            )
+    if k == "azure_container_apps_environment":
+        b = eb.azure_container_apps_environment or {}
+        rg = b.get("resource_group", "")
+        name = b.get("environment_name", "")
+        if rg and name:
+            return (
+                f"/subscriptions/{sub}/resourceGroups/{rg}"
+                f"/providers/Microsoft.App/managedEnvironments/{name}"
+            )
+    if k == "azure_container_registry":
+        b = eb.azure_container_registry or {}
+        rg = b.get("resource_group", "")
+        name = b.get("registry_name", "")
+        if rg and name:
+            return (
+                f"/subscriptions/{sub}/resourceGroups/{rg}"
+                f"/providers/Microsoft.ContainerRegistry/registries/{name}"
+            )
+    if k == "azure_automation_account":
+        b = eb.azure_automation_account or {}
+        rg = b.get("resource_group", "") or b.get("vm_subnet_name") and ""
+        # AA doesn't declare resource_group in its sub-block today; parse
+        # from node_address as a fallback.
+        if not rg:
+            na = eb.node_address or ""
+            parts = na.split("/")
+            for i, p in enumerate(parts):
+                if p.lower() == "resourcegroups" and i + 1 < len(parts):
+                    rg = parts[i + 1]
+                    break
+        name = ""
+        na = eb.node_address or ""
+        parts = na.split("/")
+        for i, p in enumerate(parts):
+            if p.lower() == "automationaccounts" and i + 1 < len(parts):
+                name = parts[i + 1]
+                break
+        if rg and name:
+            return (
+                f"/subscriptions/{sub}/resourceGroups/{rg}"
+                f"/providers/Microsoft.Automation/automationAccounts/{name}"
+            )
+    return ""
+
+
+def _resolve_identity_principal_id(coll: DeploymentCollection, identity: dict) -> str:
+    """Return the Azure principal id (object id) for one IdentityCatalog
+    entry. Looks up the referenced target and reads its Azure identity
+    fields. Empty string on any resolution failure."""
+    cls = identity.get("identity_class", "")
+    tgt_id = identity.get("target_id_ref", "")
+    if not tgt_id:
+        return ""
+    tgt = coll.by_target_id(tgt_id)
+    if tgt is None:
+        return ""
+    eb = tgt.environments[0] if tgt.environments else None
+    if eb is None or eb.identity is None:
+        return ""
+    if cls == "managed_identity":
+        name = eb.identity.get("name", "")
+        rg = eb.identity.get("resource_group", "")
+        if not name or not rg:
+            return ""
+        r = subprocess.run(
+            ["az", "identity", "show", "--name", name, "--resource-group", rg, "-o", "json"],
+            capture_output=True, text=True,
+            creationflags=creation_flags(), shell=(sys.platform == "win32"),
+        )
+        if r.returncode != 0:
+            return ""
+        try:
+            return json.loads(r.stdout or "{}").get("principalId", "") or ""
+        except ValueError:
+            return ""
+    return ""
+
+
+def apply_identity_role_grants_from_manifest(coll: DeploymentCollection, env: str) -> None:
+    """Iterate IdentityCatalog and grant every role in each identity's
+    roles[] on every target whose allowed_roles[] contains that role.
+    Purely data-driven from the manifest: no role names, no resource
+    names, no per-identity conditional logic appears in this function.
+    """
+    step("applying identity role grants from manifest")
+    for identity in coll.identity_catalog or []:
+        iid = identity.get("identity_id", "")
+        principal_id = _resolve_identity_principal_id(coll, identity)
+        if not principal_id:
+            continue
+        roles = identity.get("roles", []) or []
+        for role in roles:
+            for target in coll:
+                allowed = target.allowed_roles or []
+                if role not in allowed:
+                    continue
+                scope = _resolve_target_azure_scope(target, env)
+                if not scope:
+                    continue
+                r = subprocess.run(
+                    ["az", "role", "assignment", "create",
+                     "--assignee-object-id", principal_id,
+                     "--assignee-principal-type", "ServicePrincipal",
+                     "--role", role,
+                     "--scope", scope, "-o", "none"],
+                    capture_output=True, text=True,
+                    creationflags=creation_flags(), shell=(sys.platform == "win32"),
+                )
+                # role assignment create is idempotent-ish: dup returns non-zero
+                # but that's fine. Log the outcome.
+                verdict = "granted" if r.returncode == 0 else "skipped (exists or refused)"
+                step(f"  {iid}: {role} on {target.target_id} — {verdict}")
+
+
 def ensure_runbook_webhook_stored_in_kv(
     rg: str, aa: str, runbook: str,
     webhook_name: str,
@@ -2429,6 +2572,13 @@ def run_cloud_deploy(env: str, target_arg: str) -> int:
             failed.append((target_id, msg))
             if target_kind == "hf_space":
                 any_hf_failed = True
+    # Apply identity role grants from the manifest AFTER every target
+    # has been deployed. Data-driven: iterates IdentityCatalog roles ×
+    # target.allowed_roles intersection. No role names in this code path.
+    try:
+        apply_identity_role_grants_from_manifest(coll, env)
+    except Exception as exc:  # noqa: BLE001
+        step(f"WARN: identity role grants failed: {exc}")
     if succeeded:
         step(f"deployed {len(succeeded)} target(s):")
         for d in succeeded:
