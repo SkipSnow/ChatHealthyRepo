@@ -7029,7 +7029,7 @@
                   "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "a394772f2374157ad38e5ff3b40e8c763e530fe8f4adf8012cdc5b98d63f37a9",
+                  "content_hash": "2d2a4b447d25a671576d576c388df76896fe95789e95711f40057e6f11cb0e85",
                   "package": "provider_pipeline"
                 }
               ],
