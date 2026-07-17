@@ -5,6 +5,39 @@
   "description": "Envelope shape of the on-disk deployment-architecture brain artifact. Top level carries the canonical $schema reference and a DeploymentTargetRecord[] array whose entries are TargetRecord objects. The schema is closed at every object level; the field name 'metadata' MUST NOT appear anywhere; no business product/service/feature name appears in this schema, in its taxonomies, or in this description. INVARIANT: within a single record, env_binding values across environments[] are unique. INVARIANT: across DeploymentTargetRecord[], target_id values are unique. INVARIANT: files[] enumerates every file the target ships; disposition partitions entries into 'managed' (JSON owns the bytes via embedded_content) and 'referenced' (only source_location declared).",
   "type": "object",
   "additionalProperties": false,
+  "$defs": {
+    "runtime_consumers": {
+      "type": "array",
+      "description": "Runtime consumers of the node this array hangs off. Each entry declares one identity that claims/uses the node at runtime and the operation it performs. Deploy does NOT act on this data (deploy-time RBAC is governed by allowed_roles / IdentityCatalog); runtime consumers exist so the manifest self-documents the runtime contract and downstream audits/monitoring can enumerate who touches what.",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identity_target_id",
+          "operation"
+        ],
+        "properties": {
+          "identity_target_id": {
+            "type": "string",
+            "pattern": "^target_[a-z0-9_]{1,64}$"
+          },
+          "operation": {
+            "type": "string",
+            "description": "Verb describing what the identity does on the node (e.g. 'claim_and_bind_vm', 'mongo_write', 'mongo_readwrite', 'kv_read').",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "authority": {
+            "type": "string",
+            "description": "Optional authority/scope descriptor (e.g. specific database name, specific NIC range) if the operation itself is not sufficiently self-scoping.",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      }
+    }
+  },
   "required": [
     "$schema",
     "DeploymentTargetRecord",
@@ -774,6 +807,49 @@
                             "type": "string",
                             "pattern": "^[0-9.]+/[0-9]+$"
                           },
+                          "purpose": {
+                            "type": "string",
+                            "description": "Documentary label for this subnet's role in the deployment topology (e.g. 'aca_env_infrastructure', 'pipeline_worker_pool', 'atlas_private_endpoint_landing'). Free-string; the value is not used by dispatch code, it's a readability aid so the manifest self-documents the physical architecture.",
+                            "minLength": 1,
+                            "maxLength": 256
+                          },
+                          "reserved_nics": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "description": "Pre-provisioned static-IP NIC pool inside this subnet. Deploy creates `count` NICs whose private IPs are static-allocated at `<subnet_prefix>.<ip_offset_start>` through `<subnet_prefix>.<ip_offset_start + count - 1>`, named `<name_prefix>-001` through `<name_prefix>-N`. NICs remain unbound (no VM attached) at rest; runtime code claims an unbound NIC, spawns a VM on it, releases the NIC when work is done. The network topology stays stable while VMs come and go.",
+                            "required": [
+                              "count",
+                              "name_prefix",
+                              "allocation",
+                              "ip_offset_start"
+                            ],
+                            "properties": {
+                              "count": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 1000
+                              },
+                              "name_prefix": {
+                                "type": "string",
+                                "pattern": "^[a-z0-9-]{1,50}$"
+                              },
+                              "allocation": {
+                                "enum": [
+                                  "static",
+                                  "dynamic"
+                                ]
+                              },
+                              "ip_offset_start": {
+                                "type": "integer",
+                                "description": "First host octet within the subnet. Azure reserves .0-.3 in every subnet, so this MUST be >= 4.",
+                                "minimum": 4,
+                                "maximum": 65535
+                              },
+                              "runtime_consumers": {
+                                "$ref": "#/$defs/runtime_consumers"
+                              }
+                            }
+                          },
                           "delegations": {
                             "type": "array",
                             "items": {
@@ -792,6 +868,186 @@
                             },
                             "uniqueItems": true
                           }
+                        }
+                      }
+                    },
+                    "private_endpoints": {
+                      "type": "array",
+                      "description": "Azure Private Endpoint nodes inside this VNET. Each entry declares one PE that lands in a named subnet and connects to a peer target (typically an Atlas target's private_endpoint_service). Deploy provisions the PE; DNS auto-populates via the matching private_dns_zone node below (group_id links them).",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "private_endpoint_name",
+                          "subnet_name",
+                          "peer_target_id",
+                          "group_id"
+                        ],
+                        "properties": {
+                          "private_endpoint_name": {
+                            "type": "string",
+                            "pattern": "^pe-[a-z0-9-]{1,60}$"
+                          },
+                          "subnet_name": {
+                            "type": "string",
+                            "pattern": "^snet-[a-z0-9-]{1,60}$"
+                          },
+                          "peer_target_id": {
+                            "type": "string",
+                            "description": "target_id of the peer this endpoint connects to. Deploy resolves the peer's Atlas-side (or other-substrate-side) endpoint service resource id from the peer target's sub-block.",
+                            "pattern": "^target_[a-z0-9_]{1,64}$"
+                          },
+                          "group_id": {
+                            "type": "string",
+                            "description": "Private Link sub-resource / group id (e.g. 'mongodb' for Atlas MongoDB, 'blob' for Azure Storage blob). Governs which peer service the endpoint connects to and drives Azure Private DNS zone auto-population.",
+                            "minLength": 1,
+                            "maxLength": 64
+                          },
+                          "runtime_consumers": {
+                            "$ref": "#/$defs/runtime_consumers"
+                          }
+                        }
+                      }
+                    },
+                    "private_dns_zones": {
+                      "type": "array",
+                      "description": "Azure Private DNS zone nodes served to this VNET's residents. Each entry declares one zone (e.g. 'privatelink.mongodb.net'). Deploy creates the zone in the same RG as the VNET, links it to this VNET, and enables private-endpoint-DNS-integration so A-records auto-populate as private_endpoints[] entries with matching group_id come online.",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "zone_name"
+                        ],
+                        "properties": {
+                          "zone_name": {
+                            "type": "string",
+                            "description": "Full DNS zone name (e.g. 'privatelink.mongodb.net').",
+                            "minLength": 1,
+                            "maxLength": 256
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "atlas": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "MongoDB Atlas coordinates for this env binding. Present iff target_kind=='atlas'. Encapsulates every fact about our Atlas usage: the project (credentials location), the cluster we point to, how the cluster accepts inbound (accepted_access[]), and the Atlas-side private endpoint service that the Azure-side private endpoint handshakes with.",
+                  "required": [
+                    "project",
+                    "cluster"
+                  ],
+                  "properties": {
+                    "project": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "Atlas project the cluster lives in. Values are Code/.env SECRET KEY NAMES (not secret values); deploy resolver reads the named keys from Code/.env at deploy time.",
+                      "required": [
+                        "project_id_from_secret",
+                        "public_key_from_secret",
+                        "private_key_from_secret"
+                      ],
+                      "properties": {
+                        "project_id_from_secret": {
+                          "type": "string",
+                          "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+                        },
+                        "public_key_from_secret": {
+                          "type": "string",
+                          "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+                        },
+                        "private_key_from_secret": {
+                          "type": "string",
+                          "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+                        }
+                      }
+                    },
+                    "cluster": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "The Atlas cluster node. Deploy verifies presence; runtime consumers claim connections against it.",
+                      "required": [
+                        "cluster_name"
+                      ],
+                      "properties": {
+                        "cluster_name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 256
+                        },
+                        "runtime_consumers": {
+                          "$ref": "#/$defs/runtime_consumers"
+                        }
+                      }
+                    },
+                    "accepted_access": {
+                      "type": "array",
+                      "description": "Access methods the cluster ACCEPTS inbound. ip_allowlist and private_endpoint may coexist; deploy reconciles Atlas config against this list.",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "ip_allowlist",
+                              "private_endpoint"
+                            ]
+                          },
+                          "entries": {
+                            "type": "array",
+                            "description": "For kind=='ip_allowlist' only. Inbound CIDR entries.",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "cidr"
+                              ],
+                              "properties": {
+                                "cidr": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 64
+                                },
+                                "comment": {
+                                  "type": "string",
+                                  "maxLength": 1024
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "private_endpoint_service": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "Atlas-side of the Azure Private Link handshake. Deploy calls the Atlas Admin API to create the endpoint service for the declared provider+region and records the returned endpoint service resource id (Azure-side private endpoint peer_target_id references THIS target and reads the service id from here).",
+                      "required": [
+                        "provider",
+                        "region"
+                      ],
+                      "properties": {
+                        "provider": {
+                          "enum": [
+                            "AZURE",
+                            "AWS",
+                            "GCP"
+                          ]
+                        },
+                        "region": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64
+                        },
+                        "runtime_consumers": {
+                          "$ref": "#/$defs/runtime_consumers"
                         }
                       }
                     }
@@ -1273,6 +1529,31 @@
               "maxLength": 256
             },
             "uniqueItems": true
+          },
+          "peers": {
+            "type": "array",
+            "description": "Cross-substrate handshake declarations. Each entry names a peer target and the kind of handshake this target participates in with it. Deploy reads this to sequence two-sided provisioning (e.g., an Atlas target with a peer entry {target_id: target_azure_vnet_pipeline, kind: private_endpoint_service} signals that after creating the Atlas endpoint service, the Azure side's private_endpoint node handshake is expected). Documentary + sequencing aid; deploy does not enforce peer symmetry beyond the referenced-target check.",
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "target_id",
+                "kind"
+              ],
+              "properties": {
+                "target_id": {
+                  "type": "string",
+                  "pattern": "^target_[a-z0-9_]{1,64}$"
+                },
+                "kind": {
+                  "type": "string",
+                  "description": "Handshake kind — free string identifying the shape of the handshake (e.g. 'private_endpoint_service', 'vnet_peering', 'oidc_federation'). No taxonomy in the schema; deploy code owns the meaning per kind.",
+                  "minLength": 1,
+                  "maxLength": 64
+                }
+              }
+            }
           }
         }
       }
