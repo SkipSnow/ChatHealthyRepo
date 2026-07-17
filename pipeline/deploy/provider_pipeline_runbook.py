@@ -1,4 +1,4 @@
-"""provider_pipeline_runbook.py — trigger tier per LLD v22 §2.1.
+"""provider_pipeline_runbook.py -- trigger tier per LLD v22 §2.1.
 
 Runs in Azure Automation as a Python 3 runbook. Fires from either:
   (a) a Schedule attached to the runbook
@@ -14,7 +14,7 @@ Duties (LLD §2.6 steps 1-4):
 
 Every event is logged to the pipeline-logs blob container in our datalake
 (one append blob per pipeline per day). Instrumentation is the runbook's
-sole visibility surface — operators reading the datalake blob see
+sole visibility surface -- operators reading the datalake blob see
 exactly what the trigger tier did on each fire.
 
 Design constraint: this runbook completes in seconds. All long-running
@@ -87,7 +87,7 @@ def _get_token(resource: str) -> str:
 
 
 # ============================================================================
-# Datalake blob logger — writes to pipeline-logs/<pipeline>/YYYY-MM-DD.log
+# Datalake blob logger -- writes to pipeline-logs/<pipeline>/YYYY-MM-DD.log
 # ============================================================================
 _blob_token_cache = {"token": None, "expires_at": 0}
 
@@ -127,7 +127,7 @@ def _ensure_append_blob():
         with urllib.request.urlopen(req, timeout=15):
             pass
     except urllib.error.HTTPError as e:
-        if e.code == 409:  # already exists — that's fine
+        if e.code == 409:  # already exists -- that's fine
             return
         raise
 
@@ -175,7 +175,7 @@ def log(event: str, **fields):
 
 
 # ============================================================================
-# Mongo config + run manifest — reads Mongo conn string from Key Vault
+# Mongo config + run manifest -- reads Mongo conn string from Key Vault
 # ============================================================================
 def _get_mongo_conn_string() -> str:
     """Fetch MONGO connection string from Key Vault. Secret was stored
@@ -217,7 +217,7 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 
 
 # ============================================================================
-# ARM — start the prov-control ACA Job with env-var overrides
+# ARM -- start the prov-control ACA Job with env-var overrides
 # ============================================================================
 def _start_control_job(run_id: str, load_mode: str, state_scope) -> dict:
     """LLD §2.6 step 4: POST to ACA job start endpoint with env overrides."""
@@ -256,7 +256,7 @@ def _start_control_job(run_id: str, load_mode: str, state_scope) -> dict:
 # Webhook input parsing
 # ============================================================================
 def _parse_webhook_input() -> dict:
-    """WEBHOOKDATA is set by Automation when triggered via webhook — a
+    """WEBHOOKDATA is set by Automation when triggered via webhook -- a
     JSON blob with WebhookName, RequestBody, ..."""
     raw = os.environ.get("WEBHOOKDATA", "")
     if not raw:
@@ -330,7 +330,7 @@ def main() -> int:
             error_type=type(exc).__name__,
             error_msg=str(exc),
             traceback=traceback.format_exc()[-2000:])
-        # Do NOT abort — LLD §2.1 tolerates first-run when config is empty.
+        # Do NOT abort -- LLD §2.1 tolerates first-run when config is empty.
         # But we MUST still start Control so the operator sees a run happen.
 
     # Start Control

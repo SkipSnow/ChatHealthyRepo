@@ -272,9 +272,31 @@ Classify into exactly one of:
                   * invocation of a compiled binary whose source is not readable
                     AND that appears to touch remote infra
 
-Local `rm`, local `mv`, local `cp`, local `chmod`, local shell redirection —
-all `allow`. `git push` after a commit — `allow`. Only remote-infra writes
-bypassing the deploy chain are `block_hard`.
+CATEGORICAL RULE — DO NOT VIOLATE:
+Any command whose observable effect is to read or write files on the LOCAL
+filesystem (including localhost/127.0.0.1 processes) is `allow`, no matter
+what the file is called, what data it contains, or what its intended
+downstream use is. That covers `rm`, `mv`, `cp`, `chmod`, shell redirection,
+`git` (any verb), Python scripts that edit JSON/YAML/Python/docs, editing
+`deployment_architecture.json` or `engineering_rules.json` or any other
+manifest or config or catalog file. Editing a manifest is NOT the same as
+deploying it. A local file edit does NOT touch Azure/Cloudflare/Atlas/HF/
+ACR/GitHub-remote — only invoking `deploy_chathealthy.py` /
+`promote_chathealthy.py` or invoking `az`/`wrangler`/`atlas`/`gh` /
+`docker push` with a write verb does. If the command's only effect is
+local, the answer is `allow`, full stop — do not reason about intent,
+downstream use, or manifest semantics; just classify.
+
+Only remote-infra writes bypassing the deploy chain are `block_hard`.
+
+DEPLOY-FROM-GIT RULE (worker enforces before you see the command; do not
+override it):
+`deploy_chathealthy.py` and `promote_chathealthy.py` invocations with
+`--env dev|qa|prod` (anything except `--env local`) MUST come 100% from
+git — the working tree must be clean AND HEAD must be at the same commit
+as `origin/<branch>`. If either is false, the worker denies BEFORE
+consulting you. You should not see such a command; if you do, still
+classify as `block_hard`.
 
 If you are UNCERTAIN in any way, return `block_hard`. Fail closed.
 
@@ -535,6 +557,62 @@ def _emit_deny(reason: str) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # main
 # ─────────────────────────────────────────────────────────────────────────────
+_DEPLOY_ENV_NONLOCAL_RE = re.compile(
+    # Must be an actual invocation: python(3) at the head, then a path to
+    # deploy_chathealthy.py or promote_chathealthy.py, then --env in a
+    # short window (no shell separators, no newlines). Won't match strings
+    # embedded inside heredocs or quoted commit messages.
+    r"(?:^|[\r\n]|(?<=[|;&])\s*)"
+    r"python[3]?\s+"
+    r"[^\s\n|;&]*(?:deploy|promote)_chathealthy\.py\b"
+    r"[^|;&\n\r]{0,300}--env\s+(dev|qa|prod)\b",
+    re.IGNORECASE,
+)
+
+
+def _git_state_ok_for_deploy() -> tuple[bool, str]:
+    """Return (ok, reason). ok=True means working tree is clean AND HEAD is at
+    origin/<branch>. Anything else fails closed with a human-readable reason."""
+    import subprocess as _sp
+    try:
+        r = _sp.run(["git", "status", "--porcelain"], cwd=str(_PROJECT_ROOT),
+                    capture_output=True, text=True, timeout=15)
+        if r.returncode != 0:
+            return False, f"git status failed rc={r.returncode}: {r.stderr[:200]}"
+        if r.stdout.strip():
+            dirty_lines = r.stdout.strip().splitlines()
+            return False, (
+                f"working tree is dirty ({len(dirty_lines)} entries): "
+                + "; ".join(dirty_lines[:6])
+            )
+        r = _sp.run(["git", "symbolic-ref", "--short", "HEAD"],
+                    cwd=str(_PROJECT_ROOT), capture_output=True, text=True, timeout=10)
+        if r.returncode != 0 or not r.stdout.strip():
+            return False, "cannot resolve current branch (detached HEAD?)"
+        branch = r.stdout.strip()
+        local = _sp.run(["git", "rev-parse", "HEAD"], cwd=str(_PROJECT_ROOT),
+                        capture_output=True, text=True, timeout=10)
+        remote = _sp.run(["git", "ls-remote", "origin", f"refs/heads/{branch}"],
+                         cwd=str(_PROJECT_ROOT), capture_output=True, text=True, timeout=30)
+        if local.returncode != 0 or remote.returncode != 0:
+            return False, "cannot compare HEAD to origin"
+        local_sha = local.stdout.strip()
+        remote_line = remote.stdout.strip().split("\t") if remote.stdout.strip() else []
+        remote_sha = remote_line[0] if remote_line else ""
+        if not remote_sha:
+            return False, f"origin has no branch {branch!r}"
+        if local_sha != remote_sha:
+            return False, (
+                f"HEAD ({local_sha[:12]}) differs from origin/{branch} "
+                f"({remote_sha[:12]}); push before deploying"
+            )
+        return True, "clean tree + HEAD at origin"
+    except _sp.TimeoutExpired:
+        return False, "git check timed out"
+    except Exception as exc:  # noqa: BLE001
+        return False, f"git check errored: {exc}"
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
@@ -549,6 +627,23 @@ def main() -> int:
     command = (payload.get("tool_input", {}) or {}).get("command", "") or ""
     if not command.strip():
         return 0
+
+    # Deploy-from-git rule: any deploy_chathealthy.py or promote_chathealthy.py
+    # invocation targeting dev/qa/prod MUST be from a clean working tree AT
+    # origin/<branch>. This runs BEFORE the LLM classifier because the LLM
+    # cannot see git state. Local-env deploys (--env local) are exempt.
+    if _DEPLOY_ENV_NONLOCAL_RE.search(command):
+        ok, reason = _git_state_ok_for_deploy()
+        if not ok:
+            deny_reason = (
+                f"Rule-006 deploy-from-git: {reason}. Non-local deploys MUST "
+                f"come 100% from git. Commit + push before invoking deploy."
+            )
+            _audit({"ts": datetime.now(timezone.utc).isoformat(), "tool": tool_name,
+                    "command": command, "verdict": "block_hard", "reason": deny_reason})
+            _notify_browser(tool_name, command, [], deny_reason, "block_hard")
+            _emit_deny(deny_reason)
+            return 0
 
     api_key = _load_env_var("GEMINI_API_KEY") or _load_env_var("GOOGLE_API_KEY")
     if not api_key:

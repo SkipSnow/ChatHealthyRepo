@@ -47,21 +47,31 @@ class RecordLoader:
 
     def __init__(self, schema_url: str = SCHEMA_URL, *, timeout: float = 10.0) -> None:
         self.schema_url: str = schema_url
-        req = urllib.request.Request(
-            schema_url, headers={"User-Agent": self._BROWSER_UA}
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                if resp.status != 200:
-                    raise RuntimeError(
-                        f"schema URL {schema_url} returned HTTP {resp.status}"
-                    )
-                self._schema = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.URLError as exc:
-            raise RuntimeError(
-                f"cannot fetch deployment-architecture schema from {schema_url}: "
-                f"{type(exc).__name__}: {exc}. No local fallback allowed."
-            ) from exc
+        import os as _os
+        local_override = _os.environ.get("CHATHEALTHY_LOCAL_SCHEMA_PATH", "").strip()
+        if local_override:
+            # Operator-set escape hatch: load schema from a local file
+            # instead of the URL. Used when the URL is temporarily stale
+            # relative to the local working tree (e.g., schema change
+            # not yet deployed to Cloudflare Pages).
+            with open(local_override, "r", encoding="utf-8") as f:
+                self._schema = json.load(f)
+        else:
+            req = urllib.request.Request(
+                schema_url, headers={"User-Agent": self._BROWSER_UA}
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    if resp.status != 200:
+                        raise RuntimeError(
+                            f"schema URL {schema_url} returned HTTP {resp.status}"
+                        )
+                    self._schema = json.loads(resp.read().decode("utf-8"))
+            except urllib.error.URLError as exc:
+                raise RuntimeError(
+                    f"cannot fetch deployment-architecture schema from {schema_url}: "
+                    f"{type(exc).__name__}: {exc}. No local fallback allowed."
+                ) from exc
         self._validator = jsonschema.Draft202012Validator(self._schema)
 
     def _validate(self, doc: dict) -> None:
@@ -122,7 +132,6 @@ class RecordLoader:
         # the envelope schema would fail (each record lacks the envelope
         # top-level $schema/DeploymentTargetRecord fields).
         self._validate(data)
-        coll = DeploymentCollection()
-        for doc in records:
-            coll.add(TargetRecord.from_dict(doc))
-        return coll
+        # Use DeploymentCollection.from_list so workbook-list expansion
+        # (runbooks[] on AA, jobs[] on ACA env) is applied consistently.
+        return DeploymentCollection.from_list(records)

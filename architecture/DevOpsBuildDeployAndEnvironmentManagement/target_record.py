@@ -39,6 +39,14 @@ class EnvironmentBinding:
     huggingface_space: dict | None = None
     cloudflare_pages: dict | None = None
     branch: str | None = None
+    # Package lists — child artifacts that get deployed TO this target's
+    # host. runbooks[] is populated when the parent target is an
+    # azure_automation_account; jobs[] when the parent is an
+    # azure_container_apps_environment. Dispatch iterates these lists so
+    # a runbook or job is a PACKAGE under its host target, not a target
+    # in its own right.
+    runbooks: list | None = None
+    jobs: list | None = None
 
     def to_dict(self) -> dict:
         out: dict = {"env_binding": self.env_binding, "node_address": self.node_address}
@@ -58,6 +66,8 @@ class EnvironmentBinding:
             "huggingface_space",
             "cloudflare_pages",
             "branch",
+            "runbooks",
+            "jobs",
         ):
             val = getattr(self, key)
             if val is not None:
@@ -84,6 +94,8 @@ class EnvironmentBinding:
             huggingface_space=d.get("huggingface_space"),
             cloudflare_pages=d.get("cloudflare_pages"),
             branch=d.get("branch"),
+            runbooks=d.get("runbooks"),
+            jobs=d.get("jobs"),
         )
 
 
@@ -281,7 +293,105 @@ class DeploymentCollection:
 
     @classmethod
     def from_list(cls, data: list[dict[str, object]]) -> "DeploymentCollection":
-        coll = cls()
+        # Package expansion (interim while full package-native dispatch
+        # is deferred). Any target env_binding carrying packages[] produces
+        # a synthetic per-package TargetRecord tagged with the package's
+        # kind (runbook, job, ...) so downstream build/deploy code that
+        # still dispatches per target_kind sees the packages as individual
+        # targets. Each synthetic target has a `parent_target_id` field
+        # linking it back to its host. The parent target is retained.
+        expanded: list[dict[str, object]] = []
         for d in data:
+            expanded.append(d)
+            for eb in d.get("environments", []) or []:
+                for pkg in eb.get("packages", []) or []:
+                    kind = pkg.get("kind", "")
+                    if kind == "runbook":
+                        expanded.append(_synth_runbook_package(d, eb, pkg))
+                    elif kind == "job":
+                        expanded.append(_synth_job_package(d, eb, pkg))
+        coll = cls()
+        for d in expanded:
             coll.add(TargetRecord.from_dict(d))
         return coll
+
+
+def _parse_aa_node_address(node_address: str) -> tuple[str, str]:
+    if not node_address:
+        return "", ""
+    parts = node_address.split("/")
+    rg = ""
+    aa = ""
+    for i, p in enumerate(parts):
+        if p.lower() == "resourcegroups" and i + 1 < len(parts):
+            rg = parts[i + 1]
+        elif p.lower() == "automationaccounts" and i + 1 < len(parts):
+            aa = parts[i + 1]
+    return rg, aa
+
+
+def _synth_runbook_package(aa_record: dict, eb: dict, pkg: dict) -> dict:
+    env = eb.get("env_binding")
+    parent_node = eb.get("node_address", "")
+    rg, aa_name = _parse_aa_node_address(parent_node)
+    pkg_id = pkg.get("package_id", "")
+    cfg = pkg.get("config") or {}
+    runbook_name = cfg.get("runbook_name") or pkg_id
+    return {
+        "target_id": f"target_azure_automation_runbook_{pkg_id}",
+        "target_kind": "azure_automation_runbook",
+        "promote_chain_bound": bool(aa_record.get("promote_chain_bound", True)),
+        "environments": [{
+            "env_binding": env,
+            "node_address": cfg.get("node_address")
+                or f"{parent_node}/runbooks/{runbook_name}",
+            "azure_automation": {
+                "resource_group": rg,
+                "automation_account": aa_name,
+                "runbook_name": runbook_name,
+                "schedule_names": cfg.get("schedule_names", []),
+                "python_packages": cfg.get("python_packages", []),
+                "automation_variables": cfg.get("automation_variables", []),
+            },
+        }],
+        "files": pkg.get("files", []),
+        "secrets": pkg.get("secrets", {}),
+    }
+
+
+def _synth_job_package(env_record: dict, eb: dict, pkg: dict) -> dict:
+    env = eb.get("env_binding")
+    env_block = eb.get("azure_container_apps_environment") or {}
+    rg = env_block.get("resource_group", "")
+    env_name = env_block.get("environment_name", "")
+    pkg_id = pkg.get("package_id", "")
+    cfg = pkg.get("config") or {}
+    return {
+        "target_id": f"target_azure_container_app_job_{pkg_id}",
+        "target_kind": "azure_container_app_job",
+        "provisioning": "deploy_provisioned",
+        "promote_chain_bound": bool(env_record.get("promote_chain_bound", True)),
+        "environments": [{
+            "env_binding": env,
+            "node_address": cfg.get("node_address") or cfg.get("job_name", pkg_id),
+            "azure_container_app_job": {
+                "resource_group": rg,
+                "job_name": cfg.get("job_name"),
+                "environment_name": env_name,
+                "registry_name": cfg.get("registry_name") or "chpipelinedevacr",
+                "image_repository": cfg.get("image_repository"),
+                "dockerfile": cfg.get("dockerfile"),
+                "role": cfg.get("role"),
+                "trigger_type": cfg.get("trigger_type", "Manual"),
+                "cpu": cfg.get("cpu"),
+                "memory": cfg.get("memory"),
+                "parallelism": cfg.get("parallelism", 1),
+                "replica_timeout": cfg.get("replica_timeout", 7200),
+                "node_identity": cfg.get("node_identity"),
+                "managed_identity_name": cfg.get("managed_identity_name"),
+                "key_vault_uri": cfg.get("key_vault_uri"),
+            },
+        }],
+        "files": pkg.get("files", []),
+        "secrets": pkg.get("secrets", {}),
+    }
