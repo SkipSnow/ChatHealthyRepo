@@ -163,13 +163,11 @@ def _refresh_content_hashes(brain_path: Path, repo_root: Path) -> None:
 
     for record in data.get("DeploymentTargetRecord", []) or []:
         _refresh_files_list(record.get("files", []))
-        # Workbook expansion: also refresh content_hash for files inside
-        # runbooks[] and jobs[] nested under env_bindings.
+        # Package expansion: refresh content_hash for files inside
+        # packages[] on any env_binding.
         for eb in record.get("environments", []) or []:
-            for wb in eb.get("runbooks", []) or []:
-                _refresh_files_list(wb.get("files", []))
-            for wb in eb.get("jobs", []) or []:
-                _refresh_files_list(wb.get("files", []))
+            for pkg in eb.get("packages", []) or []:
+                _refresh_files_list(pkg.get("files", []))
     if changed:
         brain_path.write_text(
             json.dumps(data, indent=2, ensure_ascii=False) + "\n",
