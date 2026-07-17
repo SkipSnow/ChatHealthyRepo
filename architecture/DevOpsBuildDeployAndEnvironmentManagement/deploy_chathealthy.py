@@ -253,6 +253,15 @@ def main(argv: list[str] | None = None) -> int:
              "and any other target value MUST NOT be combined.",
     )
     parser.add_argument(
+        "--package", default="",
+        help="Optional comma-separated list of package_id values. When set, "
+             "deploy filters the packages under each selected target to "
+             "just these package_ids (host shell/identity/etc targets are "
+             "still deployed). Example: --target target_azure_automation_"
+             "account_chathealthyjobmanager --package provider_pipeline "
+             "deploys only the provider_pipeline runbook onto the AA.",
+    )
+    parser.add_argument(
         "--tests", default="",
         help="Comma-separated list of test names to run after deploy "
              "(e.g. 'find_care_smoke,ur_um_regression'). Empty by default.",
@@ -285,6 +294,40 @@ def main(argv: list[str] | None = None) -> int:
         target_ids = _collect_target_ids_for_env(repo_root, args.env, args.target)
         if not target_ids:
             sys.exit(f"ERROR: no targets matched --env={args.env} --target={args.target!r}")
+        # --package filter: drop synth per-package targets (runbook/job)
+        # whose package_id is not in the selected set. Host targets (KV,
+        # Storage, VNet, MIs, ACR, ACA env, AA, RG) pass through so their
+        # shells stay verified.
+        pkg_selection = {p.strip() for p in args.package.split(",") if p.strip()}
+        if pkg_selection:
+            _PKG_TARGET_PREFIXES = (
+                "target_azure_automation_runbook_",
+                "target_azure_container_app_job_",
+            )
+            filtered: list[str] = []
+            for tid in target_ids:
+                is_pkg = any(tid.startswith(p) for p in _PKG_TARGET_PREFIXES)
+                if not is_pkg:
+                    filtered.append(tid)
+                    continue
+                # Extract the package_id from the synth target_id suffix.
+                pkg_id = tid
+                for p in _PKG_TARGET_PREFIXES:
+                    if tid.startswith(p):
+                        pkg_id = tid[len(p):]
+                        break
+                if pkg_id in pkg_selection:
+                    filtered.append(tid)
+            if not filtered:
+                sys.exit(
+                    f"ERROR: --package={args.package!r} matched no packages "
+                    f"under --target={args.target!r}"
+                )
+            target_ids = filtered
+            print(
+                f"[local_deploy] --package filter: {len(target_ids)} targets "
+                f"remain (packages selected: {sorted(pkg_selection)})"
+            )
         _staleness_gate(repo_root, args.env, target_ids)
         # F-003 §5.1 / F-012 §7.1 cert placement runs inside run_cloud_deploy
         # after CA runbooks and before ACA Jobs (dependency order). Do not

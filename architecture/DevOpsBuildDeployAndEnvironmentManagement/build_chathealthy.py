@@ -141,8 +141,9 @@ def _refresh_content_hashes(brain_path: Path, repo_root: Path) -> None:
     data = json.loads(brain_path.read_text(encoding="utf-8"))
     changed = 0
     scanned = 0
-    for record in data.get("DeploymentTargetRecord", []) or []:
-        for f in record.get("files", []) or []:
+    def _refresh_files_list(files_list):
+        nonlocal changed, scanned
+        for f in files_list or []:
             if f.get("disposition") != "referenced":
                 continue
             if f.get("content_hash") is None:
@@ -159,6 +160,16 @@ def _refresh_content_hashes(brain_path: Path, repo_root: Path) -> None:
             if f["content_hash"] != new_hash:
                 f["content_hash"] = new_hash
                 changed += 1
+
+    for record in data.get("DeploymentTargetRecord", []) or []:
+        _refresh_files_list(record.get("files", []))
+        # Workbook expansion: also refresh content_hash for files inside
+        # runbooks[] and jobs[] nested under env_bindings.
+        for eb in record.get("environments", []) or []:
+            for wb in eb.get("runbooks", []) or []:
+                _refresh_files_list(wb.get("files", []))
+            for wb in eb.get("jobs", []) or []:
+                _refresh_files_list(wb.get("files", []))
     if changed:
         brain_path.write_text(
             json.dumps(data, indent=2, ensure_ascii=False) + "\n",
