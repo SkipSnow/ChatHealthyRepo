@@ -5,8 +5,8 @@ migrator chain depends on:
 
   - Undelegated VM subnet inside ChatHealthy-VNet.
   - Hybrid Worker Group on the ChatHealthyJobManager Automation Account.
-  - Role assignments on the AA's system-assigned managed identity
-    (Virtual Machine Contributor + Automation Operator on the VM RG).
+  - Role assignments on the AA's user-assigned managed identity
+    mi-runbook (Virtual Machine Contributor + Network Contributor on the VM RG).
   - AA Python3 package list reconciled to the chdm-declared set (no
     hand actions; deploy owns the AA's Python environment).
   - Operator-landed SSH private key file for admin access to the
@@ -195,45 +195,54 @@ def chdm_ensure_hybrid_worker_group(aa_rg: str, aa: str) -> None:
 
 
 def chdm_ensure_aa_managed_identity(aa_rg: str, aa: str) -> str:
-    """Ensure the Automation Account has a system-assigned managed identity.
+    """Return the principal id of the AA's mi-runbook user-assigned identity.
 
-    Returns the MI's principal id. If the AA doesn't have system-assigned
-    identity enabled, this enables it. The MI is what the AA uses to start
-    runbook jobs as itself, to read its own Automation Variables across
-    jobs, and to perform the Azure operations the role-assignments below
-    grant it.
+    F-003 / PipeLineServices AA is UserAssigned-only (mi-runbook). Do not
+    enable a system-assigned identity here — that would replace the
+    user-assigned identity block and break CA/KV access.
     """
-    _step(f"verifying system-assigned managed identity on '{aa}' (rg={aa_rg})")
-    show = _az([
-        "az", "automation", "account", "show",
-        "--name", aa, "--resource-group", aa_rg,
-        "--query", "identity.principalId", "-o", "tsv",
-    ])
-    pid = str(show)
-    if pid and pid != "None":
-        _step(f"  managed identity present — principalId={pid[:8]}...")
-        return pid
-    _step("  managed identity missing — enabling system-assigned identity")
-    _az([
-        "az", "automation", "account", "update",
-        "--name", aa, "--resource-group", aa_rg,
-        "--assign-identity", "[system]",
-        "-o", "none",
-    ])
-    show = _az([
-        "az", "automation", "account", "show",
-        "--name", aa, "--resource-group", aa_rg,
-        "--query", "identity.principalId", "-o", "tsv",
-    ])
-    pid = str(show)
-    if not pid or pid == "None":
+    mi_name = "mi-runbook"
+    _step(
+        f"verifying user-assigned managed identity {mi_name!r} for "
+        f"'{aa}' (rg={aa_rg})"
+    )
+    mi = _az(
+        [
+            "az", "identity", "show",
+            "--name", mi_name,
+            "--resource-group", aa_rg,
+            "-o", "json",
+        ],
+        capture_json=True,
+    )
+    if not isinstance(mi, dict) or not mi.get("principalId"):
         sys.exit(
-            f"ERROR: enabled system-assigned identity on {aa!r} but "
-            f"identity.principalId is still empty in the follow-up read. "
-            f"Inspect the AA in the portal."
+            f"ERROR: managed identity {mi_name!r} missing in {aa_rg!r}; "
+            f"deploy target_identity_mi_runbook first."
         )
-    _step(f"  managed identity enabled — principalId={pid[:8]}...")
-    return pid
+    mi_id = mi["id"]
+    pid = mi["principalId"]
+    # Confirm the AA has this identity attached (pipeline_azure_deploy owns attach).
+    aa_identity = _az(
+        [
+            "az", "automation", "account", "show",
+            "--name", aa, "--resource-group", aa_rg,
+            "--query", "identity.userAssignedIdentities", "-o", "json",
+        ],
+        capture_json=True,
+    )
+    attached = False
+    if isinstance(aa_identity, dict):
+        attached = any(
+            k.lower() == mi_id.lower() for k in aa_identity.keys()
+        )
+    if not attached:
+        sys.exit(
+            f"ERROR: Automation Account {aa!r} does not have {mi_name!r} "
+            f"attached. Re-run pipeline AA identity ensure before CHDM deploy."
+        )
+    _step(f"  {mi_name} attached — principalId={pid[:8]}...")
+    return str(pid)
 
 
 def chdm_ensure_role_assignment(principal_id: str, scope: str, role_name: str) -> None:
@@ -442,11 +451,12 @@ def chdm_ensure_chdm_persistent_infrastructure(
     for entitlement in _load_aa_target_entitlements():
         if entitlement.get("kind") != "azure_rbac_role_assignment":
             continue
-        if "system-assigned managed identity" not in entitlement.get("principal", ""):
+        principal = entitlement.get("principal", "")
+        if "mi-runbook" not in principal and "managed identity" not in principal.lower():
             sys.exit(
-                f"ERROR: entitlement principal {entitlement.get('principal')!r} "
-                f"is not the AA's system-assigned managed identity — this deploy "
-                f"path only handles the AA-MI. Update the manifest or extend "
+                f"ERROR: entitlement principal {principal!r} is not the AA "
+                f"managed identity (mi-runbook) — this deploy path only "
+                f"handles the AA-MI. Update the manifest or extend "
                 f"chdm_ensure_chdm_persistent_infrastructure."
             )
         scope = entitlement["scope"]

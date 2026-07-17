@@ -111,11 +111,12 @@ def _load_env_var(name: str) -> str | None:
 # Referenced-file resolution — regex-only, no shell parsing
 # ─────────────────────────────────────────────────────────────────────────────
 _SCRIPT_PATH_RE = re.compile(
-    r"(?<![A-Za-z0-9_./\\-])"           # not preceded by a filename-continuing char
-    r"([A-Za-z]:[/\\][A-Za-z0-9_./\\-]+\.(?:py|sh|ps1|bash))"  # windows abs path
-    r"|"
-    r"(?<![A-Za-z0-9_./\\-])"
-    r"((?:\./)?[A-Za-z0-9_./\\-]+\.(?:py|sh|ps1|bash))"        # relative / bare
+    r"\b(?:python[3]?|bash|sh|pwsh|powershell)\b"   # interpreter token
+    r"(?:\s+-\S+(?:\s+\S+)?)*"                       # optional -flag or -flag value pairs
+    r"\s+"                                            # then whitespace
+    r"([A-Za-z]:[/\\][A-Za-z0-9_./\\-]+\.(?:py|sh|ps1|bash)|"  # abs windows path
+    r"[A-Za-z0-9_./\\-]+\.(?:py|sh|ps1|bash))",       # relative/bare path
+    re.IGNORECASE,
 )
 
 
@@ -135,11 +136,9 @@ def _resolve_referenced_files(command: str) -> tuple[list[dict], list[str]]:
     total_bytes = 0
 
     for m in _SCRIPT_PATH_RE.finditer(command):
-        rel = m.group(1) or m.group(2)
+        rel = m.group(1)
         if not rel:
             continue
-        # Drop obvious noise (e.g., ".py" alone or paths that look like shell
-        # switches). Require the token to include at least one path/name char.
         if rel.startswith("-"):
             continue
         norm = rel.replace("\\", "/")
@@ -227,20 +226,55 @@ def _cache_put(key: str, classification: str, reason: str) -> None:
 # LLM call — Gemini 2.0 Flash via generativelanguage.googleapis.com
 # ─────────────────────────────────────────────────────────────────────────────
 _SYSTEM_PROMPT = """You are a security classifier for shell tool invocations.
-Classify each shell command + any referenced code into exactly one of:
+The ONLY things you protect are: Azure, Cloudflare, MongoDB Atlas, HuggingFace,
+Azure Container Registry, and GitHub REMOTE state mutations that bypass the
+project's deploy chain (build_chathealthy.py / deploy_chathealthy.py /
+promote_chathealthy.py). Everything else is `allow`.
 
-  allow       — read-only inspection (list/show/get/describe/query/view/status/
-                info/login/logout/version/help), or an invocation of
-                `build_chathealthy.py` (build produces only local artifacts).
+Classify into exactly one of:
+
+  allow       — anything that does NOT mutate remote state on the protected
+                targets. This includes:
+                  * read-only inspection (list/show/get/describe/query/view/
+                    status/info/login/logout/version/help/cat/head/tail/less)
+                  * ALL local-filesystem operations (rm, mv, cp, mkdir, rmdir,
+                    touch, chmod, ln, echo>file, redirection to local paths)
+                  * ALL `git` verbs on the local clone including add, commit,
+                    push, checkout, diff, log, status, branch, merge, rebase,
+                    stash, reset, tag (git is gated separately at commit time
+                    by Rule-065; this classifier MUST NOT second-guess git)
+                  * builds, tests, package installs, dependency management
+                    (pip install, npm install, docker build, docker tag)
+                  * running `build_chathealthy.py` (build produces only local
+                    artifacts)
+                  * running Python/PowerShell/bash scripts that only touch the
+                    local machine, do local file processing, run tests, or
+                    talk to already-authenticated dev/local services on
+                    127.0.0.1 or localhost
   gate_approve — an invocation of `deploy_chathealthy.py` or
-                `promote_chathealthy.py` (state change; needs operator approval).
-  block_hard  — any direct state mutation on Azure/Cloudflare/MongoDB Atlas/GitHub
-                that bypasses the deploy chain (raw `az create/delete/set/update/
-                deploy/...`, `wrangler deploy`, `atlas cluster create`,
-                `docker push`, `gh pr create/merge`, etc.), OR any dynamic-code
-                pattern (exec/eval/compile/download-and-run/write-file-then-run),
-                OR any indirect path that would effect a state mutation, OR
-                invocation of a compiled binary whose source is not readable.
+                `promote_chathealthy.py` (deploys/promotes remote state; needs
+                operator approval).
+  block_hard  — a direct state mutation on Azure/Cloudflare/MongoDB Atlas/HF/
+                ACR/GitHub-remote that bypasses the deploy chain, specifically:
+                  * `az <group> <write-verb>` where write-verb is create,
+                    delete, update, set, deploy, restart, stop, start, scale,
+                    assign, revoke, config-zip, purge, etc.
+                  * `wrangler deploy`, `wrangler <write-verb>`
+                  * `atlas cluster <write-verb>`, `atlas <write-verb>` in general
+                  * `docker push` (any registry)
+                  * `gh pr <create|merge|edit|close|reopen|comment|review>`,
+                    `gh issue <create|close|edit|comment>`, `gh workflow run`,
+                    `gh secret <set|delete>`, `gh release <create|edit|delete>`,
+                    `gh repo <create|delete|edit>`, `gh api ... -X
+                    POST|PUT|DELETE|PATCH`
+                  * dynamic-code pattern (exec, eval, compile, downloading and
+                    running remote code, writing a file then invoking it)
+                  * invocation of a compiled binary whose source is not readable
+                    AND that appears to touch remote infra
+
+Local `rm`, local `mv`, local `cp`, local `chmod`, local shell redirection —
+all `allow`. `git push` after a commit — `allow`. Only remote-infra writes
+bypassing the deploy chain are `block_hard`.
 
 If you are UNCERTAIN in any way, return `block_hard`. Fail closed.
 
