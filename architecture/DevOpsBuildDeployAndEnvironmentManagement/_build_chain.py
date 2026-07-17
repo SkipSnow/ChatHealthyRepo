@@ -742,6 +742,7 @@ def _build_one(repo_root: Path, target: TargetRecord, build_n: int, build_sha: s
     elif target.target_kind == "azure_automation_runbook":
         _build_azure_automation_runbook(repo_root, target, build_dir)
     elif target.target_kind in (
+        "atlas",
         "azure_resource_group",
         "azure_key_vault",
         "azure_storage_account",
@@ -780,6 +781,7 @@ _BUILDABLE_KINDS = (
     "azure_function_app",
     "azure_container_app",
     "azure_automation_runbook",
+    "atlas",
     "azure_resource_group",
     "azure_key_vault",
     "azure_storage_account",
@@ -792,6 +794,7 @@ _BUILDABLE_KINDS = (
 )
 
 _PIPELINE_BUILD_KINDS = (
+    "atlas",
     "azure_resource_group",
     "azure_key_vault",
     "azure_storage_account",
