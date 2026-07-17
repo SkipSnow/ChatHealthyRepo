@@ -18,8 +18,15 @@ import json
 import os
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
+
+
+ATLAS_API_BASE = "https://cloud.mongodb.com/api/atlas/v2"
+ATLAS_API_ACCEPT = "application/vnd.atlas.2024-08-05+json"
 
 
 def _cflags() -> int:
@@ -137,6 +144,7 @@ def ensure_vnet_subnets(target, env: str) -> str:
     r = _az(["network", "vnet", "show", "-g", rg, "-n", vnet], check=False)
     if r.returncode != 0:
         sys.exit(f"ERROR: pre_existing VNet {vnet!r} not found (F-012 §4.2)")
+    location = json.loads(r.stdout).get("location") or "eastus2"
     for subnet in block.get("subnets") or []:
         name = subnet["name"]
         prefix = subnet["address_prefix"]
@@ -146,17 +154,102 @@ def ensure_vnet_subnets(target, env: str) -> str:
             check=False,
         )
         delegations = subnet.get("delegations") or []
-        if show.returncode == 0:
-            continue
-        args = [
-            "network", "vnet", "subnet", "create",
-            "-g", rg, "--vnet-name", vnet, "-n", name,
-            "--address-prefixes", prefix,
-        ]
-        if delegations:
-            args.extend(["--delegations", ",".join(delegations)])
-        _az(args)
+        if show.returncode != 0:
+            args = [
+                "network", "vnet", "subnet", "create",
+                "-g", rg, "--vnet-name", vnet, "-n", name,
+                "--address-prefixes", prefix,
+            ]
+            if delegations:
+                args.extend(["--delegations", ",".join(delegations)])
+            _az(args)
+        pool = subnet.get("reserved_nics")
+        if pool:
+            _ensure_reserved_nic_pool(
+                rg=rg,
+                vnet=vnet,
+                subnet_name=name,
+                subnet_prefix=prefix,
+                pool=pool,
+                location=location,
+            )
     return vnet
+
+
+def _ensure_reserved_nic_pool(
+    *,
+    rg: str,
+    vnet: str,
+    subnet_name: str,
+    subnet_prefix: str,
+    pool: dict,
+    location: str,
+) -> None:
+    """Materialize the subnet's declared reserved_nics pool.
+
+    Creates `pool['count']` NICs with static private IPs starting at the
+    subnet's `<prefix>.<ip_offset_start>` and incrementing by 1 per NIC.
+    NIC names are `<name_prefix>-001`, `<name_prefix>-002`, ...
+
+    Idempotent: an existing NIC of the same name is left in place; a NIC
+    whose private IP does not match the declared slot is a hard error so
+    the operator can decide whether to delete-and-recreate.
+    """
+    count = int(pool["count"])
+    name_prefix = pool["name_prefix"]
+    allocation = pool["allocation"]
+    ip_offset_start = int(pool["ip_offset_start"])
+    # Derive the /24 (or whatever prefix) base from subnet_prefix.
+    base_ip, _, _ = subnet_prefix.partition("/")
+    octets = base_ip.split(".")
+    if len(octets) != 4:
+        sys.exit(
+            f"ERROR: subnet {subnet_name!r} address_prefix {subnet_prefix!r} "
+            f"is not IPv4 — reserved NIC pool requires IPv4 subnet"
+        )
+    subnet_id = _az_json(
+        ["network", "vnet", "subnet", "show",
+         "-g", rg, "--vnet-name", vnet, "-n", subnet_name,
+         "--query", "id"]
+    )
+    step(f"reserved NIC pool: {count} NICs in {subnet_name} "
+         f"starting at .{ip_offset_start} named {name_prefix}-001..{count:03d}")
+    for i in range(count):
+        nic_name = f"{name_prefix}-{i + 1:03d}"
+        host_octet = ip_offset_start + i
+        if host_octet > 254:
+            sys.exit(
+                f"ERROR: reserved NIC pool {name_prefix!r} count={count} "
+                f"exhausts /24 host range (host octet {host_octet} > 254)"
+            )
+        expected_ip = f"{octets[0]}.{octets[1]}.{octets[2]}.{host_octet}"
+        show = _az(
+            ["network", "nic", "show", "-g", rg, "-n", nic_name],
+            check=False,
+        )
+        if show.returncode == 0:
+            live = json.loads(show.stdout)
+            live_ip = (
+                (live.get("ipConfigurations") or [{}])[0]
+                .get("privateIPAddress")
+            )
+            if live_ip != expected_ip:
+                sys.exit(
+                    f"ERROR: reserved NIC {nic_name!r} private IP "
+                    f"{live_ip!r} != declared slot {expected_ip!r}"
+                )
+            continue
+        _az(
+            [
+                "network", "nic", "create",
+                "-g", rg,
+                "-n", nic_name,
+                "--subnet", subnet_id,
+                "--location", location,
+                "--private-ip-address", expected_ip,
+                "--private-ip-address-version", "IPv4",
+            ]
+        )
 
 
 def ensure_managed_identity(target, env: str) -> str:
@@ -552,6 +645,430 @@ def ensure_aca_job(
     )
     step(f"ACA job {job} ready image={image} mi_client={mi_client}")
     return job
+
+
+def _atlas_load_credentials(atlas_block: dict) -> tuple[str, str, str]:
+    """Read Atlas Admin API credentials from Code/.env via secret-key names
+    declared on the atlas sub-block's `project`. Returns (public_key,
+    private_key, project_id). Fails hard if any is missing.
+    """
+    from dotenv import load_dotenv
+    repo_root = Path(__file__).resolve().parents[2]
+    load_dotenv(repo_root / "Code" / ".env")
+    load_dotenv(repo_root / ".env")
+    project = atlas_block.get("project") or {}
+    public_key_env = project.get("public_key_from_secret") or ""
+    private_key_env = project.get("private_key_from_secret") or ""
+    project_id_env = project.get("project_id_from_secret") or ""
+    public_key = os.environ.get(public_key_env, "")
+    private_key = os.environ.get(private_key_env, "")
+    project_id = os.environ.get(project_id_env, "")
+    missing = [k for k, v in {
+        public_key_env: public_key,
+        private_key_env: private_key,
+        project_id_env: project_id,
+    }.items() if not v]
+    if missing:
+        sys.exit(
+            f"ERROR: Atlas credentials missing from Code/.env — "
+            f"declared secret names not populated: {missing}"
+        )
+    return public_key, private_key, project_id
+
+
+def _atlas_request(
+    method: str,
+    path: str,
+    *,
+    public_key: str,
+    private_key: str,
+    body: Any = None,
+) -> tuple[int, Any]:
+    """Call Atlas Admin API with HTTP Digest auth.
+
+    Returns (status_code, parsed_json_or_none). Never raises on 4xx/5xx;
+    caller decides how to interpret the code.
+    """
+    url = f"{ATLAS_API_BASE}{path}"
+    data = json.dumps(body).encode("utf-8") if body is not None else None
+    handler = urllib.request.HTTPDigestAuthHandler()
+    handler.add_password(
+        realm=None, uri="https://cloud.mongodb.com",
+        user=public_key, passwd=private_key,
+    )
+    opener = urllib.request.build_opener(handler)
+    req = urllib.request.Request(
+        url, data=data, method=method,
+        headers={
+            "Accept": ATLAS_API_ACCEPT,
+            "Content-Type": "application/json" if data else "*/*",
+        },
+    )
+    try:
+        with opener.open(req, timeout=45) as resp:
+            code = resp.getcode()
+            payload = resp.read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        code = e.code
+        payload = e.read().decode("utf-8", errors="replace")
+    except urllib.error.URLError as e:
+        sys.exit(f"ERROR: Atlas API URL error at {url}: {e}")
+    parsed: Any = None
+    if payload.strip():
+        try:
+            parsed = json.loads(payload)
+        except json.JSONDecodeError:
+            parsed = {"_raw": payload}
+    return code, parsed
+
+
+def verify_atlas(target, env: str) -> str:
+    """Reconcile Atlas target for this env: project + cluster verify,
+    accepted_access reconciliation, private_endpoint_service ensure.
+    Idempotent.
+    """
+    block = _env_block(target, env, "atlas")
+    public_key, private_key, project_id = _atlas_load_credentials(block)
+    cluster_name = block["cluster"]["cluster_name"]
+    step(f"Atlas project verify project_id={project_id[:8]}...")
+    code, body = _atlas_request(
+        "GET", f"/groups/{project_id}",
+        public_key=public_key, private_key=private_key,
+    )
+    if code != 200:
+        sys.exit(f"ERROR: Atlas project not reachable (HTTP {code}): {body}")
+    step(f"Atlas cluster verify {cluster_name}")
+    code, body = _atlas_request(
+        "GET", f"/groups/{project_id}/clusters/{cluster_name}",
+        public_key=public_key, private_key=private_key,
+    )
+    if code != 200:
+        sys.exit(
+            f"ERROR: Atlas cluster {cluster_name!r} not found in project "
+            f"(HTTP {code}): {body}"
+        )
+    for access in block.get("accepted_access") or []:
+        if access.get("kind") == "ip_allowlist":
+            _atlas_reconcile_ip_allowlist(
+                access,
+                public_key=public_key,
+                private_key=private_key,
+                project_id=project_id,
+            )
+    pes = block.get("private_endpoint_service")
+    if pes:
+        endpoint_id = _atlas_ensure_private_endpoint_service(
+            pes,
+            public_key=public_key,
+            private_key=private_key,
+            project_id=project_id,
+        )
+        step(f"Atlas private endpoint service id={endpoint_id}")
+    return target.target_id
+
+
+def _atlas_reconcile_ip_allowlist(
+    access: dict,
+    *,
+    public_key: str,
+    private_key: str,
+    project_id: str,
+) -> None:
+    """Ensure every declared allowlist entry exists on Atlas. Does NOT
+    delete unlisted entries — the manifest is additive-only for access.
+    """
+    entries = access.get("entries") or []
+    for entry in entries:
+        cidr = entry["cidr"]
+        comment = (entry.get("comment") or "")[:80]
+        code, _body = _atlas_request(
+            "POST", f"/groups/{project_id}/accessList",
+            public_key=public_key,
+            private_key=private_key,
+            body=[{"cidrBlock": cidr, "comment": comment}],
+        )
+        if code in (200, 201):
+            step(f"  allowlist added {cidr}")
+        elif code == 409:
+            step(f"  allowlist {cidr} already present")
+        else:
+            step(f"  WARN: allowlist add {cidr}: HTTP {code}")
+
+
+def _atlas_ensure_private_endpoint_service(
+    pes: dict,
+    *,
+    public_key: str,
+    private_key: str,
+    project_id: str,
+) -> str:
+    """Create-if-absent an Atlas private endpoint service for
+    (provider, region). Poll until AVAILABLE. Returns the endpoint id.
+    """
+    provider = pes["provider"]
+    region_input = pes["region"]
+    atlas_region = region_input.upper().replace("-", "_")
+    step(f"Atlas endpoint service ensure {provider}/{atlas_region}")
+    code, existing = _atlas_request(
+        "GET",
+        f"/groups/{project_id}/privateEndpointService/endpointService/{provider}",
+        public_key=public_key, private_key=private_key,
+    )
+    endpoint_id: str | None = None
+    if code == 200 and isinstance(existing, list):
+        for svc in existing:
+            if (svc.get("regionName") or svc.get("region")) == atlas_region:
+                endpoint_id = svc.get("id")
+                break
+    if not endpoint_id:
+        code, created = _atlas_request(
+            "POST",
+            f"/groups/{project_id}/privateEndpointService/endpointService",
+            public_key=public_key, private_key=private_key,
+            body={"providerName": provider, "region": atlas_region},
+        )
+        if code not in (200, 201, 202):
+            sys.exit(
+                f"ERROR: Atlas endpoint service create failed HTTP {code}: {created}"
+            )
+        endpoint_id = (created or {}).get("id")
+        if not endpoint_id:
+            sys.exit(
+                f"ERROR: Atlas endpoint service create returned no id: {created}"
+            )
+    for i in range(60):
+        code, shown = _atlas_request(
+            "GET",
+            f"/groups/{project_id}/privateEndpointService/endpointService/"
+            f"{provider}/{endpoint_id}",
+            public_key=public_key, private_key=private_key,
+        )
+        if code == 200:
+            status = shown.get("status") if isinstance(shown, dict) else None
+            if i == 0 or i % 6 == 0:
+                step(f"  Atlas endpoint {endpoint_id[:12]} status={status}")
+            if status in ("AVAILABLE", "INITIATING"):
+                return endpoint_id
+        time.sleep(10)
+    sys.exit(f"ERROR: Atlas endpoint service {endpoint_id} never became AVAILABLE")
+
+
+def atlas_resolve_private_link_service_resource_id(
+    peer_target,
+    env: str,
+    group_id: str,
+) -> tuple[str, str]:
+    """Look up the peer Atlas target's Private Link Service resource id
+    for the declared endpoint service. Returns (private_link_service_id,
+    dns_suffix). Called by VNET's PE handler at PE-create time.
+    """
+    _ = group_id  # currently only 'mongodb' — Atlas has no group discriminator
+    block = _env_block(peer_target, env, "atlas")
+    public_key, private_key, project_id = _atlas_load_credentials(block)
+    pes = block.get("private_endpoint_service") or {}
+    provider = pes.get("provider", "AZURE")
+    region_input = pes.get("region", "eastus2")
+    atlas_region = region_input.upper().replace("-", "_")
+    code, listed = _atlas_request(
+        "GET",
+        f"/groups/{project_id}/privateEndpointService/endpointService/{provider}",
+        public_key=public_key, private_key=private_key,
+    )
+    if code != 200 or not isinstance(listed, list):
+        sys.exit(
+            f"ERROR: Atlas endpoint services list HTTP {code}: {listed}"
+        )
+    endpoint_id = None
+    for svc in listed:
+        if (svc.get("regionName") or svc.get("region")) == atlas_region:
+            endpoint_id = svc.get("id")
+            break
+    if not endpoint_id:
+        sys.exit(
+            f"ERROR: Atlas endpoint service missing for {provider}/{atlas_region} — "
+            f"is Atlas target deployed?"
+        )
+    code, shown = _atlas_request(
+        "GET",
+        f"/groups/{project_id}/privateEndpointService/endpointService/"
+        f"{provider}/{endpoint_id}",
+        public_key=public_key, private_key=private_key,
+    )
+    if code != 200 or not isinstance(shown, dict):
+        sys.exit(
+            f"ERROR: Atlas endpoint service {endpoint_id} details HTTP {code}"
+        )
+    pls_id = (
+        shown.get("privateLinkServiceResourceId")
+        or shown.get("privateEndpointResourceId")
+    )
+    if not pls_id:
+        sys.exit(
+            f"ERROR: Atlas endpoint service {endpoint_id} carries no "
+            f"privateLinkServiceResourceId"
+        )
+    dns_suffix = shown.get("privateEndpointConnectionName") or ""
+    return pls_id, dns_suffix
+
+
+def atlas_approve_private_endpoint(
+    peer_target,
+    env: str,
+    azure_pe_resource_id: str,
+) -> None:
+    """Approve the Azure-side private endpoint connection on Atlas."""
+    block = _env_block(peer_target, env, "atlas")
+    public_key, private_key, project_id = _atlas_load_credentials(block)
+    pes = block.get("private_endpoint_service") or {}
+    provider = pes.get("provider", "AZURE")
+    region_input = pes.get("region", "eastus2")
+    atlas_region = region_input.upper().replace("-", "_")
+    code, listed = _atlas_request(
+        "GET",
+        f"/groups/{project_id}/privateEndpointService/endpointService/{provider}",
+        public_key=public_key, private_key=private_key,
+    )
+    endpoint_id = None
+    if code == 200 and isinstance(listed, list):
+        for svc in listed:
+            if (svc.get("regionName") or svc.get("region")) == atlas_region:
+                endpoint_id = svc.get("id")
+                break
+    if not endpoint_id:
+        sys.exit("ERROR: Atlas endpoint service not present at approval time")
+    code, body = _atlas_request(
+        "POST",
+        f"/groups/{project_id}/privateEndpointService/endpointService/"
+        f"{provider}/{endpoint_id}/endpoint",
+        public_key=public_key, private_key=private_key,
+        body={"id": azure_pe_resource_id, "privateEndpointConnectionName": ""},
+    )
+    if code in (200, 201, 202):
+        step(f"  Atlas endpoint approved azure_pe={azure_pe_resource_id[-40:]}")
+    elif code == 409:
+        step(f"  Atlas endpoint connection already registered")
+    else:
+        step(f"  WARN: Atlas endpoint approval HTTP {code}: {body}")
+
+
+def ensure_vnet_private_dns_zones(target, env: str) -> None:
+    """Create/link Private DNS zones declared under the VNET target."""
+    block = _env_block(target, env, "azure_vnet")
+    vnet = block["vnet_name"]
+    rg = block["resource_group"]
+    zones = block.get("private_dns_zones") or []
+    for zone in zones:
+        zone_name = zone["zone_name"]
+        step(f"ensure private DNS zone {zone_name}")
+        show = _az(
+            ["network", "private-dns", "zone", "show",
+             "-g", rg, "-n", zone_name],
+            check=False,
+        )
+        if show.returncode != 0:
+            _az(
+                ["network", "private-dns", "zone", "create",
+                 "-g", rg, "-n", zone_name],
+            )
+        link_name = f"{vnet}-link"
+        show_link = _az(
+            ["network", "private-dns", "link", "vnet", "show",
+             "-g", rg, "-n", link_name, "-z", zone_name],
+            check=False,
+        )
+        if show_link.returncode != 0:
+            vnet_id = _az_json(
+                ["network", "vnet", "show", "-g", rg, "-n", vnet, "--query", "id"]
+            )
+            _az(
+                [
+                    "network", "private-dns", "link", "vnet", "create",
+                    "-g", rg, "-n", link_name,
+                    "-z", zone_name,
+                    "-v", vnet_id,
+                    "-e", "false",
+                ]
+            )
+
+
+def ensure_vnet_private_endpoints(target, env: str, coll) -> None:
+    """Create Private Endpoints declared under the VNET target. Each PE
+    references a peer target (Atlas) whose private_endpoint_service the
+    endpoint connects to; wire the PE's dns-zone-group so DNS auto-pop.
+    """
+    block = _env_block(target, env, "azure_vnet")
+    vnet = block["vnet_name"]
+    rg = block["resource_group"]
+    subscription = _az(
+        ["account", "show", "--query", "id", "-o", "tsv"]
+    ).stdout.strip()
+    for pe in block.get("private_endpoints") or []:
+        pe_name = pe["private_endpoint_name"]
+        subnet_name = pe["subnet_name"]
+        peer_target_id = pe["peer_target_id"]
+        group_id = pe["group_id"]
+        peer_target = coll.by_target_id(peer_target_id) if coll else None
+        if peer_target is None:
+            sys.exit(
+                f"ERROR: private_endpoint {pe_name!r} peer_target_id "
+                f"{peer_target_id!r} not found in manifest"
+            )
+        step(f"ensure private endpoint {pe_name} → {peer_target_id}/{group_id}")
+        pls_id, _dns_suffix = atlas_resolve_private_link_service_resource_id(
+            peer_target, env, group_id,
+        )
+        subnet_id = (
+            f"/subscriptions/{subscription}/resourceGroups/{rg}/providers/"
+            f"Microsoft.Network/virtualNetworks/{vnet}/subnets/{subnet_name}"
+        )
+        show = _az(
+            ["network", "private-endpoint", "show",
+             "-g", rg, "-n", pe_name],
+            check=False,
+        )
+        if show.returncode != 0:
+            _az(
+                [
+                    "network", "private-endpoint", "create",
+                    "-g", rg,
+                    "-n", pe_name,
+                    "--vnet-name", vnet,
+                    "--subnet", subnet_name,
+                    "--private-connection-resource-id", pls_id,
+                    "--connection-name", f"{pe_name}-conn",
+                    "--group-id", group_id,
+                    "--manual-request", "false",
+                ]
+            )
+        pe_resource_id = _az_json(
+            ["network", "private-endpoint", "show",
+             "-g", rg, "-n", pe_name, "--query", "id"]
+        )
+        # Wire dns-zone-group binding to the matching private DNS zone.
+        for zone in block.get("private_dns_zones") or []:
+            zone_name = zone["zone_name"]
+            group_name = f"{pe_name}-zonegroup"
+            show_group = _az(
+                ["network", "private-endpoint", "dns-zone-group", "show",
+                 "-g", rg, "--endpoint-name", pe_name, "-n", group_name],
+                check=False,
+            )
+            if show_group.returncode != 0:
+                zone_id = _az_json(
+                    ["network", "private-dns", "zone", "show",
+                     "-g", rg, "-n", zone_name, "--query", "id"]
+                )
+                _az(
+                    [
+                        "network", "private-endpoint", "dns-zone-group", "create",
+                        "-g", rg,
+                        "--endpoint-name", pe_name,
+                        "-n", group_name,
+                        "--private-dns-zone", zone_id,
+                        "--zone-name", zone_name.replace(".", "-"),
+                    ]
+                )
+        atlas_approve_private_endpoint(peer_target, env, pe_resource_id)
 
 
 def seed_kv_secrets_from_env(vault_name: str, secret_names: list[str]) -> None:

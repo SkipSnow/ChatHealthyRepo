@@ -276,7 +276,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "bdb387a4ab649a0e4bece55280358b791378559b6fbe3ec967f92ae5932f7d62",
+          "content_hash": "d486b3a7ec9eed0c79a97bdc5503983585bbab111008aa823df2dc37bd37e156",
           "package": "default"
         },
         {
@@ -5739,7 +5739,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "bdb387a4ab649a0e4bece55280358b791378559b6fbe3ec967f92ae5932f7d62",
+          "content_hash": "d486b3a7ec9eed0c79a97bdc5503983585bbab111008aa823df2dc37bd37e156",
           "package": "default"
         },
         {
@@ -7295,13 +7295,70 @@
               {
                 "name": "snet-aca",
                 "address_prefix": "10.0.0.0/23",
+                "purpose": "aca_env_infrastructure",
                 "delegations": [
                   "Microsoft.App/environments"
                 ]
               },
               {
                 "name": "snet-hybrid-worker",
-                "address_prefix": "10.0.2.0/24"
+                "address_prefix": "10.0.2.0/24",
+                "purpose": "automation_hybrid_worker_legacy"
+              },
+              {
+                "name": "snet-worker-pool",
+                "address_prefix": "10.0.4.0/24",
+                "purpose": "pipeline_worker_pool",
+                "reserved_nics": {
+                  "count": 125,
+                  "name_prefix": "pipe-worker",
+                  "allocation": "static",
+                  "ip_offset_start": 4,
+                  "runtime_consumers": [
+                    {
+                      "identity_target_id": "target_identity_mi_worker",
+                      "operation": "claim_and_bind_vm",
+                      "authority": "one_nic_per_work_item"
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "snet-private-endpoints",
+                "address_prefix": "10.0.6.0/24",
+                "purpose": "atlas_private_endpoint_landing"
+              },
+              {
+                "name": "snet-trigger-control",
+                "address_prefix": "10.0.8.0/24",
+                "purpose": "pipeline_trigger_and_control"
+              }
+            ],
+            "private_endpoints": [
+              {
+                "private_endpoint_name": "pe-atlas-pipeline-dev",
+                "subnet_name": "snet-private-endpoints",
+                "peer_target_id": "target_atlas_pipeline",
+                "group_id": "mongodb",
+                "runtime_consumers": [
+                  {
+                    "identity_target_id": "target_identity_mi_control",
+                    "operation": "mongo_readwrite"
+                  },
+                  {
+                    "identity_target_id": "target_identity_mi_worker",
+                    "operation": "mongo_readwrite"
+                  },
+                  {
+                    "identity_target_id": "target_identity_mi_runbook",
+                    "operation": "mongo_write"
+                  }
+                ]
+              }
+            ],
+            "private_dns_zones": [
+              {
+                "zone_name": "privatelink.mongodb.net"
               }
             ]
           }
@@ -8279,6 +8336,73 @@
       "secrets": {},
       "allowed_roles": [
         "Container Apps Jobs Operator"
+      ]
+    },
+    {
+      "target_id": "target_atlas_pipeline",
+      "target_kind": "atlas",
+      "provisioning": "deploy_provisioned",
+      "promote_chain_bound": false,
+      "environments": [
+        {
+          "env_binding": "dev",
+          "node_address": "chathealthydatapipeline",
+          "atlas": {
+            "project": {
+              "project_id_from_secret": "ATLAS_PROJECT_ID",
+              "public_key_from_secret": "ATLAS_PUBLIC_KEY",
+              "private_key_from_secret": "ATLAS_PRIVATE_KEY"
+            },
+            "cluster": {
+              "cluster_name": "chathealthydatapipeline",
+              "runtime_consumers": [
+                {
+                  "identity_target_id": "target_identity_mi_control",
+                  "operation": "mongo_readwrite"
+                },
+                {
+                  "identity_target_id": "target_identity_mi_worker",
+                  "operation": "mongo_readwrite"
+                },
+                {
+                  "identity_target_id": "target_identity_mi_runbook",
+                  "operation": "mongo_write"
+                }
+              ]
+            },
+            "accepted_access": [
+              {
+                "kind": "ip_allowlist",
+                "entries": [
+                  {
+                    "cidr": "0.0.0.0/0",
+                    "comment": "Sets 1+2: dynamic operator IPs + HF Space egress. Intentional until dynamic-allowlist story lands."
+                  }
+                ]
+              },
+              {
+                "kind": "private_endpoint"
+              }
+            ],
+            "private_endpoint_service": {
+              "provider": "AZURE",
+              "region": "eastus2",
+              "runtime_consumers": [
+                {
+                  "identity_target_id": "target_azure_vnet_pipeline",
+                  "operation": "azure_private_link_bind"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "files": [],
+      "peers": [
+        {
+          "target_id": "target_azure_vnet_pipeline",
+          "kind": "private_endpoint_service"
+        }
       ]
     }
   ],
