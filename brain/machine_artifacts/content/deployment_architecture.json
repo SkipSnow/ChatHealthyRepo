@@ -246,7 +246,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "40ed4244a04bb06e093c1085a96502e9aed377b30bdd228b87f7c3b97e249a41"
+          "content_hash": "bdb387a4ab649a0e4bece55280358b791378559b6fbe3ec967f92ae5932f7d62"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -5131,7 +5131,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "40ed4244a04bb06e093c1085a96502e9aed377b30bdd228b87f7c3b97e249a41"
+          "content_hash": "bdb387a4ab649a0e4bece55280358b791378559b6fbe3ec967f92ae5932f7d62"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -7777,7 +7777,7 @@
           "source_location": "pipeline/deploy/provider_pipeline_runbook.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "e76f30431b2a6b23b631881b5bde556a0214f56e40e3c6505e09c4cd5dfb078c"
+          "content_hash": "a394772f2374157ad38e5ff3b40e8c763e530fe8f4adf8012cdc5b98d63f37a9"
         }
       ],
       "secrets": {
