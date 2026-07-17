@@ -76,26 +76,8 @@
           },
           "target_kind": {
             "type": "string",
-            "description": "Closed taxonomy of deployment-target classes. Source-of-truth for this controlled vocabulary: this schema document itself. Values classify the abstract class of the deployment endpoint only; no business name encoded.",
-            "enum": [
-              "hf_space",
-              "cloudflare_pages_project",
-              "azure_function_app",
-              "azure_container_app",
-              "azure_container_apps_environment",
-              "azure_container_app_job",
-              "azure_automation_account",
-              "azure_automation_runbook",
-              "host_os_process",
-              "docker_local_container",
-              "azure_container_registry",
-              "azure_key_vault",
-              "azure_storage_account",
-              "github_actions_workflow_runner",
-              "azure_vnet",
-              "azure_resource_group",
-              "identity"
-            ]
+            "description": "Kind discriminator for this deployment target (the HOST). Free string; the dispatch code owns the taxonomy of valid kinds. Values classify the abstract class of the deployment endpoint only; no business name encoded.",
+            "minLength": 1
           },
           "promote_chain_bound": {
             "type": "boolean",
@@ -137,6 +119,19 @@
                   "description": "Addressable location of this target in this environment. May be a URL, connection string, host:port pair, registry path, or other addressable form appropriate to the target_kind. Template tokens MAY appear; resolution semantics are software's job. Non-empty.",
                   "minLength": 1,
                   "maxLength": 1024
+                },
+                "packages": {
+                  "type": "array",
+                  "description": "Packages deployed TO this target (host). Each entry declares one deliverable that lands on the host declared by this env_binding. Universal shape across all target_kinds: a `package_id` for identity, a `kind` discriminating the package type (e.g., runbook, job, secret, blob_container, subnet), and a kind-specific config carried under a key matching `kind`. Dispatch iterates packages and switches on `kind` to select the per-package handler; the host target is deployed once and its packages are then deployed into it.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "required": ["package_id", "kind"],
+                    "properties": {
+                      "package_id": { "type": "string", "minLength": 1 },
+                      "kind": { "type": "string", "minLength": 1 }
+                    }
+                  }
                 },
                 "azure": {
                   "type": "object",
@@ -931,6 +926,12 @@
                   "description": "Repo-relative path at which the source file lives on disk. Forward slashes only. No leading slash. No '..' segments. No drive letters. Schema does not assume any particular directory layout for any feature.",
                   "pattern": "^(?!.*\\.\\.)[^\\\\:/][^\\\\:]*(?:/[^\\\\:/]+)*$",
                   "maxLength": 1024
+                },
+                "package": {
+                  "type": "string",
+                  "description": "The package this file record belongs to. Address of a record is (target, package, source_location). Free string; the value 'default' is used for records that belong to the target itself rather than a named package under it.",
+                  "minLength": 1,
+                  "maxLength": 128
                 },
                 "handler_type": {
                   "type": "string",
