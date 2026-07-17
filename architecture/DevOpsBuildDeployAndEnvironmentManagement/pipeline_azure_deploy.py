@@ -126,19 +126,32 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
                 sys.exit(
                     f"ERROR: secret_from_file source {source_file!r} not found on disk"
                 )
-            import base64
-            encoded = base64.b64encode(src_path.read_bytes()).decode("ascii")
+            import base64, tempfile
             step(f"upload KV secret {secret_name} from {source_file} ({src_path.stat().st_size}B)")
-            r = _az(
-                [
-                    "keyvault", "secret", "set",
-                    "--vault-name", vault_name,
-                    "--name", secret_name,
-                    "--value", encoded,
-                    "--encoding", "base64",
-                ],
-                check=False,
-            )
+            # Base64-encode into a temp file, then upload via --file to
+            # avoid Windows CLI length limits + preserve exact bytes
+            # (CRLF/LF, special chars).
+            encoded = base64.b64encode(src_path.read_bytes()).decode("ascii")
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".b64", delete=False, encoding="ascii"
+            ) as tmp:
+                tmp.write(encoded)
+                tmp_path = tmp.name
+            try:
+                r = _az(
+                    [
+                        "keyvault", "secret", "set",
+                        "--vault-name", vault_name,
+                        "--name", secret_name,
+                        "--file", tmp_path,
+                    ],
+                    check=False,
+                )
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
             if r.returncode != 0:
                 sys.exit(
                     f"ERROR: KV secret set {secret_name!r} failed: {r.stderr[:500]}"
