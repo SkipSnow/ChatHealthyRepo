@@ -135,7 +135,7 @@ class ProviderPipelineOrchestrator(BasePipelineOrchestrator):
             name="discrepancy_and_notifications",
             prerequisites=["post_load_reconciliation"],
             parallelism="serial",
-            aca_job_name="prov-discrepancy-and-notifications",
+            aca_job_name="prov-discrepancy-notify",
         ),
         StepSpec(
             name="quiesce_infrastructure",

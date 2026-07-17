@@ -121,3 +121,7 @@ architecture/DevOpsBuildDeployAndEnvironmentManagement/localBuild/
 # Rule-065 commit-authorization audit log: machine-local audit trail of every
 # approve/reject/timeout/interrupt verdict. Durable, never committed.
 architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/commit_authorization.log
+
+# Rule-006 LLM-classifier verdict cache: machine-local hash → verdict cache
+# to avoid re-hitting the LLM for identical commands. Never committed.
+architecture/EngineeringRuleEnforcement/ArchitectureDesignAndAuditDocs/llm_classify_shell_invocation.cache.json

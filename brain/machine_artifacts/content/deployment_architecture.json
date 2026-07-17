@@ -5640,7 +5640,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f84a9ef60a25919b14b2724b57268e325375cc39b5fee92fbaf27feb1ea74f48"
+          "content_hash": "58132340134f2835ddcab3dba21d4fd6bfad848a5d1835f24a5ce9434122e76d"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -6002,7 +6002,7 @@
           "feature_id": "EPIC-008-F-012",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "f84a9ef60a25919b14b2724b57268e325375cc39b5fee92fbaf27feb1ea74f48"
+          "content_hash": "58132340134f2835ddcab3dba21d4fd6bfad848a5d1835f24a5ce9434122e76d"
         },
         {
           "source_location": "pipeline/Code/schemas/provider_record_validator.py",
@@ -6179,19 +6179,19 @@
       "entitlements": [
         {
           "kind": "azure_rbac_role_assignment",
-          "principal": "ChatHealthyJobManager system-assigned managed identity",
+          "principal": "ChatHealthyJobManager user-assigned managed identity mi-runbook",
           "role": "Virtual Machine Contributor",
           "scope": "/subscriptions/<subscription-id>/resourceGroups/<vm_rg>"
         },
         {
           "kind": "azure_rbac_role_assignment",
-          "principal": "ChatHealthyJobManager system-assigned managed identity",
+          "principal": "ChatHealthyJobManager user-assigned managed identity mi-runbook",
           "role": "Network Contributor",
           "scope": "/subscriptions/<subscription-id>/resourceGroups/<vm_rg>"
         },
         {
           "kind": "azure_rbac_role_assignment",
-          "principal": "ChatHealthyJobManager system-assigned managed identity",
+          "principal": "ChatHealthyJobManager user-assigned managed identity mi-runbook",
           "role": "Contributor",
           "scope": "/subscriptions/7a17eec1-c477-4c7c-b1c1-d0662ce7a1ee/resourceGroups/rg-chathealthy-pipeline-dev/providers/Microsoft.Automation/automationAccounts/ChatHealthyJobManager"
         },
@@ -7699,10 +7699,10 @@
       "environments": [
         {
           "env_binding": "dev",
-          "node_address": "prov-discrepancy-and-notifications",
+          "node_address": "prov-discrepancy-notify",
           "azure_container_app_job": {
             "resource_group": "rg-chathealthy-pipeline-dev",
-            "job_name": "prov-discrepancy-and-notifications",
+            "job_name": "prov-discrepancy-notify",
             "environment_name": "cae-chathealthy-pipeline-dev",
             "registry_name": "chpipelinedevacr",
             "image_repository": "prov-worker",

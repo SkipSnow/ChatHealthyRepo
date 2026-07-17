@@ -502,18 +502,8 @@ def ensure_aca_job(
 
     step(f"ensure ACA job {job} role={role}")
     show = _az(["containerapp", "job", "show", "-n", job, "-g", rg], check=False)
-    common = [
-        "--image", image,
-        "--cpu", cpu,
-        "--memory", memory,
-        "--parallelism", parallelism,
-        "--replica-timeout", timeout,
-        "--replica-retry-limit", "0",
-        "--mi-user-assigned", mi_id,
-        "--registry-identity", mi_id,
-        "--registry-server", f"{registry}.azurecr.io",
-        "--env-vars", *env_vars,
-    ]
+    # create accepts identity/registry/--env-vars; update on containerapp 0.3.x
+    # does not — use update-compatible flags + identity assign instead.
     if show.returncode != 0:
         _az(
             [
@@ -523,7 +513,16 @@ def ensure_aca_job(
                 "--environment", env_name,
                 "--trigger-type", "Manual",
                 "--replica-completion-count", parallelism,
-                *common,
+                "--image", image,
+                "--cpu", cpu,
+                "--memory", memory,
+                "--parallelism", parallelism,
+                "--replica-timeout", timeout,
+                "--replica-retry-limit", "0",
+                "--mi-user-assigned", mi_id,
+                "--registry-identity", mi_id,
+                "--registry-server", f"{registry}.azurecr.io",
+                "--env-vars", *env_vars,
             ]
         )
     else:
@@ -532,8 +531,23 @@ def ensure_aca_job(
                 "containerapp", "job", "update",
                 "-n", job,
                 "-g", rg,
-                *common,
+                "--image", image,
+                "--cpu", cpu,
+                "--memory", memory,
+                "--parallelism", parallelism,
+                "--replica-timeout", timeout,
+                "--replica-retry-limit", "0",
+                "--set-env-vars", *env_vars,
             ]
+        )
+        _az(
+            [
+                "containerapp", "job", "identity", "assign",
+                "-n", job,
+                "-g", rg,
+                "--user-assigned", mi_id,
+            ],
+            check=False,
         )
     # Grant AcrPull to the job MI (idempotent-ish; ignore if exists).
     acr_id = _az(
