@@ -1518,6 +1518,76 @@ def functionapp_get_appsetting(rg: str, app: str, name: str) -> str:
     return ""
 
 
+def ensure_runbook_webhook_stored_in_kv(
+    rg: str, aa: str, runbook: str,
+    webhook_name: str,
+    kv_vault: str,
+    kv_secret_name: str,
+) -> None:
+    """Mint a webhook bound to the runbook and store its URL in a Key
+    Vault secret so the operator (or CI) can trigger the runbook on
+    demand per LLD v23 §2.1(b).
+
+    Idempotent: if the KV secret already carries a non-empty URL, the
+    existing webhook is left in place (Azure Automation never re-
+    exposes a webhook URL after creation, so we cannot verify identity
+    without treating the KV value as source of truth). Otherwise: any
+    stale webhook of the same name is deleted (its URL is lost), a
+    fresh webhook is minted, and the URL is written to KV.
+    """
+    step(
+        f"  ensure on-demand webhook {webhook_name} for runbook {runbook} "
+        f"(URL will land in {kv_vault}/{kv_secret_name})"
+    )
+    existing_url = kv_secret_get(kv_vault, kv_secret_name)
+    if existing_url:
+        step(
+            f"    KV secret {kv_secret_name} already populated on "
+            f"{kv_vault} — idempotent no-op"
+        )
+        return
+    for w in az_automation_runbook_webhook_list(rg, aa, runbook):
+        if w.get("name") == webhook_name:
+            step(
+                f"    deleting stale webhook {webhook_name} (URL was not "
+                f"captured in KV; cannot reuse)"
+            )
+            az_automation_runbook_webhook_delete(rg, aa, webhook_name)
+            break
+    url = az_automation_runbook_webhook_create(rg, aa, runbook, webhook_name)
+    kv_secret_set(kv_vault, kv_secret_name, url)
+    step(f"    minted webhook and wrote URL to {kv_vault}/{kv_secret_name}")
+
+
+def kv_secret_get(vault: str, name: str) -> str:
+    r = subprocess.run(
+        ["az", "keyvault", "secret", "show",
+         "--vault-name", vault, "--name", name,
+         "--query", "value", "-o", "tsv"],
+        capture_output=True, text=True,
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        # Missing / no-access — treat as empty.
+        return ""
+    return (r.stdout or "").strip()
+
+
+def kv_secret_set(vault: str, name: str, value: str) -> None:
+    r = subprocess.run(
+        ["az", "keyvault", "secret", "set",
+         "--vault-name", vault, "--name", name,
+         "--value", value, "-o", "none"],
+        capture_output=True, text=True,
+        creationflags=creation_flags(), shell=(sys.platform == "win32"),
+    )
+    if r.returncode != 0:
+        sys.exit(
+            f"ERROR: kv_secret_set failed for {vault}/{name}: "
+            f"{(r.stderr or '').strip()[:1500]}"
+        )
+
+
 def ensure_runbook_webhook_and_push_to_consumer(
     rg: str, aa: str, runbook: str,
     webhook_block: dict,
@@ -1726,6 +1796,19 @@ def deploy_azure_automation_runbook(
         ensure_runbook_webhook_and_push_to_consumer(
             rg=rg, aa=aa, runbook=runbook,
             webhook_block=webhook_block, coll=coll, env=env,
+        )
+
+    # On-demand webhook for operator/CI use (LLD v23 §2.1(b)). Manifest
+    # declares webhook_name + KV vault + KV secret name; the deploy
+    # chain mints the webhook and writes the URL to KV. Operator reads
+    # the URL from KV to trigger the runbook.
+    webhook_kv = aa_block.get("webhook_to_kv")
+    if webhook_kv is not None:
+        ensure_runbook_webhook_stored_in_kv(
+            rg=rg, aa=aa, runbook=runbook,
+            webhook_name=webhook_kv["webhook_name"],
+            kv_vault=webhook_kv["kv_vault"],
+            kv_secret_name=webhook_kv["kv_secret_name"],
         )
 
     return f"{aa}/{runbook}"
