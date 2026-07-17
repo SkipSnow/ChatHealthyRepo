@@ -132,6 +132,12 @@ class RecordLoader:
         # the envelope schema would fail (each record lacks the envelope
         # top-level $schema/DeploymentTargetRecord fields).
         self._validate(data)
-        # Use DeploymentCollection.from_list so workbook-list expansion
-        # (runbooks[] on AA, jobs[] on ACA env) is applied consistently.
-        return DeploymentCollection.from_list(records)
+        # Use DeploymentCollection.from_list so package expansion is
+        # applied consistently.
+        coll = DeploymentCollection.from_list(records)
+        # Preserve the top-level IdentityCatalog + CustomRoleCatalog so
+        # the deploy chain can iterate identity/role facts from the
+        # manifest instead of from hardcoded scripts.
+        coll.identity_catalog = list(data.get("IdentityCatalog", []) or [])
+        coll.custom_role_catalog = list(data.get("CustomRoleCatalog", []) or [])
+        return coll

@@ -243,24 +243,11 @@ def ensure_pipeline_automation_identity(
             "--body", json.dumps(body), "-o", "none",
         ]
     )
-    # Key Vault Secrets User on the vault (covers intermediate key + certs).
-    vault_id = _az(
-        [
-            "keyvault", "show", "--name", vault_name,
-            "--query", "id", "-o", "tsv",
-        ]
-    ).stdout.strip()
-    _az(
-        [
-            "role", "assignment", "create",
-            "--assignee-object-id", mi_oid,
-            "--assignee-principal-type", "ServicePrincipal",
-            "--role", "Key Vault Secrets User",
-            "--scope", vault_id,
-        ],
-        check=False,
-    )
-    step(f"AA {aa_name} identity={mi_name} oid={mi_oid} KV Secrets User granted")
+    # Role assignments are applied at end of deploy by
+    # apply_identity_role_grants_from_manifest in _deploy_chain.py, which
+    # walks IdentityCatalog × target.allowed_roles intersection from the
+    # manifest. No role names appear in this function anymore.
+    step(f"AA {aa_name} identity={mi_name} attached (role grants applied post-deploy)")
     # AA Python sandboxes need AZURE_CLIENT_ID for user-assigned IMDS.
     client_id = mi.get("clientId") or ""
     if client_id:
