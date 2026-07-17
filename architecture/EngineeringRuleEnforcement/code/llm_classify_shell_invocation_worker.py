@@ -1,0 +1,611 @@
+# Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
+# Licensed under the FindCare Evaluation License (FEL-1.0).
+"""Rule-006 enforcement worker — LLM-based classification of shell tool calls.
+
+Wired to Claude Code's PreToolUse hook (Bash or PowerShell tool). On every
+invocation:
+
+  1. Extract the tool_input.command.
+  2. Regex-scan the command text for referenced script file paths
+     (Python .py, PowerShell .ps1, shell .sh). Read those files; fail-closed
+     if referenced but missing/unreadable/too large.
+  3. Compute a cache key from (command text + resolved file contents).
+     If the cache holds a verdict, use it — no LLM call.
+  4. Otherwise submit the payload to Gemini 2.0 Flash for classification with
+     exponential backoff on 429/5xx.
+  5. Act:
+        allow       → exit 0 silently, tool call proceeds; cache the verdict.
+        gate_approve → prompt operator APPROVE (inline TTY or browser); on
+                      approve pass through, on reject/timeout deny + browser
+                      notification. Cache the verdict either way.
+        block_hard  → deny + browser notification, no override. Cache the
+                      verdict.
+
+  6. Fail-closed on any of: LLM error/timeout after retries, referenced code
+     file missing/unreadable/too large, or the LLM itself returns block_hard
+     (which per its prompt covers dynamic-code patterns and compiled binaries
+     without inspectable source).
+
+Wiring: direct entry in .claude/settings.json under PreToolUse (Rule-064
+pattern). Not routed through chathealthy_enforcement_manager because
+PreToolUse needs a specific deny-JSON stdout format the manager does not
+preserve.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import secrets
+import socket
+import socketserver
+import sys
+import tempfile
+import threading
+import time
+import urllib.error
+import urllib.request
+import webbrowser
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Constants
+# ─────────────────────────────────────────────────────────────────────────────
+_MODEL = "gemini-2.5-flash-lite"
+_GEMINI_ENDPOINT = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    f"{_MODEL}:generateContent"
+)
+_LLM_TIMEOUT_S = 75
+_LLM_RETRIES = 3
+_LLM_BACKOFF_INITIAL_S = 1.5
+_APPROVE_TIMEOUT_S = 600
+_MAX_FILE_BYTES = 400_000
+_MAX_TOTAL_BYTES = 1_500_000
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_ENV_FILE = _PROJECT_ROOT / "Code" / ".env"
+_AUDIT_DIR = (
+    _PROJECT_ROOT
+    / "architecture"
+    / "EngineeringRuleEnforcement"
+    / "ArchitectureDesignAndAuditDocs"
+)
+_AUDIT_LOG_PATH = _AUDIT_DIR / "llm_classify_shell_invocation.log"
+_CACHE_PATH = _AUDIT_DIR / "llm_classify_shell_invocation.cache.json"
+
+_SHELL_TOOLS = {"Bash", "PowerShell"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# .env loader — no external deps
+# ─────────────────────────────────────────────────────────────────────────────
+def _load_env_var(name: str) -> str | None:
+    if not _ENV_FILE.exists():
+        return None
+    try:
+        for line in _ENV_FILE.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            if k.strip() == name:
+                v = v.strip()
+                if len(v) >= 2 and v[0] == v[-1] and v[0] in ('"', "'"):
+                    v = v[1:-1]
+                return v
+    except OSError:
+        return None
+    return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Referenced-file resolution — regex-only, no shell parsing
+# ─────────────────────────────────────────────────────────────────────────────
+_SCRIPT_PATH_RE = re.compile(
+    r"(?<![A-Za-z0-9_./\\-])"           # not preceded by a filename-continuing char
+    r"([A-Za-z]:[/\\][A-Za-z0-9_./\\-]+\.(?:py|sh|ps1|bash))"  # windows abs path
+    r"|"
+    r"(?<![A-Za-z0-9_./\\-])"
+    r"((?:\./)?[A-Za-z0-9_./\\-]+\.(?:py|sh|ps1|bash))"        # relative / bare
+)
+
+
+def _resolve_referenced_files(command: str) -> tuple[list[dict], list[str]]:
+    """Return (resolved_files, resolution_errors).
+
+    Scans the command text with a plain regex for script-file references and
+    tries to read each. Fail-closed reasons: file present in the command but
+    missing on disk, unreadable, or larger than the payload cap.
+
+    NOTE: This does NOT try to parse the shell command structure at all —
+    the LLM sees the full command text and can judge intent from the surface.
+    """
+    resolved: list[dict] = []
+    seen: set[str] = set()
+    errors: list[str] = []
+    total_bytes = 0
+
+    for m in _SCRIPT_PATH_RE.finditer(command):
+        rel = m.group(1) or m.group(2)
+        if not rel:
+            continue
+        # Drop obvious noise (e.g., ".py" alone or paths that look like shell
+        # switches). Require the token to include at least one path/name char.
+        if rel.startswith("-"):
+            continue
+        norm = rel.replace("\\", "/")
+        if norm in seen:
+            continue
+        seen.add(norm)
+
+        abs_path = Path(rel)
+        if not abs_path.is_absolute():
+            abs_path = (_PROJECT_ROOT / rel).resolve()
+
+        if not abs_path.exists():
+            # Only fail-closed when it looks like a real invocation path.
+            # `python -m foo.bar` embedded in a heredoc string would not
+            # match our regex, so most noise is already filtered.
+            errors.append(f"referenced script missing on disk: {rel}")
+            continue
+        try:
+            size = abs_path.stat().st_size
+        except OSError as exc:
+            errors.append(f"referenced script unreadable: {rel} ({exc})")
+            continue
+        if size > _MAX_FILE_BYTES:
+            errors.append(f"referenced script too large ({size} bytes): {rel}")
+            continue
+        if total_bytes + size > _MAX_TOTAL_BYTES:
+            errors.append(f"total payload cap exceeded at {rel}")
+            continue
+        try:
+            content = abs_path.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            errors.append(f"referenced script unreadable: {rel} ({exc})")
+            continue
+        sha = hashlib.sha256(content.encode("utf-8", errors="replace")).hexdigest()[:16]
+        resolved.append({"path": str(abs_path), "content": content, "sha256": sha})
+        total_bytes += size
+
+    return resolved, errors
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cache
+# ─────────────────────────────────────────────────────────────────────────────
+def _payload_hash(command: str, resolved: list[dict]) -> str:
+    h = hashlib.sha256()
+    h.update(command.encode("utf-8", errors="replace"))
+    for f in resolved:
+        h.update(b"\x1e")
+        h.update(f["path"].encode("utf-8", errors="replace"))
+        h.update(b"\x1f")
+        h.update(f["sha256"].encode("utf-8"))
+    return h.hexdigest()
+
+
+def _cache_load() -> dict:
+    try:
+        return json.loads(_CACHE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _cache_get(key: str) -> tuple[str, str] | None:
+    d = _cache_load()
+    hit = d.get(key)
+    if not hit:
+        return None
+    return hit.get("classification"), hit.get("reason")
+
+
+def _cache_put(key: str, classification: str, reason: str) -> None:
+    try:
+        d = _cache_load()
+        d[key] = {
+            "classification": classification,
+            "reason": reason,
+            "ts": datetime.now(timezone.utc).isoformat(),
+        }
+        _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _CACHE_PATH.write_text(json.dumps(d, indent=2), encoding="utf-8")
+    except OSError:
+        pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LLM call — Gemini 2.0 Flash via generativelanguage.googleapis.com
+# ─────────────────────────────────────────────────────────────────────────────
+_SYSTEM_PROMPT = """You are a security classifier for shell tool invocations.
+Classify each shell command + any referenced code into exactly one of:
+
+  allow       — read-only inspection (list/show/get/describe/query/view/status/
+                info/login/logout/version/help), or an invocation of
+                `build_chathealthy.py` (build produces only local artifacts).
+  gate_approve — an invocation of `deploy_chathealthy.py` or
+                `promote_chathealthy.py` (state change; needs operator approval).
+  block_hard  — any direct state mutation on Azure/Cloudflare/MongoDB Atlas/GitHub
+                that bypasses the deploy chain (raw `az create/delete/set/update/
+                deploy/...`, `wrangler deploy`, `atlas cluster create`,
+                `docker push`, `gh pr create/merge`, etc.), OR any dynamic-code
+                pattern (exec/eval/compile/download-and-run/write-file-then-run),
+                OR any indirect path that would effect a state mutation, OR
+                invocation of a compiled binary whose source is not readable.
+
+If you are UNCERTAIN in any way, return `block_hard`. Fail closed.
+
+Return strict JSON only, no prose:
+  {"classification": "allow|gate_approve|block_hard", "reason": "<one sentence>"}
+"""
+
+
+def _classify_via_llm(api_key: str, payload_text: str) -> tuple[str, str, str | None]:
+    """Return (classification, reason, error) — error is None on success.
+
+    Retries on transient 429/5xx with exponential backoff up to _LLM_RETRIES.
+    """
+    # Flat prompt shape — matches find_care_smoke_test.py's proven Gemini call.
+    combined = _SYSTEM_PROMPT + "\n\n---\n\n" + payload_text
+    body = {
+        "contents": [{"parts": [{"text": combined}]}],
+        "generationConfig": {
+            "temperature": 0,
+            "responseMimeType": "application/json",
+        },
+    }
+    url = f"{_GEMINI_ENDPOINT}?key={api_key}"
+    delay = _LLM_BACKOFF_INITIAL_S
+    last_err: str | None = None
+    for attempt in range(1, _LLM_RETRIES + 1):
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=_LLM_TIMEOUT_S) as resp:
+                raw = resp.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as exc:
+            last_err = f"HTTP {exc.code} {exc.reason}"
+            if exc.code in (429, 500, 502, 503, 504) and attempt < _LLM_RETRIES:
+                time.sleep(delay)
+                delay *= 2
+                continue
+            return "block_hard", "LLM HTTP error", last_err
+        except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
+            last_err = f"network: {exc}"
+            if attempt < _LLM_RETRIES:
+                time.sleep(delay)
+                delay *= 2
+                continue
+            return "block_hard", "LLM network error", last_err
+        except Exception as exc:  # noqa: BLE001
+            return "block_hard", "LLM unexpected error", str(exc)
+
+        try:
+            wrapper = json.loads(raw)
+            text = wrapper["candidates"][0]["content"]["parts"][0]["text"]
+            parsed = json.loads(text)
+            cls = parsed.get("classification", "")
+            rsn = parsed.get("reason", "")
+        except (KeyError, IndexError, ValueError, TypeError) as exc:
+            return "block_hard", "LLM response unparsable", f"{exc} :: {raw[:400]}"
+
+        if cls not in ("allow", "gate_approve", "block_hard"):
+            return "block_hard", "LLM returned unknown classification", str(cls)
+        return cls, rsn or "no reason given", None
+
+    return "block_hard", "LLM retries exhausted", last_err
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Browser notification (fire-and-forget)
+# ─────────────────────────────────────────────────────────────────────────────
+def _notify_browser(tool_name: str, command: str, code_fingerprints: list[str], reason: str, verdict: str) -> None:
+    html = (
+        "<!doctype html><html><head><meta charset=utf-8>"
+        f"<title>Rule-006 {verdict.upper()}</title>"
+        "<style>body{font-family:system-ui,sans-serif;padding:40px;"
+        "background:#7f1d1d;color:#fff;max-width:900px;margin:auto}"
+        "h1{font-size:24px}pre{background:#00000044;padding:16px;"
+        "border-radius:6px;white-space:pre-wrap;overflow-x:auto}"
+        ".hash{font-family:monospace;color:#fca5a5}</style></head>"
+        "<body>"
+        f"<h1>Rule-006 {verdict.upper()}</h1>"
+        f"<p><b>Tool:</b> {tool_name}</p>"
+        f"<p><b>Timestamp:</b> {datetime.now(timezone.utc).isoformat()}</p>"
+        f"<p><b>Reason:</b> {reason}</p>"
+        f"<p><b>Code fingerprints:</b> "
+        + (", ".join(f'<span class="hash">{h}</span>' for h in code_fingerprints) or "none")
+        + "</p>"
+        "<h2>Blocked command</h2>"
+        f"<pre>{command.replace('<', '&lt;').replace('>', '&gt;')}</pre>"
+        "</body></html>"
+    )
+    try:
+        fd, path = tempfile.mkstemp(suffix="_rule006.html")
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(html)
+        webbrowser.open_new_tab(f"file:///{path.replace(os.sep, '/')}")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# APPROVE prompt for gate_approve — inline TTY or browser page
+# ─────────────────────────────────────────────────────────────────────────────
+_AGENT_MARKERS = ("CLAUDECODE", "CLAUDE_AGENT_SDK_VERSION", "CLAUDE_CODE_ENTRYPOINT")
+
+
+def _is_real_interactive_shell() -> bool:
+    for marker in _AGENT_MARKERS:
+        if os.environ.get(marker):
+            return False
+    return sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty()
+
+
+def _prompt_approve_inline(command: str, reason: str) -> bool:
+    sys.stderr.write(f"\nRule-006 gate_approve: {reason}\nCommand: {command}\nApprove? (type APPROVE) ")
+    sys.stderr.flush()
+    try:
+        reply = sys.stdin.readline()
+    except (KeyboardInterrupt, EOFError):
+        return False
+    return reply.strip() == "APPROVE"
+
+
+def _prompt_approve_browser(tool_name: str, command: str, reason: str, code_fingerprints: list[str]) -> bool:
+    try:
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+    except Exception:  # noqa: BLE001
+        return False
+
+    verdict: dict[str, str | None] = {"value": None}
+    token = secrets.token_urlsafe(8)
+    esc_cmd = command.replace("<", "&lt;").replace(">", "&gt;")
+    page = (
+        "<!doctype html><html><head><meta charset=utf-8>"
+        "<title>Rule-006 gate_approve</title>"
+        "<style>body{font-family:system-ui,sans-serif;padding:40px;"
+        "background:#78350f;color:#fff;max-width:900px;margin:auto}"
+        "h1{font-size:24px}pre{background:#00000044;padding:16px;"
+        "border-radius:6px;white-space:pre-wrap;overflow-x:auto}"
+        "button{font-size:18px;padding:14px 32px;margin:8px;border:none;"
+        "border-radius:6px;cursor:pointer;font-weight:600}"
+        ".approve{background:#0b9a94;color:#fff}"
+        ".reject{background:#dc2626;color:#fff}</style></head>"
+        "<body>"
+        f"<h1>Approve {tool_name} invocation?</h1>"
+        f"<p><b>Reason (from classifier):</b> {reason}</p>"
+        f"<p><b>Code fingerprints:</b> "
+        + (", ".join(f"<code>{h}</code>" for h in code_fingerprints) or "none")
+        + "</p>"
+        f"<pre>{esc_cmd}</pre>"
+        f"<form id=f method=POST action=/decide>"
+        f"<button class=approve name=verdict value=approve type=submit>APPROVE</button>"
+        f"<button class=reject name=verdict value=reject type=submit>REJECT</button>"
+        f"<input type=hidden name=token value=\"{token}\"></form>"
+        "<script>document.getElementById('f').addEventListener('submit',async function(e){"
+        "e.preventDefault();var fd=new FormData(e.target);"
+        "if(e.submitter&&e.submitter.name)fd.set(e.submitter.name,e.submitter.value);"
+        "try{var r=await fetch('/decide',{method:'POST',body:new URLSearchParams(fd)});"
+        "if(r.ok){window.close();document.body.innerHTML='<h1>Recorded.</h1>';}"
+        "else{document.body.innerHTML='<h1>Error '+r.status+'</h1>';}}"
+        "catch(err){document.body.innerHTML='<h1>Network error</h1>';}"
+        "});</script></body></html>"
+    )
+    ack = "<!doctype html><h1 style=\"font-family:system-ui;padding:40px\">Recorded.</h1>"
+
+    class _Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args, **kwargs):
+            return
+        def _send(self, code, body):
+            data = body.encode("utf-8")
+            self.send_response(code)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
+        def do_GET(self):  # noqa: N802
+            if urlparse(self.path).path in ("/", "/prompt"):
+                self._send(200, page)
+            else:
+                self._send(404, "<h1>404</h1>")
+        def do_POST(self):  # noqa: N802
+            if urlparse(self.path).path != "/decide":
+                self._send(404, "<h1>404</h1>")
+                return
+            length = int(self.headers.get("Content-Length", "0") or "0")
+            raw = self.rfile.read(length).decode("utf-8", errors="replace") if length > 0 else ""
+            fields = parse_qs(raw)
+            if fields.get("token", [""])[0] != token:
+                self._send(400, "<h1>Bad token</h1>")
+                return
+            v = fields.get("verdict", [""])[0]
+            if v in ("approve", "reject"):
+                verdict["value"] = v
+                self._send(200, ack)
+            else:
+                self._send(400, "<h1>Bad verdict</h1>")
+
+    try:
+        server = socketserver.TCPServer(("127.0.0.1", port), _Handler, bind_and_activate=True)
+    except Exception:  # noqa: BLE001
+        return False
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        webbrowser.open_new(f"http://127.0.0.1:{port}/prompt")
+    except Exception:  # noqa: BLE001
+        pass
+    sys.stderr.write(f"\nRule-006 approval requested at: http://127.0.0.1:{port}/prompt\n")
+    sys.stderr.flush()
+    deadline = time.time() + _APPROVE_TIMEOUT_S
+    try:
+        while time.time() < deadline:
+            if verdict["value"] is not None:
+                break
+            time.sleep(0.25)
+    finally:
+        try:
+            server.shutdown()
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            server.server_close()
+        except Exception:  # noqa: BLE001
+            pass
+    return verdict["value"] == "approve"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Audit log
+# ─────────────────────────────────────────────────────────────────────────────
+def _audit(entry: dict) -> None:
+    try:
+        _AUDIT_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with _AUDIT_LOG_PATH.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Emit PreToolUse deny JSON
+# ─────────────────────────────────────────────────────────────────────────────
+def _emit_deny(reason: str) -> None:
+    response = {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": reason,
+        },
+        "systemMessage": f"Rule-006 blocked: {reason}",
+    }
+    print(json.dumps(response))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# main
+# ─────────────────────────────────────────────────────────────────────────────
+def main() -> int:
+    try:
+        payload = json.load(sys.stdin)
+    except Exception as exc:  # noqa: BLE001
+        print(f"llm_classify_shell_invocation_worker: stdin parse error: {exc}", file=sys.stderr)
+        return 0
+
+    tool_name = payload.get("tool_name", "")
+    if tool_name not in _SHELL_TOOLS:
+        return 0
+
+    command = (payload.get("tool_input", {}) or {}).get("command", "") or ""
+    if not command.strip():
+        return 0
+
+    api_key = _load_env_var("GEMINI_API_KEY") or _load_env_var("GOOGLE_API_KEY")
+    if not api_key:
+        reason = "Rule-006 misconfigured: GEMINI_API_KEY not found in Code/.env"
+        _audit({"ts": datetime.now(timezone.utc).isoformat(), "tool": tool_name,
+                "command": command, "verdict": "block_hard", "reason": reason})
+        _notify_browser(tool_name, command, [], reason, "block_hard")
+        _emit_deny(reason)
+        return 0
+
+    resolved, errors = _resolve_referenced_files(command)
+    if errors:
+        reason = "fail-closed on resolution: " + "; ".join(errors[:3])
+        _audit({"ts": datetime.now(timezone.utc).isoformat(), "tool": tool_name,
+                "command": command, "verdict": "block_hard", "reason": reason,
+                "resolution_errors": errors})
+        _notify_browser(tool_name, command, [f["sha256"] for f in resolved], reason, "block_hard")
+        _emit_deny(reason)
+        return 0
+
+    code_hashes = [f["sha256"] for f in resolved]
+    cache_key = _payload_hash(command, resolved)
+    cached = _cache_get(cache_key)
+    if cached:
+        classification, reason = cached
+        audit_entry = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "tool": tool_name, "command": command,
+            "verdict": classification, "reason": reason,
+            "cache": "hit", "code_fingerprints": code_hashes,
+        }
+        if classification == "allow":
+            _audit(audit_entry)
+            return 0
+        if classification == "gate_approve":
+            approved = (
+                _prompt_approve_inline(command, reason)
+                if _is_real_interactive_shell()
+                else _prompt_approve_browser(tool_name, command, reason, code_hashes)
+            )
+            audit_entry["approve_verdict"] = "approve" if approved else "reject"
+            _audit(audit_entry)
+            if approved:
+                return 0
+            deny_reason = f"gate_approve denied: {reason}"
+            _notify_browser(tool_name, command, code_hashes, deny_reason, "gate_approve REJECTED")
+            _emit_deny(deny_reason)
+            return 0
+        _audit(audit_entry)
+        _notify_browser(tool_name, command, code_hashes, reason, "block_hard")
+        _emit_deny(reason)
+        return 0
+
+    parts: list[str] = [f"TOOL: {tool_name}", f"COMMAND:\n{command}"]
+    for f in resolved:
+        parts.append(f"\n--- FILE {f['path']} (sha256:{f['sha256']}) ---\n{f['content']}")
+    payload_text = "\n".join(parts)
+
+    classification, reason, err = _classify_via_llm(api_key, payload_text)
+    audit_entry = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "tool": tool_name, "command": command,
+        "verdict": classification, "reason": reason, "llm_error": err,
+        "cache": "miss", "code_fingerprints": code_hashes,
+    }
+    _cache_put(cache_key, classification, reason)
+
+    if classification == "allow":
+        _audit(audit_entry)
+        return 0
+
+    if classification == "gate_approve":
+        approved = (
+            _prompt_approve_inline(command, reason)
+            if _is_real_interactive_shell()
+            else _prompt_approve_browser(tool_name, command, reason, code_hashes)
+        )
+        audit_entry["approve_verdict"] = "approve" if approved else "reject"
+        _audit(audit_entry)
+        if approved:
+            return 0
+        deny_reason = f"gate_approve denied: {reason}"
+        _notify_browser(tool_name, command, code_hashes, deny_reason, "gate_approve REJECTED")
+        _emit_deny(deny_reason)
+        return 0
+
+    _audit(audit_entry)
+    _notify_browser(tool_name, command, code_hashes, reason, "block_hard")
+    _emit_deny(reason)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

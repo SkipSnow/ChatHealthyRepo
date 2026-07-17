@@ -287,6 +287,98 @@
         }
       },
       {
+        "id": "Rule-006",
+        "name": "Block ad-hoc state-mutating actions from Claude Bash or PowerShell via LLM code inspection",
+        "description": "PreToolUse gate covering every path a Claude Bash or PowerShell tool call could mutate an environment. On every Bash or PowerShell invocation, the worker resolves the shell command AND every referenced script file it can find (Python scripts, PowerShell scripts, shell scripts) via regex over the command text, and submits the combined artifact to Gemini 2.5 Flash Lite for classification. Classifications: block_hard (direct state mutation on Azure/Cloudflare/Atlas/GitHub -- dispatch OUTSIDE the deploy chain, or dynamic-code pattern, or compiled-binary invocation without readable source), gate_approve (deploy_chathealthy.py or promote_chathealthy.py invocation -- requires operator APPROVE echo), or allow (read-only, or build_chathealthy.py, or unrelated). Any LLM error/timeout after retries, or a referenced script file missing/unreadable/too large, results in block_hard (fail-closed). Verdicts are cached by payload-hash so identical commands do not re-hit the LLM. Every deny opens a passive browser notification on the operator's workstation naming the tool, the command, the code fingerprint, and the classification reason so the block cannot be silently absorbed.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "PreToolUse MUST classify every Bash or PowerShell tool_input.command by submitting the command AND every script file it references (Python .py, PowerShell .ps1, shell .sh) resolved via regex over the command text, to Gemini 2.5 Flash Lite. Classifier output MUST be one of block_hard, gate_approve, or allow. Verdicts MUST be cached by payload-hash so identical commands do not re-hit the LLM.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "On block_hard classification, PreToolUse MUST deny the tool call with a Rule-064-style deny JSON. On gate_approve classification, PreToolUse MUST prompt operator APPROVE echo (inline in a real TTY, otherwise via a local browser page opened by the worker); on approve, pass through; on reject/timeout, deny. On allow classification, exit 0 silently.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "PreToolUse MUST classify as block_hard (fail-closed) any case where classification would be uncertain: LLM API error or timeout after retries (429/5xx retried with exponential backoff), or a referenced script file missing/unreadable/too large. Dynamic-code-generation patterns (exec, eval, compile, downloading and running remote code, writing a file then invoking it) and compiled-binary invocations without readable source MUST be identified by the classifier itself under the block_hard verdict.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "build_chathealthy.py invocations MUST NOT be gated; when the classifier sees a Bash or PowerShell command whose surface invokes build_chathealthy.py and no other executed code files, classification MUST be allow.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 5,
+              "statement_body": "On every deny (block_hard outcome or rejected gate_approve), the worker MUST open a passive browser notification on the operator's workstation showing tool_name, exact command, code fingerprint of referenced files, and the classification reason. The browser popup is fire-and-forget -- the worker MUST NOT wait for operator acknowledgment before returning the deny response.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 6,
+              "statement_body": "The classifier MUST use Google model gemini-2.5-flash-lite via the generativelanguage.googleapis.com endpoint; per-attempt timeout MUST be 75 seconds wall clock; up to 3 attempts on 429/5xx with exponential backoff (initial 1.5s, doubling); API key MUST be loaded from Code/.env (GEMINI_API_KEY, falling back to GOOGLE_API_KEY); on any key-load failure or full retry exhaustion, statement 3 applies (fail-closed).",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-006-ENF-001",
+              "hook": "PreToolUse",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/llm_classify_shell_invocation_worker.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 90
+            }
+          ]
+        }
+      },
+      {
+        "id": "Rule-007",
+        "name": "Identity/RBAC manifest git-delta requires operator APPROVE echo",
+        "description": "Pre-commit gate. Diffs the staged version of brain/machine_artifacts/content/deployment_architecture.json against HEAD; if IdentityCatalog, CustomRoleCatalog, or any DeploymentTargetRecord.allowed_roles[] changed, requires operator to echo APPROVE (inline in a real TTY, otherwise via a local browser page opened by the worker). Follows the Rule-065 CommitAuthorizationWorker pattern.",
+        "rule_statements": {
+          "rule_statement": [
+            {
+              "statement_number": 1,
+              "statement_body": "A pre-commit gate MUST block any commit whose staged deployment_architecture.json shows IdentityCatalog additions, removals, or per-item modifications relative to HEAD without explicit operator APPROVE echo.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 2,
+              "statement_body": "A pre-commit gate MUST block any commit whose staged deployment_architecture.json shows CustomRoleCatalog additions, removals, or per-item modifications relative to HEAD without explicit operator APPROVE echo.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 3,
+              "statement_body": "A pre-commit gate MUST block any commit whose staged deployment_architecture.json shows a change to any DeploymentTargetRecord.allowed_roles[] relative to HEAD without explicit operator APPROVE echo.",
+              "req_id": "Orphan"
+            },
+            {
+              "statement_number": 4,
+              "statement_body": "When the manifest file is not part of the commit, or none of the surfaces above changed, the gate MUST exit 0 silently.",
+              "req_id": "Orphan"
+            }
+          ]
+        },
+        "enforcements": {
+          "enforcement": [
+            {
+              "enforcement_id": "Rule-007-ENF-001",
+              "hook": "pre-commit",
+              "executable_path": "architecture/EngineeringRuleEnforcement/code/identity_approval_worker.py",
+              "requires_lock": false,
+              "scopes": [],
+              "timeout": 900
+            }
+          ]
+        }
+      },
+      {
         "id": "Rule-008",
         "name": "All files added to the local Git repository must be scanned for architectural compliance.",
         "description": "All JSONs, code and configuration files must be scanned for compliance. Current scope is to ensure that only permissible references to HTTP can be in our code base and other artifacts, and that all JSONs be validated by standard Python schema mechanisms.",
