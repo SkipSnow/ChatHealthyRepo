@@ -54,7 +54,7 @@
           "rule_statement": [
             {
               "statement_number": 1,
-              "statement_body": "On SessionStart and PostCompact, the boot MUST read the 170 most recent utterance documents from MongoDB ClaudeCodeLog.conversation_log_archive, trim each document to {actor, content}, order newest-to-oldest, and emit them as part of the hook's additionalContext so Claude resumes with recent conversation context. If the MongoDB read fails, the boot MUST fail open — log the failure and continue with remaining duties.",
+              "statement_body": "On SessionStart and PostCompact, the boot MUST read the 170 most recent utterance documents from MongoDB ClaudeCodeLog.conversation_log_archive, trim each document to {actor, content}, order newest-to-oldest, and emit them as part of the hook's additionalContext so Claude resumes with recent conversation context. If the MongoDB read fails, the boot MUST fail open \u2014 log the failure and continue with remaining duties.",
               "req_id": "EPIC-008-F-002-S-007-REQ-T-002"
             },
             {
@@ -217,7 +217,7 @@
       {
         "id": "Rule-005",
         "name": "Uniform logging discipline",
-        "description": "Realizes EPIC-008-F-002-S-011 REQs B-002, B-007 (typed exc), and B-010. Four independent AST checks: (a) outside the canonical surface, logging.basicConfig/getLogger and print() are forbidden; (b) the exc= argument passed to any ChatHealthyLoggingService log method MUST be a ChatHealthyException; (c) any function whose body raises a ChatHealthyException MUST NOT call any ChatHealthyLoggingService log method in the same function body; (d) outside the canonical surface, the stdlib `logging` module MUST NOT be imported in any form (`import logging`, `import logging as <alias>`, or `from logging import …`). HEAD-delta carve-out per Rule-003 pattern: only commits that increase violation count vs HEAD fail.",
+        "description": "Realizes EPIC-008-F-002-S-011 REQs B-002, B-007 (typed exc), and B-010. Four independent AST checks: (a) outside the canonical surface, logging.basicConfig/getLogger and print() are forbidden; (b) the exc= argument passed to any ChatHealthyLoggingService log method MUST be a ChatHealthyException; (c) any function whose body raises a ChatHealthyException MUST NOT call any ChatHealthyLoggingService log method in the same function body; (d) outside the canonical surface, the stdlib `logging` module MUST NOT be imported in any form (`import logging`, `import logging as <alias>`, or `from logging import \u2026`). HEAD-delta carve-out per Rule-003 pattern: only commits that increase violation count vs HEAD fail.",
         "rule_statements": {
           "rule_statement": [
             {
@@ -237,7 +237,7 @@
             },
             {
               "statement_number": 4,
-              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW import of the stdlib `logging` module outside FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py. Forbidden forms: `import logging`, `import logging as <alias>`, and `from logging import …`. Scope and exclusions match statement 1.",
+              "statement_body": "A pre-commit gate MUST scan staged Python files via AST and reject any commit that introduces a NEW import of the stdlib `logging` module outside FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py. Forbidden forms: `import logging`, `import logging as <alias>`, and `from logging import \u2026`. Scope and exclusions match statement 1.",
               "req_id": "EPIC-008-F-002-S-011-REQ-B-002"
             }
           ]
@@ -331,7 +331,15 @@
               "hook": "PreToolUse",
               "executable_path": "architecture/EngineeringRuleEnforcement/code/llm_classify_shell_invocation_worker.py",
               "requires_lock": false,
-              "scopes": [],
+              "scopes": [
+                [
+                  "_git_state_ok_for_deploy",
+                  "excluded_exact",
+                  [
+                    "Code/.env"
+                  ]
+                ]
+              ],
               "timeout": 90
             }
           ]
@@ -621,7 +629,7 @@
       {
         "id": "Rule-066",
         "name": "Build/deploy/promote entry-point uniqueness",
-        "description": "Enforces the unified contract from build_deploy_promote_plan v3: the repository has exactly three operator-facing or CI-facing Python entry points for the build/deploy/promote chain — build_chathealthy.py, deploy_chathealthy.py, and promote_chathealthy.py. The legacy four-script set (local_build, local_deploy, remote_build, remote_deploy) and the never-existed local_publish are forbidden. All other Python files at the top level of architecture/DevOpsBuildDeployAndEnvironmentManagement/ are imported-only helpers and must NOT carry an `if __name__ == \"__main__\":` block. The pre-commit hook scans every staged path under that directory and rejects on any forbidden name or any disallowed entry-point block.",
+        "description": "Enforces the unified contract from build_deploy_promote_plan v3: the repository has exactly three operator-facing or CI-facing Python entry points for the build/deploy/promote chain \u2014 build_chathealthy.py, deploy_chathealthy.py, and promote_chathealthy.py. The legacy four-script set (local_build, local_deploy, remote_build, remote_deploy) and the never-existed local_publish are forbidden. All other Python files at the top level of architecture/DevOpsBuildDeployAndEnvironmentManagement/ are imported-only helpers and must NOT carry an `if __name__ == \"__main__\":` block. The pre-commit hook scans every staged path under that directory and rejects on any forbidden name or any disallowed entry-point block.",
         "rule_statements": {
           "rule_statement": [
             {
@@ -647,7 +655,7 @@
       {
         "id": "Rule-065",
         "name": "No commit or deploy without explicit human authorization",
-        "description": "Every `git commit` and every deploy invocation MUST be explicitly authorized by the human operator at the moment it fires. A commit represents a human-vetted release candidate ready for distribution; the `git push` that immediately follows is the network operation completing the commit and is implicit in the commit's authorization — no separate authorization is required to push a freshly authorized commit. Interactive terminals satisfy this with an exact-match APPROVE token typed at a prompt that names the action and its affected artifacts; non-interactive contexts (CI runners, IDE integrations, headless shells) satisfy it with paired environment variables that name who authorized the action. The rule is enforced inside ChatHealthy's engineering-rules manager so it runs before any Anthropic / Claude Code hook for code-control integration ever sees the action.",
+        "description": "Every `git commit` and every deploy invocation MUST be explicitly authorized by the human operator at the moment it fires. A commit represents a human-vetted release candidate ready for distribution; the `git push` that immediately follows is the network operation completing the commit and is implicit in the commit's authorization \u2014 no separate authorization is required to push a freshly authorized commit. Interactive terminals satisfy this with an exact-match APPROVE token typed at a prompt that names the action and its affected artifacts; non-interactive contexts (CI runners, IDE integrations, headless shells) satisfy it with paired environment variables that name who authorized the action. The rule is enforced inside ChatHealthy's engineering-rules manager so it runs before any Anthropic / Claude Code hook for code-control integration ever sees the action.",
         "rule_statements": {
           "rule_statement": [
             {

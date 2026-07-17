@@ -7203,7 +7203,17 @@
             "vault_name": "kv-chpipeline-dev",
             "resource_group": "rg-chathealthy-pipeline-dev",
             "firewall_default_action": "Allow"
-          }
+          },
+          "packages": [
+            {
+              "package_id": "environmentFacts",
+              "kind": "secret_from_file",
+              "config": {
+                "secret_name": "env-file",
+                "source_file": "Code/.env"
+              }
+            }
+          ]
         }
       ],
       "files": [],

@@ -51,6 +51,11 @@ class EnvironmentBinding:
     # in its own right.
     runbooks: list | None = None
     jobs: list | None = None
+    # Generic packages[] passthrough — carried on the loaded binding so
+    # non-runbook/non-job package kinds (e.g. secret_from_file under a KV
+    # target) are visible to their host's deploy handler. Not synthesized
+    # into per-package targets; the host handler iterates and dispatches.
+    packages: list | None = None
 
     def to_dict(self) -> dict:
         out: dict = {"env_binding": self.env_binding, "node_address": self.node_address}
@@ -73,6 +78,7 @@ class EnvironmentBinding:
             "atlas",
             "runbooks",
             "jobs",
+            "packages",
         ):
             val = getattr(self, key)
             if val is not None:
@@ -102,6 +108,7 @@ class EnvironmentBinding:
             atlas=d.get("atlas"),
             runbooks=d.get("runbooks"),
             jobs=d.get("jobs"),
+            packages=d.get("packages"),
         )
 
 
