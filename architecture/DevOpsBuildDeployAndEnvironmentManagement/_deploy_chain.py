@@ -1548,14 +1548,16 @@ def _resolve_target_azure_scope(target: TargetRecord, env: str) -> str:
                 f"/providers/Microsoft.Storage/storageAccounts/{name}"
             )
     if k == "azure_container_apps_environment":
+        # ACA Jobs (Microsoft.App/jobs) are RG-level resources, not
+        # children of the managed environment in ARM. Role assignments
+        # meant to cover jobs (e.g. Container Apps Jobs Operator) MUST
+        # be scoped at the resource group so they propagate to every
+        # job the env orchestrates. The RG name is a manifest field on
+        # the env target's env_binding sub-block — no hardcoding here.
         b = eb.azure_container_apps_environment or {}
         rg = b.get("resource_group", "")
-        name = b.get("environment_name", "")
-        if rg and name:
-            return (
-                f"/subscriptions/{sub}/resourceGroups/{rg}"
-                f"/providers/Microsoft.App/managedEnvironments/{name}"
-            )
+        if rg:
+            return f"/subscriptions/{sub}/resourceGroups/{rg}"
     if k == "azure_container_registry":
         b = eb.azure_container_registry or {}
         rg = b.get("resource_group", "")
