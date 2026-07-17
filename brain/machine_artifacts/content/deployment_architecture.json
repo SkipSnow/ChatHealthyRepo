@@ -7049,7 +7049,12 @@
                 ],
                 "python_packages": [],
                 "automation_variables": [],
-                "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/ProviderPipelineRunbook"
+                "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/ProviderPipelineRunbook",
+                "webhook_to_kv": {
+                  "webhook_name": "ProviderPipelineOnDemand",
+                  "kv_vault": "kv-chpipeline-dev",
+                  "kv_secret_name": "PROVIDER-PIPELINE-WEBHOOK-URL"
+                }
               }
             },
             {

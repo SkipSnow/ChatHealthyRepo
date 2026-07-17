@@ -337,6 +337,20 @@ def _synth_runbook_package(aa_record: dict, eb: dict, pkg: dict) -> dict:
     pkg_id = pkg.get("package_id", "")
     cfg = pkg.get("config") or {}
     runbook_name = cfg.get("runbook_name") or pkg_id
+    aa_block = {
+        "resource_group": rg,
+        "automation_account": aa_name,
+        "runbook_name": runbook_name,
+        "schedule_names": cfg.get("schedule_names", []),
+        "python_packages": cfg.get("python_packages", []),
+        "automation_variables": cfg.get("automation_variables", []),
+    }
+    # Optional per-package webhook configs — carried through to the
+    # deploy handler which owns the mint/reuse flow.
+    if cfg.get("webhook"):
+        aa_block["webhook"] = cfg["webhook"]
+    if cfg.get("webhook_to_kv"):
+        aa_block["webhook_to_kv"] = cfg["webhook_to_kv"]
     return {
         "target_id": f"target_azure_automation_runbook_{pkg_id}",
         "target_kind": "azure_automation_runbook",
@@ -345,14 +359,7 @@ def _synth_runbook_package(aa_record: dict, eb: dict, pkg: dict) -> dict:
             "env_binding": env,
             "node_address": cfg.get("node_address")
                 or f"{parent_node}/runbooks/{runbook_name}",
-            "azure_automation": {
-                "resource_group": rg,
-                "automation_account": aa_name,
-                "runbook_name": runbook_name,
-                "schedule_names": cfg.get("schedule_names", []),
-                "python_packages": cfg.get("python_packages", []),
-                "automation_variables": cfg.get("automation_variables", []),
-            },
+            "azure_automation": aa_block,
         }],
         "files": pkg.get("files", []),
         "secrets": pkg.get("secrets", {}),

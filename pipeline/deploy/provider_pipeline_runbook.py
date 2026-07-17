@@ -67,20 +67,50 @@ _HOSTNAME = socket.gethostname()
 # ============================================================================
 # Managed-identity token acquisition
 # ============================================================================
-def _get_token(resource: str) -> str:
+def _load_user_mi_client_id() -> str:
+    """Fetch the user-assigned MI's client_id from Automation Variable
+    AZURE_CLIENT_ID (populated by the deploy chain during AA identity
+    attach). Falls back to os.environ for non-Automation contexts.
+    Empty string if neither is available (system-MI attempt will then
+    fail with a clear Azure error)."""
+    try:
+        import automationassets  # only present in Automation sandbox
+        val = automationassets.get_automation_variable("AZURE_CLIENT_ID")
+        if val:
+            return str(val).strip()
+    except Exception:
+        pass
+    return os.environ.get("AZURE_CLIENT_ID", "").strip()
+
+
+AZURE_CLIENT_ID = _load_user_mi_client_id()
+
+
+def _get_token(resource: str, client_id: str | None = None) -> str:
     """Fetch an OAuth2 token from IMDS for the given resource. Works in
     both Azure Automation Runbook sandbox and any container/VM with
-    IMDS available."""
+    IMDS available.
+
+    F-003: the AA carries only a user-assigned managed identity
+    (mi-runbook). IMDS returns a system-MI token by default and Azure
+    responds `Managed System Identity not found!` because no system-MI
+    is attached. The user-assigned MI's client_id MUST be passed on
+    the token query to select it. AZURE_CLIENT_ID is set as an
+    Automation Variable by the deploy chain during AA identity attach."""
+    cid = client_id or AZURE_CLIENT_ID
     identity_endpoint = os.environ.get("IDENTITY_ENDPOINT")
     identity_header = os.environ.get("IDENTITY_HEADER")
     if identity_endpoint and identity_header:
-        url = f"{identity_endpoint}?resource={resource}&api-version=2019-08-01"
+        q = f"?resource={resource}&api-version=2019-08-01"
+        if cid:
+            q += f"&client_id={cid}"
+        url = f"{identity_endpoint}{q}"
         req = urllib.request.Request(url, headers={"X-IDENTITY-HEADER": identity_header})
     else:
-        url = (
-            "http://169.254.169.254/metadata/identity/oauth2/token"
-            f"?api-version=2018-02-01&resource={resource}"
-        )
+        q = f"?api-version=2018-02-01&resource={resource}"
+        if cid:
+            q += f"&client_id={cid}"
+        url = f"http://169.254.169.254/metadata/identity/oauth2/token{q}"
         req = urllib.request.Request(url, headers={"Metadata": "true"})
     with urllib.request.urlopen(req, timeout=15) as r:
         return json.loads(r.read().decode("utf-8"))["access_token"]
