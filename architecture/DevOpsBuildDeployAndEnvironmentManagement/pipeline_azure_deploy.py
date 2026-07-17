@@ -95,7 +95,56 @@ def verify_key_vault(target, env: str) -> str:
     r = _az(["keyvault", "show", "--name", name, "--resource-group", rg], check=False)
     if r.returncode != 0:
         sys.exit(f"ERROR: pre_existing Key Vault {name!r} not found (F-012 §4.2)")
+    _ensure_kv_secrets_from_file_packages(target, env, name)
     return name
+
+
+def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> None:
+    """Upload declared local files into KV as opaque secrets.
+
+    Iterates the KV target's env_binding.packages[] for kind='secret_from_file'
+    entries. Each package config carries `secret_name` and `source_file`
+    (repo-relative path, gitignored files allowed). The file's raw content is
+    uploaded via `az keyvault secret set --file`. Uses `--encoding base64` so
+    line endings + special chars survive round-trip.
+
+    Per the operator directive: Code/.env is the sole intentional source that
+    is gitignored. Rule-006's scope entry declares this exemption.
+    """
+    for eb in target.environments:
+        if eb.env_binding != env:
+            continue
+        for pkg in (eb.packages or []):
+            if pkg.get("kind") != "secret_from_file":
+                continue
+            cfg = pkg.get("config") or {}
+            secret_name = cfg["secret_name"]
+            source_file = cfg["source_file"]
+            repo_root = Path(__file__).resolve().parents[2]
+            src_path = repo_root / source_file
+            if not src_path.is_file():
+                sys.exit(
+                    f"ERROR: secret_from_file source {source_file!r} not found on disk"
+                )
+            import base64
+            encoded = base64.b64encode(src_path.read_bytes()).decode("ascii")
+            step(f"upload KV secret {secret_name} from {source_file} ({src_path.stat().st_size}B)")
+            r = _az(
+                [
+                    "keyvault", "secret", "set",
+                    "--vault-name", vault_name,
+                    "--name", secret_name,
+                    "--value", encoded,
+                    "--encoding", "base64",
+                ],
+                check=False,
+            )
+            if r.returncode != 0:
+                sys.exit(
+                    f"ERROR: KV secret set {secret_name!r} failed: {r.stderr[:500]}"
+                )
+            step(f"  {secret_name} uploaded — pull with: "
+                 f"az keyvault secret show --vault-name {vault_name} --name {secret_name} --query value -o tsv | base64 --decode > {source_file}")
 
 
 def ensure_storage_containers(target, env: str) -> str:
