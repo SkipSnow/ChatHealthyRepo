@@ -27,7 +27,7 @@ from typing import Any
 
 
 ATLAS_API_BASE = "https://cloud.mongodb.com/api/atlas/v2"
-ATLAS_API_ACCEPT = "application/vnd.atlas.2024-08-05+json"
+ATLAS_API_ACCEPT = "application/vnd.atlas.2023-01-01+json"
 
 
 def _cflags() -> int:
