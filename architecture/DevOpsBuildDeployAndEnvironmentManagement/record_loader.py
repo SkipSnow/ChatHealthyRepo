@@ -5,19 +5,15 @@ canonical brain artifact: a JSON array of TargetRecord objects) and
 returns a typed `DeploymentCollection`. Every load schema-validates;
 absent / empty / malformed JSON raises hard.
 
-Schema resolution policy:
-  - Brain-artifact schemas (URLs under *.chathealthy.ai/schemas/) are
-    read from the local repo at Website/schemas/<basename>. The
-    deployment_architecture.json schema is a repo-internal artifact used
-    only by our own build/deploy/pre-commit code; the URL exists only for
-    IDE convenience. The git working tree is the source of truth.
-  - Any other URL is HTTP-fetched (external schemas we do not own).
+The schema is the canonical web URL:
+  https://dev.chathealthy.ai/schemas/ChatHealthyDeploymentArchitectureSchema.json
+Per the operator's no-local-fallback rule, the loader fetches the schema
+over HTTPS. A filesystem fallback is forbidden. Network failure raises.
 """
 from __future__ import annotations
 
 import json
 import urllib.error
-import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -30,42 +26,19 @@ SCHEMA_URL: str = (
 )
 
 
-def _repo_root() -> Path:
-    """Locate the repo root by walking up from this file."""
-    p = Path(__file__).resolve()
-    for candidate in [p, *p.parents]:
-        if (candidate / "brain" / "machine_artifacts" / "content").is_dir():
-            return candidate
-    raise RuntimeError(
-        f"cannot locate repo root from {Path(__file__).resolve()}"
-    )
-
-
-def _local_path_for_chathealthy_schema_url(schema_url: str) -> Path | None:
-    """If schema_url is a chathealthy.ai schema URL, return the local
-    repo path that mirrors it. Otherwise return None."""
-    parsed = urllib.parse.urlparse(schema_url)
-    host = (parsed.hostname or "").lower()
-    if not host.endswith("chathealthy.ai"):
-        return None
-    path = parsed.path or ""
-    if "/schemas/" not in path:
-        return None
-    basename = path.rsplit("/", 1)[-1]
-    if not basename.endswith(".json"):
-        return None
-    return _repo_root() / "Website" / "schemas" / basename
-
-
 class RecordLoader:
     """Loads a `DeploymentCollection` from the canonical brain JSON.
 
-    Every load schema-validates. Brain-artifact schemas resolve to the
-    local Website/schemas/<basename> file; external schemas HTTP-fetch.
+    The loader fetches the schema via HTTPS at construction time (no
+    filesystem fallback). Every load schema-validates each record in the
+    collection. Missing or empty collection JSON raises.
     """
 
     # Cloudflare-fronted hosts return 403 to Python's default User-Agent
-    # ("Python-urllib/X.Y"). Kept for the external-fetch path.
+    # ("Python-urllib/X.Y"). We supply a generic browser UA on every schema
+    # fetch from within the loader so callers do not have to install a
+    # global opener. This is HTTP-client housekeeping; the schema source
+    # is still the canonical HTTPS URL with no filesystem fallback.
     _BROWSER_UA: str = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -77,35 +50,28 @@ class RecordLoader:
         import os as _os
         local_override = _os.environ.get("CHATHEALTHY_LOCAL_SCHEMA_PATH", "").strip()
         if local_override:
+            # Operator-set escape hatch: load schema from a local file
+            # instead of the URL. Used when the URL is temporarily stale
+            # relative to the local working tree (e.g., schema change
+            # not yet deployed to Cloudflare Pages).
             with open(local_override, "r", encoding="utf-8") as f:
                 self._schema = json.load(f)
         else:
-            local_path = _local_path_for_chathealthy_schema_url(schema_url)
-            if local_path is not None:
-                if not local_path.is_file():
-                    raise RuntimeError(
-                        f"expected local schema at {local_path} for URL "
-                        f"{schema_url} — brain-artifact schemas live in the "
-                        f"repo tree, not on the network."
-                    )
-                self._schema = json.loads(local_path.read_text(encoding="utf-8"))
-            else:
-                # External schema we don't own — HTTP fetch as before.
-                req = urllib.request.Request(
-                    schema_url, headers={"User-Agent": self._BROWSER_UA}
-                )
-                try:
-                    with urllib.request.urlopen(req, timeout=timeout) as resp:
-                        if resp.status != 200:
-                            raise RuntimeError(
-                                f"schema URL {schema_url} returned HTTP {resp.status}"
-                            )
-                        self._schema = json.loads(resp.read().decode("utf-8"))
-                except urllib.error.URLError as exc:
-                    raise RuntimeError(
-                        f"cannot fetch external schema from {schema_url}: "
-                        f"{type(exc).__name__}: {exc}"
-                    ) from exc
+            req = urllib.request.Request(
+                schema_url, headers={"User-Agent": self._BROWSER_UA}
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    if resp.status != 200:
+                        raise RuntimeError(
+                            f"schema URL {schema_url} returned HTTP {resp.status}"
+                        )
+                    self._schema = json.loads(resp.read().decode("utf-8"))
+            except urllib.error.URLError as exc:
+                raise RuntimeError(
+                    f"cannot fetch deployment-architecture schema from {schema_url}: "
+                    f"{type(exc).__name__}: {exc}. No local fallback allowed."
+                ) from exc
         self._validator = jsonschema.Draft202012Validator(self._schema)
 
     def _validate(self, doc: dict) -> None:
