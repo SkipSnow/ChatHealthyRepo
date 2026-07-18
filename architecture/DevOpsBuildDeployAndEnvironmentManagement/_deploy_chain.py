@@ -1689,8 +1689,11 @@ def apply_explicit_permissions_from_manifest(coll: DeploymentCollection, env: st
                 capture_output=True, text=True,
                 creationflags=creation_flags(), shell=(sys.platform == "win32"),
             )
-            verdict = "granted" if r.returncode == 0 else "skipped (exists or refused)"
-            step(f"  {object_id[:8]}...: {role} on {target.target_id} — {verdict}")
+            if r.returncode == 0:
+                step(f"  {object_id[:8]}...: {role} on {target.target_id} — granted")
+            else:
+                err = (r.stderr or r.stdout or "").strip().replace("\n", " ")[:800]
+                step(f"  {object_id[:8]}...: {role} on {target.target_id} — refused: {err}")
 
 
 def ensure_runbook_webhook_stored_in_kv(
