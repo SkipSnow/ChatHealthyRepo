@@ -5992,14 +5992,6 @@
         },
         {
           "feature_id": "EPIC-008-F-012",
-          "source_location": "pipeline/ArchitectureDesignAndAudit/ProviderPipeline_LowLevelDesign_v22.docx",
-          "handler_type": "static_asset",
-          "disposition": "referenced",
-          "content_hash": "27b0aefefc8caffd688d453ec28a320f6553842f4652f9d50e025c8590a19e95",
-          "package": "default"
-        },
-        {
-          "feature_id": "EPIC-008-F-012",
           "source_location": "pipeline/ArchitectureDesignAndAudit/archive/PerplexityPipelineStackWhitePaper.docx",
           "handler_type": "static_asset",
           "disposition": "referenced",
