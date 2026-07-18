@@ -306,15 +306,20 @@ def _read_pipeline_config(mongo) -> dict:
 
 
 def _find_live_pipeline_run(mongo) -> dict | None:
-    """Serialization guard: return the live pipeline.runs row for this
-    pipeline+env, or None. Two concurrent runs would race on the same
-    source file and collections, corrupting state, so if this returns
-    a row the caller MUST abend without touching any shared resource."""
-    coll = mongo["chathealthyfrontend"]["pipeline.runs"]
+    """Runbook gatekeeper: return the first ACTIVE cluster_lifecycle
+    reservation on the pipeline cluster, or None. Reservations are
+    the canonical liveness signal -- Control/Worker acquire on start
+    and release on finish, reservation_reaper clears stale entries.
+    An active reservation means a real job is in flight (or was very
+    recently); the runbook MUST abend without touching any shared
+    resource."""
+    pipeline_cluster = os.environ.get(
+        "PIPELINE_CLUSTER_NAME", "ChatHealthyDataPipelines"
+    )
+    coll = mongo["admin"]["cluster_lifecycle"]
     return coll.find_one({
-        "pipeline_name": PIPELINE_NAME,
-        "env": ENV_PREFIX,
-        "status": "running",
+        "cluster_name": pipeline_cluster,
+        "status": "active",
     })
 
 
@@ -556,8 +561,12 @@ def main() -> int:
                 is_duplicate_abend = True
                 log("pipeline_already_running_abend",
                     attempted_run_id=run_id,
-                    live_run_id=live.get("run_id"),
-                    live_started_at=str(live.get("started_at")))
+                    active_reservation_job_id=(
+                        live.get("_id") or live.get("job_id")
+                    ),
+                    reservation_requester=live.get("requester"),
+                    reservation_start_time=str(live.get("start_time")),
+                    reservation_class=live.get("reservation_class"))
                 return 1
             config = _read_pipeline_config(mongo)
             log("config_read",

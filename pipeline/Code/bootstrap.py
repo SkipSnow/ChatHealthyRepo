@@ -50,7 +50,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 import blob_logger
 import chathealthy_ca
-from observability_gate import ObservabilityGate
+from PipelineServices.observability_gate import ObservabilityGate
 from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 
