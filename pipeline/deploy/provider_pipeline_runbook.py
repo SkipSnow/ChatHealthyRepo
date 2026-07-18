@@ -219,7 +219,7 @@ def _get_mongo_conn_string() -> str:
 
 
 def _doh_ssl_context():
-    """SSL context for DoH — uses certifi CA bundle if importable so the
+    """SSL context for DoH -- uses certifi CA bundle if importable so the
     Automation sandbox's stripped-down trust store doesn't reject
     Cloudflare's cert chain."""
     import ssl
@@ -397,7 +397,7 @@ def _parse_webhook_input() -> dict:
     values so the payload location can be pinpointed at runtime.
     Returns the parsed RequestBody dict (POST body), or {} when the
     runbook was not triggered by a webhook."""
-    # Diagnostic — dump every candidate source with truncated values.
+    # Diagnostic -- dump every candidate source with truncated values.
     candidates: dict = {"argv": [str(a)[:400] for a in sys.argv]}
     for k, v in os.environ.items():
         ku = k.upper()
