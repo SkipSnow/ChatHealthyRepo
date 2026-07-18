@@ -338,6 +338,13 @@
                   [
                     "Code/.env"
                   ]
+                ],
+                [
+                  "_llm_classify",
+                  "allowed_pattern",
+                  [
+                    "_oneshots/reserve_pipeline_cluster\\.py"
+                  ]
                 ]
               ],
               "timeout": 90

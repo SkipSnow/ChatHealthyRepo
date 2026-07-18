@@ -613,6 +613,33 @@ def _git_state_ok_for_deploy() -> tuple[bool, str]:
         return False, f"git check errored: {exc}"
 
 
+def _load_allowed_patterns() -> list[str]:
+    """Read Rule-006's scope entry ["_llm_classify", "allowed_pattern", [...]]
+    from brain/machine_artifacts/content/engineering_rules.json. Regexes;
+    any command that regex-matches skips LLM classification and is allowed.
+    Silent fall-through to empty list on read error."""
+    try:
+        p = _PROJECT_ROOT / "brain" / "machine_artifacts" / "content" / "engineering_rules.json"
+        with p.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        for rule in (data.get("rules") or {}).get("rule", []):
+            if rule.get("id") != "Rule-006":
+                continue
+            for enf in (rule.get("enforcements") or {}).get("enforcement", []):
+                for scope in enf.get("scopes") or []:
+                    if (
+                        isinstance(scope, list)
+                        and len(scope) == 3
+                        and scope[0] == "_llm_classify"
+                        and scope[1] == "allowed_pattern"
+                        and isinstance(scope[2], list)
+                    ):
+                        return [str(s) for s in scope[2]]
+    except Exception:  # noqa: BLE001
+        pass
+    return []
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
@@ -643,6 +670,22 @@ def main() -> int:
                     "command": command, "verdict": "block_hard", "reason": deny_reason})
             _notify_browser(tool_name, command, [], deny_reason, "block_hard")
             _emit_deny(deny_reason)
+            return 0
+
+    # Operator-declared allow list. Rule-006's scope in engineering_rules.json
+    # may carry ["_llm_classify", "allowed_pattern", ["<regex>", ...]] — any
+    # command whose text is a regex-search match for one of the listed
+    # patterns skips LLM classification and is allowed. Patterns must be
+    # operator-approved (their addition to the rules JSON is subject to
+    # Rule-007's identity approval flow for governance-substrate edits).
+    # Used for tightly-scoped operator-owned scripts that need to mutate
+    # remote state as part of the normal deploy/ops workflow but do not fit
+    # the deploy chain proper.
+    for pattern in _load_allowed_patterns():
+        if pattern and re.search(pattern, command):
+            _audit({"ts": datetime.now(timezone.utc).isoformat(), "tool": tool_name,
+                    "command": command, "verdict": "allow",
+                    "reason": f"matched allowed pattern {pattern!r}"})
             return 0
 
     api_key = _load_env_var("GEMINI_API_KEY") or _load_env_var("GOOGLE_API_KEY")
