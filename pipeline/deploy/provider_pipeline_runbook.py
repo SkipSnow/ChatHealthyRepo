@@ -338,7 +338,8 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 # ============================================================================
 # ARM -- start the prov-control ACA Job with env-var overrides
 # ============================================================================
-def _start_control_job(run_id: str, load_mode: str, state_scope) -> dict:
+def _start_control_job(run_id: str, load_mode: str, state_scope,
+                       invocation_mode: str) -> dict:
     """LLD §2.6 step 4: POST to ACA job start endpoint with env overrides.
 
     The Microsoft.App/jobs/{name}/start action requires each container in
@@ -370,7 +371,7 @@ def _start_control_job(run_id: str, load_mode: str, state_scope) -> dict:
     override_env = [
         {"name": "RUN_ID", "value": run_id},
         {"name": "ENV_PREFIX", "value": ENV_PREFIX},
-        {"name": "INVOCATION_MODE", "value": INVOCATION_MODE},
+        {"name": "INVOCATION_MODE", "value": invocation_mode},
         {"name": "LOAD_MODE", "value": load_mode},
         {"name": "STATE_SCOPE", "value": json.dumps(state_scope)},
         {"name": "PIPELINE_NAME", "value": PIPELINE_NAME},
@@ -538,7 +539,7 @@ def main() -> int:
 
         # Start Control
         try:
-            result = _start_control_job(run_id, load_mode, state_scope)
+            result = _start_control_job(run_id, load_mode, state_scope, invocation_mode)
             log("control_job_started",
                 run_id=run_id,
                 name=result.get("name"),
