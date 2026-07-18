@@ -318,7 +318,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "d486b3a7ec9eed0c79a97bdc5503983585bbab111008aa823df2dc37bd37e156",
+          "content_hash": "9647c02aa2bebfeb00d8f7cb0a841efd4e8e494377694c556b490448f6601578",
           "package": "json_schemas"
         },
         {
@@ -5781,7 +5781,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "d486b3a7ec9eed0c79a97bdc5503983585bbab111008aa823df2dc37bd37e156",
+          "content_hash": "9647c02aa2bebfeb00d8f7cb0a841efd4e8e494377694c556b490448f6601578",
           "package": "default"
         },
         {
