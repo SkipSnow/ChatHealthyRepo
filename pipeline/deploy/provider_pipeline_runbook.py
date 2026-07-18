@@ -218,6 +218,18 @@ def _get_mongo_conn_string() -> str:
         return json.loads(r.read().decode("utf-8"))["value"]
 
 
+def _doh_ssl_context():
+    """SSL context for DoH — uses certifi CA bundle if importable so the
+    Automation sandbox's stripped-down trust store doesn't reject
+    Cloudflare's cert chain."""
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        return ssl.create_default_context()
+
+
 def _doh_query(name: str, rtype: str) -> list:
     """Query Cloudflare DNS-over-HTTPS for a single record type. Returns
     the Answer list (each item is a dict with `data` and `type`). Used
@@ -227,7 +239,7 @@ def _doh_query(name: str, rtype: str) -> list:
     req = urllib.request.Request(
         url, headers={"Accept": "application/dns-json"},
     )
-    with urllib.request.urlopen(req, timeout=15) as r:
+    with urllib.request.urlopen(req, timeout=15, context=_doh_ssl_context()) as r:
         return json.loads(r.read().decode("utf-8")).get("Answer", []) or []
 
 
@@ -314,30 +326,55 @@ def _write_run_manifest(mongo, run_id: str, load_mode: str,
 # ARM -- start the prov-control ACA Job with env-var overrides
 # ============================================================================
 def _start_control_job(run_id: str, load_mode: str, state_scope) -> dict:
-    """LLD §2.6 step 4: POST to ACA job start endpoint with env overrides."""
+    """LLD §2.6 step 4: POST to ACA job start endpoint with env overrides.
+
+    The Microsoft.App/jobs/{name}/start action requires each container in
+    the override to carry its FULL spec (image + resources), not just a
+    delta. Fetch the job's definition first, extract the current template
+    container, merge only the env overrides, then POST the full spec."""
     tok = _get_token("https://management.azure.com/")
-    url = (
+    # 1) Fetch the current job definition to get container image + resources.
+    get_url = (
+        f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
+        f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.App/jobs/"
+        f"{CONTROL_JOB_NAME}?api-version=2024-03-01"
+    )
+    get_req = urllib.request.Request(
+        get_url,
+        headers={"Authorization": f"Bearer {tok}"},
+    )
+    with urllib.request.urlopen(get_req, timeout=30) as r:
+        job = json.loads(r.read().decode("utf-8"))
+    template_containers = (
+        (((job.get("properties") or {}).get("template")) or {}).get("containers") or []
+    )
+    if not template_containers:
+        raise RuntimeError(
+            f"ACA job {CONTROL_JOB_NAME!r} has no containers in template"
+        )
+    tpl = dict(template_containers[0])  # shallow copy
+    # 2) Merge env overrides onto the existing env list.
+    override_env = [
+        {"name": "RUN_ID", "value": run_id},
+        {"name": "ENV_PREFIX", "value": ENV_PREFIX},
+        {"name": "INVOCATION_MODE", "value": INVOCATION_MODE},
+        {"name": "LOAD_MODE", "value": load_mode},
+        {"name": "STATE_SCOPE", "value": json.dumps(state_scope)},
+        {"name": "PIPELINE_NAME", "value": PIPELINE_NAME},
+    ]
+    override_names = {e["name"] for e in override_env}
+    merged_env = [e for e in (tpl.get("env") or []) if e.get("name") not in override_names]
+    merged_env.extend(override_env)
+    tpl["env"] = merged_env
+    # 3) POST full container spec.
+    start_url = (
         f"https://management.azure.com/subscriptions/{SUBSCRIPTION_ID}"
         f"/resourceGroups/{RESOURCE_GROUP}/providers/Microsoft.App/jobs/"
         f"{CONTROL_JOB_NAME}/start?api-version=2024-03-01"
     )
-    payload = {
-        "containers": [
-            {
-                "name": CONTROL_JOB_NAME,
-                "env": [
-                    {"name": "RUN_ID", "value": run_id},
-                    {"name": "ENV_PREFIX", "value": ENV_PREFIX},
-                    {"name": "INVOCATION_MODE", "value": INVOCATION_MODE},
-                    {"name": "LOAD_MODE", "value": load_mode},
-                    {"name": "STATE_SCOPE", "value": json.dumps(state_scope)},
-                    {"name": "PIPELINE_NAME", "value": PIPELINE_NAME},
-                ],
-            }
-        ]
-    }
+    payload = {"containers": [tpl]}
     req = urllib.request.Request(
-        url,
+        start_url,
         method="POST",
         headers={"Authorization": f"Bearer {tok}", "Content-Type": "application/json"},
         data=json.dumps(payload).encode("utf-8"),
@@ -350,15 +387,44 @@ def _start_control_job(run_id: str, load_mode: str, state_scope) -> dict:
 # Webhook input parsing
 # ============================================================================
 def _parse_webhook_input() -> dict:
-    """Webhook payload is delivered by Azure Automation as either:
-      - the WEBHOOKDATA environment variable (some sandbox flavors), or
-      - sys.argv[1] as a JSON string with {WebhookName, RequestBody, ...}
-        (standard Python-3 runbook convention).
-    Try both. Return the parsed RequestBody dict (POST body), or {} when
-    the runbook was not triggered by a webhook."""
+    """Webhook payload discovery across every mechanism Azure Automation
+    might use for Python-3 runbooks:
+      - WEBHOOKDATA env var (documented Python-3 mechanism)
+      - sys.argv[1] as a JSON string (PowerShell convention)
+      - other env vars containing WEBHOOK/AUTOMATION/TRIGGER/INPUT
+      - stdin (non-blocking read)
+    Emits a diagnostic event listing every source and their (truncated)
+    values so the payload location can be pinpointed at runtime.
+    Returns the parsed RequestBody dict (POST body), or {} when the
+    runbook was not triggered by a webhook."""
+    # Diagnostic — dump every candidate source with truncated values.
+    candidates: dict = {"argv": [str(a)[:400] for a in sys.argv]}
+    for k, v in os.environ.items():
+        ku = k.upper()
+        if any(t in ku for t in ("WEBHOOK", "AUTOMATION", "TRIGGER", "INPUT", "RUNBOOK", "JOB")):
+            candidates[f"env:{k}"] = (v or "")[:400]
+    # Try non-blocking stdin peek.
+    try:
+        import select as _select
+        r, _, _ = _select.select([sys.stdin], [], [], 0.05)
+        if r:
+            stdin_data = sys.stdin.read(4000)
+            candidates["stdin"] = stdin_data[:400]
+    except Exception as _e:
+        candidates["stdin_err"] = str(_e)[:200]
+    _log("webhook_payload_discovery", **{k: v for k, v in list(candidates.items())[:20]})
+
     raw = os.environ.get("WEBHOOKDATA", "")
     if not raw and len(sys.argv) > 1 and sys.argv[1]:
         raw = sys.argv[1]
+    # Broaden: any WEBHOOK*-suffixed var, or *_INPUT var.
+    if not raw:
+        for k, v in os.environ.items():
+            if not v:
+                continue
+            if k.upper().startswith("WEBHOOK") or k.upper().endswith("_INPUT"):
+                raw = v
+                break
     if not raw:
         return {}
     try:
