@@ -522,24 +522,35 @@ def main() -> int:
     # duplicate that lost the serialization race; the live run owns every
     # shared resource and any teardown here MUST be a no-op.
     is_duplicate_abend = False
+    # The AA sandbox trust store lacks Atlas's Root CA. Point pymongo TLS
+    # at certifi's bundle so front-cluster TLS handshakes succeed.
     try:
-        # Config + manifest
+        import certifi as _certifi
+        _mongo_tls_ca = _certifi.where()
+    except ImportError:
+        _mongo_tls_ca = None
+    try:
+        # Config + manifest -- against the ALWAYS-UP front cluster.
         try:
             import pymongo  # provided by AA Python 3 package
             conn = _get_mongo_conn_string()
             log("mongo_secret_fetched", vault_uri=KEY_VAULT_URI)
+            _mongo_kwargs = {"serverSelectionTimeoutMS": 15000}
+            if _mongo_tls_ca:
+                _mongo_kwargs["tlsCAFile"] = _mongo_tls_ca
             # Atlas SRV lookups fail from the Automation sandbox because its
             # resolver cannot answer _mongodb._tcp.<domain> SRV queries. Try
             # a direct connect first; on SRV failure, translate the URI to
             # its non-SRV equivalent via DNS-over-HTTPS and retry.
             try:
-                mongo = pymongo.MongoClient(conn, serverSelectionTimeoutMS=15000)
+                mongo = pymongo.MongoClient(conn, **_mongo_kwargs)
                 mongo.admin.command("ping")
             except Exception:
                 direct = _srv_to_direct_mongo_uri(conn)
                 log("mongo_srv_bypass_active", direct_hostcount=direct.count(",") + 1
                     if direct.startswith("mongodb://") else 0)
-                mongo = pymongo.MongoClient(direct, serverSelectionTimeoutMS=15000)
+                mongo = pymongo.MongoClient(direct, **_mongo_kwargs)
+                mongo.admin.command("ping")
             live = _find_live_pipeline_run(mongo)
             if live is not None:
                 is_duplicate_abend = True
@@ -556,12 +567,15 @@ def main() -> int:
                                 invocation_mode, config)
             log("run_manifest_written", run_id=run_id)
         except Exception as exc:
-            log("mongo_step_failed",
+            # Front-cluster Mongo is critical -- coordination state
+            # (serialization guard, run manifest, config) lives there and
+            # Control cannot proceed without it. Abort so the AA job history
+            # shows the failure and Control is NOT started.
+            log("mongo_step_failed_abort",
                 error_type=type(exc).__name__,
-                error_msg=str(exc),
+                error_msg=str(exc)[:1500],
                 traceback=traceback.format_exc()[-2000:])
-            # Do NOT abort -- LLD §2.1 tolerates first-run when config is empty.
-            # But we MUST still start Control so the operator sees a run happen.
+            return 1
 
         # Start Control
         try:
