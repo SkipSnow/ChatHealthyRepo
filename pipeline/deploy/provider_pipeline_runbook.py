@@ -412,7 +412,7 @@ def _parse_webhook_input() -> dict:
             candidates["stdin"] = stdin_data[:400]
     except Exception as _e:
         candidates["stdin_err"] = str(_e)[:200]
-    _log("webhook_payload_discovery", **{k: v for k, v in list(candidates.items())[:20]})
+    log("webhook_payload_discovery", **{k: v for k, v in list(candidates.items())[:20]})
 
     raw = os.environ.get("WEBHOOKDATA", "")
     if not raw and len(sys.argv) > 1 and sys.argv[1]:
