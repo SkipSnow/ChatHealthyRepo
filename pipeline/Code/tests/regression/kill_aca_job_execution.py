@@ -70,7 +70,11 @@ def _execution_stop(job_name: str, execution_name: str) -> int:
     req = urllib.request.Request(
         url,
         method="POST",
-        headers={"Authorization": f"Bearer {tok}", "Content-Length": "0"},
+        headers={
+            "Authorization": f"Bearer {tok}",
+            "Content-Type": "application/json",
+            "Content-Length": "0",
+        },
         data=b"",
     )
     with urllib.request.urlopen(req, timeout=30) as r:
