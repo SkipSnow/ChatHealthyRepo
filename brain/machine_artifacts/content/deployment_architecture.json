@@ -7319,19 +7319,36 @@
                 "name": "snet-worker-pool",
                 "address_prefix": "10.0.4.0/24",
                 "purpose": "pipeline_worker_pool",
-                "reserved_nics": {
-                  "count": 10,
-                  "name_prefix": "pipe-node",
-                  "allocation": "static",
-                  "ip_offset_start": 4,
-                  "runtime_consumers": [
-                    {
-                      "identity_target_id": "target_identity_mi_worker",
-                      "operation": "claim_and_bind_vm",
-                      "authority": "one_nic_per_work_item"
-                    }
-                  ]
-                }
+                "reserved_nic_pools": [
+                  {
+                    "action": "delete",
+                    "count": 125,
+                    "name_prefix": "pipe-worker-",
+                    "allocation": "static",
+                    "ip_offset_start": 4
+                  },
+                  {
+                    "action": "delete",
+                    "count": 10,
+                    "name_prefix": "pipe-node-",
+                    "allocation": "static",
+                    "ip_offset_start": 4
+                  },
+                  {
+                    "action": "create",
+                    "count": 10,
+                    "name_prefix": "PipelineWorker_vnetNode",
+                    "allocation": "static",
+                    "ip_offset_start": 4,
+                    "runtime_consumers": [
+                      {
+                        "identity_target_id": "target_identity_mi_worker",
+                        "operation": "claim_and_bind_vm",
+                        "authority": "one_nic_per_work_item"
+                      }
+                    ]
+                  }
+                ]
               },
               {
                 "name": "snet-private-endpoints",
@@ -8358,11 +8375,6 @@
           "env_binding": "dev",
           "node_address": "chathealthydatapipeline",
           "atlas": {
-            "project": {
-              "project_id_from_secret": "ATLAS_PROJECT_ID",
-              "public_key_from_secret": "ATLAS_PUBLIC_KEY",
-              "private_key_from_secret": "ATLAS_PRIVATE_KEY"
-            },
             "cluster": {
               "cluster_name": "chathealthydatapipeline",
               "runtime_consumers": [
