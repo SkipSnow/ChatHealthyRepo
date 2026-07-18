@@ -7389,6 +7389,19 @@
                         "authority": "one_nic_per_work_item"
                       }
                     ]
+                  },
+                  {
+                    "action": "create",
+                    "count": 1,
+                    "name_prefix": "PipelineController_vnetNode",
+                    "allocation": "static",
+                    "ip_offset_start": 14,
+                    "runtime_consumers": [
+                      {
+                        "identity_target_id": "target_identity_mi_control",
+                        "operation": "claim_and_bind_vm"
+                      }
+                    ]
                   }
                 ]
               },
@@ -8418,7 +8431,7 @@
           "node_address": "chathealthydatapipeline",
           "atlas": {
             "cluster": {
-              "cluster_name": "chathealthydatapipeline",
+              "cluster_name": "ChatHealthyDataPipelines",
               "runtime_consumers": [
                 {
                   "identity_target_id": "target_identity_mi_control",
