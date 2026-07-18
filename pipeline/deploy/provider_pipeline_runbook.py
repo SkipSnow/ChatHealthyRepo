@@ -208,9 +208,11 @@ def log(event: str, **fields):
 # Mongo config + run manifest -- reads Mongo conn string from Key Vault
 # ============================================================================
 def _get_mongo_conn_string() -> str:
-    """Fetch MONGO connection string from Key Vault. Secret was stored
-    under the KV-legal name (dashes not underscores)."""
-    name = os.environ.get("MONGO_SECRET_NAME", "MONGO-connectionString")
+    """Fetch front-cluster connection string from Key Vault. Trigger-tier
+    coordination (serialization guard, pipeline.runs manifest, pipeline.config
+    read) lives on the ALWAYS-UP front cluster, not the pipeline cluster
+    which is paused-by-default between runs (Skip 2026-07-18)."""
+    name = os.environ.get("MONGO_SECRET_NAME", "MONGO-FRONTEND-connectionString")
     tok = _get_token("https://vault.azure.net")
     url = f"{KEY_VAULT_URI.rstrip('/')}/secrets/{name}?api-version=7.4"
     req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}"})
@@ -428,25 +430,49 @@ def _parse_webhook_input() -> dict:
         candidates["stdin_err"] = str(_e)[:200]
     log("webhook_payload_discovery", **{k: v for k, v in list(candidates.items())[:20]})
 
-    raw = os.environ.get("WEBHOOKDATA", "")
-    if not raw and len(sys.argv) > 1 and sys.argv[1]:
-        raw = sys.argv[1]
-    # Broaden: any WEBHOOK*-suffixed var, or *_INPUT var.
-    if not raw:
-        for k, v in os.environ.items():
-            if not v:
-                continue
-            if k.upper().startswith("WEBHOOK") or k.upper().endswith("_INPUT"):
-                raw = v
-                break
+    # AA Python-3 sandbox delivers the webhook envelope via sys.argv, not
+    # WEBHOOKDATA (which is the PowerShell mechanism). It also does NOT
+    # quote-protect the arg, so the payload arrives whitespace-split across
+    # sys.argv[1:]. Reconstruct with a single space then extract the JSON
+    # value of the RequestBody key via balanced-brace parsing (the envelope
+    # is PowerShell-hashtable-shaped -- unquoted keys, comma-separated --
+    # so json.loads on the whole thing fails; only RequestBody's VALUE is
+    # proper JSON).
+    if len(sys.argv) > 1:
+        raw = " ".join(str(a) for a in sys.argv[1:])
+    else:
+        raw = os.environ.get("WEBHOOKDATA", "")
     if not raw:
         return {}
+    marker = "RequestBody:"
+    idx = raw.find(marker)
+    if idx < 0:
+        try:
+            return json.loads(raw) or {}
+        except Exception:
+            return {}
+    start = idx + len(marker)
+    while start < len(raw) and raw[start] != "{":
+        start += 1
+    if start >= len(raw):
+        return {}
+    depth = 0
+    end = start
+    for i in range(start, len(raw)):
+        c = raw[i]
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    if depth != 0:
+        return {}
+    body_json = raw[start:end + 1]
     try:
-        parsed = json.loads(raw)
-        body = parsed.get("RequestBody", "") if isinstance(parsed, dict) else raw
-        if isinstance(body, str) and body:
-            body = json.loads(body)
-        return body or {}
+        parsed = json.loads(body_json)
+        return parsed if isinstance(parsed, dict) else {}
     except Exception:
         return {}
 
