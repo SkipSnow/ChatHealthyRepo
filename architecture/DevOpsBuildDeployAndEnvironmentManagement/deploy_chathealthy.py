@@ -273,11 +273,12 @@ def main(argv: list[str] | None = None) -> int:
     repo_root = _repo_root()
 
     # EPIC-008-F-012-S-001-REQ-B-012: reject any attempt to combine the
-    # 'pipeline' selector with another target value. --target is a single
-    # string today; the only way to express a combination is to include
-    # the literal 'pipeline' token alongside another token. If that token
-    # appears as a substring of a non-exact value, abend.
-    if args.target != "pipeline" and "pipeline" in args.target:
+    # 'pipeline' selector with another target value. Comma-separated
+    # multi-target strings are the only shape this rule needs to block —
+    # a single specific target_id (like 'target_atlas_pipeline') is
+    # legal because it names one target, not a combination.
+    tokens = [t.strip() for t in args.target.split(",") if t.strip()]
+    if "pipeline" in tokens and len(tokens) > 1:
         sys.exit(
             "ERROR: --target=pipeline MUST be the sole target. Pipeline "
             "deploys are independent of front-end deploys "
