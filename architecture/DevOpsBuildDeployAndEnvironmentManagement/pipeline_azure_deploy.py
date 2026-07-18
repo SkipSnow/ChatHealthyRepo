@@ -785,6 +785,58 @@ _ATLAS_OAUTH_TOKEN_URL = "https://cloud.mongodb.com/api/oauth/token"
 _ATLAS_TOKEN_CACHE: dict[str, tuple[str, float]] = {}
 
 
+# Azure region name → Atlas region name mapping. Atlas uses a distinct
+# region naming convention from Azure (e.g. Azure 'eastus2' → Atlas
+# 'US_EAST_2'). Extend as new regions come into use.
+_AZURE_TO_ATLAS_REGION: dict[str, str] = {
+    "eastus": "US_EAST",
+    "eastus2": "US_EAST_2",
+    "westus": "US_WEST",
+    "westus2": "US_WEST_2",
+    "westus3": "US_WEST_3",
+    "centralus": "CENTRAL_US",
+    "northcentralus": "NORTH_CENTRAL_US",
+    "southcentralus": "SOUTH_CENTRAL_US",
+    "westcentralus": "WEST_CENTRAL_US",
+    "canadacentral": "CANADA_CENTRAL",
+    "canadaeast": "CANADA_EAST",
+    "northeurope": "EUROPE_NORTH",
+    "westeurope": "EUROPE_WEST",
+    "uksouth": "UK_SOUTH",
+    "ukwest": "UK_WEST",
+    "eastasia": "ASIA_EAST",
+    "southeastasia": "ASIA_SOUTHEAST",
+    "japaneast": "JAPAN_EAST",
+    "japanwest": "JAPAN_WEST",
+    "australiaeast": "AUSTRALIA_EAST",
+    "australiasoutheast": "AUSTRALIA_SOUTHEAST",
+    "brazilsouth": "BRAZIL_SOUTH",
+    "southafricanorth": "SOUTH_AFRICA_NORTH",
+    "swedencentral": "SWEDEN_CENTRAL",
+    "germanywestcentral": "GERMANY_WEST_CENTRAL",
+    "koreacentral": "KOREA_CENTRAL",
+    "centralindia": "INDIA_CENTRAL",
+    "southindia": "INDIA_SOUTH",
+    "westindia": "INDIA_WEST",
+    "francecentral": "FRANCE_CENTRAL",
+    "norwayeast": "NORWAY_EAST",
+    "switzerlandnorth": "SWITZERLAND_NORTH",
+    "uaenorth": "UAE_NORTH",
+}
+
+
+def _azure_to_atlas_region(region: str) -> str:
+    """Return Atlas region name for a given Azure region."""
+    lower = (region or "").lower()
+    if lower in _AZURE_TO_ATLAS_REGION:
+        return _AZURE_TO_ATLAS_REGION[lower]
+    # Unmapped region — fail loud rather than guess incorrectly.
+    sys.exit(
+        f"ERROR: Azure region {region!r} not mapped to Atlas region name. "
+        f"Add it to _AZURE_TO_ATLAS_REGION in pipeline_azure_deploy.py."
+    )
+
+
 def _atlas_load_credentials() -> tuple[str, str, str]:
     """Read Atlas Admin API service-account credentials from Code/.env.
 
@@ -979,7 +1031,7 @@ def _atlas_ensure_private_endpoint_service(
     """
     provider = pes["provider"]
     region_input = pes["region"]
-    atlas_region = region_input.upper().replace("-", "_")
+    atlas_region = _azure_to_atlas_region(region_input)
     step(f"Atlas endpoint service ensure {provider}/{atlas_region}")
     code, existing = _atlas_request(
         "GET",
@@ -1048,7 +1100,7 @@ def atlas_resolve_private_link_service_resource_id(
     pes = block.get("private_endpoint_service") or {}
     provider = pes.get("provider", "AZURE")
     region_input = pes.get("region", "eastus2")
-    atlas_region = region_input.upper().replace("-", "_")
+    atlas_region = _azure_to_atlas_region(region_input)
     code, listed = _atlas_request(
         "GET",
         f"/groups/{project_id}/privateEndpoint/{provider}/endpointService",
@@ -1106,7 +1158,7 @@ def atlas_approve_private_endpoint(
     pes = block.get("private_endpoint_service") or {}
     provider = pes.get("provider", "AZURE")
     region_input = pes.get("region", "eastus2")
-    atlas_region = region_input.upper().replace("-", "_")
+    atlas_region = _azure_to_atlas_region(region_input)
     code, listed = _atlas_request(
         "GET",
         f"/groups/{project_id}/privateEndpoint/{provider}/endpointService",
