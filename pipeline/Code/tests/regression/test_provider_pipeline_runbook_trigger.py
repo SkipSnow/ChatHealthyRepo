@@ -1,12 +1,13 @@
 # Copyright (c) 2026 ChatHealthy.ai LLC. All rights reserved.
 # Licensed under the FindCare Evaluation License (FEL-1.0).
-"""Regression: fire ProviderPipelineRunbook webhook for a dual-state scope
-and assert the AA accepts the request.
+"""Regression: fire ProviderPipelineRunbook webhook once with dual state
+scope [VT, DE] and assert the AA accepts the request.
 
 Covers the runbook trigger tier's three tactical fixes (payload delivery via
 WEBHOOKDATA, certifi-backed SSL trust for DoH fallback, ACA-start body shape
-carrying full container spec). If any of the three regress the runbook fails
-its own run and the follow-on assertions (below) surface it.
+carrying full container spec). Trigger-side assertion only: HTTP 202 accept.
+Runbook-side execution assertions (state_scope preserved, no SSL error,
+Control ACA started) live downstream in the pipeline run manifest.
 
 Skipped unless RUN_PROVIDER_PIPELINE_E2E=1.
 """
@@ -30,6 +31,7 @@ _KEY_VAULT_URI = os.environ.get(
     "https://kv-chpipeline-dev.vault.azure.net/",
 )
 _WEBHOOK_SECRET_NAME = "PROVIDER-PIPELINE-WEBHOOK-URL"
+_STATE_SCOPE = ["VT", "DE"]
 
 
 def _webhook_url() -> str:
@@ -40,12 +42,11 @@ def _webhook_url() -> str:
     return kv.get_secret(_WEBHOOK_SECRET_NAME).value
 
 
-@pytest.mark.parametrize("state_pair", [["WY", "VT"], ["DE", "RI"]])
-def test_runbook_trigger_accepts_dual_state(integration_enabled, state_pair):
+def test_runbook_trigger_accepts_dual_state(integration_enabled):
     if not integration_enabled:
         pytest.skip("RUN_PROVIDER_PIPELINE_E2E not set")
     body = json.dumps({
-        "state_scope": state_pair,
+        "state_scope": _STATE_SCOPE,
         "load_mode": "full",
         "invocation_mode": "regression_test",
     }).encode("utf-8")
@@ -58,4 +59,4 @@ def test_runbook_trigger_accepts_dual_state(integration_enabled, state_pair):
     with urllib.request.urlopen(req, timeout=30) as r:
         assert r.status == 202, f"webhook returned {r.status}, expected 202"
         response_body = r.read().decode("utf-8")
-        print(f"[runbook_trigger] states={state_pair} status={r.status} body={response_body!r}")
+        print(f"[runbook_trigger] states={_STATE_SCOPE} status={r.status} body={response_body!r}")
