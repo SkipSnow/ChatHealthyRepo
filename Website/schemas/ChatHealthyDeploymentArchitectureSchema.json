@@ -1528,6 +1528,28 @@
             },
             "uniqueItems": true
           },
+          "permissions": {
+            "type": "array",
+            "description": "Explicit identity->role bindings applied on this target's Azure scope at deploy time. Each entry names one identity (identity_id must exist in IdentityCatalog) and one role (built-in Azure role name or CustomRoleCatalog role_id). Distinct from allowed_roles (which is the accept-list for the intersection model used by managed identities); permissions[] declares specific grants to specific identities per-target, mirroring the shape of files/secrets/env_vars as a self-contained per-target declaration.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["identity_id", "role"],
+              "properties": {
+                "identity_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "identity_id from IdentityCatalog."
+                },
+                "role": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Built-in Azure role name or CustomRoleCatalog role_id."
+                }
+              }
+            },
+            "uniqueItems": true
+          },
           "peers": {
             "type": "array",
             "description": "Cross-substrate handshake declarations. Each entry names a peer target and the kind of handshake this target participates in with it. Deploy reads this to sequence two-sided provisioning (e.g., an Atlas target with a peer entry {target_id: target_azure_vnet_pipeline, kind: private_endpoint_service} signals that after creating the Atlas endpoint service, the Azure side's private_endpoint node handshake is expected). Documentary + sequencing aid; deploy does not enforce peer symmetry beyond the referenced-target check.",
