@@ -217,7 +217,13 @@ def main(argv: list[str] | None = None) -> int:
     _refresh_content_hashes(brain_path, repo_root)
 
     backlog = AgileBacklogLoader(schema_uri=backlog_schema).load(backlog_path)
-    coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
+    # Scope schema validation to the single target being built when a
+    # specific target_id was requested. For kind aliases ('cloudflare',
+    # 'hf', 'azure', 'aca') and 'all', validate the whole envelope.
+    load_filter = args.target if args.target.startswith("target_") else None
+    coll: DeploymentCollection = RecordLoader().load_collection(
+        brain_path, target_id_filter=load_filter,
+    )
     env_values_for_leak: set[str] = (
         SecretsResolver().env_values_for_leak_check(env_file)
         if env_file.is_file() else set()

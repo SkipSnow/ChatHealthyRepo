@@ -168,7 +168,10 @@ def _collect_target_ids_for_env(repo_root: Path, env: str, target_arg: str) -> l
     from target_record import DeploymentCollection
     from record_loader import RecordLoader
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
-    coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
+    load_filter = target_arg if target_arg.startswith("target_") else None
+    coll: DeploymentCollection = RecordLoader().load_collection(
+        brain_path, target_id_filter=load_filter,
+    )
     from _deploy_chain import select_target_ids
     selected = select_target_ids(coll, target_arg)
     out = []

@@ -2484,7 +2484,10 @@ def run_cloud_deploy(env: str, target_arg: str) -> int:
     step(f"repo_root={repo_root} env={env} target={target_arg}")
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     env_file = repo_root / "Code" / ".env"
-    coll: DeploymentCollection = RecordLoader().load_collection(brain_path)
+    load_filter = target_arg if target_arg.startswith("target_") else None
+    coll: DeploymentCollection = RecordLoader().load_collection(
+        brain_path, target_id_filter=load_filter,
+    )
     resolver = SecretsResolver.from_collection(coll, env_file=env_file)
     selected = _dependency_sort_targets(select_target_ids(coll, target_arg))
     if not selected:
