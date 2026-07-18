@@ -1530,16 +1530,16 @@
           },
           "permissions": {
             "type": "array",
-            "description": "Explicit identity->role bindings applied on this target's Azure scope at deploy time. Each entry names one identity (identity_id must exist in IdentityCatalog) and one role (built-in Azure role name or CustomRoleCatalog role_id). Distinct from allowed_roles (which is the accept-list for the intersection model used by managed identities); permissions[] declares specific grants to specific identities per-target, mirroring the shape of files/secrets/env_vars as a self-contained per-target declaration.",
+            "description": "Explicit principal->role bindings applied on this target's Azure scope at deploy time. Each entry names one Azure principal by object_id and one role. Self-contained per-target declaration, mirroring the shape of files/secrets/env_vars. Distinct from allowed_roles (which is the accept-list for the intersection model used by managed identities); permissions[] declares specific grants to specific principals.",
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["identity_id", "role"],
+              "required": ["object_id", "role"],
               "properties": {
-                "identity_id": {
+                "object_id": {
                   "type": "string",
                   "minLength": 1,
-                  "description": "identity_id from IdentityCatalog."
+                  "description": "Azure AD principal object id (user, service principal, or managed identity) receiving the grant."
                 },
                 "role": {
                   "type": "string",
