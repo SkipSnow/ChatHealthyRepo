@@ -1071,7 +1071,7 @@ def _atlas_ensure_private_endpoint_service(
         code, shown = _atlas_request(
             "GET",
             f"/groups/{project_id}/privateEndpoint/{provider}/endpointService/"
-            f"{provider}/{endpoint_id}",
+            f"{endpoint_id}",
             access_token=access_token,
         )
         if code == 200:
@@ -1126,7 +1126,7 @@ def atlas_resolve_private_link_service_resource_id(
     code, shown = _atlas_request(
         "GET",
         f"/groups/{project_id}/privateEndpoint/{provider}/endpointService/"
-        f"{provider}/{endpoint_id}",
+        f"{endpoint_id}",
         access_token=access_token,
     )
     if code != 200 or not isinstance(shown, dict):
@@ -1178,7 +1178,7 @@ def atlas_approve_private_endpoint(
     code, body = _atlas_request(
         "POST",
         f"/groups/{project_id}/privateEndpoint/{provider}/endpointService/"
-        f"{provider}/{endpoint_id}/endpoint",
+        f"{endpoint_id}/endpoint",
         access_token=access_token,
         body={"id": azure_pe_resource_id, "privateEndpointConnectionName": ""},
     )
