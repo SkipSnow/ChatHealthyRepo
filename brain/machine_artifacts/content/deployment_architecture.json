@@ -7081,7 +7081,20 @@
                 "schedule_names": [
                   "SCH-ProviderPipeline-0200UTC"
                 ],
-                "python_packages": [],
+                "python_packages": [
+                  {
+                    "name": "pymongo",
+                    "content_url": "https://files.pythonhosted.org/packages/38/52/a58196a45232e9046c8b13f4fa3d89cca0e462b5c6d28969759226f781ee/pymongo-4.10.1-cp38-cp38-win_amd64.whl"
+                  },
+                  {
+                    "name": "dnspython",
+                    "content_url": "https://files.pythonhosted.org/packages/87/a1/8c5287991ddb8d3e4662f71356d9656d91ab3a36618c3dd11b280df0d255/dnspython-2.6.1-py3-none-any.whl"
+                  },
+                  {
+                    "name": "certifi",
+                    "content_url": "https://files.pythonhosted.org/packages/59/8c/57e832b7af6d7c5abe66eb3fbe3a3a32f4d11ea23a1aa7131371035be991/certifi-2026.5.20-py3-none-any.whl"
+                  }
+                ],
                 "automation_variables": [],
                 "node_address": "https://management.azure.com/.../automationAccounts/ChatHealthyJobManager/runbooks/ProviderPipelineRunbook",
                 "webhook_to_kv": {
