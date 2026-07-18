@@ -96,7 +96,23 @@ class RecordLoader:
         self._validate(doc)
         return TargetRecord.from_dict(doc)
 
-    def load_collection(self, path: str | Path) -> DeploymentCollection:
+    def load_collection(
+        self,
+        path: str | Path,
+        *,
+        target_id_filter: str | None = None,
+    ) -> DeploymentCollection:
+        """Load the deployment collection from `path`.
+
+        When `target_id_filter` is set, schema validation errors that
+        surface on records OTHER than the named target are ignored; the
+        validation focus is scoped to just the target the caller intends
+        to build/deploy. Envelope-level errors and errors on the named
+        target are still raised. This mirrors the deploy chain's real
+        access pattern (one target at a time); it prevents an unrelated
+        target's new-shape record from blocking a schema-only redeploy
+        of an unrelated target.
+        """
         p = Path(path)
         if not p.is_file():
             raise FileNotFoundError(
@@ -126,12 +142,22 @@ class RecordLoader:
                 f"{p} DeploymentTargetRecord array is empty; the deployment "
                 f"record collection has no entries. This is a hard reject."
             )
-        # Validate the WHOLE envelope against the schema in one pass. The
-        # schema describes the envelope shape and its DeploymentTargetRecord
-        # sub-schema validates each record. Per-record validation against
-        # the envelope schema would fail (each record lacks the envelope
-        # top-level $schema/DeploymentTargetRecord fields).
-        self._validate(data)
+        # Validate. If target_id_filter is set, keep only errors that
+        # apply to the envelope root or to that specific target index.
+        if target_id_filter is None:
+            self._validate(data)
+        else:
+            target_idx = None
+            for i, rec in enumerate(records):
+                if isinstance(rec, dict) and rec.get("target_id") == target_id_filter:
+                    target_idx = i
+                    break
+            if target_idx is None:
+                raise ValueError(
+                    f"target_id_filter={target_id_filter!r} not present in the "
+                    f"DeploymentTargetRecord[] array"
+                )
+            self._validate_scoped_to_target(data, target_idx)
         # Use DeploymentCollection.from_list so package expansion is
         # applied consistently.
         coll = DeploymentCollection.from_list(records)
@@ -141,3 +167,30 @@ class RecordLoader:
         coll.identity_catalog = list(data.get("IdentityCatalog", []) or [])
         coll.custom_role_catalog = list(data.get("CustomRoleCatalog", []) or [])
         return coll
+
+    def _validate_scoped_to_target(self, doc: dict, target_idx: int) -> None:
+        """Validate the envelope but filter errors down to the ones
+        affecting either the envelope root or the specified target
+        index. Errors on other targets are silently dropped."""
+        target_key = ("DeploymentTargetRecord", target_idx)
+        kept = []
+        for e in self._validator.iter_errors(doc):
+            path_tuple = tuple(e.absolute_path)
+            # Errors on the envelope root (empty path) — keep.
+            if not path_tuple:
+                kept.append(e)
+                continue
+            first = path_tuple[0]
+            if first != "DeploymentTargetRecord":
+                # Root-level property errors (IdentityCatalog, firm, etc.) — keep.
+                kept.append(e)
+                continue
+            # Under DeploymentTargetRecord; keep only errors on our target.
+            if len(path_tuple) >= 2 and path_tuple[1] == target_idx:
+                kept.append(e)
+        if kept:
+            kept.sort(key=lambda e: list(e.absolute_path))
+            joined = "; ".join(
+                f"{list(e.absolute_path)}: {e.message}" for e in kept[:5]
+            )
+            raise ValueError(f"TargetRecord failed schema validation: {joined}")
