@@ -7320,8 +7320,8 @@
                 "address_prefix": "10.0.4.0/24",
                 "purpose": "pipeline_worker_pool",
                 "reserved_nics": {
-                  "count": 125,
-                  "name_prefix": "pipe-worker",
+                  "count": 10,
+                  "name_prefix": "pipe-node",
                   "allocation": "static",
                   "ip_offset_start": 4,
                   "runtime_consumers": [
