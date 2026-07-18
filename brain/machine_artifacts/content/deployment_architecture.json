@@ -7334,6 +7334,12 @@
       "secrets": {},
       "allowed_roles": [
         "Storage Blob Data Contributor"
+      ],
+      "permissions": [
+        {
+          "object_id": "7c7bf6ac-b8b2-448e-b9af-b09934c10382",
+          "role": "Storage Blob Data Reader"
+        }
       ]
     },
     {

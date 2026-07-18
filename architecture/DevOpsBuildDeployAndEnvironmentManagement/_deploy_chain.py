@@ -1663,6 +1663,36 @@ def apply_identity_role_grants_from_manifest(coll: DeploymentCollection, env: st
                 step(f"  {iid}: {role} on {target.target_id} — {verdict}")
 
 
+def apply_explicit_permissions_from_manifest(coll: DeploymentCollection, env: str) -> None:
+    """Iterate every target's permissions[] and grant each {object_id, role}
+    pair at that target's Azure scope. Self-contained mechanism for
+    user / service-principal grants that do not fit the intersection
+    model (IdentityCatalog.roles x target.allowed_roles) above."""
+    step("applying explicit per-target permissions from manifest")
+    for target in coll:
+        perms = target.permissions or []
+        if not perms:
+            continue
+        scope = _resolve_target_azure_scope(target, env)
+        if not scope:
+            continue
+        for entry in perms:
+            object_id = entry.get("object_id", "").strip()
+            role = entry.get("role", "").strip()
+            if not object_id or not role:
+                continue
+            r = subprocess.run(
+                ["az", "role", "assignment", "create",
+                 "--assignee-object-id", object_id,
+                 "--role", role,
+                 "--scope", scope, "-o", "none"],
+                capture_output=True, text=True,
+                creationflags=creation_flags(), shell=(sys.platform == "win32"),
+            )
+            verdict = "granted" if r.returncode == 0 else "skipped (exists or refused)"
+            step(f"  {object_id[:8]}...: {role} on {target.target_id} — {verdict}")
+
+
 def ensure_runbook_webhook_stored_in_kv(
     rg: str, aa: str, runbook: str,
     webhook_name: str,
@@ -2592,6 +2622,10 @@ def run_cloud_deploy(env: str, target_arg: str) -> int:
         apply_identity_role_grants_from_manifest(coll, env)
     except Exception as exc:  # noqa: BLE001
         step(f"WARN: identity role grants failed: {exc}")
+    try:
+        apply_explicit_permissions_from_manifest(coll, env)
+    except Exception as exc:  # noqa: BLE001
+        step(f"WARN: explicit permissions failed: {exc}")
     if succeeded:
         step(f"deployed {len(succeeded)} target(s):")
         for d in succeeded:

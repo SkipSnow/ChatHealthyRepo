@@ -228,6 +228,11 @@ class TargetRecord:
     # for. Deploy chain intersects `IdentityCatalog[*].roles` with each
     # target's allowed_roles to compute the concrete role-assignment set.
     # Data-driven; no role names appear in the deploy scripts themselves.
+    permissions: list | None = None
+    # Explicit self-contained per-target grants: each entry {object_id, role}
+    # is applied at this target's Azure scope. Independent of the intersection
+    # model above; used for USER / SERVICE_PRINCIPAL principals whose grants
+    # do not fit the identity_catalog roles[] x allowed_roles[] pattern.
     peers: list | None = None
     # Cross-substrate handshake declarations. Each entry names a peer
     # target and the kind of handshake this target participates in with
@@ -259,6 +264,8 @@ class TargetRecord:
             out["variables"] = self.variables
         if self.allowed_roles:
             out["allowed_roles"] = self.allowed_roles
+        if self.permissions:
+            out["permissions"] = self.permissions
         if self.peers:
             out["peers"] = self.peers
         return out
@@ -278,6 +285,7 @@ class TargetRecord:
             variables=d.get("variables"),  # type: ignore[arg-type]
             promote_chain_bound=bool(d.get("promote_chain_bound", True)),
             allowed_roles=d.get("allowed_roles"),  # type: ignore[arg-type]
+            permissions=d.get("permissions"),  # type: ignore[arg-type]
             peers=d.get("peers"),  # type: ignore[arg-type]
         )
 
