@@ -336,7 +336,11 @@ def main(argv: list[str] | None = None) -> int:
         # F-003 §5.1 / F-012 §7.1 cert placement runs inside run_cloud_deploy
         # after CA runbooks and before ACA Jobs (dependency order). Do not
         # call it here — CaEndpointRunbook must already be published.
-        rc = run_cloud_deploy(args.env, args.target)
+        # Pass the filtered target_ids so --package selection is honored end
+        # to end; without this, run_cloud_deploy re-enumerates via
+        # select_target_ids and iterates every synth per-package target
+        # regardless of --package, doing far more work than requested.
+        rc = run_cloud_deploy(args.env, args.target, explicit_target_ids=target_ids)
 
     if rc == 0:
         tests = [t.strip() for t in args.tests.split(",") if t.strip()]

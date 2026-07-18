@@ -2506,15 +2506,24 @@ def _verify_hf_space_live(coll: DeploymentCollection, env: str, target_id: str, 
     return (False, f"timeout after {timeout_s}s; last: {last_detail}")
 
 
-def run_cloud_deploy(env: str, target_arg: str) -> int:
+def run_cloud_deploy(env: str, target_arg: str,
+                     explicit_target_ids: list[str] | None = None) -> int:
     """Deploy in dependency order: HF backends FIRST, Cloudflare wrapper
     LAST. The wrapper publishes ONLY if every selected backend deploy
     succeeded AND its public /health endpoint converged to the new
     build_n. A backend failure aborts the wrapper publish so the live
     wrapper bytes can never drift from the actual backend URLs.
+
+    explicit_target_ids: when non-None (e.g. deploy_chathealthy passed a
+    --package-filtered target list), deploy ONLY those target_ids and
+    skip the target_arg re-enumeration. This is what honors --package
+    end to end so the deploy does not walk every synth per-package
+    target regardless of the filter.
     """
     repo_root = find_repo_root(Path(__file__))
-    step(f"repo_root={repo_root} env={env} target={target_arg}")
+    step(f"repo_root={repo_root} env={env} target={target_arg}"
+         + (f" filtered_targets={len(explicit_target_ids)}"
+            if explicit_target_ids is not None else ""))
     brain_path = repo_root / "brain" / "machine_artifacts" / "content" / "deployment_architecture.json"
     env_file = repo_root / "Code" / ".env"
     load_filter = target_arg if target_arg.startswith("target_") else None
@@ -2522,7 +2531,14 @@ def run_cloud_deploy(env: str, target_arg: str) -> int:
         brain_path, target_id_filter=load_filter,
     )
     resolver = SecretsResolver.from_collection(coll, env_file=env_file)
-    selected = _dependency_sort_targets(select_target_ids(coll, target_arg))
+    if explicit_target_ids is not None:
+        allowed = set(explicit_target_ids)
+        selected = _dependency_sort_targets([
+            (tid, kind) for tid, kind in select_target_ids(coll, target_arg)
+            if tid in allowed
+        ])
+    else:
+        selected = _dependency_sort_targets(select_target_ids(coll, target_arg))
     if not selected:
         sys.exit(f"ERROR: no targets matched --target={target_arg!r}")
     by_id = {t.target_id: t for t in coll}
