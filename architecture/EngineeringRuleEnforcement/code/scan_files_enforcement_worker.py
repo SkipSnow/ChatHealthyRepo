@@ -38,6 +38,7 @@ import re
 import socket
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -496,10 +497,16 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         file_path: str,
         schema_url: str,
     ) -> tuple[dict[str, Any] | None, ViolationRecord | None]:
-        """Resolve $schema URL → schema dict (V19 §4.9.3 step 3).
+        """Resolve $schema URL → schema dict.
 
-        Single responsibility: take a URL, return either (schema, None) or
-        (None, ViolationRecord). Does not validate; does not parse data.
+        Order:
+          1. Contractually-frozen externals (V19 §4.9.3.1 carve-out).
+          2. Per-run cache (dedupe within a single run()).
+          3. chathealthy.ai brain-artifact URLs → read Website/schemas/<basename>
+             from the local repo. Brain-artifact schemas live in the git tree;
+             the URL exists for IDE convenience only. The working tree is
+             the source of truth for enforcement.
+          4. External URL → web fetch.
         """
         # 1. Carve-out for contractually-frozen externals (V19 §4.9.3.1).
         if schema_url in self._frozen_external_schemas:
@@ -509,8 +516,44 @@ class ScanFilesEnforcementWorker(EnforcementWorker):
         if schema_url in self._fetched_schema_cache:
             return self._fetched_schema_cache[schema_url], None
 
-        # 3. Web fetch.
+        # 3. Brain-artifact schemas → local repo file.
+        local_schema = self._resolve_chathealthy_schema_locally(file_path, schema_url)
+        if local_schema is not None:
+            self._fetched_schema_cache[schema_url] = local_schema
+            return local_schema, None
+
+        # 4. Web fetch.
         return self._fetch_schema_from_url(file_path, schema_url)
+
+    def _resolve_chathealthy_schema_locally(
+        self,
+        file_path: str,
+        schema_url: str,
+    ) -> dict[str, Any] | None:
+        """Return the schema dict if schema_url is a chathealthy.ai schema
+        URL and its local repo file exists; None otherwise. Missing local
+        file is silent — falls through to web fetch (which will surface a
+        proper violation if that also fails)."""
+        try:
+            parsed = urllib.parse.urlparse(schema_url)
+        except Exception:  # noqa: BLE001
+            return None
+        host = (parsed.hostname or "").lower()
+        if not host.endswith("chathealthy.ai"):
+            return None
+        path = parsed.path or ""
+        if "/schemas/" not in path:
+            return None
+        basename = path.rsplit("/", 1)[-1]
+        if not basename.endswith(".json"):
+            return None
+        local_path = PROJECT_ROOT / "Website" / "schemas" / basename
+        if not local_path.is_file():
+            return None
+        try:
+            return json.loads(local_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
 
     def _fetch_schema_from_url(
         self,
