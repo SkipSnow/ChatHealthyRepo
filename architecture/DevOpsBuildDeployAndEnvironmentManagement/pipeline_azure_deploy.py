@@ -997,7 +997,7 @@ def _atlas_ensure_private_endpoint_service(
             "POST",
             f"/groups/{project_id}/privateEndpoint/{provider}/endpointService",
             access_token=access_token,
-            body={"providerName": provider, "region": atlas_region},
+            body={"region": atlas_region},
         )
         if code not in (200, 201, 202):
             sys.exit(
