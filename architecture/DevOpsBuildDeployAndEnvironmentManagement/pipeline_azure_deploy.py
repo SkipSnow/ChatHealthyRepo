@@ -983,7 +983,7 @@ def _atlas_ensure_private_endpoint_service(
     step(f"Atlas endpoint service ensure {provider}/{atlas_region}")
     code, existing = _atlas_request(
         "GET",
-        f"/groups/{project_id}/privateEndpointService/endpointService/{provider}",
+        f"/groups/{project_id}/privateEndpoint/{provider}/endpointService",
         access_token=access_token,
     )
     endpoint_id: str | None = None
@@ -995,7 +995,7 @@ def _atlas_ensure_private_endpoint_service(
     if not endpoint_id:
         code, created = _atlas_request(
             "POST",
-            f"/groups/{project_id}/privateEndpointService/endpointService",
+            f"/groups/{project_id}/privateEndpoint/{provider}/endpointService",
             access_token=access_token,
             body={"providerName": provider, "region": atlas_region},
         )
@@ -1011,7 +1011,7 @@ def _atlas_ensure_private_endpoint_service(
     for i in range(60):
         code, shown = _atlas_request(
             "GET",
-            f"/groups/{project_id}/privateEndpointService/endpointService/"
+            f"/groups/{project_id}/privateEndpoint/{provider}/endpointService/"
             f"{provider}/{endpoint_id}",
             access_token=access_token,
         )
@@ -1044,7 +1044,7 @@ def atlas_resolve_private_link_service_resource_id(
     atlas_region = region_input.upper().replace("-", "_")
     code, listed = _atlas_request(
         "GET",
-        f"/groups/{project_id}/privateEndpointService/endpointService/{provider}",
+        f"/groups/{project_id}/privateEndpoint/{provider}/endpointService",
         access_token=access_token,
     )
     if code != 200 or not isinstance(listed, list):
@@ -1063,7 +1063,7 @@ def atlas_resolve_private_link_service_resource_id(
         )
     code, shown = _atlas_request(
         "GET",
-        f"/groups/{project_id}/privateEndpointService/endpointService/"
+        f"/groups/{project_id}/privateEndpoint/{provider}/endpointService/"
         f"{provider}/{endpoint_id}",
         access_token=access_token,
     )
@@ -1099,7 +1099,7 @@ def atlas_approve_private_endpoint(
     atlas_region = region_input.upper().replace("-", "_")
     code, listed = _atlas_request(
         "GET",
-        f"/groups/{project_id}/privateEndpointService/endpointService/{provider}",
+        f"/groups/{project_id}/privateEndpoint/{provider}/endpointService",
         access_token=access_token,
     )
     endpoint_id = None
@@ -1112,7 +1112,7 @@ def atlas_approve_private_endpoint(
         sys.exit("ERROR: Atlas endpoint service not present at approval time")
     code, body = _atlas_request(
         "POST",
-        f"/groups/{project_id}/privateEndpointService/endpointService/"
+        f"/groups/{project_id}/privateEndpoint/{provider}/endpointService/"
         f"{provider}/{endpoint_id}/endpoint",
         access_token=access_token,
         body={"id": azure_pe_resource_id, "privateEndpointConnectionName": ""},
