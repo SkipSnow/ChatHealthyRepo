@@ -987,11 +987,18 @@ def _atlas_ensure_private_endpoint_service(
         access_token=access_token,
     )
     endpoint_id: str | None = None
-    if code == 200 and isinstance(existing, list):
-        for svc in existing:
-            if (svc.get("regionName") or svc.get("region")) == atlas_region:
-                endpoint_id = svc.get("id")
-                break
+    # Atlas list endpoints may return either a bare array or a paginated
+    # {"results": [...]} envelope. Accept both.
+    listing: list = []
+    if code == 200:
+        if isinstance(existing, list):
+            listing = existing
+        elif isinstance(existing, dict) and isinstance(existing.get("results"), list):
+            listing = existing["results"]
+    for svc in listing:
+        if (svc.get("regionName") or svc.get("region")) == atlas_region:
+            endpoint_id = svc.get("id")
+            break
     if not endpoint_id:
         code, created = _atlas_request(
             "POST",
@@ -1047,12 +1054,15 @@ def atlas_resolve_private_link_service_resource_id(
         f"/groups/{project_id}/privateEndpoint/{provider}/endpointService",
         access_token=access_token,
     )
-    if code != 200 or not isinstance(listed, list):
+    if code != 200:
         sys.exit(
             f"ERROR: Atlas endpoint services list HTTP {code}: {listed}"
         )
+    listing = listed if isinstance(listed, list) else (
+        listed.get("results") if isinstance(listed, dict) else []
+    )
     endpoint_id = None
-    for svc in listed:
+    for svc in (listing or []):
         if (svc.get("regionName") or svc.get("region")) == atlas_region:
             endpoint_id = svc.get("id")
             break
@@ -1102,9 +1112,12 @@ def atlas_approve_private_endpoint(
         f"/groups/{project_id}/privateEndpoint/{provider}/endpointService",
         access_token=access_token,
     )
+    listing = listed if isinstance(listed, list) else (
+        listed.get("results") if isinstance(listed, dict) else []
+    )
     endpoint_id = None
-    if code == 200 and isinstance(listed, list):
-        for svc in listed:
+    if code == 200:
+        for svc in (listing or []):
             if (svc.get("regionName") or svc.get("region")) == atlas_region:
                 endpoint_id = svc.get("id")
                 break
