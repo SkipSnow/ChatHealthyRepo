@@ -11,7 +11,21 @@
           "branch": "dev",
           "cloudflare_pages": {
             "project_name": "chathealthy-website-dev"
-          }
+          },
+          "packages": [
+            {
+              "package_id": "json_schemas",
+              "kind": "static_files"
+            },
+            {
+              "package_id": "runtime_driver",
+              "kind": "static_files"
+            },
+            {
+              "package_id": "static_pages",
+              "kind": "static_files"
+            }
+          ]
         },
         {
           "env_binding": "qa",
@@ -19,7 +33,21 @@
           "branch": "qa",
           "cloudflare_pages": {
             "project_name": "chathealthy-website-qa"
-          }
+          },
+          "packages": [
+            {
+              "package_id": "json_schemas",
+              "kind": "static_files"
+            },
+            {
+              "package_id": "runtime_driver",
+              "kind": "static_files"
+            },
+            {
+              "package_id": "static_pages",
+              "kind": "static_files"
+            }
+          ]
         },
         {
           "env_binding": "prod",
@@ -27,7 +55,21 @@
           "branch": "main",
           "cloudflare_pages": {
             "project_name": "chathealthywebsite"
-          }
+          },
+          "packages": [
+            {
+              "package_id": "json_schemas",
+              "kind": "static_files"
+            },
+            {
+              "package_id": "runtime_driver",
+              "kind": "static_files"
+            },
+            {
+              "package_id": "static_pages",
+              "kind": "static_files"
+            }
+          ]
         }
       ],
       "files": [
@@ -37,7 +79,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "ffb32b32b331db99254ccf458ceafd2ccb96a7c592b0842579d6bbd69fc564a3",
-          "package": "default"
+          "package": "runtime_driver"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -45,7 +87,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "b04b0c38fca1aa81a4ef72b6ba98b4aab2df483397281c6ff6eac6378364e305",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -53,7 +95,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "0a92f936e818f6442966a2bba463b932abff3813272d22853b286596bda91828",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -61,7 +103,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "a4f540df2b9d3cd4e102be38e103c9b0d7b6bdd41d7b9965accfc6d62118c6d7",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -69,7 +111,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "0a991732935db7fe422077ad01807c1bf6648cd18e0da0d613a93671c90b68cb",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -77,7 +119,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "a49b93bebaf0a9eb08baf9d8863803297aa7d21faedfde8d8ccad45e40484555",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -85,7 +127,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "f546e5ce78ae7328d7031df3264705e97eec653797b3ce43b08531df76142046",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -93,7 +135,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "6c2b32915a04291fa26c16cbcb7a0674875ca0190ed04b921a5f3292b78026e2",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -101,7 +143,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "6e4c5b0be92c50777729df8cccd587258f4d6ab69662180f58ebb306749cde95",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -109,7 +151,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "a9c48adf8f28a13c22332105554dfe25f5b3507706773c3985e2fd93c11f3fde",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -117,7 +159,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "b638c11eb3fe0199bf5b00afa2cdb1f4685cff015234f280eae914ff319fc43a",
-          "package": "default"
+          "package": "runtime_driver"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -125,7 +167,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "f5a815514a5c5c2cabaf60d500fee2f36f5de61af0d09f5a92bee1f662f9150d",
-          "package": "default"
+          "package": "runtime_driver"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -133,7 +175,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "050d6336ea9e1cb0944eabbfed3d37e3d6b2dc4fe7b1306dbd8f5354680ac2ca",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -141,7 +183,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "a44aab8a17250b75a16e620e482cf422d816a3f4e72870d44066cd5da4019757",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -149,7 +191,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "e4dc9b9310236fdc60add74193e7138383d578ed9206f28ab5919bfd4682270d",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -157,7 +199,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "543e9168939d2b1e8d35968a28f4ace141e4cea95c5e70931adbf6be6a8fe9da",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -165,7 +207,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "b84cdef10842a0b688f7f6c47ba1bff7ce79cb4b0eaf50503bd5d7da35e2721f",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -173,7 +215,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "519270be26af789288567d654c5d540d33e682b86173c467b0270b0810a15d72",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -181,7 +223,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "8aee9ba0314252eb1dbe282b508ebf1df5da05a3667df8c6f9e89b4890f55466",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -189,7 +231,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "cb1fd7df0fdca92241a50b6e280f4fbd14cbbc0a764113dc3936b99fe40ecefe",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -197,7 +239,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "14a62748bd5b622a37a74c0e99db63e4aef9a92963bd4a1b72ea9d14d257f90e",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -205,7 +247,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "e3559deadb2ce162c9729d84a7f43cbd455c4eb34e1ca6ff521c32e22cbf8f12",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -213,7 +255,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "2a8f49d01ba69c47acb727b423ded2238cac4e52484face9e435b821cc242fd5",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -221,7 +263,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "ea57a1076dd29897692b8adc74b278d6f838c2c3d9248e2d60b32041d78e4de9",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -229,7 +271,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "e4174f3bfa3e0d374a3b6fa16538b2db284424320b39c95ce23ae3f6dd6983f1",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -237,7 +279,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "d05c0b0f27069b8c2cf0c38fa4bd7396a562b790fa3d73a6c7f4377810093f13",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -245,7 +287,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "dd9f17d8ad5dbcaeabb3c0e35d6afbe4db9f826b3a79252f80e03062d2e0a2cc",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -253,7 +295,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "d8c700e9d6754b04615dad0bd4a1551d6848ae23a48c5c0420e08cb506b757c4",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -261,7 +303,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "adc9b18a2f9fdf562cce4ebd1afe597a7cea1c7f2333c5e1ed9c99e486c0b18f",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -269,7 +311,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "2d0de60630de1e9a8f4e11f768e51cda49ee457baa34cad81b55e7e3dbdcbe05",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -277,7 +319,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "d486b3a7ec9eed0c79a97bdc5503983585bbab111008aa823df2dc37bd37e156",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -285,7 +327,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "14242dd3f4d56834cd9123ba1e928410e20188c54078e17a81e57dce1eef3ce4",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -293,7 +335,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "9bfaa48f57b6d2b26687bad2c307c56a4efa6ec4cf66019ff2023491485abea6",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -301,7 +343,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "bf2a8f321ffc5d200ad808138de559c32e6663441719a0075249b6b975fb4d40",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -309,7 +351,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "5b6e7d6a3d0d22bd7ad5b87068690fb8e244d2ce08e65407a817bdc3d0288605",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -317,7 +359,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "0344d71178c6a4c233697210d5baa807f91aefb9eadb85f13d5fd7e099e59489",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -325,7 +367,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "f29545827920666c9f955eb5c4ff8335ac75c2cd2f036fccb9b63345f067218d",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -333,7 +375,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "0a4c0491fb68a5f511ed1c00ac6dd638c8299361fdeaca52fc50f149da916b28",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -341,7 +383,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "a763e3802b3cc84ead002bda1ce8aaf897ff0ee7dc84821e7b73e7bab86a32e3",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -349,7 +391,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "0fe50235fbe3fca101b84c62c8b11eeab2bde15ca4d201cc51125c359421effe",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -357,7 +399,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "4bc465c77a6d53be029e303863ae8ebde06a2694041c2f4059051ff592321d92",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -365,7 +407,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "8b6734368403609d4e3e4c1460367fde7c418da5167da4891a49d61155541f2c",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -373,7 +415,7 @@
           "handler_type": "json",
           "disposition": "referenced",
           "content_hash": "41da76f5afb7ce062d248f762463a92f7ca47e4e0f905b224ba6afeef91ded0f",
-          "package": "default"
+          "package": "json_schemas"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -381,7 +423,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "48b3664238dbdea0b133a38737f581ab3676594fe18e891a0f5cc6772732ed37",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -389,7 +431,7 @@
           "handler_type": "static_asset",
           "disposition": "referenced",
           "content_hash": "5df2f2bcbbd31f209f618e86ced3e1c52e558cd6b4af1195852b4d5d2fb4fe7d",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -397,7 +439,7 @@
           "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "a635218d71c7144fd3de44553dd88781d84d8bfc5325b8dcc650b9e48435aaab",
-          "package": "default"
+          "package": "static_pages"
         },
         {
           "feature_id": "EPIC-008-F-012",
@@ -405,7 +447,7 @@
           "handler_type": "python_test",
           "disposition": "referenced",
           "content_hash": "7018cd20bc72d0341bd35a2e9cb343f97324177ce6fcc7066b26653fcbc7f57b",
-          "package": "default"
+          "package": "static_pages"
         }
       ],
       "secrets": {
