@@ -20,6 +20,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -235,9 +236,8 @@ def ensure_vnet_subnets(target, env: str) -> str:
             if delegations:
                 args.extend(["--delegations", ",".join(delegations)])
             _az(args)
-        pool = subnet.get("reserved_nics")
-        if pool:
-            _ensure_reserved_nic_pool(
+        for pool in (subnet.get("reserved_nic_pools") or []):
+            _process_reserved_nic_pool(
                 rg=rg,
                 vnet=vnet,
                 subnet_name=name,
@@ -248,7 +248,24 @@ def ensure_vnet_subnets(target, env: str) -> str:
     return vnet
 
 
-def _ensure_reserved_nic_pool(
+def _nic_pool_names(name_prefix: str, count: int) -> list[str]:
+    """Return NIC names for a pool. Singleton (count==1) → `<name_prefix>`;
+    multi-member → `<name_prefix>1`, `<name_prefix>2`, ... (1-indexed)."""
+    if count == 1:
+        return [name_prefix]
+    return [f"{name_prefix}{i + 1}" for i in range(count)]
+
+
+def _list_nics_by_prefix(*, rg: str, name_prefix: str) -> list[dict]:
+    """Every NIC in the RG whose name starts with name_prefix."""
+    nics = _az_json(
+        ["network", "nic", "list", "-g", rg,
+         "--query", f"[?starts_with(name, '{name_prefix}')]"]
+    )
+    return nics or []
+
+
+def _process_reserved_nic_pool(
     *,
     rg: str,
     vnet: str,
@@ -257,21 +274,66 @@ def _ensure_reserved_nic_pool(
     pool: dict,
     location: str,
 ) -> None:
-    """Materialize the subnet's declared reserved_nics pool.
+    """Dispatch on the pool's action (default: create)."""
+    action = pool.get("action", "create")
+    if action == "delete":
+        _delete_reserved_nic_pool(rg=rg, pool=pool)
+        return
+    if action == "rename":
+        from_prefix = pool.get("from_name_prefix")
+        if not from_prefix:
+            sys.exit(
+                f"ERROR: reserved NIC pool {pool['name_prefix']!r} "
+                f"action=rename requires from_name_prefix"
+            )
+        _delete_reserved_nic_pool(rg=rg, pool={"name_prefix": from_prefix})
+        _create_reserved_nic_pool(
+            rg=rg, vnet=vnet, subnet_name=subnet_name,
+            subnet_prefix=subnet_prefix, pool=pool, location=location,
+        )
+        return
+    if action == "create_if_empty":
+        if _list_nics_by_prefix(rg=rg, name_prefix=pool["name_prefix"]):
+            step(f"reserved NIC pool {pool['name_prefix']!r}: "
+                 f"create_if_empty skipped (existing NICs present)")
+            return
+    # create (default) or create_if_empty (empty case)
+    _create_reserved_nic_pool(
+        rg=rg, vnet=vnet, subnet_name=subnet_name,
+        subnet_prefix=subnet_prefix, pool=pool, location=location,
+    )
 
-    Creates `pool['count']` NICs with static private IPs starting at the
-    subnet's `<prefix>.<ip_offset_start>` and incrementing by 1 per NIC.
-    NIC names are `<name_prefix>-001`, `<name_prefix>-002`, ...
 
-    Idempotent: an existing NIC of the same name is left in place; a NIC
-    whose private IP does not match the declared slot is a hard error so
-    the operator can decide whether to delete-and-recreate.
-    """
+def _delete_reserved_nic_pool(*, rg: str, pool: dict) -> None:
+    """Delete every NIC matching pool.name_prefix. Fail loud on any NIC
+    attached to a VM (operator must detach first)."""
+    name_prefix = pool["name_prefix"]
+    matching = _list_nics_by_prefix(rg=rg, name_prefix=name_prefix)
+    step(f"reserved NIC pool delete {name_prefix!r}: {len(matching)} NICs match")
+    for nic in matching:
+        nic_name = nic["name"]
+        if nic.get("virtualMachine"):
+            sys.exit(
+                f"ERROR: NIC {nic_name!r} attached to a VM; cannot delete"
+            )
+        step(f"  delete NIC {nic_name}")
+        _az(["network", "nic", "delete", "-g", rg, "-n", nic_name])
+
+
+def _create_reserved_nic_pool(
+    *,
+    rg: str,
+    vnet: str,
+    subnet_name: str,
+    subnet_prefix: str,
+    pool: dict,
+    location: str,
+) -> None:
+    """Create N unbound NICs with static IPs. Idempotent: matching-name +
+    matching-IP is a no-op; matching-name + mismatched-IP is a hard error."""
     count = int(pool["count"])
     name_prefix = pool["name_prefix"]
-    allocation = pool["allocation"]
     ip_offset_start = int(pool["ip_offset_start"])
-    # Derive the /24 (or whatever prefix) base from subnet_prefix.
     base_ip, _, _ = subnet_prefix.partition("/")
     octets = base_ip.split(".")
     if len(octets) != 4:
@@ -284,10 +346,10 @@ def _ensure_reserved_nic_pool(
          "-g", rg, "--vnet-name", vnet, "-n", subnet_name,
          "--query", "id"]
     )
-    step(f"reserved NIC pool: {count} NICs in {subnet_name} "
-         f"starting at .{ip_offset_start} named {name_prefix}-001..{count:03d}")
-    for i in range(count):
-        nic_name = f"{name_prefix}-{i + 1:03d}"
+    names = _nic_pool_names(name_prefix, count)
+    step(f"reserved NIC pool create {name_prefix!r}: {count} NICs starting at "
+         f".{ip_offset_start}")
+    for i, nic_name in enumerate(names):
         host_octet = ip_offset_start + i
         if host_octet > 254:
             sys.exit(
@@ -719,65 +781,107 @@ def ensure_aca_job(
     return job
 
 
-def _atlas_load_credentials(atlas_block: dict) -> tuple[str, str, str]:
-    """Read Atlas Admin API credentials from Code/.env via secret-key names
-    declared on the atlas sub-block's `project`. Returns (public_key,
-    private_key, project_id). Fails hard if any is missing.
+_ATLAS_OAUTH_TOKEN_URL = "https://cloud.mongodb.com/api/oauth/token"
+_ATLAS_TOKEN_CACHE: dict[str, tuple[str, float]] = {}
+
+
+def _atlas_load_credentials() -> tuple[str, str, str]:
+    """Read Atlas Admin API service-account credentials from Code/.env.
+
+    Returns (client_id, client_secret, project_id). Fails hard if any
+    is missing. Credentials are NOT declared in the manifest — the
+    Atlas project we deploy to is identified by ATLAS_PROJECT_ID from
+    Code/.env, and the service-account credentials (client id/secret)
+    that authenticate the deploy are also read directly from Code/.env.
     """
     from dotenv import load_dotenv
     repo_root = Path(__file__).resolve().parents[2]
     load_dotenv(repo_root / "Code" / ".env")
     load_dotenv(repo_root / ".env")
-    project = atlas_block.get("project") or {}
-    public_key_env = project.get("public_key_from_secret") or ""
-    private_key_env = project.get("private_key_from_secret") or ""
-    project_id_env = project.get("project_id_from_secret") or ""
-    public_key = os.environ.get(public_key_env, "")
-    private_key = os.environ.get(private_key_env, "")
-    project_id = os.environ.get(project_id_env, "")
+    client_id = os.environ.get("Mong_serviceAccount_ClientID", "")
+    client_secret = os.environ.get("Mong_serviceAccount_ClientSecret", "")
+    project_id = os.environ.get("ATLAS_PROJECT_ID", "")
     missing = [k for k, v in {
-        public_key_env: public_key,
-        private_key_env: private_key,
-        project_id_env: project_id,
+        "Mong_serviceAccount_ClientID": client_id,
+        "Mong_serviceAccount_ClientSecret": client_secret,
+        "ATLAS_PROJECT_ID": project_id,
     }.items() if not v]
     if missing:
         sys.exit(
-            f"ERROR: Atlas credentials missing from Code/.env — "
-            f"declared secret names not populated: {missing}"
+            f"ERROR: Atlas deploy credentials missing from Code/.env: {missing}"
         )
-    return public_key, private_key, project_id
+    return client_id, client_secret, project_id
+
+
+def _atlas_get_access_token(client_id: str, client_secret: str) -> str:
+    """OAuth 2.0 client-credentials flow against Atlas /oauth/token.
+
+    Caches the token in-process for the remainder of its TTL to avoid a
+    round trip per Atlas API call. Atlas issues tokens with ~1 hour TTL.
+    """
+    cache_key = client_id
+    cached = _ATLAS_TOKEN_CACHE.get(cache_key)
+    if cached is not None:
+        token, exp = cached
+        if time.monotonic() < exp - 30:  # 30s safety margin
+            return token
+    import base64
+    creds = base64.b64encode(
+        f"{client_id}:{client_secret}".encode("utf-8")
+    ).decode("ascii")
+    body = urllib.parse.urlencode({"grant_type": "client_credentials"}).encode("utf-8")
+    req = urllib.request.Request(
+        _ATLAS_OAUTH_TOKEN_URL,
+        data=body,
+        method="POST",
+        headers={
+            "Authorization": f"Basic {creds}",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body_text = e.read().decode("utf-8", errors="replace")[:500]
+        sys.exit(
+            f"ERROR: Atlas OAuth token request HTTP {e.code}: {body_text}"
+        )
+    except urllib.error.URLError as e:
+        sys.exit(f"ERROR: Atlas OAuth token URL error: {e}")
+    token = payload.get("access_token")
+    if not token:
+        sys.exit(f"ERROR: Atlas OAuth response missing access_token: {payload}")
+    expires_in = int(payload.get("expires_in", 3600))
+    _ATLAS_TOKEN_CACHE[cache_key] = (token, time.monotonic() + expires_in)
+    return token
 
 
 def _atlas_request(
     method: str,
     path: str,
     *,
-    public_key: str,
-    private_key: str,
+    access_token: str,
     body: Any = None,
 ) -> tuple[int, Any]:
-    """Call Atlas Admin API with HTTP Digest auth.
+    """Call Atlas Admin API with Bearer-token auth.
 
     Returns (status_code, parsed_json_or_none). Never raises on 4xx/5xx;
     caller decides how to interpret the code.
     """
     url = f"{ATLAS_API_BASE}{path}"
     data = json.dumps(body).encode("utf-8") if body is not None else None
-    handler = urllib.request.HTTPDigestAuthHandler()
-    handler.add_password(
-        realm=None, uri="https://cloud.mongodb.com",
-        user=public_key, passwd=private_key,
-    )
-    opener = urllib.request.build_opener(handler)
     req = urllib.request.Request(
         url, data=data, method=method,
         headers={
+            "Authorization": f"Bearer {access_token}",
             "Accept": ATLAS_API_ACCEPT,
             "Content-Type": "application/json" if data else "*/*",
         },
     )
     try:
-        with opener.open(req, timeout=45) as resp:
+        with urllib.request.urlopen(req, timeout=45) as resp:
             code = resp.getcode()
             payload = resp.read().decode("utf-8")
     except urllib.error.HTTPError as e:
@@ -800,19 +904,20 @@ def verify_atlas(target, env: str) -> str:
     Idempotent.
     """
     block = _env_block(target, env, "atlas")
-    public_key, private_key, project_id = _atlas_load_credentials(block)
+    client_id, client_secret, project_id = _atlas_load_credentials()
+    access_token = _atlas_get_access_token(client_id, client_secret)
     cluster_name = block["cluster"]["cluster_name"]
     step(f"Atlas project verify project_id={project_id[:8]}...")
     code, body = _atlas_request(
         "GET", f"/groups/{project_id}",
-        public_key=public_key, private_key=private_key,
+        access_token=access_token,
     )
     if code != 200:
         sys.exit(f"ERROR: Atlas project not reachable (HTTP {code}): {body}")
     step(f"Atlas cluster verify {cluster_name}")
     code, body = _atlas_request(
         "GET", f"/groups/{project_id}/clusters/{cluster_name}",
-        public_key=public_key, private_key=private_key,
+        access_token=access_token,
     )
     if code != 200:
         sys.exit(
@@ -823,16 +928,14 @@ def verify_atlas(target, env: str) -> str:
         if access.get("kind") == "ip_allowlist":
             _atlas_reconcile_ip_allowlist(
                 access,
-                public_key=public_key,
-                private_key=private_key,
+                access_token=access_token,
                 project_id=project_id,
             )
     pes = block.get("private_endpoint_service")
     if pes:
         endpoint_id = _atlas_ensure_private_endpoint_service(
             pes,
-            public_key=public_key,
-            private_key=private_key,
+            access_token=access_token,
             project_id=project_id,
         )
         step(f"Atlas private endpoint service id={endpoint_id}")
@@ -842,8 +945,7 @@ def verify_atlas(target, env: str) -> str:
 def _atlas_reconcile_ip_allowlist(
     access: dict,
     *,
-    public_key: str,
-    private_key: str,
+    access_token: str,
     project_id: str,
 ) -> None:
     """Ensure every declared allowlist entry exists on Atlas. Does NOT
@@ -855,8 +957,7 @@ def _atlas_reconcile_ip_allowlist(
         comment = (entry.get("comment") or "")[:80]
         code, _body = _atlas_request(
             "POST", f"/groups/{project_id}/accessList",
-            public_key=public_key,
-            private_key=private_key,
+            access_token=access_token,
             body=[{"cidrBlock": cidr, "comment": comment}],
         )
         if code in (200, 201):
@@ -870,8 +971,7 @@ def _atlas_reconcile_ip_allowlist(
 def _atlas_ensure_private_endpoint_service(
     pes: dict,
     *,
-    public_key: str,
-    private_key: str,
+    access_token: str,
     project_id: str,
 ) -> str:
     """Create-if-absent an Atlas private endpoint service for
@@ -884,7 +984,7 @@ def _atlas_ensure_private_endpoint_service(
     code, existing = _atlas_request(
         "GET",
         f"/groups/{project_id}/privateEndpointService/endpointService/{provider}",
-        public_key=public_key, private_key=private_key,
+        access_token=access_token,
     )
     endpoint_id: str | None = None
     if code == 200 and isinstance(existing, list):
@@ -896,7 +996,7 @@ def _atlas_ensure_private_endpoint_service(
         code, created = _atlas_request(
             "POST",
             f"/groups/{project_id}/privateEndpointService/endpointService",
-            public_key=public_key, private_key=private_key,
+            access_token=access_token,
             body={"providerName": provider, "region": atlas_region},
         )
         if code not in (200, 201, 202):
@@ -913,7 +1013,7 @@ def _atlas_ensure_private_endpoint_service(
             "GET",
             f"/groups/{project_id}/privateEndpointService/endpointService/"
             f"{provider}/{endpoint_id}",
-            public_key=public_key, private_key=private_key,
+            access_token=access_token,
         )
         if code == 200:
             status = shown.get("status") if isinstance(shown, dict) else None
@@ -936,7 +1036,8 @@ def atlas_resolve_private_link_service_resource_id(
     """
     _ = group_id  # currently only 'mongodb' — Atlas has no group discriminator
     block = _env_block(peer_target, env, "atlas")
-    public_key, private_key, project_id = _atlas_load_credentials(block)
+    client_id, client_secret, project_id = _atlas_load_credentials()
+    access_token = _atlas_get_access_token(client_id, client_secret)
     pes = block.get("private_endpoint_service") or {}
     provider = pes.get("provider", "AZURE")
     region_input = pes.get("region", "eastus2")
@@ -944,7 +1045,7 @@ def atlas_resolve_private_link_service_resource_id(
     code, listed = _atlas_request(
         "GET",
         f"/groups/{project_id}/privateEndpointService/endpointService/{provider}",
-        public_key=public_key, private_key=private_key,
+        access_token=access_token,
     )
     if code != 200 or not isinstance(listed, list):
         sys.exit(
@@ -964,7 +1065,7 @@ def atlas_resolve_private_link_service_resource_id(
         "GET",
         f"/groups/{project_id}/privateEndpointService/endpointService/"
         f"{provider}/{endpoint_id}",
-        public_key=public_key, private_key=private_key,
+        access_token=access_token,
     )
     if code != 200 or not isinstance(shown, dict):
         sys.exit(
@@ -990,7 +1091,8 @@ def atlas_approve_private_endpoint(
 ) -> None:
     """Approve the Azure-side private endpoint connection on Atlas."""
     block = _env_block(peer_target, env, "atlas")
-    public_key, private_key, project_id = _atlas_load_credentials(block)
+    client_id, client_secret, project_id = _atlas_load_credentials()
+    access_token = _atlas_get_access_token(client_id, client_secret)
     pes = block.get("private_endpoint_service") or {}
     provider = pes.get("provider", "AZURE")
     region_input = pes.get("region", "eastus2")
@@ -998,7 +1100,7 @@ def atlas_approve_private_endpoint(
     code, listed = _atlas_request(
         "GET",
         f"/groups/{project_id}/privateEndpointService/endpointService/{provider}",
-        public_key=public_key, private_key=private_key,
+        access_token=access_token,
     )
     endpoint_id = None
     if code == 200 and isinstance(listed, list):
@@ -1012,7 +1114,7 @@ def atlas_approve_private_endpoint(
         "POST",
         f"/groups/{project_id}/privateEndpointService/endpointService/"
         f"{provider}/{endpoint_id}/endpoint",
-        public_key=public_key, private_key=private_key,
+        access_token=access_token,
         body={"id": azure_pe_resource_id, "privateEndpointConnectionName": ""},
     )
     if code in (200, 201, 202):

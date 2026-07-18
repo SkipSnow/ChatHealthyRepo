@@ -6,6 +6,16 @@
   "type": "object",
   "additionalProperties": false,
   "$defs": {
+    "record_action": {
+      "type": "string",
+      "description": "Lifecycle action the deploy chain applies to this record. Semantics: 'create' (default, absent == create) — provision the resource if it doesn't already exist. 'delete' — the record represents a resource we WANT gone; deploy handler destroys it, then the operator removes the record from the manifest in the next commit. 'rename' — the resource currently exists under `from_name`; deploy handler moves it to the new name (typically create-new + copy-state + delete-old). 'create_if_empty' — provision only if the parent slot is currently unoccupied; leave existing state alone otherwise. One-shot semantics: after a delete or rename completes, the record is expected to be removed (delete) or have its action reset (rename) in the next commit.",
+      "enum": [
+        "create",
+        "delete",
+        "rename",
+        "create_if_empty"
+      ]
+    },
     "runtime_consumers": {
       "type": "array",
       "description": "Runtime consumers of the node this array hangs off. Each entry declares one identity that claims/uses the node at runtime and the operation it performs. Deploy does NOT act on this data (deploy-time RBAC is governed by allowed_roles / IdentityCatalog); runtime consumers exist so the manifest self-documents the runtime contract and downstream audits/monitoring can enumerate who touches what.",
@@ -813,40 +823,53 @@
                             "minLength": 1,
                             "maxLength": 256
                           },
-                          "reserved_nics": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "description": "Pre-provisioned static-IP NIC pool inside this subnet. Deploy creates `count` NICs whose private IPs are static-allocated at `<subnet_prefix>.<ip_offset_start>` through `<subnet_prefix>.<ip_offset_start + count - 1>`, named `<name_prefix>-001` through `<name_prefix>-N`. NICs remain unbound (no VM attached) at rest; runtime code claims an unbound NIC, spawns a VM on it, releases the NIC when work is done. The network topology stays stable while VMs come and go.",
-                            "required": [
-                              "count",
-                              "name_prefix",
-                              "allocation",
-                              "ip_offset_start"
-                            ],
-                            "properties": {
-                              "count": {
-                                "type": "integer",
-                                "minimum": 1,
-                                "maximum": 1000
-                              },
-                              "name_prefix": {
-                                "type": "string",
-                                "pattern": "^[a-z0-9-]{1,50}$"
-                              },
-                              "allocation": {
-                                "enum": [
-                                  "static",
-                                  "dynamic"
-                                ]
-                              },
-                              "ip_offset_start": {
-                                "type": "integer",
-                                "description": "First host octet within the subnet. Azure reserves .0-.3 in every subnet, so this MUST be >= 4.",
-                                "minimum": 4,
-                                "maximum": 65535
-                              },
-                              "runtime_consumers": {
-                                "$ref": "#/$defs/runtime_consumers"
+                          "reserved_nic_pools": {
+                            "type": "array",
+                            "description": "Zero or more pre-provisioned static-IP NIC pools inside this subnet. Each pool is a homogeneous set of unbound NICs serving one component. Multiple pools per subnet allow retiring old pools alongside creating new ones (a retire pool carries action=='delete'). Each pool independently declares its lifecycle action.",
+                            "uniqueItems": true,
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "description": "One NIC pool. Deploy creates `count` NICs with static private IPs starting at `<subnet_prefix>.<ip_offset_start>`; names are `<name_prefix><N>` (1-indexed) when count>1, or `<name_prefix>` when count==1. NICs stay unbound at rest; runtime code claims one, spawns a VM on it, releases it when done. Naming convention: `{ComponentName}_vnetNode` (no substrate name like 'ACA' in the component name).",
+                              "required": [
+                                "count",
+                                "name_prefix",
+                                "allocation",
+                                "ip_offset_start"
+                              ],
+                              "properties": {
+                                "count": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 1000
+                                },
+                                "name_prefix": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                                },
+                                "allocation": {
+                                  "enum": [
+                                    "static",
+                                    "dynamic"
+                                  ]
+                                },
+                                "ip_offset_start": {
+                                  "type": "integer",
+                                  "description": "First host octet within the subnet. Azure reserves .0-.3 in every subnet, so this MUST be >= 4.",
+                                  "minimum": 4,
+                                  "maximum": 65535
+                                },
+                                "runtime_consumers": {
+                                  "$ref": "#/$defs/runtime_consumers"
+                                },
+                                "action": {
+                                  "$ref": "#/$defs/record_action"
+                                },
+                                "from_name_prefix": {
+                                  "type": "string",
+                                  "description": "Required when action=='rename'. Old name_prefix to migrate FROM.",
+                                  "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+                                }
                               }
                             }
                           },
@@ -935,36 +958,11 @@
                 "atlas": {
                   "type": "object",
                   "additionalProperties": false,
-                  "description": "MongoDB Atlas coordinates for this env binding. Present iff target_kind=='atlas'. Encapsulates every fact about our Atlas usage: the project (credentials location), the cluster we point to, how the cluster accepts inbound (accepted_access[]), and the Atlas-side private endpoint service that the Azure-side private endpoint handshakes with.",
+                  "description": "MongoDB Atlas coordinates for this env binding. Present iff target_kind=='atlas'. Encapsulates every fact about our Atlas usage that we deploy: the cluster we point to, how the cluster accepts inbound (accepted_access[]), and the Atlas-side private endpoint service that the Azure-side private endpoint handshakes with. Deploy-time authentication is NOT declared here — the deploy handler reads Atlas Admin credentials directly from Code/.env on the operator's workstation (kept out of the manifest per the 'nothing in deployment_architecture.json that we are not deploying' rule).",
                   "required": [
-                    "project",
                     "cluster"
                   ],
                   "properties": {
-                    "project": {
-                      "type": "object",
-                      "additionalProperties": false,
-                      "description": "Atlas project the cluster lives in. Values are Code/.env SECRET KEY NAMES (not secret values); deploy resolver reads the named keys from Code/.env at deploy time.",
-                      "required": [
-                        "project_id_from_secret",
-                        "public_key_from_secret",
-                        "private_key_from_secret"
-                      ],
-                      "properties": {
-                        "project_id_from_secret": {
-                          "type": "string",
-                          "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
-                        },
-                        "public_key_from_secret": {
-                          "type": "string",
-                          "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
-                        },
-                        "private_key_from_secret": {
-                          "type": "string",
-                          "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
-                        }
-                      }
-                    },
                     "cluster": {
                       "type": "object",
                       "additionalProperties": false,
