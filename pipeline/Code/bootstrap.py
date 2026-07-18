@@ -50,6 +50,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 import blob_logger
 import chathealthy_ca
+from observability_gate import ObservabilityGate
+from chathealthy_frontend_lib.exceptions import ChatHealthyException
 
 
 # Environment inputs the deploy step provides on every container.
@@ -249,6 +251,74 @@ def main() -> int:
     pipeline_name = os.environ.get("PIPELINE_NAME", "provider")
     import logging  # noqa: PLC0415 (see Rule-005; bootstrap exemption)
     blob_logger.install(pipeline_name, level=logging.DEBUG)
+
+    # Observability gate: prove we can reach the front-cluster Mongo AND
+    # emit through ChatHealthyLoggingService BEFORE any pipeline work.
+    # Operating a data pipeline without observability is fatal (operator
+    # directive 2026-07-18). The lib RAISES on failure; bootstrap ALSO
+    # writes as robust an error message as possible (redundant with the
+    # lib's dump, tolerated on purpose) and returns non-zero so AA/ACA
+    # marks the container Failed.
+    import socket  # noqa: PLC0415
+    import traceback  # noqa: PLC0415
+    try:
+        ObservabilityGate(
+            component=pipeline_name,
+            server=os.environ.get(
+                "CONTAINER_APP_JOB_EXECUTION_NAME", socket.gethostname()
+            ),
+        ).check()
+    except ChatHealthyException as _obs_exc:
+        print("=" * 78, file=sys.stderr, flush=True)
+        print("bootstrap: pipeline observability gate FAILED -- abending",
+              file=sys.stderr, flush=True)
+        print(f"  pipeline_name (component): {pipeline_name!r}",
+              file=sys.stderr, flush=True)
+        print(f"  execution/server:          "
+              f"{os.environ.get('CONTAINER_APP_JOB_EXECUTION_NAME', socket.gethostname())!r}",
+              file=sys.stderr, flush=True)
+        print(f"  env ENV_PREFIX:            "
+              f"{os.environ.get('ENV_PREFIX', '<unset>')!r}",
+              file=sys.stderr, flush=True)
+        print(f"  env CH_SPACE_NAME:         "
+              f"{os.environ.get('CH_SPACE_NAME', '<unset>')!r}",
+              file=sys.stderr, flush=True)
+        print(f"  env MONGO_FRONTEND_conn:   "
+              f"{'set' if os.environ.get('MONGO_FRONTEND_connectionString') else '<UNSET>'}",
+              file=sys.stderr, flush=True)
+        print(f"  mode:      {_obs_exc.mode!r}",
+              file=sys.stderr, flush=True)
+        print(f"  message:   {_obs_exc.message}",
+              file=sys.stderr, flush=True)
+        print(f"  server:    {_obs_exc.server!r}",
+              file=sys.stderr, flush=True)
+        print(f"  component: {_obs_exc.component!r}",
+              file=sys.stderr, flush=True)
+        for _k, _v in (_obs_exc.context or {}).items():
+            print(f"  ctx.{_k}: {_v!r}",
+                  file=sys.stderr, flush=True)
+        if _obs_exc.exception is not None:
+            _orig = _obs_exc.exception
+            print("  original (chained) exception:",
+                  file=sys.stderr, flush=True)
+            print(f"    type: {type(_orig).__name__}",
+                  file=sys.stderr, flush=True)
+            print(f"    args: {_orig.args!r}",
+                  file=sys.stderr, flush=True)
+            print(f"    repr: {_orig!r}",
+                  file=sys.stderr, flush=True)
+            if _orig.__traceback__ is not None:
+                print("    original traceback:",
+                      file=sys.stderr, flush=True)
+                traceback.print_tb(_orig.__traceback__, file=sys.stderr)
+        print("  construction_stack (ChatHealthyException):",
+              file=sys.stderr, flush=True)
+        print(_obs_exc.construction_stack,
+              file=sys.stderr, flush=True)
+        print("  live traceback:", file=sys.stderr, flush=True)
+        traceback.print_exc(file=sys.stderr)
+        print("=" * 78, file=sys.stderr, flush=True)
+        return 1
 
     if len(sys.argv) < 2:
         _emit("usage: bootstrap.py <entry_point.py> [args...]")
