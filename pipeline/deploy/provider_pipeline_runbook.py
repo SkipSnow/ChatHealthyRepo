@@ -303,6 +303,19 @@ def _read_pipeline_config(mongo) -> dict:
     return doc
 
 
+def _find_live_pipeline_run(mongo) -> dict | None:
+    """Serialization guard: return the live pipeline.runs row for this
+    pipeline+env, or None. Two concurrent runs would race on the same
+    source file and collections, corrupting state, so if this returns
+    a row the caller MUST abend without touching any shared resource."""
+    coll = mongo["chathealthyfrontend"]["pipeline.runs"]
+    return coll.find_one({
+        "pipeline_name": PIPELINE_NAME,
+        "env": ENV_PREFIX,
+        "status": "running",
+    })
+
+
 def _write_run_manifest(mongo, run_id: str, load_mode: str,
                         state_scope, invocation_mode: str,
                         config: dict) -> None:
@@ -478,67 +491,88 @@ def main() -> int:
     run_id = f"prov-{now.strftime('%Y-%m-%dT%H-%M-%SZ')}-{uuid.uuid4().hex[:6]}"
     log("run_id_generated", run_id=run_id)
 
-    # Config + manifest
+    # Sentinel for the finally block. When True this invocation is a
+    # duplicate that lost the serialization race; the live run owns every
+    # shared resource and any teardown here MUST be a no-op.
+    is_duplicate_abend = False
     try:
-        import pymongo  # provided by AA Python 3 package
-        conn = _get_mongo_conn_string()
-        log("mongo_secret_fetched", vault_uri=KEY_VAULT_URI)
-        # Atlas SRV lookups fail from the Automation sandbox because its
-        # resolver cannot answer _mongodb._tcp.<domain> SRV queries. Try
-        # a direct connect first; on SRV failure, translate the URI to
-        # its non-SRV equivalent via DNS-over-HTTPS and retry.
+        # Config + manifest
         try:
-            mongo = pymongo.MongoClient(conn, serverSelectionTimeoutMS=15000)
-            mongo.admin.command("ping")
-        except Exception:
-            direct = _srv_to_direct_mongo_uri(conn)
-            log("mongo_srv_bypass_active", direct_hostcount=direct.count(",") + 1
-                if direct.startswith("mongodb://") else 0)
-            mongo = pymongo.MongoClient(direct, serverSelectionTimeoutMS=15000)
-        config = _read_pipeline_config(mongo)
-        log("config_read",
-            config_keys=list(config.keys()),
-            found=bool(config))
-        _write_run_manifest(mongo, run_id, load_mode, state_scope,
-                            invocation_mode, config)
-        log("run_manifest_written", run_id=run_id)
-    except Exception as exc:
-        log("mongo_step_failed",
-            error_type=type(exc).__name__,
-            error_msg=str(exc),
-            traceback=traceback.format_exc()[-2000:])
-        # Do NOT abort -- LLD §2.1 tolerates first-run when config is empty.
-        # But we MUST still start Control so the operator sees a run happen.
+            import pymongo  # provided by AA Python 3 package
+            conn = _get_mongo_conn_string()
+            log("mongo_secret_fetched", vault_uri=KEY_VAULT_URI)
+            # Atlas SRV lookups fail from the Automation sandbox because its
+            # resolver cannot answer _mongodb._tcp.<domain> SRV queries. Try
+            # a direct connect first; on SRV failure, translate the URI to
+            # its non-SRV equivalent via DNS-over-HTTPS and retry.
+            try:
+                mongo = pymongo.MongoClient(conn, serverSelectionTimeoutMS=15000)
+                mongo.admin.command("ping")
+            except Exception:
+                direct = _srv_to_direct_mongo_uri(conn)
+                log("mongo_srv_bypass_active", direct_hostcount=direct.count(",") + 1
+                    if direct.startswith("mongodb://") else 0)
+                mongo = pymongo.MongoClient(direct, serverSelectionTimeoutMS=15000)
+            live = _find_live_pipeline_run(mongo)
+            if live is not None:
+                is_duplicate_abend = True
+                log("pipeline_already_running_abend",
+                    attempted_run_id=run_id,
+                    live_run_id=live.get("run_id"),
+                    live_started_at=str(live.get("started_at")))
+                return 1
+            config = _read_pipeline_config(mongo)
+            log("config_read",
+                config_keys=list(config.keys()),
+                found=bool(config))
+            _write_run_manifest(mongo, run_id, load_mode, state_scope,
+                                invocation_mode, config)
+            log("run_manifest_written", run_id=run_id)
+        except Exception as exc:
+            log("mongo_step_failed",
+                error_type=type(exc).__name__,
+                error_msg=str(exc),
+                traceback=traceback.format_exc()[-2000:])
+            # Do NOT abort -- LLD §2.1 tolerates first-run when config is empty.
+            # But we MUST still start Control so the operator sees a run happen.
 
-    # Start Control
-    try:
-        result = _start_control_job(run_id, load_mode, state_scope)
-        log("control_job_started",
-            run_id=run_id,
-            name=result.get("name"),
-            status=result.get("properties", {}).get("status"))
-    except urllib.error.HTTPError as exc:
-        body = ""
+        # Start Control
         try:
-            body = exc.read().decode("utf-8", errors="replace")[:1500]
-        except Exception:
-            pass
-        log("control_job_start_failed",
-            run_id=run_id,
-            http_code=exc.code,
-            reason=exc.reason,
-            body=body)
-        return 1
-    except Exception as exc:
-        log("control_job_start_failed",
-            run_id=run_id,
-            error_type=type(exc).__name__,
-            error_msg=str(exc),
-            traceback=traceback.format_exc()[-2000:])
-        return 1
+            result = _start_control_job(run_id, load_mode, state_scope)
+            log("control_job_started",
+                run_id=run_id,
+                name=result.get("name"),
+                status=result.get("properties", {}).get("status"))
+        except urllib.error.HTTPError as exc:
+            body = ""
+            try:
+                body = exc.read().decode("utf-8", errors="replace")[:1500]
+            except Exception:
+                pass
+            log("control_job_start_failed",
+                run_id=run_id,
+                http_code=exc.code,
+                reason=exc.reason,
+                body=body)
+            return 1
+        except Exception as exc:
+            log("control_job_start_failed",
+                run_id=run_id,
+                error_type=type(exc).__name__,
+                error_msg=str(exc),
+                traceback=traceback.format_exc()[-2000:])
+            return 1
 
-    log("runbook_exit", run_id=run_id)
-    return 0
+        log("runbook_exit", run_id=run_id)
+        return 0
+    finally:
+        # Teardown clause. When is_duplicate_abend is True the live run
+        # owns every shared resource (source blob lease, run manifest,
+        # cluster reservation, Control ACA execution); the duplicate MUST
+        # leave them alone. Any release code added here later MUST gate
+        # on `not is_duplicate_abend`.
+        if is_duplicate_abend:
+            log("duplicate_abend_teardown_skipped", run_id=run_id)
 
 
 if __name__ == "__main__":
