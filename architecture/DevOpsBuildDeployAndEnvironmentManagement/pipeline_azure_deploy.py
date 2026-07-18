@@ -126,14 +126,24 @@ def _ensure_kv_secrets_from_file_packages(target, env: str, vault_name: str) -> 
                 sys.exit(
                     f"ERROR: secret_from_file source {source_file!r} not found on disk"
                 )
-            import base64, tempfile
-            step(f"upload KV secret {secret_name} from {source_file} ({src_path.stat().st_size}B)")
-            # Base64-encode into a temp file, then upload via --file to
-            # avoid Windows CLI length limits + preserve exact bytes
-            # (CRLF/LF, special chars).
-            encoded = base64.b64encode(src_path.read_bytes()).decode("ascii")
+            import base64, gzip, tempfile
+            raw = src_path.read_bytes()
+            step(f"upload KV secret {secret_name} from {source_file} ({len(raw)}B raw)")
+            # Gzip + base64. KV secret cap is 25KB; base64 alone of a
+            # ~21KB .env overflows. Gzip typically cuts 21KB → ~5KB;
+            # base64 of that is ~7KB, well under the limit.
+            # Format prefix: "gz:" so the pull path knows the encoding.
+            compressed = gzip.compress(raw, compresslevel=9)
+            encoded = "gz:" + base64.b64encode(compressed).decode("ascii")
+            step(f"  compressed+encoded to {len(encoded)}B (KV max 25600B)")
+            if len(encoded) > 25000:
+                sys.exit(
+                    f"ERROR: encoded secret size {len(encoded)}B exceeds "
+                    f"KV limit — .env grew too large; split it or use "
+                    f"blob storage for the backup"
+                )
             with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".b64", delete=False, encoding="ascii"
+                mode="w", suffix=".b64gz", delete=False, encoding="ascii"
             ) as tmp:
                 tmp.write(encoded)
                 tmp_path = tmp.name
