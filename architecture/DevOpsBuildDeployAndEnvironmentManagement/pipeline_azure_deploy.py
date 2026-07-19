@@ -707,11 +707,25 @@ def ensure_aca_job(
 
     command = "control_runner.py" if role == "control" else "worker_runner.py"
     # Entrypoint is baked in Dockerfile (bootstrap.py <runner>); override args only.
+    # ch_space_name feeds ChatHealthyLoggingService._MongoLogHandler's `target`
+    # field on every admin.ChatHealthyLogs_{env} document so operators can
+    # query per-tier per-env. pipeline_log_account_url is the storage
+    # account URL the observability gate probes to prove Storage
+    # connectivity (no default fallback in the lib -- required env).
+    ch_space_name = f"pipeline-{role}-{env}"
+    storage_account_name = block.get(
+        "pipeline_log_storage_account", "stchpipelinedev"
+    )
+    pipeline_log_account_url = (
+        f"https://{storage_account_name}.blob.core.windows.net"
+    )
     env_vars = [
         f"CHATHEALTHY_NODE_IDENTITY={node_identity}",
         f"KEY_VAULT_URI={kv_uri}",
         f"ENV_PREFIX={env}",
         f"PIPELINE_WORKER_MODE={'control' if role == 'control' else 'worker'}",
+        f"CH_SPACE_NAME={ch_space_name}",
+        f"PIPELINE_LOG_ACCOUNT_URL={pipeline_log_account_url}",
     ]
 
     step(f"ensure ACA job {job} role={role}")

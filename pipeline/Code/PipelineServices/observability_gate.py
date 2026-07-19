@@ -32,9 +32,7 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
-_DEFAULT_STORAGE_ACCOUNT_URL = (
-    "https://stchpipelinedev.blob.core.windows.net"
-)
+_STORAGE_ACCOUNT_URL_ENV = "PIPELINE_LOG_ACCOUNT_URL"
 
 
 class ObservabilityGate:
@@ -103,11 +101,25 @@ class ObservabilityGate:
         all IT + business data resides). Uses the container-run managed
         identity via DefaultAzureCredential. `get_account_information`
         is a lightweight read on the service endpoint that both
-        authenticates the credential AND confirms the account exists."""
-        account_url = os.environ.get(
-            "PIPELINE_LOG_ACCOUNT_URL",
-            _DEFAULT_STORAGE_ACCOUNT_URL,
-        )
+        authenticates the credential AND confirms the account exists.
+        Account URL comes from PIPELINE_LOG_ACCOUNT_URL; no fallback
+        (deploy chain sets it from manifest)."""
+        account_url = os.environ.get(_STORAGE_ACCOUNT_URL_ENV, "").strip()
+        if not account_url:
+            ch_exc = ChatHealthyException(
+                mode="storage_account_url_env_unset",
+                message=(
+                    f"{_STORAGE_ACCOUNT_URL_ENV} not set in the runtime "
+                    "environment; observability gate cannot probe Storage "
+                    "connectivity. Deploy chain is responsible for setting "
+                    "this on the container spec."
+                ),
+                component=self._component,
+                server=self._server,
+                step="storage_reachable",
+            )
+            self._dump_to_stderr(ch_exc)
+            raise ch_exc
         try:
             from azure.identity import DefaultAzureCredential
             from azure.storage.blob import BlobServiceClient
