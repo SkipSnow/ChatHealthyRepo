@@ -782,6 +782,7 @@ def ensure_aca_job(
         "KEY_VAULT_URI": kv_uri,
         "ENV_PREFIX": env,
         "PIPELINE_WORKER_MODE": "control" if role == "control" else "worker",
+        "AZURE_CLIENT_ID": mi_client,
     }
     env_vars_map.update(block.get("container_env_vars") or {})
     env_vars = [f"{k}={v}" for k, v in env_vars_map.items()]
