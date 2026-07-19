@@ -311,7 +311,7 @@ class ChatHealthyLoggingService:
     """
 
     def __init__(self) -> None:
-        _ensure_configured()
+        pass
 
     @staticmethod
     def _debug_mode_on() -> bool:
