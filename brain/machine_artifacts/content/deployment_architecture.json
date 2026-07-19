@@ -318,7 +318,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "44fa568cd5060b7e5389884054d7a5a22f1a250389e7fced9275843f3f26e702",
+          "content_hash": "60df12948c5e94ee17e08ef5a0c9dd9b449497c4c101c5735d0d8246cae49c15",
           "package": "json_schemas"
         },
         {
@@ -5781,7 +5781,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "44fa568cd5060b7e5389884054d7a5a22f1a250389e7fced9275843f3f26e702",
+          "content_hash": "60df12948c5e94ee17e08ef5a0c9dd9b449497c4c101c5735d0d8246cae49c15",
           "package": "default"
         },
         {
@@ -7562,7 +7562,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.control",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "7be4d7013e7c8fb8a6e3e0cd4ef023e7add50af6240d64d31d009d58c485b501",
+                  "content_hash": "d27b98923c5158d0f99db01df023d67c1acdab80171e40451f46c7b742c5e195",
                   "package": "control"
                 },
                 {
@@ -7604,7 +7604,10 @@
                 "node_identity": "pipeline-control",
                 "managed_identity_name": "mi-control",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "job-chp-control-dev"
+                "node_address": "job-chp-control-dev",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -7616,7 +7619,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_prepare_infrastructure"
                 },
                 {
@@ -7658,7 +7661,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-prepare-infrastructure"
+                "node_address": "prov-prepare-infrastructure",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -7670,7 +7676,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_fetch_sources"
                 },
                 {
@@ -7712,7 +7718,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-fetch-sources"
+                "node_address": "prov-fetch-sources",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -7724,7 +7733,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_load_staging"
                 },
                 {
@@ -7766,7 +7775,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-load-staging"
+                "node_address": "prov-load-staging",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -7778,7 +7790,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_normalize"
                 },
                 {
@@ -7820,7 +7832,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-normalize"
+                "node_address": "prov-normalize",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -7832,7 +7847,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_normalize_state_fanout"
                 },
                 {
@@ -7874,7 +7889,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-normalize-state-fanout"
+                "node_address": "prov-normalize-state-fanout",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -7886,7 +7904,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_add_secondary_practices"
                 },
                 {
@@ -7928,7 +7946,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-add-secondary-practices"
+                "node_address": "prov-add-secondary-practices",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -7940,7 +7961,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_type1_first_branch"
                 },
                 {
@@ -7982,7 +8003,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-type1-first-branch"
+                "node_address": "prov-type1-first-branch",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -7994,7 +8018,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_type2_first_branch"
                 },
                 {
@@ -8036,7 +8060,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-type2-first-branch"
+                "node_address": "prov-type2-first-branch",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -8048,7 +8075,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_license_address_repair"
                 },
                 {
@@ -8090,7 +8117,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-license-address-repair"
+                "node_address": "prov-license-address-repair",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -8102,7 +8132,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_county_enrichment"
                 },
                 {
@@ -8144,7 +8174,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-county-enrichment"
+                "node_address": "prov-county-enrichment",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -8156,7 +8189,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_urban_flag"
                 },
                 {
@@ -8198,7 +8231,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-urban-flag"
+                "node_address": "prov-urban-flag",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -8210,7 +8246,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_type1_second_branch"
                 },
                 {
@@ -8252,7 +8288,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-type1-second-branch"
+                "node_address": "prov-type1-second-branch",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -8264,7 +8303,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_type2_second_branch"
                 },
                 {
@@ -8306,7 +8345,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-type2-second-branch"
+                "node_address": "prov-type2-second-branch",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -8318,7 +8360,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_post_load_reconciliation"
                 },
                 {
@@ -8360,7 +8402,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-post-load-reconciliation"
+                "node_address": "prov-post-load-reconciliation",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
@@ -8372,7 +8417,7 @@
                   "source_location": "pipeline/deploy/Dockerfile.worker",
                   "handler_type": "dockerfile",
                   "disposition": "referenced",
-                  "content_hash": "924abf681b203afbe192b77c10c7d7e767bf266134c568b8b52e900b3b579ed4",
+                  "content_hash": "8da26311a874df8f5c6645fd309e1a84bcae155cb92d81808e8a323601aab144",
                   "package": "prov_discrepancy_and_notifications"
                 },
                 {
@@ -8414,7 +8459,10 @@
                 "node_identity": "pipeline-worker",
                 "managed_identity_name": "mi-worker",
                 "key_vault_uri": "https://kv-chpipeline-dev.vault.azure.net/",
-                "node_address": "prov-discrepancy-notify"
+                "node_address": "prov-discrepancy-notify",
+                "container_libraries": [
+                  "FrontEndApplicationLib"
+                ]
               }
             },
             {
