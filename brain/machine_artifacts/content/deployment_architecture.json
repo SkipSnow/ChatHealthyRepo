@@ -318,7 +318,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "9e103ba75ad4e1c08ec6a88f873d6b4a35e53f7ecf58a8affb523bd10c6d6bfe",
+          "content_hash": "44fa568cd5060b7e5389884054d7a5a22f1a250389e7fced9275843f3f26e702",
           "package": "json_schemas"
         },
         {
@@ -628,7 +628,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4a6a79bf386eb831f3cd4b6f74f7fee3200256178848666162b037eb6972992f",
+          "content_hash": "a2df39eccc4a3ce927eebd9583ef2406ca178cb253a458a4d5ce72817879f155",
           "package": "default"
         },
         {
@@ -2075,7 +2075,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4a6a79bf386eb831f3cd4b6f74f7fee3200256178848666162b037eb6972992f",
+          "content_hash": "a2df39eccc4a3ce927eebd9583ef2406ca178cb253a458a4d5ce72817879f155",
           "package": "default"
         },
         {
@@ -2587,7 +2587,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4a6a79bf386eb831f3cd4b6f74f7fee3200256178848666162b037eb6972992f",
+          "content_hash": "a2df39eccc4a3ce927eebd9583ef2406ca178cb253a458a4d5ce72817879f155",
           "package": "default"
         },
         {
@@ -4249,7 +4249,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4a6a79bf386eb831f3cd4b6f74f7fee3200256178848666162b037eb6972992f",
+          "content_hash": "a2df39eccc4a3ce927eebd9583ef2406ca178cb253a458a4d5ce72817879f155",
           "package": "default"
         },
         {
@@ -4655,7 +4655,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4a6a79bf386eb831f3cd4b6f74f7fee3200256178848666162b037eb6972992f",
+          "content_hash": "a2df39eccc4a3ce927eebd9583ef2406ca178cb253a458a4d5ce72817879f155",
           "package": "default"
         },
         {
@@ -5085,7 +5085,7 @@
           "source_location": "FrontEndApplicationLib/src/chathealthy_frontend_lib/logging_service.py",
           "handler_type": "python_source",
           "disposition": "referenced",
-          "content_hash": "4a6a79bf386eb831f3cd4b6f74f7fee3200256178848666162b037eb6972992f",
+          "content_hash": "a2df39eccc4a3ce927eebd9583ef2406ca178cb253a458a4d5ce72817879f155",
           "package": "default"
         },
         {
@@ -5781,7 +5781,7 @@
           "source_location": "Website/schemas/ChatHealthyDeploymentArchitectureSchema.json",
           "handler_type": "json",
           "disposition": "referenced",
-          "content_hash": "9e103ba75ad4e1c08ec6a88f873d6b4a35e53f7ecf58a8affb523bd10c6d6bfe",
+          "content_hash": "44fa568cd5060b7e5389884054d7a5a22f1a250389e7fced9275843f3f26e702",
           "package": "default"
         },
         {
@@ -7549,7 +7549,8 @@
             "location": "eastus2",
             "vnet_name": "vnet-chathealthy-pipeline-dev",
             "subnet_name": "snet-aca",
-            "logs_destination": "none"
+            "logs_destination": "log-analytics",
+            "log_analytics_workspace": "law-chathealthy-pipeline-dev"
           },
           "packages": [
             {
@@ -7569,7 +7570,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "control"
                 },
                 {
@@ -7623,7 +7624,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_prepare_infrastructure"
                 },
                 {
@@ -7677,7 +7678,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_fetch_sources"
                 },
                 {
@@ -7731,7 +7732,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_load_staging"
                 },
                 {
@@ -7785,7 +7786,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_normalize"
                 },
                 {
@@ -7839,7 +7840,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_normalize_state_fanout"
                 },
                 {
@@ -7893,7 +7894,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_add_secondary_practices"
                 },
                 {
@@ -7947,7 +7948,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_type1_first_branch"
                 },
                 {
@@ -8001,7 +8002,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_type2_first_branch"
                 },
                 {
@@ -8055,7 +8056,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_license_address_repair"
                 },
                 {
@@ -8109,7 +8110,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_county_enrichment"
                 },
                 {
@@ -8163,7 +8164,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_urban_flag"
                 },
                 {
@@ -8217,7 +8218,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_type1_second_branch"
                 },
                 {
@@ -8271,7 +8272,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_type2_second_branch"
                 },
                 {
@@ -8325,7 +8326,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_post_load_reconciliation"
                 },
                 {
@@ -8379,7 +8380,7 @@
                   "source_location": "pipeline/Code/bootstrap.py",
                   "handler_type": "python_source",
                   "disposition": "referenced",
-                  "content_hash": "e2de8792d16bd51f4a008984ae226b6fdd8d50eb9148a92a9aa5435bf8ac1184",
+                  "content_hash": "e958f827032f9c85a95e1bcf8e1b737f7c63a9318e8995882b372db1d46413e6",
                   "package": "prov_discrepancy_and_notifications"
                 },
                 {
