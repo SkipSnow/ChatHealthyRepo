@@ -2552,16 +2552,24 @@ def run_cloud_deploy(env: str, target_arg: str,
         # F-012 §7.1 / F-003 §5.1: after CA issuance runbooks are live,
         # provision long-lived leaf certs BEFORE ACA Jobs (images/jobs
         # need the chain + node certs). Runs once per pipeline deploy.
-        # When explicit_target_ids is set (--package filter) certs were
-        # placed by a prior full deploy; the current filtered set does
-        # not include CaEndpointRunbook so its "succeeded" check would
-        # otherwise abort the whole deploy. Skip the F-012 §7.1
-        # bootstrap in that case.
+        # F-012 §7.1 pre-work runs before the first ACA job image build.
+        # Two steps:
+        #   provision_long_lived_certs — mints leaf certs via the F-003
+        #       issuance API (CaEndpointRunbook must be live). Requires
+        #       full pipeline deploy so CaEndpointRunbook is in the set.
+        #   bake_ca_chain_into_images — reads the CA chain from KV and
+        #       sets CHATHEALTHY_CA_ROOT_B64 / _INTERMEDIATE_B64 in the
+        #       current process env so acr build can bake it into the
+        #       image. Idempotent, KV-read only; safe on filtered deploys
+        #       because a prior full deploy placed the chain in KV.
+        # When --package filters CaEndpointRunbook out, skip the mint step
+        # (certs still valid from prior full deploy) but ALWAYS run the
+        # bake step because build_and_push_job_image requires the env
+        # vars regardless of whether certs were just minted.
         if (
             not pipeline_certs_done
             and target_arg == "pipeline"
             and target_kind == "azure_container_app_job"
-            and explicit_target_ids is None
         ):
             from cert_placement import (
                 LONG_LIVED_IDENTITIES,
@@ -2578,21 +2586,25 @@ def run_cloud_deploy(env: str, target_arg: str,
                     "or target_azure_container_registry_pipeline. F-012 §7 "
                     "cannot run without both."
                 )
-            step("F-012 §7.1 / F-003 §5.1: provisioning long-lived pipeline certs")
-            if not any(
-                str(s).endswith("/CaEndpointRunbook") or str(s).endswith("CaEndpointRunbook")
-                for s in succeeded
-            ):
-                sys.exit(
-                    "ERROR: CaEndpointRunbook did not deploy successfully; "
-                    "refusing F-012 §7.1 cert placement (F-003 issuance API "
-                    "must be live first)."
+            if explicit_target_ids is None:
+                step("F-012 §7.1 / F-003 §5.1: provisioning long-lived pipeline certs")
+                if not any(
+                    str(s).endswith("/CaEndpointRunbook") or str(s).endswith("CaEndpointRunbook")
+                    for s in succeeded
+                ):
+                    sys.exit(
+                        "ERROR: CaEndpointRunbook did not deploy successfully; "
+                        "refusing F-012 §7.1 cert placement (F-003 issuance API "
+                        "must be live first)."
+                    )
+                provision_long_lived_certs(
+                    env=env,
+                    kv_target=kv_target,
+                    identities=LONG_LIVED_IDENTITIES,
                 )
-            provision_long_lived_certs(
-                env=env,
-                kv_target=kv_target,
-                identities=LONG_LIVED_IDENTITIES,
-            )
+            else:
+                step("F-012 §7.1: skipping cert mint (--package filter active; "
+                     "certs assumed placed by prior full deploy)")
             bake_ca_chain_into_images(
                 env=env, acr_target=acr_target, kv_target=kv_target,
             )
