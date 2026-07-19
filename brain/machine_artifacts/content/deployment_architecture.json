@@ -7589,7 +7589,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "job-chp-control-dev",
@@ -7646,7 +7647,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-prepare-infrastructure",
@@ -7703,7 +7705,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-fetch-sources",
@@ -7760,7 +7763,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-load-staging",
@@ -7817,7 +7821,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-normalize",
@@ -7874,7 +7879,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-normalize-state-fanout",
@@ -7931,7 +7937,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-add-secondary-practices",
@@ -7988,7 +7995,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-type1-first-branch",
@@ -8045,7 +8053,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-type2-first-branch",
@@ -8102,7 +8111,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-license-address-repair",
@@ -8159,7 +8169,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-county-enrichment",
@@ -8216,7 +8227,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-urban-flag",
@@ -8273,7 +8285,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-type1-second-branch",
@@ -8330,7 +8343,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-type2-second-branch",
@@ -8387,7 +8401,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-post-load-reconciliation",
@@ -8444,7 +8459,8 @@
                 "ATLAS_PRIVATE_KEY": "local_env",
                 "ATLAS_PROJECT_ID": "local_env",
                 "AZURE_STORAGE_CONNECTION_STRING": "local_env",
-                "KEY_VAULT_URI": "local_env"
+                "KEY_VAULT_URI": "local_env",
+                "Anthropic_API_KEY": "local_env"
               },
               "config": {
                 "job_name": "prov-discrepancy-notify",
