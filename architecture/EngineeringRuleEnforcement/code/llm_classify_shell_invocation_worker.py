@@ -248,9 +248,18 @@ Classify into exactly one of:
                   * running `build_chathealthy.py` (build produces only local
                     artifacts)
                   * running Python/PowerShell/bash scripts that only touch the
-                    local machine, do local file processing, run tests, or
-                    talk to already-authenticated dev/local services on
-                    127.0.0.1 or localhost
+                    local machine, do local file processing, or talk to
+                    already-authenticated dev/local services on 127.0.0.1
+                    or localhost. Note: a pytest / python / bash wrapper
+                    does NOT excuse a script that mutates protected remote
+                    state. If you can see (in the script text you were
+                    given) any of pymongo insert/update/delete/replace
+                    against a real Atlas cluster, `az <write-verb>`,
+                    `wrangler <write-verb>`, `atlas <write-verb>`,
+                    `docker push`, `gh <write-verb>`, or a POST/PUT/DELETE
+                    against Azure Automation webhooks / Atlas Admin API /
+                    Cloudflare API / GitHub API, classify as `block_hard`
+                    regardless of the invocation being a pytest test
   gate_approve — an invocation of `deploy_chathealthy.py` or
                 `promote_chathealthy.py` (deploys/promotes remote state; needs
                 operator approval).
