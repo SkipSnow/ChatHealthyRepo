@@ -3,19 +3,19 @@
 """Observability gate for pipeline component boot.
 
 Pure library shared by pipeline components (Control, Worker, runbook).
-Every pipeline component MUST run this gate as the first thing it does
-after wiring stdlib logging. Per operator requirements 2026-07-18:
+Every pipeline component MUST run this gate as the first thing bootstrap
+does. Per operator requirements 2026-07-18:
 
   1. Try to connect to Mongo via ChatHealthyMongoUtilities. If we can't,
-     throw a ChatHealthyException; the exception library catches and
-     dumps as much information as possible to stderr. The original
-     exception is attached to the ChatHealthyException via the
-     `exception` kwarg.
-  2. If we DID connect, try to write one log message per criticality
-     level (debug, info, warning, error, critical). Message body:
-     'Hello World ChatHealthyLogTest{level}'. Each emission has its
-     own try/catch/throw with a robust message and the original
-     exception attached.
+     throw ChatHealthyException; the exception library dumps to stderr.
+     Original exception attached via the `exception` kwarg.
+  2. Try to connect to the pipeline blob Storage account (all our IT
+     data and business data resides there). Same try/catch/throw/dump
+     discipline as Mongo.
+  3. If both connections succeed, try to write one log message per
+     criticality level (debug, info, warning, error, critical) via
+     ChatHealthyLoggingService. Message body:
+     'Hello World ChatHealthyLogTest{level}'. Same discipline again.
 
 Exception discipline: this lib writes diagnostic detail to stderr and
 raises ChatHealthyException on failure. It does NOT terminate the
@@ -23,6 +23,7 @@ process -- the caller decides the die policy.
 """
 from __future__ import annotations
 
+import os
 import sys
 import traceback
 
@@ -31,9 +32,14 @@ from chathealthy_frontend_lib.logging_service import ChatHealthyLoggingService
 from chathealthy_frontend_lib.mongo_utilities import ChatHealthyMongoUtilities
 
 
+_DEFAULT_STORAGE_ACCOUNT_URL = (
+    "https://stchpipelinedev.blob.core.windows.net"
+)
+
+
 class ObservabilityGate:
-    """Prove Mongo is reachable AND that every log level emits, before
-    doing any real work. Constructed per boot; call check()."""
+    """Prove Mongo AND blob Storage are reachable AND every log level
+    emits, before doing any real work. Constructed per boot; call check()."""
 
     _LEVELS = ("debug", "info", "warning", "error", "critical")
 
@@ -42,16 +48,16 @@ class ObservabilityGate:
         self._server = server
 
     def check(self) -> None:
-        """Step 1: connect to Mongo. Step 2: emit one log per criticality
-        level. Returns None on success. Raises ChatHealthyException with
-        the original chained on any failure. Diagnostic detail is
-        dumped to stderr immediately before raising."""
+        """Step 1: connect to Mongo. Step 2: connect to blob Storage.
+        Step 3: emit one log per criticality level. Returns None on
+        success. Raises ChatHealthyException with the original chained
+        on any failure. Diagnostic detail is dumped to stderr immediately
+        before raising."""
         self._verify_mongo_reachable()
+        self._verify_storage_reachable()
         self._verify_log_probe()
 
     def _verify_mongo_reachable(self) -> None:
-        # Try/catch: if the Mongo call throws, we catch, write stderr,
-        # then throw ChatHealthyException with the original chained.
         try:
             client = ChatHealthyMongoUtilities().getConnection()
             ping_result = client.admin.command("ping")
@@ -75,10 +81,6 @@ class ObservabilityGate:
             self._dump_to_stderr(ch_exc)
             raise ch_exc from exc
 
-        # ping does not throw on every failure mode -- it returns a doc
-        # whose `ok` field indicates the server's verdict. If ok is not
-        # exactly 1.0 the ping was not confirmed and we abend the gate:
-        # write to stderr, throw ChatHealthyException.
         if not isinstance(ping_result, dict) or ping_result.get("ok") != 1.0:
             ch_exc = ChatHealthyException(
                 mode="mongo_ping_not_ok",
@@ -92,6 +94,64 @@ class ObservabilityGate:
                 server=self._server,
                 step="mongo_reachable",
                 ping_result=repr(ping_result),
+            )
+            self._dump_to_stderr(ch_exc)
+            raise ch_exc
+
+    def _verify_storage_reachable(self) -> None:
+        """Prove we can reach the pipeline blob Storage account (where
+        all IT + business data resides). Uses the container-run managed
+        identity via DefaultAzureCredential. `get_account_information`
+        is a lightweight read on the service endpoint that both
+        authenticates the credential AND confirms the account exists."""
+        account_url = os.environ.get(
+            "PIPELINE_LOG_ACCOUNT_URL",
+            _DEFAULT_STORAGE_ACCOUNT_URL,
+        )
+        try:
+            from azure.identity import DefaultAzureCredential
+            from azure.storage.blob import BlobServiceClient
+            client = BlobServiceClient(
+                account_url=account_url,
+                credential=DefaultAzureCredential(),
+            )
+            info = client.get_account_information()
+        except ChatHealthyException as ch_exc:
+            self._dump_to_stderr(ch_exc)
+            raise
+        except Exception as exc:
+            ch_exc = ChatHealthyException(
+                mode="storage_connect_failed",
+                message=(
+                    "Pipeline observability gate could not reach the "
+                    f"pipeline blob Storage account at {account_url!r}. "
+                    "This is where all IT and business data resides; the "
+                    "component cannot proceed. Original exception type: "
+                    f"{type(exc).__name__}. Args: {exc.args!r}."
+                ),
+                component=self._component,
+                server=self._server,
+                step="storage_reachable",
+                account_url=account_url,
+                exception=exc,
+            )
+            self._dump_to_stderr(ch_exc)
+            raise ch_exc from exc
+
+        if not isinstance(info, dict):
+            ch_exc = ChatHealthyException(
+                mode="storage_account_info_unexpected",
+                message=(
+                    "BlobServiceClient.get_account_information returned "
+                    f"a non-dict value: {info!r}. The connection object "
+                    "was returned but the service did not confirm account "
+                    "identity."
+                ),
+                component=self._component,
+                server=self._server,
+                step="storage_reachable",
+                account_url=account_url,
+                info=repr(info),
             )
             self._dump_to_stderr(ch_exc)
             raise ch_exc
