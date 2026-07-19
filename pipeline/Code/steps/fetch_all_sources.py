@@ -34,13 +34,8 @@ def _default_source_specs(env_prefix: str) -> dict:
             },
         },
         "pl_pfile": {
-            "url_discovery": {
-                "page_url": "https://download.cms.gov/nppes/NPI_Files.html",
-                "instructions": (
-                    "Find the current NPPES practice-locations ZIP "
-                    "(pattern pl_pfile_*.zip)."
-                ),
-            },
+            "derived_from": "nppes_npi",
+            "zip_entry_glob": "pl_pfile*.csv",
         },
         "nucc": {
             "url_discovery": {

@@ -57,11 +57,13 @@ Public entry point: `fetch_all_sources(config, mongo, blob)`.
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import logging
 import os
 import tempfile
 import time
+import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any, Callable
@@ -178,6 +180,81 @@ def _download_source(
     return tmp.name, hasher.hexdigest(), size
 
 
+def _extract_derived_source(
+    *,
+    source_name: str,
+    spec: dict,
+    parent_result: dict,
+    blob,
+) -> tuple[str, str, int, str]:
+    """Extract a derived source (zip entry) from a parent source's blob.
+
+    Returns (local_path, sha256, size_bytes, entry_name).
+    Downloads parent zip from blob to a tmp file, opens with zipfile,
+    finds the first entry matching zip_entry_glob (case-insensitive),
+    streams it to a tmp file with sha256.
+    """
+    parent_container = parent_result.get("blob_container")
+    parent_blob_name = parent_result.get("blob_path")
+    zip_glob = spec.get("zip_entry_glob")
+    if not (parent_container and parent_blob_name and zip_glob):
+        raise RuntimeError(
+            f"source_fetch_engine[{source_name}]: derived_from requires parent "
+            "blob + zip_entry_glob"
+        )
+    if blob is None:
+        raise RuntimeError(
+            f"source_fetch_engine[{source_name}]: blob client is required for derived_from"
+        )
+    _log.info(
+        "source_fetch_engine[%s]: extracting %s from %s/%s",
+        source_name, zip_glob, parent_container, parent_blob_name,
+    )
+    container_client = blob.get_container_client(parent_container)
+    parent_client = container_client.get_blob_client(parent_blob_name)
+    fd, parent_tmp = tempfile.mkstemp(suffix=".zip", prefix=f"{source_name}_parent_")
+    os.close(fd)
+    try:
+        with open(parent_tmp, "wb") as fh:
+            stream = parent_client.download_blob(max_concurrency=4)
+            for chunk in stream.chunks():
+                fh.write(chunk)
+        glob_lower = zip_glob.lower()
+        with zipfile.ZipFile(parent_tmp) as zf:
+            entry_name = None
+            for n in zf.namelist():
+                if fnmatch.fnmatch(n.lower(), glob_lower):
+                    entry_name = n
+                    break
+            if entry_name is None:
+                raise RuntimeError(
+                    f"source_fetch_engine[{source_name}]: no entry matching "
+                    f"{zip_glob!r} in {parent_blob_name}"
+                )
+            out = tempfile.NamedTemporaryFile(
+                delete=False, prefix=f"{source_name}_", suffix=".bin",
+            )
+            hasher = hashlib.sha256()
+            size = 0
+            try:
+                with zf.open(entry_name) as raw:
+                    while True:
+                        buf = raw.read(DEFAULT_CHUNK_BYTES)
+                        if not buf:
+                            break
+                        out.write(buf)
+                        hasher.update(buf)
+                        size += len(buf)
+            finally:
+                out.close()
+            return out.name, hasher.hexdigest(), size, os.path.basename(entry_name)
+    finally:
+        try:
+            os.unlink(parent_tmp)
+        except OSError:
+            pass
+
+
 def _fetch_one_source(
     *,
     source_name: str,
@@ -221,6 +298,63 @@ def _fetch_one_source(
         filename = spec.get("filename") or _basename_from_url(
             _resolve_source_url(source_name, spec), source_name
         )
+        blob_name = _target_blob_name(run_id, source_name, filename)
+        _upload_bytes_to_transient(
+            blob,
+            container_name=transient_container,
+            blob_name=blob_name,
+            local_path=local_path,
+        )
+    finally:
+        try:
+            os.unlink(local_path)
+        except OSError:
+            pass
+
+    result["blob_container"] = transient_container
+    result["blob_path"] = blob_name
+    result["filename"] = filename
+    result["sha256"] = sha256
+    result["size_bytes"] = size
+    result["version"] = sha256[:16]
+    result["skipped"] = False
+    result["finished_at"] = _now_iso()
+    return result
+
+
+def _derive_one_source(
+    *,
+    source_name: str,
+    spec: dict,
+    parent_result: dict,
+    run_id: str,
+    env_prefix: str,
+    blob,
+    transient_container: str,
+) -> dict[str, Any]:
+    """Materialize one derived source by extracting from its parent's blob."""
+    result: dict[str, Any] = {
+        "source_name": source_name,
+        "run_id": run_id,
+        "env": env_prefix,
+        "started_at": _now_iso(),
+        "freshness_decision": spec.get("freshness_decision", "fetch"),
+        "derived_from": spec.get("derived_from"),
+    }
+    if spec.get("freshness_decision") == "reuse":
+        result["skipped"] = True
+        result["reason"] = "freshness_reuse"
+        result["finished_at"] = _now_iso()
+        return result
+
+    local_path, sha256, size, entry_name = _extract_derived_source(
+        source_name=source_name,
+        spec=spec,
+        parent_result=parent_result,
+        blob=blob,
+    )
+    try:
+        filename = spec.get("filename") or entry_name
         blob_name = _target_blob_name(run_id, source_name, filename)
         _upload_bytes_to_transient(
             blob,
@@ -313,16 +447,20 @@ def fetch_all_sources(
     http_timeout = int(config.get("http_timeout_seconds", DEFAULT_HTTP_TIMEOUT_SEC))
     throttle_rates = config.get("throttle_rates") or {}
 
+    base_sources = {n: s for n, s in sources.items() if not s.get("derived_from")}
+    derived_sources = {n: s for n, s in sources.items() if s.get("derived_from")}
+
     per_source_gates: dict[str, RateLimitedGate] = {
-        name: _build_gate(name, throttle_rates) for name in sources.keys()
+        name: _build_gate(name, throttle_rates) for name in base_sources.keys()
     }
 
     results: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
+    results_by_name: dict[str, dict] = {}
 
     with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
         future_to_name: dict[Any, str] = {}
-        for name, spec in sources.items():
+        for name, spec in base_sources.items():
             decision = spec.get("freshness_decision", "fetch")
             fut = pool.submit(
                 _fetch_one_source,
@@ -341,10 +479,41 @@ def fetch_all_sources(
         for fut in as_completed(future_to_name):
             name = future_to_name[fut]
             try:
-                results.append(fut.result())
+                r = fut.result()
+                results.append(r)
+                results_by_name[name] = r
             except Exception as exc:
                 errors.append({"source_name": name, "error": f"{type(exc).__name__}: {exc}"})
                 _log.exception("source_fetch_engine[%s]: fetch failed", name)
+
+    for name, spec in derived_sources.items():
+        parent = spec.get("derived_from")
+        parent_result = results_by_name.get(parent)
+        if not parent_result or parent_result.get("skipped") or not parent_result.get("blob_path"):
+            errors.append({
+                "source_name": name,
+                "error": f"derived_from parent {parent!r} unavailable",
+            })
+            _log.error(
+                "source_fetch_engine[%s]: derived_from parent %s unavailable",
+                name, parent,
+            )
+            continue
+        try:
+            r = _derive_one_source(
+                source_name=name,
+                spec=spec,
+                parent_result=parent_result,
+                run_id=run_id,
+                env_prefix=env_prefix,
+                blob=blob,
+                transient_container=transient_container,
+            )
+            results.append(r)
+            results_by_name[name] = r
+        except Exception as exc:
+            errors.append({"source_name": name, "error": f"{type(exc).__name__}: {exc}"})
+            _log.exception("source_fetch_engine[%s]: derive failed", name)
 
     source_versions = {
         r["source_name"]: r["version"] for r in results if not r.get("skipped") and r.get("version")
