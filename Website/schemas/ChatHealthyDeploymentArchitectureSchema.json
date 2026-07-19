@@ -548,8 +548,14 @@
                     "logs_destination": {
                       "type": "string",
                       "enum": [
-                        "none"
+                        "none",
+                        "log-analytics"
                       ]
+                    },
+                    "log_analytics_workspace": {
+                      "type": "string",
+                      "pattern": "^law-[a-z0-9-]{1,60}$",
+                      "description": "Log Analytics workspace name. Required when logs_destination=='log-analytics'. Deploy chain provisions the workspace and binds it as the ACA env log destination."
                     }
                   }
                 },
