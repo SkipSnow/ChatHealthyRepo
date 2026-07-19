@@ -2552,10 +2552,16 @@ def run_cloud_deploy(env: str, target_arg: str,
         # F-012 §7.1 / F-003 §5.1: after CA issuance runbooks are live,
         # provision long-lived leaf certs BEFORE ACA Jobs (images/jobs
         # need the chain + node certs). Runs once per pipeline deploy.
+        # When explicit_target_ids is set (--package filter) certs were
+        # placed by a prior full deploy; the current filtered set does
+        # not include CaEndpointRunbook so its "succeeded" check would
+        # otherwise abort the whole deploy. Skip the F-012 §7.1
+        # bootstrap in that case.
         if (
             not pipeline_certs_done
             and target_arg == "pipeline"
             and target_kind == "azure_container_app_job"
+            and explicit_target_ids is None
         ):
             from cert_placement import (
                 LONG_LIVED_IDENTITIES,
