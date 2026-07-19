@@ -409,6 +409,28 @@ def _synth_runbook_package(aa_record: dict, eb: dict, pkg: dict) -> dict:
     }
 
 
+def _resolve_apps_env_vars(sibling_packages: list, role: str, env: str) -> dict:
+    """Merge default_apps_environment env_vars with {role}_apps_environment
+    env_vars. Later overrides earlier. Templates {role} and {env} are
+    substituted at synth time so ensure_aca_job can pass literal values
+    to the container."""
+    merged: dict = {}
+    for pkg in sibling_packages or []:
+        pid = pkg.get("package_id", "")
+        if pid == "default_apps_environment":
+            merged.update((pkg.get("config") or {}).get("env_vars", {}))
+    for pkg in sibling_packages or []:
+        pid = pkg.get("package_id", "")
+        if pid == f"{role}_apps_environment":
+            merged.update((pkg.get("config") or {}).get("env_vars", {}))
+    # Substitute {role} and {env} templates.
+    return {
+        k: (str(v).replace("{role}", role).replace("{env}", env)
+            if isinstance(v, str) else v)
+        for k, v in merged.items()
+    }
+
+
 def _synth_job_package(env_record: dict, eb: dict, pkg: dict) -> dict:
     env = eb.get("env_binding")
     env_block = eb.get("azure_container_apps_environment") or {}
@@ -416,6 +438,10 @@ def _synth_job_package(env_record: dict, eb: dict, pkg: dict) -> dict:
     env_name = env_block.get("environment_name", "")
     pkg_id = pkg.get("package_id", "")
     cfg = pkg.get("config") or {}
+    role = cfg.get("role", "")
+    baked_env_vars = _resolve_apps_env_vars(
+        eb.get("packages") or [], role, env,
+    )
     return {
         "target_id": f"target_azure_container_app_job_{pkg_id}",
         "target_kind": "azure_container_app_job",
@@ -431,7 +457,7 @@ def _synth_job_package(env_record: dict, eb: dict, pkg: dict) -> dict:
                 "registry_name": cfg.get("registry_name") or "chpipelinedevacr",
                 "image_repository": cfg.get("image_repository"),
                 "dockerfile": cfg.get("dockerfile"),
-                "role": cfg.get("role"),
+                "role": role,
                 "trigger_type": cfg.get("trigger_type", "Manual"),
                 "cpu": cfg.get("cpu"),
                 "memory": cfg.get("memory"),
@@ -440,6 +466,7 @@ def _synth_job_package(env_record: dict, eb: dict, pkg: dict) -> dict:
                 "node_identity": cfg.get("node_identity"),
                 "managed_identity_name": cfg.get("managed_identity_name"),
                 "key_vault_uri": cfg.get("key_vault_uri"),
+                "container_env_vars": baked_env_vars,
             },
         }],
         "files": pkg.get("files", []),
