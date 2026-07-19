@@ -14,9 +14,12 @@ import logging
 import os
 import socket
 import sys
+import threading
 
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient, BlobType
+
+_emit_reentrancy = threading.local()
 
 
 LOG_ACCOUNT_URL = os.environ.get(
@@ -62,15 +65,18 @@ class BlobAppendHandler(logging.Handler):
         return blob
 
     def emit(self, record: logging.LogRecord) -> None:
+        if getattr(_emit_reentrancy, "active", False):
+            return
+        _emit_reentrancy.active = True
         try:
             msg = self.format(record)
-            # Prepend the instance tag so operators can trace which container.
             line = f"[{self._instance}] {msg}\n"
             self._blob_for_today().append_block(line.encode("utf-8"))
         except Exception:
-            # Don't kill the pipeline if logging fails; just print.
             print(f"BlobAppendHandler emit failed: {record.getMessage()}",
                   file=sys.stderr)
+        finally:
+            _emit_reentrancy.active = False
 
 
 def install(pipeline_name: str, level: int = logging.INFO) -> None:
@@ -84,12 +90,13 @@ def install(pipeline_name: str, level: int = logging.INFO) -> None:
     )
     for h in list(root.handlers):
         root.removeHandler(h)
+    logging.getLogger("azure").setLevel(logging.WARNING)
+    logging.getLogger("msal").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
     stream = logging.StreamHandler(sys.stdout)
     stream.setFormatter(fmt)
     root.addHandler(stream)
     blob = BlobAppendHandler(pipeline_name)
     blob.setFormatter(fmt)
     root.addHandler(blob)
-    logging.getLogger("azure").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
     root.info(f"blob_logger installed for {pipeline_name}")
