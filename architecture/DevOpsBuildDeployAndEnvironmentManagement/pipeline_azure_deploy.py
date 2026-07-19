@@ -544,16 +544,75 @@ def ensure_aca_environment(target, env: str) -> str:
     location = block["location"]
     vnet = block["vnet_name"]
     subnet = block["subnet_name"]
-    logs = block["logs_destination"]
-    if logs != "none":
-        sys.exit("ERROR: F-012 requires ACA Environment logs_destination=none")
-    step(f"ensure ACA environment {name}")
+    logs = block.get("logs_destination", "none")
+    workspace_name = block.get("log_analytics_workspace", "").strip()
+
+    if logs not in ("none", "log-analytics"):
+        sys.exit(
+            f"ERROR: logs_destination={logs!r} not supported; must be "
+            f"'none' or 'log-analytics'."
+        )
+    if logs == "log-analytics" and not workspace_name:
+        sys.exit(
+            "ERROR: logs_destination='log-analytics' requires "
+            "log_analytics_workspace to be set on the ACA env block."
+        )
+
+    step(f"ensure ACA environment {name} (logs={logs})")
+
+    workspace_customer_id = ""
+    workspace_shared_key = ""
+    if logs == "log-analytics":
+        from aca_helpers import aca_ensure_log_analytics_workspace  # noqa: PLC0415
+        aca_ensure_log_analytics_workspace(
+            workspace=workspace_name,
+            resource_group=rg,
+            location=location,
+        )
+        workspace_customer_id = _az(
+            [
+                "monitor", "log-analytics", "workspace", "show",
+                "--workspace-name", workspace_name,
+                "--resource-group", rg,
+                "--query", "customerId", "-o", "tsv",
+            ]
+        ).stdout.strip()
+        workspace_shared_key = _az(
+            [
+                "monitor", "log-analytics", "workspace", "get-shared-keys",
+                "--workspace-name", workspace_name,
+                "--resource-group", rg,
+                "--query", "primarySharedKey", "-o", "tsv",
+            ]
+        ).stdout.strip()
+
     show = _az(
-        ["containerapp", "env", "show", "-n", name, "-g", rg],
+        ["containerapp", "env", "show", "-n", name, "-g", rg,
+         "--query", "properties.appLogsConfiguration.destination",
+         "-o", "tsv"],
         check=False,
     )
     if show.returncode == 0:
+        current_dest = (show.stdout or "").strip().lower()
+        target_dest = logs.replace("-", "").lower() if logs != "none" else "none"
+        if current_dest == target_dest:
+            step(f"  env {name} already has logs_destination={logs}")
+            return name
+        step(f"  env {name} logs_destination change: "
+             f"{current_dest or 'none'} -> {logs}")
+        update_cmd = [
+            "containerapp", "env", "update",
+            "-n", name, "-g", rg,
+            "--logs-destination", logs,
+        ]
+        if logs == "log-analytics":
+            update_cmd += [
+                "--logs-workspace-id", workspace_customer_id,
+                "--logs-workspace-key", workspace_shared_key,
+            ]
+        _az(update_cmd)
         return name
+
     subnet_id = _az(
         [
             "network", "vnet", "subnet", "show",
@@ -561,16 +620,20 @@ def ensure_aca_environment(target, env: str) -> str:
             "--query", "id", "-o", "tsv",
         ]
     ).stdout.strip()
-    _az(
-        [
-            "containerapp", "env", "create",
-            "-n", name,
-            "-g", rg,
-            "--location", location,
-            "--infrastructure-subnet-resource-id", subnet_id,
-            "--logs-destination", "none",
+    create_cmd = [
+        "containerapp", "env", "create",
+        "-n", name,
+        "-g", rg,
+        "--location", location,
+        "--infrastructure-subnet-resource-id", subnet_id,
+        "--logs-destination", logs,
+    ]
+    if logs == "log-analytics":
+        create_cmd += [
+            "--logs-workspace-id", workspace_customer_id,
+            "--logs-workspace-key", workspace_shared_key,
         ]
-    )
+    _az(create_cmd)
     return name
 
 
@@ -707,26 +770,21 @@ def ensure_aca_job(
 
     command = "control_runner.py" if role == "control" else "worker_runner.py"
     # Entrypoint is baked in Dockerfile (bootstrap.py <runner>); override args only.
-    # ch_space_name feeds ChatHealthyLoggingService._MongoLogHandler's `target`
-    # field on every admin.ChatHealthyLogs_{env} document so operators can
-    # query per-tier per-env. pipeline_log_account_url is the storage
-    # account URL the observability gate probes to prove Storage
-    # connectivity (no default fallback in the lib -- required env).
-    ch_space_name = f"pipeline-{role}-{env}"
-    storage_account_name = block.get(
-        "pipeline_log_storage_account", "stchpipelinedev"
-    )
-    pipeline_log_account_url = (
-        f"https://{storage_account_name}.blob.core.windows.net"
-    )
-    env_vars = [
-        f"CHATHEALTHY_NODE_IDENTITY={node_identity}",
-        f"KEY_VAULT_URI={kv_uri}",
-        f"ENV_PREFIX={env}",
-        f"PIPELINE_WORKER_MODE={'control' if role == 'control' else 'worker'}",
-        f"CH_SPACE_NAME={ch_space_name}",
-        f"PIPELINE_LOG_ACCOUNT_URL={pipeline_log_account_url}",
-    ]
+    # Container env vars are the merge of:
+    #   1) computed shell facts (identity/KV URI/env prefix/worker mode)
+    #   2) baked env vars from manifest (default_apps_environment +
+    #      {role}_apps_environment merged at synth time by
+    #      target_record._resolve_apps_env_vars, carried on
+    #      azure_container_app_job.container_env_vars).
+    # Later overrides earlier on name collision.
+    env_vars_map: dict[str, str] = {
+        "CHATHEALTHY_NODE_IDENTITY": node_identity,
+        "KEY_VAULT_URI": kv_uri,
+        "ENV_PREFIX": env,
+        "PIPELINE_WORKER_MODE": "control" if role == "control" else "worker",
+    }
+    env_vars_map.update(block.get("container_env_vars") or {})
+    env_vars = [f"{k}={v}" for k, v in env_vars_map.items()]
 
     step(f"ensure ACA job {job} role={role}")
     show = _az(["containerapp", "job", "show", "-n", job, "-g", rg], check=False)

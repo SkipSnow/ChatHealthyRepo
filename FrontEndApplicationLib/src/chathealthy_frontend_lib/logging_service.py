@@ -218,16 +218,34 @@ class _MongoLogHandler(logging.Handler):
             self._in_emit.value = False
 
 
-def _maybe_build_mongo_handler() -> Optional[logging.Handler]:
-    """Build the Mongo handler when env supplies the needed bindings.
-    CH_SPACE_NAME (legacy name) carries the deploy target (HF Space
-    name or local container name) and lands in the Mongo doc as
-    `target` per the schema."""
+def _maybe_build_mongo_handler() -> logging.Handler:
+    """Build the Mongo handler. All three env bindings are required
+    (per operator directive 2026-07-19: "if you can't log to Mongo you
+    die"). Silent-skip on missing env was an anti-pattern that let
+    services boot with a broken observability surface; this now raises
+    ChatHealthyException so the caller aborts."""
     target = os.environ.get("CH_SPACE_NAME", "").strip()
     env = os.environ.get("ENV_PREFIX", "").strip()
     conn = os.environ.get("MONGO_FRONTEND_connectionString")
-    if not (conn and target and env):
-        return None
+    missing = []
+    if not conn:
+        missing.append("MONGO_FRONTEND_connectionString")
+    if not target:
+        missing.append("CH_SPACE_NAME")
+    if not env:
+        missing.append("ENV_PREFIX")
+    if missing:
+        raise ChatHealthyException(
+            mode="mongo_log_handler_env_unset",
+            message=(
+                "ChatHealthyLoggingService cannot wire the Mongo handler "
+                "because required env binding(s) are missing: "
+                f"{', '.join(missing)}. Operating without a durable "
+                "observability surface is a fatal configuration."
+            ),
+            component="ChatHealthyLoggingService",
+            missing=",".join(missing),
+        )
     h = _MongoLogHandler(env=env, target=target)
     # Share the file handler's _Formatter so `formatted` is byte-equivalent
     # to the file log line, including ChatHealthyException stacks.
