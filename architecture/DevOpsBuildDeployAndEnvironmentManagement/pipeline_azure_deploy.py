@@ -670,8 +670,8 @@ def build_and_push_job_image(
             "not set; bake_ca_chain_into_images must run before ACA job image "
             "builds (F-003 §7)."
         )
-    # Dockerfiles COPY from pipeline/Code context.
-    context = repo_root / "pipeline" / "Code"
+    # Dockerfiles COPY pipeline/Code + FrontEndApplicationLib from repo-root context.
+    context = repo_root
     image = f"{registry_name}.azurecr.io/{image_repository}:{tag}"
     # Idempotent: many ACA jobs share prov-control / prov-worker tags.
     existing = _az(
