@@ -99,9 +99,10 @@ class ObservabilityGate:
     def _verify_storage_reachable(self) -> None:
         """Prove we can reach the pipeline blob Storage account (where
         all IT + business data resides). Uses the container-run managed
-        identity via DefaultAzureCredential. `get_account_information`
-        is a lightweight read on the service endpoint that both
-        authenticates the credential AND confirms the account exists.
+        identity via DefaultAzureCredential. Probes via a data-plane
+        container list (Storage Blob Data Contributor / Reader), NOT
+        via get_account_information (which requires Storage Account
+        Contributor / Reader and Data Access — a different role).
         Account URL comes from PIPELINE_LOG_ACCOUNT_URL; no fallback
         (deploy chain sets it from manifest)."""
         account_url = os.environ.get(_STORAGE_ACCOUNT_URL_ENV, "").strip()
@@ -127,7 +128,8 @@ class ObservabilityGate:
                 account_url=account_url,
                 credential=DefaultAzureCredential(),
             )
-            info = client.get_account_information()
+            list(client.list_containers(results_per_page=1).by_page().__next__())
+            info = {"probe": "list_containers ok"}
         except ChatHealthyException as ch_exc:
             self._dump_to_stderr(ch_exc)
             raise
