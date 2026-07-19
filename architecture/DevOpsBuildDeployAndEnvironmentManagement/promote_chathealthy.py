@@ -94,17 +94,18 @@ def _promote_local_to_dev(repo_root: Path, label: str | None = None) -> int:
         return gate_rc
 
     status = _run_git(["status", "--porcelain"], repo_root).stdout.strip()
-    if not status:
-        print("[promote] nothing to commit; working tree clean")
-        return 0
-
-    print("[promote] staging modified + untracked files")
+    print("[promote] staging modified + untracked files"
+          if status else "[promote] working tree clean; will produce empty commit")
     _run_git(["add", "-A"], repo_root)
     auto = f"promote local -> dev ({datetime.now(timezone.utc).isoformat()})"
     msg = f"{label}\n\n{auto}" if label else auto
     print(f"[promote] commit: {msg}")
+    # --allow-empty so an operator invocation with no changes STILL
+    # produces a commit; that commit triggers the pre-commit hook and
+    # Rule-065 gates the promote invocation itself. Without this, a
+    # no-op promote silently bypasses every governed gate.
     result = subprocess.run(
-        ["git", "commit", "-m", msg],
+        ["git", "commit", "--allow-empty", "-m", msg],
         cwd=str(repo_root),
     )
     if result.returncode != 0:
